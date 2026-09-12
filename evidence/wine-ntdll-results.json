@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-12T21:31:47.704Z",
+  "date": "2026-09-12T21:45:43.984Z",
   "dll": {
     "name": "ntdll.dll",
     "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
     "bytes": 696334
   },
-  "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Not a Wine NT host or general application compatibility test.",
+  "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Includes limited NT host clock services, not general application compatibility.",
   "cases": [
     {
       "export": "RtlComputeCrc32",
@@ -51,6 +51,30 @@
       "expected": 3,
       "actual": 3,
       "passed": true
+    },
+    {
+      "export": "NtQuerySystemTime",
+      "status": 0,
+      "before": 1789249544029,
+      "after": 1789249544029,
+      "milliseconds": 1789249544029,
+      "invalidPointerStatus": 3221225477,
+      "passed": true
+    },
+    {
+      "export": "NtQueryPerformanceCounter",
+      "frequency": 1000000000,
+      "monotonic": true,
+      "passed": true
+    },
+    {
+      "export": "NtAllocateVirtualMemory/NtFreeVirtualMemory",
+      "base": 33554432,
+      "size": 8192,
+      "reserveCommitDecommitRecommitRelease": true,
+      "accessEnforced": true,
+      "recommitZeroed": true,
+      "passed": true
     }
   ],
   "modules": [
@@ -80,13 +104,31 @@
   ],
   "ntHostProbe": {
     "status": "blocked",
-    "export": "NtQuerySystemTime",
-    "error": "Execute outside code at 0x0",
-    "reason": "The unmodified Wine syscall stub calls its not-yet-installed Unix dispatcher pointer."
+    "export": "NtClose",
+    "error": "Unsupported Wine NT service NtClose",
+    "reason": "Clock dispatch works; NT handle/object services are not yet implemented."
+  },
+  "heapProbe": {
+    "status": "blocked",
+    "export": "RtlCreateHeap",
+    "error": "x86 block 0x101d005: Unsupported instruction movd xmm0,edi at 0x101d022",
+    "reason": "The guest heap reaches its NT allocations; SSE execution remains unsupported."
   },
   "status": "passed-selected-exports",
-  "blocks": 128,
-  "instructions": 737,
-  "compiledBlocks": 49,
-  "apiTrace": []
+  "blocks": 204,
+  "instructions": 1015,
+  "compiledBlocks": 88,
+  "apiTrace": [
+    "ntdll.dll!NtQuerySystemTime",
+    "ntdll.dll!NtQuerySystemTime",
+    "ntdll.dll!NtQueryPerformanceCounter",
+    "ntdll.dll!NtQueryPerformanceCounter",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtFreeVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtFreeVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory"
+  ]
 }

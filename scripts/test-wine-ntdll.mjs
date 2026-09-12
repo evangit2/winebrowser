@@ -18,7 +18,7 @@ const report = {
   date: new Date().toISOString(),
   dll: { name: 'ntdll.dll', sha256, bytes: bytes.length },
   scope:
-    'Whole unmodified Wine DLL: real process attach and selected pure exports. Not a Wine NT host or general application compatibility test.',
+    'Whole unmodified Wine DLL: real process attach and selected pure exports. Includes limited NT host clock services, not general application compatibility.',
   cases: [],
 };
 const runtime = new Runtime(iced, {
@@ -64,21 +64,105 @@ try {
     assert.equal(actual, expected);
     report.cases.push({ export: name, expected, actual, passed: true });
   }
-  // Preserve the actual next boundary: the Wine Unix syscall dispatcher has
-  // not been installed. A pure export pass must not conceal this limitation.
+  const time = runtime.allocate(8);
+  const queryTime = await runtime.resolveExport(module, 'NtQuerySystemTime');
+  const before = Date.now();
+  assert.equal(await runtime.callGuest(queryTime, [time]), 0);
+  const after = Date.now();
+  const milliseconds = Number(
+    (runtime.view.getBigInt64(time, true) - 116444736000000000n) / 10000n,
+  );
+  assert.ok(milliseconds >= before && milliseconds <= after);
+  assert.equal(await runtime.callGuest(queryTime, [0]), 0xc0000005);
+  report.cases.push({
+    export: 'NtQuerySystemTime',
+    status: 0,
+    before,
+    after,
+    milliseconds,
+    invalidPointerStatus: 0xc0000005,
+    passed: true,
+  });
+  const queryCounter = await runtime.resolveExport(module, 'NtQueryPerformanceCounter');
+  const frequency = runtime.allocate(8);
+  assert.equal(await runtime.callGuest(queryCounter, [time, frequency]), 0);
+  const firstCounter = runtime.view.getBigInt64(time, true);
+  assert.equal(runtime.view.getBigInt64(frequency, true), 1000000000n);
+  assert.equal(await runtime.callGuest(queryCounter, [time, 0]), 0);
+  assert.ok(runtime.view.getBigInt64(time, true) >= firstCounter);
+  report.cases.push({
+    export: 'NtQueryPerformanceCounter',
+    frequency: 1000000000,
+    monotonic: true,
+    passed: true,
+  });
+  const basePointer = runtime.allocate(4),
+    sizePointer = runtime.allocate(4);
+  const allocateMemory = await runtime.resolveExport(module, 'NtAllocateVirtualMemory');
+  const freeMemory = await runtime.resolveExport(module, 'NtFreeVirtualMemory');
+  runtime.write32(sizePointer, 8192);
+  assert.equal(
+    await runtime.callGuest(allocateMemory, [0xffffffff, basePointer, 0, sizePointer, 0x2000, 4]),
+    0,
+  );
+  const base = runtime.read32(basePointer);
+  assert.throws(() => runtime.read32(base), /read violation/);
+  assert.equal(
+    await runtime.callGuest(allocateMemory, [0xffffffff, basePointer, 0, sizePointer, 0x1000, 4]),
+    0,
+  );
+  assert.equal(runtime.read32(base), 0);
+  runtime.write32(base, 0x12345678);
+  assert.equal(
+    await runtime.callGuest(freeMemory, [0xffffffff, basePointer, sizePointer, 0x4000]),
+    0,
+  );
+  assert.throws(() => runtime.read32(base), /read violation/);
+  assert.equal(
+    await runtime.callGuest(allocateMemory, [0xffffffff, basePointer, 0, sizePointer, 0x1000, 4]),
+    0,
+  );
+  assert.equal(runtime.read32(base), 0);
+  runtime.write32(sizePointer, 0);
+  assert.equal(
+    await runtime.callGuest(freeMemory, [0xffffffff, basePointer, sizePointer, 0x8000]),
+    0,
+  );
+  assert.equal(runtime.read32(sizePointer), 8192);
+  assert.throws(() => runtime.read32(base), /read violation/);
+  report.cases.push({
+    export: 'NtAllocateVirtualMemory/NtFreeVirtualMemory',
+    base,
+    size: 8192,
+    reserveCommitDecommitRecommitRelease: true,
+    accessEnforced: true,
+    recommitZeroed: true,
+    passed: true,
+  });
   try {
-    const queryTime = await runtime.resolveExport(module, 'NtQuerySystemTime');
-    await runtime.callGuest(queryTime, [runtime.allocate(8)]);
-    report.ntHostProbe = { status: 'unexpectedly-returned', export: 'NtQuerySystemTime' };
-    throw Error('Reassess NT host evidence: the previously blocked syscall now returns');
+    const close = await runtime.resolveExport(module, 'NtClose');
+    await runtime.callGuest(close, [0x1234]);
+    throw Error('Reassess NT host evidence: previously unsupported service now returns');
   } catch (error) {
-    if (!error.message.includes('Execute outside code at 0x0')) throw error;
+    if (!error.message.includes('Unsupported Wine NT service NtClose')) throw error;
     report.ntHostProbe = {
       status: 'blocked',
-      export: 'NtQuerySystemTime',
+      export: 'NtClose',
       error: error.message,
-      reason:
-        'The unmodified Wine syscall stub calls its not-yet-installed Unix dispatcher pointer.',
+      reason: 'Clock dispatch works; NT handle/object services are not yet implemented.',
+    };
+  }
+  try {
+    const createHeap = await runtime.resolveExport(module, 'RtlCreateHeap');
+    await runtime.callGuest(createHeap, [0, 0, 0, 0, 0, 0]);
+    throw Error('Reassess heap evidence: previously blocked RtlCreateHeap now returns');
+  } catch (error) {
+    if (!error.message.includes('Unsupported instruction movd xmm0,edi')) throw error;
+    report.heapProbe = {
+      status: 'blocked',
+      export: 'RtlCreateHeap',
+      error: error.message,
+      reason: 'The guest heap reaches its NT allocations; SSE execution remains unsupported.',
     };
   }
   report.status = 'passed-selected-exports';

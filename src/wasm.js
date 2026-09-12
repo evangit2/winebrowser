@@ -41,6 +41,7 @@ export const Host = Object.freeze({
   condition: 5,
   shift: 6,
   wideMath: 7,
+  bitTest: 8,
 });
 const signatures = [
   [2, 1],
@@ -51,6 +52,7 @@ const signatures = [
   [1, 1],
   [4, 1],
   [3, 1],
+  [3, 0],
 ];
 const hostNames = Object.keys(Host);
 export function moduleBytes(code) {

@@ -30,24 +30,26 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 
 ## Maintainable boundaries
 
-| Module                              | Responsibility                                       |
-| ----------------------------------- | ---------------------------------------------------- |
-| `src/package.js`                    | ZIP validation, bounded expansion, virtual paths     |
-| `src/pe.js`                         | PE parsing, imports, image mapping                   |
-| `src/wasm.js`                       | Small binary Wasm module encoder                     |
-| `src/cpu.js`                        | x86 lowering, registers, flags, block cache          |
-| `src/memory.js`                     | Guest memory regions and checked accesses            |
-| `src/win32.js`                      | Replaceable bootstrap API provider                   |
-| `src/modules.js`                    | DLL graph, export resolution, relocation and linking |
-| `src/heap.js`                       | Guest allocation, free and coalescing                |
-| `src/win32-process.js`              | Process, module and UTF-16 host services             |
-| `src/win32-gdi.js`                  | Desktop DC, brush and raster host backend            |
-| `src/win32-audio.js`, `src/wave.js` | WinMM adapter and bounded PCM decoding               |
-| `src/runtime.js`                    | Process construction, import thunks, dispatch loop   |
-| `src/worker.js`                     | Package/run protocol and host requests               |
-| `src/storage.js`                    | OPFS package and output persistence                  |
-| `src/main.js`                       | Browser UI, user gestures, dialog/audio bridge       |
-| `demos/`, `tests/`                  | Native fixture sources and behavioral checks         |
+| Module                              | Responsibility                                        |
+| ----------------------------------- | ----------------------------------------------------- |
+| `src/package.js`                    | ZIP validation, bounded expansion, virtual paths      |
+| `src/pe.js`                         | PE parsing, imports, image mapping                    |
+| `src/wasm.js`                       | Small binary Wasm module encoder                      |
+| `src/cpu.js`                        | x86 lowering, registers, flags, block cache           |
+| `src/memory.js`                     | Guest memory regions and checked accesses             |
+| `src/win32.js`                      | Replaceable bootstrap API provider                    |
+| `src/modules.js`                    | DLL graph, export resolution, relocation and linking  |
+| `src/wine-nt.js`                    | Validated Wine syscall ABI and NT host services       |
+| `src/virtual-memory.js`             | Page reservations, commitment, protection and release |
+| `src/heap.js`                       | Guest allocation, free and coalescing                 |
+| `src/win32-process.js`              | Process, module and UTF-16 host services              |
+| `src/win32-gdi.js`                  | Desktop DC, brush and raster host backend             |
+| `src/win32-audio.js`, `src/wave.js` | WinMM adapter and bounded PCM decoding                |
+| `src/runtime.js`                    | Process construction, import thunks, dispatch loop    |
+| `src/worker.js`                     | Package/run protocol and host requests                |
+| `src/storage.js`                    | OPFS package and output persistence                   |
+| `src/main.js`                       | Browser UI, user gestures, dialog/audio bridge        |
+| `demos/`, `tests/`                  | Native fixture sources and behavioral checks          |
 
 Keep guest pointers as integer virtual addresses; never confuse them with host or Wasm-library pointers. New API families should get a provider with explicit ownership and unsupported behavior, rather than app-specific branches in the CPU. Tests should exercise observable guest behavior, including failure paths. See [architecture](docs/architecture.md), [reference study](docs/reference-study.md), and [test targets](docs/test-targets.md).
 
@@ -70,6 +72,6 @@ Rebuild native fixtures with `npm run build:demos` (MinGW i686 compiler and Pyth
 
 Studied [DirectWebGPU](https://github.com/evangit2/DirectWebGPU) and [Hamsterball](https://github.com/evangit2/Hamsterball). Their execution path translates x86 to Rust/Wasm ahead of time; Hamsterball decrypts a prebuilt payload using a supplied EXE. WineBrowser instead emits Wasm blocks in the browser. It reuses the MIT-licensed iced-x86 decoder and a small Hamsterball audio queue helper, and retains their worker/service separation as an architectural reference. Theseus runtime code and generated game payloads are not included. See [notices](THIRD_PARTY_NOTICES.md).
 
-The first Wine component integration is in [runtime/wine](runtime/wine/README.md), with retained LGPL source and rebuild instructions. An optional test also executes an entire unmodified installed Wine 11 i386 `ntdll.dll`, including its real DLL initialization, CRC32, string/memory comparison and NT-status conversion exports. The matching Chromium probe packages that DLL with unchanged winapiexec and verifies its CRC32 return. Set `WINEBROWSER_NTDLL` to the installed DLL path and run `npm run test:wine` or `npm run test:external`. The probe pins one DLL build by SHA-256; that binary is not distributed in this repo. `evidence/wine-ntdll-results.json` also records the next failed syscall boundary: Wine’s Unix dispatcher is not implemented. The next milestone is more independent executables and larger Wine modules, driven by the recorded blockers in [the target catalog](tests/targets.json). Broader CPU semantics and PE loading must advance alongside that work. WineD3D/vkd3d-shader, GDI, OpenGL and audio need separate browser backends and acceptance tests; importing their source does not automatically make them portable or compatible.
+The first Wine component integration is in [runtime/wine](runtime/wine/README.md), with retained LGPL source and rebuild instructions. An optional test also executes an entire unmodified installed Wine 11 i386 `ntdll.dll`, including its real DLL initialization, CRC32, string/memory comparison and NT-status conversion exports. The matching Chromium probe packages that DLL with unchanged winapiexec and verifies its CRC32 return. Set `WINEBROWSER_NTDLL` to the installed DLL path and run `npm run test:wine` or `npm run test:external`. The probe pins one DLL build by SHA-256; that binary is not distributed in this repo. The Wine i386 dispatcher now supplies real NT clock and bounded virtual-memory services. `evidence/wine-ntdll-results.json` verifies page lifecycle/access behavior and records the remaining NT handle and SSE heap blockers. The next milestone is more independent executables and larger Wine modules, driven by the recorded blockers in [the target catalog](tests/targets.json). Broader CPU semantics and PE loading must advance alongside that work. WineD3D/vkd3d-shader, GDI, OpenGL and audio need separate browser backends and acceptance tests; importing their source does not automatically make them portable or compatible.
 
 The interface is a plain test bench: no landing page, visual branding or product presentation. Independent executable evidence is recorded in `evidence/external-browser-results.json`; the target catalog distinguishes source-built samples from downloaded original binaries.

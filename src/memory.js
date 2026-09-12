@@ -9,16 +9,29 @@ export class GuestMemory {
 
   check(address, size, write = false) {
     address >>>= 0;
+    const permitted = (region) =>
+      region.read !== false && (!write || (region.write && !region.exec));
+    let cursor = address;
+    const end = address + size;
+    if (Number.isSafeInteger(size) && size > 0 && end <= this.data.length) {
+      while (cursor < end) {
+        let covered = cursor;
+        for (const region of this.regions)
+          if (permitted(region) && cursor >= region.start && cursor < region.end)
+            covered = Math.max(covered, Math.min(end, region.end));
+        if (covered === cursor) break;
+        cursor = covered;
+      }
+    }
     if (
       !Number.isSafeInteger(size) ||
       size < 0 ||
       address + size > this.data.length ||
-      !this.regions.some(
-        (region) =>
-          address >= region.start &&
-          address + size <= region.end &&
-          (!write || (region.write && !region.exec)),
-      )
+      (size > 0
+        ? cursor !== end
+        : !this.regions.some(
+            (region) => permitted(region) && address >= region.start && address <= region.end,
+          ))
     ) {
       throw Error(
         `Guest ${write ? 'write' : 'read'} violation at 0x${address.toString(16)} (${size} bytes)`,

@@ -119,9 +119,7 @@ export class ModuleGraph {
       const available = (base) =>
         base >= 0x10000 &&
         base + size < 0x2e00000 &&
-        ![...this.modules.values()].some(
-          (m) => m.mapped && base < m.base + m.pe.imageSize && base + size > m.base,
-        );
+        !regions.some((r) => base < r.end && base + size > r.start);
       let base = preferred;
       if (!available(base)) {
         base = this.nextBase;
@@ -132,6 +130,17 @@ export class ModuleGraph {
       module.pe = mapPE(module.pe, module.bytes, memory, base);
       module.base = base;
       module.mapped = true;
+      // Reserve image gaps too. Actual header/section regions below grant
+      // access; this guard only keeps virtual allocations out of the image.
+      regions.push({
+        start: base,
+        end: base + size,
+        read: false,
+        write: false,
+        exec: false,
+        kind: 'image-reservation',
+        module: module.name,
+      });
       regions.push({
         start: base,
         end: base + module.pe.headersSize,

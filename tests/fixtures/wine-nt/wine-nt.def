@@ -1,0 +1,8 @@
+LIBRARY ntdll.dll
+EXPORTS
+  __wine_syscall_dispatcher=wine_syscall_dispatcher DATA
+  NtAllocateVirtualMemory=NtAllocateVirtualMemory
+  NtFreeVirtualMemory=NtFreeVirtualMemory
+  NtQuerySystemTime=NtQuerySystemTime
+  NtQueryPerformanceCounter=NtQueryPerformanceCounter
+  NtClose=NtClose

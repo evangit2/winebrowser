@@ -45,6 +45,9 @@ export class CPU {
       shift: (value, count, kind, width) => this.shift(value, count, kind, width),
       wideMath: (operand, kind, width) => this.wideMath(operand, kind, width),
       condition: (c) => this.condition(c),
+      bitTest: (value, index, width) => {
+        this.f.cf = (value >>> (index & (width - 1))) & 1;
+      },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
   }
@@ -393,7 +396,26 @@ export class CPU {
           } else if (m === M.Cdq) code.push(...get(0), ...constant(31), 0x75, ...set(2));
           else if (m === M.Cwde)
             code.push(...get(0), ...constant(16), 0x74, ...constant(16), 0x75, ...set(0));
-          else if (m === M.Xchg) {
+          else if ([M.Bt, M.Bts, M.Btr, M.Btc].includes(m)) {
+            if (i.opCount !== 2 || i.opKind(0) !== K.Register)
+              throw Error('Memory bitstring operations unsupported');
+            const bits = width(i, 0);
+            if (![16, 32].includes(bits)) throw Error('BT register operand must be 16 or 32 bits');
+            const indexKind = i.opKind(1);
+            if (!((indexKind === K.Register && width(i, 1) === bits) || indexKind === K.Immediate8))
+              throw Error('BT bit index must be a same-width register or imm8');
+            code.push(...operand(i, 0), ...operand(i, 1), ...constant(bits), ...call(Host.bitTest));
+            if (m !== M.Bt) {
+              const mask = [...constant(1), ...operand(i, 1), ...constant(bits - 1), 0x71, 0x74];
+              const value =
+                m === M.Bts
+                  ? [...operand(i, 0), ...mask, 0x72]
+                  : m === M.Btr
+                    ? [...operand(i, 0), ...mask, ...constant(-1), 0x73, 0x71]
+                    : [...operand(i, 0), ...mask, 0x73];
+              code.push(...write(i, 0, value));
+            }
+          } else if (m === M.Xchg) {
             const memoryIndex = i.opKind(0) === K.Memory ? 0 : i.opKind(1) === K.Memory ? 1 : -1;
             if (memoryIndex !== -1) code.push(...addr(i), 0x21, 2);
             code.push(...operand(i, 0), 0x21, 0, ...operand(i, 1), 0x21, 1);

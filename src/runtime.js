@@ -1,4 +1,6 @@
 import { GuestHeap } from './heap.js';
+import { VirtualMemory } from './virtual-memory.js';
+import { installWineNtBridge, dispatchWineNt } from './wine-nt.js';
 import { flushGdi } from './win32-gdi.js';
 import { CPU } from './cpu.js';
 import { parsePE } from './pe.js';
@@ -53,6 +55,7 @@ export class Runtime {
     this.graph.map(this.memory, this.regions);
     this.pe = this.graph.main.pe;
     this.guestMemory = new GuestMemory(this.memory, this.regions);
+    this.virtualMemory = new VirtualMemory(this.memory, this.regions);
     this.view = this.guestMemory.view;
     this.data = this.guestMemory.data;
     this.cpu = new CPU(iced, {
@@ -109,12 +112,16 @@ export class Runtime {
     // stack, so the host shim pops the return address and removes arguments.
     const stackPointer = this.cpu.r[4].value >>> 0;
     const argument = (index) => this.read32(stackPointer + 4 + index * 4);
-    const handler = this.apiProvider.get(importKey(entry.dll, entry.name));
-    if (!handler) throw Error(`Unimplemented import ${importKey(entry.dll, entry.name)}`);
-
-    this.calls++;
-    if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
-    const { result, argc } = await handler(this, argument);
+    let response;
+    if (entry.kind === 'wine-nt') response = await dispatchWineNt(this, entry);
+    else {
+      const handler = this.apiProvider.get(importKey(entry.dll, entry.name));
+      if (!handler) throw Error(`Unimplemented import ${importKey(entry.dll, entry.name)}`);
+      this.calls++;
+      if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
+      response = await handler(this, argument);
+    }
+    const { result, argc } = response;
     const returnAddress = this.cpu.pop() >>> 0;
     this.cpu.r[4].value = (this.cpu.r[4].value + argc * 4) | 0;
     this.cpu.r[0].value = result | 0;
@@ -180,6 +187,7 @@ export class Runtime {
     }
   }
   async initializeModules() {
+    for (const module of this.graph.modules.values()) installWineNtBridge(this, module);
     for (const module of this.graph.initializationOrder()) {
       if (module.initialized || module.initializing) continue;
       module.initializing = true;
@@ -199,8 +207,7 @@ export class Runtime {
     }
   }
   async withModuleLoad(resolve, missingError = 126) {
-    const checkpoint = this.graph.checkpoint(),
-      regionCount = this.regions.length;
+    const checkpoint = this.graph.checkpoint();
     let guestStarted = false;
     try {
       const value = resolve();
@@ -228,8 +235,15 @@ export class Runtime {
       for (const module of this.graph.modules.values())
         if (module.mapped && !checkpoint.modules.get(module.name)?.state.mapped)
           this.data.fill(0, module.base, module.base + module.pe.imageSize);
+        else if (module.ntBridge && !checkpoint.modules.get(module.name)?.state.ntBridge)
+          this.write32(module.ntBridge.slot, 0);
       this.graph.restore(checkpoint);
-      this.regions.length = regionCount;
+      // DLL callbacks may have changed process virtual allocations. Remove
+      // only rolled-back images; preserve the memory manager's current state.
+      const retained = this.regions.filter(
+        (region) => !region.module || checkpoint.modules.get(region.module)?.state.mapped,
+      );
+      this.regions.splice(0, this.regions.length, ...retained);
       this.refreshCodeRanges();
       this.cpu.cache.clear(); // Compiled code may refer to unloaded guest addresses.
       if (!guestStarted) error.win32Error = missingError;

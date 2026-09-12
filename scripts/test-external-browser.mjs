@@ -712,7 +712,8 @@ try {
       dllExpectedSha256: expectedNtdllSha256,
       dllActualSha256: ntdllSha256,
       dllEntryPointRva: `0x${ntdllEntryPointRva.toString(16)}`,
-      scope: 'Executes a pure guest ntdll export; this does not establish NT syscall support.',
+      scope:
+        'Executes the whole guest ntdll with native initialization, one pure export, and limited clock/virtual-memory NT services. This is not general NT syscall or object support.',
     };
     await page.locator('#file').setInputFiles({
       name: 'winapiexec-wine-ntdll.zip',
@@ -772,11 +773,172 @@ try {
         initializedByNormalRuntime: !!ntdllModule?.initialized && ntdllEntryPointRva !== 0,
       },
       checks: ntdllChecks,
-      scope: report.binaries.wineNtdllPackage.scope,
+      scope:
+        'This CRC32 case executes pure guest code; the same package also exercises limited clock and virtual-memory NT service dispatch in later cases.',
     });
     if (ntdllChecks.some((check) => !check.passed))
       throw Error(
         `Wine ntdll CRC case failed: ${ntdllChecks
+          .filter((check) => !check.passed)
+          .map((check) => check.name)
+          .join(', ')}`,
+      );
+
+    async function runWineNtCase(id, args) {
+      await page.locator('#args').fill(JSON.stringify(args));
+      await page.locator('#run').click();
+      await page.waitForFunction(() => window.__lastRun !== null, {}, { timeout: 30000 });
+      return page.evaluate(() => ({
+        exitCode: window.__lastRun.exitCode,
+        apiTrace: window.__lastRun.apiTrace,
+        modules: window.__lastRun.modules,
+        outputs: window.__lastRun.outputs.map((output) => ({
+          path: output.path,
+          bytes: Array.from(output.bytes),
+        })),
+        metrics: document.getElementById('metrics').textContent,
+        logs: document.getElementById('logs').textContent,
+      }));
+    }
+
+    const clockArgs = [
+      'ntdll@NtQuerySystemTime',
+      '$b:8',
+      ',',
+      'CreateFileW',
+      'winebrowser-filetime.bin',
+      '0x40000000',
+      '0',
+      '0',
+      '2',
+      '0x80',
+      '0',
+      ',',
+      'WriteFile',
+      '$$:4',
+      '$$:2',
+      '8',
+      '$b:4',
+      '0',
+      ',',
+      'CloseHandle',
+      '$$:4',
+    ];
+    const clockBefore = Date.now();
+    const clockActual = await runWineNtCase('wine-ntdll-systemtime-file', clockArgs);
+    const clockAfter = Date.now();
+    const clockFile = clockActual.outputs.find((output) =>
+      output.path.endsWith('winebrowser-filetime.bin'),
+    );
+    const fileTime =
+      clockFile?.bytes.length === 8
+        ? clockFile.bytes.reduce(
+            (value, byte, index) => value | (BigInt(byte) << BigInt(index * 8)),
+            0n,
+          )
+        : null;
+    const fileTimeUnixMs =
+      fileTime === null ? null : Number(fileTime - 116444736000000000n) / 10000;
+    const clockModule = clockActual.modules.find((module) => module.name === 'ntdll.dll');
+    const clockChecks = [
+      { name: 'CloseHandle exit code 1', passed: clockActual.exitCode === 1 },
+      {
+        name: 'ntdll.dll!NtQuerySystemTime trace',
+        passed: clockActual.apiTrace.includes('ntdll.dll!NtQuerySystemTime'),
+      },
+      {
+        name: 'exact 8-byte FILETIME output in generated file',
+        passed: clockFile?.bytes.length === 8,
+      },
+      {
+        name: 'FILETIME matches current wall clock',
+        passed:
+          fileTimeUnixMs !== null && fileTimeUnixMs >= clockBefore && fileTimeUnixMs <= clockAfter,
+      },
+      {
+        name: 'guest ntdll loaded, initialized and relocated',
+        passed:
+          !!clockModule &&
+          !clockModule.host &&
+          clockModule.initialized &&
+          clockModule.preferredBase === 0x7bc00000 &&
+          clockModule.base !== clockModule.preferredBase,
+      },
+    ];
+    report.optionalCases.push({
+      id: 'wine-ntdll-systemtime-file',
+      status: clockChecks.every((check) => check.passed) ? 'passed' : 'failed',
+      optional: true,
+      binary: ntdllBinaryLabel,
+      args: clockArgs,
+      expectedFileBytes: '8-byte little-endian Windows FILETIME for current wall clock',
+      ...clockActual,
+      fileTime: fileTime === null ? null : `0x${fileTime.toString(16).padStart(16, '0')}`,
+      unixMilliseconds: fileTimeUnixMs,
+      wallClockWindow: { before: clockBefore, after: clockAfter },
+      ntdllModule: clockModule,
+      checks: clockChecks,
+      scope: 'Exercises the real Wine NtQuerySystemTime export through the NT dispatcher.',
+    });
+    if (clockChecks.some((check) => !check.passed))
+      throw Error(
+        `Wine NtQuerySystemTime browser case failed: ${clockChecks
+          .filter((check) => !check.passed)
+          .map((check) => check.name)
+          .join(', ')}`,
+      );
+
+    const memoryArgs = [
+      'ntdll@NtAllocateVirtualMemory',
+      '-1',
+      '$b:4',
+      '0',
+      '$a:8192',
+      '0x3000',
+      '4',
+      ',',
+      'ntdll@NtFreeVirtualMemory',
+      '-1',
+      '$$:3',
+      '$a:0',
+      '0x8000',
+    ];
+    const memoryActual = await runWineNtCase('wine-ntdll-allocate-free', memoryArgs);
+    const memoryModule = memoryActual.modules.find((module) => module.name === 'ntdll.dll');
+    const memoryChecks = [
+      { name: 'NtFreeVirtualMemory returns STATUS_SUCCESS', passed: memoryActual.exitCode === 0 },
+      {
+        name: 'ntdll allocate and free syscall traces',
+        passed:
+          memoryActual.apiTrace.includes('ntdll.dll!NtAllocateVirtualMemory') &&
+          memoryActual.apiTrace.includes('ntdll.dll!NtFreeVirtualMemory'),
+      },
+      {
+        name: 'guest ntdll remains initialized and relocated',
+        passed:
+          !!memoryModule &&
+          !memoryModule.host &&
+          memoryModule.initialized &&
+          memoryModule.preferredBase === 0x7bc00000 &&
+          memoryModule.base !== memoryModule.preferredBase,
+      },
+    ];
+    report.optionalCases.push({
+      id: 'wine-ntdll-allocate-free',
+      status: memoryChecks.every((check) => check.passed) ? 'passed' : 'failed',
+      optional: true,
+      binary: ntdllBinaryLabel,
+      args: memoryArgs,
+      expectedExitCode: 0,
+      ...memoryActual,
+      ntdllModule: memoryModule,
+      checks: memoryChecks,
+      scope:
+        'Exercises the real Wine NtAllocateVirtualMemory and NtFreeVirtualMemory exports through the NT dispatcher.',
+    });
+    if (memoryChecks.some((check) => !check.passed))
+      throw Error(
+        `Wine virtual-memory browser case failed: ${memoryChecks
           .filter((check) => !check.passed)
           .map((check) => check.name)
           .join(', ')}`,
