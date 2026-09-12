@@ -1,9 +1,20 @@
 // Direct x86 basic-block -> WebAssembly emitter. iced decodes; it does not execute.
 import { moduleBytes, constant, get, set, local, call, Host } from './wasm.js';
+import { classifySse, SIMDState } from './simd.js';
 export class CPU {
   constructor(
     iced,
-    { memory, read32, write32, read, write, executableRanges, stackTop = 0x3fff000, fsBase = 0 },
+    {
+      memory,
+      read32,
+      write32,
+      read,
+      write,
+      check,
+      executableRanges,
+      stackTop = 0x3fff000,
+      fsBase = 0,
+    },
   ) {
     if (typeof SharedArrayBuffer !== 'undefined' && memory.buffer instanceof SharedArrayBuffer)
       throw Error('Shared WebAssembly.Memory is unsupported until host atomics are implemented');
@@ -18,6 +29,20 @@ export class CPU {
     );
     this.r[4].value = stackTop;
     this.ranges = executableRanges;
+    this.checkMemory =
+      check ??
+      ((address, size) => {
+        address >>>= 0;
+        if (!Number.isSafeInteger(size) || size < 0 || address + size > memory.buffer.byteLength)
+          throw Error(`SIMD memory range violation at 0x${address.toString(16)} (${size} bytes)`);
+        return address;
+      });
+    this.simd = new SIMDState(this.r, {
+      read: (address, width) => (read ? read(address, width) : read32(address)),
+      write: (address, value, width) =>
+        write ? write(address, value, width) : write32(address, value),
+      check: (address, size, isWrite) => this.checkMemory(address, size, isWrite),
+    });
     this.cache = new Map();
     this.compiledBytes = 0;
     this.instructions = 0;
@@ -47,6 +72,44 @@ export class CPU {
       condition: (c) => this.condition(c),
       bitTest: (value, index, width) => {
         this.f.cf = (value >>> (index & (width - 1))) & 1;
+      },
+      simd: (op, dst, src, address, immediate) =>
+        this.simd.execute(op, dst, src, address, immediate),
+      bitScan: (value, previous, reverse) => {
+        this.f.zf = Number(value === 0);
+        // The zero-input destination and non-ZF flags are architecturally undefined;
+        // preserve them deterministically. Narrow sources are masked by operand().
+        if (!value) return previous;
+        return reverse ? 31 - Math.clz32(value) : 31 - Math.clz32(value & -value);
+      },
+      cmpxchg: (oldDestination, source, accumulator, bits, destinationRegister, shift, address) => {
+        const bytes = bits >>> 3;
+        if (![1, 2, 4].includes(bytes)) throw Error('CMPXCHG requires an 8/16/32-bit operand');
+        const mask = bits === 32 ? 0xffffffff : (1 << bits) - 1;
+        const oldValue = (oldDestination >>> 0) & mask;
+        const accValue = (accumulator >>> 0) & mask;
+        const srcValue = (source >>> 0) & mask;
+        const matched = accValue === oldValue;
+
+        if (destinationRegister < 0) {
+          // CMPXCHG is a write-cycle RMW operation even when comparison fails.
+          // Check first so a protection fault cannot partially update flags/regs.
+          this.checkMemory(address, bytes, true);
+          this.host.store(address >>> 0, matched ? srcValue : oldValue, bytes);
+        } else {
+          const fieldMask = (mask << shift) >>> 0;
+          const destination = this.r[destinationRegister].value >>> 0;
+          const result = matched ? srcValue : oldValue;
+          this.r[destinationRegister].value =
+            (destination & ~fieldMask) | ((result << shift) & fieldMask) | 0;
+        }
+
+        if (!matched) {
+          const wholeAccumulator = this.r[0].value >>> 0;
+          const fieldMask = (mask << 0) >>> 0;
+          this.r[0].value = (wholeAccumulator & ~fieldMask) | oldValue | 0;
+        }
+        this.flags(accValue, oldValue, (accValue - oldValue) & mask, 1, bits);
       },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
@@ -282,6 +345,7 @@ export class CPU {
           count++;
           if (i.isInvalid || next > range[1]) throw Error('Invalid or truncated x86 instruction');
           const m = i.mnemonic;
+          const simd = classifySse(i, this.iced);
           if (i.hasLockPrefix) {
             const lockable = [
               M.Add,
@@ -295,6 +359,7 @@ export class CPU {
               M.Dec,
               M.Neg,
               M.Not,
+              M.Cmpxchg,
             ].includes(m);
             const memoryDestination = i.opCount > 0 && i.opKind(0) === K.Memory;
             const memoryXchg =
@@ -303,8 +368,18 @@ export class CPU {
             if (!(memoryDestination && lockable) && !memoryXchg)
               throw Error('LOCK prefix requires a supported memory-destination RMW instruction');
           }
-          if (i.hasRepPrefix || i.hasRepnePrefix) throw Error('Repeat prefix unsupported');
-          if (m === M.Mov) code.push(...write(i, 0, operand(i, 1)));
+          if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd)
+            throw Error('Repeat prefix unsupported');
+          if (simd) {
+            code.push(
+              ...constant(simd.op | (simd.aligned ? 0x100 : 0)),
+              ...constant(simd.dst),
+              ...constant(simd.src),
+              ...(simd.addressOperand < 0 ? constant(0) : addr(i)),
+              ...constant(simd.immediate ?? 0),
+              ...call(Host.simd),
+            );
+          } else if (m === M.Mov) code.push(...write(i, 0, operand(i, 1)));
           else if (m === M.Movzx || m === M.Movsx) {
             let value = operand(i, 1);
             if (m === M.Movsx) {
@@ -396,7 +471,19 @@ export class CPU {
           } else if (m === M.Cdq) code.push(...get(0), ...constant(31), 0x75, ...set(2));
           else if (m === M.Cwde)
             code.push(...get(0), ...constant(16), 0x74, ...constant(16), 0x75, ...set(0));
-          else if ([M.Bt, M.Bts, M.Btr, M.Btc].includes(m)) {
+          else if (m === M.Bsf || m === M.Bsr) {
+            const bits = width(i, 0);
+            if (i.opKind(0) !== K.Register || ![16, 32].includes(bits) || width(i, 1) !== bits)
+              throw Error('Bit scan requires a 16/32-bit register destination and matching source');
+            code.push(
+              ...write(i, 0, [
+                ...operand(i, 1),
+                ...operand(i, 0),
+                ...constant(Number(m === M.Bsr)),
+                ...call(Host.bitScan),
+              ]),
+            );
+          } else if ([M.Bt, M.Bts, M.Btr, M.Btc].includes(m)) {
             if (i.opCount !== 2 || i.opKind(0) !== K.Register)
               throw Error('Memory bitstring operations unsupported');
             const bits = width(i, 0);
@@ -424,6 +511,27 @@ export class CPU {
                 ? [...local(2), ...val, ...constant(width(i, n) / 8), ...call(Host.store)]
                 : write(i, n, val);
             code.push(...swapWrite(0, local(1)), ...swapWrite(1, local(0)));
+          } else if (m === M.Cmpxchg) {
+            if (
+              i.opCount !== 2 ||
+              ![K.Register, K.Memory].includes(i.opKind(0)) ||
+              i.opKind(1) !== K.Register
+            )
+              throw Error('CMPXCHG requires a register or memory destination and register source');
+            const bits = width(i, 0);
+            if (![8, 16, 32].includes(bits) || width(i, 1) !== bits)
+              throw Error('CMPXCHG operands must have matching 8/16/32-bit widths');
+            const destination = i.opKind(0) === K.Register ? regInfo(i.opRegister(0)) : null;
+            code.push(
+              ...operand(i, 0),
+              ...operand(i, 1),
+              ...get(0),
+              ...constant(bits),
+              ...constant(destination?.index ?? -1),
+              ...constant(destination?.shift ?? 0),
+              ...(destination ? constant(0) : addr(i)),
+              ...call(Host.cmpxchg),
+            );
           } else if (m === M.Lea) code.push(...write(i, 0, addr(i, false)));
           else if (m === M.Push) {
             if (i.stackPointerIncrement !== -4) throw Error('16-bit PUSH unsupported');

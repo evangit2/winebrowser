@@ -1,6 +1,7 @@
 import { GuestHeap } from './heap.js';
 import { VirtualMemory } from './virtual-memory.js';
 import { installWineNtBridge, dispatchWineNt } from './wine-nt.js';
+import { initializeWineProcess, PEB_PROCESS_HEAP } from './wine-process.js';
 import { flushGdi } from './win32-gdi.js';
 import { CPU } from './cpu.js';
 import { parsePE } from './pe.js';
@@ -64,6 +65,7 @@ export class Runtime {
       write32: (a, v) => this.write32(a, v),
       read: (a, w) => this.guestMemory.read(a, w),
       write: (a, v, w) => this.guestMemory.write(a, v, w),
+      check: (address, size, write) => this.check(address, size, write),
       executableRanges: [],
       fsBase: 0x2e00000,
     });
@@ -80,6 +82,7 @@ export class Runtime {
     this.write32(0x2e00024, 1);
     this.write32(0x2e00030, 0x2e01000); // PEB; more fields supplied by future NT host support.
     this.write32(0x2e01008, this.pe.imageBase);
+    this.write32(0x2e01064, 1); // PEB.NumberOfProcessors: one logical guest processor.
     this.handles = new Map();
     this.nextHandle = 256;
     this.lastError = 0;
@@ -169,6 +172,7 @@ export class Runtime {
     if (++this.callDepth > 32) throw Error('Guest callback depth exceeded');
     const saved = this.cpu.r.map((r) => r.value),
       flags = { ...this.cpu.f },
+      simd = this.cpu.simd.snapshot(),
       sentinel = 0xffff0000 + this.callDepth * 16;
     try {
       for (const arg of [...args].reverse()) this.cpu.push(arg);
@@ -183,11 +187,14 @@ export class Runtime {
     } finally {
       saved.forEach((value, n) => (this.cpu.r[n].value = value));
       this.cpu.f = flags;
+      this.cpu.simd.restore(simd);
       this.callDepth--;
     }
   }
   async initializeModules() {
     for (const module of this.graph.modules.values()) installWineNtBridge(this, module);
+    const ntdll = this.graph.modules.get('ntdll.dll');
+    if (ntdll) await initializeWineProcess(this, ntdll);
     for (const module of this.graph.initializationOrder()) {
       if (module.initialized || module.initializing) continue;
       module.initializing = true;
@@ -208,6 +215,13 @@ export class Runtime {
   }
   async withModuleLoad(resolve, missingError = 126) {
     const checkpoint = this.graph.checkpoint();
+    const wineProcess = this.wineProcess,
+      processHeap = this.read32(PEB_PROCESS_HEAP);
+    const existingNtdll = checkpoint.modules.get('ntdll.dll')?.module;
+    const ntdllBeforeBootstrap =
+      !wineProcess && existingNtdll?.mapped
+        ? this.data.slice(existingNtdll.base, existingNtdll.base + existingNtdll.pe.imageSize)
+        : null;
     let guestStarted = false;
     try {
       const value = resolve();
@@ -237,7 +251,13 @@ export class Runtime {
           this.data.fill(0, module.base, module.base + module.pe.imageSize);
         else if (module.ntBridge && !checkpoint.modules.get(module.name)?.state.ntBridge)
           this.write32(module.ntBridge.slot, 0);
+      if (this.wineProcess && this.wineProcess !== wineProcess) {
+        for (const base of this.wineProcess.reservations) this.virtualMemory.free(base, 0, 0x8000);
+        if (ntdllBeforeBootstrap) this.data.set(ntdllBeforeBootstrap, existingNtdll.base);
+      }
       this.graph.restore(checkpoint);
+      this.wineProcess = wineProcess;
+      this.write32(PEB_PROCESS_HEAP, processHeap);
       // DLL callbacks may have changed process virtual allocations. Remove
       // only rolled-back images; preserve the memory manager's current state.
       const retained = this.regions.filter(

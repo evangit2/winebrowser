@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-12T21:45:43.984Z",
+  "date": "2026-09-12T22:12:45.961Z",
   "dll": {
     "name": "ntdll.dll",
     "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
     "bytes": 696334
   },
-  "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Includes limited NT host clock services, not general application compatibility.",
+  "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Includes NT clocks, virtual memory and the native Wine heap; not general application compatibility.",
   "cases": [
     {
       "export": "RtlComputeCrc32",
@@ -55,9 +55,9 @@
     {
       "export": "NtQuerySystemTime",
       "status": 0,
-      "before": 1789249544029,
-      "after": 1789249544029,
-      "milliseconds": 1789249544029,
+      "before": 1789251166060,
+      "after": 1789251166061,
+      "milliseconds": 1789251166061,
       "invalidPointerStatus": 3221225477,
       "passed": true
     },
@@ -69,11 +69,49 @@
     },
     {
       "export": "NtAllocateVirtualMemory/NtFreeVirtualMemory",
-      "base": 33554432,
+      "base": 33685504,
       "size": 8192,
       "reserveCommitDecommitRecommitRelease": true,
       "accessEnforced": true,
       "recommitZeroed": true,
+      "passed": true
+    },
+    {
+      "export": "RtlCreateHeap/RtlAllocateHeap/RtlFreeHeap/RtlDestroyHeap",
+      "processHeap": 33554432,
+      "privateHeap": 33685504,
+      "allocations": [
+        {
+          "pointer": 33686664,
+          "size": 32,
+          "pattern": 49
+        },
+        {
+          "pointer": 33686704,
+          "size": 64,
+          "pattern": 50
+        },
+        {
+          "pointer": 33686776,
+          "size": 1000,
+          "pattern": 51
+        },
+        {
+          "pointer": 33816608,
+          "size": 65536,
+          "pattern": 52
+        },
+        {
+          "pointer": 33882152,
+          "size": 200000,
+          "pattern": 53
+        }
+      ],
+      "zeroed": true,
+      "independentContents": true,
+      "privateHeapReservationsReleased": true,
+      "processHeapDestroyRefused": true,
+      "kernel32AndLegacyHeapInterop": true,
       "passed": true
     }
   ],
@@ -108,17 +146,14 @@
     "error": "Unsupported Wine NT service NtClose",
     "reason": "Clock dispatch works; NT handle/object services are not yet implemented."
   },
-  "heapProbe": {
-    "status": "blocked",
-    "export": "RtlCreateHeap",
-    "error": "x86 block 0x101d005: Unsupported instruction movd xmm0,edi at 0x101d022",
-    "reason": "The guest heap reaches its NT allocations; SSE execution remains unsupported."
-  },
   "status": "passed-selected-exports",
-  "blocks": 204,
-  "instructions": 1015,
-  "compiledBlocks": 88,
+  "blocks": 11694,
+  "instructions": 69288,
+  "compiledBlocks": 377,
   "apiTrace": [
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtQuerySystemTime",
     "ntdll.dll!NtQuerySystemTime",
     "ntdll.dll!NtQueryPerformanceCounter",
@@ -129,6 +164,13 @@
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtFreeVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
-    "ntdll.dll!NtAllocateVirtualMemory"
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtFreeVirtualMemory",
+    "ntdll.dll!NtFreeVirtualMemory",
+    "ntdll.dll!NtFreeVirtualMemory"
   ]
 }

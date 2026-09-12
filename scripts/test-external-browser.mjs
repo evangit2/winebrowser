@@ -713,7 +713,7 @@ try {
       dllActualSha256: ntdllSha256,
       dllEntryPointRva: `0x${ntdllEntryPointRva.toString(16)}`,
       scope:
-        'Executes the whole guest ntdll with native initialization, one pure export, and limited clock/virtual-memory NT services. This is not general NT syscall or object support.',
+        'Executes the whole guest ntdll with native initialization, one pure export, native heaps, and limited clock/virtual-memory NT services. This is not general NT syscall or object support.',
     };
     await page.locator('#file').setInputFiles({
       name: 'winapiexec-wine-ntdll.zip',
@@ -939,6 +939,141 @@ try {
     if (memoryChecks.some((check) => !check.passed))
       throw Error(
         `Wine virtual-memory browser case failed: ${memoryChecks
+          .filter((check) => !check.passed)
+          .map((check) => check.name)
+          .join(', ')}`,
+      );
+
+    const heapPrefixArgs = [
+      'ntdll@RtlCreateHeap',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+      ',',
+      'ntdll@RtlAllocateHeap',
+      '$$:1',
+      '8',
+      '32',
+      ',',
+    ];
+    const heapFileArgs = [
+      'CreateFileW',
+      'winebrowser-heap-zero.bin',
+      '0x40000000',
+      '0',
+      '0',
+      '2',
+      '0x80',
+      '0',
+      ',',
+      'WriteFile',
+      '$$:14',
+      '$$:9',
+      '32',
+      '$b:4',
+      '0',
+      ',',
+      'CloseHandle',
+      '$$:14',
+      ',',
+      'ntdll@RtlFreeHeap',
+      '$$:1',
+      '0',
+      '$$:9',
+    ];
+    const heapFreeArgs = [...heapPrefixArgs, ...heapFileArgs];
+    const heapFreeActual = await runWineNtCase('wine-ntdll-rtlheap-zero-free', heapFreeArgs);
+    const heapFile = heapFreeActual.outputs.find((output) =>
+      output.path.endsWith('winebrowser-heap-zero.bin'),
+    );
+    const heapModule = heapFreeActual.modules.find((module) => module.name === 'ntdll.dll');
+    const heapZeroChecks = [
+      { name: 'RtlFreeHeap returns 1', passed: heapFreeActual.exitCode === 1 },
+      {
+        name: 'RtlAllocateHeap zeroes all 32 requested bytes',
+        passed: heapFile?.bytes.length === 32 && heapFile.bytes.every((byte) => byte === 0),
+      },
+      {
+        name: 'guest ntdll loaded, initialized and relocated',
+        passed:
+          !!heapModule &&
+          !heapModule.host &&
+          heapModule.initialized &&
+          heapModule.preferredBase === 0x7bc00000 &&
+          heapModule.base !== heapModule.preferredBase,
+      },
+    ];
+    report.optionalCases.push({
+      id: 'wine-ntdll-rtlheap-zero-free',
+      status: heapZeroChecks.every((check) => check.passed) ? 'passed' : 'failed',
+      optional: true,
+      binary: ntdllBinaryLabel,
+      args: heapFreeArgs,
+      expectedExitCode: 1,
+      ...heapFreeActual,
+      zeroedHeapOutput: heapFile,
+      ntdllModule: heapModule,
+      checks: heapZeroChecks,
+      scope:
+        'Creates a private guest Wine heap, allocates 32 zeroed bytes, writes them to a generated file, and frees the allocation.',
+    });
+    if (heapZeroChecks.some((check) => !check.passed))
+      throw Error(
+        `Wine Rtl heap zero/free browser case failed: ${heapZeroChecks
+          .filter((check) => !check.passed)
+          .map((check) => check.name)
+          .join(', ')}`,
+      );
+
+    const heapDestroyArgs = [
+      ...heapPrefixArgs,
+      'ntdll@RtlFreeHeap',
+      '$$:1',
+      '0',
+      '$$:9',
+      ',',
+      'ntdll@RtlDestroyHeap',
+      '$$:1',
+    ];
+    const heapDestroyActual = await runWineNtCase('wine-ntdll-rtlheap-destroy', heapDestroyArgs);
+    const destroyModule = heapDestroyActual.modules.find((module) => module.name === 'ntdll.dll');
+    const destroyChecks = [
+      { name: 'RtlDestroyHeap returns 0', passed: heapDestroyActual.exitCode === 0 },
+      {
+        name: 'private heap allocation and destruction use NT memory services',
+        passed:
+          heapDestroyActual.apiTrace.includes('ntdll.dll!NtAllocateVirtualMemory') &&
+          heapDestroyActual.apiTrace.includes('ntdll.dll!NtFreeVirtualMemory'),
+      },
+      {
+        name: 'guest ntdll remains initialized and relocated',
+        passed:
+          !!destroyModule &&
+          !destroyModule.host &&
+          destroyModule.initialized &&
+          destroyModule.preferredBase === 0x7bc00000 &&
+          destroyModule.base !== destroyModule.preferredBase,
+      },
+    ];
+    report.optionalCases.push({
+      id: 'wine-ntdll-rtlheap-destroy',
+      status: destroyChecks.every((check) => check.passed) ? 'passed' : 'failed',
+      optional: true,
+      binary: ntdllBinaryLabel,
+      args: heapDestroyArgs,
+      expectedExitCode: 0,
+      ...heapDestroyActual,
+      ntdllModule: destroyModule,
+      checks: destroyChecks,
+      scope:
+        'Creates a private guest Wine heap, allocates and frees a block, and destroys the heap.',
+    });
+    if (destroyChecks.some((check) => !check.passed))
+      throw Error(
+        `Wine Rtl heap destroy browser case failed: ${destroyChecks
           .filter((check) => !check.passed)
           .map((check) => check.name)
           .join(', ')}`,

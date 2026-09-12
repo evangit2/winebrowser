@@ -18,7 +18,7 @@ const report = {
   date: new Date().toISOString(),
   dll: { name: 'ntdll.dll', sha256, bytes: bytes.length },
   scope:
-    'Whole unmodified Wine DLL: real process attach and selected pure exports. Includes limited NT host clock services, not general application compatibility.',
+    'Whole unmodified Wine DLL: real process attach and selected pure exports. Includes NT clocks, virtual memory and the native Wine heap; not general application compatibility.',
   cases: [],
 };
 const runtime = new Runtime(iced, {
@@ -152,19 +152,65 @@ try {
       reason: 'Clock dispatch works; NT handle/object services are not yet implemented.',
     };
   }
-  try {
-    const createHeap = await runtime.resolveExport(module, 'RtlCreateHeap');
-    await runtime.callGuest(createHeap, [0, 0, 0, 0, 0, 0]);
-    throw Error('Reassess heap evidence: previously blocked RtlCreateHeap now returns');
-  } catch (error) {
-    if (!error.message.includes('Unsupported instruction movd xmm0,edi')) throw error;
-    report.heapProbe = {
-      status: 'blocked',
-      export: 'RtlCreateHeap',
-      error: error.message,
-      reason: 'The guest heap reaches its NT allocations; SSE execution remains unsupported.',
-    };
+  const call = async (name, args) =>
+    runtime.callGuest(await runtime.resolveExport(module, name), args);
+  const processHeap = runtime.wineProcess.heap;
+  assert.equal(runtime.read32(0x2e01018), processHeap);
+  assert.equal(runtime.apiProvider.get('kernel32.dll!GetProcessHeap')(runtime).result, processHeap);
+  assert.equal(
+    await call('RtlDestroyHeap', [processHeap]),
+    processHeap,
+    'Wine refuses to destroy its process heap',
+  );
+  const reservationsBefore = [...runtime.virtualMemory.reservations.keys()];
+  const heap = await call('RtlCreateHeap', [0, 0, 0, 0, 0, 0]);
+  assert.ok(heap && heap !== processHeap);
+  const allocations = [];
+  for (const [index, size] of [32, 64, 1000, 65536, 200000].entries()) {
+    const pointer = await call('RtlAllocateHeap', [heap, 8, size]);
+    assert.ok(pointer, `allocate ${size} bytes`);
+    runtime.check(pointer, size, true);
+    assert.ok(runtime.data.subarray(pointer, pointer + size).every((byte) => byte === 0));
+    const pattern = 0x31 + index;
+    runtime.data.fill(pattern, pointer, pointer + size);
+    allocations.push({ pointer, size, pattern });
   }
+  for (const { pointer, size, pattern } of allocations) {
+    assert.ok(
+      runtime.data.subarray(pointer, pointer + size).every((byte) => byte === pattern),
+      'allocations retain independent contents',
+    );
+    assert.equal((await call('RtlFreeHeap', [heap, 0, pointer])) & 255, 1);
+  }
+  assert.equal(await call('RtlDestroyHeap', [heap]), 0);
+  assert.deepEqual(
+    [...runtime.virtualMemory.reservations.keys()],
+    reservationsBefore,
+    'destroying the private heap releases all its virtual reservations',
+  );
+  assert.throws(() => runtime.read32(heap), /read violation/);
+  // Kernel32 wrappers use the same native process heap; old host allocations
+  // remain valid on their original handle when Wine is loaded dynamically.
+  const allocate = runtime.apiProvider.get('kernel32.dll!HeapAlloc');
+  const free = runtime.apiProvider.get('kernel32.dll!HeapFree');
+  for (const handle of [processHeap, 0x50000000]) {
+    const { result: pointer } = await allocate(runtime, (i) => [handle, 8, 48][i]);
+    assert.ok(pointer);
+    assert.ok(runtime.data.subarray(pointer, pointer + 48).every((byte) => byte === 0));
+    assert.equal((await free(runtime, (i) => [handle, 0, pointer][i])).result, 1);
+  }
+  report.cases.push({
+    export: 'RtlCreateHeap/RtlAllocateHeap/RtlFreeHeap/RtlDestroyHeap',
+    processHeap,
+    privateHeap: heap,
+    allocations,
+    zeroed: true,
+    independentContents: true,
+    privateHeapReservationsReleased: true,
+    processHeapDestroyRefused: true,
+    kernel32AndLegacyHeapInterop: true,
+    passed: true,
+  });
   report.status = 'passed-selected-exports';
 } catch (error) {
   report.status = 'blocked';

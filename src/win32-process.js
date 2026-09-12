@@ -1,5 +1,6 @@
 // Browser host services needed by ordinary PE startup and Wine's guest helpers.
 // This file owns no guest instruction execution or PE parsing.
+import { callWineHeap } from './wine-process.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
   r.lastError = error;
@@ -61,11 +62,15 @@ function localFree(r, a) {
   }
   return ok(0, 1);
 }
-function heapAlloc(r, a) {
+async function heapAlloc(r, a) {
+  if (r.wineProcess && a(0) !== 0x50000000)
+    return ok(await callWineHeap(r, 'RtlAllocateHeap', [a(0), a(1), a(2)]), 3);
   if (a(0) !== 0x50000000 || a(1) & ~0xc) return fail(r, 87, 3);
   return ok(r.allocate(a(2), !!(a(1) & 8)), 3);
 }
-function heapFree(r, a) {
+async function heapFree(r, a) {
+  if (r.wineProcess && a(0) !== 0x50000000)
+    return ok((await callWineHeap(r, 'RtlFreeHeap', [a(0), a(1), a(2)])) & 0xff, 3);
   if (a(0) !== 0x50000000 || a(1)) return fail(r, 87, 3);
   return r.free(a(2)) ? ok(1, 3) : fail(r, 6, 3);
 }
@@ -183,7 +188,7 @@ async function messageWide(r, a) {
   );
 }
 export const processApis = {
-  'kernel32.dll!GetProcessHeap': () => ok(0x50000000),
+  'kernel32.dll!GetProcessHeap': (r) => ok(r.wineProcess?.heap ?? 0x50000000),
   'kernel32.dll!HeapAlloc': heapAlloc,
   'kernel32.dll!HeapFree': heapFree,
   'kernel32.dll!LocalAlloc': localAlloc,
