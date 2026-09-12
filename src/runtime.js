@@ -3,6 +3,7 @@ import { VirtualMemory } from './virtual-memory.js';
 import { installWineNtBridge, dispatchWineNt } from './wine-nt.js';
 import { initializeWineProcess, PEB_PROCESS_HEAP } from './wine-process.js';
 import { StaticTLS } from './tls.js';
+import { WindowManager } from './win32-windows.js';
 import { flushGdi } from './win32-gdi.js';
 import { CPU } from './cpu.js';
 import { parsePE } from './pe.js';
@@ -74,6 +75,7 @@ export class Runtime {
     this.thunks = this.graph.thunks;
     this.heap = new GuestHeap(this.memory);
     this.tls = new StaticTLS(this);
+    this.windows = new WindowManager(this);
     this.allocations = this.heap.allocations;
     this.callDepth = 0;
     this.write32(0x2e00000, 0xffffffff);
@@ -174,6 +176,7 @@ export class Runtime {
     if (++this.callDepth > 32) throw Error('Guest callback depth exceeded');
     const saved = this.cpu.r.map((r) => r.value),
       flags = { ...this.cpu.f },
+      direction = this.cpu.df,
       simd = this.cpu.simd.snapshot(),
       sentinel = 0xffff0000 + this.callDepth * 16;
     try {
@@ -189,6 +192,7 @@ export class Runtime {
     } finally {
       saved.forEach((value, n) => (this.cpu.r[n].value = value));
       this.cpu.f = flags;
+      this.cpu.df = direction;
       this.cpu.simd.restore(simd);
       this.callDepth--;
     }
@@ -304,6 +308,13 @@ export class Runtime {
     return this.graph.address(target);
   }
   async run() {
+    try {
+      return await this.#runProcess();
+    } finally {
+      this.windows.dispose();
+    }
+  }
+  async #runProcess() {
     const started = performance.now();
     await this.initializeModules();
     await this.tls.attach(this.graph.main);

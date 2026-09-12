@@ -33,6 +33,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
+          npm run test:windows
         env:
           BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

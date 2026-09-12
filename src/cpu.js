@@ -21,6 +21,7 @@ export class CPU {
     this.iced = iced;
     this.memory = memory;
     this.fsBase = fsBase;
+    this.df = 0;
     this.read32 = read32;
     this.write32 = write32;
     this.r = Array.from(
@@ -110,6 +111,32 @@ export class CPU {
           this.r[0].value = (wholeAccumulator & ~fieldMask) | oldValue | 0;
         }
         this.flags(accValue, oldValue, (accValue - oldValue) & mask, 1, bits);
+      },
+      direction: (value) => {
+        this.df = value ? 1 : 0;
+      },
+      string: (kind, bytes, repeated, sourceBase, at, next) => {
+        if (![1, 2, 4].includes(bytes) || ![0, 1].includes(kind))
+          throw Error('Unsupported string instruction width or operation');
+        if (![0, 1].includes(repeated)) throw Error('Invalid string repeat mode');
+        let remaining = repeated ? this.r[1].value >>> 0 : 1;
+        const count = Math.min(remaining, 1024);
+        const delta = this.df ? -bytes : bytes;
+        let completed = 0;
+        for (; completed < count; completed++) {
+          const source = (this.r[6].value + sourceBase) >>> 0;
+          const destination = this.r[7].value >>> 0;
+          if (kind === 0) this.checkMemory(source, bytes, false);
+          const value = kind === 0 ? this.host.load(source, bytes) : this.r[0].value;
+          this.checkMemory(destination, bytes, true);
+          this.host.store(destination, value, bytes);
+          if (kind === 0) this.r[6].value = (this.r[6].value + delta) | 0;
+          this.r[7].value = (this.r[7].value + delta) | 0;
+          if (repeated) this.r[1].value = ((this.r[1].value >>> 0) - 1) | 0;
+        }
+        if (completed > 1) this.instructions += completed - 1;
+        remaining -= completed;
+        return repeated && remaining ? at : next;
       },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
@@ -368,9 +395,43 @@ export class CPU {
             if (!(memoryDestination && lockable) && !memoryXchg)
               throw Error('LOCK prefix requires a supported memory-destination RMW instruction');
           }
-          if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd)
+          const stringMov = [M.Movsb, M.Movsw, M.Movsd].includes(m);
+          const stringStos = [M.Stosb, M.Stosw, M.Stosd].includes(m);
+          const stringOp = stringMov || stringStos;
+          if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp)
             throw Error('Repeat prefix unsupported');
-          if (simd) {
+          if (stringOp) {
+            if (i.hasRepnePrefix) throw Error('REPNE string operations are unsupported');
+            const raw = new Uint8Array(this.memory.buffer, at, next - at);
+            if (raw.includes(0x67)) throw Error('16-bit string address mode unsupported');
+            if (i.opCount !== 2 || i.opKind(0) !== K.MemoryESEDI)
+              throw Error('Unexpected string instruction operands');
+            if (stringMov && i.opKind(1) !== K.MemorySegESI)
+              throw Error('Unexpected MOVS source operand');
+            if (stringStos && i.opKind(1) !== K.Register)
+              throw Error('Unexpected STOS accumulator operand');
+            if (i.segmentPrefix !== R.None && i.segmentPrefix !== R.DS && i.segmentPrefix !== R.FS)
+              throw Error('Unsupported string source segment override');
+            if (i.segmentPrefix === R.FS && !this.fsBase)
+              throw Error('FS string source requires guest TEB');
+            const bytes = MemorySizeExt.size(i.memorySize);
+            if (![1, 2, 4].includes(bytes)) throw Error('Unsupported string operand width');
+            const sourceBase = stringMov && i.segmentPrefix === R.FS ? this.fsBase : 0;
+            code.push(
+              ...constant(stringMov ? 0 : 1),
+              ...constant(bytes),
+              ...constant(i.hasRepPrefix ? 1 : 0),
+              ...constant(sourceBase),
+              ...constant(at),
+              ...constant(next),
+              ...call(Host.string),
+              0x0f,
+            );
+            break;
+          } else if (m === M.Cld || m === M.Std) {
+            if (i.hasRepPrefix || i.hasRepnePrefix) throw Error('Repeat prefix unsupported');
+            code.push(...constant(m === M.Std ? 1 : 0), ...call(Host.direction));
+          } else if (simd) {
             code.push(
               ...constant(simd.op | (simd.aligned ? 0x100 : 0)),
               ...constant(simd.dst),

@@ -79,4 +79,5 @@ manifest = {"format": 1, "architecture": "x86 (PE32)", "fixtures": items}
 (root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
+bash "$ROOT/scripts/build-window-demo.sh"
 echo "Built deterministic demo fixtures in $OUT"

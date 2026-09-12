@@ -15,6 +15,7 @@ async function callbackRuntime(fail) {
   // A separate block faults after changing XMM3, exercising exceptional cleanup.
   bytes.set(
     [
+      0xfd, // STD: callback-local direction flag must be restored too.
       0xb8,
       0x78,
       0x56,
@@ -51,6 +52,7 @@ for (const fail of [false, true]) {
       registers,
     );
     assert.deepEqual(runtime.cpu.f, flags);
+    assert.equal(runtime.cpu.df, 0);
     assert.equal(runtime.callDepth, 0);
   });
 }

@@ -68,5 +68,16 @@
       "zipSha256": "7b829dbd37687926edc8fc50f3fa04738555c909ab0e4773517c2e45b3f1adf3"
     }
   ],
-  "format": 1
+  "format": 1,
+  "interactive": [
+    {
+      "description": "Native Win32 Breakout: arrows or mouse, Space pauses, R restarts. Close both windows to exit.",
+      "exe": "breakout/breakout.exe",
+      "exeSha256": "0bc782b0302f912668762e362c61c8843061d14e19c40b06c7cf82350bc2436e",
+      "name": "breakout",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable.",
+      "zip": "breakout.zip",
+      "zipSha256": "996ae2fdd0fd940c3c44eec5c986858ec992244ce3480d9707401be4af311314"
+    }
+  ]
 }

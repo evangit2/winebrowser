@@ -4,6 +4,13 @@ const DESKTOP_WINDOW = 0x101;
 const STOCK_WHITE_BRUSH = 0x11001;
 const STOCK_BLACK_BRUSH = 0x11002;
 const STOCK_NULL_BRUSH = 0x11003;
+const STOCK_LTGRAY_BRUSH = 0x11004;
+const STOCK_GRAY_BRUSH = 0x11005;
+const STOCK_DKGRAY_BRUSH = 0x11006;
+const MAX_WINDOW_WIDTH = 1024;
+const MAX_WINDOW_HEIGHT = 768;
+const MAX_WINDOW_SURFACES = 8;
+const MAX_TOTAL_SURFACE_PIXELS = 16 * 1024 * 1024;
 const PATCOPY = 0x00f00021;
 const BLACKNESS = 0x00000042;
 const WHITENESS = 0x00ff0062;
@@ -13,6 +20,39 @@ const ERROR_INVALID_PARAMETER = 87;
 const ERROR_NOT_ENOUGH_MEMORY = 8;
 const ERROR_INVALID_WINDOW_HANDLE = 1400;
 const CLR_INVALID = 0xffffffff;
+const SYSTEM_COLORS = [
+  0xc0c0c0, // COLOR_SCROLLBAR
+  0x000000, // COLOR_BACKGROUND
+  0x6a240a, // COLOR_ACTIVECAPTION
+  0x808080, // COLOR_INACTIVECAPTION
+  0xc0c0c0, // COLOR_MENU
+  0xffffff, // COLOR_WINDOW
+  0x000000, // COLOR_WINDOWFRAME
+  0x000000, // COLOR_MENUTEXT
+  0x000000, // COLOR_WINDOWTEXT
+  0xffffff, // COLOR_CAPTIONTEXT
+  0xc0c0c0, // COLOR_ACTIVEBORDER
+  0xc0c0c0, // COLOR_INACTIVEBORDER
+  0x808080, // COLOR_APPWORKSPACE
+  0x802000, // COLOR_HIGHLIGHT
+  0xffffff, // COLOR_HIGHLIGHTTEXT
+  0xc0c0c0, // COLOR_BTNFACE
+  0x808080, // COLOR_BTNSHADOW
+  0x808080, // COLOR_GRAYTEXT
+  0x000000, // COLOR_BTNTEXT
+  0xc0c0c0, // COLOR_INACTIVECAPTIONTEXT
+  0xffffff, // COLOR_BTNHIGHLIGHT
+  0x404040, // COLOR_3DDKSHADOW
+  0xe3e3e3, // COLOR_3DLIGHT
+  0x000000, // COLOR_INFOTEXT
+  0xe1ffff, // COLOR_INFOBK
+  0x000000, // reserved
+  0xff0000, // COLOR_HOTLIGHT
+  0x6a240a, // COLOR_GRADIENTACTIVECAPTION
+  0x808080, // COLOR_GRADIENTINACTIVECAPTION
+  0x802000, // COLOR_MENUHILIGHT
+  0xc0c0c0, // COLOR_MENUBAR
+];
 
 const states = new WeakMap();
 
@@ -25,25 +65,40 @@ function failure(runtime, error, result = 0, argc = 0) {
   return success(result, argc);
 }
 
+function opaquePixels(width, height) {
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let i = 3; i < pixels.length; i += 4) pixels[i] = 255;
+  return pixels;
+}
+
 function stateFor(runtime) {
   if (!runtime || (typeof runtime !== 'object' && typeof runtime !== 'function'))
     throw new TypeError('GDI APIs require a runtime object');
   let state = states.get(runtime);
   if (!state) {
-    const pixels = new Uint8ClampedArray(WIDTH * HEIGHT * 4);
-    for (let i = 3; i < pixels.length; i += 4) pixels[i] = 255;
+    const pixels = opaquePixels(WIDTH, HEIGHT);
     const brushes = new Map([
       [STOCK_WHITE_BRUSH, { kind: 'brush', stock: true, color: 0xffffff }],
       [STOCK_BLACK_BRUSH, { kind: 'brush', stock: true, color: 0x000000 }],
       [STOCK_NULL_BRUSH, { kind: 'brush', stock: true, null: true }],
+      [STOCK_LTGRAY_BRUSH, { kind: 'brush', stock: true, color: 0x00c0c0c0 }],
+      [STOCK_GRAY_BRUSH, { kind: 'brush', stock: true, color: 0x00808080 }],
+      [STOCK_DKGRAY_BRUSH, { kind: 'brush', stock: true, color: 0x00404040 }],
     ]);
+    for (let index = 0; index < SYSTEM_COLORS.length; index++)
+      brushes.set(index + 1, {
+        kind: 'brush',
+        stock: true,
+        color: SYSTEM_COLORS[index],
+        systemColor: index,
+      });
     state = {
-      width: WIDTH,
-      height: HEIGHT,
-      pixels,
-      dirty: true,
+      desktopSurface: { width: WIDTH, height: HEIGHT, pixels, dirty: true },
+      desktopActive: false,
       brushes,
       dcs: new Map(),
+      windowSurfaces: new Map(),
+      stockBrushCount: brushes.size,
       nextHandle: 0x12000,
     };
     states.set(runtime, state);
@@ -52,7 +107,10 @@ function stateFor(runtime) {
 }
 
 function allocateHandle(runtime, state, argc) {
-  if (state.dcs.size + state.brushes.size - 3 >= 4096 || state.nextHandle >= 0x10000000)
+  if (
+    state.dcs.size + state.brushes.size - state.stockBrushCount >= 4096 ||
+    state.nextHandle >= 0x10000000
+  )
     return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, argc);
   const handle = state.nextHandle++ >>> 0;
   return success(handle, argc);
@@ -71,9 +129,17 @@ function rgbColorRef(rgb) {
   return ((rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
 }
 
-function getDc(state, handle) {
+function getDc(runtime, state, handle) {
   const dc = state.dcs.get(handle >>> 0);
-  return dc?.active ? dc : null;
+  if (!dc?.active) return null;
+  if (dc.hwnd === 0 || dc.hwnd === DESKTOP_WINDOW) dc.surface = state.desktopSurface;
+  else {
+    const window = runtime.windows?.windows?.get(dc.hwnd);
+    const surface = state.windowSurfaces.get(dc.hwnd);
+    if (!window || !surface) return null;
+    dc.surface = surface;
+  }
+  return dc;
 }
 
 function getBrush(state, handle) {
@@ -143,15 +209,23 @@ function readRect(runtime, address) {
 }
 
 function getDesktopWindow(runtime) {
-  stateFor(runtime);
+  stateFor(runtime).desktopActive = true;
   return success(DESKTOP_WINDOW);
 }
 
 function getDC(runtime, argument) {
   const state = stateFor(runtime);
   const hwnd = argument(0) >>> 0;
-  if (hwnd !== 0 && hwnd !== DESKTOP_WINDOW)
-    return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
+  if (hwnd === 0 || hwnd === DESKTOP_WINDOW) state.desktopActive = true;
+  if (hwnd !== 0 && hwnd !== DESKTOP_WINDOW) {
+    const window = runtime.windows?.windows?.get(hwnd);
+    if (!window) return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
+    if (
+      !state.windowSurfaces.has(hwnd) &&
+      !resizeWindowSurface(runtime, hwnd, window.width, window.height)
+    )
+      return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 1);
+  }
   const allocated = allocateHandle(runtime, state, 1);
   if (!allocated.result) return allocated;
   const handle = allocated.result;
@@ -159,11 +233,72 @@ function getDC(runtime, argument) {
   return allocated;
 }
 
+/** Resize or create the client-area bitmap backing a virtual HWND. */
+export function resizeWindowSurface(runtime, id, width, height) {
+  const hwnd = id >>> 0;
+  const window = runtime?.windows?.windows?.get(hwnd);
+  if (
+    !Number.isInteger(id) ||
+    id < 1 ||
+    id > 0xffffffff ||
+    hwnd === 0 ||
+    hwnd === DESKTOP_WINDOW ||
+    !window ||
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width < 1 ||
+    height < 1 ||
+    width > MAX_WINDOW_WIDTH ||
+    height > MAX_WINDOW_HEIGHT
+  )
+    return false;
+
+  const state = stateFor(runtime);
+  const oldSurface = state.windowSurfaces.get(hwnd);
+  if (oldSurface?.width === width && oldSurface?.height === height) return true;
+  if (!oldSurface && state.windowSurfaces.size >= MAX_WINDOW_SURFACES) return false;
+  const totalPixels =
+    state.desktopSurface.width * state.desktopSurface.height +
+    [...state.windowSurfaces.values()].reduce(
+      (sum, surface) => sum + surface.width * surface.height,
+      0,
+    ) -
+    (oldSurface ? oldSurface.width * oldSurface.height : 0) +
+    width * height;
+  if (totalPixels > MAX_TOTAL_SURFACE_PIXELS) return false;
+
+  const pixels = opaquePixels(width, height);
+  if (oldSurface) {
+    const copyWidth = Math.min(width, oldSurface.width);
+    const copyHeight = Math.min(height, oldSurface.height);
+    for (let y = 0; y < copyHeight; y++) {
+      const oldOffset = y * oldSurface.width * 4;
+      const newOffset = y * width * 4;
+      pixels.set(oldSurface.pixels.subarray(oldOffset, oldOffset + copyWidth * 4), newOffset);
+    }
+  }
+  const surface = { width, height, pixels, dirty: true, windowId: hwnd };
+  state.windowSurfaces.set(hwnd, surface);
+  for (const dc of state.dcs.values()) if (dc.active && dc.hwnd === hwnd) dc.surface = surface;
+  return true;
+}
+
+/** Release a guest HWND's framebuffer and any DCs acquired from that window. */
+export function destroyWindowSurface(runtime, id) {
+  const hwnd = id >>> 0;
+  if (!Number.isInteger(id) || id < 1 || id > 0xffffffff || hwnd === DESKTOP_WINDOW) return false;
+  const state = states.get(runtime);
+  if (!state?.windowSurfaces.has(hwnd)) return false;
+  state.windowSurfaces.delete(hwnd);
+  for (const [handle, dc] of state.dcs) if (dc.hwnd === hwnd) state.dcs.delete(handle);
+  return true;
+}
+
 function releaseDC(runtime, argument) {
   const state = stateFor(runtime);
   const hwnd = argument(0) >>> 0;
   const handle = argument(1) >>> 0;
-  const dc = getDc(state, handle);
+  const dc = getDc(runtime, state, handle);
   if (!dc || dc.hwnd !== hwnd) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
   dc.active = false;
   state.dcs.delete(handle);
@@ -184,14 +319,15 @@ function createSolidBrush(runtime, argument) {
 
 function getStockObject(runtime, argument) {
   const index = argument(0) >>> 0;
-  const handle =
-    index === 0
-      ? STOCK_WHITE_BRUSH
-      : index === 4
-        ? STOCK_BLACK_BRUSH
-        : index === 5
-          ? STOCK_NULL_BRUSH
-          : 0;
+  const handles = [
+    STOCK_WHITE_BRUSH,
+    STOCK_LTGRAY_BRUSH,
+    STOCK_GRAY_BRUSH,
+    STOCK_DKGRAY_BRUSH,
+    STOCK_BLACK_BRUSH,
+    STOCK_NULL_BRUSH,
+  ];
+  const handle = handles[index] ?? 0;
   if (!handle) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
   stateFor(runtime);
   return success(handle, 1);
@@ -199,7 +335,7 @@ function getStockObject(runtime, argument) {
 
 function selectObject(runtime, argument) {
   const state = stateFor(runtime);
-  const dc = getDc(state, argument(0));
+  const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 2);
   const object = getBrush(state, argument(1));
   if (!object) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
@@ -222,7 +358,7 @@ function deleteObject(runtime, argument) {
 
 function fillRect(runtime, argument) {
   const state = stateFor(runtime);
-  const dc = getDc(state, argument(0));
+  const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 3);
   const rect = readRect(runtime, argument(1));
   if (!rect) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
@@ -230,14 +366,14 @@ function fillRect(runtime, argument) {
   if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
   const [left, top, right, bottom] = rect;
   if (right < left || bottom < top) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
-  paintRect(state, left, top, right, bottom, brush);
+  paintRect(dc.surface, left, top, right, bottom, brush);
   // FillRect includes left/top and excludes right/bottom edges.
   return success(1, 3);
 }
 
 function patBlt(runtime, argument) {
   const state = stateFor(runtime);
-  const dc = getDc(state, argument(0));
+  const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 6);
   const x = signed(argument(1));
   const y = signed(argument(2));
@@ -254,25 +390,26 @@ function patBlt(runtime, argument) {
   else if (rop === WHITENESS) brush = { color: 0xffffff };
   else if (rop === DSTINVERT) operation = 'invert';
   else throw Error(`Unsupported PatBlt raster operation 0x${rop.toString(16)}`);
-  paintRect(state, x, y, x + width, y + height, brush, operation);
+  paintRect(dc.surface, x, y, x + width, y + height, brush, operation);
   return success(1, 6);
 }
 
 function setPixel(runtime, argument) {
   const state = stateFor(runtime);
-  const dc = getDc(state, argument(0));
+  const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 4, CLR_INVALID);
+  const surface = dc.surface;
   const x = signed(argument(1)),
     y = signed(argument(2));
-  if (x < 0 || y < 0 || x >= state.width || y >= state.height)
+  if (x < 0 || y < 0 || x >= surface.width || y >= surface.height)
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
   const color = argument(3) >>> 0;
   if (color & 0xff000000) return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
   const rgb = colorRgb(color);
-  const offset = (y * state.width + x) * 4;
-  const pixels = state.pixels;
+  const offset = (y * surface.width + x) * 4;
+  const pixels = surface.pixels;
   if (pixels[offset] !== rgb[0] || pixels[offset + 1] !== rgb[1] || pixels[offset + 2] !== rgb[2])
-    state.dirty = true;
+    surface.dirty = true;
   pixels[offset] = rgb[0];
   pixels[offset + 1] = rgb[1];
   pixels[offset + 2] = rgb[2];
@@ -282,13 +419,29 @@ function setPixel(runtime, argument) {
 
 function getPixel(runtime, argument) {
   const state = stateFor(runtime);
-  if (!getDc(state, argument(0))) return badDc(runtime, 3, CLR_INVALID);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 3, CLR_INVALID);
+  const surface = dc.surface;
   const x = signed(argument(1)),
     y = signed(argument(2));
-  if (x < 0 || y < 0 || x >= state.width || y >= state.height)
+  if (x < 0 || y < 0 || x >= surface.width || y >= surface.height)
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 3);
-  const offset = (y * state.width + x) * 4;
-  return success(rgbColorRef(state.pixels.subarray(offset, offset + 3)), 3);
+  const offset = (y * surface.width + x) * 4;
+  return success(rgbColorRef(surface.pixels.subarray(offset, offset + 3)), 3);
+}
+
+function getSysColor(runtime, argument) {
+  const index = argument(0) >>> 0;
+  return index < SYSTEM_COLORS.length
+    ? success(SYSTEM_COLORS[index], 1)
+    : failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
+}
+
+function getSysColorBrush(runtime, argument) {
+  const index = argument(0) >>> 0;
+  if (index >= SYSTEM_COLORS.length) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
+  stateFor(runtime);
+  return success(index + 1, 1);
 }
 
 export const gdiApis = {
@@ -296,6 +449,8 @@ export const gdiApis = {
   'user32.dll!GetDC': getDC,
   'user32.dll!ReleaseDC': releaseDC,
   'user32.dll!FillRect': fillRect,
+  'user32.dll!GetSysColor': getSysColor,
+  'user32.dll!GetSysColorBrush': getSysColorBrush,
   'gdi32.dll!CreateSolidBrush': createSolidBrush,
   'gdi32.dll!GetStockObject': getStockObject,
   'gdi32.dll!SelectObject': selectObject,
@@ -305,17 +460,32 @@ export const gdiApis = {
   'gdi32.dll!GetPixel': getPixel,
 };
 
-/** Emit one copied RGBA frame when drawing changed the virtual desktop. */
+/** Emit copied RGBA frames for the desktop and dirty guest client areas. */
 export function flushGdi(runtime) {
   const state = states.get(runtime);
-  if (!state?.dirty) return null;
-  const frame = {
-    type: 'frame',
-    width: state.width,
-    height: state.height,
-    pixels: new Uint8ClampedArray(state.pixels),
-  };
-  state.dirty = false;
-  runtime.emit?.(frame);
-  return frame;
+  if (!state) return null;
+  const desktop = state.desktopSurface;
+  const frames = [];
+  if (state.desktopActive && desktop.dirty) {
+    frames.push({
+      type: 'frame',
+      width: desktop.width,
+      height: desktop.height,
+      pixels: new Uint8ClampedArray(desktop.pixels),
+    });
+    desktop.dirty = false;
+  }
+  for (const surface of state.windowSurfaces.values()) {
+    if (!surface.dirty) continue;
+    frames.push({
+      type: 'frame',
+      windowId: surface.windowId,
+      width: surface.width,
+      height: surface.height,
+      pixels: new Uint8ClampedArray(surface.pixels),
+    });
+    surface.dirty = false;
+  }
+  for (const frame of frames) runtime.emit?.(frame);
+  return frames[0] ?? null;
 }

@@ -3,6 +3,7 @@ import wineLibrary from '../runtime/wine/manifest.json';
 import { inspect, Runtime } from './runtime.js';
 import { packageId, savePackage, saveOutputs } from './storage.js';
 let pkg,
+  activeRuntime,
   id,
   iced,
   builtinFiles = new Map(),
@@ -17,6 +18,10 @@ const request = (kind, detail) =>
     emit({ type: 'request', kind, token, ...detail });
   });
 onmessage = async ({ data }) => {
+  if (data.type === 'input') {
+    if (data.event && typeof data.event.type === 'string') activeRuntime?.windows.input(data.event);
+    return;
+  }
   if (data.type === 'reply') {
     pending.get(data.token)?.(data.value);
     pending.delete(data.token);
@@ -66,7 +71,13 @@ onmessage = async ({ data }) => {
         emit,
         request,
       });
-      const result = await runtime.run();
+      activeRuntime = runtime;
+      let result;
+      try {
+        result = await runtime.run();
+      } finally {
+        activeRuntime = null;
+      }
       try {
         await saveOutputs(id, result.outputs);
       } catch (e) {

@@ -20,6 +20,10 @@ These examples demonstrate specific tested behavior, not broad Windows compatibi
 
 ## Run
 
+**Interactive native game:** [Breakout EXE](https://evangit2.github.io/winebrowser/demos/breakout/breakout.exe) or [ZIP](https://evangit2.github.io/winebrowser/demos/breakout.zip). In the live harness, choose **Load breakout**, then **Run executable**. Use the arrow keys or mouse to move the paddle, Space to pause, and R to restart. The game opens two independent guest windows; drag their title bars, resize their corners, and close both to exit. This is an original MIT-licensed Win32 C program compiled to PE32, with [source](demos/breakout/main.c) and a reproducible build. The release binaries of Tetris and Minesweeper are tracked separately and remain blocked.
+
+The virtual desktop currently hosts one guest process with up to eight top-level windows, independent client framebuffers, a guest message queue, timers, and keyboard/mouse events. A new package replaces the previous process. See [window runtime scope and tests](docs/window-runtime.md).
+
 For local development, requires Node.js 22.12+ or 24+, and modern Chromium.
 
 ```sh
@@ -80,6 +84,8 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 | `src/storage.js`                    | OPFS package and output persistence                   |
 | `src/main.js`                       | Browser UI, user gestures, dialog/audio bridge        |
 | `src/isolation.js`                  | Static-host service worker activation and reload      |
+| `src/win32-windows.js`              | Guest window lifecycle, messages, input and timers    |
+| `src/desktop.js`                    | Browser window frames and input forwarding            |
 | `demos/`, `tests/`                  | Native fixture sources and behavioral checks          |
 
 Keep guest pointers as integer virtual addresses; never confuse them with host or Wasm-library pointers. New API families should get a provider with explicit ownership and unsupported behavior, rather than app-specific branches in the CPU. Tests should exercise observable guest behavior, including failure paths. See [architecture](docs/architecture.md), [reference study](docs/reference-study.md), and [test targets](docs/test-targets.md).

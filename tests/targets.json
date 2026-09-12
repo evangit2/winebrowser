@@ -318,7 +318,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "TLS-directory parsing now succeeds. Static import inspection exposes 306 unresolved imports across GUI, COM, registry, thread and other services; no GUI execution is claimed."
+      "statusNote": "TLS-directory parsing now succeeds. Static import inspection exposes 271 unresolved imports across GUI, COM, registry, thread and other services; no GUI execution is claimed."
     },
     {
       "id": "sgi-opengl-minimal-x86",
@@ -354,7 +354,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens a Win32 window and draws an OpenGL triangle; close it to quit",
-      "statusNote": "Source-built upstream OpenGL sample, not a project fixture. TLS-directory parsing now succeeds, exposing 68 unresolved imports including API-set CRT, windowing and WGL/OpenGL services. Cache-only because the archived source page has no separate license notice. No rendering execution is claimed."
+      "statusNote": "Source-built upstream OpenGL sample, not a project fixture. TLS-directory parsing now succeeds, exposing 55 unresolved imports including API-set CRT, windowing and WGL/OpenGL services. Cache-only because the archived source page has no separate license notice. No rendering execution is claimed."
     },
     {
       "id": "humus-inferno-d3d10-x86",
@@ -387,6 +387,64 @@
       "args": [],
       "expected": "loads the supplied Inferno shaders/textures and opens its Direct3D 10 demo window",
       "statusNote": "Static import closure is unresolved: ADVAPI32, MSVCR80, DXGI, and D3D10 are missing; SHELL32 lacks SHGetSpecialFolderPathA, and the image imports unsupported threading/window/clipboard APIs. No execution claimed."
+    },
+    {
+      "id": "wesmar-tetris-2026-07-x86",
+      "status": "blocked",
+      "path": ".cache/targets/wesmar-tetris-x86.exe",
+      "bytes": 16384,
+      "sha256": "3687bc1cfe9a7657ca9da1daacec9f97a92946f0b0440acdb70d3a71a4560007",
+      "architecture": "x86",
+      "imports": ["KERNEL32.dll", "USER32.dll", "GDI32.dll", "ADVAPI32.dll", "SHELL32.dll"],
+      "downloadEntry": "tetris.exe",
+      "source": {
+        "project": "wesmar/Tetris",
+        "version": "07.2026 release (tag latest)",
+        "url": "https://github.com/wesmar/Tetris",
+        "downloadUrl": "https://github.com/wesmar/Tetris/releases/download/latest/tetris.exe",
+        "license": "MIT",
+        "licenseUrl": "https://github.com/wesmar/Tetris/blob/19ffc5849931f4419230efb596be7f967b31a11c/LICENSE.md",
+        "upstreamCommit": "19ffc5849931f4419230efb596be7f967b31a11c"
+      },
+      "use": "Small freestanding PE32 GUI game (16 KB, no CRT) using virtual-window APIs, keyboard messages, GDI double-buffering, registry persistence, and shell icon loading.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "opens a playable Tetris window, draws the board, and responds to the documented keyboard controls",
+      "statusNote": "Not run in the browser. Static import inspection reports unresolved ADVAPI32 registry imports, SHELL32 ExtractIconA, plus unsupported GDI drawing/text, accelerator-table, and window APIs. Virtual window surfaces alone are not enough to claim this game works."
+    },
+    {
+      "id": "wesmar-minesweeper-2026-02-x86",
+      "status": "blocked",
+      "path": ".cache/targets/wesmar-minesweeper-x86.exe",
+      "bytes": 29696,
+      "sha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
+      "architecture": "x86",
+      "imports": [
+        "SHELL32.dll",
+        "COMCTL32.dll",
+        "WINMM.dll",
+        "dwmapi.dll",
+        "KERNEL32.dll",
+        "USER32.dll",
+        "GDI32.dll",
+        "ADVAPI32.dll"
+      ],
+      "downloadEntry": "MineSweeper_x86.exe",
+      "source": {
+        "project": "wesmar/minesweeper",
+        "version": "2026-02 initial release (tag minesweeper)",
+        "url": "https://github.com/wesmar/minesweeper",
+        "downloadUrl": "https://github.com/wesmar/minesweeper/releases/download/minesweeper/MineSweeper.zip",
+        "archiveSha256": "4f4d19f5004d5f70d2f94c2063928595dcedd47f730d7f0dd2e949d89874e547",
+        "license": "MIT",
+        "licenseUrl": "https://github.com/wesmar/minesweeper/blob/a950b89de6946faa360dcd5febfcb4206a877af1/LICENSE",
+        "upstreamCommit": "a950b89de6946faa360dcd5febfcb4206a877af1"
+      },
+      "use": "Small freestanding PE32 GUI game (29,696 bytes, no CRT) using Win32 dialog/menu controls, vector GDI painting, common controls, and DWM APIs.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "opens a playable Minesweeper window and responds to mouse input",
+      "statusNote": "Not run in the browser. Static import inspection reports missing COMCTL32, DWMAPI, and ADVAPI32 modules; missing SHELL32 exports; and unsupported dialog/menu/control plus GDI drawing/text APIs. The release ZIP contains only x64 and x86 executables, so no separate asset is required."
     }
   ]
 }

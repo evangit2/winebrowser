@@ -1,8 +1,12 @@
 import './style.css';
 import { audioQueueNeedsReset } from './audio-scheduling.js';
 import { ensureIsolation } from './isolation.js';
+import { VirtualDesktop } from './desktop.js';
 
 const $ = (id) => document.getElementById(id);
+const desktop = new VirtualDesktop($('desktop'), (event) =>
+  worker?.postMessage({ type: 'input', event }),
+);
 let worker,
   entries = [],
   audio,
@@ -57,6 +61,8 @@ function reply(source, message, value) {
 
 function createWorker() {
   worker?.terminate();
+  desktop.reset();
+  $('desktop').hidden = true;
   stopAudio(false);
   worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
   const instance = worker;
@@ -85,7 +91,12 @@ function createWorker() {
       stdout += message.text;
       $('output').textContent = stdout.slice(-64000);
     }
-    if (message.type === 'frame') {
+    if (message.type === 'window') {
+      $('desktop').hidden = false;
+      desktop.update(message);
+    }
+    if (message.type === 'frame' && message.windowId) desktop.frame(message);
+    if (message.type === 'frame' && !message.windowId) {
       const canvas = $('display');
       canvas.hidden = false;
       if (canvas.width !== message.width) canvas.width = message.width;
@@ -309,6 +320,8 @@ $('run').onclick = async () => {
 $('stop').onclick = () => {
   worker?.terminate();
   worker = null;
+  desktop.reset();
+  $('desktop').hidden = true;
   entries = [];
   $('messagebox').close();
   $('selection').hidden = true;
@@ -484,9 +497,10 @@ async function initialize() {
   if (!response.ok) throw Error('Fixture manifest unavailable');
   manifest = await response.json();
   $('demos').replaceChildren(
-    ...manifest.fixtures.map((fixture) => {
+    ...[...manifest.fixtures, ...(manifest.interactive ?? [])].map((fixture) => {
       const button = document.createElement('button');
       button.textContent = `Load ${fixture.name}`;
+      button.title = fixture.description ?? fixture.name;
       button.dataset.demo = fixture.name;
       button.onclick = async () => {
         try {

@@ -1,0 +1,94 @@
+.virtual-desktop {
+  position: relative;
+  overflow: auto;
+  height: 768px;
+  width: 100%;
+  outline: none;
+  background: #333;
+}
+
+.virtual-desktop-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border: 1px solid #222;
+  background: #fff;
+  color: #111;
+  box-shadow: 1px 2px 5px #0007;
+}
+
+.virtual-desktop-window[hidden] {
+  display: none;
+}
+
+.virtual-desktop-window.is-focused {
+  border-color: #111;
+}
+
+.virtual-desktop-titlebar {
+  display: flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  height: 28px;
+  margin: 0;
+  padding-left: 8px;
+  background: #ddd;
+  border-bottom: 1px solid #aaa;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+}
+
+.virtual-desktop-window.is-focused .virtual-desktop-titlebar {
+  background: #c9c9c9;
+}
+
+.virtual-desktop-title {
+  overflow: hidden;
+  font: 12px/1.2 sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.virtual-desktop-close {
+  width: 25px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: 16px/1 sans-serif;
+  cursor: pointer;
+}
+
+.virtual-desktop-close:hover {
+  background: #bbb;
+}
+
+.virtual-desktop-viewport {
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: #000;
+}
+
+.virtual-desktop-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  image-rendering: pixelated;
+  cursor: default;
+}
+
+.virtual-desktop-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+  touch-action: none;
+}

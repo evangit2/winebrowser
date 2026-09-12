@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-12T23:22:19.386Z",
+  "url": "http://127.0.0.1:4194/winebrowser/",
+  "browser": "152.0.7977.84",
+  "nativeGame": "breakout",
+  "windows": 2,
+  "animation": true,
+  "keyboardPause": true,
+  "mousePaddle": true,
+  "keyboardPaddle": true,
+  "drag": true,
+  "resize": true,
+  "guestClose": true,
+  "exitCode": 0,
+  "errors": []
+}

@@ -1,6 +1,7 @@
 import { processApis } from './win32-process.js';
 import { audioApis } from './win32-audio.js';
 import { gdiApis } from './win32-gdi.js';
+import { windowApis } from './win32-windows.js';
 import { normalizePath } from './package.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
@@ -29,6 +30,7 @@ for (const key of [
   ...Object.keys(processApis),
   ...Object.keys(audioApis),
   ...Object.keys(gdiApis),
+  ...Object.keys(windowApis),
 ]) {
   const [dll, name] = key.split('!');
   API_NAMES[dll] ??= [];
@@ -209,6 +211,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(processApis),
     ...Object.entries(audioApis),
     ...Object.entries(gdiApis),
+    ...Object.entries(windowApis),
     ['kernel32.dll!ExitProcess', exitProcess],
     ['kernel32.dll!GetStdHandle', getStdHandle],
     ['kernel32.dll!WriteFile', writeFile],

@@ -11,6 +11,8 @@
     "test": "node --test tests/*.test.js",
     "test:browser": "node scripts/test-browser.mjs",
     "test:pages": "node scripts/test-pages.mjs",
+    "test:windows": "node scripts/test-windows-browser.mjs",
+    "build:windows": "bash scripts/build-window-demo.sh",
     "serve:pages": "node scripts/serve-pages.mjs",
     "build:demos": "bash scripts/build-demos.sh",
     "predev": "node scripts/prepare-decoder.mjs",
