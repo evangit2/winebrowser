@@ -1,0 +1,92 @@
+{
+  "date": "2026-09-12T21:31:47.704Z",
+  "dll": {
+    "name": "ntdll.dll",
+    "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
+    "bytes": 696334
+  },
+  "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Not a Wine NT host or general application compatibility test.",
+  "cases": [
+    {
+      "export": "RtlComputeCrc32",
+      "input": "",
+      "expected": 0,
+      "actual": 0,
+      "passed": true
+    },
+    {
+      "export": "RtlComputeCrc32",
+      "input": "123456789",
+      "expected": 3421780262,
+      "actual": 3421780262,
+      "passed": true
+    },
+    {
+      "export": "RtlComputeCrc32",
+      "input": "hello",
+      "expected": 907060870,
+      "actual": 907060870,
+      "passed": true
+    },
+    {
+      "export": "strlen",
+      "expected": 14,
+      "actual": 14,
+      "passed": true
+    },
+    {
+      "export": "RtlNtStatusToDosError",
+      "expected": 2,
+      "actual": 2,
+      "passed": true
+    },
+    {
+      "export": "RtlNtStatusToDosError",
+      "expected": 87,
+      "actual": 87,
+      "passed": true
+    },
+    {
+      "export": "RtlCompareMemory",
+      "expected": 3,
+      "actual": 3,
+      "passed": true
+    }
+  ],
+  "modules": [
+    {
+      "name": "console.exe",
+      "host": false,
+      "base": 4194304,
+      "preferredBase": 4194304,
+      "refs": 1,
+      "initialized": false
+    },
+    {
+      "name": "kernel32.dll",
+      "host": true,
+      "base": 1879113728,
+      "refs": 1,
+      "initialized": true
+    },
+    {
+      "name": "ntdll.dll",
+      "host": false,
+      "base": 16777216,
+      "preferredBase": 2076180480,
+      "refs": 1,
+      "initialized": true
+    }
+  ],
+  "ntHostProbe": {
+    "status": "blocked",
+    "export": "NtQuerySystemTime",
+    "error": "Execute outside code at 0x0",
+    "reason": "The unmodified Wine syscall stub calls its not-yet-installed Unix dispatcher pointer."
+  },
+  "status": "passed-selected-exports",
+  "blocks": 128,
+  "instructions": 737,
+  "compiledBlocks": 49,
+  "apiTrace": []
+}

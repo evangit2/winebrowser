@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T21:23:58.151Z",
+  "date": "2026-09-12T21:30:15.655Z",
   "target": {
     "id": "winapiexec-1.2-x86",
     "path": ".cache/targets/winapiexec.exe",
@@ -25,7 +25,7 @@
     "winapiexecPcmPackage": {
       "id": "winapiexec-1.2-x86+generated-pcm-test-data",
       "archive": "winapiexec-pcm.zip",
-      "archiveSha256": "705b7a8685b3d10b7d14ec0ce1e9948a6ea2ff2f3bb4e5911d0b74333c7cbd44",
+      "archiveSha256": "8e26572dc477be1db96c1022027907cd19d832b709912675776e59d8d1fed5ab",
       "executableId": "winapiexec-1.2-x86",
       "executablePath": ".cache/targets/winapiexec.exe",
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
@@ -119,6 +119,24 @@
           -0.25
         ]
       }
+    },
+    "wineNtdllPackage": {
+      "id": "winapiexec-1.2-x86+verified-wine-ntdll",
+      "archive": "winapiexec-wine-ntdll.zip",
+      "archiveSha256": "d2853697f56831180e6de42c35dae3256c762cfed945763245758f631cbdfda2",
+      "entries": [
+        "winapiexec.exe",
+        "ntdll.dll"
+      ],
+      "executableId": "winapiexec-1.2-x86",
+      "executablePath": ".cache/targets/winapiexec.exe",
+      "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+      "dllPath": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/ntdll.dll",
+      "dllBytes": 696334,
+      "dllExpectedSha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
+      "dllActualSha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
+      "dllEntryPointRva": "0x109b0",
+      "scope": "Executes a pure guest ntdll export; this does not establish NT syscall support."
     }
   },
   "cases": [
@@ -178,7 +196,7 @@
           "initialized": true
         }
       ],
-      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 37.9 ms",
+      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 42.5 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -263,7 +281,7 @@
           "initialized": true
         }
       ],
-      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 30.4 ms",
+      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 28.3 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -323,7 +341,7 @@
           "initialized": true
         }
       ],
-      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 66.8 ms",
+      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 70.2 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": {
         "title": "External target",
@@ -384,13 +402,13 @@
           "initialized": true
         }
       ],
-      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 32.8 ms",
+      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 33.2 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "tone": {
         "frequency": 440,
         "gain": 0.11999999731779099,
-        "start": 0.35733333333333334,
-        "stop": 0.37733333333333335,
+        "start": 0.368,
+        "stop": 0.388,
         "durationMs": 20
       },
       "dialog": null,
@@ -446,7 +464,7 @@
         }
       ],
       "stdout": "",
-      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 62.1 ms",
+      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 62.2 ms",
       "expectedTrace": [
         "LoadLibraryA",
         "GetProcAddress",
@@ -479,7 +497,7 @@
         "0x20002"
       ],
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
-      "generatedArchiveSha256": "705b7a8685b3d10b7d14ec0ce1e9948a6ea2ff2f3bb4e5911d0b74333c7cbd44",
+      "generatedArchiveSha256": "8e26572dc477be1db96c1022027907cd19d832b709912675776e59d8d1fed5ab",
       "audioFixture": {
         "path": "tone.wav",
         "format": "PCM WAV",
@@ -574,7 +592,7 @@
         "created": true,
         "started": true,
         "ended": true,
-        "startedAt": 1255.015000000596,
+        "startedAt": 1224.8949999958277,
         "numberOfChannels": 1,
         "sampleRate": 8000,
         "length": 80,
@@ -660,7 +678,7 @@
           0.25,
           -0.25
         ],
-        "endedAt": 1262.780000001192
+        "endedAt": 1230.655000001192
       },
       "exitCode": 1,
       "apiTrace": [
@@ -720,14 +738,14 @@
         }
       ],
       "stdout": "",
-      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 38.7 ms",
-      "completedAt": 1278.7950000017881,
+      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 41.3 ms",
+      "completedAt": 1248.0549999922514,
       "bufferSources": [
         {
           "created": true,
           "started": true,
           "ended": true,
-          "startedAt": 1255.015000000596,
+          "startedAt": 1224.8949999958277,
           "numberOfChannels": 1,
           "sampleRate": 8000,
           "length": 80,
@@ -813,7 +831,7 @@
             0.25,
             -0.25
           ],
-          "endedAt": 1262.780000001192
+          "endedAt": 1230.655000001192
         }
       ],
       "checks": [
@@ -1021,7 +1039,7 @@
         "SetPixel",
         "ReleaseDC"
       ],
-      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 36.3 ms",
+      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 38.3 ms",
       "checks": [
         {
           "name": "exit code 1",
@@ -1045,6 +1063,110 @@
         }
       ],
       "passed": true
+    }
+  ],
+  "optionalCases": [
+    {
+      "id": "wine-ntdll-rtlcomputecrc32",
+      "status": "passed",
+      "optional": true,
+      "binary": "winapiexec-1.2-x86+verified-wine-ntdll",
+      "args": [
+        "ntdll@RtlComputeCrc32",
+        "0",
+        "$s:123456789",
+        "9"
+      ],
+      "expectedExitCode": "0xcbf43926",
+      "exitCode": 3421780262,
+      "apiTrace": [
+        "kernel32.dll!GetCommandLineW",
+        "kernel32.dll!lstrlenW",
+        "kernel32.dll!LocalAlloc",
+        "kernel32.dll!lstrcpyW",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!LoadLibraryW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!lstrcpyA",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "kernel32.dll!ExitProcess"
+      ],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "ntdll.dll",
+          "host": false,
+          "base": 16842752,
+          "preferredBase": 2076180480,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "metrics": "155 Wasm blocks · 2682 x86 instructions · 21 API calls · 46.5 ms",
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
+      "ntdllModule": {
+        "name": "ntdll.dll",
+        "host": false,
+        "base": 16842752,
+        "preferredBase": 2076180480,
+        "refs": 1,
+        "initialized": true
+      },
+      "nativeDllMain": {
+        "entryPointRva": "0x109b0",
+        "initializedByNormalRuntime": true
+      },
+      "checks": [
+        {
+          "name": "RtlComputeCrc32 returns 0xcbf43926",
+          "passed": true
+        },
+        {
+          "name": "guest ntdll loaded, initialized and relocated",
+          "passed": true
+        }
+      ],
+      "scope": "Executes a pure guest ntdll export; this does not establish NT syscall support."
     }
   ],
   "errors": [],

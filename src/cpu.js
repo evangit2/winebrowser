@@ -5,6 +5,8 @@ export class CPU {
     iced,
     { memory, read32, write32, read, write, executableRanges, stackTop = 0x3fff000, fsBase = 0 },
   ) {
+    if (typeof SharedArrayBuffer !== 'undefined' && memory.buffer instanceof SharedArrayBuffer)
+      throw Error('Shared WebAssembly.Memory is unsupported until host atomics are implemented');
     this.iced = iced;
     this.memory = memory;
     this.fsBase = fsBase;
@@ -276,9 +278,29 @@ export class CPU {
           end = next;
           count++;
           if (i.isInvalid || next > range[1]) throw Error('Invalid or truncated x86 instruction');
-          if (i.hasLockPrefix || i.hasRepPrefix || i.hasRepnePrefix)
-            throw Error('Atomic/repeat prefix unsupported');
           const m = i.mnemonic;
+          if (i.hasLockPrefix) {
+            const lockable = [
+              M.Add,
+              M.Adc,
+              M.And,
+              M.Or,
+              M.Sbb,
+              M.Sub,
+              M.Xor,
+              M.Inc,
+              M.Dec,
+              M.Neg,
+              M.Not,
+            ].includes(m);
+            const memoryDestination = i.opCount > 0 && i.opKind(0) === K.Memory;
+            const memoryXchg =
+              m === M.Xchg &&
+              (i.opKind(0) === K.Memory || (i.opCount > 1 && i.opKind(1) === K.Memory));
+            if (!(memoryDestination && lockable) && !memoryXchg)
+              throw Error('LOCK prefix requires a supported memory-destination RMW instruction');
+          }
+          if (i.hasRepPrefix || i.hasRepnePrefix) throw Error('Repeat prefix unsupported');
           if (m === M.Mov) code.push(...write(i, 0, operand(i, 1)));
           else if (m === M.Movzx || m === M.Movsx) {
             let value = operand(i, 1);
@@ -486,7 +508,7 @@ export class CPU {
           } else if (m === M.Leave) {
             if (i.code !== this.iced.Code.Leaved) throw Error('16-bit LEAVE unsupported');
             code.push(...get(5), ...set(4), ...call(3), ...set(5));
-          } else if (m !== M.Nop)
+          } else if (m !== M.Nop && m !== M.Pause)
             throw Error(`Unsupported instruction ${i.toString()} at 0x${at.toString(16)}`);
         } finally {
           i.free();

@@ -19,7 +19,8 @@
     "test:external": "node scripts/test-external-browser.mjs",
     "fetch:targets": "node scripts/fetch-targets.mjs",
     "build:wine": "python3 scripts/build-wine-library.py",
-    "build:modules": "bash scripts/build-module-fixtures.sh"
+    "build:modules": "bash scripts/build-module-fixtures.sh",
+    "test:wine": "node scripts/test-wine-ntdll.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

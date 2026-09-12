@@ -33,6 +33,7 @@ const report = {
   target: { id: 'winapiexec-1.2-x86', path: targetPath },
   binaries: {},
   cases: [],
+  optionalCases: [],
   errors: [],
 };
 
@@ -673,6 +674,114 @@ try {
         .map((check) => check.name)
         .join(', ')}`,
     );
+
+  const wineNtdllPath = process.env.WINEBROWSER_NTDLL;
+  if (!wineNtdllPath) {
+    report.optionalCases.push({
+      id: 'wine-ntdll-rtlcomputecrc32',
+      status: 'skipped',
+      reason: 'WINEBROWSER_NTDLL is unset; the installed Wine DLL test is optional.',
+    });
+  } else {
+    const expectedNtdllSha256 = 'bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089';
+    const ntdllBytes = await readFile(wineNtdllPath);
+    const ntdllSha256 = createHash('sha256').update(ntdllBytes).digest('hex');
+    if (ntdllSha256 !== expectedNtdllSha256)
+      throw Error(`Installed Wine ntdll.dll SHA-256 mismatch: ${ntdllSha256}`);
+    const ntdllPeOffset = ntdllBytes.readUInt32LE(0x3c);
+    const ntdllEntryPointRva = ntdllBytes.readUInt32LE(ntdllPeOffset + 24 + 16);
+    const ntdllZip = zipSync(
+      {
+        'winapiexec.exe': new Uint8Array(exeBytes),
+        'ntdll.dll': new Uint8Array(ntdllBytes),
+      },
+      { level: 0 },
+    );
+    const ntdllZipSha256 = createHash('sha256').update(ntdllZip).digest('hex');
+    const ntdllBinaryLabel = 'winapiexec-1.2-x86+verified-wine-ntdll';
+    report.binaries.wineNtdllPackage = {
+      id: ntdllBinaryLabel,
+      archive: 'winapiexec-wine-ntdll.zip',
+      archiveSha256: ntdllZipSha256,
+      entries: ['winapiexec.exe', 'ntdll.dll'],
+      executableId: target.id,
+      executablePath: targetPath,
+      executableSha256: exeSha256,
+      dllPath: wineNtdllPath,
+      dllBytes: ntdllBytes.length,
+      dllExpectedSha256: expectedNtdllSha256,
+      dllActualSha256: ntdllSha256,
+      dllEntryPointRva: `0x${ntdllEntryPointRva.toString(16)}`,
+      scope: 'Executes a pure guest ntdll export; this does not establish NT syscall support.',
+    };
+    await page.locator('#file').setInputFiles({
+      name: 'winapiexec-wine-ntdll.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from(ntdllZip),
+    });
+    await page.waitForFunction(
+      () => !document.getElementById('run').disabled,
+      {},
+      { timeout: 20000 },
+    );
+    const ntdllExecutable = await page.locator('#exe').inputValue();
+    if (ntdllExecutable !== 'winapiexec.exe')
+      throw Error(`Unexpected ntdll package executable selection: ${ntdllExecutable}`);
+    const ntdllArgs = ['ntdll@RtlComputeCrc32', '0', '$s:123456789', '9'];
+    await page.locator('#args').fill(JSON.stringify(ntdllArgs));
+    await page.locator('#run').click();
+    await page.waitForFunction(() => window.__lastRun !== null, {}, { timeout: 30000 });
+    const ntdllActual = await page.evaluate(() => {
+      const result = window.__lastRun;
+      return {
+        exitCode: result.exitCode,
+        apiTrace: result.apiTrace,
+        modules: result.modules,
+        metrics: document.getElementById('metrics').textContent,
+        logs: document.getElementById('logs').textContent,
+      };
+    });
+    const ntdllModule = ntdllActual.modules.find((module) => module.name === 'ntdll.dll');
+    const ntdllChecks = [
+      {
+        name: 'RtlComputeCrc32 returns 0xcbf43926',
+        passed: ntdllActual.exitCode >>> 0 === 0xcbf43926,
+      },
+      {
+        name: 'guest ntdll loaded, initialized and relocated',
+        passed:
+          !!ntdllModule &&
+          !ntdllModule.host &&
+          ntdllModule.initialized &&
+          ntdllModule.preferredBase === 0x7bc00000 &&
+          ntdllModule.base !== ntdllModule.preferredBase &&
+          ntdllEntryPointRva !== 0,
+      },
+    ];
+    report.optionalCases.push({
+      id: 'wine-ntdll-rtlcomputecrc32',
+      status: ntdllChecks.every((check) => check.passed) ? 'passed' : 'failed',
+      optional: true,
+      binary: ntdllBinaryLabel,
+      args: ntdllArgs,
+      expectedExitCode: '0xcbf43926',
+      ...ntdllActual,
+      ntdllModule,
+      nativeDllMain: {
+        entryPointRva: `0x${ntdllEntryPointRva.toString(16)}`,
+        initializedByNormalRuntime: !!ntdllModule?.initialized && ntdllEntryPointRva !== 0,
+      },
+      checks: ntdllChecks,
+      scope: report.binaries.wineNtdllPackage.scope,
+    });
+    if (ntdllChecks.some((check) => !check.passed))
+      throw Error(
+        `Wine ntdll CRC case failed: ${ntdllChecks
+          .filter((check) => !check.passed)
+          .map((check) => check.name)
+          .join(', ')}`,
+      );
+  }
 
   if (browserErrors.length) throw Error(`Browser page errors: ${browserErrors.join('; ')}`);
   if (outboundRequests.length)
