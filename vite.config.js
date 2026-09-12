@@ -5,6 +5,7 @@ const headers = {
   'X-Content-Type-Options': 'nosniff',
 };
 export default defineConfig({
+  base: process.env.WINEBROWSER_BASE_PATH || '/',
   server: { headers },
   preview: { headers },
   worker: { format: 'es' },

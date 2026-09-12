@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-12T22:48:56.154Z",
+  "url": "http://127.0.0.1:4194/winebrowser/",
+  "browser": "152.0.7977.84",
+  "capabilities": {
+    "controlled": true,
+    "isolated": true,
+    "sharedArrayBuffer": true
+  },
+  "fixtures": [
+    {
+      "name": "beep",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS Beep parameters + host success · PASS fixture SHA-256"
+    },
+    {
+      "name": "console",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS stdout bytes · PASS fixture SHA-256"
+    },
+    {
+      "name": "files",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS stdout bytes · PASS output file set · PASS output.txt bytes · PASS fixture SHA-256"
+    },
+    {
+      "name": "messagebox",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS MessageBoxA args · PASS fixture SHA-256"
+    },
+    {
+      "name": "tls",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS stdout bytes · PASS fixture SHA-256"
+    }
+  ],
+  "zipUpload": {
+    "fixture": "files",
+    "downloadedFiles": [
+      "output.txt"
+    ],
+    "passed": true
+  },
+  "exeUpload": {
+    "fixture": "console",
+    "stdout": "console demo: hello from WriteFile\r\n",
+    "exitCode": 0,
+    "passed": true
+  },
+  "errors": []
+}

@@ -1,5 +1,7 @@
 name: Runtime checks
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -21,7 +23,42 @@ jobs:
       - run: node scripts/test-external-browser.mjs
         env:
           BROWSER_CHANNEL: chromium
+      - name: Build for GitHub Pages
+        run: npm run build
+        env:
+          WINEBROWSER_BASE_PATH: /winebrowser/
+      - name: Test static hosting without isolation headers
+        run: |
+          node scripts/serve-pages.mjs &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          npm run test:pages
+        env:
+          BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: browser-evidence
           path: evidence/
+      - uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      - uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: dist
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment

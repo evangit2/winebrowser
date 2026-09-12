@@ -4,9 +4,23 @@ An experimental **browser-local Windows PE runtime**. Choose an `.exe` or a ZIP 
 
 **The test harness runs native fixtures and independent winapiexec and pts-tinype executables across console, files, dialogs, PCM audio and GDI drawing. It does not yet run general desktop applications or games.** Wine's unchanged CommandLineToArgvW implementation now runs as a guest DLL; additional Wine compatibility modules remain the direction for broad API support.
 
+**Try the [live WineBrowser test harness](https://evangit2.github.io/winebrowser/).** It runs locally in your browser. Use a modern Chromium browser such as Chrome or Edge.
+
+The hosted PE32 x86 examples below have passed the browser suite. Open a ZIP in the harness when the program needs packaged assets or a DLL; the ZIP contains the executable and its working directory.
+
+| Example    | Download                                                                                                                                           | What it exercises and expected result                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Console    | [EXE](https://evangit2.github.io/winebrowser/demos/console/console.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/console.zip)          | `WriteFile`; prints `console demo: hello from WriteFile` and exits with code 0.                                 |
+| Files      | [ZIP with required asset](https://evangit2.github.io/winebrowser/demos/files.zip)                                                                  | Reads `assets/message.txt`, writes the same bytes to stdout, creates `output.txt`, and exits with code 0.       |
+| Dialog     | [EXE](https://evangit2.github.io/winebrowser/demos/messagebox/messagebox.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/messagebox.zip) | `MessageBoxA`; shows “MessageBoxA ran successfully.” with the title “WineBrowser demo”, then exits with code 0. |
+| Beep       | [EXE](https://evangit2.github.io/winebrowser/demos/beep/beep.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/beep.zip)                   | `Beep`; requests a 440 Hz tone for 180 ms and exits with code 0. Audio is scheduled through Web Audio.          |
+| Static TLS | [ZIP with required DLL](https://evangit2.github.io/winebrowser/demos/tls.zip)                                                                      | Loads `tls.dll`, runs static TLS callbacks and prints `TLS events:12349678`.                                    |
+
+These examples demonstrate specific tested behavior, not broad Windows compatibility. WineBrowser is an experimental PE32 x86 runtime with a small supported instruction and Windows API subset; it is not Wine, a Windows emulator, or a general desktop-app/game runner. See [test target details](docs/test-targets.md) and [architecture notes](docs/architecture.md).
+
 ## Run
 
-Requires Node.js 22.12+ or 24+, and modern Chromium.
+For local development, requires Node.js 22.12+ or 24+, and modern Chromium.
 
 ```sh
 npm ci
@@ -15,7 +29,18 @@ npm run dev
 
 Open the loopback URL Vite prints. Use **Run suite** to check all bundled fixtures, or choose a fixture and run it manually. Enter arguments as a JSON array for uploaded programs. Alternatively, open a demo ZIP or its original EXE from `public/demos/`. The files demo requires its ZIP for the packaged asset. Stop terminates the worker; reopen a package to start again.
 
-The server supplies COOP/COEP headers. For production, `npm run build` creates `dist/`; a static host must serve it over HTTPS with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Deployment is not configured. Package selection never sends file contents to a server. OPFS stores packages and generated outputs locally, subject to browser quota; output files also have download links. Persistent package reopening and saved-file overlays are not implemented yet.
+The development server supplies COOP/COEP headers. `npm run build` creates `dist/`; serve it over HTTPS (or localhost for development). On GitHub Pages, the bundled isolation service worker supplies these headers and automatically reloads the first visit. Other hosts can supply `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` directly. Package selection never sends file contents to a server. OPFS stores packages and generated outputs locally, subject to browser quota; output files also have download links. Persistent package reopening and saved-file overlays are not implemented yet.
+
+Pushes to `main` deploy the harness to GitHub Pages after the runtime and browser checks pass. To reproduce the Pages build and test its project path without server isolation headers:
+
+```sh
+WINEBROWSER_BASE_PATH=/winebrowser/ npm run build
+npm run serve:pages
+# In another terminal:
+npm run test:pages
+```
+
+Set `WINEBROWSER_TEST_URL=https://evangit2.github.io/winebrowser/` to run the same browser checks against the deployed site.
 
 ## What works today
 

@@ -29,7 +29,7 @@ onmessage = async ({ data }) => {
       const bytes = new Uint8Array(data.bytes);
       pkg = await unpackPackage(bytes, data.name);
       if (!builtinFiles.size) {
-        const response = await fetch('/runtime/shell32.dll');
+        const response = await fetch(`${import.meta.env.BASE_URL}runtime/shell32.dll`);
         if (!response.ok) throw Error('Wine helper unavailable');
         const dll = new Uint8Array(await response.arrayBuffer());
         if ((await packageId(dll)) !== wineLibrary.dllSha256)
@@ -55,7 +55,7 @@ onmessage = async ({ data }) => {
         throw Error('Select an executable from the loaded package');
       if (!iced) {
         emit({ type: 'log', text: 'Loading x86 decoder…' });
-        const url = '/vendor/iced.js';
+        const url = `${import.meta.env.BASE_URL}vendor/iced.js`;
         iced = await (await import(/* @vite-ignore */ url)).init();
       }
       const runtime = new Runtime(iced, {

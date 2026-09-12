@@ -332,7 +332,7 @@ async function expectedStdout(fixture) {
   if (fixture.expected.stdoutFrom) {
     const asset = fixture.expected.stdoutFrom.split(/\s+/)[0];
     const directory = fixture.exe.split('/').slice(0, -1).join('/');
-    const response = await fetch(`/demos/${directory}/${asset}`);
+    const response = await fetch(`${import.meta.env.BASE_URL}demos/${directory}/${asset}`);
     if (!response.ok) throw Error(`Expected stdout asset unavailable: ${asset}`);
     return new TextDecoder().decode(await response.arrayBuffer());
   }
@@ -383,16 +383,15 @@ async function compareFixture(fixture, result, text, events) {
     );
   }
   if (fixture.exeSha256) {
-    const path = `/demos/${fixture.exe}`;
+    const path = `${import.meta.env.BASE_URL}demos/${fixture.exe}`;
     const response = await fetch(path);
-    if (response.ok) {
-      const digest = [
-        ...new Uint8Array(await crypto.subtle.digest('SHA-256', await response.arrayBuffer())),
-      ]
-        .map((byte) => byte.toString(16).padStart(2, '0'))
-        .join('');
-      check('fixture SHA-256', digest === fixture.exeSha256);
-    }
+    if (!response.ok) throw Error(`Fixture executable unavailable: ${fixture.exe}`);
+    const digest = [
+      ...new Uint8Array(await crypto.subtle.digest('SHA-256', await response.arrayBuffer())),
+    ]
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+    check('fixture SHA-256', digest === fixture.exeSha256);
   }
   return checks;
 }
@@ -423,7 +422,7 @@ async function runSuite() {
       row.append(name, resultCell, checksCell);
       $('suite-results').append(row);
       try {
-        const response = await fetch(`/demos/${fixture.zip}`);
+        const response = await fetch(`${import.meta.env.BASE_URL}demos/${fixture.zip}`);
         if (!response.ok) throw Error(`Fixture package missing: ${fixture.zip}`);
         const packageBytes = await response.arrayBuffer();
         if (fixture.zipSha256) {
@@ -479,7 +478,7 @@ async function initialize() {
   };
   $('platform').textContent = capabilities.isolated ? 'ISOLATED / WASM READY' : 'ISOLATION MISSING';
   log(JSON.stringify(capabilities));
-  const response = await fetch('/demos/manifest.json');
+  const response = await fetch(`${import.meta.env.BASE_URL}demos/manifest.json`);
   if (!response.ok) throw Error('Fixture manifest unavailable');
   manifest = await response.json();
   $('demos').replaceChildren(
@@ -489,7 +488,7 @@ async function initialize() {
       button.dataset.demo = fixture.name;
       button.onclick = async () => {
         try {
-          const packageResponse = await fetch(`/demos/${fixture.zip}`);
+          const packageResponse = await fetch(`${import.meta.env.BASE_URL}demos/${fixture.zip}`);
           if (!packageResponse.ok) throw Error(`Fixture package unavailable: ${fixture.zip}`);
           await load(new File([await packageResponse.arrayBuffer()], fixture.zip));
         } catch (error) {
@@ -502,7 +501,11 @@ async function initialize() {
     }),
   );
 }
-initialize().catch((error) => {
-  status(error.message, 'ERROR');
-  log(error.message);
-});
+initialize()
+  .then(() => {
+    $('run-suite').disabled = false;
+  })
+  .catch((error) => {
+    status(error.message, 'ERROR');
+    log(error.message);
+  });

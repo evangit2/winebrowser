@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WineBrowser test bench</title>
+    <link rel="icon" href="data:," />
+    <script src="%BASE_URL%coi-serviceworker.js"></script>
   </head>
   <body>
     <main id="app">
@@ -11,6 +13,11 @@
         <h1>WineBrowser test bench</h1>
         <span id="platform">Checking browser…</span>
       </header>
+      <p>
+        Experimental Windows PE32 runtime. Drop an EXE or ZIP, select an executable, then run it.
+        Files run locally in your browser. Many applications still need unsupported APIs.
+        <a href="https://github.com/evangit2/winebrowser">Source and compatibility notes</a>
+      </p>
       <section class="controls-panel" aria-label="Package controls">
         <label id="drop" class="drop">
           <input id="file" type="file" accept=".zip,.exe" />
@@ -26,7 +33,7 @@
         <input id="args" type="text" value="[]" spellcheck="false" />
         <div class="actions">
           <button id="run" disabled>Run executable</button>
-          <button id="run-suite">Run suite</button>
+          <button id="run-suite" disabled>Run suite</button>
           <button id="stop" disabled>Stop</button>
           <label class="check"
             ><input id="audio-enabled" type="checkbox" checked /> Play audio</label

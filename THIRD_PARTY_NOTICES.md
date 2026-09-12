@@ -15,3 +15,7 @@ Vite, Playwright and Prettier are development dependencies with licenses in thei
 ## Wine CommandLineToArgvW guest library
 
 The guest library in `public/runtime/shell32.dll` and `runtime/wine/command-line.c` derives from Wine 11.0 `dlls/shcore/main.c` (commit `db11d0fe6a169c457e23d007e20404643d067aa8`), copyright 2002 Jon Griffiths and 2016 Sebastian Lackner, LGPL-2.1-or-later. The function body is unchanged; it is extracted into a standalone guest x86 library using MinGW headers and exports. The original complete source is retained at `third_party/wine/shcore-main.c`, the license at `third_party/wine/COPYING.LIB`, and the complete extraction/rebuild command at `scripts/build-wine-library.py`. See `runtime/wine/README.md` for replacement/relink instructions. The MIT license for original host code does not replace Wine's LGPL terms.
+
+## GitHub Pages isolation service worker
+
+`public/coi-serviceworker.js` is the unchanged MIT-licensed coi-serviceworker v0.1.7 by Guido Zuidhof and contributors, pinned to [commit 7b1d2a092d0d2dd2b7270b6f12f13605de26f214](https://github.com/gzuidhof/coi-serviceworker/tree/7b1d2a092d0d2dd2b7270b6f12f13605de26f214). Its full license is distributed beside it in `public/coi-serviceworker-LICENSE.txt`. It supplies COOP/COEP headers through a service worker on static hosts, reloading once on first use. Its scope is the deployed project directory. It fetches resources from the network without caching application uploads.

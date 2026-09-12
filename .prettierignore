@@ -1,6 +1,7 @@
 node_modules/
 dist/
 public/vendor/
+public/coi-serviceworker.js
 public/demos/
 evidence/
 third_party/
