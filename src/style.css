@@ -1,0 +1,386 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #232a29;
+  background: #f4f5f0;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+select {
+  font: inherit;
+}
+button,
+a,
+label.drop {
+  touch-action: manipulation;
+}
+header,
+main,
+footer {
+  max-width: 1240px;
+  margin: auto;
+}
+header {
+  height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #daddd3;
+}
+.brand {
+  text-decoration: none;
+  color: inherit;
+  font-size: 26px;
+  letter-spacing: -3px;
+}
+.brand span {
+  color: #527552;
+}
+.brand b {
+  font-size: 19px;
+  letter-spacing: -0.6px;
+  margin-left: 15px;
+}
+.badge,
+.eyebrow,
+.section-title,
+.sample-label,
+.about > div > span {
+  font:
+    11px ui-monospace,
+    SFMono-Regular,
+    monospace;
+  letter-spacing: 1.2px;
+}
+.badge {
+  border: 1px solid #cbd2c4;
+  border-radius: 4px;
+  padding: 9px;
+  color: #526449;
+}
+.hero {
+  padding: 63px 0 41px;
+}
+.eyebrow {
+  color: #698165;
+  margin-bottom: 24px;
+}
+h1 {
+  font-size: 74px;
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -4.5px;
+  margin: 0 0 22px;
+}
+h1 em {
+  font-style: normal;
+  color: #5b7b4d;
+}
+.hero p {
+  color: #737973;
+  line-height: 1.6;
+  font-size: 17px;
+  margin-bottom: 19px;
+}
+.scope {
+  font-size: 12px;
+  color: #797f72;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #d4d9cf;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.launcher {
+  padding: 25px;
+}
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #7d8776;
+  font-size: 10px;
+}
+.drop {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 11px;
+  border: 1px dashed #bdcbb4;
+  border-radius: 8px;
+  padding: 26px 10px;
+  background: #f8faf5;
+  margin: 25px 0;
+  cursor: pointer;
+}
+.drop:hover,
+.drop.drag {
+  background: #eaf1e2;
+  border-color: #5b7b4d;
+}
+.drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.drop:focus-within {
+  outline: 2px solid #527552;
+}
+.upload-icon {
+  font-size: 25px;
+  color: #5b7b4d;
+  border: 1px solid #dce4d5;
+  border-radius: 9px;
+  padding: 2px 12px;
+}
+.drop strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+.drop > span:last-child {
+  font-size: 12px;
+  color: #8a9384;
+}
+.sample-label {
+  font-size: 9px;
+  color: #939a8d;
+}
+.demos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 13px 0 23px;
+}
+.demos button {
+  background: #fff;
+  border: 1px solid #e0e4db;
+  border-radius: 6px;
+  text-align: left;
+  padding: 12px;
+  font-size: 12px;
+  color: #596150;
+}
+.demos button span {
+  float: right;
+  color: #8f9d83;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.controls {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.controls button,
+#dialog-ok {
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #385a35;
+  color: #fff;
+  font-size: 12px;
+}
+#run span {
+  padding-left: 12px;
+}
+#stop {
+  background: #e9ece4;
+  color: #333;
+}
+#status {
+  font-size: 11px;
+  color: #7d8776;
+}
+.terminal {
+  background: #202823;
+  color: #dfe7d6;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+.terminal .section-title {
+  color: #93a18b;
+}
+#state {
+  color: #bbd8a1;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+#output {
+  font-size: 13px;
+  line-height: 1.7;
+  flex: 1;
+  margin-top: 30px;
+  max-height: 310px;
+  overflow: auto;
+}
+#metrics {
+  padding-top: 17px;
+  border-top: 1px solid #354136;
+  color: #9da991;
+  font:
+    10px ui-monospace,
+    monospace;
+  line-height: 1.7;
+}
+#outputs a {
+  color: #c3e89f;
+  font-size: 12px;
+  display: block;
+  margin-bottom: 10px;
+}
+.selection {
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.selection label {
+  display: block;
+  margin-bottom: 8px;
+}
+select {
+  padding: 8px;
+  width: 100%;
+  border: 1px solid #cad3c1;
+  border-radius: 5px;
+}
+#details {
+  margin-top: 8px;
+  color: #747d6d;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.about {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 60px;
+  padding: 41px 0;
+}
+.about > div > span {
+  color: #87937c;
+  font-size: 9px;
+}
+.about h3 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.about p,
+.diagnostics p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #8a9183;
+}
+.diagnostics {
+  border-top: 1px solid #daddd3;
+  padding: 20px 0;
+  font-size: 12px;
+  color: #6d7965;
+}
+#logs {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 11px;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9ba291;
+  padding: 26px 0;
+}
+dialog {
+  border: 1px solid #ccd6c4;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 480px;
+  box-shadow: 0 18px 80px #172c2844;
+}
+dialog::backdrop {
+  background: #172c2866;
+}
+dialog h2 {
+  font-size: 20px;
+}
+dialog p {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 14px;
+}
+#dialog-ok {
+  float: right;
+  min-width: 85px;
+}
+@media (max-width: 1300px) {
+  header,
+  main,
+  footer {
+    margin-left: 40px;
+    margin-right: 40px;
+  }
+}
+@media (max-width: 760px) {
+  header,
+  main,
+  footer {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  header {
+    height: 80px;
+  }
+  .badge {
+    font-size: 8px;
+  }
+  h1 {
+    font-size: 54px;
+    letter-spacing: -3px;
+  }
+  .hero {
+    padding-top: 40px;
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .about {
+    gap: 20px;
+    grid-template-columns: 1fr;
+  }
+  .about h3 {
+    margin: 9px 0;
+  }
+  .about p {
+    margin: 0;
+  }
+  .terminal {
+    min-height: 280px;
+  }
+  footer {
+    gap: 20px;
+  }
+  .section-title {
+    font-size: 8px;
+  }
+}
