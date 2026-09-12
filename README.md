@@ -79,6 +79,7 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 | `src/worker.js`                     | Package/run protocol and host requests                |
 | `src/storage.js`                    | OPFS package and output persistence                   |
 | `src/main.js`                       | Browser UI, user gestures, dialog/audio bridge        |
+| `src/isolation.js`                  | Static-host service worker activation and reload      |
 | `demos/`, `tests/`                  | Native fixture sources and behavioral checks          |
 
 Keep guest pointers as integer virtual addresses; never confuse them with host or Wasm-library pointers. New API families should get a provider with explicit ownership and unsupported behavior, rather than app-specific branches in the CPU. Tests should exercise observable guest behavior, including failure paths. See [architecture](docs/architecture.md), [reference study](docs/reference-study.md), and [test targets](docs/test-targets.md).

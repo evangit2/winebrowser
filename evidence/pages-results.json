@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T22:48:56.154Z",
+  "date": "2026-09-12T22:53:30.024Z",
   "url": "http://127.0.0.1:4194/winebrowser/",
   "browser": "152.0.7977.84",
   "capabilities": {
@@ -7,6 +7,8 @@
     "isolated": true,
     "sharedArrayBuffer": true
   },
+  "freshVisits": 3,
+  "serviceWorkerReload": true,
   "fixtures": [
     {
       "name": "beep",

@@ -1,5 +1,6 @@
 import './style.css';
 import { audioQueueNeedsReset } from './audio-scheduling.js';
+import { ensureIsolation } from './isolation.js';
 
 const $ = (id) => document.getElementById(id);
 let worker,
@@ -469,6 +470,7 @@ async function runSuite() {
 $('run-suite').onclick = runSuite;
 
 async function initialize() {
+  await ensureIsolation();
   const capabilities = {
     isolated: crossOriginIsolated,
     wasm: typeof WebAssembly === 'object',

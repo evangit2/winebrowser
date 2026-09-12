@@ -14,18 +14,6 @@ const browser = await chromium.launch({
 });
 
 try {
-  const context = await browser.newContext({ acceptDownloads: true });
-  const page = await context.newPage();
-  page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
-  page.on('console', (message) => {
-    if (message.type() === 'error') failures.push(`console: ${message.text()}`);
-  });
-  page.on('requestfailed', (request) => {
-    const reason = request.failure()?.errorText;
-    if (reason === 'net::ERR_ABORTED' && ignoreBootstrapAbort) return;
-    failures.push(`request failed: ${request.method()} ${request.url()} (${reason})`);
-  });
-
   let serverReady = false;
   for (let attempt = 0; attempt < 50; attempt++) {
     try {
@@ -38,36 +26,54 @@ try {
   }
   assert.ok(serverReady, `Pages test server did not start at ${baseURL.href}`);
 
-  let response;
-  try {
-    response = await page.goto(baseURL.href, { waitUntil: 'domcontentloaded' });
-  } catch (error) {
-    if (!/ERR_ABORTED|aborted/i.test(error.message)) throw error;
-    // coi-serviceworker intentionally reloads the first page after activation.
+  async function bootFreshContext() {
+    const context = await browser.newContext({ acceptDownloads: true });
+    const page = await context.newPage();
+    page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
+    page.on('console', (message) => {
+      if (message.type() === 'error') failures.push(`console: ${message.text()}`);
+    });
+    page.on('requestfailed', (request) => {
+      const reason = request.failure()?.errorText;
+      if (reason === 'net::ERR_ABORTED' && ignoreBootstrapAbort) return;
+      failures.push(`request failed: ${request.method()} ${request.url()} (${reason})`);
+    });
+    let response;
+    try {
+      response = await page.goto(baseURL.href, { waitUntil: 'domcontentloaded' });
+    } catch (error) {
+      if (!/ERR_ABORTED|aborted/i.test(error.message)) throw error;
+      // The first service-worker install can abort the initial document load.
+    }
+    if (response) assert.ok(response.ok(), `Harness page returned ${response.status()}`);
+    await page.waitForFunction(
+      () => document.getElementById('platform')?.textContent === 'ISOLATED / WASM READY',
+      undefined,
+      { timeout: 30000 },
+    );
+    const capabilities = await page.evaluate(() => ({
+      controlled: navigator.serviceWorker?.controller !== null,
+      isolated: crossOriginIsolated,
+      sharedArrayBuffer: typeof SharedArrayBuffer === 'function',
+    }));
+    assert.deepEqual(capabilities, {
+      controlled: true,
+      isolated: true,
+      sharedArrayBuffer: true,
+    });
+    return { context, page, capabilities };
   }
-  if (response) assert.ok(response.ok(), `Harness page returned ${response.status()}`);
-  await page.locator('#run-suite').waitFor({ state: 'visible' });
-  await page.waitForFunction(
-    () => document.getElementById('platform')?.textContent === 'ISOLATED / WASM READY',
-    undefined,
-    { timeout: 30000 },
-  );
+
+  const { context, page } = await bootFreshContext();
   assert.match(await page.title(), /WineBrowser/i);
 
-  // A first visit installs the service worker; reload under its control before
-  // checking the isolation primitives used by the runtime.
-  await page.waitForFunction(
-    () => 'serviceWorker' in navigator && navigator.serviceWorker.controller !== null,
-    undefined,
-    { timeout: 30000 },
-  );
+  // Reload under service-worker control and verify the runtime isolation primitives again.
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(
     () => document.getElementById('platform')?.textContent === 'ISOLATED / WASM READY',
     undefined,
     { timeout: 30000 },
   );
-  ignoreBootstrapAbort = false;
   const capabilities = await page.evaluate(() => ({
     controlled: navigator.serviceWorker?.controller !== null,
     isolated: crossOriginIsolated,
@@ -78,6 +84,11 @@ try {
     isolated: true,
     sharedArrayBuffer: true,
   });
+  for (let index = 1; index < 3; index++) {
+    const extra = await bootFreshContext();
+    await extra.context.close();
+  }
+  ignoreBootstrapAbort = false;
 
   const manifestResponse = await page.request.get(new URL('demos/manifest.json', baseURL).href);
   assert.ok(
@@ -189,6 +200,8 @@ try {
     url: baseURL.href,
     browser: await browser.version(),
     capabilities,
+    freshVisits: 3,
+    serviceWorkerReload: true,
     fixtures: suiteRows,
     zipUpload: { fixture: zipFixture.name, downloadedFiles: fileNames, passed: true },
     exeUpload: {
