@@ -205,7 +205,7 @@
             "0",
             "$$:1"
           ],
-          "expected": "exit code 1; exact 640×480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
+          "expected": "exit code 1; exact 640\u00d7480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
           "status": "passed",
           "evidence": {
             "file": "evidence/external-browser-results.json",
@@ -233,7 +233,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "prints the upstream hello-world text and exits successfully",
-      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable’s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
+      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable\u2019s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
     },
     {
       "id": "pts-tinype-hh4t-x86",
@@ -318,7 +318,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "Static loading stops at PE TLS callbacks, which the loader does not support; no GUI execution was attempted."
+      "statusNote": "TLS-directory parsing now succeeds. Static import inspection exposes 306 unresolved imports across GUI, COM, registry, thread and other services; no GUI execution is claimed."
     },
     {
       "id": "sgi-opengl-minimal-x86",
@@ -354,7 +354,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens a Win32 window and draws an OpenGL triangle; close it to quit",
-      "statusNote": "This is a source-built upstream OpenGL sample, not a checked-in project fixture. Static loading stops at unsupported PE TLS callbacks; its API-set CRT imports and WGL/OpenGL rendering are later prerequisites. Cache-only because the archived source page has no separate license notice."
+      "statusNote": "Source-built upstream OpenGL sample, not a project fixture. TLS-directory parsing now succeeds, exposing 68 unresolved imports including API-set CRT, windowing and WGL/OpenGL services. Cache-only because the archived source page has no separate license notice. No rendering execution is claimed."
     },
     {
       "id": "humus-inferno-d3d10-x86",

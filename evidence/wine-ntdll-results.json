@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T22:12:45.961Z",
+  "date": "2026-09-12T22:36:47.661Z",
   "dll": {
     "name": "ntdll.dll",
     "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
@@ -55,9 +55,9 @@
     {
       "export": "NtQuerySystemTime",
       "status": 0,
-      "before": 1789251166060,
-      "after": 1789251166061,
-      "milliseconds": 1789251166061,
+      "before": 1789252607813,
+      "after": 1789252607815,
+      "milliseconds": 1789252607814,
       "invalidPointerStatus": 3221225477,
       "passed": true
     },
@@ -65,6 +65,14 @@
       "export": "NtQueryPerformanceCounter",
       "frequency": 1000000000,
       "monotonic": true,
+      "passed": true
+    },
+    {
+      "export": "NtQueryInformationProcess",
+      "informationClass": "ProcessWow64Information",
+      "wow64Peb": 0,
+      "returnLength": 4,
+      "dispatch": "FS:[0xc0]",
       "passed": true
     },
     {
@@ -147,9 +155,9 @@
     "reason": "Clock dispatch works; NT handle/object services are not yet implemented."
   },
   "status": "passed-selected-exports",
-  "blocks": 11694,
-  "instructions": 69288,
-  "compiledBlocks": 377,
+  "blocks": 11697,
+  "instructions": 69291,
+  "compiledBlocks": 379,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
@@ -158,6 +166,7 @@
     "ntdll.dll!NtQuerySystemTime",
     "ntdll.dll!NtQueryPerformanceCounter",
     "ntdll.dll!NtQueryPerformanceCounter",
+    "ntdll.dll!NtQueryInformationProcess",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtFreeVirtualMemory",

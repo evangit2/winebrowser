@@ -21,13 +21,14 @@ The server supplies COOP/COEP headers. For production, `npm run build` creates `
 
 - Bounded ZIP extraction, CRC verification, path normalization, executable selection, and PE32 x86 import inspection.
 - PE DLL imports/exports, ordinal and forwarded exports, HIGHLOW relocations, DllMain attach/detach, guest callbacks, scalar byte/word/dword x86 instructions, calls/returns, condition flags, and direct Wasm block generation in a terminable worker.
+- Static PE TLS for one guest thread: initialized templates, zero-fill, aligned per-module storage, and process callbacks, including dynamic DLL loading.
 - Selected SSE data moves, integer lane unpack/shuffle/XOR, and bit scans. Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.
 - Bootstrap API provider: standard output, synchronous file reads/writes, unowned `MessageBoxA(MB_OK)`, `Beep`, and process/time helpers, a reusable heap, dynamic module lookup, and UTF-16 services. The Wine parser supplies CommandLineToArgvW as guest code. See `API_NAMES` in `src/win32.js` for the exact list.
 - GDI desktop pixel/rectangle operations on a bounded RGBA surface, with brush/DC lifetime checks and canvas presentation. WinMM `PlaySoundA/W` supports synchronous packaged PCM WAV playback; aliases, asynchronous voices and waveOut remain unsupported.
 - Real native PE fixtures for console, packaged assets and generated files, a dialog, and a tone. No application source is compiled to Wasm to produce these results.
 - Explicit failure for unsupported imports, instructions, and memory accesses. No success stubs for unknown functions.
 
-The CPU emitter implements a subset of x86; iced-x86's much broader **decoding** support is not execution support. Current exclusions include x64, 16-bit address/stack modes, floating-point arithmetic, most SIMD operations, TLS/SEH, threading, broad CRT startup, full windowing/GDI, OpenGL, DirectX, networking, and drivers. Self-modifying code is rejected through executable-memory write checks. Limits include 64 MiB guest memory, 4,096 compiled blocks, and a one-million-dispatch run budget. Runtime wall time includes browser API waits; it is not a game-performance benchmark.
+The CPU emitter implements a subset of x86; iced-x86's much broader **decoding** support is not execution support. Current exclusions include x64, 16-bit address/stack modes, floating-point arithmetic, most SIMD operations, SEH, guest threading, dynamic TLS APIs, broad CRT startup, full windowing/GDI, OpenGL, DirectX, networking, and drivers. Self-modifying code is rejected through executable-memory write checks. Limits include 64 MiB guest memory, 4,096 compiled blocks, and a one-million-dispatch run budget. Runtime wall time includes browser API waits; it is not a game-performance benchmark.
 
 ## Maintainable boundaries
 
@@ -39,6 +40,7 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 | `src/cpu.js`                        | x86 lowering, registers, flags, block cache           |
 | `src/simd.js`                       | Bounded XMM operations and vector memory checks       |
 | `src/wine-process.js`               | Native Wine process heap bootstrap and routing        |
+| `src/tls.js`                        | Static TLS storage, callbacks and failed-load cleanup |
 | `src/memory.js`                     | Guest memory regions and checked accesses             |
 | `src/win32.js`                      | Replaceable bootstrap API provider                    |
 | `src/modules.js`                    | DLL graph, export resolution, relocation and linking  |
@@ -67,7 +69,7 @@ node scripts/fetch-targets.mjs
 node scripts/test-external-browser.mjs
 ```
 
-For Playwright's downloaded Chromium instead, install it with `npx playwright install chromium` and set `BROWSER_CHANNEL=chromium`. Browser checks exercise the production build, ZIP upload, all four original PE fixtures, OPFS output, and worker termination. Their machine-readable report is in `evidence/browser-results.json`; audio validation covers Web Audio scheduling and guest success, not physical speaker capture.
+For Playwright's downloaded Chromium instead, install it with `npx playwright install chromium` and set `BROWSER_CHANNEL=chromium`. Browser checks exercise the production build, ZIP upload, five native PE fixtures (including EXE/DLL TLS), OPFS output, and worker termination. Their machine-readable report is in `evidence/browser-results.json`; audio validation covers Web Audio scheduling and guest success, not physical speaker capture.
 
 Rebuild native fixtures with `npm run build:demos` (MinGW i686 compiler and Python 3 required). The binaries and ZIPs have reproducible timestamps and SHA-256 manifests. `npm run fetch:targets` downloads the hash-pinned catalog into ignored `.cache/targets/`. `npm run inspect:targets` reads those files and records loader/import blockers without executing them. See [independent target results](docs/targets-progress.md). Rebuild the Wine component with `npm run build:wine` and DLL fixtures with `npm run build:modules`.
 
@@ -78,3 +80,5 @@ Studied [DirectWebGPU](https://github.com/evangit2/DirectWebGPU) and [Hamsterbal
 The first Wine component integration is in [runtime/wine](runtime/wine/README.md), with retained LGPL source and rebuild instructions. An optional test also executes an entire unmodified installed Wine 11 i386 `ntdll.dll`, including its real DLL initialization, CRC32, string/memory comparison and NT-status conversion exports. The matching Chromium probe packages that DLL with unchanged winapiexec and verifies CRC32, NT services, zeroed heap bytes, freeing and private-heap destruction. Set `WINEBROWSER_NTDLL` to the installed DLL path and run `npm run test:wine` or `npm run test:external`. The probe pins one DLL build by SHA-256; that binary is not distributed in this repo. The Wine i386 dispatcher now supplies real NT clock and bounded virtual-memory services. `evidence/wine-ntdll-results.json` verifies page lifecycle/access behavior and native heap allocation/free/destruction; NT handle services remain unsupported. The next milestone is more independent executables and larger Wine modules, driven by the recorded blockers in [the target catalog](tests/targets.json). Broader CPU semantics and PE loading must advance alongside that work. WineD3D/vkd3d-shader, GDI, OpenGL and audio need separate browser backends and acceptance tests; importing their source does not automatically make them portable or compatible.
 
 The interface is a plain test bench: no landing page, visual branding or product presentation. Independent executable evidence is recorded in `evidence/external-browser-results.json`; the target catalog distinguishes source-built samples from downloaded original binaries.
+
+The optional `npm run probe:wine-crt -- /path/to/Wine-i386-windows` loads a hash-pinned, unmodified Wine msvcrt/kernel32/kernelbase/ntdll closure. It currently exits 1 at `NtInitializeNlsFiles`; the exact imports and startup state are recorded in `evidence/wine-crt-results.json`. This identifies the next locale-data dependency, not a passing CRT/application test.

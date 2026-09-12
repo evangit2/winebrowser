@@ -45,7 +45,7 @@ function exportAddress(runtime, module, name) {
   return runtime.graph.address(target);
 }
 
-test('Wine NT clock services dispatch through the guest trampoline and preserve stdcall cleanup', async () => {
+test('Wine NT clock services dispatch through the guest dispatcher and preserve stdcall cleanup', async () => {
   const { runtime, module } = await runtimeWithWineNt();
   assert.deepEqual(module.pe.imports, [], 'fixture DLL has no imports or CRT dependency');
   assert.equal(module.pe.directories[9]?.rva ?? 0, 0, 'fixture DLL has no TLS directory');
@@ -56,6 +56,7 @@ test('Wine NT clock services dispatch through the guest trampoline and preserve 
   assert.equal(module.initialized, true, 'native DLL entry point accepted process attach');
   assert.ok(module.ntBridge?.address, 'Wine NT dispatcher thunk was installed');
   assert.equal(module.ntBridge.version, 1);
+  assert.equal(module.ntBridge.tebSlot, runtime.cpu.fsBase + 0xc0);
   assert.equal(
     runtime.read32(
       module.base +
@@ -63,6 +64,11 @@ test('Wine NT clock services dispatch through the guest trampoline and preserve 
     ),
     module.ntBridge.address,
     'exported dispatch pointer was populated',
+  );
+  assert.equal(
+    runtime.read32(runtime.cpu.fsBase + 0xc0),
+    module.ntBridge.address,
+    'Wine TEB WOW32Reserved points to the same validated host dispatcher',
   );
   assert.deepEqual(
     [...runtime.thunks.values()]
@@ -74,6 +80,7 @@ test('Wine NT clock services dispatch through the guest trampoline and preserve 
       'NtAllocateVirtualMemory',
       'NtClose',
       'NtFreeVirtualMemory',
+      'NtQueryInformationProcess',
       'NtQueryPerformanceCounter',
       'NtQuerySystemTime',
     ],
@@ -120,8 +127,47 @@ test('Wine NT clock services dispatch through the guest trampoline and preserve 
     /Unsupported Wine NT service NtClose/,
     'unimplemented NT services fail explicitly instead of inventing an NTSTATUS',
   );
+  const queryProcess = exportAddress(runtime, module, 'NtQueryInformationProcess');
+  const stackBeforeUnknown = runtime.cpu.r[4].value;
+  await assert.rejects(
+    runtime.callGuest(queryProcess, [0xffffffff, 0, 0, 0, 0]),
+    /Unsupported Wine process information class 0/,
+    'the FS:C0 entry reaches process information dispatch and rejects unsupported classes',
+  );
+  assert.equal(
+    runtime.cpu.r[4].value,
+    stackBeforeUnknown,
+    'failed dispatch restores the guest stack',
+  );
   assert.ok(runtime.apiTrace.includes('ntdll.dll!NtQuerySystemTime'));
   assert.ok(runtime.apiTrace.includes('ntdll.dll!NtQueryPerformanceCounter'));
+});
+
+test('FS syscall wrappers report the real PE32 process architecture and validate output buffers', async () => {
+  const { runtime, module } = await runtimeWithWineNt();
+  const address = exportAddress(runtime, module, 'NtQueryInformationProcess');
+  const output = runtime.allocate(4),
+    length = runtime.allocate(4);
+  const query = (handle = 0xffffffff, size = 4, out = output, retLength = length) =>
+    runtime.callGuest(address, [handle, 26, out, size, retLength]);
+  runtime.write32(output, 0xdeadbeef);
+  assert.equal(await query(), 0);
+  assert.equal(runtime.read32(output), 0, 'there is no WOW64 companion process');
+  assert.equal(runtime.read32(length), 4);
+  runtime.write32(output, 0xdeadbeef);
+  runtime.write32(length, 0xaabbccdd);
+  assert.equal(await query(0xffffffff, 3), 0xc0000004);
+  assert.equal(
+    runtime.read32(length),
+    0xaabbccdd,
+    'wrong-sized WOW64 queries leave return length untouched',
+  );
+  assert.equal(await query(0), 0xc0000008);
+  assert.equal(await query(0xffffffff, 4, 0), 0xc0000005);
+  assert.equal(await query(0xffffffff, 4, output, 0x40000000), 0xc0000005);
+  assert.equal(runtime.read32(output), 0xdeadbeef, 'invalid second output causes no partial write');
+  assert.equal(await query(0xffffffff, 4, output, 0), 0);
+  assert.ok(runtime.apiTrace.includes('ntdll.dll!NtQueryInformationProcess'));
 });
 
 test('Wine NT virtual-memory services reserve, commit, decommit, recommit, and release guest pages', async () => {
@@ -251,7 +297,7 @@ test('Wine NT virtual-memory services reserve, commit, decommit, recommit, and r
 test('Wine NT bridge rejects a malformed guest trampoline and rolls back the load', async () => {
   const bytes = new Uint8Array(await readFile(fixtureUrl));
   const pe = parsePE(bytes, { allowDll: true });
-  const stub = pe.exports.find((entry) => entry.name === 'NtQuerySystemTime');
+  const stub = pe.exports.find((entry) => entry.name === 'NtQueryPerformanceCounter');
   const stubSection = pe.sections.find(
     (section) => stub.rva >= section.rva && stub.rva < section.rva + section.rawSize,
   );
@@ -276,4 +322,27 @@ test('Wine NT bridge rejects a malformed guest trampoline and rolls back the loa
   await assert.rejects(runtime.loadLibrary('ntdll.dll'), /Unsupported Wine NT trampoline/);
   assert.equal(runtime.graph.modules.has('ntdll.dll'), false, 'failed bridge load is rolled back');
   assert.equal(runtime.regions.length, regionsBefore, 'failed mapping regions are rolled back');
+});
+
+test('Wine NT FS:C0 wrappers reject an already occupied TEB dispatcher slot', async () => {
+  const executable = new Uint8Array(await readFile(consoleUrl));
+  const dll = new Uint8Array(await readFile(fixtureUrl));
+  const runtime = new Runtime(iced, {
+    files: new Map([['console.exe', executable]]),
+    exe: 'console.exe',
+    builtinFiles: new Map([['ntdll.dll', dll]]),
+  });
+  runtime.write32(runtime.cpu.fsBase + 0xc0, 0x12345678);
+  const regionsBefore = runtime.regions.length;
+  await assert.rejects(
+    runtime.loadLibrary('ntdll.dll'),
+    /TEB syscall dispatcher is already installed/,
+  );
+  assert.equal(runtime.graph.modules.has('ntdll.dll'), false, 'rejected load is rolled back');
+  assert.equal(
+    runtime.regions.length,
+    regionsBefore,
+    'rejected TEB registration rolls back mappings',
+  );
+  assert.equal(runtime.read32(runtime.cpu.fsBase + 0xc0), 0x12345678, 'foreign slot is preserved');
 });

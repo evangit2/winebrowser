@@ -92,7 +92,6 @@ export function parsePE(bytes, options = {}) {
   }
   // A declared directory that does not fit the optional header is malformed.
   if (directoryCount > availableDirectories) fail('data directory table exceeds optional header');
-  if (directories[9]?.rva || directories[9]?.size) fail('TLS callbacks are unsupported');
   if (directories[13]?.rva || directories[13]?.size) fail('delay imports are unsupported');
   if (!imageBase || imageBase % 0x1000 !== 0 || imageBase < MIN_IMAGE_BASE)
     fail('image base is outside the supported mapping range');
@@ -204,6 +203,11 @@ export function parsePE(bytes, options = {}) {
   function sEnd(section) {
     return section.rva + Math.max(section.virtualSize, section.rawSize);
   }
+  function sectionForRange(rva, size, label) {
+    rvaToOffset(rva, size, label);
+    if (rva < headersSize) return null;
+    return sections.find((section) => rva >= section.rva && rva + size <= sEnd(section));
+  }
   function readAsciiRva(rva, label) {
     const off = rvaToOffset(rva, 1, label);
     return cString(imageBytes, off, rvaLimit(rva, label), label, 260);
@@ -222,6 +226,73 @@ export function parsePE(bytes, options = {}) {
       'import name',
       4096,
     );
+  }
+  let tls = null;
+  const tlsDir = directories[9];
+  if (Boolean(tlsDir?.rva) !== Boolean(tlsDir?.size)) fail('invalid TLS directory');
+  if (tlsDir?.rva) {
+    if (tlsDir.size < 24) fail('invalid TLS directory');
+    const p = rvaToOffset(tlsDir.rva, 24, 'TLS directory');
+    rvaToOffset(tlsDir.rva, tlsDir.size, 'TLS directory');
+    const startVa = u32(imageView, imageBytes, p, 'TLS template start VA');
+    const endVa = u32(imageView, imageBytes, p + 4, 'TLS template end VA');
+    const indexVa = u32(imageView, imageBytes, p + 8, 'TLS index VA');
+    const callbacksVa = u32(imageView, imageBytes, p + 12, 'TLS callbacks VA');
+    const zeroFill = u32(imageView, imageBytes, p + 16, 'TLS zero-fill size');
+    const characteristics = u32(imageView, imageBytes, p + 20, 'TLS characteristics');
+    const alignmentCode = (characteristics >>> 20) & 0xf;
+    if (characteristics & 0xff0fffff) fail('reserved TLS characteristics are nonzero');
+    if (alignmentCode === 0xf) fail('invalid TLS alignment');
+    const alignment = alignmentCode === 0 ? 0 : 2 ** (alignmentCode - 1);
+
+    let templateRva = 0;
+    let templateSize = 0;
+    if (startVa !== 0 || endVa !== 0) {
+      if (startVa < imageBase || endVa < startVa || endVa > imageBase + imageSize)
+        fail('TLS template VAs are outside image');
+      templateRva = startVa - imageBase;
+      templateSize = endVa - startVa;
+      if (templateSize > 0x100000 || templateSize + zeroFill > 0x100000)
+        fail('TLS data exceeds supported limit');
+      if (templateSize) rvaToOffset(templateRva, templateSize, 'TLS template');
+      else if (templateRva >= imageSize) fail('TLS empty template is outside image');
+    } else if (zeroFill > 0x100000) {
+      fail('TLS data exceeds supported limit');
+    }
+
+    if (!indexVa || indexVa < imageBase || indexVa + 4 > imageBase + imageSize)
+      fail('TLS index is outside image');
+    const indexRva = indexVa - imageBase;
+    const indexSection = sectionForRange(indexRva, 4, 'TLS index');
+    if (!indexSection || !(indexSection.characteristics & 0x80000000))
+      fail('TLS index is not in writable mapped data');
+
+    const callbackRvas = [];
+    if (callbacksVa) {
+      if (callbacksVa < imageBase || callbacksVa + 4 > imageBase + imageSize)
+        fail('TLS callback array is outside image');
+      const callbacksRva = callbacksVa - imageBase;
+      let terminated = false;
+      for (let i = 0; i <= 128; i++) {
+        const slotRva = callbacksRva + i * 4;
+        const slot = rvaToOffset(slotRva, 4, 'TLS callback array');
+        const callbackVa = u32(imageView, imageBytes, slot, 'TLS callback address');
+        if (!callbackVa) {
+          terminated = true;
+          break;
+        }
+        if (i === 128) break;
+        if (callbackVa < imageBase || callbackVa >= imageBase + imageSize)
+          fail('TLS callback address is outside image');
+        const callbackRva = callbackVa - imageBase;
+        const callbackSection = sectionForRange(callbackRva, 1, 'TLS callback');
+        if (!callbackSection || !(callbackSection.characteristics & IMAGE_SCN_MEM_EXECUTE))
+          fail('TLS callback is not in executable mapped code');
+        callbackRvas.push(callbackRva);
+      }
+      if (!terminated) fail('TLS callback array exceeds supported limit');
+    }
+    tls = { templateRva, templateSize, zeroFill, indexRva, callbackRvas, alignment };
   }
   const imports = [];
   const importDir = directories[1];
@@ -365,6 +436,7 @@ export function parsePE(bytes, options = {}) {
     imports,
     exports,
     relocations,
+    tls,
     subsystem,
     headersSize,
     characteristics,

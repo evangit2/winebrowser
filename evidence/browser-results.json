@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-12T22:12:51.911Z",
+  "date": "2026-09-12T22:36:51.930Z",
   "browser": "152.0.7977.84",
   "crossOriginIsolated": true,
   "externalRequests": [],
   "errors": [],
   "tests": {
-    "manifestSuite": 4,
+    "manifestSuite": 5,
     "zipUpload": true,
     "rawExeUpload": true,
     "opfsContent": true,
@@ -32,6 +32,11 @@
       "name": "messagebox",
       "result": "PASS",
       "checks": "PASS exit 0 · PASS MessageBoxA args · PASS fixture SHA-256"
+    },
+    {
+      "name": "tls",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS stdout bytes · PASS fixture SHA-256"
     }
   ]
 }

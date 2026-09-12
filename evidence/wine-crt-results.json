@@ -1,0 +1,7687 @@
+{
+  "date": "2026-09-12T22:36:47.663Z",
+  "status": "blocked-startup",
+  "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+  "executable": {
+    "path": "public/demos/console/console.exe",
+    "behavior": "Load the real msvcrt dependency closure; do not call the executable entry point."
+  },
+  "operation": "Runtime.loadLibrary('msvcrt.dll')",
+  "dlls": [
+    {
+      "name": "msvcrt.dll",
+      "bytes": 679950,
+      "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558",
+      "pinnedSha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558",
+      "matchesPinnedHash": true,
+      "imports": [
+        {
+          "dll": "kernel32.dll",
+          "name": "Beep",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CloseHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CompareStringA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CompareStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CreateDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CreateFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CreateFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CreatePipe",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CreateProcessW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "CreateThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "DebugBreak",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "DelayLoadFailureHook",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "DeleteCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "DeleteFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "DuplicateHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "EnterCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "EnumSystemLocalesEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ExitProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ExitThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FileTimeToSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FindClose",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FindFirstFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FindFirstFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FindNextFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FindNextFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FlushFileBuffers",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FreeEnvironmentStringsA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FreeEnvironmentStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "FreeLibrary",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetACP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetCPInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetCommandLineA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetCommandLineW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetConsoleMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetCurrentDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetDateFormatW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetDiskFreeSpaceW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetDriveTypeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetEnvironmentStringsA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetEnvironmentStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetEnvironmentVariableW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetExitCodeProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetFileAttributesA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetFileAttributesExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetFileAttributesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetFileSizeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetFileType",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetFullPathNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetLocalTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetLocaleInfoA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetLocaleInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetLocaleInfoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetModuleFileNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetModuleFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetModuleHandleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetNumberOfConsoleInputEvents",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetOEMCP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetProcAddress",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetStartupInfoA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetStdHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetStringTypeExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetStringTypeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetSystemTimeAsFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetTempFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetTimeFormatW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetUserDefaultLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "GetVersionExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapCompact",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapCreate",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapDestroy",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapReAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapValidate",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "HeapWalk",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "InitializeCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "InitializeCriticalSectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "IsBadReadPtr",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "IsBadStringPtrA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "IsBadStringPtrW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "IsProcessorFeaturePresent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "IsValidCodePage",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "IsValidLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LCIDToLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LCMapStringA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LCMapStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LeaveCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LoadLibraryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LocaleNameToLCID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "LockFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "MoveFileExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "MultiByteToWideChar",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "PeekConsoleInputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "RaiseException",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ReadConsoleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ReadConsoleInputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ReadConsoleInputW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ReadFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "RemoveDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ResolveDelayLoadedAPI",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "ResumeThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetConsoleCtrlHandler",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetConsoleMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetCurrentDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetEndOfFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetEnvironmentVariableW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetFileAttributesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetFilePointer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SetStdHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "Sleep",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SystemTimeToFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "SystemTimeToTzSpecificLocalTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "TlsAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "TlsFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "TlsGetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "TlsSetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "TryEnterCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "UnlockFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "VerifyConsoleIoHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "VirtualProtect",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "WaitForSingleObject",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "WideCharToMultiByte",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "WriteConsoleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "WriteConsoleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernel32.dll",
+          "name": "WriteFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrAddRefDll",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAreBitsClear",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAreBitsSet",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitializeBitMap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetBits",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlTimeToSecondsSince1970",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnwind",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_get_channel_flags",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_header",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_output",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_strdup",
+          "ordinal": null
+        }
+      ]
+    },
+    {
+      "name": "kernel32.dll",
+      "bytes": 397326,
+      "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418",
+      "pinnedSha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418",
+      "matchesPinnedHash": true,
+      "imports": [
+        {
+          "dll": "kernelbase.dll",
+          "name": "ActivateActCtx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AddConsoleAliasA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AddConsoleAliasW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AddDllDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AddRefActCtx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AllocConsole",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AllocateUserPhysicalPages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AllocateUserPhysicalPagesNuma",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AreFileApisANSI",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "AttachConsole",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "BaseFlushAppcompatCache",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "BaseGetNamedObjectDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Beep",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CallNamedPipeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CallbackMayRunLong",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CancelIo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CancelIoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CancelSynchronousIo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CancelWaitableTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ChangeTimerQueueTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CheckRemoteDebuggerPresent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ClearCommBreak",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ClearCommError",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CloseHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ClosePseudoConsole",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CompareFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CompareStringA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CompareStringEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CompareStringOrdinal",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CompareStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ConnectNamedPipe",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ContinueDebugEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ConvertDefaultLocale",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ConvertFiberToThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ConvertThreadToFiber",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ConvertThreadToFiberEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CopyContext",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CopyFile2",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CopyFileExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CopyFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateActCtxW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateBoundaryDescriptorW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateConsoleScreenBuffer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateDirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateDirectoryExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateEventA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateEventExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateEventExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateEventW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFiber",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFiberEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFile2",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFileMappingNumaW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFileMappingW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateHardLinkA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateHardLinkW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateIoCompletionPort",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateMemoryResourceNotification",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateMutexA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateMutexExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateMutexExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateMutexW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateNamedPipeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreatePipe",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateProcessA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateProcessAsUserA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateProcessAsUserW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateProcessInternalA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateProcessInternalW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateProcessW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreatePseudoConsole",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateRemoteThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateRemoteThreadEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateSemaphoreExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateSemaphoreW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateSymbolicLinkW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThreadpool",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThreadpoolCleanupGroup",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThreadpoolIo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThreadpoolTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThreadpoolWait",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateThreadpoolWork",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateTimerQueue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateTimerQueueTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateWaitableTimerExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "CreateWaitableTimerW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeactivateActCtx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DebugActiveProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DebugActiveProcessStop",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DebugBreak",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DefineDosDeviceW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DelayLoadFailureHook",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteFiber",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteProcThreadAttributeList",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteSynchronizationBarrier",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteTimerQueueEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteTimerQueueTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeleteVolumeMountPointW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DeviceIoControl",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DisableThreadLibraryCalls",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DisconnectNamedPipe",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DnsHostnameToComputerNameExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "DuplicateHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnterCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnterSynchronizationBarrier",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumCalendarInfoExEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumCalendarInfoExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumCalendarInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumDateFormatsExEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumDateFormatsExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumDateFormatsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumLanguageGroupLocalesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceLanguagesExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceLanguagesExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceNamesExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceNamesExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceNamesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceTypesExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumResourceTypesExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemCodePagesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemFirmwareTables",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemGeoID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemLanguageGroupsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemLocalesA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemLocalesEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumSystemLocalesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumTimeFormatsEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumTimeFormatsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EnumUILanguagesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "EscapeCommFunction",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ExitThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ExpandEnvironmentStringsA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ExpandEnvironmentStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ExpungeConsoleCommandHistoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ExpungeConsoleCommandHistoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FatalAppExitA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FatalAppExitW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FileTimeToLocalFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FileTimeToSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FillConsoleOutputAttribute",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FillConsoleOutputCharacterA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FillConsoleOutputCharacterW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindActCtxSectionGuid",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindActCtxSectionStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindClose",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindCloseChangeNotification",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstChangeNotificationA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstChangeNotificationW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstFileExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstFileExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstStreamW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindFirstVolumeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNLSString",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNLSStringEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNextChangeNotification",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNextFileA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNextFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNextStreamW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindNextVolumeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindResourceExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindResourceW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindStringOrdinal",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FindVolumeClose",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlsAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlsFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlsGetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlsSetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlushConsoleInputBuffer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlushFileBuffers",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlushInstructionCache",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FlushViewOfFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FoldStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FormatMessageA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FormatMessageW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FreeConsole",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FreeEnvironmentStringsA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FreeEnvironmentStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FreeLibrary",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FreeResource",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "FreeUserPhysicalPages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GenerateConsoleCtrlEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetACP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetApplicationRestartSettings",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCPInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCPInfoExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCalendarInfoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCalendarInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommConfig",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommMask",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommModemStatus",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommProperties",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommState",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommTimeouts",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommandLineA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCommandLineW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCompressedFileSizeA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCompressedFileSizeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetComputerNameExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetComputerNameExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleAliasA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleAliasExesLengthA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleAliasExesLengthW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleAliasW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleAliasesLengthA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleAliasesLengthW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleCP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleCommandHistoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleCommandHistoryLengthA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleCommandHistoryLengthW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleCommandHistoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleCursorInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleDisplayMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleFontSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleInputExeNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleInputExeNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleOriginalTitleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleOriginalTitleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleOutputCP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleProcessList",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleScreenBufferInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleScreenBufferInfoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleTitleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleTitleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetConsoleWindow",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrencyFormatEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrencyFormatW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrentActCtx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrentConsoleFont",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrentConsoleFontEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrentDirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrentDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetCurrentThreadStackLimits",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDateFormatA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDateFormatEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDateFormatW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDiskFreeSpaceA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDiskFreeSpaceExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDiskFreeSpaceExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDiskFreeSpaceW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDiskSpaceInformationA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDiskSpaceInformationW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDriveTypeA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDriveTypeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDynamicTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetDynamicTimeZoneInformationEffectiveYears",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetEnabledXStateFeatures",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetEnvironmentStrings",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetEnvironmentStringsA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetEnvironmentStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetEnvironmentVariableA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetEnvironmentVariableW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetExitCodeThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileAttributesA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileAttributesExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileAttributesExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileAttributesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileInformationByHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileInformationByHandleEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileMUIInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileMUIPath",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileSizeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFileType",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFinalPathNameByHandleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFinalPathNameByHandleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFullPathNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetFullPathNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetGeoInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetGeoInfoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetHandleInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLargePageMinimum",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLargestConsoleWindowSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLastError",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLocalTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLocaleInfoA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLocaleInfoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLocaleInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLogicalDriveStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLogicalDrives",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLogicalProcessorInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLogicalProcessorInformationEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLongPathNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetLongPathNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetModuleFileNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetModuleFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetModuleHandleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetModuleHandleExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetModuleHandleExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetModuleHandleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNLSVersion",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNLSVersionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNamedPipeHandleStateW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNamedPipeInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNativeSystemInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumaHighestNodeNumber",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumaNodeProcessorMaskEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumaProximityNodeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumberFormatEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumberFormatW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumberOfConsoleInputEvents",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetNumberOfConsoleMouseButtons",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetOEMCP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetOverlappedResult",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetOverlappedResultEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetPhysicallyInstalledSystemMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetPriorityClass",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessGroupAffinity",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessHandleCount",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessId",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessIdOfThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessMitigationPolicy",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessPriorityBoost",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessShutdownParameters",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessTimes",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessVersion",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProcessWorkingSetSizeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetProductInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetQueuedCompletionStatus",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetQueuedCompletionStatusEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetShortPathNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetStartupInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetStdHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetStringTypeA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetStringTypeExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetStringTypeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemCpuSetInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemDefaultLCID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemDefaultLangID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemDefaultLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemDefaultUILanguage",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemFileCacheSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemFirmwareTable",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemTimeAdjustment",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemTimeAsFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemTimePreciseAsFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemTimes",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemWindowsDirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemWindowsDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemWow64DirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetSystemWow64DirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTempFileNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTempFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTempPath2W",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTempPath2A",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTempPathA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTempPathW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadContext",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadDescription",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadGroupAffinity",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadIOPendingFlag",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadId",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadIdealProcessorEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadLocale",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadPriority",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadPriorityBoost",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadTimes",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetThreadUILanguage",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTimeFormatA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTimeFormatEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTimeFormatW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetTimeZoneInformationForYear",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserDefaultGeoName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserDefaultLCID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserDefaultLangID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserDefaultLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserDefaultUILanguage",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserGeoID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetUserPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVersion",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVersionExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVersionExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVolumeInformationA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVolumeInformationByHandleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVolumeInformationW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVolumeNameForVolumeMountPointW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVolumePathNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetVolumePathNamesForVolumeNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetWindowsDirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetWindowsDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetWriteWatch",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GetXStateFeaturesMask",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GlobalAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GlobalFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "GlobalMemoryStatusEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapCompact",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapLock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapQueryInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapReAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapSetInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapSummary",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapUnlock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapValidate",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "HeapWalk",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IdnToAscii",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IdnToNameprepUnicode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IdnToUnicode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "InitializeContext",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "InitializeContext2",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "InitializeCriticalSectionAndSpinCount",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "InitializeCriticalSectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "InitializeProcThreadAttributeList",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "InitializeSynchronizationBarrier",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumCalendarInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumDateFormats",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumLanguageGroupLocales",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumSystemCodePages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumSystemLanguageGroups",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumTimeFormats",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Internal_EnumUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsDBCSLeadByte",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsDBCSLeadByteEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsDebuggerPresent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsNLSDefinedString",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsNormalizedString",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsProcessInJob",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsProcessorFeaturePresent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsThreadAFiber",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsValidCodePage",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsValidLanguageGroup",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsValidLocale",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsValidLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsValidNLSVersion",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsWow64Process",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "IsWow64Process2",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EmptyWorkingSet",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EnumDeviceDrivers",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EnumPageFilesA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EnumPageFilesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EnumProcessModules",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EnumProcessModulesEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32EnumProcesses",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetDeviceDriverBaseNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetDeviceDriverBaseNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetDeviceDriverFileNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetDeviceDriverFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetMappedFileNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetMappedFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetModuleBaseNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetModuleBaseNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetModuleFileNameExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetModuleFileNameExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetModuleInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetPerformanceInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetProcessImageFileNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetProcessImageFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetProcessMemoryInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetWsChanges",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32GetWsChangesEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32InitializeProcessForWsWatch",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32QueryWorkingSet",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "K32QueryWorkingSetEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "KernelBaseGetGlobalData",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LCIDToLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LCMapStringA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LCMapStringEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LCMapStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LeaveCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadAppInitDlls",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadLibraryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadLibraryExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadLibraryExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadLibraryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadPackagedLibrary",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LoadResource",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocalAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocalFileTimeToFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocalFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocalLock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocalReAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocalUnlock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocaleNameToLCID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LocateXStateFeature",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LockFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LockFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "LockResource",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MapUserPhysicalPages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MapViewOfFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MapViewOfFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MapViewOfFileExNuma",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MoveFileExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MoveFileWithProgressW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "MultiByteToWideChar",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "NeedCurrentDirectoryForExePathA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "NeedCurrentDirectoryForExePathW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "NlsValidateLocale",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "NormalizeString",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenEventA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenEventW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenFileById",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenFileMappingW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenMutexW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenProcessToken",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenSemaphoreW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenThreadToken",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OpenWaitableTimerW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "OutputDebugStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PackageIdFromFullName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PathFindFileNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PeekConsoleInputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PeekConsoleInputW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PeekNamedPipe",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PostQueuedCompletionStatus",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PrefetchVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ProcessIdToSessionId",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PulseEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "PurgeComm",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryActCtxSettingsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryActCtxW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryDosDeviceW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryFullProcessImageNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryFullProcessImageNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryIdleProcessorCycleTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryIdleProcessorCycleTimeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryMemoryResourceNotification",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryPerformanceCounter",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryPerformanceFrequency",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryProcessCycleTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryThreadCycleTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryThreadpoolStackInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueryUnbiasedInterruptTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueueUserAPC",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueueUserAPC2",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "QueueUserWorkItem",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RaiseException",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RaiseFailFastException",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReOpenFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleInputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleInputW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleOutputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleOutputAttribute",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleOutputCharacterA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleOutputCharacterW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleOutputW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadConsoleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadDirectoryChangesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadFileScatter",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReadProcessMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegCloseKey",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegCreateKeyExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegCreateKeyExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegDeleteKeyExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegDeleteKeyExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegDeleteTreeA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegDeleteTreeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegDeleteValueA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegDeleteValueW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegEnumKeyExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegEnumKeyExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegEnumValueA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegEnumValueW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegFlushKey",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegGetKeySecurity",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegGetValueA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegGetValueW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegLoadKeyA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegLoadKeyW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegLoadMUIStringA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegLoadMUIStringW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegNotifyChangeKeyValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegOpenCurrentUser",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegOpenKeyExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegOpenKeyExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegOpenUserClassesRoot",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegQueryInfoKeyA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegQueryInfoKeyW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegQueryValueExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegQueryValueExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegRestoreKeyA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegRestoreKeyW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegSaveKeyExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegSaveKeyExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegSetKeySecurity",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegSetValueExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegSetValueExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegUnLoadKeyA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegUnLoadKeyW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RegisterWaitForSingleObjectEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReleaseActCtx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReleaseMutex",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReleaseSemaphore",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RemoveDirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RemoveDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "RemoveDllDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ReplaceFileW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ResetEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ResetWriteWatch",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ResizePseudoConsole",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ResolveLocaleName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ResumeThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ScrollConsoleScreenBufferA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ScrollConsoleScreenBufferW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SearchPathA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SearchPathW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCachedSigningLevel",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCalendarInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCommBreak",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCommConfig",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCommMask",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCommState",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCommTimeouts",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetComputerNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetComputerNameExA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetComputerNameExW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetComputerNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleActiveScreenBuffer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleCP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleCtrlHandler",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleCursorInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleCursorPosition",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleDisplayMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleInputExeNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleInputExeNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleOutputCP",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleScreenBufferInfoEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleScreenBufferSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleTextAttribute",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleTitleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleTitleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetConsoleWindowInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCurrentConsoleFontEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCurrentDirectoryA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetCurrentDirectoryW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetDefaultDllDirectories",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetEndOfFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetEnvironmentStringsA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetEnvironmentStringsW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetEnvironmentVariableA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetEnvironmentVariableW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileApisToANSI",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileApisToOEM",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileAttributesA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileAttributesW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileInformationByHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFilePointer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFilePointerEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetFileValidData",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetHandleInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetLocalTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetLocaleInfoW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetNamedPipeHandleState",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetPriorityClass",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessAffinityUpdateMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessDefaultCpuSets",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessMitigationPolicy",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessPriorityBoost",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessShutdownParameters",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetProcessWorkingSetSizeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetStdHandle",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetStdHandleEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetSystemFileCacheSize",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetSystemTimeAdjustment",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadContext",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadDescription",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadGroupAffinity",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadIdealProcessor",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadIdealProcessorEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadLocale",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadPriority",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadPriorityBoost",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadSelectedCpuSets",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadStackGuarantee",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadUILanguage",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetThreadpoolStackInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetUnhandledExceptionFilter",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetUserGeoID",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetUserGeoName",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetWaitableTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetWaitableTimerEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetXStateFeaturesMask",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SetupComm",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SignalObjectAndWait",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SizeofResource",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Sleep",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SleepConditionVariableCS",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SleepConditionVariableSRW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SleepEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SuspendThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SwitchToFiber",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SwitchToThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SystemTimeToFileTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "SystemTimeToTzSpecificLocalTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TerminateProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TerminateThread",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TlsAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TlsFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TlsGetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TlsSetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TransactNamedPipe",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TransmitCommChar",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TrySubmitThreadpoolCallback",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "TzSpecificLocalTimeToSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UnhandledExceptionFilter",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UnlockFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UnlockFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UnmapViewOfFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UnmapViewOfFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UnregisterWaitEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "UpdateProcThreadAttribute",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VerLanguageNameA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VerLanguageNameW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualAllocEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualAllocExNuma",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualFree",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualFreeEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualLock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualProtect",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualProtectEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualQuery",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualQueryEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "VirtualUnlock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitCommEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitForDebugEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitForDebugEventEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitForMultipleObjects",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitForMultipleObjectsEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitForSingleObject",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitForSingleObjectEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WaitNamedPipeW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerGetFlags",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerRegisterCustomMetadata",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerRegisterFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerRegisterMemoryBlock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerRegisterRuntimeExceptionModule",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerSetFlags",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerUnregisterCustomMetadata",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerUnregisterFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerUnregisterMemoryBlock",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WerUnregisterRuntimeExceptionModule",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WideCharToMultiByte",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Wow64DisableWow64FsRedirection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Wow64EnableWow64FsRedirection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Wow64GetThreadContext",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Wow64RevertWow64FsRedirection",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "Wow64SetThreadContext",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleInputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleInputW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleOutputA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleOutputAttribute",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleOutputCharacterA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleOutputCharacterW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleOutputW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteConsoleW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteFile",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteFileGather",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "WriteProcessMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "ZombifyActCtx",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcmp",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcmpA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcmpW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcmpi",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcmpiA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcmpiW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcpyn",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcpynA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrcpynW",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrlen",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrlenA",
+          "ordinal": null
+        },
+        {
+          "dll": "kernelbase.dll",
+          "name": "lstrlenW",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiGetThreadDebugObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiIssueRemoteBreakin",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrFindEntryForAddress",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrGetDllDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrGetProcedureAddress",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrSetDllDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAddAtom",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAssignProcessToJobObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtClose",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateJobObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateMailslotFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateSemaphore",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDeleteAtom",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDeviceIoControlFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFindAtom",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFsControlFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenJobObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtPowerInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtProtectVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationAtom",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationJobObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySystemInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationDebugObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationJobObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetThreadExecutionState",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtTerminateJobObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAcquirePebLock",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAtomToAtomTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAllocateHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAnsiStringToUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCaptureContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCharToInteger",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateAtomTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateUnicodeStringFromAsciiz",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteAtomFromAtomTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeregisterWait",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDestroyAtomTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDestroyHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDetermineDosPathNameType_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDosPathNameToNtPathName_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDosPathNameToNtPathName_U_WithStatus",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlEnterCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlExitUserProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlExitUserThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetProcessHeaps",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetUserInfoHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlImageDirectoryEntryToData",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlImageNtHeader",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitAnsiString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitializeCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIsNameLegalDOS8Dot3",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIsTextUnicode",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLeaveCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLockHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLookupAtomInAtomTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNtStatusToDosError",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlOemStringToUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryAtomInAtomTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRegisterWait",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlReleasePebLock",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRestoreContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetIoCompletionCallback",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetLastWin32Error",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetSearchPathMode",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetUnhandledExceptionFilter",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetUserValueHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlTimeFieldsToTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlTimeToTimeFields",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToAnsiSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToAnsiString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToInteger",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToOemSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToOemString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToMultiByteN",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToMultiByteSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToOemN",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnlockHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnwind",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUpcaseUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUpperChar",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_vsnprintf",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_wcsicmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_wcsnicmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "isalpha",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "islower",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memcpy",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memmove",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memset",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strcat",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strchr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strcmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strcpy",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strlen",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strpbrk",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strrchr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "tolower",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscat",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcschr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscpy",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcslen",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsncmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsrchr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcstoul",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_header",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_output",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_strdup",
+          "ordinal": null
+        }
+      ]
+    },
+    {
+      "name": "ntdll.dll",
+      "bytes": 696334,
+      "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
+      "pinnedSha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
+      "matchesPinnedHash": true,
+      "imports": []
+    },
+    {
+      "name": "kernelbase.dll",
+      "bytes": 2703374,
+      "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6",
+      "pinnedSha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6",
+      "matchesPinnedHash": true,
+      "imports": [
+        {
+          "dll": "ntdll.dll",
+          "name": "ApiSetQueryApiSetPresenceEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgBreakPoint",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiConnectToDbg",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiContinue",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiConvertStateChangeStructure",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiDebugActiveProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiGetThreadDebugObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiStopDebugging",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "DbgUiWaitStateChange",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrAccessResource",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrAddDllDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrAddRefDll",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrDisableThreadCalloutsForDll",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrFindResourceDirectory_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrFindResource_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrGetDllFullName",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrGetDllHandleEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrGetDllPath",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrGetProcedureAddress",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrLoadDll",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrRemoveDllDirectory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrResolveDelayLoadedAPI",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrSetDefaultDllDirectories",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "LdrUnloadDll",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAccessCheck",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAdjustGroupsToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAdjustPrivilegesToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAllocateLocallyUniqueId",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAllocateVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtAllocateVirtualMemoryEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCancelIoFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCancelIoFileEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCancelSynchronousIoFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCancelTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtClose",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCompareObjects",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtConvertBetweenAuxiliaryCounterAndPerformanceCounter",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateIoCompletion",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateMutant",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateNamedPipeFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateSectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateSemaphore",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateSymbolicLinkObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateThreadEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtCreateUserProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDelayExecution",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDeleteKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDeleteValueKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDeviceIoControlFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDuplicateObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtDuplicateToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtEnumerateKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtEnumerateValueKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFilterToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFlushBuffersFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFlushInstructionCache",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFlushKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFlushVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFreeVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtFsControlFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtGetContextThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtGetNlsSectionPtr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtGetTickCount",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtGetWriteWatch",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtImpersonateAnonymousToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtIsProcessInJob",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtLoadKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtLockFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtLockVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtMakeTemporaryObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtMapViewOfSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtMapViewOfSectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtNotifyChangeDirectoryFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtNotifyChangeKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenDirectoryObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenKeyEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenMutant",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenProcessToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenSemaphore",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenSymbolicLinkObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenThreadToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtOpenTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtPrivilegeCheck",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtProtectVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtPulseEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryAttributesFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryDefaultLocale",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryDefaultUILanguage",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryDirectoryFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryDirectoryObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryFullAttributesFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInformationToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryInstallUILanguage",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryPerformanceCounter",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySecurityObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySymbolicLinkObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySystemInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySystemInformationEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQuerySystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryValueKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueryVolumeInformationFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueueApcThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtQueueApcThreadEx2",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtRaiseException",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtReadFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtReadFileScatter",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtReadVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtReleaseMutant",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtReleaseSemaphore",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtRemoveIoCompletion",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtRemoveIoCompletionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtResetEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtResetWriteWatch",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtResumeThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSaveKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetContextThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetEvent",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationToken",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetInformationVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetIoCompletion",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetSecurityObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetSystemInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSetValueKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSignalAndWaitForSingleObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtSuspendThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtTerminateProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtTerminateThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtUnloadKey",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtUnlockFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtUnlockVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtUnmapViewOfSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtUnmapViewOfSectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtWaitForMultipleObjects",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtWaitForSingleObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtWriteFile",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtWriteFileGather",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtWriteVirtualMemory",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "NtYieldExecution",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAcquirePebLock",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlActivateActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlActivateActivationContextEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAccessAllowedAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAccessAllowedAceEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAccessAllowedObjectAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAccessDeniedAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAccessDeniedAceEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAccessDeniedObjectAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAuditAccessAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAuditAccessAceEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddAuditAccessObjectAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddMandatoryAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAddRefActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAllocateAndInitializeSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAllocateHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAnsiStringToUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAreAllAccessesGranted",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAreAnyAccessesGranted",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlAreBitsSet",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlBarrier",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCaptureContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCharToInteger",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlClearBits",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCompactHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCompareUnicodeStrings",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlConvertSidToUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlConvertToAutoInheritSecurityObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCopyContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCopySid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateAcl",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateEnvironment",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateProcessParametersEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateTimerQueue",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateUnicodeStringFromAsciiz",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlCreateUserStack",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeactivateActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteBarrier",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteSecurityObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeleteTimerQueueEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeregisterWaitEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDeriveCapabilitySidsFromName",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDestroyEnvironment",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDestroyHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDestroyProcessParameters",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDetermineDosPathNameType_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDoesFileExists_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDosPathNameToNtPathName_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDosPathNameToNtPathName_U_WithStatus",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDosSearchPath_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDowncaseUnicodeChar",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlDuplicateUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlEnterCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlEqualPrefixSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlEqualSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlExitUserProcess",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlExitUserThread",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlExpandEnvironmentStrings_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFindActivationContextSectionGuid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFindActivationContextSectionString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFindClearBitsAndSet",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFindMessage",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFirstFreeAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFlsAlloc",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFlsFree",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFlsGetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFlsSetValue",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFormatMessage",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeActivationContextStack",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeAnsiString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlFreeUserStack",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGUIDFromString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetAce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetActiveActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetControlSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetCurrentDirectory_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetCurrentPeb",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetDaclSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetEnabledExtendedFeatures",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetExePath",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetExtendedContextLength2",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetExtendedFeaturesMask",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetFullPathName_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetGroupSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetLocaleFileMappingAddress",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetNativeSystemInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetOwnerSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetProductInfo",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetProcessHeaps",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetProcessPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetSaclSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetSearchPath",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetSystemPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetSystemTimePrecise",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetThreadErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetThreadPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetUserPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlGetVersion",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIdentifierAuthoritySid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIdnToAscii",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIdnToNameprepUnicode",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIdnToUnicode",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlImageDirectoryEntryToData",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlImageNtHeader",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlImpersonateSelf",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitAnsiString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitBarrier",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitCodePageTable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitializeCriticalSectionAndSpinCount",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitializeCriticalSectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitializeExtendedContext2",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlInitializeSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIsDosDeviceName_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIsNameLegalDOS8Dot3",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIsNormalizedString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlIsProcessorFeaturePresent",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLeaveCriticalSection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLengthRequiredSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLengthSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLengthSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLocalTimeToSystemTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLocateExtendedFeature",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlLockHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlMakeSelfRelativeSD",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlMapGenericMask",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlMultiByteToUnicodeN",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlMultiByteToUnicodeSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNewSecurityObject",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNewSecurityObjectEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNewSecurityObjectWithMultipleInheritance",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNormalizeProcessParams",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNormalizeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlNtStatusToDosError",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlOemStringToUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlOpenCurrentUser",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlPcToFileHeader",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlProcessFlsData",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryActivationContextApplicationSettings",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryDynamicTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryEnvironmentVariable_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryHeapInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryInformationAcl",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryInformationActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueryUnbiasedInterruptTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlQueueWorkItem",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRaiseException",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRaiseStatus",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlReAllocateHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRegisterWait",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlReleaseActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlReleasePath",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlReleasePebLock",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRunOnceBeginInitialize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRunOnceComplete",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlRunOnceExecuteOnce",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSelfRelativeToAbsoluteSD",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetControlSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetCurrentDirectory_U",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetCurrentEnvironment",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetDaclSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetEnvironmentVariable",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetExtendedFeaturesMask",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetGroupSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetHeapInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetOwnerSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetProcessPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetSaclSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetThreadErrorMode",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetThreadPreferredUILanguages",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetTimeZoneInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSetUserValueHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSleepConditionVariableCS",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSleepConditionVariableSRW",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSubAuthorityCountSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSubAuthoritySid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlSystemTimeToLocalTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlTimeFieldsToTime",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlTimeToTimeFields",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUTF8ToUnicodeN",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToAnsiSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToAnsiString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToInteger",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToOemSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeStringToOemString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToMultiByteN",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToMultiByteSize",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToOemN",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnicodeToUTF8N",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnlockHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUnwind",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUpcaseUnicodeString",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlUpdateTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlValidAcl",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlValidSecurityDescriptor",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlValidSid",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlValidateHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlWaitOnAddress",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlWalkHeap",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlWow64EnableFsRedirection",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlWow64EnableFsRedirectionEx",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlWow64GetProcessMachines",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "RtlZombifyActivationContext",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpAllocCleanupGroup",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpAllocIoCompletion",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpAllocPool",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpAllocTimer",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpAllocWait",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpAllocWork",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpCallbackMayRunLong",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpQueryPoolStackInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpSetPoolStackInformation",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "TpSimpleTryPost",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_strnicmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_vsnprintf",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_vsnwprintf",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_wcsicmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "_wcsnicmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "isalnum",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "isalpha",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "iswalnum",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "isxdigit",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memcmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memcpy",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memmove",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "memset",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strcat",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strchr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strcmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strcpy",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strlen",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strncmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strrchr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "strtol",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "tolower",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "towupper",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscat",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcschr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscpy",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcscspn",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcslen",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsncmp",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsnlen",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcspbrk",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsrchr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsspn",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcsstr",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcstol",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "wcstoul",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_get_channel_flags",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_header",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_output",
+          "ordinal": null
+        },
+        {
+          "dll": "ntdll.dll",
+          "name": "__wine_dbg_strdup",
+          "ordinal": null
+        }
+      ]
+    }
+  ],
+  "runtime": {
+    "loaded": false,
+    "modulesAfterFailure": [
+      {
+        "name": "console.exe",
+        "host": false,
+        "base": 4194304,
+        "preferredBase": 4194304,
+        "refs": 1,
+        "initialized": false
+      },
+      {
+        "name": "kernel32.dll",
+        "host": false,
+        "base": 16777216,
+        "preferredBase": 2071986176,
+        "refs": 1,
+        "initialized": false
+      },
+      {
+        "name": "kernelbase.dll",
+        "host": false,
+        "base": 17235968,
+        "preferredBase": 2063597568,
+        "refs": 1,
+        "initialized": false
+      },
+      {
+        "name": "ntdll.dll",
+        "host": false,
+        "base": 19988480,
+        "preferredBase": 2076180480,
+        "refs": 1,
+        "initialized": false
+      }
+    ],
+    "apiTrace": [
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtQueryInformationProcess",
+      "ntdll.dll!NtAllocateVirtualMemory"
+    ],
+    "blocks": 745
+  },
+  "firstFailure": {
+    "phase": "guest DLL initialization / runtime API dispatch",
+    "error": {
+      "name": "Error",
+      "message": "Unsupported Wine NT service NtInitializeNlsFiles"
+    },
+    "dispatcher": {
+      "dll": "ntdll.dll",
+      "name": "__wine_syscall_dispatcher",
+      "serviceId": 158,
+      "serviceIdHex": "0x9e",
+      "serviceName": "NtInitializeNlsFiles",
+      "argumentCount": 3,
+      "arguments": [
+        67103856,
+        20616936,
+        67104272
+      ]
+    },
+    "instructionPointer": "0x131e0c4",
+    "recentInstructionPointers": [
+      "0x10a59b3",
+      "0x10a59e8",
+      "0x108751a",
+      "0x10efc80",
+      "0x131d1c4",
+      "0x131e0c4",
+      "0x131d1d0",
+      "0x10efcc7",
+      "0x10efcce",
+      "0x10efcdf",
+      "0x1087522",
+      "0x10efd60",
+      "0x1336300",
+      "0x1336328",
+      "0x131da24",
+      "0x131e0c4"
+    ],
+    "registers": {
+      "eax": "0x9e",
+      "ecx": "0x3ffefe4",
+      "edx": "0x131e0c4",
+      "ebx": "0x3ffed64",
+      "esp": "0x3ffec5c",
+      "ebp": "0x3ffec74",
+      "esi": "0x0",
+      "edi": "0x0"
+    },
+    "stackWords": [
+      20044336,
+      20144962,
+      67103856,
+      20616936,
+      67104272,
+      0,
+      67104728,
+      17759657,
+      67104100,
+      17971880,
+      67104272,
+      0
+    ],
+    "modulesAtFailure": [
+      {
+        "name": "console.exe",
+        "host": false,
+        "base": 4194304,
+        "preferredBase": 4194304,
+        "refs": 1,
+        "initialized": false
+      },
+      {
+        "name": "kernel32.dll",
+        "host": false,
+        "base": 16777216,
+        "preferredBase": 2071986176,
+        "refs": 1,
+        "initialized": false
+      },
+      {
+        "name": "kernelbase.dll",
+        "host": false,
+        "base": 17235968,
+        "preferredBase": 2063597568,
+        "refs": 1,
+        "initialized": false
+      },
+      {
+        "name": "ntdll.dll",
+        "host": false,
+        "base": 19988480,
+        "preferredBase": 2076180480,
+        "refs": 1,
+        "initialized": true
+      },
+      {
+        "name": "msvcrt.dll",
+        "host": false,
+        "base": 20709376,
+        "preferredBase": 268435456,
+        "refs": 1,
+        "initialized": false
+      }
+    ],
+    "apiTrace": [
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtQueryInformationProcess",
+      "ntdll.dll!NtAllocateVirtualMemory"
+    ],
+    "blocks": 742
+  },
+  "scope": "Optional probe of the whole unmodified installed Wine DLL closure rooted at msvcrt.dll. It performs Runtime.loadLibrary only; successful closure loading is not application execution or general CRT compatibility.",
+  "sources": [
+    "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/ntdll.spec (NtInitializeNlsFiles syscall declaration)",
+    "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/locale.c (NLS initialization path)",
+    "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/kernelbase/locale.c (kernelbase process-attach NLS loading)"
+  ],
+  "processExitCode": 1
+}

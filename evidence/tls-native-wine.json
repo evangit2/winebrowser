@@ -1,0 +1,29 @@
+{
+  "runtime": "Wine 11.0",
+  "command": "WINEDEBUG=-all wine app.exe",
+  "workingDirectory": "fresh copies of the repository-owned tests/fixtures/tls binaries",
+  "prefix": "isolated repository-local WINEPREFIX",
+  "exitCode": 0,
+  "stdout": "TLS events:12349678\r\n",
+  "stdoutHex": "544c53206576656e74733a31323334393637380d0a",
+  "stdoutSha256": "8c3ca3b139e0530416c99c1a6f0a30b92873c0912bc107101cda184dc9a78d47",
+  "events": [
+    1,
+    2,
+    3,
+    4,
+    9,
+    6,
+    7,
+    8
+  ],
+  "observations": [
+    "EXE TLS process-attach callback runs before the EXE entry point.",
+    "EXE TLS process-detach callback does not run when the fixture exits with ExitProcess.",
+    "Both DLL TLS process-detach callbacks run before DLL DllMain process detach."
+  ],
+  "fixtures": {
+    "app.exe": "67e54547eb3f8d4a801a1a784253bb025447ca8923c34f3d62d05d200451a408",
+    "tls.dll": "ffec3dc06b9f71e949652d818df1e5fe1a34ff14d0e3a9d2b743cf9842add89d"
+  }
+}

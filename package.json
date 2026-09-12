@@ -20,7 +20,9 @@
     "fetch:targets": "node scripts/fetch-targets.mjs",
     "build:wine": "python3 scripts/build-wine-library.py",
     "build:modules": "bash scripts/build-module-fixtures.sh",
-    "test:wine": "node scripts/test-wine-ntdll.mjs"
+    "test:wine": "node scripts/test-wine-ntdll.mjs",
+    "probe:wine-crt": "node scripts/probe-wine-crt.mjs",
+    "build:tls": "bash scripts/build-tls-fixtures.sh"
   },
   "dependencies": {
     "fflate": "0.8.3",

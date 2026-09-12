@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T22:12:46.203Z",
+  "date": "2026-09-12T22:36:47.923Z",
   "target": {
     "id": "winapiexec-1.2-x86",
     "path": ".cache/targets/winapiexec.exe",
@@ -25,7 +25,7 @@
     "winapiexecPcmPackage": {
       "id": "winapiexec-1.2-x86+generated-pcm-test-data",
       "archive": "winapiexec-pcm.zip",
-      "archiveSha256": "63ddf1c91ecd8b3be57d68b9afcc01e11d0e2e10a74375e7a6a53053fa65c08f",
+      "archiveSha256": "8bea2bb3837f1122998e9a3c35539de1ea8dec465350232dab03d85e9846559e",
       "executableId": "winapiexec-1.2-x86",
       "executablePath": ".cache/targets/winapiexec.exe",
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
@@ -123,7 +123,7 @@
     "wineNtdllPackage": {
       "id": "winapiexec-1.2-x86+verified-wine-ntdll",
       "archive": "winapiexec-wine-ntdll.zip",
-      "archiveSha256": "0f514781c92e33229e8f487a4b3dc9c13cbf639589bb8f8853fa56f038df901a",
+      "archiveSha256": "b215c610404c596b48bd5e3feae8521994e0d3b210dc733a72511f0586fe463a",
       "entries": [
         "winapiexec.exe",
         "ntdll.dll"
@@ -196,7 +196,7 @@
           "initialized": true
         }
       ],
-      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 99.5 ms",
+      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 55.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -281,7 +281,7 @@
           "initialized": true
         }
       ],
-      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 67.4 ms",
+      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 40.7 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -341,7 +341,7 @@
           "initialized": true
         }
       ],
-      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 134.2 ms",
+      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 68.9 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": {
         "title": "External target",
@@ -402,13 +402,13 @@
           "initialized": true
         }
       ],
-      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 37.9 ms",
+      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 42.8 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "tone": {
         "frequency": 440,
         "gain": 0.11999999731779099,
-        "start": 0.6613333333333333,
-        "stop": 0.6813333333333333,
+        "start": 0.448,
+        "stop": 0.468,
         "durationMs": 20
       },
       "dialog": null,
@@ -464,7 +464,7 @@
         }
       ],
       "stdout": "",
-      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 166.5 ms",
+      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 130.3 ms",
       "expectedTrace": [
         "LoadLibraryA",
         "GetProcAddress",
@@ -497,7 +497,7 @@
         "0x20002"
       ],
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
-      "generatedArchiveSha256": "63ddf1c91ecd8b3be57d68b9afcc01e11d0e2e10a74375e7a6a53053fa65c08f",
+      "generatedArchiveSha256": "8bea2bb3837f1122998e9a3c35539de1ea8dec465350232dab03d85e9846559e",
       "audioFixture": {
         "path": "tone.wav",
         "format": "PCM WAV",
@@ -592,7 +592,7 @@
         "created": true,
         "started": true,
         "ended": true,
-        "startedAt": 1844.5649999976158,
+        "startedAt": 1677.1299999952316,
         "numberOfChannels": 1,
         "sampleRate": 8000,
         "length": 80,
@@ -678,7 +678,7 @@
           0.25,
           -0.25
         ],
-        "endedAt": 1851.0199999958277
+        "endedAt": 1684.4549999982119
       },
       "exitCode": 1,
       "apiTrace": [
@@ -738,14 +738,14 @@
         }
       ],
       "stdout": "",
-      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 56.4 ms",
-      "completedAt": 1862.4449999928474,
+      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 61.1 ms",
+      "completedAt": 1698.794999986887,
       "bufferSources": [
         {
           "created": true,
           "started": true,
           "ended": true,
-          "startedAt": 1844.5649999976158,
+          "startedAt": 1677.1299999952316,
           "numberOfChannels": 1,
           "sampleRate": 8000,
           "length": 80,
@@ -831,7 +831,7 @@
             0.25,
             -0.25
           ],
-          "endedAt": 1851.0199999958277
+          "endedAt": 1684.4549999982119
         }
       ],
       "checks": [
@@ -1039,7 +1039,7 @@
         "SetPixel",
         "ReleaseDC"
       ],
-      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 56.9 ms",
+      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 48.2 ms",
       "checks": [
         {
           "name": "exit code 1",
@@ -1145,7 +1145,7 @@
           "initialized": true
         }
       ],
-      "metrics": "371 Wasm blocks · 10087 x86 instructions · 24 API calls · 153.7 ms",
+      "metrics": "371 Wasm blocks · 10087 x86 instructions · 24 API calls · 135.4 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -1296,24 +1296,24 @@
         {
           "path": "winebrowser-filetime.bin",
           "bytes": [
-            32,
-            245,
-            169,
-            217,
-            3,
+            176,
+            255,
+            176,
+            52,
+            7,
             67,
             221,
             1
           ]
         }
       ],
-      "metrics": "393 Wasm blocks · 21387 x86 instructions · 49 API calls · 109.2 ms",
+      "metrics": "393 Wasm blocks · 21387 x86 instructions · 49 API calls · 137.1 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
-      "fileTime": "0x01dd4303d9a9f520",
-      "unixMilliseconds": 1789251170674,
+      "fileTime": "0x01dd430734b0ffb0",
+      "unixMilliseconds": 1789252611883,
       "wallClockWindow": {
-        "before": 1789251170526,
-        "after": 1789251170708
+        "before": 1789252611631,
+        "after": 1789252611914
       },
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -1445,7 +1445,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "408 Wasm blocks · 17081 x86 instructions · 33 API calls · 108.0 ms",
+      "metrics": "408 Wasm blocks · 17081 x86 instructions · 33 API calls · 120.9 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -1662,7 +1662,7 @@
           ]
         }
       ],
-      "metrics": "406 Wasm blocks · 35290 x86 instructions · 65 API calls · 100.1 ms",
+      "metrics": "406 Wasm blocks · 35290 x86 instructions · 65 API calls · 88.0 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "zeroedHeapOutput": {
         "path": "winebrowser-heap-zero.bin",
@@ -1843,7 +1843,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "413 Wasm blocks · 26188 x86 instructions · 46 API calls · 100.8 ms",
+      "metrics": "413 Wasm blocks · 26188 x86 instructions · 46 API calls · 90.5 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",

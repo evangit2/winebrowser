@@ -96,6 +96,21 @@ try {
     monotonic: true,
     passed: true,
   });
+  const queryProcess = await runtime.resolveExport(module, 'NtQueryInformationProcess');
+  const wow64 = runtime.allocate(4),
+    returnLength = runtime.allocate(4);
+  runtime.write32(wow64, 0xdeadbeef);
+  assert.equal(await runtime.callGuest(queryProcess, [0xffffffff, 26, wow64, 4, returnLength]), 0);
+  assert.equal(runtime.read32(wow64), 0);
+  assert.equal(runtime.read32(returnLength), 4);
+  report.cases.push({
+    export: 'NtQueryInformationProcess',
+    informationClass: 'ProcessWow64Information',
+    wow64Peb: 0,
+    returnLength: 4,
+    dispatch: 'FS:[0xc0]',
+    passed: true,
+  });
   const basePointer = runtime.allocate(4),
     sizePointer = runtime.allocate(4);
   const allocateMemory = await runtime.resolveExport(module, 'NtAllocateVirtualMemory');

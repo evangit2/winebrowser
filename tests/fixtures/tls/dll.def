@@ -1,0 +1,10 @@
+LIBRARY tls.dll
+EXPORTS
+  GetTlsValue
+  SetTlsValue
+  RecordTlsEvent
+  GetTlsEventCount
+  GetTlsEvent
+  RejectAttach DATA
+  events DATA
+  eventCount DATA

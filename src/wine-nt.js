@@ -1,6 +1,6 @@
-// Wine i386 PE syscall ABI v1: EAX selects a service, the wrapper CALLs a
-// common trampoline, and RET n in the wrapper removes the caller's arguments.
-// We install the documented dispatcher data pointer, never patch guest code.
+// Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
+// common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
+// We install only validated Wine dispatcher slots; guest code stays unchanged.
 export function installWineNtBridge(runtime, module) {
   if (module.host || module.name !== 'ntdll.dll' || module.ntBridge) return;
   const exported = module.pe.exports.find((e) => e.name === '__wine_syscall_dispatcher');
@@ -9,6 +9,7 @@ export function installWineNtBridge(runtime, module) {
   runtime.check(slot, 4, true);
   if (runtime.read32(slot)) throw Error('Wine NT dispatcher is already installed by another host');
   const services = new Map();
+  let hasTebWrappers = false;
   const executable = (address, size) =>
     module.pe.sections.some(
       (s) =>
@@ -21,22 +22,25 @@ export function installWineNtBridge(runtime, module) {
     const address = module.base + entry.rva;
     if (!executable(address, 15)) continue;
     const code = runtime.data.subarray(address, address + 15);
-    if (
-      code[0] !== 0xb8 ||
-      code[5] !== 0xba ||
-      code[10] !== 0xff ||
-      code[11] !== 0xd2 ||
-      code[12] !== 0xc2
-    )
-      continue; // Some Nt exports are ordinary guest implementations.
-    const trampoline = runtime.read32(address + 6);
-    if (
-      !executable(trampoline, 6) ||
-      runtime.data[trampoline] !== 0xff ||
-      runtime.data[trampoline + 1] !== 0x25 ||
-      runtime.read32(trampoline + 2) !== slot
-    )
-      throw Error(`Unsupported Wine NT trampoline for ${entry.name}`);
+    if (code[0] !== 0xb8 || code[12] !== 0xc2) continue; // Some Nt exports are ordinary guest implementations.
+    const hasTrampolineCall = code[5] === 0xba && code[10] === 0xff && code[11] === 0xd2;
+    const hasTebCall =
+      code[5] === 0x64 &&
+      code[6] === 0xff &&
+      code[7] === 0x15 &&
+      runtime.read32(address + 8) === 0xc0;
+    if (hasTrampolineCall) {
+      const trampoline = runtime.read32(address + 6);
+      if (
+        !executable(trampoline, 6) ||
+        runtime.data[trampoline] !== 0xff ||
+        runtime.data[trampoline + 1] !== 0x25 ||
+        runtime.read32(trampoline + 2) !== slot
+      )
+        throw Error(`Unsupported Wine NT trampoline for ${entry.name}`);
+    } else if (hasTebCall) {
+      hasTebWrappers = true;
+    } else continue; // Some Nt exports are ordinary guest implementations.
     const id = runtime.read32(address + 1),
       stackBytes = code[13] | (code[14] << 8);
     if (id >= 4096 || stackBytes % 4 || stackBytes > 64 || services.has(id))
@@ -45,6 +49,13 @@ export function installWineNtBridge(runtime, module) {
   }
   if (!services.size) throw Error('Unsupported Wine i386 syscall wrapper ABI');
   const address = 0x80000000 + runtime.thunks.size * 16;
+  let tebSlot;
+  if (hasTebWrappers) {
+    if (!runtime.cpu.fsBase) throw Error('Wine FS syscall wrapper requires a guest TEB');
+    tebSlot = runtime.cpu.fsBase + 0xc0;
+    runtime.check(tebSlot, 4, true);
+    if (runtime.read32(tebSlot)) throw Error('Wine TEB syscall dispatcher is already installed');
+  }
   runtime.thunks.set(address, {
     dll: module.name,
     name: '__wine_syscall_dispatcher',
@@ -52,7 +63,8 @@ export function installWineNtBridge(runtime, module) {
     services,
   });
   runtime.write32(slot, address);
-  module.ntBridge = { version: 1, address, slot, serviceCount: services.size };
+  if (tebSlot !== undefined) runtime.write32(tebSlot, address);
+  module.ntBridge = { version: 1, address, slot, serviceCount: services.size, tebSlot };
 }
 
 const ACCESS_VIOLATION = 0xc0000005;
@@ -93,6 +105,25 @@ function writeLargeInteger(runtime, address, value) {
 }
 
 export const ntServices = {
+  NtQueryInformationProcess: {
+    argc: 5,
+    call: (r, a) => {
+      if (a(1) !== 26) throw Error(`Unsupported Wine process information class ${a(1)}`);
+      // ProcessWow64Information: this runtime executes a native PE32 process;
+      // it has no 64-bit companion PEB or WOW64 subsystem.
+      if (a(3) !== 4) return 0xc0000004; // STATUS_INFO_LENGTH_MISMATCH.
+      if (a(0) !== 0xffffffff) return 0xc0000008;
+      try {
+        r.check(a(2), 4, true);
+        if (a(4)) r.check(a(4), 4, true);
+      } catch {
+        return ACCESS_VIOLATION;
+      }
+      r.write32(a(2), 0);
+      if (a(4)) r.write32(a(4), 4);
+      return 0;
+    },
+  },
   NtAllocateVirtualMemory: { argc: 6, call: (r, a) => virtualMemoryCall(r, a, true) },
   NtFreeVirtualMemory: { argc: 4, call: (r, a) => virtualMemoryCall(r, a, false) },
   NtQuerySystemTime: {

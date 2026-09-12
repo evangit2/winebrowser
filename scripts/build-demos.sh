@@ -32,6 +32,11 @@ build_one console console -lkernel32
 build_one files console -lkernel32
 build_one messagebox windows -luser32 -lkernel32
 build_one beep console -lkernel32
+bash "$ROOT/scripts/build-tls-fixtures.sh"
+mkdir -p "$OUT/tls"
+cp "$ROOT/tests/fixtures/tls/app.exe" "$OUT/tls/tls.exe"
+cp "$ROOT/tests/fixtures/tls/tls.dll" "$OUT/tls/tls.dll"
+cp "$ROOT/tests/fixtures/tls/LICENSE" "$OUT/tls/LICENSE"
 
 "$PYTHON" - "$OUT" <<'PY'
 import hashlib
@@ -46,6 +51,7 @@ descriptions = {
     "files": {"stdoutFrom": "assets/message.txt byte-for-byte", "createdFiles": {"output.txt": "files demo: generated output file.\r\n"}, "exitCode": 0, "apiErrorExitCode": 1},
     "messagebox": {"messageBoxA": {"title": "WineBrowser demo", "text": "MessageBoxA ran successfully."}, "exitCode": 0, "apiErrorExitCode": 1},
     "beep": {"beepHz": 440, "beepMilliseconds": 180, "exitCode": 0, "apiErrorExitCode": 1},
+    "tls": {"exitCode": 0, "stdout": "TLS events:12349678\r\n"},
 }
 items = []
 for name in sorted(descriptions):

@@ -4,5 +4,6 @@ EXPORTS
   NtAllocateVirtualMemory=NtAllocateVirtualMemory
   NtFreeVirtualMemory=NtFreeVirtualMemory
   NtQuerySystemTime=NtQuerySystemTime
+  NtQueryInformationProcess=NtQueryInformationProcess
   NtQueryPerformanceCounter=NtQueryPerformanceCounter
   NtClose=NtClose

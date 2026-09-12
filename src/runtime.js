@@ -2,6 +2,7 @@ import { GuestHeap } from './heap.js';
 import { VirtualMemory } from './virtual-memory.js';
 import { installWineNtBridge, dispatchWineNt } from './wine-nt.js';
 import { initializeWineProcess, PEB_PROCESS_HEAP } from './wine-process.js';
+import { StaticTLS } from './tls.js';
 import { flushGdi } from './win32-gdi.js';
 import { CPU } from './cpu.js';
 import { parsePE } from './pe.js';
@@ -72,6 +73,7 @@ export class Runtime {
     this.refreshCodeRanges();
     this.thunks = this.graph.thunks;
     this.heap = new GuestHeap(this.memory);
+    this.tls = new StaticTLS(this);
     this.allocations = this.heap.allocations;
     this.callDepth = 0;
     this.write32(0x2e00000, 0xffffffff);
@@ -192,6 +194,7 @@ export class Runtime {
     }
   }
   async initializeModules() {
+    this.tls.prepare(this.graph.modules.values());
     for (const module of this.graph.modules.values()) installWineNtBridge(this, module);
     const ntdll = this.graph.modules.get('ntdll.dll');
     if (ntdll) await initializeWineProcess(this, ntdll);
@@ -199,15 +202,19 @@ export class Runtime {
       if (module.initialized || module.initializing) continue;
       module.initializing = true;
       try {
+        await this.tls.attach(module);
+        if (this.exitCode !== null) return;
         if (
           module.pe.entryPoint &&
-          !(await this.callGuest(module.pe.entryPoint, [module.base, 1, 0]))
+          !(await this.callGuest(module.pe.entryPoint, [module.base, 1, 0])) &&
+          this.exitCode === null
         ) {
           const error = Error(`DllMain rejected process attach: ${module.name}`);
           error.win32Error = 1114; // ERROR_DLL_INIT_FAILED
           throw error;
         }
         module.initialized = true;
+        if (this.exitCode !== null) return;
       } finally {
         module.initializing = false;
       }
@@ -215,6 +222,7 @@ export class Runtime {
   }
   async withModuleLoad(resolve, missingError = 126) {
     const checkpoint = this.graph.checkpoint();
+    const tlsCheckpoint = this.tls.checkpoint();
     const wineProcess = this.wineProcess,
       processHeap = this.read32(PEB_PROCESS_HEAP);
     const existingNtdll = checkpoint.modules.get('ntdll.dll')?.module;
@@ -234,6 +242,19 @@ export class Runtime {
       // Detach only dependencies whose attach succeeded during this load. A
       // rejected DLL itself must never become observable as initialized.
       for (const module of this.graph.initializationOrder().reverse()) {
+        const beforeTLS = tlsCheckpoint.records.get(module),
+          currentTLS = this.tls.records.get(module);
+        if (
+          currentTLS &&
+          !beforeTLS?.attached &&
+          (currentTLS.attached || currentTLS.callbacksRun > (beforeTLS?.callbacksRun ?? 0))
+        ) {
+          try {
+            await this.tls.detach(module);
+          } catch (detachError) {
+            this.emit({ type: 'log', text: `TLS cleanup failed: ${detachError.message}` });
+          }
+        }
         if (
           module.initialized &&
           !checkpoint.modules.get(module.name)?.state.initialized &&
@@ -246,11 +267,15 @@ export class Runtime {
           }
         }
       }
-      for (const module of this.graph.modules.values())
+      this.tls.restore(tlsCheckpoint);
+      for (const module of this.graph.modules.values()) {
+        if (module.ntBridge?.tebSlot && !checkpoint.modules.get(module.name)?.state.ntBridge)
+          this.write32(module.ntBridge.tebSlot, 0);
         if (module.mapped && !checkpoint.modules.get(module.name)?.state.mapped)
           this.data.fill(0, module.base, module.base + module.pe.imageSize);
         else if (module.ntBridge && !checkpoint.modules.get(module.name)?.state.ntBridge)
           this.write32(module.ntBridge.slot, 0);
+      }
       if (this.wineProcess && this.wineProcess !== wineProcess) {
         for (const base of this.wineProcess.reservations) this.virtualMemory.free(base, 0, 0x8000);
         if (ntdllBeforeBootstrap) this.data.set(ntdllBeforeBootstrap, existingNtdll.base);
@@ -281,13 +306,16 @@ export class Runtime {
   async run() {
     const started = performance.now();
     await this.initializeModules();
+    await this.tls.attach(this.graph.main);
     const entryResult = await this.callGuest(this.pe.entryPoint);
     if (this.exitCode === null) this.exitCode = entryResult;
     const processExit = this.exitCode;
+    // Wine's process shutdown notifies DLL TLS, not the main EXE's TLS callbacks.
     for (const module of this.graph.initializationOrder().reverse())
-      if (module.initialized && module.pe.entryPoint) {
+      if (module.initialized) {
         this.exitCode = null;
-        await this.callGuest(module.pe.entryPoint, [module.base, 0, 1]);
+        await this.tls.detach(module);
+        if (module.pe.entryPoint) await this.callGuest(module.pe.entryPoint, [module.base, 0, 1]);
       }
     this.exitCode = processExit;
     flushGdi(this);

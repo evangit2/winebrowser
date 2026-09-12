@@ -55,6 +55,17 @@
       "name": "messagebox",
       "zip": "messagebox.zip",
       "zipSha256": "058d5056adf062dc4cb7bd71df1e7dd2662570c0c5677cadc7c3fc33f6a87378"
+    },
+    {
+      "exe": "tls/tls.exe",
+      "exeSha256": "67e54547eb3f8d4a801a1a784253bb025447ca8923c34f3d62d05d200451a408",
+      "expected": {
+        "exitCode": 0,
+        "stdout": "TLS events:12349678\r\n"
+      },
+      "name": "tls",
+      "zip": "tls.zip",
+      "zipSha256": "7b829dbd37687926edc8fc50f3fa04738555c909ab0e4773517c2e45b3f1adf3"
     }
   ],
   "format": 1
