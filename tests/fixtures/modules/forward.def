@@ -1,0 +1,3 @@
+LIBRARY forward.dll
+EXPORTS
+  ForwardSum=math.sum @1

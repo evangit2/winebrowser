@@ -3,98 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WineBrowser · Windows, in a tab</title>
+    <title>WineBrowser test bench</title>
   </head>
   <body>
-    <div id="app">
+    <main id="app">
       <header>
-        <a class="brand" href="/">w<span>◈</span>b <b>WineBrowser</b></a
-        ><span class="badge">RUNTIME PREVIEW 0.1</span>
+        <h1>WineBrowser test bench</h1>
+        <span id="platform">Checking browser…</span>
       </header>
-      <main>
-        <section class="hero">
-          <div class="eyebrow">A WINDOWS RUNTIME FOR THE WEB</div>
-          <h1>A new home for<br />your <em>.exe</em></h1>
-          <p>
-            Open a Windows executable or a ZIP with its assets.<br />Your files stay in this
-            browser.
-          </p>
-          <div class="scope">Early prototype · small 32-bit programs · limited API coverage</div>
-        </section>
-        <section class="workspace">
-          <div class="launcher">
-            <div class="section-title">
-              <span>01 / OPEN A PACKAGE</span><span id="platform">Checking browser…</span>
-            </div>
-            <label class="drop" id="drop"
-              ><input id="file" type="file" accept=".zip,.exe" /><span class="upload-icon">↥</span
-              ><strong>Drop your .zip or .exe here</strong
-              ><span>or click to browse · up to 64 MB</span></label
-            >
-            <div class="sample-label">OR TRY A SMALL WINDOWS EXECUTABLE</div>
-            <div class="demos">
-              <button data-demo="console">Console <span>↗</span></button
-              ><button data-demo="files">Files + assets <span>↗</span></button
-              ><button data-demo="messagebox">Dialog <span>↗</span></button
-              ><button data-demo="beep">Audio <span>↗</span></button>
-            </div>
-            <div class="selection" hidden id="selection">
-              <label for="exe">Executable</label
-              ><select id="exe"></select>
-              <div id="details"></div>
-            </div>
-            <div class="controls">
-              <button id="run" disabled>Run executable <span>→</span></button
-              ><button id="stop" disabled>Stop</button><span id="status">Ready when you are</span>
-            </div>
-          </div>
-          <div class="terminal">
-            <div class="section-title">
-              <span>02 / PROGRAM OUTPUT</span><span id="state">IDLE</span>
-            </div>
-            <pre id="output">Your program’s console output will appear here.</pre>
-            <div id="outputs"></div>
-            <div id="metrics">Browser-local execution · no server compiler</div>
-          </div>
-        </section>
-        <section class="about">
-          <div>
-            <span>EXECUTION</span>
-            <h3>x86 → Wasm, on demand</h3>
-            <p>Machine instructions become small WebAssembly blocks as the program runs.</p>
-          </div>
-          <div>
-            <span>COMPATIBILITY</span>
-            <h3>More than graphics</h3>
-            <p>
-              Console, files, dialogs and basic audio are the first test surfaces. General Windows
-              apps and games are future work.
-            </p>
-          </div>
-          <div>
-            <span>CONTROL</span>
-            <h3>Your tab. Your files.</h3>
-            <p>
-              A dedicated worker runs the program. Stop ends it immediately. Generated files are
-              available to download.
-            </p>
-          </div>
-        </section>
-        <details class="diagnostics">
-          <summary>Runtime diagnostics & current limits</summary>
-          <p>
-            This is a bootstrap runtime, not a full Wine port. PE32 x86 only; no x64, CRT, TLS, SEH,
-            DLL loading, threads, GDI, OpenGL or DirectX yet. Unsupported instructions and imports
-            stop with a diagnostic. The examples are native Windows PE binaries compiled from
-            assembly, not Wasm source ports.
-          </p>
-          <pre id="logs"></pre>
-        </details>
-      </main>
-      <footer>
-        WineBrowser <span>Independent experimental project. Not affiliated with WineHQ.</span>
-      </footer>
-    </div>
+      <section class="controls-panel" aria-label="Package controls">
+        <label id="drop" class="drop">
+          <input id="file" type="file" accept=".zip,.exe" />
+          Upload or drop a ZIP or PE executable
+        </label>
+        <div id="demos" class="demos" aria-label="Bundled fixtures"></div>
+        <div id="selection" hidden>
+          <label for="exe">Executable</label>
+          <select id="exe"></select>
+          <div id="details"></div>
+        </div>
+        <label class="args-label" for="args">Arguments (JSON string array)</label>
+        <input id="args" type="text" value="[]" spellcheck="false" />
+        <div class="actions">
+          <button id="run" disabled>Run executable</button>
+          <button id="run-suite">Run suite</button>
+          <button id="stop" disabled>Stop</button>
+          <label class="check"
+            ><input id="audio-enabled" type="checkbox" checked /> Play audio</label
+          >
+          <span id="status">Ready</span>
+        </div>
+      </section>
+      <section class="suite-panel" aria-label="Fixture results">
+        <h2>Fixture suite <span id="suite-status">Not run</span></h2>
+        <table id="suite-table">
+          <thead>
+            <tr>
+              <th>Fixture</th>
+              <th>Result</th>
+              <th>Checks</th>
+            </tr>
+          </thead>
+          <tbody id="suite-results"></tbody>
+        </table>
+      </section>
+      <section class="run-panel" aria-label="Program output">
+        <div class="run-heading">
+          <h2>Output</h2>
+          <span id="state">IDLE</span>
+        </div>
+        <pre id="output"></pre>
+        <canvas
+          id="display"
+          width="640"
+          height="480"
+          aria-label="Guest desktop output"
+          hidden
+        ></canvas>
+        <div id="outputs"></div>
+        <div id="metrics">No run yet</div>
+      </section>
+      <details class="diagnostics">
+        <summary>Runtime logs and diagnostics</summary>
+        <pre id="logs"></pre>
+      </details>
+    </main>
     <dialog id="messagebox">
       <h2 id="dialog-title"></h2>
       <p id="dialog-text"></p>

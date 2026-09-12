@@ -30,14 +30,29 @@ const get = (r) => [0x23, r];
 const set = (r) => [0x24, r];
 const local = (n) => [0x20, n];
 const call = (n) => [0x10, n];
+// Numeric indices are shared with the CPU lowering code. Guest memory is accessed
+// through checked host calls rather than exposing the decoder's Wasm memory.
+export const Host = Object.freeze({
+  load: 0,
+  store: 1,
+  push: 2,
+  pop: 3,
+  flags: 4,
+  condition: 5,
+  shift: 6,
+  wideMath: 7,
+});
 const signatures = [
-  [1, 1],
-  [2, 0],
+  [2, 1],
+  [3, 0],
   [1, 0],
   [0, 1],
-  [4, 0],
+  [5, 0],
   [1, 1],
-]; // load, store, push, pop, flags, condition
+  [4, 1],
+  [3, 1],
+];
+const hostNames = Object.keys(Host);
 export function moduleBytes(code) {
   const types = signatures.map(([n, r]) => [
     0x60,
@@ -45,12 +60,7 @@ export function moduleBytes(code) {
     ...vec(r ? [[0x7f]] : []),
   ]);
   types.push([0x60, 0, 1, 0x7f]);
-  const imports = ['load', 'store', 'push', 'pop', 'flags', 'condition'].map((name, i) => [
-    ...str('h'),
-    ...str(name),
-    0,
-    i,
-  ]);
+  const imports = hostNames.map((name, i) => [...str('h'), ...str(name), 0, i]);
   for (let i = 0; i < 8; i++) imports.push([...str('h'), ...str('r' + i), 3, 0x7f, 1]);
   const body = [1, 3, 0x7f, ...code, 0x0b];
   return new Uint8Array([
@@ -64,8 +74,8 @@ export function moduleBytes(code) {
     0,
     ...section(1, vec(types)),
     ...section(2, vec(imports)),
-    ...section(3, [1, 6]),
-    ...section(7, [1, ...str('run'), 0, 6]),
+    ...section(3, [1, hostNames.length]),
+    ...section(7, [1, ...str('run'), 0, hostNames.length]),
     ...section(10, [1, ...uleb(body.length), ...body]),
   ]);
 }

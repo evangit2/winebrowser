@@ -1,0 +1,392 @@
+{
+  "schemaVersion": 1,
+  "statusVocabulary": ["untested", "blocked", "passed", "partial", "failed"],
+  "referenceFiles": [
+    {
+      "url": "https://raw.githubusercontent.com/m417z/winapiexec/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/winapiexec.c",
+      "path": ".cache/targets/winapiexec.c",
+      "sha256": "0824df85acefa3dd6851ba478fde2c2c85a263b2e105875b433f707e7cd1f850"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/m417z/winapiexec/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/buffer.h",
+      "path": ".cache/targets/winapiexec-buffer.h",
+      "sha256": "01d07b2d38c3a4b69f07a766217f502f3a8e53082727afd87ad9d5ff965d6d1e"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/m417z/winapiexec/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/README.md",
+      "path": ".cache/targets/winapiexec-upstream-readme.md",
+      "sha256": "2a601d444ec7bb122261341ec477bec141a669ad50368acfdffb828a4b78635c"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/m417z/winapiexec/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/LICENSE",
+      "path": ".cache/targets/winapiexec-LICENSE",
+      "sha256": "7f9b2c642df94ade272fe478e20169f74069c9a83d43256589fc7a5b6538deab"
+    },
+    {
+      "url": "https://www.opengl.org/archives/resources/code/samples/win32_tutorial/minimal.c",
+      "path": ".cache/targets/sgi-opengl-minimal.c",
+      "sha256": "a685554891e0987656aba0da943eb8929c9ae1b37c33f736a72bdb45efe98540"
+    }
+  ],
+  "targets": [
+    {
+      "id": "winapiexec-1.2-x86",
+      "status": "partial",
+      "path": ".cache/targets/winapiexec.exe",
+      "bytes": 3584,
+      "sha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+      "architecture": "x86",
+      "imports": ["KERNEL32.dll", "USER32.dll", "SHELL32.dll"],
+      "downloadEntry": "winapiexec.exe",
+      "source": {
+        "project": "m417z/winapiexec",
+        "version": "1.2",
+        "url": "https://ramensoftware.com/winapiexec",
+        "downloadUrl": "https://ramensoftware.com/downloads/winapiexec.zip",
+        "license": "GPL-3.0",
+        "licenseUrl": "https://github.com/m417z/winapiexec/blob/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/LICENSE",
+        "archiveSha256": "8bcb5b505b7e6a1ba0c8a76cc3fb203487acfb7600c4bcfdfd6d67080fe45789",
+        "upstreamCommit": "b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89"
+      },
+      "use": "Small third-party PE utility which dynamically resolves arbitrary Win32 APIs; useful for multiple API calls without a handwritten test executable.",
+      "workingDirectory": ".cache/targets",
+      "cases": [
+        {
+          "id": "console-write",
+          "args": [
+            "GetStdHandle",
+            "-11",
+            ",",
+            "WriteFile",
+            "$$:1",
+            "$s:winebrowser stdout",
+            "18",
+            "$b:4",
+            "0"
+          ],
+          "expected": "stdout exactly `winebrowser stdout`; exit code 1 (WriteFile BOOL result)",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "console-write"
+          }
+        },
+        {
+          "id": "filesystem-create-write-close",
+          "args": [
+            "CreateFileW",
+            "winebrowser-target.txt",
+            "0x40000000",
+            "0",
+            "0",
+            "2",
+            "0x80",
+            "0",
+            ",",
+            "WriteFile",
+            "$$:1",
+            "$s:hello",
+            "5",
+            "$b:4",
+            "0",
+            ",",
+            "CloseHandle",
+            "$$:1"
+          ],
+          "expected": "virtual output file is exactly `hello`; exit code 1 (CloseHandle BOOL result)",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "filesystem-create-write-close"
+          }
+        },
+        {
+          "id": "user32-messagebox",
+          "args": [
+            "user32@MessageBoxW",
+            "0",
+            "Wine guest parser: \"quoted\" text",
+            "External target",
+            "0"
+          ],
+          "expected": "dialog title `External target`, text `Wine guest parser: \"quoted\" text`, exit code 1",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "user32-messagebox"
+          }
+        },
+        {
+          "id": "kernel32-beep",
+          "args": ["kernel32@Beep", "440", "20"],
+          "expected": "WebAudio tone at 440 Hz for 20 ms; exit code 1",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "kernel32-beep"
+          }
+        },
+        {
+          "id": "winmm-playsound-alias",
+          "args": ["winmm.dll@PlaySoundW", "$u:SystemAsterisk", "0", "0x00010001"],
+          "expected": "requests asynchronous playback of the Windows SystemAsterisk alias via a dynamically loaded winmm.dll",
+          "status": "blocked",
+          "statusNote": "SystemAsterisk with SND_ASYNC|SND_ALIAS is outside the measured implementation: current PlaySoundW support is synchronous filename playback (plus SND_NODEFAULT). The passing PCM filename case below verifies the same upstream EXE and PlaySoundW entry point."
+        },
+        {
+          "id": "gdi-textout",
+          "args": [
+            "u@GetDesktopWindow",
+            ",",
+            "u@GetDC",
+            "$$:1",
+            ",",
+            "gdi32.dll@TextOutA",
+            "$$:3",
+            "8",
+            "8",
+            "$s:winebrowser GDI",
+            "$$:3"
+          ],
+          "expected": "requests one GDI text draw on the desktop DC via a dynamically loaded gdi32.dll",
+          "status": "blocked",
+          "statusNote": "TextOutA is not implemented in the current GDI surface; see the PatBlt/SetPixel real-canvas case below for the GDI calls that were exercised."
+        },
+        {
+          "id": "winmm-playsoundw-pcm",
+          "package": "winapiexec-pcm.zip",
+          "packageSha256": "aa47a6b237f23275dd7fa4e4f2eaa1f9ad20c513971024a941b9db30b0e3821e",
+          "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+          "asset": {
+            "path": "tone.wav",
+            "format": "PCM WAV",
+            "channels": 1,
+            "sampleRate": 8000,
+            "bitsPerSample": 16,
+            "frames": 80
+          },
+          "args": ["winmm.dll@PlaySoundW", "tone.wav", "0", "0x20002"],
+          "expected": "one AudioBufferSource starts and ends before exit; decoded mono PCM exactly matches the 80-frame test signal; exit code 1",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "winmm-playsoundw-pcm"
+          },
+          "statusNote": "Only the WAV test asset/package is generated. The executable bytes are unchanged upstream winapiexec 1.2."
+        },
+        {
+          "id": "winapiexec-gdi-realcanvas",
+          "args": [
+            "user32@GetDC",
+            "0",
+            ",",
+            "gdi32@CreateSolidBrush",
+            "0x00332211",
+            ",",
+            "gdi32@SelectObject",
+            "$$:1",
+            "$$:4",
+            ",",
+            "gdi32@PatBlt",
+            "$$:1",
+            "10",
+            "20",
+            "30",
+            "40",
+            "0xf00021",
+            ",",
+            "gdi32@SetPixel",
+            "$$:1",
+            "12",
+            "22",
+            "0x00efcdab",
+            ",",
+            "user32@ReleaseDC",
+            "0",
+            "$$:1"
+          ],
+          "expected": "exit code 1; exact 640×480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "winapiexec-gdi-realcanvas"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pts-tinype-hh2-x86",
+      "status": "blocked",
+      "path": ".cache/targets/pts-hh2.exe",
+      "bytes": 402,
+      "sha256": "d8f1526db518a7ca9e43ead18b9f5d1d023a63ae4b8479cfd5d782e6811e9f85",
+      "architecture": "x86",
+      "imports": ["KERNEL32.dll"],
+      "source": {
+        "project": "pts/pts-tinype",
+        "version": "master at 00bb8824c93188b236599c174af4269abf281664 (2025-06-23)",
+        "url": "https://github.com/pts/pts-tinype",
+        "downloadUrl": "https://raw.githubusercontent.com/pts/pts-tinype/00bb8824c93188b236599c174af4269abf281664/hh2.golden.exe",
+        "license": "No repository license file found; cache-only inspection target"
+      },
+      "use": "402-byte custom PE32 console executable; exercises loader, relocation/header assumptions, and a minimal stdout/exit path.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "prints the upstream hello-world text and exits successfully",
+      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable’s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
+    },
+    {
+      "id": "pts-tinype-hh4t-x86",
+      "status": "passed",
+      "path": ".cache/targets/pts-hh4t.exe",
+      "bytes": 610,
+      "sha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230",
+      "architecture": "x86",
+      "imports": ["KERNEL32.dll"],
+      "source": {
+        "project": "pts/pts-tinype",
+        "version": "master at 00bb8824c93188b236599c174af4269abf281664 (2025-06-23)",
+        "url": "https://github.com/pts/pts-tinype",
+        "downloadUrl": "https://raw.githubusercontent.com/pts/pts-tinype/00bb8824c93188b236599c174af4269abf281664/hh4t.golden.exe",
+        "license": "No repository license file found; cache-only inspection target"
+      },
+      "use": "610-byte GUI PE which loads USER32.dll and resolves MessageBoxA at runtime; exercises dynamic module/function lookup and one modal UI call.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "shows the upstream hello-world message box, then exits after it is dismissed",
+      "statusNote": "Passed in the browser harness. Upstream has no repository license file; local binary remains cache-only.",
+      "cases": [
+        {
+          "id": "pts-tinype-hh4t-gui",
+          "args": [],
+          "expected": "dialog title `World!`, text `Hello,\\nWorld!`; LoadLibraryA/GetProcAddress/MessageBoxA/ExitProcess trace; exit code 0",
+          "status": "passed",
+          "evidence": {
+            "file": "evidence/external-browser-results.json",
+            "case": "pts-tinype-hh4t-gui"
+          }
+        }
+      ]
+    },
+    {
+      "id": "7zip-7zr-26.03-x86",
+      "status": "blocked",
+      "path": ".cache/targets/7zr.exe",
+      "bytes": 602624,
+      "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
+      "architecture": "x86",
+      "imports": ["OLEAUT32.dll", "USER32.dll", "ADVAPI32.dll", "MSVCRT.dll", "KERNEL32.dll"],
+      "source": {
+        "project": "7-Zip",
+        "version": "26.03",
+        "url": "https://www.7-zip.org/download.html",
+        "downloadUrl": "https://github.com/ip7z/7zip/releases/download/26.03/7zr.exe",
+        "license": "LGPL-2.1-or-later with the upstream unRAR restriction"
+      },
+      "use": "Real console and filesystem workload from an upstream-built standalone archive tool; includes CRT and security API imports.",
+      "workingDirectory": "public/demos/files",
+      "args": ["a", "winebrowser-target.7z", "assets/message.txt"],
+      "expected": "creates `winebrowser-target.7z` from the supplied existing text asset and reports successful archive creation",
+      "statusNote": "Static import closure is unresolved: OLEAUT32, ADVAPI32, and MSVCRT are missing modules; the image also requires many unsupported KERNEL32 calls (including thread/event, VM, file-enumeration, and console APIs) and USER32 CharUpperW."
+    },
+    {
+      "id": "putty-0.85-x86",
+      "status": "blocked",
+      "path": ".cache/targets/putty-x86.exe",
+      "bytes": 1513624,
+      "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
+      "architecture": "x86",
+      "imports": [
+        "GDI32.dll",
+        "IMM32.dll",
+        "ole32.dll",
+        "USER32.dll",
+        "KERNEL32.dll",
+        "SHELL32.dll",
+        "COMDLG32.dll",
+        "ADVAPI32.dll",
+        "OLEAUT32.dll"
+      ],
+      "source": {
+        "project": "PuTTY",
+        "version": "0.85 (released 2026-08-16)",
+        "url": "https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html",
+        "downloadUrl": "https://the.earth.li/~sgtatham/putty/0.85/w32/putty.exe",
+        "license": "MIT-style PuTTY license; preserve the upstream copyright and license text for redistribution"
+      },
+      "use": "Real non-DX GUI app with GDI, dialogs, menus, IME, COM and registry imports; intentionally a broader stress case than the small smoke executables.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
+      "statusNote": "Static loading stops at PE TLS callbacks, which the loader does not support; no GUI execution was attempted."
+    },
+    {
+      "id": "sgi-opengl-minimal-x86",
+      "status": "blocked",
+      "path": ".cache/targets/sgi-opengl-minimal.exe",
+      "bytes": 16384,
+      "sha256": "72876d03401a2c5065435a5e7ac21ba9bc2d409d3c54207377936c96e97b77f8",
+      "architecture": "x86",
+      "imports": [
+        "GDI32.dll",
+        "KERNEL32.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-private-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "OPENGL32.DLL",
+        "USER32.dll"
+      ],
+      "builtLocally": true,
+      "source": {
+        "project": "SGI OpenGL 1.1 Win32 tutorial samples",
+        "version": "minimal.c (source downloaded 2026-09-12)",
+        "url": "https://www.opengl.org/archives/resources/code/samples/win32_tutorial/",
+        "sourceUrl": "https://www.opengl.org/archives/resources/code/samples/win32_tutorial/minimal.c",
+        "license": "No separate license found on the archived sample page; cache-only test build",
+        "build": "i686-w64-mingw32-gcc -Os -s sgi-opengl-minimal-patched.c -o sgi-opengl-minimal.exe -Wl,--subsystem,windows -lopengl32 -lglu32 -lgdi32 -luser32"
+      },
+      "use": "Independently sourced Win32/OpenGL triangle sample; the local cache copy corrects two reversed ReleaseDC arguments so the sample compiles against current Windows headers.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "opens a Win32 window and draws an OpenGL triangle; close it to quit",
+      "statusNote": "This is a source-built upstream OpenGL sample, not a checked-in project fixture. Static loading stops at unsupported PE TLS callbacks; its API-set CRT imports and WGL/OpenGL rendering are later prerequisites. Cache-only because the archived source page has no separate license notice."
+    },
+    {
+      "id": "humus-inferno-d3d10-x86",
+      "status": "blocked",
+      "path": ".cache/targets/Inferno/Inferno.exe",
+      "bytes": 166912,
+      "sha256": "fc95e074f9538b20da237c084b9c952f9eb601b44afe600bf594a91b12835b0d",
+      "architecture": "x86",
+      "imports": [
+        "KERNEL32.dll",
+        "USER32.dll",
+        "ADVAPI32.dll",
+        "SHELL32.dll",
+        "MSVCR80.dll",
+        "dxgi.dll",
+        "d3d10.dll"
+      ],
+      "downloadEntry": "Inferno/Inferno.exe",
+      "extractArchive": true,
+      "source": {
+        "project": "Humus 3D Inferno",
+        "version": "2007-08-05 demo archive",
+        "url": "https://www.humus.name/index.php?ID=73&page=3D",
+        "downloadUrl": "https://www.humus.name/3D/Inferno.zip",
+        "archiveSha256": "b8cbe14c9b59edc8cdf223d2bca68a041ba5290c697531e9d2cbab406489e02c",
+        "license": "Freeware; upstream readme permits any use and redistribution if the readme remains included"
+      },
+      "use": "Small prebuilt Direct3D 10 rendering demo; import inspection confirms a distinct dxgi.dll/d3d10.dll graphics family.",
+      "workingDirectory": ".cache/targets",
+      "args": [],
+      "expected": "loads the supplied Inferno shaders/textures and opens its Direct3D 10 demo window",
+      "statusNote": "Static import closure is unresolved: ADVAPI32, MSVCR80, DXGI, and D3D10 are missing; SHELL32 lacks SHGetSpecialFolderPathA, and the image imports unsupported threading/window/clipboard APIs. No execution claimed."
+    }
+  ]
+}

@@ -19,9 +19,9 @@ and warns that they are coupled to Unix libraries, graphics backends and resourc
 
 That is not a complete Wine port, and it does not solve instruction decoding, arbitrary DLL
 loading, TLS, SEH or Windows threading for this runner. Its shader compiler pilot and renderer
-acceptance evidence belong to that other codebase. WineBrowser may learn from the source audit
-or reuse a suitably licensed, pinned portable component after an integration review; it does not
-import the study's runtime or claim its test results.
+acceptance evidence belong to that other codebase. WineBrowser now reuses the unchanged Wine 11.0 CommandLineToArgvW function as a compiled guest
+PE library, independently of DirectWebGPU. It does not import the other project's runtime or claim
+its renderer test results. Larger Wine components remain separate integration work.
 
 ## Hamsterball browser harness and Theseus
 

@@ -1,0 +1,1063 @@
+{
+  "date": "2026-09-12T21:23:58.151Z",
+  "target": {
+    "id": "winapiexec-1.2-x86",
+    "path": ".cache/targets/winapiexec.exe",
+    "bytes": 3584,
+    "expectedSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+    "actualSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b"
+  },
+  "binaries": {
+    "winapiexec": {
+      "id": "winapiexec-1.2-x86",
+      "path": ".cache/targets/winapiexec.exe",
+      "bytes": 3584,
+      "expectedSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+      "actualSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b"
+    },
+    "ptsTinyGui": {
+      "id": "pts-tinype-hh4t-x86",
+      "path": ".cache/targets/pts-hh4t.exe",
+      "bytes": 610,
+      "expectedSha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230",
+      "actualSha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230"
+    },
+    "winapiexecPcmPackage": {
+      "id": "winapiexec-1.2-x86+generated-pcm-test-data",
+      "archive": "winapiexec-pcm.zip",
+      "archiveSha256": "705b7a8685b3d10b7d14ec0ce1e9948a6ea2ff2f3bb4e5911d0b74333c7cbd44",
+      "executableId": "winapiexec-1.2-x86",
+      "executablePath": ".cache/targets/winapiexec.exe",
+      "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+      "audio": {
+        "path": "tone.wav",
+        "format": "PCM WAV",
+        "channels": 1,
+        "sampleRate": 8000,
+        "bitsPerSample": 16,
+        "frames": 80,
+        "sourceSamples": [
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25
+        ]
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "upload",
+      "binary": "winapiexec-1.2-x86",
+      "selectedExecutable": "winapiexec.exe",
+      "platform": "ISOLATED / WASM READY",
+      "passed": true
+    },
+    {
+      "id": "console-write",
+      "binary": "winapiexec-1.2-x86",
+      "args": [
+        "GetStdHandle",
+        "-11",
+        ",",
+        "WriteFile",
+        "$$:1",
+        "$s:winebrowser stdout",
+        "18",
+        "$b:4",
+        "0"
+      ],
+      "exitCode": 1,
+      "stdout": "winebrowser stdout",
+      "outputs": [],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 37.9 ms",
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
+      "dialog": null,
+      "checks": [
+        {
+          "name": "exit code 1",
+          "passed": true
+        },
+        {
+          "name": "exact stdout",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "filesystem-create-write-close",
+      "binary": "winapiexec-1.2-x86",
+      "args": [
+        "CreateFileW",
+        "winebrowser-target.txt",
+        "0x40000000",
+        "0",
+        "0",
+        "2",
+        "0x80",
+        "0",
+        ",",
+        "WriteFile",
+        "$$:1",
+        "$s:hello",
+        "5",
+        "$b:4",
+        "0",
+        ",",
+        "CloseHandle",
+        "$$:1"
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "outputs": [
+        {
+          "path": "winebrowser-target.txt",
+          "bytes": [
+            104,
+            101,
+            108,
+            108,
+            111
+          ],
+          "text": "hello"
+        }
+      ],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 30.4 ms",
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
+      "dialog": null,
+      "checks": [
+        {
+          "name": "exit code 1",
+          "passed": true
+        },
+        {
+          "name": "generated file bytes",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "user32-messagebox",
+      "binary": "winapiexec-1.2-x86",
+      "args": [
+        "user32@MessageBoxW",
+        "0",
+        "Wine guest parser: \"quoted\" text",
+        "External target",
+        "0"
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "outputs": [],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 66.8 ms",
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
+      "dialog": {
+        "title": "External target",
+        "text": "Wine guest parser: \"quoted\" text"
+      },
+      "checks": [
+        {
+          "name": "exit code 1",
+          "passed": true
+        },
+        {
+          "name": "dialog title and text",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "kernel32-beep",
+      "binary": "winapiexec-1.2-x86",
+      "args": [
+        "kernel32@Beep",
+        "440",
+        "20"
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "outputs": [],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 32.8 ms",
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
+      "tone": {
+        "frequency": 440,
+        "gain": 0.11999999731779099,
+        "start": 0.35733333333333334,
+        "stop": 0.37733333333333335,
+        "durationMs": 20
+      },
+      "dialog": null,
+      "checks": [
+        {
+          "name": "exit code 1",
+          "passed": true
+        },
+        {
+          "name": "real WebAudio frequency, duration and gain",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "pts-tinype-hh4t-gui",
+      "binary": "pts-tinype-hh4t-x86",
+      "selectedExecutable": "pts-hh4t.exe",
+      "dialog": {
+        "title": "World!",
+        "text": "Hello,\nWorld!"
+      },
+      "exitCode": 0,
+      "apiTrace": [
+        "kernel32.dll!LoadLibraryA",
+        "kernel32.dll!GetProcAddress",
+        "user32.dll!MessageBoxA",
+        "kernel32.dll!ExitProcess"
+      ],
+      "modules": [
+        {
+          "name": "pts-hh4t.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "stdout": "",
+      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 62.1 ms",
+      "expectedTrace": [
+        "LoadLibraryA",
+        "GetProcAddress",
+        "MessageBoxA",
+        "ExitProcess"
+      ],
+      "checks": [
+        {
+          "name": "exit code 0",
+          "passed": true
+        },
+        {
+          "name": "dialog title and text",
+          "passed": true
+        },
+        {
+          "name": "LoadLibraryA/GetProcAddress/MessageBoxA/ExitProcess trace",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "winmm-playsoundw-pcm",
+      "binary": "winapiexec-1.2-x86+generated-pcm-test-data",
+      "args": [
+        "winmm.dll@PlaySoundW",
+        "tone.wav",
+        "0",
+        "0x20002"
+      ],
+      "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
+      "generatedArchiveSha256": "705b7a8685b3d10b7d14ec0ce1e9948a6ea2ff2f3bb4e5911d0b74333c7cbd44",
+      "audioFixture": {
+        "path": "tone.wav",
+        "format": "PCM WAV",
+        "channels": 1,
+        "sampleRate": 8000,
+        "bitsPerSample": 16,
+        "frames": 80,
+        "sourceSamples": [
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25
+        ]
+      },
+      "decodedAudioSource": {
+        "created": true,
+        "started": true,
+        "ended": true,
+        "startedAt": 1255.015000000596,
+        "numberOfChannels": 1,
+        "sampleRate": 8000,
+        "length": 80,
+        "samples": [
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25,
+          0.25,
+          -0.25
+        ],
+        "endedAt": 1262.780000001192
+      },
+      "exitCode": 1,
+      "apiTrace": [
+        "kernel32.dll!GetCommandLineW",
+        "kernel32.dll!lstrlenW",
+        "kernel32.dll!LocalAlloc",
+        "kernel32.dll!lstrcpyW",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!LoadLibraryW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "winmm.dll!PlaySoundW",
+        "kernel32.dll!ExitProcess"
+      ],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "winmm.dll",
+          "host": true,
+          "base": 1879310336,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "stdout": "",
+      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 38.7 ms",
+      "completedAt": 1278.7950000017881,
+      "bufferSources": [
+        {
+          "created": true,
+          "started": true,
+          "ended": true,
+          "startedAt": 1255.015000000596,
+          "numberOfChannels": 1,
+          "sampleRate": 8000,
+          "length": 80,
+          "samples": [
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25,
+            0.25,
+            -0.25
+          ],
+          "endedAt": 1262.780000001192
+        }
+      ],
+      "checks": [
+        {
+          "name": "exit code 1",
+          "passed": true
+        },
+        {
+          "name": "winmm.dll!PlaySoundW API trace",
+          "passed": true
+        },
+        {
+          "name": "one real AudioBufferSource started and ended before exit",
+          "passed": true
+        },
+        {
+          "name": "decoded mono PCM shape",
+          "passed": true
+        },
+        {
+          "name": "exact decoded PCM samples",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "winapiexec-gdi-realcanvas",
+      "binary": "winapiexec-1.2-x86+generated-pcm-test-data",
+      "args": [
+        "user32@GetDC",
+        "0",
+        ",",
+        "gdi32@CreateSolidBrush",
+        "0x00332211",
+        ",",
+        "gdi32@SelectObject",
+        "$$:1",
+        "$$:4",
+        ",",
+        "gdi32@PatBlt",
+        "$$:1",
+        "10",
+        "20",
+        "30",
+        "40",
+        "0xf00021",
+        ",",
+        "gdi32@SetPixel",
+        "$$:1",
+        "12",
+        "22",
+        "0x00efcdab",
+        ",",
+        "user32@ReleaseDC",
+        "0",
+        "$$:1"
+      ],
+      "exitCode": 1,
+      "apiTrace": [
+        "kernel32.dll!GetCommandLineW",
+        "kernel32.dll!lstrlenW",
+        "kernel32.dll!LocalAlloc",
+        "kernel32.dll!lstrcpyW",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "user32.dll!GetDC",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!LoadLibraryW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "gdi32.dll!CreateSolidBrush",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "gdi32.dll!SelectObject",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "gdi32.dll!PatBlt",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "gdi32.dll!SetPixel",
+        "kernel32.dll!GetModuleHandleW",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapAlloc",
+        "kernel32.dll!WideCharToMultiByte",
+        "kernel32.dll!GetProcAddress",
+        "kernel32.dll!GetProcessHeap",
+        "kernel32.dll!HeapFree",
+        "user32.dll!ReleaseDC",
+        "kernel32.dll!ExitProcess"
+      ],
+      "modules": [
+        {
+          "name": "winapiexec.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": true
+        },
+        {
+          "name": "gdi32.dll",
+          "host": true,
+          "base": 1879310336,
+          "refs": 1,
+          "initialized": true
+        }
+      ],
+      "canvas": {
+        "width": 640,
+        "height": 480,
+        "mismatchingPixels": 0,
+        "samples": {
+          "outside": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "beforeRect": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "insideRect": [
+            17,
+            34,
+            51,
+            255
+          ],
+          "pixel": [
+            171,
+            205,
+            239,
+            255
+          ],
+          "afterRect": [
+            0,
+            0,
+            0,
+            255
+          ]
+        },
+        "actualSha256": "8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
+        "expectedSha256": "8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79"
+      },
+      "expectedTrace": [
+        "GetDC",
+        "CreateSolidBrush",
+        "SelectObject",
+        "PatBlt",
+        "SetPixel",
+        "ReleaseDC"
+      ],
+      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 36.3 ms",
+      "checks": [
+        {
+          "name": "exit code 1",
+          "passed": true
+        },
+        {
+          "name": "640x480 visible display canvas",
+          "passed": true
+        },
+        {
+          "name": "entire RGBA canvas exact",
+          "passed": true
+        },
+        {
+          "name": "full canvas SHA-256",
+          "passed": true
+        },
+        {
+          "name": "GetDC/CreateSolidBrush/SelectObject/PatBlt/SetPixel/ReleaseDC trace",
+          "passed": true
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "selectedExecutable": "winapiexec.exe",
+  "crossOriginIsolated": true,
+  "browser": "152.0.7977.84",
+  "externalRequests": [],
+  "shell32": {
+    "name": "shell32.dll",
+    "host": false,
+    "base": 16777216,
+    "preferredBase": 268435456
+  },
+  "pageErrors": [],
+  "status": "passed"
+}

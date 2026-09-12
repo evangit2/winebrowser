@@ -1,72 +1,37 @@
 {
-  "date": "2026-09-12T20:22:30.962Z",
+  "date": "2026-09-12T21:23:57.530Z",
   "browser": "152.0.7977.84",
   "crossOriginIsolated": true,
   "externalRequests": [],
   "errors": [],
   "tests": {
+    "manifestSuite": 4,
     "zipUpload": true,
     "rawExeUpload": true,
     "opfsContent": true,
+    "manualDialog": true,
     "stop": true
   },
-  "results": [
+  "suite": [
+    {
+      "name": "beep",
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS Beep parameters + host success · PASS fixture SHA-256"
+    },
     {
       "name": "console",
-      "exeSha256": "9b7849f5321c97af70c9fda2c1f531e7968592dd8f8999dff534020bfceaf6d9",
-      "type": "done",
-      "exitCode": 0,
-      "blocks": 12,
-      "instructions": 19,
-      "compiledBlocks": 9,
-      "wasmBytes": 2023,
-      "apiCalls": 3,
-      "elapsedMs": 7.510000005364418,
-      "outputs": []
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS stdout bytes · PASS fixture SHA-256"
     },
     {
       "name": "files",
-      "exeSha256": "ffa08fe38c952914b4066307f0148927a09ceadde9d89c87f3295fd91c978e56",
-      "type": "done",
-      "exitCode": 0,
-      "blocks": 36,
-      "instructions": 72,
-      "compiledBlocks": 24,
-      "wasmBytes": 5571,
-      "apiCalls": 9,
-      "elapsedMs": 14.33500000834465,
-      "outputs": [
-        {
-          "path": "files/output.txt",
-          "bytes": 36
-        }
-      ]
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS stdout bytes · PASS output file set · PASS output.txt bytes · PASS fixture SHA-256"
     },
     {
       "name": "messagebox",
-      "exeSha256": "3f4af8a1183f9f7cabc3c0f850805696370371fc3431b87ef4d102b874db8c2a",
-      "type": "done",
-      "exitCode": 0,
-      "blocks": 7,
-      "instructions": 11,
-      "compiledBlocks": 5,
-      "wasmBytes": 1110,
-      "apiCalls": 2,
-      "elapsedMs": 49.08999998867512,
-      "outputs": []
-    },
-    {
-      "name": "beep",
-      "exeSha256": "1fc305cdba429f4de473b89b16ab5299f6163af810cee2e58a12bb0b2d89683c",
-      "type": "done",
-      "exitCode": 0,
-      "blocks": 7,
-      "instructions": 9,
-      "compiledBlocks": 5,
-      "wasmBytes": 1098,
-      "apiCalls": 2,
-      "elapsedMs": 192.5949999988079,
-      "outputs": []
+      "result": "PASS",
+      "checks": "PASS exit 0 · PASS MessageBoxA args · PASS fixture SHA-256"
     }
   ]
 }

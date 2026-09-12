@@ -1,6 +1,7 @@
 const MAX_GUEST_MEMORY = 64 * 1024 * 1024;
 const MAX_IMAGE_END = 0x03000000;
 const MIN_IMAGE_BASE = 0x10000;
+const MAX_IMAGE_SIZE = MAX_IMAGE_END - MIN_IMAGE_BASE;
 const PE32_MAGIC = 0x10b;
 const IMAGE_FILE_DLL = 0x2000;
 const IMAGE_SCN_MEM_EXECUTE = 0x20000000;
@@ -50,7 +51,8 @@ function cString(bytes, offset, limit, label, maxLength = 4096) {
   return value;
 }
 
-export function parsePE(bytes) {
+export function parsePE(bytes, options = {}) {
+  const allowDll = options?.allowDll === true;
   const v = viewOf(bytes);
   if (bytes.length < 64 || u16(v, bytes, 0, 'DOS signature') !== 0x5a4d)
     fail('missing DOS signature');
@@ -64,7 +66,8 @@ export function parsePE(bytes) {
   if (sectionCount < 1 || sectionCount > 96) fail('invalid section count');
   const optionalSize = u16(v, bytes, coff + 16, 'optional header size');
   const characteristics = u16(v, bytes, coff + 18, 'COFF characteristics');
-  if (characteristics & IMAGE_FILE_DLL) fail('DLL images are unsupported');
+  const isDll = Boolean(characteristics & IMAGE_FILE_DLL);
+  if (isDll && !allowDll) fail('DLL images are unsupported');
   const optional = coff + 20;
   need(bytes, optional, optionalSize, 'optional header');
   if (optionalSize < 96 || u16(v, bytes, optional, 'optional header magic') !== PE32_MAGIC)
@@ -93,7 +96,12 @@ export function parsePE(bytes) {
   if (directories[13]?.rva || directories[13]?.size) fail('delay imports are unsupported');
   if (!imageBase || imageBase % 0x1000 !== 0 || imageBase < MIN_IMAGE_BASE)
     fail('image base is outside the supported mapping range');
-  if (!imageSize || imageSize > MAX_GUEST_MEMORY || imageBase + imageSize >= MAX_IMAGE_END)
+  if (
+    !imageSize ||
+    imageSize > MAX_IMAGE_SIZE ||
+    imageBase + imageSize > 0x100000000 ||
+    (!isDll && imageBase + imageSize >= MAX_IMAGE_END)
+  )
     fail('image does not fit the supported guest address range');
   if (!headersSize || headersSize > imageSize || headersSize > bytes.length)
     fail('invalid headers size');
@@ -143,39 +151,77 @@ export function parsePE(bytes) {
   rejectOverlaps(rawRanges, 'raw');
   rejectOverlaps(virtualRanges, 'virtual');
   if (
-    !entryRva ||
-    entryRva >= imageSize ||
-    !sections.some(
-      (s) =>
-        s.characteristics & IMAGE_SCN_MEM_EXECUTE &&
-        entryRva >= s.rva &&
-        entryRva < s.rva + Math.max(s.virtualSize, s.rawSize),
-    )
+    entryRva &&
+    (entryRva >= imageSize ||
+      !sections.some(
+        (s) =>
+          s.characteristics & IMAGE_SCN_MEM_EXECUTE &&
+          entryRva >= s.rva &&
+          entryRva < s.rva + Math.max(s.virtualSize, s.rawSize),
+      ))
   )
     fail('entry point is not in an executable section');
+  if (!entryRva && !isDll) fail('entry point is not in an executable section');
+
+  // Build the same bounded RVA view that mapPE will later construct. Copy only
+  // after section file and virtual ranges have been checked; unbacked virtual
+  // bytes stay zero-filled as they are in a mapped PE image.
+  const imageBytes = new Uint8Array(imageSize);
+  imageBytes.set(bytes.subarray(0, headersSize), 0);
+  for (const section of sections) {
+    if (section.rawSize)
+      imageBytes.set(
+        bytes.subarray(section.rawOffset, section.rawOffset + section.rawSize),
+        section.rva,
+      );
+  }
+  const imageView = new DataView(imageBytes.buffer);
 
   function rvaToOffset(rva, size, label) {
-    if (rva < headersSize && rva + size <= headersSize) {
-      need(bytes, rva, size, label);
-      return rva;
-    }
-    const section = sections.find((s) => rva >= s.rva && rva + size <= s.rva + s.rawSize);
-    if (!section) fail(`${label} is not backed by file data`);
-    const offset = section.rawOffset + (rva - section.rva);
-    need(bytes, offset, size, label);
-    return offset;
+    if (
+      !Number.isSafeInteger(rva) ||
+      !Number.isSafeInteger(size) ||
+      rva < 0 ||
+      size < 0 ||
+      rva + size > imageSize
+    )
+      fail(`${label} is outside the image`);
+    if (rva < headersSize && rva + size <= headersSize) return rva;
+    const section = sections.find(
+      (s) => rva >= s.rva && rva + size <= s.rva + Math.max(s.virtualSize, s.rawSize),
+    );
+    if (!section) fail(`${label} is outside mapped image sections`);
+    return rva;
+  }
+  function rvaLimit(rva, label) {
+    if (rva < headersSize) return headersSize;
+    const section = sections.find(
+      (s) => rva >= s.rva && rva < s.rva + Math.max(s.virtualSize, s.rawSize),
+    );
+    if (!section) fail(`${label} is outside mapped image sections`);
+    return sEnd(section);
+  }
+  function sEnd(section) {
+    return section.rva + Math.max(section.virtualSize, section.rawSize);
   }
   function readAsciiRva(rva, label) {
     const off = rvaToOffset(rva, 1, label);
-    const section = sections.find((s) => rva >= s.rva && rva < s.rva + s.rawSize);
-    const limit = section ? section.rawOffset + section.rawSize : headersSize;
-    return cString(bytes, off, limit, label, 260);
+    return cString(imageBytes, off, rvaLimit(rva, label), label, 260);
+  }
+  function readAsciiRvaBefore(rva, endRva, label) {
+    if (!Number.isSafeInteger(endRva) || rva >= endRva) fail(`${label} is outside its directory`);
+    const off = rvaToOffset(rva, 1, label);
+    return cString(imageBytes, off, Math.min(rvaLimit(rva, label), endRva), label, 260);
   }
   function readImportName(hintNameRva) {
     const hintNameOff = rvaToOffset(hintNameRva, 3, 'import hint/name');
-    const section = sections.find((s) => hintNameRva >= s.rva && hintNameRva < s.rva + s.rawSize);
-    const limit = section ? section.rawOffset + section.rawSize : headersSize;
-    return cString(bytes, hintNameOff + 2, limit, 'import name', 4096);
+    return cString(
+      imageBytes,
+      hintNameOff + 2,
+      rvaLimit(hintNameRva, 'import hint/name'),
+      'import name',
+      4096,
+    );
   }
   const imports = [];
   const importDir = directories[1];
@@ -187,11 +233,11 @@ export function parsePE(bytes) {
     let importCount = 0;
     for (let d = 0; d < descLimit; d++) {
       const p = dirOff + d * 20;
-      const originalThunk = u32(v, bytes, p, 'import lookup table RVA');
-      const time = u32(v, bytes, p + 4, 'import timestamp');
-      const chain = u32(v, bytes, p + 8, 'import forwarder chain');
-      const nameRva = u32(v, bytes, p + 12, 'import DLL name RVA');
-      const iatRva = u32(v, bytes, p + 16, 'import address table RVA');
+      const originalThunk = u32(imageView, imageBytes, p, 'import lookup table RVA');
+      const time = u32(imageView, imageBytes, p + 4, 'import timestamp');
+      const chain = u32(imageView, imageBytes, p + 8, 'import forwarder chain');
+      const nameRva = u32(imageView, imageBytes, p + 12, 'import DLL name RVA');
+      const iatRva = u32(imageView, imageBytes, p + 16, 'import address table RVA');
       if (!originalThunk && !time && !chain && !nameRva && !iatRva) {
         terminated = true;
         break;
@@ -204,7 +250,7 @@ export function parsePE(bytes) {
         if (thunkCount++ > 65536 || importCount > 65536)
           fail('import table exceeds supported limits');
         const thunkOff = rvaToOffset(lookupRva + (thunkCount - 1) * 4, 4, 'import thunk');
-        const value = u32(v, bytes, thunkOff, 'import thunk value');
+        const value = u32(imageView, imageBytes, thunkOff, 'import thunk value');
         if (!value) break;
         const slotRva = iatRva + (thunkCount - 1) * 4;
         rvaToOffset(slotRva, 4, 'import address table slot');
@@ -217,14 +263,108 @@ export function parsePE(bytes) {
     }
     if (!terminated) fail('import descriptor table has no terminator');
   }
+  const exports = [];
+  const exportDir = directories[0];
+  if (Boolean(exportDir?.rva) !== Boolean(exportDir?.size)) fail('invalid export directory');
+  if (exportDir?.rva) {
+    if (exportDir.size < 40) fail('invalid export directory');
+    const p = rvaToOffset(exportDir.rva, 40, 'export directory');
+    const exportEnd = exportDir.rva + exportDir.size;
+    if (exportEnd > imageSize) fail('export directory exceeds image');
+    const ordinalBase = u32(imageView, imageBytes, p + 16, 'export ordinal base');
+    const functionCount = u32(imageView, imageBytes, p + 20, 'export function count');
+    const nameCount = u32(imageView, imageBytes, p + 24, 'export name count');
+    const functionsRva = u32(imageView, imageBytes, p + 28, 'export address table RVA');
+    const namesRva = u32(imageView, imageBytes, p + 32, 'export name table RVA');
+    const ordinalsRva = u32(imageView, imageBytes, p + 36, 'export ordinal table RVA');
+    if (functionCount > 65536 || nameCount > 65536) fail('export table exceeds supported limits');
+    if ((functionCount && !functionsRva) || (nameCount && (!namesRva || !ordinalsRva)))
+      fail('malformed export address tables');
+    const functionOffsets = functionCount
+      ? rvaToOffset(functionsRva, functionCount * 4, 'export address table')
+      : 0;
+    const nameOffsets = nameCount ? rvaToOffset(namesRva, nameCount * 4, 'export name table') : 0;
+    const ordinalOffsets = nameCount
+      ? rvaToOffset(ordinalsRva, nameCount * 2, 'export ordinal table')
+      : 0;
+    const aliases = Array.from({ length: functionCount }, () => []);
+    for (let i = 0; i < nameCount; i++) {
+      const nameRva = u32(imageView, imageBytes, nameOffsets + i * 4, 'export name RVA');
+      const functionIndex = u16(
+        imageView,
+        imageBytes,
+        ordinalOffsets + i * 2,
+        'export name ordinal',
+      );
+      if (functionIndex >= functionCount) fail('export name ordinal is out of range');
+      aliases[functionIndex].push(readAsciiRva(nameRva, 'export name'));
+    }
+    for (let i = 0; i < functionCount; i++) {
+      const rva = u32(imageView, imageBytes, functionOffsets + i * 4, 'export function RVA');
+      if (!rva) continue;
+      if (rva >= imageSize) fail('export function RVA is outside image');
+      const forwarder =
+        rva >= exportDir.rva && rva < exportEnd
+          ? readAsciiRvaBefore(rva, exportEnd, 'export forwarder')
+          : undefined;
+      const ordinal = ordinalBase + i;
+      if (!Number.isSafeInteger(ordinal) || ordinal > 0xffffffff)
+        fail('export ordinal is out of range');
+      if (aliases[i].length) {
+        for (const name of aliases[i]) {
+          exports.push({ name, ordinal, rva, ...(forwarder === undefined ? {} : { forwarder }) });
+        }
+      } else {
+        exports.push({ ordinal, rva, ...(forwarder === undefined ? {} : { forwarder }) });
+      }
+    }
+  }
+  const relocations = [];
+  const relocDir = directories[5];
+  if (Boolean(relocDir?.rva) !== Boolean(relocDir?.size)) fail('invalid base relocation directory');
+  if (relocDir?.rva) {
+    const relocOff = rvaToOffset(relocDir.rva, relocDir.size, 'base relocation directory');
+    let consumed = 0;
+    while (consumed < relocDir.size) {
+      if (relocDir.size - consumed < 8) fail('truncated base relocation block');
+      const blockOff = relocOff + consumed;
+      const pageRva = u32(imageView, imageBytes, blockOff, 'base relocation page RVA');
+      const blockSize = u32(imageView, imageBytes, blockOff + 4, 'base relocation block size');
+      if (
+        pageRva % 0x1000 ||
+        pageRva >= imageSize ||
+        blockSize < 8 ||
+        blockSize % 2 ||
+        blockSize > relocDir.size - consumed
+      )
+        fail('malformed base relocation block');
+      const entries = (blockSize - 8) / 2;
+      for (let i = 0; i < entries; i++) {
+        const item = u16(imageView, imageBytes, blockOff + 8 + i * 2, 'base relocation entry');
+        const type = item >>> 12;
+        const rva = pageRva + (item & 0x0fff);
+        if (type === 0) {
+          relocations.push({ type, rva });
+          continue;
+        }
+        if (type !== 3) fail(`unsupported base relocation type ${type}`);
+        if (rva + 4 > imageSize) fail('base relocation target is outside image');
+        relocations.push({ type, rva });
+      }
+      consumed += blockSize;
+    }
+  }
   return {
     machine,
     imageBase,
     imageSize,
-    entryPoint: imageBase + entryRva,
+    entryPoint: entryRva ? imageBase + entryRva : 0,
     entryPointRva: entryRva,
+    isDll,
     sections,
     imports,
+    exports,
+    relocations,
     subsystem,
     headersSize,
     characteristics,
@@ -232,35 +372,50 @@ export function parsePE(bytes) {
   };
 }
 
-export function mapPE(pe, bytes, memory) {
+export function mapPE(pe, bytes, memory, base = pe?.imageBase) {
   viewOf(bytes);
   if (!pe || pe.machine !== 0x14c || !Array.isArray(pe.sections)) fail('invalid parsed image');
   if (!(memory instanceof WebAssembly.Memory))
     throw new TypeError('memory must be a WebAssembly.Memory');
   const target = new Uint8Array(memory.buffer);
-  const end = pe.imageBase + pe.imageSize;
-  if (
-    target.byteLength > MAX_GUEST_MEMORY ||
-    pe.imageBase < MIN_IMAGE_BASE ||
-    end > MAX_IMAGE_END ||
-    end > target.byteLength
-  )
+  if (!Number.isSafeInteger(base) || base % 0x1000 || base < MIN_IMAGE_BASE)
+    fail('mapping base is outside the supported range');
+  const end = base + pe.imageSize;
+  if (target.byteLength > MAX_GUEST_MEMORY || end >= MAX_IMAGE_END || end > target.byteLength)
     fail('image does not fit guest memory');
-  const fresh = parsePE(bytes);
+  const fresh = parsePE(bytes, { allowDll: pe.isDll === true });
   if (
     fresh.imageBase !== pe.imageBase ||
     fresh.imageSize !== pe.imageSize ||
-    fresh.sections.length !== pe.sections.length
+    fresh.sections.length !== pe.sections.length ||
+    fresh.isDll !== (pe.isDll === true)
   )
     fail('parsed image does not match supplied bytes');
-  target.fill(0, pe.imageBase, end);
-  target.set(bytes.subarray(0, fresh.headersSize), pe.imageBase);
+  const delta = base - fresh.imageBase;
+  if (delta && !fresh.directories[5]?.rva) fail('image has no base relocation directory');
+  target.fill(0, base, end);
+  target.set(bytes.subarray(0, fresh.headersSize), base);
   for (const section of fresh.sections) {
     if (section.rawSize)
       target.set(
         bytes.subarray(section.rawOffset, section.rawOffset + section.rawSize),
-        pe.imageBase + section.rva,
+        base + section.rva,
       );
   }
-  return pe;
+  if (delta) {
+    for (const relocation of fresh.relocations) {
+      if (relocation.type === 0) continue;
+      const address = base + relocation.rva;
+      const value = new DataView(memory.buffer).getUint32(address, true);
+      new DataView(memory.buffer).setUint32(address, (value + delta) >>> 0, true);
+    }
+  }
+  // Return fresh metadata describing this particular mapping; parsed metadata is
+  // left untouched and can still describe the preferred image base.
+  return {
+    ...fresh,
+    preferredImageBase: fresh.imageBase,
+    imageBase: base,
+    entryPoint: fresh.entryPointRva ? base + fresh.entryPointRva : 0,
+  };
 }

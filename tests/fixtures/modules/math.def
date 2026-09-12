@@ -1,0 +1,5 @@
+LIBRARY math.dll
+EXPORTS
+  sum
+  CallCallback
+  OrdinalOnly @1 NONAME

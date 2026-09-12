@@ -1,9 +1,11 @@
 import { unpackPackage } from './package.js';
+import wineLibrary from '../runtime/wine/manifest.json';
 import { inspect, Runtime } from './runtime.js';
 import { packageId, savePackage, saveOutputs } from './storage.js';
 let pkg,
   id,
   iced,
+  builtinFiles = new Map(),
   pending = new Map(),
   seq = 0,
   busy = false;
@@ -26,6 +28,14 @@ onmessage = async ({ data }) => {
     if (data.type === 'load') {
       const bytes = new Uint8Array(data.bytes);
       pkg = await unpackPackage(bytes, data.name);
+      if (!builtinFiles.size) {
+        const response = await fetch('/runtime/shell32.dll');
+        if (!response.ok) throw Error('Wine helper unavailable');
+        const dll = new Uint8Array(await response.arrayBuffer());
+        if ((await packageId(dll)) !== wineLibrary.dllSha256)
+          throw Error('Wine helper hash mismatch');
+        builtinFiles.set('shell32.dll', dll);
+      }
       id = await packageId(bytes);
       try {
         await savePackage(id, bytes);
@@ -34,7 +44,7 @@ onmessage = async ({ data }) => {
       }
       const executables = pkg.executables.map((path) => {
         try {
-          return { path, pe: inspect(pkg.files.get(path)) };
+          return { path, pe: inspect(pkg.files.get(path), pkg.files, path, builtinFiles) };
         } catch (e) {
           return { path, error: e.message };
         }
@@ -48,7 +58,14 @@ onmessage = async ({ data }) => {
         const url = '/vendor/iced.js';
         iced = await (await import(/* @vite-ignore */ url)).init();
       }
-      const runtime = new Runtime(iced, { files: pkg.files, exe: data.exe, emit, request });
+      const runtime = new Runtime(iced, {
+        files: pkg.files,
+        exe: data.exe,
+        args: data.args ?? [],
+        builtinFiles,
+        emit,
+        request,
+      });
       const result = await runtime.run();
       try {
         await saveOutputs(id, result.outputs);

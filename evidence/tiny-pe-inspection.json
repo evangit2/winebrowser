@@ -1,0 +1,305 @@
+{
+  "title": "pts-tinype PE layout and native-loader probe",
+  "inspectedAt": "2026-09-12T21:11:18.786Z",
+  "upstream": {
+    "repository": "https://github.com/pts/pts-tinype",
+    "commit": "00bb8824c93188b236599c174af4269abf281664",
+    "sourceFiles": [
+      "https://github.com/pts/pts-tinype/blob/00bb8824c93188b236599c174af4269abf281664/hh2.nasm",
+      "https://github.com/pts/pts-tinype/blob/00bb8824c93188b236599c174af4269abf281664/hh4t.nasm",
+      "https://github.com/pts/pts-tinype/blob/00bb8824c93188b236599c174af4269abf281664/README.txt"
+    ],
+    "license": "The upstream repository has no license file; binaries remain in ignored .cache/targets/."
+  },
+  "nativeWineProbe": {
+    "command": "/opt/homebrew/bin/wine .cache/targets/pts-hh2.exe",
+    "version": "Wine 11.0",
+    "prefix": ".cache/native-wine",
+    "prefixWasAbsentBeforeRun": true,
+    "timeoutMs": 30000,
+    "elapsedMs": 27900,
+    "exitCode": 0,
+    "timedOut": false,
+    "stdout": "Hello, World!\r\n",
+    "stderrSummary": "MoltenVK emitted a verbose Vulkan device and extension banner while Wine initialized the fresh prefix. WINEDEBUG=-all was set. The program result is the exit code and stdout above; the verbose backend banner is omitted from this evidence record.",
+    "hh4tLaunched": false
+  },
+  "specReferences": [
+    {
+      "url": "https://learn.microsoft.com/en-us/windows/win32/debug/pe-format",
+      "claims": [
+        "Section PointerToRawData is a file pointer; executable-image section data must satisfy FileAlignment.",
+        "When SizeOfRawData is less than VirtualSize, the remaining section bytes are zero-filled in the loaded image.",
+        "Data-directory VirtualAddress fields are RVAs; directory count and optional-header size bound directory-table reads."
+      ]
+    }
+  ],
+  "recommendation": {
+    "standardsCompatible": "Support bounded reads from zero-filled section tails as mapped image bytes. Keep reads inside the declared section virtual extent and image size; map available raw bytes first and synthesize zeroes only for the specified virtual tail.",
+    "hh4t": "Its 40-byte import directory is entirely within the section virtual span: the descriptor is file-backed and the null descriptor occupies the PE-defined zero-filled tail. The current parser accepts this standards-compatible layout; retain it as a regression case for bounded virtual-tail reads.",
+    "hh2": "Wine executes it, but its source deliberately uses a nonstandard 0-based layout: raw pointer 2 aliases the headers and violates FileAlignment 0x200; its import-directory size extends beyond both the section virtual end and SizeOfImage. Do not relax general PE validation solely to accept this executable. If supporting it is an explicit compatibility goal, gate compatibility to a bounded loader-emulation profile that parses only descriptors up to an in-image null terminator; keep standards-mode strict and add no filename/hash fingerprint."
+  },
+  "targets": [
+    {
+      "id": "pts-tinype-hh2-x86",
+      "path": ".cache/targets/pts-hh2.exe",
+      "byteLength": 402,
+      "expectedSha256": "d8f1526db518a7ca9e43ead18b9f5d1d023a63ae4b8479cfd5d782e6811e9f85",
+      "actualSha256": "d8f1526db518a7ca9e43ead18b9f5d1d023a63ae4b8479cfd5d782e6811e9f85",
+      "hashMatchesManifest": true,
+      "headers": {
+        "peOffset": 12,
+        "machine": 332,
+        "sectionCount": 3,
+        "optionalSize": 120,
+        "optionalMagic": 267,
+        "entryRva": 12564,
+        "imageBase": 4194304,
+        "sectionAlignment": 4096,
+        "fileAlignment": 512,
+        "imageSize": 12710,
+        "headersSize": 276,
+        "subsystem": 3,
+        "directoryCount": 2,
+        "directories": [
+          {
+            "index": 1,
+            "rva": 12670,
+            "size": 75
+          }
+        ],
+        "sections": [
+          {
+            "name": "Handle",
+            "rva": 4096,
+            "virtualSize": 1,
+            "rawSize": 0,
+            "rawOffset": 0,
+            "rawRange": [
+              0,
+              0
+            ],
+            "bytesBackedByFile": 0,
+            "rawTailMissingFromFile": 0,
+            "zeroFillBytes": 1,
+            "imageSpan": [
+              4096,
+              4097
+            ],
+            "overlapsHeaders": false,
+            "rawOffsetAlignedToFileAlignment": true,
+            "characteristics": 3224371264
+          },
+          {
+            "name": "xxxxxxx",
+            "rva": 8192,
+            "virtualSize": 1,
+            "rawSize": 0,
+            "rawOffset": 0,
+            "rawRange": [
+              0,
+              0
+            ],
+            "bytesBackedByFile": 0,
+            "rawTailMissingFromFile": 0,
+            "zeroFillBytes": 1,
+            "imageSpan": [
+              8192,
+              8193
+            ],
+            "overlapsHeaders": false,
+            "rawOffsetAlignedToFileAlignment": true,
+            "characteristics": 3224371264
+          },
+          {
+            "name": "xxxxxxx",
+            "rva": 12288,
+            "virtualSize": 422,
+            "rawSize": 400,
+            "rawOffset": 2,
+            "rawRange": [
+              2,
+              402
+            ],
+            "bytesBackedByFile": 400,
+            "rawTailMissingFromFile": 0,
+            "zeroFillBytes": 22,
+            "imageSpan": [
+              12288,
+              12710
+            ],
+            "overlapsHeaders": true,
+            "rawOffsetAlignedToFileAlignment": false,
+            "characteristics": 3761242144
+          }
+        ]
+      },
+      "importLayout": {
+        "mapping": "literal PE section PointerToRawData mapping",
+        "directory": {
+          "index": 1,
+          "rva": 12670,
+          "size": 75
+        },
+        "declaredEndRva": 12745,
+        "mappedSpan": null,
+        "endBeyondImage": true,
+        "descriptors": [],
+        "note": "Directory range exceeds SizeOfImage; no descriptors decoded in standards view."
+      },
+      "upstreamDescribedLegacyImportLayout": {
+        "mapping": "legacy hypothesis: section raw pointer rounded down to FileAlignment per upstream source comments",
+        "directory": {
+          "index": 1,
+          "rva": 12670,
+          "size": 75
+        },
+        "declaredEndRva": 12745,
+        "mappedSpan": null,
+        "endBeyondImage": true,
+        "descriptors": [
+          {
+            "index": 0,
+            "rva": 12670,
+            "originalThunk": 12615,
+            "timestamp": 0,
+            "forwarderChain": 0,
+            "nameRva": 12290,
+            "name": {
+              "value": "kernel32",
+              "rawBytes": 8,
+              "terminated": true
+            },
+            "firstThunk": 12631,
+            "mappedBytes": {
+              "fileBackedBytes": 18,
+              "zeroFillBytes": 2
+            }
+          },
+          {
+            "index": 1,
+            "rva": 12690,
+            "terminator": true,
+            "mappedBytes": {
+              "fileBackedBytes": 0,
+              "zeroFillBytes": 20
+            }
+          }
+        ]
+      },
+      "currentParser": {
+        "status": "rejected",
+        "error": "Invalid or unsupported PE: section xxxxxxx raw data is out of bounds"
+      }
+    },
+    {
+      "id": "pts-tinype-hh4t-x86",
+      "path": ".cache/targets/pts-hh4t.exe",
+      "byteLength": 610,
+      "expectedSha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230",
+      "actualSha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230",
+      "hashMatchesManifest": true,
+      "headers": {
+        "peOffset": 64,
+        "machine": 332,
+        "sectionCount": 1,
+        "optionalSize": 200,
+        "optionalMagic": 267,
+        "entryRva": 4096,
+        "imageBase": 4194304,
+        "sectionAlignment": 4096,
+        "fileAlignment": 512,
+        "imageSize": 4214,
+        "headersSize": 512,
+        "subsystem": 2,
+        "directoryCount": 13,
+        "directories": [
+          {
+            "index": 1,
+            "rva": 4174,
+            "size": 40
+          },
+          {
+            "index": 5,
+            "rva": 424,
+            "size": 24
+          },
+          {
+            "index": 12,
+            "rva": 4158,
+            "size": 16
+          }
+        ],
+        "sections": [
+          {
+            "name": ".text",
+            "rva": 4096,
+            "virtualSize": 118,
+            "rawSize": 98,
+            "rawOffset": 512,
+            "rawRange": [
+              512,
+              610
+            ],
+            "bytesBackedByFile": 98,
+            "rawTailMissingFromFile": 0,
+            "zeroFillBytes": 20,
+            "imageSpan": [
+              4096,
+              4214
+            ],
+            "overlapsHeaders": false,
+            "rawOffsetAlignedToFileAlignment": true,
+            "characteristics": 3758096480
+          }
+        ]
+      },
+      "importLayout": {
+        "mapping": "literal PE section PointerToRawData mapping",
+        "directory": {
+          "index": 1,
+          "rva": 4174,
+          "size": 40
+        },
+        "declaredEndRva": 4214,
+        "mappedSpan": {
+          "fileBackedBytes": 20,
+          "zeroFillBytes": 20
+        },
+        "endBeyondImage": false,
+        "descriptors": [
+          {
+            "index": 0,
+            "rva": 4174,
+            "originalThunk": 4158,
+            "timestamp": 0,
+            "forwarderChain": 0,
+            "nameRva": 328,
+            "name": {
+              "value": "kernel32.dll",
+              "rawBytes": 12,
+              "terminated": true
+            },
+            "firstThunk": 4158,
+            "mappedBytes": {
+              "fileBackedBytes": 20,
+              "zeroFillBytes": 0
+            }
+          },
+          {
+            "index": 1,
+            "rva": 4194,
+            "terminator": true,
+            "mappedBytes": {
+              "fileBackedBytes": 0,
+              "zeroFillBytes": 20
+            }
+          }
+        ]
+      },
+      "currentParser": {
+        "status": "accepted"
+      }
+    }
+  ]
+}

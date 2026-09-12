@@ -2,7 +2,7 @@
 
 ## Scope and current state
 
-WineBrowser is an experimental x86 PE32 runner. It maps one executable into a bounded guest
+WineBrowser is an experimental x86 PE32 runner. It maps an executable and its DLL dependency graph into a bounded guest
 address space, decodes x86 instructions with iced-x86, and emits WebAssembly for basic blocks as
 they execute. The CPU and PE loader live in [`src/cpu.js`](../src/cpu.js) and
 [`src/pe.js`](../src/pe.js); [`src/runtime.js`](../src/runtime.js) resolves a small set of
@@ -10,10 +10,11 @@ imported Win32 functions to JavaScript host services. The worker owns execution;
 handles dialogs, audio activation, and output in [`src/worker.js`](../src/worker.js) and
 [`src/main.js`](../src/main.js).
 
-This is a direct, dynamic translation path. It does not contain Theseus, use Theseus output,
-load Wine, or translate only a known game's image ahead of time. It currently accepts PE32
-executables, rejects DLL images, TLS and delay-import directories, and stops on unsupported
-instructions or imports. It is not a Wine implementation and does not claim general Windows
+This is a direct, dynamic translation path. It does not contain Theseus or pretranslated game
+images. It accepts PE32 executables and DLLs with imports, named/ordinal/forwarded exports,
+HIGHLOW relocation and guest initialization/callbacks. TLS and delay-import directories remain
+unsupported. Wine's unchanged CommandLineToArgvW body now executes as a guest DLL; it is a
+single extracted component, not a full Wine runtime. It is not a Wine implementation and does not claim general Windows
 compatibility.
 
 The immediate goal should be controlled support for more ordinary PE programs while keeping
@@ -22,10 +23,10 @@ APIs; every feature needs a tested boundary and a useful failure when absent.
 
 ## Reuse choices
 
-**Guest PE DLLs** should eventually load as guest modules. Their machine code remains x86 and
-executes on the same guest CPU as the EXE. The loader must map sections, apply relocations,
-resolve imports/exports, run initialization callbacks, preserve module identity, and track
-references. A DLL's exports are guest addresses, not JavaScript functions. This approach
+**Guest PE DLLs** now load as guest modules. Their machine code remains x86 and
+executes on the same guest CPU as the EXE. The loader maps sections, applies relocations, resolves imports/exports and runs initialization
+callbacks. Module identity is preserved. Dynamic unload and full Windows loader locking/reference
+semantics still need work. A DLL's exports are guest addresses, not JavaScript functions. This approach
 preserves the executable's expected calling conventions and lets DLL-to-DLL calls remain
 ordinary guest calls, but it depends on a loader and CPU capable of the code those DLLs contain.
 
@@ -89,6 +90,8 @@ happens not to exercise a TLS callback is not evidence the loader supports TLS.
 
 ## Graphics and audio services
 
+The current GDI host provider exposes a 640×480 virtual desktop with DC/brush handles, clipped solid fills, selected brushes, four PatBlt raster operations and pixel reads/writes. A checked RGBA frame crosses the worker boundary at dispatcher yields, before blocking host requests and at exit; the test bench presents it on Canvas2D. This is a narrow raster backend, not general User32/GDI: windows, fonts, regions, DIBs and message pumps remain absent. Its handle and surface boundary should be reused by a Wine user driver as that integration advances.
+
 Keep presentation separate from guest CPU state. A future graphics stack can translate guest D3D
 calls into a versioned command protocol and send bounded batches to a dedicated worker that owns
 WebGPU objects. The UI thread owns DOM and user activation; workers exchange handles and data,
@@ -101,14 +104,13 @@ for device selection, format negotiation, buffers, callbacks, timing, pause/stop
 Browser audio can use Web Audio after user activation, with queueing/resampling and bounded
 latency; it cannot promise bit-identical timing or availability. Keep audio callbacks on the
 guest CPU when Windows passes a guest function pointer. The current `Beep` demo bridge is only a
-short tone request and does not implement WASAPI or `winmm`.
+short tone request. The WinMM adapter additionally supports synchronous filename `PlaySoundA/W` for 8/16-bit mono/stereo PCM WAV, backed by real WebAudio buffer playback. It returns failure on unavailable audio or missing/invalid files and rejects unsupported flags. It does not implement aliases, resource sounds, async voice lifetime, waveOut or WASAPI.
 
 ## Milestones and risks
 
 1. Keep the current bootstrap programs green and record PE hashes, imports, instruction
    requirements and expected outputs.
-2. Add a guest DLL loader for a deliberately small test DLL, with relocation/import/export,
-   initialization and reference-count tests; route every guest callback through the CPU dispatcher.
+2. Guest DLL mapping, imports/exports, relocations, callbacks and attach/detach are implemented and tested. Failed dynamic loads roll back new mappings and successful dependency attaches; forwarded GetProcAddress maps/initializes its target before returning an address. Full unloading and Windows loader locking/reference semantics remain future work.
 3. Specify per-thread CPU/TEB state and implement one thread/TLS/SEH behavior at a time with
    small Windows-built fixtures. Do not admit binaries that depend on unimplemented cases.
 4. Add one versioned browser service at a time. Treat graphics and sustained audio as their own
@@ -131,7 +133,7 @@ flowchart LR
     Loader --> CPU[x86 execution worker
 iced decoder + Wasm block cache]
     CPU --> DLL[Guest Wine PE DLLs
-planned]
+CommandLineToArgvW implemented]
     DLL --> NT[Versioned NT / Unix host contract
 planned]
     CPU --> Bootstrap[Small bootstrap API provider
@@ -144,9 +146,7 @@ implemented]
 planned]
 ```
 
-Keep the bootstrap API surface bounded. The next Wine-specific experiment should pin a source
-revision, cross-build the smallest useful PE DLL, capture its import closure and executed CPU
-features, and prove one export and one guest callback through an explicit browser host contract.
+Keep the bootstrap API surface bounded. The first Wine experiment pins Wine 11.0, retains and builds its unchanged CommandLineToArgvW implementation into a small guest PE DLL, and executes that code for independent programs. The next experiment should integrate a whole small Wine module or a coherent NT host boundary, capture its import closure and executed CPU features, and prove its behavior through the browser contract.
 A failed spike must identify the missing dependency or semantic boundary before choosing an
 alternative. Do not add dozens of independent Win32 replacements to avoid that evaluation.
 
@@ -164,3 +164,5 @@ WebGPU backend. DXVK's Vulkan output is not automatically usable. SharedArrayBuf
 can carry bounded command/input queues once guest thread semantics exist; they are capability
 probes only in this release. Drivers, kernel anti-cheat, and unrestricted OS/device access remain
 outside a browser user-mode compatibility runtime even after substantial API growth.
+
+API contracts used for these bounded backends: Microsoft [GDI](https://learn.microsoft.com/en-us/windows/win32/api/_gdi/), [PlaySound](<https://learn.microsoft.com/en-us/previous-versions/dd743680(v=vs.85)>), and [RIFF/WAVE](https://learn.microsoft.com/en-us/windows/win32/xaudio2/resource-interchange-file-format--riff-).

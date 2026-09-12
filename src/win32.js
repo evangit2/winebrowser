@@ -1,3 +1,6 @@
+import { processApis } from './win32-process.js';
+import { audioApis } from './win32-audio.js';
+import { gdiApis } from './win32-gdi.js';
 import { normalizePath } from './package.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
@@ -10,6 +13,7 @@ export const API_NAMES = {
     'WriteFile',
     'ReadFile',
     'CreateFileA',
+    'CreateFileW',
     'CloseHandle',
     'GetLastError',
     'SetLastError',
@@ -20,6 +24,16 @@ export const API_NAMES = {
   ],
   'user32.dll': ['MessageBoxA'],
 };
+
+for (const key of [
+  ...Object.keys(processApis),
+  ...Object.keys(audioApis),
+  ...Object.keys(gdiApis),
+]) {
+  const [dll, name] = key.split('!');
+  API_NAMES[dll] ??= [];
+  if (!API_NAMES[dll].includes(name)) API_NAMES[dll].push(name);
+}
 
 export const importKey = (dll, name) => `${dll.toLowerCase()}!${name}`;
 
@@ -89,13 +103,13 @@ async function messageBox(runtime, argument) {
   );
 }
 
-function createFile(runtime, argument) {
+function createFile(runtime, argument, wide = false) {
   const access = argument(1);
   const mode = argument(4);
   if (
     argument(2) > 7 ||
     argument(3) ||
-    argument(5) ||
+    argument(5) & ~0x80 ||
     argument(6) ||
     ![0x80000000, 0x40000000, 0xc0000000].includes(access) ||
     ![2, 3].includes(mode)
@@ -107,7 +121,9 @@ function createFile(runtime, argument) {
   try {
     // Validate the guest path before adding cwd so absolute paths cannot be
     // accidentally converted into relative paths beneath the package root.
-    const requestedPath = normalizePath(runtime.string(argument(0)).replaceAll('\\', '/'));
+    const requestedPath = normalizePath(
+      (wide ? runtime.wideString(argument(0)) : runtime.string(argument(0))).replaceAll('\\', '/'),
+    );
     path = normalizePath(runtime.cwd + requestedPath);
   } catch {
     runtime.lastError = 123;
@@ -190,18 +206,21 @@ function closeHandle(runtime, argument) {
 /** Provide the explicitly supported Win32 imports for a single Runtime. */
 export function createWin32ApiProvider() {
   return new Map([
+    ...Object.entries(processApis),
+    ...Object.entries(audioApis),
+    ...Object.entries(gdiApis),
     ['kernel32.dll!ExitProcess', exitProcess],
     ['kernel32.dll!GetStdHandle', getStdHandle],
     ['kernel32.dll!WriteFile', writeFile],
     ['kernel32.dll!ReadFile', readFile],
     ['kernel32.dll!CreateFileA', createFile],
+    ['kernel32.dll!CreateFileW', (r, a) => createFile(r, a, true)],
     ['kernel32.dll!CloseHandle', closeHandle],
     ['kernel32.dll!GetLastError', getLastError],
     ['kernel32.dll!SetLastError', setLastError],
     ['kernel32.dll!GetTickCount', getTickCount],
     ['kernel32.dll!Sleep', sleep],
     ['kernel32.dll!Beep', beep],
-    ['kernel32.dll!GetModuleHandleA', getModuleHandle],
     ['user32.dll!MessageBoxA', messageBox],
   ]);
 }

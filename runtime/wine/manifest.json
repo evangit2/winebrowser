@@ -1,0 +1,8 @@
+{
+  "wineRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "wineVersion": "11.0",
+  "source": "third_party/wine/shcore-main.c",
+  "sourceSha256": "e40345999415a7d83bc934087df93b79311831fdfebf52d816f45110df4f6ffb",
+  "scope": "Unchanged CommandLineToArgvW function only; not full shell32 or Wine",
+  "dllSha256": "fa9ef24321144b0823603cc98e779e05cc7e080914c2feb3844e59518d30b4b5"
+}
