@@ -1,5 +1,6 @@
 import { unpackPackage } from './package.js';
 import wineLibrary from '../runtime/wine/manifest.json';
+import wineFormat from '../runtime/wine-format/manifest.json';
 import { inspect, Runtime } from './runtime.js';
 import { packageId, savePackage, saveOutputs } from './storage.js';
 let pkg,
@@ -34,12 +35,19 @@ onmessage = async ({ data }) => {
       const bytes = new Uint8Array(data.bytes);
       pkg = await unpackPackage(bytes, data.name);
       if (!builtinFiles.size) {
-        const response = await fetch(`${import.meta.env.BASE_URL}runtime/shell32.dll`);
-        if (!response.ok) throw Error('Wine helper unavailable');
-        const dll = new Uint8Array(await response.arrayBuffer());
-        if ((await packageId(dll)) !== wineLibrary.dllSha256)
-          throw Error('Wine helper hash mismatch');
-        builtinFiles.set('shell32.dll', dll);
+        const components = new Map();
+        for (const [name, manifest] of [
+          ['shell32.dll', wineLibrary],
+          ['wine-format.dll', wineFormat],
+        ]) {
+          const response = await fetch(`${import.meta.env.BASE_URL}runtime/${name}`);
+          if (!response.ok) throw Error(`Wine component unavailable: ${name}`);
+          const dll = new Uint8Array(await response.arrayBuffer());
+          if ((await packageId(dll)) !== manifest.dllSha256)
+            throw Error(`Wine component hash mismatch: ${name}`);
+          components.set(name, dll);
+        }
+        builtinFiles = components;
       }
       id = await packageId(bytes);
       try {

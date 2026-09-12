@@ -6,6 +6,7 @@ import { inspect } from '../src/runtime.js';
 const manifest = JSON.parse(await readFile('tests/targets.json', 'utf8'));
 const builtinFiles = new Map([
   ['shell32.dll', new Uint8Array(await readFile('public/runtime/shell32.dll'))],
+  ['wine-format.dll', new Uint8Array(await readFile('public/runtime/wine-format.dll'))],
 ]);
 const results = [];
 for (const target of manifest.targets) {

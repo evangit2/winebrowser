@@ -7,3 +7,4 @@ evidence/
 third_party/
 .cache/
 package-lock.json
+runtime/wine-format/manifest.json

@@ -1,3 +1,4 @@
+import { encodeAnsi, decodeAnsi } from './encoding.js';
 // Browser host services needed by ordinary PE startup and Wine's guest helpers.
 // This file owns no guest instruction execution or PE parsing.
 import { callWineHeap } from './wine-process.js';
@@ -115,16 +116,9 @@ function wideToMulti(r, a) {
     if (a(6) || a(7)) return fail(r, 87, 8);
     bytes = new TextEncoder().encode(value);
   } else {
-    const decoder = new TextDecoder('windows-1252'),
-      mapping = new Map();
-    for (let i = 0; i < 256; i++) mapping.set(decoder.decode(new Uint8Array([i])), i);
-    bytes = Uint8Array.from(
-      [...value].map((c) => {
-        if (mapping.has(c)) return mapping.get(c);
-        used = true;
-        return a(6) ? r.guestMemory.read(a(6), 1) : 63;
-      }),
-    );
+    const converted = encodeAnsi(value, a(6) ? r.guestMemory.read(a(6), 1) : 63);
+    bytes = converted.bytes;
+    used = converted.usedDefault;
   }
   if (a(7)) r.write32(a(7), +used);
   if (!capacity) return ok(bytes.length, 8);
@@ -133,48 +127,42 @@ function wideToMulti(r, a) {
   r.data.set(bytes, out);
   return ok(bytes.length, 8);
 }
-function formatWide(r, a) {
-  const format = r.wideString(a(1));
-  let va = a(2),
-    index = 0,
-    result = '';
-  while (index < format.length) {
-    if (format[index] !== '%') {
-      result += format[index++];
-      continue;
-    }
-    index++;
-    if (format[index] === '%') {
-      result += '%';
-      index++;
-      continue;
-    }
-    const spec = /^(0?)(\d*)([sSduUxXc])/.exec(format.slice(index));
-    if (!spec) throw Error('Unsupported wvsprintfW format');
-    index += spec[0].length;
-    const value = r.read32(va);
-    va += 4;
-    const type = spec[3];
-    let part =
-      type === 's'
-        ? r.wideString(value)
-        : type === 'S'
-          ? r.string(value)
-          : type === 'c'
-            ? String.fromCharCode(value)
-            : type === 'd'
-              ? String(value | 0)
-              : type === 'x' || type === 'X'
-                ? value.toString(16)
-                : String(value);
-    if (type === 'X') part = part.toUpperCase();
-    const pad = Number(spec[2] || 0);
-    if (pad > 1024) throw Error('wvsprintfW width limit');
-    result += part.padStart(pad, spec[1] ? '0' : ' ');
-    if (result.length >= 1024) throw Error('wvsprintfW output limit');
+function multiToWide(r, a) {
+  const cp = a(0),
+    flags = a(1),
+    input = a(2),
+    count = a(3) | 0;
+  const output = a(4),
+    capacity = a(5) | 0;
+  if (![0, 1252, 65001].includes(cp) || (flags !== 0 && !(cp === 65001 && flags === 8)))
+    throw Error('Unsupported MultiByteToWideChar codepage/flags');
+  if (!input || count === 0 || count < -1 || capacity < 0 || (capacity && !output))
+    return fail(r, 87, 6);
+  let length = count;
+  if (length === -1) {
+    length = 0;
+    do {
+      if (length >= 1048576) throw Error('MultiByteToWideChar input limit');
+    } while (r.guestMemory.read(input + length++, 1));
   }
-  writeString(r, a(0), result, true);
-  return ok(result.length, 3);
+  if (length > 1048576) throw Error('MultiByteToWideChar input limit');
+  r.check(input, length);
+  const bytes = r.data.subarray(input, input + length);
+  let value;
+  try {
+    value =
+      cp === 65001
+        ? new TextDecoder('utf-8', { fatal: !!flags, ignoreBOM: true }).decode(bytes)
+        : decodeAnsi(bytes);
+  } catch {
+    return fail(r, 1113, 6);
+  }
+  if (!capacity) return ok(value.length, 6);
+  if (capacity < value.length) return fail(r, 122, 6);
+  r.check(output, value.length * 2, true);
+  for (let i = 0; i < value.length; i++)
+    r.guestMemory.write(output + i * 2, value.charCodeAt(i), 2);
+  return ok(value.length, 6);
 }
 async function messageWide(r, a) {
   if (a(0) || a(3) & ~0xf0) throw Error('Unsupported MessageBoxW owner/buttons');
@@ -203,10 +191,11 @@ export const processApis = {
   'kernel32.dll!GetModuleFileNameW': (r, a) => moduleFilename(r, a, true),
   'kernel32.dll!GetModuleFileNameA': (r, a) => moduleFilename(r, a, false),
   'kernel32.dll!WideCharToMultiByte': wideToMulti,
+  'kernel32.dll!MultiByteToWideChar': multiToWide,
+  'kernel32.dll!IsDBCSLeadByte': () => ok(0, 1),
   'kernel32.dll!lstrlenW': (r, a) => ok(r.wideString(a(0)).length, 1),
   'kernel32.dll!lstrlenA': (r, a) => ok(r.string(a(0)).length, 1),
   'kernel32.dll!lstrcpyA': (r, a) => ok(writeString(r, a(0), r.string(a(1))), 2),
   'kernel32.dll!lstrcpyW': (r, a) => ok(writeString(r, a(0), r.wideString(a(1)), true), 2),
   'user32.dll!MessageBoxW': messageWide,
-  'user32.dll!wvsprintfW': formatWide,
 };

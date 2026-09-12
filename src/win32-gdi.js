@@ -15,6 +15,7 @@ const PATCOPY = 0x00f00021;
 const BLACKNESS = 0x00000042;
 const WHITENESS = 0x00ff0062;
 const DSTINVERT = 0x00550009;
+const SRCCOPY = 0x00cc0020;
 const ERROR_INVALID_HANDLE = 6;
 const ERROR_INVALID_PARAMETER = 87;
 const ERROR_NOT_ENOUGH_MEMORY = 8;
@@ -97,8 +98,10 @@ function stateFor(runtime) {
       desktopActive: false,
       brushes,
       dcs: new Map(),
+      bitmaps: new Map(),
       windowSurfaces: new Map(),
       stockBrushCount: brushes.size,
+      stockBitmapCount: 0,
       nextHandle: 0x12000,
     };
     states.set(runtime, state);
@@ -108,7 +111,12 @@ function stateFor(runtime) {
 
 function allocateHandle(runtime, state, argc) {
   if (
-    state.dcs.size + state.brushes.size - state.stockBrushCount >= 4096 ||
+    state.dcs.size +
+      state.brushes.size -
+      state.stockBrushCount +
+      state.bitmaps.size -
+      state.stockBitmapCount >=
+      4096 ||
     state.nextHandle >= 0x10000000
   )
     return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, argc);
@@ -125,6 +133,13 @@ function colorRgb(color) {
   return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff];
 }
 
+function surfaceRgb(surface, rgb) {
+  if (!surface.monochrome) return rgb;
+  const luminance = rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114;
+  const value = luminance >= 128000 ? 255 : 0;
+  return [value, value, value];
+}
+
 function rgbColorRef(rgb) {
   return ((rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
 }
@@ -132,6 +147,12 @@ function rgbColorRef(rgb) {
 function getDc(runtime, state, handle) {
   const dc = state.dcs.get(handle >>> 0);
   if (!dc?.active) return null;
+  if (dc.kind === 'memory-dc') {
+    const bitmap = state.bitmaps.get(dc.bitmap);
+    if (!bitmap) return null;
+    dc.surface = bitmap;
+    return dc;
+  }
   if (dc.hwnd === 0 || dc.hwnd === DESKTOP_WINDOW) dc.surface = state.desktopSurface;
   else {
     const window = runtime.windows?.windows?.get(dc.hwnd);
@@ -144,6 +165,17 @@ function getDc(runtime, state, handle) {
 
 function getBrush(state, handle) {
   return state.brushes.get(handle >>> 0) ?? null;
+}
+
+function totalSurfacePixels(state) {
+  return (
+    state.desktopSurface.width * state.desktopSurface.height +
+    [...state.windowSurfaces.values()].reduce(
+      (sum, surface) => sum + surface.width * surface.height,
+      0,
+    ) +
+    [...state.bitmaps.values()].reduce((sum, bitmap) => sum + bitmap.width * bitmap.height, 0)
+  );
 }
 
 function badDc(runtime, argc, invalidResult = 0) {
@@ -163,7 +195,7 @@ function paintRect(state, left, top, right, bottom, brush, operation = 'copy') {
   if (brush?.null && operation === 'copy') return false;
   const [x1, y1, x2, y2] = bounds(left, top, right, bottom, state);
   if (x1 >= x2 || y1 >= y2) return false;
-  const rgb = brush ? colorRgb(brush.color ?? 0) : [0, 0, 0];
+  const rgb = surfaceRgb(state, brush ? colorRgb(brush.color ?? 0) : [0, 0, 0]);
   const pixels = state.pixels;
   let changed = false;
   for (let y = y1; y < y2; y++) {
@@ -229,7 +261,14 @@ function getDC(runtime, argument) {
   const allocated = allocateHandle(runtime, state, 1);
   if (!allocated.result) return allocated;
   const handle = allocated.result;
-  state.dcs.set(handle, { kind: 'dc', hwnd, active: true, brush: STOCK_WHITE_BRUSH });
+  state.dcs.set(handle, {
+    kind: 'display-dc',
+    hwnd,
+    active: true,
+    brush: STOCK_WHITE_BRUSH,
+    textColor: 0,
+    backgroundColor: 0xffffff,
+  });
   return allocated;
 }
 
@@ -258,11 +297,7 @@ export function resizeWindowSurface(runtime, id, width, height) {
   if (oldSurface?.width === width && oldSurface?.height === height) return true;
   if (!oldSurface && state.windowSurfaces.size >= MAX_WINDOW_SURFACES) return false;
   const totalPixels =
-    state.desktopSurface.width * state.desktopSurface.height +
-    [...state.windowSurfaces.values()].reduce(
-      (sum, surface) => sum + surface.width * surface.height,
-      0,
-    ) -
+    totalSurfacePixels(state) -
     (oldSurface ? oldSurface.width * oldSurface.height : 0) +
     width * height;
   if (totalPixels > MAX_TOTAL_SURFACE_PIXELS) return false;
@@ -299,10 +334,94 @@ function releaseDC(runtime, argument) {
   const hwnd = argument(0) >>> 0;
   const handle = argument(1) >>> 0;
   const dc = getDc(runtime, state, handle);
-  if (!dc || dc.hwnd !== hwnd) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
+  if (!dc || dc.kind !== 'display-dc' || dc.hwnd !== hwnd)
+    return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
   dc.active = false;
   state.dcs.delete(handle);
   return success(1, 2);
+}
+
+function createCompatibleDC(runtime, argument) {
+  const state = stateFor(runtime);
+  const sourceHandle = argument(0) >>> 0;
+  if (sourceHandle && !getDc(runtime, state, sourceHandle))
+    return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+  const dcAllocated = allocateHandle(runtime, state, 1);
+  if (!dcAllocated.result) return dcAllocated;
+  const bitmapAllocated = allocateHandle(runtime, state, 1);
+  if (!bitmapAllocated.result) return bitmapAllocated;
+
+  const dcHandle = dcAllocated.result;
+  const bitmapHandle = bitmapAllocated.result;
+  const bitmap = {
+    kind: 'bitmap',
+    stock: true,
+    width: 1,
+    height: 1,
+    monochrome: true,
+    pixels: opaquePixels(1, 1),
+    dirty: false,
+    selectedBy: dcHandle,
+  };
+  state.bitmaps.set(bitmapHandle, bitmap);
+  state.stockBitmapCount++;
+  state.dcs.set(dcHandle, {
+    kind: 'memory-dc',
+    active: true,
+    brush: STOCK_WHITE_BRUSH,
+    textColor: 0,
+    backgroundColor: 0xffffff,
+    bitmap: bitmapHandle,
+    defaultBitmap: bitmapHandle,
+    surface: bitmap,
+  });
+  return dcAllocated;
+}
+
+function createCompatibleBitmap(runtime, argument) {
+  const state = stateFor(runtime);
+  const dcHandle = argument(0) >>> 0;
+  let width = signed(argument(1));
+  let height = signed(argument(2));
+  if (width < 0 || height < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  if (!dcHandle && width && height) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  const dc = dcHandle ? getDc(runtime, state, dcHandle) : null;
+  if (dcHandle && !dc) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  let monochrome = !!dc && dc.kind === 'memory-dc' && !!dc.surface.monochrome;
+  if (width === 0 || height === 0) {
+    width = 1;
+    height = 1;
+    monochrome = true;
+  }
+  if (width > 4096 || height > 4096) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  if (width * height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
+    return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 3);
+  const allocated = allocateHandle(runtime, state, 3);
+  if (!allocated.result) return allocated;
+  state.bitmaps.set(allocated.result, {
+    kind: 'bitmap',
+    stock: false,
+    width,
+    height,
+    monochrome,
+    pixels: opaquePixels(width, height),
+    dirty: false,
+    selectedBy: null,
+  });
+  return allocated;
+}
+
+function deleteDC(runtime, argument) {
+  const state = stateFor(runtime);
+  const handle = argument(0) >>> 0;
+  const dc = getDc(runtime, state, handle);
+  if (!dc || dc.kind !== 'memory-dc') return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+  const selected = state.bitmaps.get(dc.bitmap);
+  if (selected && !selected.stock) selected.selectedBy = null;
+  state.bitmaps.delete(dc.defaultBitmap);
+  state.stockBitmapCount--;
+  state.dcs.delete(handle);
+  return success(1, 1);
 }
 
 function createSolidBrush(runtime, argument) {
@@ -315,6 +434,25 @@ function createSolidBrush(runtime, argument) {
   if (!allocated.result) return allocated;
   state.brushes.set(allocated.result, { kind: 'brush', stock: false, color });
   return allocated;
+}
+
+function setDcColor(runtime, argument, property) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2, CLR_INVALID);
+  const color = argument(1) >>> 0;
+  if (color & 0xff000000) return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 2);
+  const previous = dc[property];
+  dc[property] = color;
+  return success(previous, 2);
+}
+
+function setBkColor(runtime, argument) {
+  return setDcColor(runtime, argument, 'backgroundColor');
+}
+
+function setTextColor(runtime, argument) {
+  return setDcColor(runtime, argument, 'textColor');
 }
 
 function getStockObject(runtime, argument) {
@@ -335,12 +473,26 @@ function getStockObject(runtime, argument) {
 
 function selectObject(runtime, argument) {
   const state = stateFor(runtime);
-  const dc = getDc(runtime, state, argument(0));
+  const dcHandle = argument(0) >>> 0;
+  const dc = getDc(runtime, state, dcHandle);
   if (!dc) return badDc(runtime, 2);
-  const object = getBrush(state, argument(1));
-  if (!object) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
-  const previous = dc.brush;
-  dc.brush = argument(1) >>> 0;
+  const objectHandle = argument(1) >>> 0;
+  const brush = getBrush(state, objectHandle);
+  if (brush) {
+    const previous = dc.brush;
+    dc.brush = objectHandle;
+    return success(previous, 2);
+  }
+  const bitmap = state.bitmaps.get(objectHandle);
+  if (!bitmap || dc.kind !== 'memory-dc') return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
+  if (bitmap.selectedBy && bitmap.selectedBy !== dcHandle)
+    return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
+  const previous = dc.bitmap;
+  const previousBitmap = state.bitmaps.get(previous);
+  if (previousBitmap && !previousBitmap.stock) previousBitmap.selectedBy = null;
+  bitmap.selectedBy = dcHandle;
+  dc.bitmap = objectHandle;
+  dc.surface = bitmap;
   return success(previous, 2);
 }
 
@@ -348,11 +500,18 @@ function deleteObject(runtime, argument) {
   const state = stateFor(runtime);
   const handle = argument(0) >>> 0;
   const brush = getBrush(state, handle);
-  if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
-  if (brush.stock) return success(1, 1);
-  for (const dc of state.dcs.values())
-    if (dc.active && dc.brush === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
-  state.brushes.delete(handle);
+  if (brush) {
+    if (brush.stock) return success(1, 1);
+    for (const dc of state.dcs.values())
+      if (dc.active && dc.brush === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+    state.brushes.delete(handle);
+    return success(1, 1);
+  }
+  const bitmap = state.bitmaps.get(handle);
+  if (!bitmap) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+  if (bitmap.stock || bitmap.selectedBy)
+    return bitmap.stock ? success(1, 1) : failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+  state.bitmaps.delete(handle);
   return success(1, 1);
 }
 
@@ -394,6 +553,91 @@ function patBlt(runtime, argument) {
   return success(1, 6);
 }
 
+function bitBlt(runtime, argument) {
+  const state = stateFor(runtime);
+  const destination = getDc(runtime, state, argument(0));
+  if (!destination) return badDc(runtime, 9);
+  const source = getDc(runtime, state, argument(5));
+  if (!source) return failure(runtime, ERROR_INVALID_HANDLE, 0, 9);
+  const x = signed(argument(1));
+  const y = signed(argument(2));
+  const width = signed(argument(3));
+  const height = signed(argument(4));
+  const sourceX = signed(argument(6));
+  const sourceY = signed(argument(7));
+  const rop = argument(8) >>> 0;
+  if (rop !== SRCCOPY) throw Error(`Unsupported BitBlt raster operation 0x${rop.toString(16)}`);
+  if (width < 0 || height < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
+  if (!width || !height) return success(1, 9);
+
+  // BitBlt clips against the destination DC. The source rectangle is translated
+  // by exactly the clipped amount and must remain inside its selected bitmap.
+  const left = Math.max(0, x);
+  const top = Math.max(0, y);
+  const right = Math.min(destination.surface.width, x + width);
+  const bottom = Math.min(destination.surface.height, y + height);
+  if (left >= right || top >= bottom) return success(1, 9);
+  const copyWidth = right - left;
+  const copyHeight = bottom - top;
+  const sx = sourceX + left - x;
+  const sy = sourceY + top - y;
+  if (
+    sx < 0 ||
+    sy < 0 ||
+    sx + copyWidth > source.surface.width ||
+    sy + copyHeight > source.surface.height
+  )
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
+
+  const sourcePixels = source.surface.pixels;
+  const destinationPixels = destination.surface.pixels;
+  const sameSurface = source.surface === destination.surface;
+  const snapshot = sameSurface ? new Uint8ClampedArray(copyWidth * copyHeight * 4) : null;
+  if (snapshot) {
+    for (let row = 0; row < copyHeight; row++) {
+      const start = ((sy + row) * source.surface.width + sx) * 4;
+      snapshot.set(sourcePixels.subarray(start, start + copyWidth * 4), row * copyWidth * 4);
+    }
+  }
+  let changed = false;
+  for (let row = 0; row < copyHeight; row++) {
+    const sourceStart = ((sy + row) * source.surface.width + sx) * 4;
+    const destinationStart = ((top + row) * destination.surface.width + left) * 4;
+    for (let column = 0; column < copyWidth; column++) {
+      const sourceOffset = snapshot ? (row * copyWidth + column) * 4 : sourceStart + column * 4;
+      const destinationOffset = destinationStart + column * 4;
+      const sourceRgb = [
+        snapshot ? snapshot[sourceOffset] : sourcePixels[sourceOffset],
+        snapshot ? snapshot[sourceOffset + 1] : sourcePixels[sourceOffset + 1],
+        snapshot ? snapshot[sourceOffset + 2] : sourcePixels[sourceOffset + 2],
+      ];
+      let red = sourceRgb[0];
+      let green = sourceRgb[1];
+      let blue = sourceRgb[2];
+      if (source.surface.monochrome && !destination.surface.monochrome) {
+        const color = sourceRgb[0] === 0 ? destination.textColor : destination.backgroundColor;
+        [red, green, blue] = colorRgb(color);
+      } else if (!source.surface.monochrome && destination.surface.monochrome) {
+        const white = rgbColorRef(sourceRgb) === source.backgroundColor;
+        red = green = blue = white ? 255 : 0;
+      }
+      if (
+        destinationPixels[destinationOffset] !== red ||
+        destinationPixels[destinationOffset + 1] !== green ||
+        destinationPixels[destinationOffset + 2] !== blue ||
+        destinationPixels[destinationOffset + 3] !== 255
+      )
+        changed = true;
+      destinationPixels[destinationOffset] = red;
+      destinationPixels[destinationOffset + 1] = green;
+      destinationPixels[destinationOffset + 2] = blue;
+      destinationPixels[destinationOffset + 3] = 255;
+    }
+  }
+  if (changed) destination.surface.dirty = true;
+  return success(1, 9);
+}
+
 function setPixel(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
@@ -405,7 +649,7 @@ function setPixel(runtime, argument) {
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
   const color = argument(3) >>> 0;
   if (color & 0xff000000) return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
-  const rgb = colorRgb(color);
+  const rgb = surfaceRgb(surface, colorRgb(color));
   const offset = (y * surface.width + x) * 4;
   const pixels = surface.pixels;
   if (pixels[offset] !== rgb[0] || pixels[offset + 1] !== rgb[1] || pixels[offset + 2] !== rgb[2])
@@ -452,10 +696,16 @@ export const gdiApis = {
   'user32.dll!GetSysColor': getSysColor,
   'user32.dll!GetSysColorBrush': getSysColorBrush,
   'gdi32.dll!CreateSolidBrush': createSolidBrush,
+  'gdi32.dll!SetBkColor': setBkColor,
+  'gdi32.dll!SetTextColor': setTextColor,
+  'gdi32.dll!CreateCompatibleDC': createCompatibleDC,
+  'gdi32.dll!CreateCompatibleBitmap': createCompatibleBitmap,
+  'gdi32.dll!DeleteDC': deleteDC,
   'gdi32.dll!GetStockObject': getStockObject,
   'gdi32.dll!SelectObject': selectObject,
   'gdi32.dll!DeleteObject': deleteObject,
   'gdi32.dll!PatBlt': patBlt,
+  'gdi32.dll!BitBlt': bitBlt,
   'gdi32.dll!SetPixel': setPixel,
   'gdi32.dll!GetPixel': getPixel,
 };

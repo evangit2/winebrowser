@@ -19,3 +19,9 @@ The guest library in `public/runtime/shell32.dll` and `runtime/wine/command-line
 ## GitHub Pages isolation service worker
 
 `public/coi-serviceworker.js` is the unchanged MIT-licensed coi-serviceworker v0.1.7 by Guido Zuidhof and contributors, pinned to [commit 7b1d2a092d0d2dd2b7270b6f12f13605de26f214](https://github.com/gzuidhof/coi-serviceworker/tree/7b1d2a092d0d2dd2b7270b6f12f13605de26f214). Its full license is distributed beside it in `public/coi-serviceworker-LICENSE.txt`. It supplies COOP/COEP headers through a service worker on static hosts. Our `src/isolation.js` registers its worker branch and waits for control before reloading once on first use; the upstream window-side bootstrap is not loaded. Its scope is the deployed project directory. It fetches resources from the network without caching application uploads.
+
+## Wine formatter and GCC runtime helpers
+
+`public/runtime/wine-format.dll` contains the unchanged Wine 11.0 USER32 formatter bodies. The complete pinned source is `third_party/wine/user32-wsprintf.c`, with LGPL-2.1-or-later terms in `third_party/wine/COPYING.LIB`. See `runtime/wine-format/manifest.json` and its README for source hashes, portability adapters, exact imports and rebuild instructions.
+
+The DLL links GCC 16.1.0 libgcc integer division/remainder helpers under GPLv3 with the GCC Runtime Library Exception 3.1. Both texts are retained in `third_party/gcc/` and copied beside the hosted DLL. The Wine formatter itself remains under its original LGPL terms.

@@ -1,0 +1,46 @@
+{
+  "wineVersion": "11.0",
+  "wineRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "source": "third_party/wine/user32-wsprintf.c",
+  "sourceUrl": "https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/user32/wsprintf.c",
+  "sourceSha256": "e00663b26d1f8290afc1e6ad01a2c6e7d7d58170159701b0f8fea0916ed4d421",
+  "license": "LGPL-2.1-or-later",
+  "licenseFile": "third_party/wine/COPYING.LIB",
+  "licenseSha256": "e237fa56668030e928551ddd60f05df5fe957f75eab874bbd017e085ed722e7c",
+  "scope": "Unchanged wsprintfA/W and wvsprintfA/W function bodies only; not full user32 or Wine.",
+  "compiler": "i686-w64-mingw32-gcc (GCC) 16.1.0",
+  "libgccRuntime": {
+    "gccRelease": "16.1.0",
+    "objects": [
+      "__udivdi3",
+      "__umoddi3"
+    ],
+    "license": "GPL-3.0-or-later WITH GCC-exception-3.1",
+    "notices": {
+      "COPYING3": {
+        "path": "third_party/gcc/COPYING3",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+        "url": "https://github.com/gcc-mirror/gcc/blob/releases/gcc-16.1.0/COPYING3"
+      },
+      "COPYING.RUNTIME": {
+        "path": "third_party/gcc/COPYING.RUNTIME",
+        "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+        "url": "https://github.com/gcc-mirror/gcc/blob/releases/gcc-16.1.0/COPYING.RUNTIME"
+      }
+    }
+  },
+  "exports": [
+    "wsprintfA",
+    "wsprintfW",
+    "wvsprintfA",
+    "wvsprintfW"
+  ],
+  "imports": [
+    "KERNEL32.dll!IsDBCSLeadByte",
+    "KERNEL32.dll!MultiByteToWideChar",
+    "KERNEL32.dll!WideCharToMultiByte"
+  ],
+  "crtImports": [],
+  "dllSha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3",
+  "dllBytes": 10752
+}

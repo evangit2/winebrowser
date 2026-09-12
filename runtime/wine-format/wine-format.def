@@ -1,0 +1,6 @@
+LIBRARY wine-format
+EXPORTS
+  wsprintfA
+  wsprintfW
+  wvsprintfA@12
+  wvsprintfW@12

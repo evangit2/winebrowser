@@ -89,6 +89,40 @@ function expectedGdiCanvas() {
   return { width, height, pixels };
 }
 
+function expectedOffscreenCanvas() {
+  const width = 640;
+  const height = 480;
+  const pixels = new Uint8Array(width * height * 4);
+  for (let offset = 3; offset < pixels.length; offset += 4) pixels[offset] = 255;
+  for (let y = 30; y < 32; y++) {
+    for (let x = 20; x < 23; x++) {
+      const offset = (y * width + x) * 4;
+      pixels[offset] = 1;
+      pixels[offset + 1] = 2;
+      pixels[offset + 2] = 3;
+    }
+  }
+  const pixelOffset = (30 * width + 21) * 4;
+  pixels[pixelOffset] = 0xab;
+  pixels[pixelOffset + 1] = 0xcd;
+  pixels[pixelOffset + 2] = 0xef;
+  return { width, height, pixels };
+}
+
+function appendApiCall(args, name, parameters) {
+  if (args.length) args.push(',');
+  const callIndex = args.length;
+  args.push(name, ...parameters);
+  return {
+    callIndex,
+    parameterIndices: parameters.map((_, index) => callIndex + 1 + index),
+  };
+}
+
+function refArg(index, dereference = false) {
+  return `$$:${index + 1}${dereference ? '@0' : ''}`;
+}
+
 try {
   const targets = JSON.parse(await readFile('tests/targets.json', 'utf8'));
   const target = targets.targets.find((item) => item.path === targetPath);
@@ -234,6 +268,7 @@ try {
       const result = window.__lastRun;
       return {
         exitCode: result.exitCode,
+        apiTrace: result.apiTrace,
         stdout: document.getElementById('output').textContent,
         outputs: result.outputs.map((output) => ({
           path: output.path,
@@ -246,12 +281,39 @@ try {
       };
     });
     const checks = [];
-    checks.push({ name: 'exit code 1', passed: actual.exitCode === 1 });
+    const expectedExitCode = options.exitCode ?? 1;
+    checks.push({
+      name: `exit code ${expectedExitCode}`,
+      passed: actual.exitCode === expectedExitCode,
+    });
     if (options.stdout !== undefined)
       checks.push({ name: 'exact stdout', passed: actual.stdout === options.stdout });
     if (options.output) {
       const file = actual.outputs.find((output) => output.path.endsWith(options.output.path));
-      checks.push({ name: 'generated file bytes', passed: file?.text === options.output.text });
+      if (options.output.text !== undefined)
+        checks.push({ name: 'generated file text', passed: file?.text === options.output.text });
+      if (options.output.bytes)
+        checks.push({
+          name: 'generated file exact bytes',
+          passed:
+            file?.bytes.length === options.output.bytes.length &&
+            file.bytes.every((byte, index) => byte === options.output.bytes[index]),
+        });
+    }
+    if (options.apiTrace)
+      checks.push({
+        name: 'expected API calls',
+        passed: options.apiTrace.every((api) => actual.apiTrace.includes(api)),
+      });
+    if (options.module) {
+      const module = actual.modules.find((item) => item.name === options.module.name);
+      const passed =
+        !!module &&
+        (options.module.guest !== true || !module.host) &&
+        (options.module.host !== true || !!module.host) &&
+        (!options.module.relocated || module.base !== module.preferredBase);
+      checks.push({ name: `${options.module.name} guest module state`, passed });
+      actual.assertedModule = module ?? null;
     }
     if (options.dialog)
       checks.push({
@@ -670,6 +732,241 @@ try {
   if (gdiChecks.some((check) => !check.passed))
     throw Error(
       `GDI canvas case failed: ${gdiChecks
+        .filter((check) => !check.passed)
+        .map((check) => check.name)
+        .join(', ')}`,
+    );
+
+  // Exercise the registered Advapi32 provider through the unchanged upstream
+  // executable. Write a REG_BINARY value, query it back, and persist the raw
+  // bytes plus the returned type and size into one observable output file.
+  const registryArgs = [];
+  const registryCreate = appendApiCall(registryArgs, 'advapi32@RegCreateKeyExW', [
+    '0x80000001',
+    '$u:Software\\WineBrowserRegistryTest',
+    '0',
+    '0',
+    '0',
+    '0x2001f',
+    '0',
+    '$b:4',
+    '$b:4',
+  ]);
+  const registryKeyPointer = registryCreate.parameterIndices[7];
+  appendApiCall(registryArgs, 'advapi32@RegSetValueExW', [
+    refArg(registryKeyPointer, true),
+    '$u:Payload',
+    '0',
+    '3',
+    '$a[0x12345678]',
+    '4',
+  ]);
+  const registryQuery = appendApiCall(registryArgs, 'advapi32@RegQueryValueExW', [
+    refArg(registryKeyPointer, true),
+    '$u:Payload',
+    '0',
+    '$b:4',
+    '$b:4',
+    '$a[4]',
+  ]);
+  const registryTypePointer = registryQuery.parameterIndices[3];
+  const registryDataPointer = registryQuery.parameterIndices[4];
+  const registrySizePointer = registryQuery.parameterIndices[5];
+  const registryFile = appendApiCall(registryArgs, 'CreateFileW', [
+    'winebrowser-registry-roundtrip.bin',
+    '0x40000000',
+    '0',
+    '0',
+    '2',
+    '0x80',
+    '0',
+  ]);
+  for (const bufferPointer of [registryDataPointer, registryTypePointer, registrySizePointer])
+    appendApiCall(registryArgs, 'WriteFile', [
+      refArg(registryFile.callIndex),
+      refArg(bufferPointer),
+      '4',
+      '$b:4',
+      '0',
+    ]);
+  appendApiCall(registryArgs, 'CloseHandle', [refArg(registryFile.callIndex)]);
+  appendApiCall(registryArgs, 'advapi32@RegCloseKey', [refArg(registryKeyPointer, true)]);
+  appendApiCall(registryArgs, 'advapi32@RegDeleteKeyW', [
+    '0x80000001',
+    '$u:Software\\WineBrowserRegistryTest',
+  ]);
+  await runCase('winapiexec-registry-roundtrip', registryArgs, {
+    exitCode: 0,
+    output: {
+      path: 'winebrowser-registry-roundtrip.bin',
+      bytes: [0x78, 0x56, 0x34, 0x12, 3, 0, 0, 0, 4, 0, 0, 0],
+    },
+    apiTrace: [
+      'advapi32.dll!RegCreateKeyExW',
+      'advapi32.dll!RegSetValueExW',
+      'advapi32.dll!RegQueryValueExW',
+      'advapi32.dll!RegDeleteKeyW',
+    ],
+  });
+
+  const formatArgs = [];
+  const formatOutput = '$b:128';
+  const formatOutputIndex = 1;
+  appendApiCall(formatArgs, 'user32@wvsprintfW', [
+    formatOutput,
+    '$u:Score=%u %s',
+    '$a[42,$u:guest]',
+  ]);
+  const formatFile = appendApiCall(formatArgs, 'CreateFileW', [
+    'winebrowser-wvsprintfw.bin',
+    '0x40000000',
+    '0',
+    '0',
+    '2',
+    '0x80',
+    '0',
+  ]);
+  appendApiCall(formatArgs, 'WriteFile', [
+    refArg(formatFile.callIndex),
+    refArg(formatOutputIndex),
+    '28',
+    '$b:4',
+    '0',
+  ]);
+  appendApiCall(formatArgs, 'CloseHandle', [refArg(formatFile.callIndex)]);
+  const formattedBytes = [...Buffer.from('Score=42 guest', 'utf16le')];
+  await runCase('winapiexec-wvsprintfw', formatArgs, {
+    output: { path: 'winebrowser-wvsprintfw.bin', bytes: formattedBytes },
+    apiTrace: ['user32.dll!wvsprintfW'],
+    module: { name: 'wine-format.dll', guest: true, relocated: true },
+  });
+
+  const bitmapArgs = [];
+  const displayDc = appendApiCall(bitmapArgs, 'user32@GetDC', ['0']);
+  const memoryDc = appendApiCall(bitmapArgs, 'gdi32@CreateCompatibleDC', [
+    refArg(displayDc.callIndex),
+  ]);
+  const bitmap = appendApiCall(bitmapArgs, 'gdi32@CreateCompatibleBitmap', [
+    refArg(displayDc.callIndex),
+    '3',
+    '2',
+  ]);
+  const brush = appendApiCall(bitmapArgs, 'gdi32@CreateSolidBrush', ['0x00030201']);
+  const oldBitmap = appendApiCall(bitmapArgs, 'gdi32@SelectObject', [
+    refArg(memoryDc.callIndex),
+    refArg(bitmap.callIndex),
+  ]);
+  const oldBrush = appendApiCall(bitmapArgs, 'gdi32@SelectObject', [
+    refArg(memoryDc.callIndex),
+    refArg(brush.callIndex),
+  ]);
+  appendApiCall(bitmapArgs, 'gdi32@PatBlt', [
+    refArg(memoryDc.callIndex),
+    '0',
+    '0',
+    '3',
+    '2',
+    '0x00f00021',
+  ]);
+  appendApiCall(bitmapArgs, 'gdi32@SetPixel', [refArg(memoryDc.callIndex), '1', '0', '0x00efcdab']);
+  appendApiCall(bitmapArgs, 'gdi32@BitBlt', [
+    refArg(displayDc.callIndex),
+    '20',
+    '30',
+    '3',
+    '2',
+    refArg(memoryDc.callIndex),
+    '0',
+    '0',
+    '0x00cc0020',
+  ]);
+  appendApiCall(bitmapArgs, 'gdi32@SelectObject', [
+    refArg(memoryDc.callIndex),
+    refArg(oldBrush.callIndex),
+  ]);
+  appendApiCall(bitmapArgs, 'gdi32@SelectObject', [
+    refArg(memoryDc.callIndex),
+    refArg(oldBitmap.callIndex),
+  ]);
+  appendApiCall(bitmapArgs, 'gdi32@DeleteObject', [refArg(brush.callIndex)]);
+  appendApiCall(bitmapArgs, 'gdi32@DeleteObject', [refArg(bitmap.callIndex)]);
+  appendApiCall(bitmapArgs, 'gdi32@DeleteDC', [refArg(memoryDc.callIndex)]);
+  appendApiCall(bitmapArgs, 'user32@ReleaseDC', ['0', refArg(displayDc.callIndex)]);
+  const expectedOffscreen = expectedOffscreenCanvas();
+  const expectedOffscreenSha256 = createHash('sha256')
+    .update(expectedOffscreen.pixels)
+    .digest('hex');
+  await page.locator('#args').fill(JSON.stringify(bitmapArgs));
+  await page.locator('#run').click();
+  await page.waitForFunction(() => window.__lastRun !== null, {}, { timeout: 30000 });
+  const offscreenActual = await page.evaluate(async () => {
+    const canvas = document.getElementById('display');
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let mismatchingPixels = 0;
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const offset = (y * canvas.width + x) * 4;
+        let color = [0, 0, 0, 255];
+        if (x >= 20 && x < 23 && y >= 30 && y < 32) color = [1, 2, 3, 255];
+        if (x === 21 && y === 30) color = [0xab, 0xcd, 0xef, 255];
+        if (color.some((channel, index) => pixels[offset + index] !== channel)) mismatchingPixels++;
+      }
+    }
+    const actualSha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', pixels.buffer))]
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+    const sampleAt = (x, y) =>
+      Array.from(pixels.slice((y * canvas.width + x) * 4, (y * canvas.width + x) * 4 + 4));
+    return {
+      exitCode: window.__lastRun.exitCode,
+      apiTrace: window.__lastRun.apiTrace,
+      width: canvas.width,
+      height: canvas.height,
+      hidden: canvas.hidden,
+      mismatchingPixels,
+      actualSha256,
+      samples: {
+        outside: sampleAt(0, 0),
+        copiedBrush: sampleAt(20, 31),
+        copiedPixel: sampleAt(21, 30),
+      },
+      metrics: document.getElementById('metrics').textContent,
+      logs: document.getElementById('logs').textContent,
+    };
+  });
+  const bitmapChecks = [
+    { name: 'exit code 1', passed: offscreenActual.exitCode === 1 },
+    {
+      name: 'visible canvas dimensions',
+      passed:
+        offscreenActual.width === expectedOffscreen.width &&
+        offscreenActual.height === expectedOffscreen.height &&
+        !offscreenActual.hidden,
+    },
+    { name: 'offscreen pixels copied exactly', passed: offscreenActual.mismatchingPixels === 0 },
+    {
+      name: 'offscreen canvas SHA-256',
+      passed: offscreenActual.actualSha256 === expectedOffscreenSha256,
+    },
+    {
+      name: 'CreateCompatibleBitmap/PatBlt/SetPixel/BitBlt trace',
+      passed: ['CreateCompatibleBitmap', 'PatBlt', 'SetPixel', 'BitBlt'].every((name) =>
+        offscreenActual.apiTrace.some((api) => api.endsWith(`!${name}`)),
+      ),
+    },
+  ];
+  report.cases.push({
+    id: 'winapiexec-gdi-offscreen-bitmap',
+    binary: pcmBinaryLabel,
+    args: bitmapArgs,
+    ...offscreenActual,
+    expectedSha256: expectedOffscreenSha256,
+    checks: bitmapChecks,
+    passed: bitmapChecks.every((check) => check.passed),
+  });
+  if (bitmapChecks.some((check) => !check.passed))
+    throw Error(
+      `GDI offscreen bitmap case failed: ${bitmapChecks
         .filter((check) => !check.passed)
         .map((check) => check.name)
         .join(', ')}`,

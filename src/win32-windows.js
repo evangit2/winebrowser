@@ -1,3 +1,5 @@
+import { encodeAnsi } from './encoding.js';
+import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
 
 const BORDER = 1,
@@ -18,6 +20,9 @@ export class WindowManager {
     this.delivered = new Map();
     this.timers = new Map();
     this.keys = new Map();
+    this.keyboardState = new Map();
+    this.accelerators = new Map();
+    this.nextAccelerator = 0x30000;
     this.nextAtom = 0xc000;
     this.nextWindow = 0x20000;
     this.nextTimer = 1;
@@ -121,6 +126,8 @@ export class WindowManager {
     this.queue = [];
     this.delivered.clear();
     this.keys.clear();
+    this.keyboardState.clear();
+    this.accelerators.clear();
     this.focus = this.capture = 0;
     this.wake?.();
     this.wake = null;
@@ -156,8 +163,15 @@ export class WindowManager {
       const up = event.type === 'keyup';
       const previous = this.keys.get(vk) ?? 0;
       this.keys.set(vk, up ? previous & 1 : 0x8001);
-      const flags = (1 | (event.repeat || up ? 1 << 30 : 0) | (up ? 0x80000000 : 0)) >>> 0;
-      this.post(hwnd, up ? 0x101 : 0x100, vk, flags, {
+      const system = !!event.altKey || vk === 18;
+      const flags =
+        (1 |
+          (event.altKey ? 1 << 29 : 0) |
+          (event.repeat || up ? 1 << 30 : 0) |
+          (up ? 0x80000000 : 0)) >>>
+        0;
+      this.post(hwnd, (system ? 0x104 : 0x100) + (up ? 1 : 0), vk, flags, {
+        modifiers: { shiftKey: !!event.shiftKey, ctrlKey: !!event.ctrlKey, altKey: !!event.altKey },
         character: !up && typeof event.key === 'string' && event.key.length === 1 ? event.key : '',
       });
     } else if (['mousemove', 'mousedown', 'mouseup'].includes(event.type)) {
@@ -228,6 +242,21 @@ export class WindowManager {
       await new Promise((resolve) => {
         this.wake = resolve;
       });
+    }
+    if ((!peek || a(4) & 1) && [0x100, 0x101, 0x104, 0x105].includes(message.message)) {
+      const down = !(message.message & 1),
+        vk = message.wParam;
+      const previous = this.keyboardState.get(vk) ?? 0;
+      const toggle = [20, 144, 145].includes(vk) && down && !(previous & 0x8000);
+      this.keyboardState.set(vk, (down ? 0x8000 : 0) | ((previous ^ (toggle ? 1 : 0)) & 1));
+      if (message.modifiers) {
+        for (const [key, code] of [
+          ['shiftKey', 16],
+          ['ctrlKey', 17],
+          ['altKey', 18],
+        ])
+          this.keyboardState.set(code, message.modifiers[key] ? 0x8000 : 0);
+      }
     }
     const fields = [
       message.hwnd,
@@ -373,14 +402,20 @@ async function defaultProc(r, a, wide) {
     r.windows.emit(w);
     return result(1, 4);
   }
-  if (msg === 0xe) return result(w.title.length, 4);
+  if (msg === 0xe) return result(wide ? w.title.length : encodeAnsi(w.title).bytes.length, 4);
   if (msg === 0xd) {
     if (!wp) return result(0, 4);
-    const value = w.title.slice(0, wp - 1),
-      unit = wide ? 2 : 1;
-    r.check(lp, (value.length + 1) * unit, true);
+    if (!wide) {
+      const bytes = encodeAnsi(w.title).bytes.subarray(0, wp - 1);
+      r.check(lp, bytes.length + 1, true);
+      r.data.set(bytes, lp);
+      r.guestMemory.write(lp + bytes.length, 0, 1);
+      return result(bytes.length, 4);
+    }
+    const value = w.title.slice(0, wp - 1);
+    r.check(lp, (value.length + 1) * 2, true);
     for (let i = 0; i <= value.length; i++)
-      r.guestMemory.write(lp + i * unit, i === value.length ? 0 : value.charCodeAt(i), unit);
+      r.guestMemory.write(lp + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
     return result(value.length, 4);
   }
   if (msg === 0xf) {
@@ -418,6 +453,10 @@ async function beginPaint(r, a) {
 export const windowApis = {};
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
+  windowApis[`user32.dll!GetWindowText${suffix}`] = async (r, a) =>
+    result(await sendWindowMessage(r, a(0), 0xd, a(2), a(1), wide), 3);
+  windowApis[`user32.dll!GetWindowTextLength${suffix}`] = async (r, a) =>
+    result(await r.windows.send(a(0), 0xe), 1);
   Object.assign(windowApis, {
     [`user32.dll!RegisterClass${suffix}`]: (r, a) => register(r, a, wide, false),
     [`user32.dll!RegisterClassEx${suffix}`]: (r, a) => register(r, a, wide, true),
@@ -437,13 +476,13 @@ for (const wide of [false, true]) {
       return result(values[0] ? await r.windows.send(...values) : 0, 1);
     },
     [`user32.dll!SendMessage${suffix}`]: async (r, a) =>
-      result(await r.windows.send(a(0), a(1), a(2), a(3)), 4),
+      result(await sendWindowMessage(r, a(0), a(1), a(2), a(3), wide), 4),
     [`user32.dll!PostMessage${suffix}`]: (r, a) =>
       result(r.windows.post(a(0), a(1), a(2), a(3)) ? 1 : 0, 4),
     [`user32.dll!CallWindowProc${suffix}`]: async (r, a) =>
       result(await r.callGuest(a(0), [a(1), a(2), a(3), a(4)]), 5),
     [`user32.dll!SetWindowText${suffix}`]: async (r, a) =>
-      result(await r.windows.send(a(0), 0xc, 0, a(1)), 2),
+      result(await sendWindowMessage(r, a(0), 0xc, 0, a(1), wide), 2),
     [`user32.dll!LoadCursor${suffix}`]: (r, a) => {
       if (a(0) || ![32512, 32513, 32514, 32515, 32516].includes(a(1)))
         throw Error('Custom cursors are unsupported');
@@ -500,7 +539,12 @@ Object.assign(windowApis, {
     r.check(a(0), 28);
     const message = r.windows.delivered.get(a(0));
     if (message?.character) {
-      r.windows.post(message.hwnd, 0x102, message.character.charCodeAt(0), message.lParam);
+      r.windows.post(
+        message.hwnd,
+        message.message === 0x104 ? 0x106 : 0x102,
+        message.character.charCodeAt(0),
+        message.lParam,
+      );
       message.character = '';
     }
     const id = r.read32(a(0) + 4);
