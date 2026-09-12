@@ -73,7 +73,9 @@ try {
   assert.equal(Math.round(moved.x - box.x), 40);
   assert.equal(Math.round(moved.y - box.y), 30);
   const sizeBefore = await canvas.evaluate((c) => [c.width, c.height]);
-  const handle = await game.locator('.virtual-desktop-resize').boundingBox();
+  const resize = game.locator('.virtual-desktop-resize');
+  await resize.scrollIntoViewIfNeeded();
+  const handle = await resize.boundingBox();
   await page.mouse.move(handle.x + 5, handle.y + 5);
   await page.mouse.down();
   await page.mouse.move(handle.x + 45, handle.y + 35);
