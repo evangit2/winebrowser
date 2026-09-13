@@ -19,6 +19,9 @@ jobs:
       - run: npm run test:browser
         env:
           BROWSER_CHANNEL: chromium
+      - run: npm run test:controls
+        env:
+          BROWSER_CHANNEL: chromium
       - run: node scripts/fetch-targets.mjs winapiexec-1.2-x86 pts-tinype-hh4t-x86
       - run: node scripts/test-external-browser.mjs
         env:
@@ -34,6 +37,7 @@ jobs:
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
           npm run test:windows
+          npm run test:tetris
         env:
           BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

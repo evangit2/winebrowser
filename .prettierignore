@@ -3,6 +3,7 @@ dist/
 public/vendor/
 public/coi-serviceworker.js
 public/demos/
+public/examples/
 evidence/
 third_party/
 .cache/

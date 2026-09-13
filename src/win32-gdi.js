@@ -1,3 +1,18 @@
+import {
+  colorRefRgb as colorRgb,
+  surfaceRgb,
+  rgbColorRef,
+  paintRect,
+  drawLine,
+} from './gdi-raster.js';
+import {
+  DEFAULT_GDI_FONT,
+  makeGdiFontDescriptor,
+  readGdiText,
+  rasterizeGdiText,
+  paintGdiText,
+} from './gdi-text.js';
+
 const WIDTH = 640;
 const HEIGHT = 480;
 const DESKTOP_WINDOW = 0x101;
@@ -7,6 +22,10 @@ const STOCK_NULL_BRUSH = 0x11003;
 const STOCK_LTGRAY_BRUSH = 0x11004;
 const STOCK_GRAY_BRUSH = 0x11005;
 const STOCK_DKGRAY_BRUSH = 0x11006;
+const STOCK_BLACK_PEN = 0x11101;
+const STOCK_WHITE_PEN = 0x11102;
+const STOCK_NULL_PEN = 0x11103;
+const STOCK_SYSTEM_FONT = 0x11104;
 const MAX_WINDOW_WIDTH = 1024;
 const MAX_WINDOW_HEIGHT = 768;
 const MAX_WINDOW_SURFACES = 8;
@@ -20,6 +39,7 @@ const ERROR_INVALID_HANDLE = 6;
 const ERROR_INVALID_PARAMETER = 87;
 const ERROR_NOT_ENOUGH_MEMORY = 8;
 const ERROR_INVALID_WINDOW_HANDLE = 1400;
+const ERROR_CALL_NOT_IMPLEMENTED = 120;
 const CLR_INVALID = 0xffffffff;
 const SYSTEM_COLORS = [
   0xc0c0c0, // COLOR_SCROLLBAR
@@ -86,6 +106,12 @@ function stateFor(runtime) {
       [STOCK_GRAY_BRUSH, { kind: 'brush', stock: true, color: 0x00808080 }],
       [STOCK_DKGRAY_BRUSH, { kind: 'brush', stock: true, color: 0x00404040 }],
     ]);
+    const pens = new Map([
+      [STOCK_BLACK_PEN, { kind: 'pen', stock: true, color: 0, width: 1, style: 0 }],
+      [STOCK_WHITE_PEN, { kind: 'pen', stock: true, color: 0xffffff, width: 1, style: 0 }],
+      [STOCK_NULL_PEN, { kind: 'pen', stock: true, color: 0, width: 1, style: 5 }],
+    ]);
+    const fonts = new Map([[STOCK_SYSTEM_FONT, { ...DEFAULT_GDI_FONT, stock: true }]]);
     for (let index = 0; index < SYSTEM_COLORS.length; index++)
       brushes.set(index + 1, {
         kind: 'brush',
@@ -97,11 +123,15 @@ function stateFor(runtime) {
       desktopSurface: { width: WIDTH, height: HEIGHT, pixels, dirty: true },
       desktopActive: false,
       brushes,
+      pens,
+      fonts,
       dcs: new Map(),
       bitmaps: new Map(),
       windowSurfaces: new Map(),
       stockBrushCount: brushes.size,
       stockBitmapCount: 0,
+      stockPenCount: pens.size,
+      stockFontCount: fonts.size,
       nextHandle: 0x12000,
     };
     states.set(runtime, state);
@@ -114,6 +144,10 @@ function allocateHandle(runtime, state, argc) {
     state.dcs.size +
       state.brushes.size -
       state.stockBrushCount +
+      state.pens.size -
+      state.stockPenCount +
+      state.fonts.size -
+      state.stockFontCount +
       state.bitmaps.size -
       state.stockBitmapCount >=
       4096 ||
@@ -126,22 +160,6 @@ function allocateHandle(runtime, state, argc) {
 
 function signed(value) {
   return value | 0;
-}
-
-function colorRgb(color) {
-  const value = color >>> 0;
-  return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff];
-}
-
-function surfaceRgb(surface, rgb) {
-  if (!surface.monochrome) return rgb;
-  const luminance = rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114;
-  const value = luminance >= 128000 ? 255 : 0;
-  return [value, value, value];
-}
-
-function rgbColorRef(rgb) {
-  return ((rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
 }
 
 function getDc(runtime, state, handle) {
@@ -167,6 +185,14 @@ function getBrush(state, handle) {
   return state.brushes.get(handle >>> 0) ?? null;
 }
 
+function getPen(state, handle) {
+  return state.pens.get(handle >>> 0) ?? null;
+}
+
+function getFont(state, handle) {
+  return state.fonts.get(handle >>> 0) ?? null;
+}
+
 function totalSurfacePixels(state) {
   return (
     state.desktopSurface.width * state.desktopSurface.height +
@@ -180,50 +206,6 @@ function totalSurfacePixels(state) {
 
 function badDc(runtime, argc, invalidResult = 0) {
   return failure(runtime, ERROR_INVALID_HANDLE, invalidResult, argc);
-}
-
-function bounds(left, top, right, bottom, state) {
-  return [
-    Math.max(0, Math.min(state.width, left)),
-    Math.max(0, Math.min(state.height, top)),
-    Math.max(0, Math.min(state.width, right)),
-    Math.max(0, Math.min(state.height, bottom)),
-  ];
-}
-
-function paintRect(state, left, top, right, bottom, brush, operation = 'copy') {
-  if (brush?.null && operation === 'copy') return false;
-  const [x1, y1, x2, y2] = bounds(left, top, right, bottom, state);
-  if (x1 >= x2 || y1 >= y2) return false;
-  const rgb = surfaceRgb(state, brush ? colorRgb(brush.color ?? 0) : [0, 0, 0]);
-  const pixels = state.pixels;
-  let changed = false;
-  for (let y = y1; y < y2; y++) {
-    let offset = (y * state.width + x1) * 4;
-    for (let x = x1; x < x2; x++, offset += 4) {
-      let r = rgb[0],
-        g = rgb[1],
-        b = rgb[2];
-      if (operation === 'invert') {
-        r = 255 - pixels[offset];
-        g = 255 - pixels[offset + 1];
-        b = 255 - pixels[offset + 2];
-      }
-      if (
-        pixels[offset] !== r ||
-        pixels[offset + 1] !== g ||
-        pixels[offset + 2] !== b ||
-        pixels[offset + 3] !== 255
-      )
-        changed = true;
-      pixels[offset] = r;
-      pixels[offset + 1] = g;
-      pixels[offset + 2] = b;
-      pixels[offset + 3] = 255;
-    }
-  }
-  if (changed) state.dirty = true;
-  return changed;
 }
 
 function readRect(runtime, address) {
@@ -252,6 +234,7 @@ function getDC(runtime, argument) {
   if (hwnd !== 0 && hwnd !== DESKTOP_WINDOW) {
     const window = runtime.windows?.windows?.get(hwnd);
     if (!window) return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
+    if (window.controlType) return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 1);
     if (
       !state.windowSurfaces.has(hwnd) &&
       !resizeWindowSurface(runtime, hwnd, window.width, window.height)
@@ -266,8 +249,12 @@ function getDC(runtime, argument) {
     hwnd,
     active: true,
     brush: STOCK_WHITE_BRUSH,
+    pen: STOCK_BLACK_PEN,
+    font: STOCK_SYSTEM_FONT,
     textColor: 0,
     backgroundColor: 0xffffff,
+    bkMode: 2,
+    currentPoint: { x: 0, y: 0 },
   });
   return allocated;
 }
@@ -369,8 +356,12 @@ function createCompatibleDC(runtime, argument) {
     kind: 'memory-dc',
     active: true,
     brush: STOCK_WHITE_BRUSH,
+    pen: STOCK_BLACK_PEN,
+    font: STOCK_SYSTEM_FONT,
     textColor: 0,
     backgroundColor: 0xffffff,
+    bkMode: 2,
+    currentPoint: { x: 0, y: 0 },
     bitmap: bitmapHandle,
     defaultBitmap: bitmapHandle,
     surface: bitmap,
@@ -436,6 +427,61 @@ function createSolidBrush(runtime, argument) {
   return allocated;
 }
 
+function createHatchBrush(runtime, argument) {
+  const state = stateFor(runtime);
+  const hatch = argument(0) >>> 0;
+  const color = argument(1) >>> 0;
+  if (hatch > 5 || color & 0xff000000) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  const allocated = allocateHandle(runtime, state, 2);
+  if (!allocated.result) return allocated;
+  state.brushes.set(allocated.result, { kind: 'brush', stock: false, hatch, color });
+  return allocated;
+}
+
+function createPen(runtime, argument) {
+  const state = stateFor(runtime);
+  const style = argument(0) >>> 0;
+  const width = signed(argument(1));
+  const color = argument(2) >>> 0;
+  if (style !== 0 || width < 0 || width > 1 || color & 0xff000000)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  const allocated = allocateHandle(runtime, state, 3);
+  if (!allocated.result) return allocated;
+  state.pens.set(allocated.result, { kind: 'pen', stock: false, style, width, color });
+  return allocated;
+}
+
+function setBkMode(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2);
+  const mode = argument(1) >>> 0;
+  if (mode !== 1 && mode !== 2) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  const previous = dc.bkMode;
+  dc.bkMode = mode;
+  return success(previous, 2);
+}
+
+/**
+ * Build the supported logical-font subset. The browser font mapper may
+ * substitute the requested face, and Canvas metrics/rasterization are device
+ * dependent. Width, escapement/orientation, nondefault precisions, and
+ * nondefault pitch/family are rejected rather than approximated silently.
+ */
+function createFont(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  let descriptor;
+  try {
+    descriptor = makeGdiFontDescriptor(runtime, argument, wide);
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 14);
+  }
+  const allocated = allocateHandle(runtime, state, 14);
+  if (!allocated.result) return allocated;
+  state.fonts.set(allocated.result, { ...descriptor, stock: false });
+  return allocated;
+}
+
 function setDcColor(runtime, argument, property) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
@@ -457,15 +503,19 @@ function setTextColor(runtime, argument) {
 
 function getStockObject(runtime, argument) {
   const index = argument(0) >>> 0;
-  const handles = [
-    STOCK_WHITE_BRUSH,
-    STOCK_LTGRAY_BRUSH,
-    STOCK_GRAY_BRUSH,
-    STOCK_DKGRAY_BRUSH,
-    STOCK_BLACK_BRUSH,
-    STOCK_NULL_BRUSH,
-  ];
-  const handle = handles[index] ?? 0;
+  const handles = new Map([
+    [0, STOCK_WHITE_BRUSH],
+    [1, STOCK_LTGRAY_BRUSH],
+    [2, STOCK_GRAY_BRUSH],
+    [3, STOCK_DKGRAY_BRUSH],
+    [4, STOCK_BLACK_BRUSH],
+    [5, STOCK_NULL_BRUSH],
+    [6, STOCK_WHITE_PEN],
+    [7, STOCK_BLACK_PEN],
+    [8, STOCK_NULL_PEN],
+    [13, STOCK_SYSTEM_FONT],
+  ]);
+  const handle = handles.get(index) ?? 0;
   if (!handle) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
   stateFor(runtime);
   return success(handle, 1);
@@ -481,6 +531,18 @@ function selectObject(runtime, argument) {
   if (brush) {
     const previous = dc.brush;
     dc.brush = objectHandle;
+    return success(previous, 2);
+  }
+  const pen = getPen(state, objectHandle);
+  if (pen) {
+    const previous = dc.pen;
+    dc.pen = objectHandle;
+    return success(previous, 2);
+  }
+  const font = getFont(state, objectHandle);
+  if (font) {
+    const previous = dc.font;
+    dc.font = objectHandle;
     return success(previous, 2);
   }
   const bitmap = state.bitmaps.get(objectHandle);
@@ -507,6 +569,22 @@ function deleteObject(runtime, argument) {
     state.brushes.delete(handle);
     return success(1, 1);
   }
+  const pen = getPen(state, handle);
+  if (pen) {
+    if (pen.stock) return success(1, 1);
+    for (const dc of state.dcs.values())
+      if (dc.active && dc.pen === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+    state.pens.delete(handle);
+    return success(1, 1);
+  }
+  const font = getFont(state, handle);
+  if (font) {
+    if (font.stock) return success(1, 1);
+    for (const dc of state.dcs.values())
+      if (dc.active && dc.font === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+    state.fonts.delete(handle);
+    return success(1, 1);
+  }
   const bitmap = state.bitmaps.get(handle);
   if (!bitmap) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
   if (bitmap.stock || bitmap.selectedBy)
@@ -525,7 +603,7 @@ function fillRect(runtime, argument) {
   if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
   const [left, top, right, bottom] = rect;
   if (right < left || bottom < top) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
-  paintRect(dc.surface, left, top, right, bottom, brush);
+  paintRect(dc.surface, left, top, right, bottom, brush, 'copy', dc);
   // FillRect includes left/top and excludes right/bottom edges.
   return success(1, 3);
 }
@@ -549,7 +627,7 @@ function patBlt(runtime, argument) {
   else if (rop === WHITENESS) brush = { color: 0xffffff };
   else if (rop === DSTINVERT) operation = 'invert';
   else throw Error(`Unsupported PatBlt raster operation 0x${rop.toString(16)}`);
-  paintRect(dc.surface, x, y, x + width, y + height, brush, operation);
+  paintRect(dc.surface, x, y, x + width, y + height, brush, operation, dc);
   return success(1, 6);
 }
 
@@ -688,6 +766,74 @@ function getSysColorBrush(runtime, argument) {
   return success(index + 1, 1);
 }
 
+function moveToEx(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 4);
+  const x = signed(argument(1));
+  const y = signed(argument(2));
+  const previous = argument(3) >>> 0;
+  if (previous) {
+    try {
+      runtime.check(previous, 8, true);
+    } catch {
+      return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
+    }
+  }
+  if (previous) {
+    runtime.view.setInt32(previous, dc.currentPoint.x, true);
+    runtime.view.setInt32(previous + 4, dc.currentPoint.y, true);
+  }
+  dc.currentPoint = { x, y };
+  return success(1, 4);
+}
+
+function lineTo(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 3);
+  const x1 = signed(argument(1));
+  const y1 = signed(argument(2));
+  const { x: originalX, y: originalY } = dc.currentPoint;
+  dc.currentPoint = { x: x1, y: y1 };
+  const pen = getPen(state, dc.pen);
+  if (!pen) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  drawLine(dc.surface, originalX, originalY, x1, y1, pen);
+  return success(1, 3);
+}
+
+function textOut(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 5);
+  const x = signed(argument(1)),
+    y = signed(argument(2));
+  const pointer = argument(3) >>> 0,
+    count = signed(argument(4));
+  let text, mask;
+  try {
+    text = readGdiText(runtime, pointer, count, wide);
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  }
+  const font = dc.font ? getFont(state, dc.font) : null;
+  if (dc.font && !font) return failure(runtime, ERROR_INVALID_HANDLE, 0, 5);
+  const descriptor = font ?? DEFAULT_GDI_FONT;
+  const result = rasterizeGdiText(runtime, text, descriptor);
+  if (result.error === 'backend') return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 5);
+  if (result.error) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  mask = result.mask;
+  paintGdiText(dc.surface, dc, x, y, mask, descriptor);
+  return success(1, 5);
+}
+
+/** A read-only, cloned descriptor for DOM control font propagation. */
+export function describeGdiFont(runtime, handle) {
+  if (handle >>> 0 === 0) return { ...DEFAULT_GDI_FONT };
+  const font = states.get(runtime)?.fonts.get(handle >>> 0);
+  return font ? { ...font } : null;
+}
+
 export const gdiApis = {
   'user32.dll!GetDesktopWindow': getDesktopWindow,
   'user32.dll!GetDC': getDC,
@@ -696,6 +842,17 @@ export const gdiApis = {
   'user32.dll!GetSysColor': getSysColor,
   'user32.dll!GetSysColorBrush': getSysColorBrush,
   'gdi32.dll!CreateSolidBrush': createSolidBrush,
+  'gdi32.dll!CreateHatchBrush': createHatchBrush,
+  'gdi32.dll!CreatePen': createPen,
+  'gdi32.dll!CreateFont': (runtime, argument) => createFont(runtime, argument, false),
+  'gdi32.dll!CreateFontA': (runtime, argument) => createFont(runtime, argument, false),
+  'gdi32.dll!CreateFontW': (runtime, argument) => createFont(runtime, argument, true),
+  'gdi32.dll!TextOut': (runtime, argument) => textOut(runtime, argument, false),
+  'gdi32.dll!TextOutA': (runtime, argument) => textOut(runtime, argument, false),
+  'gdi32.dll!TextOutW': (runtime, argument) => textOut(runtime, argument, true),
+  'gdi32.dll!SetBkMode': setBkMode,
+  'gdi32.dll!MoveToEx': moveToEx,
+  'gdi32.dll!LineTo': lineTo,
   'gdi32.dll!SetBkColor': setBkColor,
   'gdi32.dll!SetTextColor': setTextColor,
   'gdi32.dll!CreateCompatibleDC': createCompatibleDC,

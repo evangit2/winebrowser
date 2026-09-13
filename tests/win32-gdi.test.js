@@ -152,7 +152,12 @@ test('validates desktop handles, released DCs, stock objects, and brush lifetime
   assert.equal(call(runtime, 'gdi32.dll!GetPixel', hdc, 0, 0).result, 0xffffffff);
   assert.equal(runtime.lastError, 6);
   assert.equal(call(runtime, 'user32.dll!ReleaseDC', hwnd, hdc).result, 0);
-  assert.equal(call(runtime, 'gdi32.dll!GetStockObject', 7).result, 0);
+  assert.notEqual(
+    call(runtime, 'gdi32.dll!GetStockObject', 7).result,
+    0,
+    'BLACK_PEN is stock index 7',
+  );
+  assert.equal(call(runtime, 'gdi32.dll!GetStockObject', 9).result, 0);
   assert.equal(runtime.lastError, 87);
 });
 

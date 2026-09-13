@@ -19,10 +19,13 @@ export class ModuleGraph {
     this.unresolved = [];
     this.thunks = new Map();
     this.nextBase = 0x1000000;
+    this.nextHostBase = 0x70000000;
     this.main = this.loadPath(exe, false);
     this.linkAll();
+    // The initial executable/import closure stays resident for process life.
+    this.startupModules = new Set(this.modules.values());
   }
-  loadPath(path, dll = true) {
+  loadPath(path, dll = true, refs = 0) {
     const name = path.split('/').at(-1).toLowerCase();
     if (this.modules.has(name)) return this.modules.get(name);
     if (this.modules.size >= 128) throw Error('Module count limit exceeded');
@@ -38,7 +41,9 @@ export class ModuleGraph {
       bytes,
       pe,
       base: 0,
-      refs: 1,
+      // Import edges and startup roots are tracked separately from explicit
+      // LoadLibrary references.
+      refs,
       dependencies: [],
       mapped: false,
       initialized: false,
@@ -54,16 +59,18 @@ export class ModuleGraph {
       return module;
     }
     for (const path of [this.cwd + name, name])
-      if (this.files.has(path)) return this.loadPath(path);
-    if (this.builtinFiles.has(name)) return this.loadPath('@runtime/' + name);
+      if (this.files.has(path)) return this.loadPath(path, true, retain ? 1 : 0);
+    if (this.builtinFiles.has(name)) return this.loadPath('@runtime/' + name, true, retain ? 1 : 0);
     if (this.apiNames[name]) {
+      if (this.nextHostBase >= 0x80000000) throw Error('Host module handle space exhausted');
       module = {
         name,
         host: true,
-        base: 0x70000000 + this.modules.size * 0x10000,
-        refs: 1,
+        base: this.nextHostBase,
+        refs: retain ? 1 : 0,
         initialized: true,
       };
+      this.nextHostBase += 0x10000;
       this.modules.set(name, module);
       return module;
     }
@@ -219,6 +226,7 @@ export class ModuleGraph {
       unresolved: this.unresolved.slice(),
       thunks: new Map(this.thunks),
       nextBase: this.nextBase,
+      nextHostBase: this.nextHostBase,
     };
   }
   restore(checkpoint) {
@@ -232,5 +240,6 @@ export class ModuleGraph {
     this.thunks.clear();
     for (const [address, thunk] of checkpoint.thunks) this.thunks.set(address, thunk);
     this.nextBase = checkpoint.nextBase;
+    this.nextHostBase = checkpoint.nextHostBase;
   }
 }

@@ -50,6 +50,7 @@ export class Runtime {
       return request(kind, detail);
     };
     this.maxBlocks = maxBlocks;
+    this.lastProgress = performance.now();
 
     this.args = args;
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles);
@@ -167,6 +168,17 @@ export class Runtime {
       ip = thunk ? await this.api(thunk) : this.cpu.step(ip);
       if (this.blocks % 2048 === 0) {
         flushGdi(this);
+        const now = performance.now();
+        if (now - this.lastProgress >= 1000) {
+          this.lastProgress = now;
+          this.emit({
+            type: 'progress',
+            blocks: this.blocks,
+            compiledBlocks: this.cpu.cache.size,
+            instructions: this.cpu.instructions,
+            apiCalls: this.calls,
+          });
+        }
         await new Promise((r) => setTimeout(r, 0));
       }
     }
@@ -302,6 +314,81 @@ export class Runtime {
   async loadLibrary(name) {
     const module = await this.withModuleLoad(() => this.graph.load(name, true));
     return module.base;
+  }
+  async freeLibrary(base) {
+    const module = [...this.graph.modules.values()].find((candidate) => candidate.base === base);
+    if (!module || module.refs <= 0) {
+      this.lastError = 6; // ERROR_INVALID_HANDLE
+      return false;
+    }
+    module.refs--;
+
+    // Startup imports, the executable, host shims, and Wine's process ntdll
+    // remain roots. A dynamically loaded dependency remains live while any
+    // retained module reaches it through its import/forwarder graph.
+    const live = new Set(),
+      visit = (candidate) => {
+        if (!candidate || live.has(candidate)) return;
+        live.add(candidate);
+        for (const dependency of candidate.dependencies ?? []) visit(dependency);
+      };
+    for (const root of this.graph.startupModules) visit(root);
+    for (const candidate of this.graph.modules.values())
+      if (candidate.host || candidate.refs > 0 || candidate === this.wineProcess?.module)
+        visit(candidate);
+    const removed = new Set(
+      [...this.graph.modules.values()].filter((candidate) => !live.has(candidate)),
+    );
+    if (!removed.size) return true;
+    const removedNames = new Set([...removed].map((candidate) => candidate.name));
+
+    const order = this.graph
+      .initializationOrder()
+      .reverse()
+      .filter((candidate) => removed.has(candidate));
+    for (const candidate of order) {
+      await this.tls.detach(candidate);
+      if (candidate.initialized && candidate.pe.entryPoint) {
+        this.exitCode = null;
+        await this.callGuest(candidate.pe.entryPoint, [candidate.base, 0, 0]);
+      }
+    }
+
+    // Static TLS is per module. Use the same rollback machinery as failed
+    // loads so the PE TLS index and TEB vector slot are restored before unmap.
+    const keptTLS = new Map([...this.tls.records].filter(([candidate]) => !removed.has(candidate)));
+    this.tls.restore({ vector: this.tls.vector, records: keptTLS });
+    if (!keptTLS.size && this.tls.vector) {
+      this.free(this.tls.vector);
+      this.tls.vector = 0;
+      this.write32(0x2e0002c, 0);
+    }
+
+    for (const candidate of removed) {
+      if (
+        candidate.ntBridge?.tebSlot &&
+        this.read32(candidate.ntBridge.tebSlot) === candidate.ntBridge.address
+      )
+        this.write32(candidate.ntBridge.tebSlot, 0);
+      if (candidate.ntBridge && this.read32(candidate.ntBridge.slot) === candidate.ntBridge.address)
+        this.write32(candidate.ntBridge.slot, 0);
+      if (candidate.mapped) {
+        this.data.fill(0, candidate.base, candidate.base + candidate.pe.imageSize);
+        candidate.mapped = false;
+        candidate.base = 0;
+      }
+      this.graph.modules.delete(candidate.name);
+    }
+    for (const [address, thunk] of this.graph.thunks)
+      if (removedNames.has(thunk.dll)) this.graph.thunks.delete(address);
+    this.regions.splice(
+      0,
+      this.regions.length,
+      ...this.regions.filter((region) => !removedNames.has(region.module)),
+    );
+    this.refreshCodeRanges();
+    this.cpu.cache.clear();
+    return true;
   }
   async resolveExport(module, symbol) {
     const target = await this.withModuleLoad(() => this.graph.resolve(module, symbol), 127);

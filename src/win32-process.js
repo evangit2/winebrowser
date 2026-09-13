@@ -2,6 +2,8 @@ import { encodeAnsi, decodeAnsi } from './encoding.js';
 // Browser host services needed by ordinary PE startup and Wine's guest helpers.
 // This file owns no guest instruction execution or PE parsing.
 import { callWineHeap } from './wine-process.js';
+import { normalizePath } from './package.js';
+import { parsePE } from './pe.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
   r.lastError = error;
@@ -50,6 +52,9 @@ async function loadLibrary(r, a, wide) {
     r.emit({ type: 'log', text: e.message });
     return fail(r, e.win32Error, 1);
   }
+}
+async function freeLibrary(r, a) {
+  return ok((await r.freeLibrary(a(0))) ? 1 : 0, 1);
 }
 function localAlloc(r, a) {
   if (a(0) & ~0x40) return fail(r, 87, 2);
@@ -164,16 +169,81 @@ function multiToWide(r, a) {
     r.guestMemory.write(output + i * 2, value.charCodeAt(i), 2);
   return ok(value.length, 6);
 }
-async function messageWide(r, a) {
-  if (a(0) || a(3) & ~0xf0) throw Error('Unsupported MessageBoxW owner/buttons');
-  return ok(
-    await r.request('messagebox', {
-      text: r.wideString(a(1)),
-      title: r.wideString(a(2)),
-      flags: a(3),
-    }),
-    4,
-  );
+function groupIconCount(bytes) {
+  const pe = parsePE(bytes, { allowDll: true });
+  const directory = pe.directories[2];
+  if (!directory?.rva || !directory.size) return 0;
+  const end = directory.rva + directory.size;
+  const offsetOf = (rva, size) => {
+    if (rva < pe.headersSize && rva + size <= pe.headersSize) return rva;
+    const section = pe.sections.find(
+      (item) => rva >= item.rva && rva + size <= item.rva + item.rawSize,
+    );
+    if (!section) throw Error('Shell32 resource data is not file-backed');
+    return section.rawOffset + rva - section.rva;
+  };
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const entries = (rva) => {
+    if (rva < directory.rva || rva + 16 > end) throw Error('Malformed PE resource directory');
+    const offset = offsetOf(rva, 16);
+    const count = view.getUint16(offset + 12, true) + view.getUint16(offset + 14, true);
+    if (count > 4096 || rva + 16 + count * 8 > end) throw Error('Malformed PE resource entries');
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const name = view.getUint32(offset + 16 + i * 8, true),
+        target = view.getUint32(offset + 20 + i * 8, true);
+      result.push({ id: name & 0x80000000 ? null : name & 0xffff, target });
+    }
+    return result;
+  };
+  for (const type of entries(directory.rva)) {
+    if (type.id !== 14 || !(type.target & 0x80000000)) continue; // RT_GROUP_ICON
+    const typeRva = directory.rva + (type.target & 0x7fffffff);
+    let count = 0;
+    for (const group of entries(typeRva)) {
+      if (!(group.target & 0x80000000)) continue;
+      const languageRva = directory.rva + (group.target & 0x7fffffff);
+      if (entries(languageRva).length) count++;
+    }
+    return count;
+  }
+  return 0;
+}
+function iconFile(r, path, wide) {
+  let relative;
+  try {
+    relative = normalizePath(wide ? r.wideString(path) : r.string(path));
+  } catch {
+    r.lastError = 2;
+    return null;
+  }
+  for (const candidate of [r.cwd + relative, relative]) {
+    const basename = candidate.split('/').at(-1).toLowerCase();
+    const loaded = r.graph.modules.get(basename);
+    if (loaded?.bytes) return loaded.bytes;
+    const builtin = r.graph.builtinFiles.get(candidate);
+    if (builtin) return builtin;
+    const found = [...r.files].find(([name]) => name.toLowerCase() === candidate.toLowerCase());
+    if (found) return found[1];
+  }
+  r.lastError = 2;
+  return null;
+}
+function extractIcon(r, a, wide) {
+  const bytes = iconFile(r, a(1), wide);
+  if (!bytes) return ok(0, 3);
+  let count;
+  try {
+    count = groupIconCount(bytes);
+  } catch {
+    r.lastError = 193; // ERROR_BAD_EXE_FORMAT
+    return ok(0, 3);
+  }
+  const index = a(2);
+  if (index === 0xffffffff) return ok(count, 3);
+  if (index >= count) return ok(0, 3);
+  // Do not fabricate an HICON until the runtime has a real icon object.
+  throw Error('PE icon resources are not supported');
 }
 export const processApis = {
   'kernel32.dll!GetProcessHeap': (r) => ok(r.wineProcess?.heap ?? 0x50000000),
@@ -188,14 +258,16 @@ export const processApis = {
   'kernel32.dll!GetProcAddress': procAddress,
   'kernel32.dll!LoadLibraryW': (r, a) => loadLibrary(r, a, true),
   'kernel32.dll!LoadLibraryA': (r, a) => loadLibrary(r, a, false),
+  'kernel32.dll!FreeLibrary': freeLibrary,
   'kernel32.dll!GetModuleFileNameW': (r, a) => moduleFilename(r, a, true),
   'kernel32.dll!GetModuleFileNameA': (r, a) => moduleFilename(r, a, false),
   'kernel32.dll!WideCharToMultiByte': wideToMulti,
   'kernel32.dll!MultiByteToWideChar': multiToWide,
   'kernel32.dll!IsDBCSLeadByte': () => ok(0, 1),
+  'winebrowser-shell32.dll!ExtractIconA': (r, a) => extractIcon(r, a, false),
+  'winebrowser-shell32.dll!ExtractIconW': (r, a) => extractIcon(r, a, true),
   'kernel32.dll!lstrlenW': (r, a) => ok(r.wideString(a(0)).length, 1),
   'kernel32.dll!lstrlenA': (r, a) => ok(r.string(a(0)).length, 1),
   'kernel32.dll!lstrcpyA': (r, a) => ok(writeString(r, a(0), r.string(a(1))), 2),
   'kernel32.dll!lstrcpyW': (r, a) => ok(writeString(r, a(0), r.wideString(a(1)), true), 2),
-  'user32.dll!MessageBoxW': messageWide,
 };

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T23:43:39.492Z",
+  "date": "2026-09-13T00:14:31.416Z",
   "scope": "Static PE/import graph inspection only. No binaries executed; passing imports do not establish compatibility. Target DLL assets are not automatically discovered.",
   "results": [
     {
@@ -136,7 +136,6 @@
         "Unsupported import kernel32.dll!GetDiskFreeSpaceW",
         "Unsupported import kernel32.dll!SetEndOfFile",
         "Unsupported import kernel32.dll!DeviceIoControl",
-        "Unsupported import kernel32.dll!FreeLibrary",
         "Unsupported import kernel32.dll!FormatMessageW",
         "Unsupported import kernel32.dll!SetFileTime",
         "Unsupported import kernel32.dll!RemoveDirectoryW",
@@ -170,10 +169,8 @@
       "status": "blocked-imports",
       "unsupported": [
         "Unsupported import gdi32.dll!CreateBitmap",
-        "Unsupported import gdi32.dll!CreateFontA",
         "Unsupported import gdi32.dll!CreateFontIndirectA",
         "Unsupported import gdi32.dll!CreatePalette",
-        "Unsupported import gdi32.dll!CreatePen",
         "Unsupported import gdi32.dll!ExcludeClipRect",
         "Unsupported import gdi32.dll!ExtTextOutA",
         "Unsupported import gdi32.dll!ExtTextOutW",
@@ -194,17 +191,13 @@
         "Unsupported import gdi32.dll!GetTextExtentPointA",
         "Unsupported import gdi32.dll!GetTextMetricsA",
         "Unsupported import gdi32.dll!IntersectClipRect",
-        "Unsupported import gdi32.dll!LineTo",
-        "Unsupported import gdi32.dll!MoveToEx",
         "Unsupported import gdi32.dll!Polyline",
         "Unsupported import gdi32.dll!RealizePalette",
         "Unsupported import gdi32.dll!Rectangle",
         "Unsupported import gdi32.dll!SelectPalette",
-        "Unsupported import gdi32.dll!SetBkMode",
         "Unsupported import gdi32.dll!SetMapMode",
         "Unsupported import gdi32.dll!SetPaletteEntries",
         "Unsupported import gdi32.dll!SetTextAlign",
-        "Unsupported import gdi32.dll!TextOutA",
         "Unsupported import gdi32.dll!TranslateCharsetInfo",
         "Unsupported import gdi32.dll!UnrealizeObject",
         "Unsupported import gdi32.dll!UpdateColors",
@@ -243,13 +236,11 @@
         "Unsupported import user32.dll!GetClipboardData",
         "Unsupported import user32.dll!GetClipboardOwner",
         "Unsupported import user32.dll!GetCursorPos",
-        "Unsupported import user32.dll!GetDlgItem",
         "Unsupported import user32.dll!GetDoubleClickTime",
         "Unsupported import user32.dll!GetForegroundWindow",
         "Unsupported import user32.dll!GetKeyboardLayout",
         "Unsupported import user32.dll!GetKeyboardState",
         "Unsupported import user32.dll!GetMessageTime",
-        "Unsupported import user32.dll!GetParent",
         "Unsupported import user32.dll!GetQueueStatus",
         "Unsupported import user32.dll!GetScrollInfo",
         "Unsupported import user32.dll!GetSystemMenu",
@@ -318,7 +309,6 @@
         "Unsupported import kernel32.dll!FlushFileBuffers",
         "Unsupported import kernel32.dll!FormatMessageA",
         "Unsupported import kernel32.dll!FreeEnvironmentStringsW",
-        "Unsupported import kernel32.dll!FreeLibrary",
         "Unsupported import kernel32.dll!GetACP",
         "Unsupported import kernel32.dll!GetCPInfo",
         "Unsupported import kernel32.dll!GetCommState",
@@ -625,18 +615,8 @@
       "bytes": 16384,
       "machine": 332,
       "imports": 59,
-      "status": "blocked-imports",
-      "unsupported": [
-        "Unsupported import kernel32.dll!FreeLibrary",
-        "Unsupported import gdi32.dll!CreateFontA",
-        "Unsupported import gdi32.dll!SetBkMode",
-        "Unsupported import gdi32.dll!TextOutA",
-        "Unsupported import gdi32.dll!CreateHatchBrush",
-        "Unsupported import gdi32.dll!LineTo",
-        "Unsupported import gdi32.dll!MoveToEx",
-        "Unsupported import gdi32.dll!CreatePen",
-        "Missing export shell32.dll!ExtractIconA"
-      ]
+      "status": "imports-resolved-not-executed",
+      "unsupported": []
     },
     {
       "id": "wesmar-minesweeper-2026-02-x86",
@@ -647,7 +627,6 @@
       "imports": 89,
       "status": "blocked-imports",
       "unsupported": [
-        "Missing export shell32.dll!ExtractIconA",
         "Missing export shell32.dll!ShellAboutW",
         "Missing DLL comctl32.dll",
         "Missing DLL dwmapi.dll",
@@ -655,7 +634,6 @@
         "Unsupported import kernel32.dll!GetTickCount64",
         "Unsupported import user32.dll!SetDlgItemInt",
         "Unsupported import user32.dll!GetMenuItemRect",
-        "Unsupported import user32.dll!GetDlgItem",
         "Unsupported import user32.dll!PtInRect",
         "Unsupported import user32.dll!MoveWindow",
         "Unsupported import user32.dll!GetDlgItemTextW",
@@ -676,17 +654,11 @@
         "Unsupported import user32.dll!DrawEdge",
         "Unsupported import user32.dll!DialogBoxParamW",
         "Unsupported import gdi32.dll!Ellipse",
-        "Unsupported import gdi32.dll!MoveToEx",
         "Unsupported import gdi32.dll!Polygon",
-        "Unsupported import gdi32.dll!CreatePen",
-        "Unsupported import gdi32.dll!LineTo",
-        "Unsupported import gdi32.dll!SetBkMode",
         "Unsupported import gdi32.dll!GetTextExtentPoint32W",
         "Unsupported import gdi32.dll!Arc",
         "Unsupported import gdi32.dll!GetLayout",
-        "Unsupported import gdi32.dll!SetLayout",
-        "Unsupported import gdi32.dll!CreateFontW",
-        "Unsupported import gdi32.dll!TextOutW"
+        "Unsupported import gdi32.dll!SetLayout"
       ]
     }
   ]

@@ -2,6 +2,7 @@ import { unpackPackage } from './package.js';
 import wineLibrary from '../runtime/wine/manifest.json';
 import wineFormat from '../runtime/wine-format/manifest.json';
 import { inspect, Runtime } from './runtime.js';
+import { createCanvasTextRasterizer } from './gdi-text.js';
 import { packageId, savePackage, saveOutputs } from './storage.js';
 let pkg,
   activeRuntime,
@@ -78,8 +79,12 @@ onmessage = async ({ data }) => {
         builtinFiles,
         emit,
         request,
+        // Manual sessions last until the guest exits or the user presses Stop.
+        // The dispatcher still yields, and memory/block-cache limits still apply.
+        maxBlocks: data.interactive ? Infinity : 1_000_000,
       });
       activeRuntime = runtime;
+      runtime.gdiTextRasterizer = createCanvasTextRasterizer();
       let result;
       try {
         result = await runtime.run();

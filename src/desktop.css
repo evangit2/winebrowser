@@ -69,6 +69,7 @@
 }
 
 .virtual-desktop-viewport {
+  position: relative;
   flex: 0 0 auto;
   overflow: hidden;
   background: #000;
@@ -91,4 +92,28 @@
   height: 12px;
   cursor: nwse-resize;
   touch-action: none;
+}
+
+.virtual-desktop-control {
+  position: absolute;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.virtual-desktop-control-static {
+  overflow: hidden;
+  color: #111;
+  white-space: pre-wrap;
+}
+
+.virtual-desktop-control-button {
+  margin: 0;
+  padding: 1px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.virtual-desktop-control-edit {
+  margin: 0;
+  padding: 2px 3px;
 }

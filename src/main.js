@@ -91,6 +91,7 @@ function createWorker() {
       stdout += message.text;
       $('output').textContent = stdout.slice(-64000);
     }
+    if (message.type === 'window-focus') desktop.focus(message.windowId);
     if (message.type === 'window') {
       $('desktop').hidden = false;
       desktop.update(message);
@@ -106,6 +107,11 @@ function createWorker() {
         .putImageData(new ImageData(message.pixels, message.width, message.height), 0, 0);
     }
     if (message.type === 'log') log(message.text);
+    if (message.type === 'progress') {
+      $('metrics').dataset.blocks = String(message.blocks);
+      $('metrics').textContent =
+        `${message.compiledBlocks} Wasm blocks · ${message.blocks} dispatches · ${message.instructions} x86 instructions · ${message.apiCalls} API calls`;
+    }
     if (message.type === 'error') {
       log(message.text);
       $('output').textContent += `\n${message.text}`;
@@ -122,6 +128,9 @@ function createWorker() {
           reply(instance, message, 1);
         } else {
           $('dialog-title').textContent = message.title;
+          $('dialog-icon').textContent =
+            { error: '⛔', question: '?', warning: '⚠', information: 'ⓘ' }[message.icon] ?? '';
+          $('dialog-icon').setAttribute('aria-label', message.icon ?? '');
           $('dialog-text').textContent = message.text;
           $('messagebox').showModal();
           $('dialog-ok').onclick = () => {
@@ -233,6 +242,7 @@ async function load(file) {
   stdout = '';
   requests = [];
   window.__lastRun = null;
+  delete $('metrics').dataset.blocks;
   $('display').hidden = true;
   status('Opening package…', 'LOADING');
   const loaded = new Promise((resolve, reject) => {
@@ -244,6 +254,7 @@ async function load(file) {
 }
 
 async function runCurrent(args = []) {
+  delete $('metrics').dataset.blocks;
   const source = worker;
   if (!source || !$('exe').value) throw Error('Load a package and select an executable first');
   running = true;
@@ -258,7 +269,7 @@ async function runCurrent(args = []) {
   const completed = new Promise((resolve, reject) => {
     runWait = { resolve, reject };
   });
-  source.postMessage({ type: 'run', exe: $('exe').value, args });
+  source.postMessage({ type: 'run', exe: $('exe').value, args, interactive: !suiteMode });
   return completed;
 }
 
@@ -496,15 +507,27 @@ async function initialize() {
   const response = await fetch(`${import.meta.env.BASE_URL}demos/manifest.json`);
   if (!response.ok) throw Error('Fixture manifest unavailable');
   manifest = await response.json();
+  const examplesResponse = await fetch(`${import.meta.env.BASE_URL}examples/manifest.json`);
+  if (!examplesResponse.ok) throw Error('Example manifest unavailable');
+  const examples = await examplesResponse.json();
+  const packages = [
+    ...[...manifest.fixtures, ...(manifest.interactive ?? [])].map((entry) => ({
+      ...entry,
+      base: 'demos',
+    })),
+    ...(examples.interactive ?? []).map((entry) => ({ ...entry, base: 'examples' })),
+  ];
   $('demos').replaceChildren(
-    ...[...manifest.fixtures, ...(manifest.interactive ?? [])].map((fixture) => {
+    ...packages.map((fixture) => {
       const button = document.createElement('button');
       button.textContent = `Load ${fixture.name}`;
       button.title = fixture.description ?? fixture.name;
       button.dataset.demo = fixture.name;
       button.onclick = async () => {
         try {
-          const packageResponse = await fetch(`${import.meta.env.BASE_URL}demos/${fixture.zip}`);
+          const packageResponse = await fetch(
+            `${import.meta.env.BASE_URL}${fixture.base}/${fixture.zip}`,
+          );
           if (!packageResponse.ok) throw Error(`Fixture package unavailable: ${fixture.zip}`);
           await load(new File([await packageResponse.arrayBuffer()], fixture.zip));
         } catch (error) {

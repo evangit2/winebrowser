@@ -3,6 +3,6 @@
   "wineVersion": "11.0",
   "source": "third_party/wine/shcore-main.c",
   "sourceSha256": "e40345999415a7d83bc934087df93b79311831fdfebf52d816f45110df4f6ffb",
-  "scope": "Unchanged CommandLineToArgvW function only; not full shell32 or Wine",
-  "dllSha256": "fa9ef24321144b0823603cc98e779e05cc7e080914c2feb3844e59518d30b4b5"
+  "scope": "Unchanged CommandLineToArgvW function plus ExtractIconA/W forwarders; not full shell32 or Wine",
+  "dllSha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea"
 }

@@ -1,3 +1,9 @@
+import {
+  builtinControlClass,
+  controlStyle,
+  controlMessage,
+  controlInput,
+} from './win32-controls.js';
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
@@ -34,11 +40,43 @@ export class WindowManager {
     return result(value, argc);
   }
   emit(window, operation = 'update') {
-    const { id, title, x, y, width, height, visible } = window;
+    const {
+      id,
+      title,
+      x,
+      y,
+      width,
+      height,
+      visible,
+      parentId = 0,
+      controlType,
+      enabled,
+      font,
+      readOnly,
+      textAlign,
+      noPrefix,
+    } = window;
+    const border = window.controlBorder ?? 0;
     this.runtime.emit({
       type: 'window',
       operation,
-      window: { id, title, x, y, width, height, visible },
+      window: {
+        id,
+        title,
+        x,
+        y,
+        width: width + 2 * border,
+        height: height + 2 * border,
+        visible,
+        parentId,
+        controlType,
+        controlBorder: border,
+        enabled,
+        font,
+        readOnly,
+        textAlign,
+        noPrefix,
+      },
     });
   }
   post(hwnd, message, wParam = 0, lParam = 0, extra = {}) {
@@ -94,6 +132,22 @@ export class WindowManager {
       this.runtime.lastError = 1400;
       return 0;
     }
+    if (window.controlType)
+      return controlMessage(
+        this.runtime,
+        window,
+        message,
+        wParam,
+        lParam,
+        async () =>
+          (
+            await defaultProc(
+              this.runtime,
+              (i) => [hwnd, message, wParam, lParam][i],
+              window.cls.wide,
+            )
+          ).result,
+      );
     return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
   }
   async destroy(hwnd) {
@@ -101,7 +155,11 @@ export class WindowManager {
     if (!window || window.destroying) return 0;
     window.destroying = true;
     await this.send(hwnd, 2);
+    for (const child of [...this.windows.values()])
+      if (child.parentId === hwnd) await this.destroy(child.id);
     await this.send(hwnd, 0x82);
+    if (window.parentId && !(window.exStyle & 4) && !this.windows.get(window.parentId)?.destroying)
+      await this.send(window.parentId, 0x210, pair(2, window.controlId), hwnd);
     for (const [key, timer] of this.timers)
       if (timer.hwnd === hwnd) {
         clearInterval(timer.interval);
@@ -112,7 +170,7 @@ export class WindowManager {
     if (this.capture === hwnd) this.capture = 0;
     destroyWindowSurface(this.runtime, hwnd);
     this.windows.delete(hwnd);
-    this.emit(window, 'destroy');
+    if (window.presented) this.emit(window, 'destroy');
     return 1;
   }
   dispose() {
@@ -132,10 +190,42 @@ export class WindowManager {
     this.wake?.();
     this.wake = null;
   }
+  isVisible(hwnd) {
+    let window = this.windows.get(hwnd);
+    if (!window) return false;
+    while (window) {
+      if (!window.visible) return false;
+      window = window.parentId ? this.windows.get(window.parentId) : null;
+    }
+    return true;
+  }
+  isEnabled(hwnd) {
+    let window = this.windows.get(hwnd);
+    if (!window) return false;
+    while (window) {
+      if (window.enabled === false) return false;
+      window = window.parentId ? this.windows.get(window.parentId) : null;
+    }
+    return true;
+  }
+  screenPosition(window) {
+    let x = window.x,
+      y = window.y,
+      current = window;
+    while (current.parentId) {
+      const parent = this.windows.get(current.parentId);
+      if (!parent) break;
+      x += parent.x + (parent.parentId ? (parent.controlBorder ?? 0) : BORDER);
+      y += parent.y + (parent.parentId ? (parent.controlBorder ?? 0) : TITLE + BORDER);
+      current = parent;
+    }
+    return [x, y];
+  }
   input(event) {
     const hwnd = this.capture && event.type.startsWith('mouse') ? this.capture : event.windowId;
     const window = this.windows.get(hwnd);
-    if (!window || !window.visible) return;
+    if (!window || !this.isVisible(hwnd) || !this.isEnabled(hwnd)) return;
+    if (controlInput(this.runtime, window, event)) return;
     if (event.type === 'close') this.post(hwnd, 0x10);
     else if (event.type === 'focus') {
       if (this.focus === hwnd) return;
@@ -215,7 +305,8 @@ export class WindowManager {
         x: 0,
         y: 0,
       };
-      if (window.visible && window.invalid && accepts(message)) return message;
+      if (this.isVisible(window.id) && !window.controlType && window.invalid && accepts(message))
+        return message;
     }
     return null;
   }
@@ -304,16 +395,28 @@ function register(r, a, wide, extended) {
 async function create(r, a, wide) {
   const m = r.windows,
     classId = a(1);
+  const name = classId <= 0xffff ? null : text(r, classId, wide).toLowerCase();
   const cls =
-    classId <= 0xffff ? m.atoms.get(classId) : m.classes.get(text(r, classId, wide).toLowerCase());
+    classId <= 0xffff
+      ? m.atoms.get(classId)
+      : (m.classes.get(name) ?? builtinControlClass(name, wide));
   if (!cls) return m.fail(1407, 12);
-  if (a(8) || a(9) || a(3) & 0x40000000)
-    throw Error('Child/owned windows and menus are not implemented');
-  if (a(0) & ~0x40000) throw Error('Unsupported extended window style');
-  if (m.windows.size >= 8) return m.fail(8, 12);
+  const child = !!(a(3) & 0x40000000),
+    parentId = child ? a(8) : 0;
+  if (child && !m.windows.has(parentId)) return m.fail(1400, 12);
+  if (!child && (a(8) || a(9))) throw Error('Owned windows and menus are not implemented');
+  if (cls.controlType && !child) throw Error('Standard controls require a parent window');
+  if (child && !cls.controlType) throw Error('Custom child window rendering is not implemented');
+  const control = child ? controlStyle(cls.controlType, a(3), a(0)) : {};
+  if (!child && a(0) & ~0x40000) throw Error('Unsupported extended window style');
+  const count = [...m.windows.values()].filter((w) => !!w.parentId === child).length;
+  if (count >= (child ? 256 : 8)) return m.fail(8, 12);
   const width = a(6) === 0x80000000 ? 480 : a(6) | 0,
     height = a(7) === 0x80000000 ? 320 : a(7) | 0;
-  if (width < 3 || height < TITLE + 3 || width > 1026 || height > 798) return m.fail(87, 12);
+  const border = child ? control.controlBorder : BORDER,
+    titleHeight = child ? 0 : TITLE;
+  if (width < 2 * border || height < titleHeight + 2 * border || width > 1026 || height > 798)
+    return m.fail(87, 12);
   const w = {
     id: m.nextWindow++,
     cls,
@@ -321,8 +424,13 @@ async function create(r, a, wide) {
     title: text(r, a(2), wide),
     x: a(4) === 0x80000000 ? 20 + m.windows.size * 24 : a(4) | 0,
     y: a(5) === 0x80000000 ? 20 + m.windows.size * 24 : a(5) | 0,
-    width: width - 2 * BORDER,
-    height: height - TITLE - 2 * BORDER,
+    width: width - 2 * border,
+    height: height - titleHeight - 2 * border,
+    parentId,
+    controlType: cls.controlType,
+    controlId: child ? a(9) : 0,
+    enabled: !(a(3) & 0x08000000),
+    ...control,
     visible: false,
     style: a(3),
     exStyle: a(0),
@@ -349,12 +457,14 @@ async function create(r, a, wide) {
     const clientHeight = (r.read32(clientRect + 12) - r.read32(clientRect + 4)) | 0;
     if (clientWidth !== w.width || clientHeight !== w.height)
       throw Error('Custom nonclient window geometry is unsupported');
+    m.emit(w, 'create');
+    w.presented = true;
     if ((await m.send(w.id, 1, 0, cs)) === 0xffffffff) {
       await m.destroy(w.id);
       return m.fail(1407, 12);
     }
     if (!m.windows.has(w.id)) return result(0, 12);
-    m.emit(w, 'create');
+    if (parentId && !(w.exStyle & 4)) await m.send(parentId, 0x210, pair(1, w.controlId), w.id);
     if (w.style & 0x10000000) await show(r, (i) => [w.id, 5][i]);
     return result(w.id, 12);
   } finally {
@@ -388,11 +498,13 @@ async function defaultProc(r, a, wide) {
   if (msg === 0x81) return result(1, 4);
   if (msg === 0x83 && !wp) {
     const rect = [0, 4, 8, 12].map((i) => r.read32(lp + i) | 0);
+    const border = w.parentId ? w.controlBorder : BORDER,
+      title = w.parentId ? 0 : TITLE;
     rectangle(r, lp, [
-      rect[0] + BORDER,
-      rect[1] + TITLE + BORDER,
-      rect[2] - BORDER,
-      rect[3] - BORDER,
+      rect[0] + border,
+      rect[1] + title + border,
+      rect[2] - border,
+      rect[3] - border,
     ]);
     return result(0, 4);
   }
@@ -496,7 +608,15 @@ Object.assign(windowApis, {
   'user32.dll!ShowWindow': show,
   'user32.dll!DestroyWindow': async (r, a) => result(await r.windows.destroy(a(0)), 1),
   'user32.dll!IsWindow': (r, a) => result(r.windows.windows.has(a(0)) ? 1 : 0, 1),
-  'user32.dll!IsWindowVisible': (r, a) => result(r.windows.windows.get(a(0))?.visible ? 1 : 0, 1),
+  'user32.dll!IsWindowVisible': (r, a) => result(r.windows.isVisible(a(0)) ? 1 : 0, 1),
+  'user32.dll!GetParent': (r, a) => result(r.windows.windows.get(a(0))?.parentId ?? 0, 1),
+  'user32.dll!GetDlgCtrlID': (r, a) => result(r.windows.windows.get(a(0))?.controlId ?? 0, 1),
+  'user32.dll!GetDlgItem': (r, a) =>
+    result(
+      [...r.windows.windows.values()].find((w) => w.parentId === a(0) && w.controlId === a(1))
+        ?.id ?? 0,
+      2,
+    ),
   'user32.dll!GetClientRect': (r, a) => {
     const w = r.windows.windows.get(a(0));
     if (!w) return r.windows.fail(1400, 2);
@@ -506,7 +626,14 @@ Object.assign(windowApis, {
   'user32.dll!GetWindowRect': (r, a) => {
     const w = r.windows.windows.get(a(0));
     if (!w) return r.windows.fail(1400, 2);
-    rectangle(r, a(1), [w.x, w.y, w.x + w.width + 2 * BORDER, w.y + w.height + TITLE + 2 * BORDER]);
+    const [x, y] = r.windows.screenPosition(w),
+      border = w.parentId ? w.controlBorder : BORDER;
+    rectangle(r, a(1), [
+      x,
+      y,
+      x + w.width + 2 * border,
+      y + w.height + (w.parentId ? 0 : TITLE) + 2 * border,
+    ]);
     return result(1, 2);
   },
   'user32.dll!InvalidateRect': (r, a) => {
@@ -554,7 +681,10 @@ Object.assign(windowApis, {
   'user32.dll!SetFocus': async (r, a) => {
     const previous = r.windows.focus;
     if (a(0) && !r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
+    if (a(0) && !r.windows.isEnabled(a(0))) return r.windows.fail(87, 1);
+    if (previous === a(0)) return result(previous, 1);
     r.windows.focus = a(0);
+    r.emit({ type: 'window-focus', windowId: a(0) });
     if (previous) await r.windows.send(previous, 8, a(0));
     if (a(0)) await r.windows.send(a(0), 7, previous);
     return result(previous, 1);

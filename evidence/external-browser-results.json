@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T23:51:34.775Z",
+  "date": "2026-09-13T00:19:44.030Z",
   "target": {
     "id": "winapiexec-1.2-x86",
     "path": ".cache/targets/winapiexec.exe",
@@ -25,7 +25,7 @@
     "winapiexecPcmPackage": {
       "id": "winapiexec-1.2-x86+generated-pcm-test-data",
       "archive": "winapiexec-pcm.zip",
-      "archiveSha256": "c72e2440346474916e8e14843a2f088d89f3d3a7e732608d1ddd8891dc4a7d65",
+      "archiveSha256": "234b6f8a2eb1150fb1a35cecb14ae284ca37f78fb4f3a80c2e78fc67761c7daa",
       "executableId": "winapiexec-1.2-x86",
       "executablePath": ".cache/targets/winapiexec.exe",
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
@@ -123,7 +123,7 @@
     "wineNtdllPackage": {
       "id": "winapiexec-1.2-x86+verified-wine-ntdll",
       "archive": "winapiexec-wine-ntdll.zip",
-      "archiveSha256": "4ff0cb0dd734f1be0cbafae38ea8f02f36ab83d76817432ceae03a20dfc74ecf",
+      "archiveSha256": "72c09b9a1375ba79ef746ae70a12fa460a949bc4ffea874fc086b70474fe86a2",
       "entries": [
         "winapiexec.exe",
         "ntdll.dll"
@@ -204,21 +204,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -226,11 +226,11 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         }
       ],
-      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 50.0 ms",
+      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 64.5 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -332,21 +332,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -354,11 +354,11 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         }
       ],
-      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 37.5 ms",
+      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 117.5 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -408,21 +408,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -430,11 +430,11 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         }
       ],
-      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 67.3 ms",
+      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 119.2 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": {
         "title": "External target",
@@ -485,21 +485,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -507,17 +507,17 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         }
       ],
-      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 36.4 ms",
+      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 64.7 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "tone": {
         "frequency": 440,
         "gain": 0.11999999731779099,
-        "start": 0.37333333333333335,
-        "stop": 0.39333333333333337,
+        "start": 0.72,
+        "stop": 0.74,
         "durationMs": 20
       },
       "dialog": null,
@@ -554,26 +554,26 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
+          "base": 1879113728,
           "refs": 1,
           "initialized": true
         }
       ],
       "stdout": "",
-      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 61.4 ms",
+      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 46.1 ms",
       "expectedTrace": [
         "LoadLibraryA",
         "GetProcAddress",
@@ -606,7 +606,7 @@
         "0x20002"
       ],
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
-      "generatedArchiveSha256": "c72e2440346474916e8e14843a2f088d89f3d3a7e732608d1ddd8891dc4a7d65",
+      "generatedArchiveSha256": "234b6f8a2eb1150fb1a35cecb14ae284ca37f78fb4f3a80c2e78fc67761c7daa",
       "audioFixture": {
         "path": "tone.wav",
         "format": "PCM WAV",
@@ -701,7 +701,7 @@
         "created": true,
         "started": true,
         "ended": true,
-        "startedAt": 1286.905000001192,
+        "startedAt": 2041.4200000017881,
         "numberOfChannels": 1,
         "sampleRate": 8000,
         "length": 80,
@@ -787,7 +787,7 @@
           0.25,
           -0.25
         ],
-        "endedAt": 1293.9800000041723
+        "endedAt": 2047.2049999982119
       },
       "exitCode": 1,
       "apiTrace": [
@@ -813,21 +813,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -835,26 +835,26 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "winmm.dll",
           "host": true,
-          "base": 1879310336,
+          "base": 1879179264,
           "refs": 1,
           "initialized": true
         }
       ],
       "stdout": "",
-      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 46.9 ms",
-      "completedAt": 1309.344999998808,
+      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 78.3 ms",
+      "completedAt": 2058.8500000089407,
       "bufferSources": [
         {
           "created": true,
           "started": true,
           "ended": true,
-          "startedAt": 1286.905000001192,
+          "startedAt": 2041.4200000017881,
           "numberOfChannels": 1,
           "sampleRate": 8000,
           "length": 80,
@@ -940,7 +940,7 @@
             0.25,
             -0.25
           ],
-          "endedAt": 1293.9800000041723
+          "endedAt": 2047.2049999982119
         }
       ],
       "checks": [
@@ -1068,21 +1068,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -1090,13 +1090,13 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "gdi32.dll",
           "host": true,
-          "base": 1879310336,
+          "base": 1879179264,
           "refs": 1,
           "initialized": true
         }
@@ -1148,7 +1148,7 @@
         "SetPixel",
         "ReleaseDC"
       ],
-      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 41.5 ms",
+      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 58.4 ms",
       "checks": [
         {
           "name": "exit code 1",
@@ -1388,21 +1388,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -1410,18 +1410,18 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "advapi32.dll",
           "host": true,
-          "base": 1879310336,
+          "base": 1879179264,
           "refs": 1,
           "initialized": true
         }
       ],
-      "metrics": "177 Wasm blocks · 32008 x86 instructions · 114 API calls · 49.9 ms",
+      "metrics": "177 Wasm blocks · 32008 x86 instructions · 114 API calls · 66.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -1562,21 +1562,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -1584,7 +1584,7 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -1596,7 +1596,7 @@
           "initialized": true
         }
       ],
-      "metrics": "260 Wasm blocks · 12001 x86 instructions · 48 API calls · 56.8 ms",
+      "metrics": "260 Wasm blocks · 12001 x86 instructions · 48 API calls · 112.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "assertedModule": {
         "name": "wine-format.dll",
@@ -1868,7 +1868,7 @@
           255
         ]
       },
-      "metrics": "144 Wasm blocks · 29775 x86 instructions · 141 API calls · 40.0 ms",
+      "metrics": "144 Wasm blocks · 29775 x86 instructions · 141 API calls · 68.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "expectedSha256": "0de47aa0956b0ff3f4103256df87b71edd3f60a6cc7080857f6ebe2e616f261d",
       "checks": [
@@ -1942,21 +1942,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -1964,7 +1964,7 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -1976,7 +1976,7 @@
           "initialized": true
         }
       ],
-      "metrics": "371 Wasm blocks · 10087 x86 instructions · 24 API calls · 104.1 ms",
+      "metrics": "371 Wasm blocks · 10087 x86 instructions · 24 API calls · 196.8 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2089,21 +2089,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2111,7 +2111,7 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2127,24 +2127,24 @@
         {
           "path": "winebrowser-filetime.bin",
           "bytes": [
-            48,
-            143,
-            182,
-            166,
-            17,
+            64,
+            233,
+            188,
+            150,
+            21,
             67,
             221,
             1
           ]
         }
       ],
-      "metrics": "393 Wasm blocks · 21387 x86 instructions · 49 API calls · 108.5 ms",
+      "metrics": "393 Wasm blocks · 21387 x86 instructions · 49 API calls · 171.7 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
-      "fileTime": "0x01dd4311a6b68f30",
-      "unixMilliseconds": 1789257098147,
+      "fileTime": "0x01dd431596bce940",
+      "unixMilliseconds": 1789258789332,
       "wallClockWindow": {
-        "before": 1789257098016,
-        "after": 1789257098166
+        "before": 1789258789134,
+        "after": 1789258789364
       },
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2241,21 +2241,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2263,7 +2263,7 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2276,7 +2276,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "408 Wasm blocks · 17081 x86 instructions · 33 API calls · 101.4 ms",
+      "metrics": "408 Wasm blocks · 17081 x86 instructions · 33 API calls · 174.2 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2420,21 +2420,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2442,7 +2442,7 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2493,7 +2493,7 @@
           ]
         }
       ],
-      "metrics": "406 Wasm blocks · 35290 x86 instructions · 65 API calls · 75.1 ms",
+      "metrics": "406 Wasm blocks · 35290 x86 instructions · 65 API calls · 141.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "zeroedHeapOutput": {
         "path": "winebrowser-heap-zero.bin",
@@ -2639,21 +2639,21 @@
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
-          "refs": 1,
+          "refs": 0,
           "initialized": false
         },
         {
           "name": "kernel32.dll",
           "host": true,
-          "base": 1879113728,
-          "refs": 1,
+          "base": 1879048192,
+          "refs": 0,
           "initialized": true
         },
         {
           "name": "user32.dll",
           "host": true,
-          "base": 1879179264,
-          "refs": 1,
+          "base": 1879113728,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2661,7 +2661,7 @@
           "host": false,
           "base": 16777216,
           "preferredBase": 268435456,
-          "refs": 1,
+          "refs": 0,
           "initialized": true
         },
         {
@@ -2674,7 +2674,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "413 Wasm blocks · 26188 x86 instructions · 46 API calls · 87.0 ms",
+      "metrics": "413 Wasm blocks · 26188 x86 instructions · 46 API calls · 137.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",

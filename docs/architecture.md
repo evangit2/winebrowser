@@ -24,8 +24,10 @@ APIs; every feature needs a tested boundary and a useful failure when absent.
 
 **Guest PE DLLs** now load as guest modules. Their machine code remains x86 and
 executes on the same guest CPU as the EXE. The loader maps sections, applies relocations, resolves imports/exports and runs initialization
-callbacks. Module identity is preserved. Dynamic unload and full Windows loader locking/reference
-semantics still need work. A DLL's exports are guest addresses, not JavaScript functions. This approach
+callbacks. Module identity is preserved. FreeLibrary balances explicit LoadLibrary references and
+unloads unreachable dynamic dependency closures with TLS/DllMain detach and mapping cleanup.
+Startup imports and process roots stay resident; full Windows loader locking and concurrent
+load/unload semantics still need work. A DLL's exports are guest addresses, not JavaScript functions. This approach
 preserves the executable's expected calling conventions and lets DLL-to-DLL calls remain
 ordinary guest calls, but it depends on a loader and CPU capable of the code those DLLs contain.
 
@@ -107,7 +109,7 @@ short tone request. The WinMM adapter additionally supports synchronous filename
 
 1. Keep the current bootstrap programs green and record PE hashes, imports, instruction
    requirements and expected outputs.
-2. Guest DLL mapping, imports/exports, relocations, callbacks and attach/detach are implemented and tested. Failed dynamic loads roll back new mappings and successful dependency attaches; forwarded GetProcAddress maps/initializes its target before returning an address. Full unloading and Windows loader locking/reference semantics remain future work.
+2. Guest DLL mapping, imports/exports, relocations, callbacks and attach/detach are implemented and tested. Failed dynamic loads roll back new mappings and successful dependency attaches; forwarded GetProcAddress maps/initializes its target before returning an address. FreeLibrary unloads unreferenced dynamic closures and supports later reloads. Startup roots remain resident; Windows loader locking and concurrent unload semantics remain future work.
 3. Specify per-thread CPU/TEB state and implement one thread/TLS/SEH behavior at a time with
    small Windows-built fixtures. Do not admit binaries that depend on unimplemented cases.
 4. Add one versioned browser service at a time. Treat graphics and sustained audio as their own

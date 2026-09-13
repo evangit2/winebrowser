@@ -4,6 +4,22 @@ const TITLEBAR_HEIGHT = 28;
 const MIN_CLIENT_WIDTH = 64;
 const MIN_CLIENT_HEIGHT = 48;
 
+function stripCaptionMnemonics(text) {
+  let rendered = '';
+  for (let index = 0; index < text.length; index++) {
+    if (text[index] !== '&' || index === text.length - 1) {
+      rendered += text[index];
+    } else if (text[index + 1] === '&') {
+      rendered += '&';
+      index++;
+    } else {
+      index++;
+      rendered += text[index];
+    }
+  }
+  return rendered;
+}
+
 /**
  * A small DOM-backed virtual desktop for displaying guest windows and routing
  * their input events to the runtime.
@@ -31,10 +47,10 @@ export class VirtualDesktop {
   onKeyDown = (event) => this.#sendKey(event, 'keydown');
   onKeyUp = (event) => this.#sendKey(event, 'keyup');
 
-  #sendKey(event, type) {
-    if (this.activeWindowId === null || event.isComposing) return;
+  #sendKey(event, type, windowId = this.activeWindowId, routeGameKeys = true) {
+    if (windowId === null || event.isComposing) return;
     this.onInput({
-      windowId: this.activeWindowId,
+      windowId,
       type,
       key: event.key,
       code: event.code,
@@ -45,21 +61,34 @@ export class VirtualDesktop {
       metaKey: event.metaKey,
       shiftKey: event.shiftKey,
     });
-    if (event.key.startsWith('Arrow') || event.key === ' ') event.preventDefault();
+    if (routeGameKeys && (event.key.startsWith('Arrow') || event.key === ' '))
+      event.preventDefault();
   }
 
   #emit(windowId, type, values = {}) {
     this.onInput({ windowId, type, ...values });
   }
 
-  #focus(window) {
-    this.container.focus({ preventScroll: true });
+  #focus(window, { focusElement = false } = {}) {
+    const parent = window.isControl ? this.windows.get(window.parentId) : window;
+    if (!parent) return;
+    if (window.isControl) {
+      if (focusElement) window.element.focus({ preventScroll: true });
+    } else this.container.focus({ preventScroll: true });
+    parent.element.style.zIndex = String(++this.nextZIndex);
+    for (const other of this.windows.values())
+      if (!other.isControl) other.element.classList.toggle('is-focused', other === parent);
     if (this.activeWindowId === window.id) return;
     this.activeWindowId = window.id;
-    window.element.style.zIndex = String(++this.nextZIndex);
-    for (const other of this.windows.values())
-      other.element.classList.toggle('is-focused', other === window);
     this.#emit(window.id, 'focus');
+  }
+
+  focus(windowId) {
+    const window = this.windows.get(windowId);
+    const parent = window?.isControl ? this.windows.get(window.parentId) : null;
+    if (!window || !window.visible || (window.isControl && !parent?.visible)) return false;
+    this.#focus(window, { focusElement: true });
+    return true;
   }
 
   #applyGeometry(window) {
@@ -181,6 +210,135 @@ export class VirtualDesktop {
     return window;
   }
 
+  #createControl(state) {
+    const parent = this.windows.get(state.parentId);
+    if (!parent || parent.isControl)
+      throw new Error(`Child control ${state.id} references an unknown parent window`);
+    const controlType = state.controlType;
+    if (!['static', 'button', 'edit'].includes(controlType))
+      throw new Error(`Unsupported child control type: ${controlType}`);
+
+    let element;
+    if (controlType === 'button') {
+      element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'virtual-desktop-control virtual-desktop-control-button';
+      element.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!element.disabled && !element.hidden)
+          this.#emit(control.id, 'command', { notification: 0 });
+      });
+    } else if (controlType === 'edit') {
+      element = document.createElement('input');
+      element.type = 'text';
+      element.autocomplete = 'off';
+      element.spellcheck = false;
+      element.className = 'virtual-desktop-control virtual-desktop-control-edit';
+      element.addEventListener('input', () =>
+        this.#emit(control.id, 'text', { text: element.value }),
+      );
+    } else {
+      element = document.createElement('div');
+      element.className = 'virtual-desktop-control virtual-desktop-control-static';
+      element.tabIndex = -1;
+      element.setAttribute('aria-readonly', 'true');
+    }
+
+    element.dataset.windowId = String(state.id);
+    element.dataset.parentId = String(state.parentId);
+    element.dataset.controlType = controlType;
+    element.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+      this.#focus(control);
+    });
+    element.addEventListener('focus', () => this.#focus(control));
+    for (const type of ['keydown', 'keyup'])
+      element.addEventListener(type, (event) => {
+        event.stopPropagation();
+        this.#sendKey(event, type, control.id, false);
+      });
+
+    const control = {
+      ...state,
+      isControl: true,
+      controlType,
+      parentId: state.parentId,
+      parent,
+      element,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+      visible: true,
+      enabled: true,
+    };
+    parent.viewport.append(element);
+    this.#applyControlState(control, state);
+    return control;
+  }
+
+  #applyControlState(control, state) {
+    if (state.title !== undefined) control.titleText = String(state.title);
+    const noPrefix = state.noPrefix ?? state.controlStyle?.noPrefix;
+    if (state.title !== undefined || (noPrefix !== undefined && noPrefix !== control.noPrefix)) {
+      if (control.controlType === 'edit') {
+        // Avoid disrupting caret selection during incremental WM_SETTEXT echo.
+        if (control.element.value !== control.titleText) control.element.value = control.titleText;
+      } else {
+        control.element.textContent =
+          (noPrefix ?? control.noPrefix ?? false)
+            ? control.titleText
+            : stripCaptionMnemonics(control.titleText);
+      }
+      control.element.title = control.titleText;
+    }
+    if (noPrefix !== undefined) control.noPrefix = !!noPrefix;
+    if (Number.isFinite(state.x)) control.x = state.x;
+    if (Number.isFinite(state.y)) control.y = state.y;
+    if (Number.isFinite(state.width)) control.width = Math.max(0, state.width);
+    if (Number.isFinite(state.height)) control.height = Math.max(0, state.height);
+    if (state.visible !== undefined) {
+      control.visible = !!state.visible;
+      control.element.hidden = !control.visible;
+    }
+    if (state.enabled !== undefined) {
+      control.enabled = !!state.enabled;
+      if ('disabled' in control.element) control.element.disabled = !control.enabled;
+    }
+    if (state.controlBorder !== undefined) {
+      const border = state.controlBorder;
+      control.element.style.border = border
+        ? `${border}px ${border === 2 ? 'inset' : 'solid'} #888`
+        : control.controlType === 'button'
+          ? ''
+          : '0';
+    }
+    const controlStyle = state.controlStyle ?? {};
+    const textAlign = state.textAlign ?? controlStyle.textAlign ?? controlStyle.alignment;
+    if (textAlign !== undefined) control.element.style.textAlign = textAlign ?? '';
+    const readOnly = state.readOnly ?? controlStyle.readOnly;
+    if (control.controlType === 'edit' && readOnly !== undefined)
+      control.element.readOnly = !!readOnly;
+    if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
+
+    control.isControl = true;
+    control.controlType = state.controlType ?? control.controlType;
+    control.parentId = state.parentId ?? control.parentId;
+    if (state.controlStyle !== undefined) control.controlStyle = state.controlStyle;
+    if (state.font !== undefined) control.font = state.font;
+    control.parent = this.windows.get(control.parentId) ?? control.parent;
+    this.#applyControlGeometry(control);
+  }
+
+  #applyControlGeometry(control) {
+    Object.assign(control.element.style, {
+      left: `${control.x}px`,
+      top: `${control.y}px`,
+      width: `${control.width}px`,
+      height: `${control.height}px`,
+    });
+  }
+
   #moveDrag(event) {
     const drag = this.drag;
     if (!drag || event.pointerId !== drag.pointerId) return;
@@ -234,17 +392,45 @@ export class VirtualDesktop {
       throw new TypeError('Window update requires a window id');
     const existing = this.windows.get(state.id);
     if (message.operation === 'destroy') {
-      existing?.element.remove();
-      this.windows.delete(state.id);
-      if (this.activeWindowId === state.id) {
+      const removedIds = new Set([state.id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const window of this.windows.values())
+          if (removedIds.has(window.parentId) && !removedIds.has(window.id)) {
+            removedIds.add(window.id);
+            changed = true;
+          }
+      }
+      for (const id of removedIds) {
+        const removed = this.windows.get(id);
+        removed?.element.remove();
+        this.windows.delete(id);
+      }
+      if (removedIds.has(this.activeWindowId)) {
         this.activeWindowId = null;
-        const next = [...this.windows.values()].filter((window) => window.visible).at(-1);
+        const next = [...this.windows.values()]
+          .filter((window) => !window.isControl && window.visible)
+          .at(-1);
         if (next) this.#focus(next);
       }
       return;
     }
 
+    if (state.parentId && state.controlType) {
+      const control = existing ?? this.#createControl(state);
+      this.#applyControlState(control, state);
+      this.windows.set(state.id, control);
+      if (!control.visible && this.activeWindowId === control.id) {
+        const parent = this.windows.get(control.parentId);
+        this.activeWindowId = null;
+        if (parent?.visible) this.#focus(parent, { focusElement: true });
+      }
+      return;
+    }
+
     const window = existing ?? this.#createWindow(state);
+    window.isControl = false;
     Object.assign(window, {
       titleText: state.title ?? window.titleElement.textContent,
       x: Number.isFinite(state.x) ? state.x : window.x,
@@ -253,13 +439,20 @@ export class VirtualDesktop {
       height: Number.isFinite(state.height) ? Math.max(1, state.height) : window.height,
     });
     window.titleElement.textContent = window.titleText;
+    if (state.enabled !== undefined) {
+      window.enabled = !!state.enabled;
+      window.element.inert = !window.enabled;
+    }
     window.titleElement.title = window.titleText;
     window.titlebar.querySelector('button').setAttribute('aria-label', `Close ${window.titleText}`);
     if (state.visible !== undefined) {
       this.#setVisibility(window, state.visible);
-      if (!state.visible && this.activeWindowId === state.id) {
+      const active = this.windows.get(this.activeWindowId);
+      if (!state.visible && (this.activeWindowId === state.id || active?.parentId === state.id)) {
         this.activeWindowId = null;
-        const next = [...this.windows.values()].filter((item) => item.visible).at(-1);
+        const next = [...this.windows.values()]
+          .filter((item) => !item.isControl && item.visible)
+          .at(-1);
         if (next) this.#focus(next);
       }
     }

@@ -67,6 +67,13 @@ export class CPU {
               })(),
       push: (v) => this.push(v),
       pop: () => this.pop(),
+      popStore: (address, width) => {
+        const stack = this.r[4].value >>> 0;
+        const value = this.host.load(stack, width);
+        this.checkMemory(address, width, true);
+        this.host.store(address, value, width);
+        this.r[4].value = (stack + width) | 0;
+      },
       flags: (a, b, r, k, width) => this.flags(a, b, r, k, width),
       shift: (value, count, kind, width) => this.shift(value, count, kind, width),
       wideMath: (operand, kind, width) => this.wideMath(operand, kind, width),
@@ -301,7 +308,7 @@ export class CPU {
         : i.opKind(n) === K.Memory
           ? MemorySizeExt.size(i.memorySize) * 8
           : 32;
-    const addr = (i, applySegment = true) => {
+    const addr = (i, applySegment = true, popEspBase = false) => {
       if (
         i.segmentPrefix !== R.None &&
         i.segmentPrefix !== R.DS &&
@@ -316,7 +323,11 @@ export class CPU {
         if (!this.fsBase) throw Error('FS requires guest TEB');
         a.push(...constant(this.fsBase), 0x6a);
       }
-      if (i.memoryBase !== R.None) a.push(...get(reg(i.memoryBase)), 0x6a);
+      if (i.memoryBase !== R.None) {
+        a.push(...get(reg(i.memoryBase)));
+        if (popEspBase && i.memoryBase === R.ESP) a.push(...constant(4), 0x6a);
+        a.push(0x6a);
+      }
       if (i.memoryIndex !== R.None)
         a.push(...get(reg(i.memoryIndex)), ...constant(i.memoryIndexScale), 0x6c, 0x6a);
       return a;
@@ -599,8 +610,14 @@ export class CPU {
             code.push(...operand(i, 0), ...call(2));
           } else if (m === M.Pop) {
             if (i.stackPointerIncrement !== 4) throw Error('16-bit POP unsupported');
-            if (i.opKind(0) !== K.Register) throw Error('Memory pop unsupported');
-            code.push(...write(i, 0, call(3)));
+            if (i.opKind(0) === K.Register) code.push(...write(i, 0, call(Host.pop)));
+            else if (i.opKind(0) === K.Memory) {
+              if (width(i, 0) !== 32) throw Error('16-bit POP unsupported');
+              // The memory EA uses ESP+4 when ESP is its base. Preflight and
+              // perform the store before committing ESP so a write fault leaves
+              // the architectural register state restartable.
+              code.push(...addr(i, true, true), ...constant(4), ...call(Host.popStore));
+            } else throw Error('Unsupported POP destination');
           } else if (
             [M.Add, M.Sub, M.Adc, M.Sbb, M.Xor, M.And, M.Or, M.Cmp, M.Test, M.Inc, M.Dec].includes(
               m,

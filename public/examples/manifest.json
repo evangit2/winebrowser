@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "interactive": [
+    {
+      "name": "tetris",
+      "description": "Unchanged wesmar/Tetris x86 release: arrows move/rotate, Space drops, P pauses, F2 restarts.",
+      "exe": "tetris/tetris.exe",
+      "exeSha256": "3687bc1cfe9a7657ca9da1daacec9f97a92946f0b0440acdb70d3a71a4560007",
+      "zip": "tetris/tetris.zip",
+      "zipSha256": "8cfd0110ca848b9338bb271b3d945b1795aac56224336f14fa4ed3579be13433",
+      "sourceZip": "tetris/source.zip",
+      "sourceZipSha256": "dd31037e702fa8aad991e35b210a100a9cd2f5d532bc69dcd80925bfee43b3d0",
+      "provenance": "MIT, wesmar/Tetris commit 19ffc5849931f4419230efb596be7f967b31a11c; unchanged release EXE."
+    }
+  ]
+}

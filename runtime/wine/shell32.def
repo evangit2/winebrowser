@@ -1,3 +1,5 @@
 LIBRARY shell32
 EXPORTS
 CommandLineToArgvW=CommandLineToArgvW@8
+ExtractIconA=winebrowser-shell32.ExtractIconA
+ExtractIconW=winebrowser-shell32.ExtractIconW

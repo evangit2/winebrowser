@@ -33,7 +33,10 @@ def main():
     public.mkdir(exist_ok=True, parents=True)
     (output / "command-line.c").write_text(unit)
     (output / "shell32.def").write_text(
-        "LIBRARY shell32\nEXPORTS\nCommandLineToArgvW=CommandLineToArgvW@8\n"
+        "LIBRARY shell32\nEXPORTS\n"
+        "CommandLineToArgvW=CommandLineToArgvW@8\n"
+        "ExtractIconA=winebrowser-shell32.ExtractIconA\n"
+        "ExtractIconW=winebrowser-shell32.ExtractIconW\n"
     )
     subprocess.run(
         [
@@ -50,7 +53,7 @@ def main():
         "wineVersion": "11.0",
         "source": "third_party/wine/shcore-main.c",
         "sourceSha256": SOURCE_SHA256,
-        "scope": "Unchanged CommandLineToArgvW function only; not full shell32 or Wine",
+        "scope": "Unchanged CommandLineToArgvW function plus ExtractIconA/W forwarders; not full shell32 or Wine",
         "dllSha256": hashlib.sha256((public / "shell32.dll").read_bytes()).hexdigest(),
     }
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

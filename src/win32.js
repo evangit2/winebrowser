@@ -26,7 +26,7 @@ export const API_NAMES = {
     'Beep',
     'GetModuleHandleA',
   ],
-  'user32.dll': ['MessageBoxA'],
+  'user32.dll': ['MessageBoxA', 'MessageBoxW'],
 };
 
 for (const key of [
@@ -97,18 +97,39 @@ async function beep(runtime, argument) {
   return success(await runtime.request('beep', { frequency, duration }), 2);
 }
 
-async function messageBox(runtime, argument) {
+async function messageBox(runtime, argument, wide = false) {
   const owner = argument(0);
   const options = argument(3);
-  if (owner !== 0 || options !== 0)
-    throw Error('MessageBoxA currently supports unowned MB_OK only');
-  return success(
-    await runtime.request('messagebox', {
-      text: runtime.string(argument(1)),
-      title: runtime.string(argument(2)),
-    }),
-    4,
-  );
+  if (options & ~0x70 || ![0, 0x10, 0x20, 0x30, 0x40].includes(options))
+    throw Error('MessageBox currently supports MB_OK with standard icons only');
+  const window = owner ? runtime.windows.windows.get(owner) : null;
+  if (owner && !window) return failure(runtime, 1400, 4);
+  const detail = {
+    owner,
+    icon: { 16: 'error', 32: 'question', 48: 'warning', 64: 'information' }[options] ?? null,
+    text: argument(1) ? (wide ? runtime.wideString(argument(1)) : runtime.string(argument(1))) : '',
+    title: argument(2)
+      ? wide
+        ? runtime.wideString(argument(2))
+        : runtime.string(argument(2))
+      : 'Error',
+  };
+  const wasEnabled = window && window.enabled !== false;
+  try {
+    if (wasEnabled) {
+      window.enabled = false;
+      runtime.windows.emit(window);
+      await runtime.windows.send(owner, 0xa, 0); // WM_ENABLE
+    }
+    return success(await runtime.request('messagebox', detail), 4);
+  } finally {
+    if (wasEnabled && runtime.windows.windows.has(owner)) {
+      window.enabled = true;
+      runtime.windows.emit(window);
+      await runtime.windows.send(owner, 0xa, 1);
+      runtime.emit({ type: 'window-focus', windowId: owner });
+    }
+  }
 }
 
 function createFile(runtime, argument, wide = false) {
@@ -234,5 +255,6 @@ export function createWin32ApiProvider() {
     ['kernel32.dll!Sleep', sleep],
     ['kernel32.dll!Beep', beep],
     ['user32.dll!MessageBoxA', messageBox],
+    ['user32.dll!MessageBoxW', (r, a) => messageBox(r, a, true)],
   ]);
 }
