@@ -1,7 +1,42 @@
 {
-  "date": "2026-09-12T22:36:47.663Z",
+  "date": "2026-09-13T00:31:53.131Z",
   "status": "blocked-startup",
   "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+  "nls": {
+    "directory": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls",
+    "files": [
+      {
+        "name": "locale.nls",
+        "bytes": 794914,
+        "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+      },
+      {
+        "name": "sortdefault.nls",
+        "bytes": 3380468,
+        "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+      },
+      {
+        "name": "l_intl.nls",
+        "bytes": 5564,
+        "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+      },
+      {
+        "name": "normnfc.nls",
+        "bytes": 60194,
+        "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+      },
+      {
+        "name": "c_1252.nls",
+        "bytes": 66082,
+        "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+      },
+      {
+        "name": "c_437.nls",
+        "bytes": 66594,
+        "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+      }
+    ]
+  },
   "executable": {
     "path": "public/demos/console/console.exe",
     "behavior": "Load the real msvcrt dependency closure; do not call the executable entry point."
@@ -7527,7 +7562,7 @@
         "host": false,
         "base": 4194304,
         "preferredBase": 4194304,
-        "refs": 1,
+        "refs": 0,
         "initialized": false
       },
       {
@@ -7535,7 +7570,7 @@
         "host": false,
         "base": 16777216,
         "preferredBase": 2071986176,
-        "refs": 1,
+        "refs": 0,
         "initialized": false
       },
       {
@@ -7543,7 +7578,7 @@
         "host": false,
         "base": 17235968,
         "preferredBase": 2063597568,
-        "refs": 1,
+        "refs": 0,
         "initialized": false
       },
       {
@@ -7551,7 +7586,7 @@
         "host": false,
         "base": 19988480,
         "preferredBase": 2076180480,
-        "refs": 1,
+        "refs": 0,
         "initialized": false
       }
     ],
@@ -7560,127 +7595,24 @@
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtQueryInformationProcess",
-      "ntdll.dll!NtAllocateVirtualMemory"
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtInitializeNlsFiles",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtQueryDefaultLocale"
     ],
-    "blocks": 745
+    "blocks": 1522
   },
   "firstFailure": {
-    "phase": "guest DLL initialization / runtime API dispatch",
+    "phase": "PE closure inspection or module loading",
     "error": {
       "name": "Error",
-      "message": "Unsupported Wine NT service NtInitializeNlsFiles"
-    },
-    "dispatcher": {
-      "dll": "ntdll.dll",
-      "name": "__wine_syscall_dispatcher",
-      "serviceId": 158,
-      "serviceIdHex": "0x9e",
-      "serviceName": "NtInitializeNlsFiles",
-      "argumentCount": 3,
-      "arguments": [
-        67103856,
-        20616936,
-        67104272
-      ]
-    },
-    "instructionPointer": "0x131e0c4",
-    "recentInstructionPointers": [
-      "0x10a59b3",
-      "0x10a59e8",
-      "0x108751a",
-      "0x10efc80",
-      "0x131d1c4",
-      "0x131e0c4",
-      "0x131d1d0",
-      "0x10efcc7",
-      "0x10efcce",
-      "0x10efcdf",
-      "0x1087522",
-      "0x10efd60",
-      "0x1336300",
-      "0x1336328",
-      "0x131da24",
-      "0x131e0c4"
-    ],
-    "registers": {
-      "eax": "0x9e",
-      "ecx": "0x3ffefe4",
-      "edx": "0x131e0c4",
-      "ebx": "0x3ffed64",
-      "esp": "0x3ffec5c",
-      "ebp": "0x3ffec74",
-      "esi": "0x0",
-      "edi": "0x0"
-    },
-    "stackWords": [
-      20044336,
-      20144962,
-      67103856,
-      20616936,
-      67104272,
-      0,
-      67104728,
-      17759657,
-      67104100,
-      17971880,
-      67104272,
-      0
-    ],
-    "modulesAtFailure": [
-      {
-        "name": "console.exe",
-        "host": false,
-        "base": 4194304,
-        "preferredBase": 4194304,
-        "refs": 1,
-        "initialized": false
-      },
-      {
-        "name": "kernel32.dll",
-        "host": false,
-        "base": 16777216,
-        "preferredBase": 2071986176,
-        "refs": 1,
-        "initialized": false
-      },
-      {
-        "name": "kernelbase.dll",
-        "host": false,
-        "base": 17235968,
-        "preferredBase": 2063597568,
-        "refs": 1,
-        "initialized": false
-      },
-      {
-        "name": "ntdll.dll",
-        "host": false,
-        "base": 19988480,
-        "preferredBase": 2076180480,
-        "refs": 1,
-        "initialized": true
-      },
-      {
-        "name": "msvcrt.dll",
-        "host": false,
-        "base": 20709376,
-        "preferredBase": 268435456,
-        "refs": 1,
-        "initialized": false
-      }
-    ],
-    "apiTrace": [
-      "ntdll.dll!NtAllocateVirtualMemory",
-      "ntdll.dll!NtAllocateVirtualMemory",
-      "ntdll.dll!NtAllocateVirtualMemory",
-      "ntdll.dll!NtQueryInformationProcess",
-      "ntdll.dll!NtAllocateVirtualMemory"
-    ],
-    "blocks": 742
+      "message": "Guest read violation at 0x58494e69 (4 bytes)"
+    }
   },
   "scope": "Optional probe of the whole unmodified installed Wine DLL closure rooted at msvcrt.dll. It performs Runtime.loadLibrary only; successful closure loading is not application execution or general CRT compatibility.",
   "sources": [
     "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/ntdll.spec (NtInitializeNlsFiles syscall declaration)",
-    "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/locale.c (NLS initialization path)",
+    "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/unix/env.c (NLS data mapping services)",
     "https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/kernelbase/locale.c (kernelbase process-attach NLS loading)"
   ],
   "processExitCode": 1

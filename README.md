@@ -1,5 +1,7 @@
 # WineBrowser
 
+[Completed work and remaining task list](TASKS.md). Active development stopped at the owner’s request; the backlog is not scheduled.
+
 An experimental **browser-local Windows PE runtime**. Choose an `.exe` or a ZIP containing executables and assets; the runtime loads the PE image, translates supported x86 basic blocks directly to WebAssembly, and bridges a small Windows API subset to browser services. There is no server compiler and no full PC emulator.
 
 **The test harness runs the unchanged wesmar/Tetris Windows release in a virtual desktop, alongside native fixtures and independent winapiexec and pts-tinype executables across console, files, dialogs, PCM audio and GDI drawing. General Windows compatibility remains incomplete.** Wine's unchanged CommandLineToArgvW and wsprintf implementations now run as guest DLLs; additional Wine compatibility modules remain the direction for broad API support.

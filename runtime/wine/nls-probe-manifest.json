@@ -1,0 +1,30 @@
+{
+  "wineCommit": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "scope": "Optional installed-data probe only; NLS files are not redistributed.",
+  "files": {
+    "locale.nls": {
+      "bytes": 794914,
+      "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+    },
+    "sortdefault.nls": {
+      "bytes": 3380468,
+      "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+    },
+    "l_intl.nls": {
+      "bytes": 5564,
+      "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+    },
+    "normnfc.nls": {
+      "bytes": 60194,
+      "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+    },
+    "c_1252.nls": {
+      "bytes": 66082,
+      "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+    },
+    "c_437.nls": {
+      "bytes": 66594,
+      "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+    }
+  }
+}

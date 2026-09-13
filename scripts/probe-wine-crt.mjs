@@ -10,6 +10,10 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const configuredWineDir = process.argv[2] || process.env.WINEBROWSER_WINE_DIR;
 const wineDir = configuredWineDir ? path.resolve(configuredWineDir) : null;
 const outputPath = path.join(repo, 'evidence/wine-crt-results.json');
+const nlsDirectory = process.argv[3] || process.env.WINEBROWSER_NLS_DIR;
+const nlsManifest = JSON.parse(
+  await readFile(path.join(repo, 'runtime/wine/nls-probe-manifest.json'), 'utf8'),
+);
 
 // Pinned hashes from the initial installed-Wine closure probe. The closure is
 // inspected first and never executed unless every name and hash matches.
@@ -24,6 +28,7 @@ const result = {
   date: new Date().toISOString(),
   status: configuredWineDir ? 'blocked-startup' : 'blocked-integrity',
   wineDirectory: wineDir,
+  nls: { directory: nlsDirectory ?? null, files: [] },
   executable: {
     path: 'public/demos/console/console.exe',
     behavior: 'Load the real msvcrt dependency closure; do not call the executable entry point.',
@@ -36,7 +41,7 @@ const result = {
     'Optional probe of the whole unmodified installed Wine DLL closure rooted at msvcrt.dll. It performs Runtime.loadLibrary only; successful closure loading is not application execution or general CRT compatibility.',
   sources: [
     'https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/ntdll.spec (NtInitializeNlsFiles syscall declaration)',
-    'https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/locale.c (NLS initialization path)',
+    'https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/ntdll/unix/env.c (NLS data mapping services)',
     'https://github.com/wine-mirror/wine/blob/wine-11.0/dlls/kernelbase/locale.c (kernelbase process-attach NLS loading)',
   ],
 };
@@ -111,10 +116,25 @@ try {
   const executableBytes = new Uint8Array(
     await readFile(path.join(repo, 'public/demos/console/console.exe')),
   );
+  let nlsFiles;
+  if (nlsDirectory) {
+    nlsFiles = new Map();
+    for (const [name, expected] of Object.entries(nlsManifest.files)) {
+      const bytes = new Uint8Array(await readFile(path.join(nlsDirectory, name)));
+      const sha256 = createHash('sha256').update(bytes).digest('hex');
+      if (sha256 !== expected.sha256 || bytes.length !== expected.bytes)
+        throw Object.assign(Error(`NLS integrity mismatch: ${name}`), {
+          probeIntegrityError: true,
+        });
+      nlsFiles.set(name, bytes);
+      result.nls.files.push({ name, bytes: bytes.length, sha256 });
+    }
+  }
   runtime = new Runtime(iced, {
     files: new Map([[executableName, executableBytes]]),
     exe: executableName,
     builtinFiles: files,
+    nlsFiles,
   });
 
   let lastIP = null;

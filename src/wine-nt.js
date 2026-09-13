@@ -1,3 +1,5 @@
+import { nlsServices } from './wine-nls.js';
+
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
 // We install only validated Wine dispatcher slots; guest code stays unchanged.
@@ -105,6 +107,11 @@ function writeLargeInteger(runtime, address, value) {
 }
 
 export const ntServices = {
+  ...nlsServices,
+  NtUnmapViewOfSection: {
+    argc: 2,
+    call: (r, a) => (a(0) === 0xffffffff ? r.sectionViews.unmap(a(1)) : 0xc0000008),
+  },
   NtQueryInformationProcess: {
     argc: 5,
     call: (r, a) => {

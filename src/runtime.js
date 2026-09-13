@@ -1,5 +1,7 @@
 import { GuestHeap } from './heap.js';
 import { VirtualMemory } from './virtual-memory.js';
+import { SectionViews } from './section-views.js';
+import { createNlsState } from './wine-nls.js';
 import { installWineNtBridge, dispatchWineNt } from './wine-nt.js';
 import { initializeWineProcess, PEB_PROCESS_HEAP } from './wine-process.js';
 import { StaticTLS } from './tls.js';
@@ -39,6 +41,7 @@ export class Runtime {
       maxBlocks = 1_000_000,
       args = [],
       builtinFiles = new Map(),
+      nlsFiles,
     },
   ) {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
@@ -60,6 +63,8 @@ export class Runtime {
     this.pe = this.graph.main.pe;
     this.guestMemory = new GuestMemory(this.memory, this.regions);
     this.virtualMemory = new VirtualMemory(this.memory, this.regions);
+    this.sectionViews = new SectionViews(this.memory, this.regions, this.virtualMemory);
+    this.nls = createNlsState(this.files, this.cwd, nlsFiles);
     this.view = this.guestMemory.view;
     this.data = this.guestMemory.data;
     this.cpu = new CPU(iced, {
