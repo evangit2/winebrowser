@@ -144,7 +144,26 @@ try {
     lastIP = ip >>> 0;
     recentIPs.push(lastIP);
     if (recentIPs.length > 16) recentIPs.shift();
-    return step(ip);
+    try {
+      return step(ip);
+    } catch (error) {
+      // Capture guest state before failed-load rollback removes the DLL images.
+      result.firstFailure ??= {
+        phase: 'guest x86 execution',
+        error: { name: error.name, message: error.message },
+        instructionPointer: `0x${lastIP.toString(16)}`,
+        recentInstructionPointers: recentIPs.map((address) => `0x${address.toString(16)}`),
+        registers: Object.fromEntries(
+          runtime.cpu.r.map((register, index) => [
+            ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'][index],
+            `0x${(register.value >>> 0).toString(16)}`,
+          ]),
+        ),
+        modulesAtFailure: runtime.graph.describe(),
+        blocks: runtime.blocks,
+      };
+      throw error;
+    }
   };
 
   const api = runtime.api.bind(runtime);

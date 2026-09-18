@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import iced from 'iced-x86';
+import { PEB_PROCESS_HEAP, PROCESS_LAYOUT } from '../src/process-layout.js';
 import { Runtime } from '../src/runtime.js';
 
 // Optional test of an entire, unmodified installed Wine DLL. It is not bundled
@@ -31,6 +32,26 @@ try {
   const module = runtime.graph.modules.get('ntdll.dll');
   assert.ok(module.initialized && module.mapped);
   report.modules = runtime.graph.describe();
+  // Exercise the unchanged Wine helper that originally overwrote our PEB.
+  const debugString = await runtime.resolveExport(module, '__wine_dbg_strdup');
+  const pebBefore = runtime.data.slice(PROCESS_LAYOUT.peb, PROCESS_LAYOUT.peb + 0x100);
+  const debugStart = PROCESS_LAYOUT.teb + PROCESS_LAYOUT.tebSize;
+  for (const value of ['WINEUNIXCP', 'x'.repeat(900), 'y'.repeat(900)]) {
+    const pointer = await runtime.callGuest(debugString, [runtime.allocString(value)], 'cdecl');
+    assert.ok(pointer >= debugStart && pointer < debugStart + PROCESS_LAYOUT.wineDebugSize);
+    assert.deepEqual(
+      runtime.data.slice(pointer, pointer + value.length + 1),
+      new TextEncoder().encode(value + '\0'),
+    );
+    assert.deepEqual(runtime.data.slice(PROCESS_LAYOUT.peb, PROCESS_LAYOUT.peb + 0x100), pebBefore);
+    assert.equal(runtime.read32(PEB_PROCESS_HEAP), runtime.wineProcess.heap);
+  }
+  report.cases.push({
+    export: '__wine_dbg_strdup',
+    ringBufferWrap: true,
+    processDataPreserved: true,
+    passed: true,
+  });
   const crc = await runtime.resolveExport(module, 'RtlComputeCrc32');
   for (const [value, expected] of [
     ['', 0],
@@ -170,7 +191,7 @@ try {
   const call = async (name, args) =>
     runtime.callGuest(await runtime.resolveExport(module, name), args);
   const processHeap = runtime.wineProcess.heap;
-  assert.equal(runtime.read32(0x2e01018), processHeap);
+  assert.equal(runtime.read32(PEB_PROCESS_HEAP), processHeap);
   assert.equal(runtime.apiProvider.get('kernel32.dll!GetProcessHeap')(runtime).result, processHeap);
   assert.equal(
     await call('RtlDestroyHeap', [processHeap]),

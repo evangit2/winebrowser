@@ -1,6 +1,6 @@
 # WineBrowser
 
-[Completed work and remaining task list](TASKS.md). Active development stopped at the owner’s request; the backlog is not scheduled.
+[Completed work and remaining task list](TASKS.md). Work stopped at the owner’s request on 2026-09-18; the backlog is not scheduled.
 
 An experimental **browser-local Windows PE runtime**. Choose an `.exe` or a ZIP containing executables and assets; the runtime loads the PE image, translates supported x86 basic blocks directly to WebAssembly, and bridges a small Windows API subset to browser services. There is no server compiler and no full PC emulator.
 
@@ -75,6 +75,7 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 | `src/wasm.js`                          | Small binary Wasm module encoder                       |
 | `src/cpu.js`                           | x86 lowering, registers, flags, block cache            |
 | `src/simd.js`                          | Bounded XMM operations and vector memory checks        |
+| `src/process-layout.js`                | TEB, Wine debug storage and PEB address layout         |
 | `src/wine-process.js`                  | Native Wine process heap bootstrap and routing         |
 | `src/tls.js`                           | Static TLS storage, callbacks and failed-load cleanup  |
 | `src/memory.js`                        | Guest memory regions and checked accesses              |
@@ -123,4 +124,4 @@ The first Wine component integration is in [runtime/wine](runtime/wine/README.md
 
 The interface is a plain test bench: no landing page, visual branding or product presentation. Independent executable evidence is recorded in `evidence/external-browser-results.json`; the target catalog distinguishes source-built samples from downloaded original binaries.
 
-The optional `npm run probe:wine-crt -- /path/to/Wine-i386-windows` loads a hash-pinned, unmodified Wine msvcrt/kernel32/kernelbase/ntdll closure. It currently exits 1 at `NtInitializeNlsFiles`; the exact imports and startup state are recorded in `evidence/wine-crt-results.json`. This identifies the next locale-data dependency, not a passing CRT/application test.
+The optional `npm run probe:wine-crt -- /path/to/Wine-i386-windows /path/to/wine/nls` loads a hash-pinned, unmodified Wine msvcrt/kernel32/kernelbase/ntdll closure with supplied NLS data. It currently exits 1 in `RtlEnterCriticalSection` because `PEB.FastPebLock` is not initialized. The debug-buffer/PEB overlap that previously corrupted this pointer is fixed; broader process initialization remains unfinished. The exact imports and guest failure state are recorded in `evidence/wine-crt-results.json`. This is a blocked startup probe, not a passing CRT/application test. The [graphics handoff](docs/graphics-handoff.md) records current DirectWebGPU/Wine reuse findings and the remaining DirectX work.

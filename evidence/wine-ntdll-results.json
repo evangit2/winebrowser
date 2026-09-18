@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-12T22:36:47.661Z",
+  "date": "2026-09-18T17:36:29.870Z",
   "dll": {
     "name": "ntdll.dll",
     "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
@@ -7,6 +7,12 @@
   },
   "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Includes NT clocks, virtual memory and the native Wine heap; not general application compatibility.",
   "cases": [
+    {
+      "export": "__wine_dbg_strdup",
+      "ringBufferWrap": true,
+      "processDataPreserved": true,
+      "passed": true
+    },
     {
       "export": "RtlComputeCrc32",
       "input": "",
@@ -55,9 +61,9 @@
     {
       "export": "NtQuerySystemTime",
       "status": 0,
-      "before": 1789252607813,
-      "after": 1789252607815,
-      "milliseconds": 1789252607814,
+      "before": 1789752990207,
+      "after": 1789752990207,
+      "milliseconds": 1789752990207,
       "invalidPointerStatus": 3221225477,
       "passed": true
     },
@@ -129,14 +135,14 @@
       "host": false,
       "base": 4194304,
       "preferredBase": 4194304,
-      "refs": 1,
+      "refs": 0,
       "initialized": false
     },
     {
       "name": "kernel32.dll",
       "host": true,
-      "base": 1879113728,
-      "refs": 1,
+      "base": 1879048192,
+      "refs": 0,
       "initialized": true
     },
     {
@@ -155,9 +161,9 @@
     "reason": "Clock dispatch works; NT handle/object services are not yet implemented."
   },
   "status": "passed-selected-exports",
-  "blocks": 11697,
-  "instructions": 69291,
-  "compiledBlocks": 379,
+  "blocks": 17160,
+  "instructions": 80343,
+  "compiledBlocks": 389,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",

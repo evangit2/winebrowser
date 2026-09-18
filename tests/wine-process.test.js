@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
+import { PROCESS_LAYOUT } from '../src/process-layout.js';
 import { Runtime } from '../src/runtime.js';
 import { parsePE } from '../src/pe.js';
 import { PEB_PROCESS_HEAP, initializeWineProcess } from '../src/wine-process.js';
@@ -172,4 +173,20 @@ test('rejected DllMain rolls back bootstrap heap and VM state; a repeated load r
     ['create', 'attach', 'create', 'attach'],
   );
   assert.ok(events.every((event) => event.kind !== 'attach' || event.pebHeap !== 0));
+});
+
+// Wine's native i386 debug ring starts one TEB past FS base, independently of
+// where the browser runtime chooses to put its PEB.
+test('Wine debug storage does not overwrite process data or the published heap', async () => {
+  const runtime = await makeRuntime();
+  installStubHeap(runtime);
+  await runtime.loadLibrary('ntdll.dll');
+  const peb = runtime.read32(runtime.cpu.fsBase + 0x30);
+  const before = runtime.data.slice(peb, peb + 0x100);
+  const debugStart = runtime.cpu.fsBase + PROCESS_LAYOUT.tebSize;
+  for (let offset = 0; offset < PROCESS_LAYOUT.wineDebugSize; offset += 4)
+    runtime.write32(debugStart + offset, 0x58494e55);
+  assert.deepEqual(runtime.data.slice(peb, peb + 0x100), before);
+  assert.equal(runtime.read32(peb + 8), runtime.pe.imageBase);
+  assert.equal(runtime.read32(PEB_PROCESS_HEAP), runtime.wineProcess.heap);
 });

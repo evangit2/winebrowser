@@ -1,7 +1,8 @@
 // Minimal process bootstrap for a guest Wine ntdll. The heap implementation
 // stays inside the unmodified PE; only its normal PEB pointer is installed here.
+import { PEB_PROCESS_HEAP } from './process-layout.js';
+export { PEB_PROCESS_HEAP } from './process-layout.js';
 const HEAP_EXPORTS = ['RtlCreateHeap', 'RtlAllocateHeap', 'RtlFreeHeap', 'RtlDestroyHeap'];
-export const PEB_PROCESS_HEAP = 0x2e01018;
 
 export async function initializeWineProcess(runtime, module) {
   if (!module.ntBridge || runtime.wineProcess) return;

@@ -1,4 +1,5 @@
 import { GuestHeap } from './heap.js';
+import { PROCESS_LAYOUT, initializeProcessLayout } from './process-layout.js';
 import { VirtualMemory } from './virtual-memory.js';
 import { SectionViews } from './section-views.js';
 import { createNlsState } from './wine-nls.js';
@@ -75,7 +76,7 @@ export class Runtime {
       write: (a, v, w) => this.guestMemory.write(a, v, w),
       check: (address, size, write) => this.check(address, size, write),
       executableRanges: [],
-      fsBase: 0x2e00000,
+      fsBase: PROCESS_LAYOUT.teb,
     });
     this.refreshCodeRanges();
     this.thunks = this.graph.thunks;
@@ -84,15 +85,7 @@ export class Runtime {
     this.windows = new WindowManager(this);
     this.allocations = this.heap.allocations;
     this.callDepth = 0;
-    this.write32(0x2e00000, 0xffffffff);
-    this.write32(0x2e00018, 0x2e00000); // Exception chain and TEB self.
-    this.write32(0x2e00004, 0x4000000); // TEB StackBase and StackLimit.
-    this.write32(0x2e00008, 0x3c00000);
-    this.write32(0x2e00020, 1); // CLIENT_ID: one guest process and one guest thread.
-    this.write32(0x2e00024, 1);
-    this.write32(0x2e00030, 0x2e01000); // PEB; more fields supplied by future NT host support.
-    this.write32(0x2e01008, this.pe.imageBase);
-    this.write32(0x2e01064, 1); // PEB.NumberOfProcessors: one logical guest processor.
+    initializeProcessLayout(this);
     this.handles = new Map();
     this.nextHandle = 256;
     this.lastError = 0;

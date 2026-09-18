@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-13T00:31:53.131Z",
+  "date": "2026-09-18T17:36:29.851Z",
   "status": "blocked-startup",
   "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
   "nls": {
@@ -7603,11 +7603,83 @@
     "blocks": 1522
   },
   "firstFailure": {
-    "phase": "PE closure inspection or module loading",
+    "phase": "guest x86 execution",
     "error": {
       "name": "Error",
-      "message": "Guest read violation at 0x58494e69 (4 bytes)"
-    }
+      "message": "Guest read violation at 0x14 (4 bytes)"
+    },
+    "instructionPointer": "0x1331b00",
+    "recentInstructionPointers": [
+      "0x134df20",
+      "0x134df3a",
+      "0x134de20",
+      "0x134de41",
+      "0x134deac",
+      "0x134deb0",
+      "0x134df45",
+      "0x134e0a8",
+      "0x134e017",
+      "0x13814b4",
+      "0x13814c9",
+      "0x133efeb",
+      "0x133ef47",
+      "0x133ef54",
+      "0x133eff0",
+      "0x1331b00"
+    ],
+    "registers": {
+      "eax": "0x0",
+      "ecx": "0xa",
+      "edx": "0x2e00000",
+      "ebx": "0x0",
+      "esp": "0x3ffebfc",
+      "ebp": "0x3ffec04",
+      "esi": "0x3ffec5c",
+      "edi": "0x22eb69c"
+    },
+    "modulesAtFailure": [
+      {
+        "name": "console.exe",
+        "host": false,
+        "base": 4194304,
+        "preferredBase": 4194304,
+        "refs": 0,
+        "initialized": false
+      },
+      {
+        "name": "kernel32.dll",
+        "host": false,
+        "base": 16777216,
+        "preferredBase": 2071986176,
+        "refs": 0,
+        "initialized": false
+      },
+      {
+        "name": "kernelbase.dll",
+        "host": false,
+        "base": 17235968,
+        "preferredBase": 2063597568,
+        "refs": 0,
+        "initialized": false
+      },
+      {
+        "name": "ntdll.dll",
+        "host": false,
+        "base": 19988480,
+        "preferredBase": 2076180480,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "msvcrt.dll",
+        "host": false,
+        "base": 20709376,
+        "preferredBase": 268435456,
+        "refs": 1,
+        "initialized": false
+      }
+    ],
+    "blocks": 1519
   },
   "scope": "Optional probe of the whole unmodified installed Wine DLL closure rooted at msvcrt.dll. It performs Runtime.loadLibrary only; successful closure loading is not application execution or general CRT compatibility.",
   "sources": [
