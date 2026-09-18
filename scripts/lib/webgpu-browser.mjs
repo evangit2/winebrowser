@@ -7,7 +7,9 @@ export const webgpuBrowserOptions = {
     '--enable-unsafe-webgpu',
     ...(process.platform === 'linux'
       ? [
-          '--use-angle=vulkan',
+          '--enable-gpu',
+          '--use-gl=angle',
+          '--use-angle=swiftshader',
           '--enable-features=Vulkan',
           '--use-vulkan=swiftshader',
           '--use-webgpu-adapter=swiftshader',

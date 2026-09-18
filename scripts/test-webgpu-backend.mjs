@@ -9,6 +9,7 @@ const server = await createServer({
   logLevel: 'error',
   server: { host: '127.0.0.1', port: 0 },
 });
+const forceReadback = process.argv.includes('--force-readback');
 let browser;
 try {
   await server.listen();
@@ -18,16 +19,19 @@ try {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(origin + '/tests/fixtures/desktop-controls.html');
-  const report = await page.evaluate(async () => {
+  const report = await page.evaluate(async (forceReadback) => {
     const { WebGPURenderer } = await import('/src/webgpu-renderer.js');
     const canvas = document.createElement('canvas');
-    canvas.width = 128;
+    canvas.width = 130; // Exercise padded rows in software-adapter readback.
     canvas.height = 128;
     document.body.append(canvas);
     const context = canvas.getContext('2d');
     const frames = [];
+    const logs = [];
     const renderer = new WebGPURenderer({
+      forceReadback,
       emit: (message) => {
+        if (message.type === 'log') logs.push(message.text);
         if (message.type !== 'frame') return;
         context.drawImage(message.bitmap, 0, 0);
         message.bitmap.close();
@@ -67,11 +71,11 @@ try {
       type: 'clear',
       clearColor: true,
       clearDepth: true,
-      color: 0xff252d41,
+      color: 0x00252d41, // Guest window presentation is opaque despite clear alpha.
       depth: 1,
     };
     try {
-      await renderer.createDevice({ id: 1, windowId: 1, width: 128, height: 128, depth: true });
+      await renderer.createDevice({ id: 1, windowId: 1, width: 130, height: 128, depth: true });
       await renderer.present({
         id: 1,
         commands: [clear, draw(0.25, 0xffff0000), draw(0.75, 0xff0000ff)],
@@ -107,12 +111,20 @@ try {
         frames,
         submittedFrames: renderer.frames,
         draws: renderer.draws,
+        presentationMode: renderer.presentationMode,
+        fallbackAdapter: renderer.fallbackAdapter,
+        logs,
         cases,
       };
     } finally {
       renderer.dispose();
     }
-  });
+  }, forceReadback);
+  assert.equal(
+    report.presentationMode,
+    forceReadback || report.fallbackAdapter ? 'readback' : 'canvas',
+  );
+  assert.ok(report.logs.some((line) => line.includes(`${report.presentationMode} presentation`)));
   assert.deepEqual(
     report.frames.map((f) => f.center),
     [
@@ -128,7 +140,9 @@ try {
   assert.equal(report.draws, 5);
   assert.deepEqual(errors, []);
   await writeFile(
-    'evidence/webgpu-backend-results.json',
+    forceReadback
+      ? 'evidence/webgpu-backend-readback-results.json'
+      : 'evidence/webgpu-backend-results.json',
     JSON.stringify(
       { ...report, date: new Date().toISOString(), browser: await browser.version(), passed: true },
       null,

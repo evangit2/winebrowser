@@ -46,17 +46,17 @@
   ],
   "submittedFrames": 3,
   "draws": 5,
-  "presentationMode": "canvas",
+  "presentationMode": "readback",
   "fallbackAdapter": false,
   "logs": [
-    "WebGPU graphics initialized in the runtime worker (canvas presentation)"
+    "WebGPU graphics initialized in the runtime worker (readback presentation, forced)"
   ],
   "cases": [
     "invalid command rejected",
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-18T23:35:24.810Z",
+  "date": "2026-09-18T23:35:26.318Z",
   "browser": "153.0.8010.48",
   "passed": true
 }

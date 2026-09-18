@@ -31,9 +31,10 @@ const matrix = (value) =>
   [...value].every((entry) => Number.isFinite(Math.fround(entry)));
 
 export class WebGPURenderer {
-  constructor({ emit = () => {}, gpu = globalThis.navigator?.gpu } = {}) {
+  constructor({ emit = () => {}, gpu = globalThis.navigator?.gpu, forceReadback = false } = {}) {
     this.emit = emit;
     this.gpu = gpu;
+    this.forceReadback = forceReadback;
     this.surfaces = new Map();
     this.pipelines = new Map();
     this.frames = 0;
@@ -45,8 +46,11 @@ export class WebGPURenderer {
     if (!this.gpu) throw Error('WebGPU is unavailable in this browser worker');
     const adapter = await this.gpu.requestAdapter();
     if (!adapter) throw Error('No WebGPU adapter is available');
+    this.fallbackAdapter = !!adapter.info?.isFallbackAdapter;
+    this.presentationMode = this.forceReadback || this.fallbackAdapter ? 'readback' : 'canvas';
     this.device = await adapter.requestDevice();
-    this.format = this.gpu.getPreferredCanvasFormat();
+    this.format =
+      this.presentationMode === 'readback' ? 'rgba8unorm' : this.gpu.getPreferredCanvasFormat();
     this.device.addEventListener('uncapturederror', (event) => {
       this.failure = event.error.message;
     });
@@ -61,7 +65,10 @@ export class WebGPURenderer {
       entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } }],
     });
     this.pipelineLayout = this.device.createPipelineLayout({ bindGroupLayouts: [this.bindLayout] });
-    this.emit({ type: 'log', text: 'WebGPU graphics initialized in the runtime worker' });
+    this.emit({
+      type: 'log',
+      text: `WebGPU graphics initialized in the runtime worker (${this.presentationMode} presentation${this.fallbackAdapter ? ', fallback adapter' : ''}${this.forceReadback ? ', forced' : ''})`,
+    });
   }
 
   async createDevice({ id, windowId, width, height, depth }) {
@@ -77,17 +84,48 @@ export class WebGPURenderer {
       throw Error('Invalid or oversized graphics surface');
     await this.initialize();
     const canvas = new OffscreenCanvas(width, height);
-    const context = canvas.getContext('webgpu');
-    if (!context) throw Error('WebGPU OffscreenCanvas is unavailable');
-    context.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
-    const depthTexture = depth
-      ? this.device.createTexture({
-          label: 'guest depth buffer',
+    let context = null,
+      context2d = null,
+      renderTexture = null,
+      readback = null,
+      depthTexture = null,
+      bytesPerRow = 0;
+    try {
+      if (this.presentationMode === 'readback') {
+        context2d = canvas.getContext('2d');
+        if (!context2d) throw Error('2D OffscreenCanvas is unavailable for WebGPU readback');
+        renderTexture = this.device.createTexture({
+          label: 'guest color buffer for readback',
           size: [width, height],
-          format: 'depth16unorm',
-          usage: GPUTextureUsage.RENDER_ATTACHMENT,
-        })
-      : null;
+          format: this.format,
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        });
+        bytesPerRow = Math.ceil((width * 4) / 256) * 256;
+        readback = this.device.createBuffer({
+          label: 'guest frame readback',
+          size: bytesPerRow * height,
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
+      } else {
+        context = canvas.getContext('webgpu');
+        if (!context) throw Error('WebGPU OffscreenCanvas is unavailable');
+        context.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
+      }
+      depthTexture = depth
+        ? this.device.createTexture({
+            label: 'guest depth buffer',
+            size: [width, height],
+            format: 'depth16unorm',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+          })
+        : null;
+    } catch (error) {
+      depthTexture?.destroy();
+      readback?.destroy();
+      renderTexture?.destroy();
+      context?.unconfigure();
+      throw error;
+    }
     this.surfaces.set(id, {
       id,
       windowId,
@@ -95,6 +133,10 @@ export class WebGPURenderer {
       height,
       canvas,
       context,
+      context2d,
+      renderTexture,
+      readback,
+      bytesPerRow,
       depthTexture,
       depthInitialized: false,
       slots: [],
@@ -238,7 +280,7 @@ export class WebGPURenderer {
     this.device.pushErrorScope('validation');
     let error;
     try {
-      const target = surface.context.getCurrentTexture().createView();
+      const target = (surface.renderTexture ?? surface.context.getCurrentTexture()).createView();
       const depthView = surface.depthTexture?.createView();
       const encoder = this.device.createCommandEncoder();
       let pass = null,
@@ -281,16 +323,45 @@ export class WebGPURenderer {
       }
       if (!pass) begin();
       pass.end();
+      if (surface.readback)
+        encoder.copyTextureToBuffer(
+          { texture: surface.renderTexture },
+          {
+            buffer: surface.readback,
+            bytesPerRow: surface.bytesPerRow,
+            rowsPerImage: surface.height,
+          },
+          [surface.width, surface.height],
+        );
       this.device.queue.submit([encoder.finish()]);
       await this.device.queue.onSubmittedWorkDone();
-      this.draws += drawIndex;
     } catch (caught) {
       error = caught;
     }
     const validation = await this.device.popErrorScope();
     if (error || validation)
       throw error ?? Error('WebGPU validation failed: ' + validation.message);
+    if (surface.readback) {
+      await surface.readback.mapAsync(GPUMapMode.READ);
+      try {
+        const mapped = new Uint8Array(surface.readback.getMappedRange());
+        const pixels = new Uint8ClampedArray(surface.width * surface.height * 4);
+        const rowLength = surface.width * 4;
+        for (let row = 0; row < surface.height; row++)
+          pixels.set(
+            mapped.subarray(row * surface.bytesPerRow, row * surface.bytesPerRow + rowLength),
+            row * rowLength,
+          );
+        // A normal guest window presents opaque pixels, matching the hardware
+        // canvas alphaMode even when D3D Clear supplies an unused zero alpha.
+        for (let alpha = 3; alpha < pixels.length; alpha += 4) pixels[alpha] = 255;
+        surface.context2d.putImageData(new ImageData(pixels, surface.width, surface.height), 0, 0);
+      } finally {
+        surface.readback.unmap();
+      }
+    }
     const bitmap = surface.canvas.transferToImageBitmap();
+    this.draws += drawCount;
     this.frames++;
     this.emit({
       type: 'frame',
@@ -312,7 +383,9 @@ export class WebGPURenderer {
       slot.uniform.destroy();
     }
     surface.depthTexture?.destroy();
-    surface.context.unconfigure();
+    surface.readback?.destroy();
+    surface.renderTexture?.destroy();
+    surface.context?.unconfigure();
     this.surfaces.delete(id);
   }
 
