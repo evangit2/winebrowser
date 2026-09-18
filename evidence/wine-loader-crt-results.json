@@ -1,12 +1,12 @@
 {
-  "date": "2026-09-18T22:35:16.335Z",
+  "date": "2026-09-18T22:41:56.101Z",
   "status": "blocked-guest",
   "scope": "Optional diagnostic of a source-built Wine loader bridge with pinned installed CRT DLLs. No EXE entry point runs. After-attach loader metadata synchronization is not implemented; no general application support is claimed.",
   "operation": "map full msvcrt closure; process bootstrap; source loader registration; kernelbase dynamic TLS; normal DLL attach",
   "inputs": {
     "manifest": ".cache/wine-loader/manifest.json",
     "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
-    "nlsDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls",
+    "nlsDirectory": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64",
     "dlls": [
       {
         "name": "ntdll.dll",
@@ -36,43 +36,43 @@
     "nls": [
       {
         "name": "locale.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/locale.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64/locale.nls",
         "bytes": 794914,
         "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
       },
       {
         "name": "sortdefault.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/sortdefault.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/globalization/sorting/sortdefault.nls",
         "bytes": 3380468,
         "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
       },
       {
         "name": "l_intl.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/l_intl.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64/l_intl.nls",
         "bytes": 5564,
         "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
       },
       {
         "name": "normnfc.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/normnfc.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64/normnfc.nls",
         "bytes": 60194,
         "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
       },
       {
         "name": "c_1252.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_1252.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64/c_1252.nls",
         "bytes": 66082,
         "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
       },
       {
         "name": "c_437.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_437.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64/c_437.nls",
         "bytes": 66594,
         "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
       },
       {
         "name": "c_20127.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_20127.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/native-wine/drive_c/windows/syswow64/c_20127.nls",
         "bytes": 66082,
         "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
       }
@@ -202,16 +202,6 @@
     }
   ],
   "recentNtCalls": [
-    {
-      "name": "NtOpenKeyEx",
-      "arguments": [
-        67103364,
-        983359,
-        67102888,
-        0
-      ],
-      "result": "0xc000000d"
-    },
     {
       "name": "NtOpenKeyEx",
       "arguments": [
@@ -450,56 +440,63 @@
         67102208
       ],
       "result": "0x0"
+    },
+    {
+      "name": "NtWow64IsProcessorFeaturePresent",
+      "arguments": [
+        10
+      ],
+      "result": "0x0"
     }
   ],
   "firstFailure": {
     "phase": "normal DLL initialization after source registration",
     "error": {
       "name": "Error",
-      "message": "Unsupported Wine NT service NtWow64IsProcessorFeaturePresent"
+      "message": "Unsupported Wine NT service NtQueryVolumeInformationFile"
     },
     "instructionPointer": "0x131e0e4",
     "recentInstructionPointers": [
-      "0x169d6af",
-      "0x133c480",
-      "0x133c510",
-      "0x133c505",
-      "0x169d6c1",
-      "0x16988b3",
-      "0x1698832",
-      "0x16bc5e1",
-      "0x167ac7e",
-      "0x167ac86",
-      "0x16bc600",
-      "0x100de94",
-      "0x10a5370",
-      "0x133b8e0",
-      "0x131e0a4",
+      "0x1331f40",
+      "0x1331fc3",
+      "0x1331fa0",
+      "0x16bbbb0",
+      "0x16bbe00",
+      "0x100d778",
+      "0x109c4d0",
+      "0x109c4dd",
+      "0x109c500",
+      "0x16bbe0d",
+      "0x100d278",
+      "0x1095b60",
+      "0x1095b73",
+      "0x1095b78",
+      "0x131d4f4",
       "0x131e0e4"
     ],
     "registers": {
-      "eax": "0x104",
-      "ecx": "0x25109b4",
+      "eax": "0x49",
+      "ecx": "0x0",
       "edx": "0x131e0e4",
-      "ebx": "0x1",
-      "esp": "0x3ffef90",
-      "ebp": "0x3ffef9c",
+      "ebx": "0x2510ac0",
+      "esp": "0x3ffeefc",
+      "ebp": "0x3ffef28",
       "esi": "0x0",
-      "edi": "0x0"
+      "edi": "0x2510acc"
     },
     "stackWords": [
-      20046000,
-      20166897,
-      10,
-      67104680,
-      17453956,
-      10,
-      67104692,
-      23840275,
-      10,
-      67104748,
-      23571601,
-      23527424
+      20043008,
+      17390495,
+      0,
+      67104544,
+      67104536,
+      8,
+      4,
+      20156392,
+      38865612,
+      38865600,
+      0,
+      67104692
     ],
     "pebTlsBitmap": 20628856,
     "pebTlsExpansionBitmap": 20628848,
@@ -652,19 +649,10 @@
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtAllocateVirtualMemory",
-      "ntdll.dll!NtGetNlsSectionPtr"
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtWow64IsProcessorFeaturePresent"
     ],
     "recentServices": [
-      {
-        "name": "NtSetInformationThread",
-        "arguments": [
-          4294967294,
-          10,
-          67104764,
-          4
-        ],
-        "result": "0x0"
-      },
       {
         "name": "NtSetInformationThread",
         "arguments": [
@@ -1081,30 +1069,41 @@
           67102208
         ],
         "result": "0x0"
+      },
+      {
+        "name": "NtWow64IsProcessorFeaturePresent",
+        "arguments": [
+          10
+        ],
+        "result": "0x0"
       }
     ],
-    "blocks": 67235,
+    "blocks": 67559,
     "dispatcher": {
       "dll": "ntdll.dll",
       "name": "__wine_syscall_dispatcher",
-      "serviceId": "0x104",
-      "serviceName": "NtWow64IsProcessorFeaturePresent",
+      "serviceId": "0x49",
+      "serviceName": "NtQueryVolumeInformationFile",
       "arguments": [
-        10
+        0,
+        67104544,
+        67104536,
+        8,
+        4
       ],
       "returnAddresses": [
         {
-          "address": "0x131e0b0",
+          "address": "0x131d500",
           "module": {
             "name": "ntdll.dll",
-            "offset": "0xe0b0"
+            "offset": "0xd500"
           }
         },
         {
-          "address": "0x133b8f1",
+          "address": "0x1095b9f",
           "module": {
-            "name": "ntdll.dll",
-            "offset": "0x2b8f1"
+            "name": "kernelbase.dll",
+            "offset": "0x25b9f"
           }
         }
       ]
@@ -1260,9 +1259,10 @@
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtAllocateVirtualMemory",
-      "ntdll.dll!NtGetNlsSectionPtr"
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtWow64IsProcessorFeaturePresent"
     ],
-    "blocks": 67235
+    "blocks": 67559
   },
   "processExitCode": 1
 }

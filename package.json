@@ -33,7 +33,10 @@
     "build:wine-format": "python3 scripts/build-wine-format.py",
     "build:wine-loader": "python3 scripts/build-wine-loader.py",
     "probe:wine-loader": "node scripts/probe-wine-loader.mjs",
-    "probe:wine-loader-crt": "node scripts/probe-wine-loader-crt.mjs"
+    "probe:wine-loader-crt": "node scripts/probe-wine-loader-crt.mjs",
+    "build:d3d9": "bash scripts/build-d3d9-demo.sh",
+    "test:webgpu": "node scripts/test-webgpu-backend.mjs",
+    "test:d3d9": "node scripts/test-d3d9-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -20,6 +20,8 @@ let nextAudioTime = 0,
   manifest;
 let stdout = '',
   requests = [];
+let exampleRequest = 0,
+  downloadingExample = false;
 const activeTones = new Set();
 
 function log(text) {
@@ -46,7 +48,8 @@ function ready() {
 }
 function select() {
   const item = entries.find((e) => e.path === $('exe').value);
-  $('run').disabled = running || !item || !!item.error || !!item.pe?.unsupported.length;
+  $('run').disabled =
+    running || downloadingExample || !item || !!item.error || !!item.pe?.unsupported.length;
   $('details').textContent = !item
     ? ''
     : item.error ||
@@ -75,7 +78,10 @@ function createWorker() {
     ready();
   };
   worker.onmessage = async ({ data: message }) => {
-    if (worker !== instance) return;
+    if (worker !== instance) {
+      message.bitmap?.close();
+      return;
+    }
     if (message.type === 'loaded') {
       entries = message.executables;
       running = false;
@@ -228,6 +234,8 @@ function createWorker() {
 }
 
 async function load(file) {
+  exampleRequest++;
+  downloadingExample = false;
   if (file.size > 64 * 1024 * 1024) throw Error('Package exceeds 64 MB');
   createWorker();
   entries = [];
@@ -524,16 +532,29 @@ async function initialize() {
       button.title = fixture.description ?? fixture.name;
       button.dataset.demo = fixture.name;
       button.onclick = async () => {
+        // Reserve the selection before fetching so Run cannot launch the old
+        // package. A newer example click or file upload supersedes this request.
+        const request = ++exampleRequest;
+        downloadingExample = true;
+        select();
         try {
           const packageResponse = await fetch(
             `${import.meta.env.BASE_URL}${fixture.base}/${fixture.zip}`,
           );
           if (!packageResponse.ok) throw Error(`Fixture package unavailable: ${fixture.zip}`);
-          await load(new File([await packageResponse.arrayBuffer()], fixture.zip));
+          const bytes = await packageResponse.arrayBuffer();
+          if (request !== exampleRequest) return;
+          await loadSelected(new File([bytes], fixture.zip));
         } catch (error) {
+          if (request !== exampleRequest) return;
           status(error.message, 'ERROR');
           log(error.message);
           ready();
+        } finally {
+          if (request === exampleRequest) {
+            downloadingExample = false;
+            select();
+          }
         }
       };
       return button;

@@ -3,6 +3,7 @@ import wineLibrary from '../runtime/wine/manifest.json';
 import wineFormat from '../runtime/wine-format/manifest.json';
 import { inspect, Runtime } from './runtime.js';
 import { createCanvasTextRasterizer } from './gdi-text.js';
+import { WebGPURenderer } from './webgpu-renderer.js';
 import { packageId, savePackage, saveOutputs } from './storage.js';
 let pkg,
   activeRuntime,
@@ -12,7 +13,7 @@ let pkg,
   pending = new Map(),
   seq = 0,
   busy = false;
-const emit = (message) => postMessage(message);
+const emit = (message) => postMessage(message, message.bitmap ? [message.bitmap] : []);
 const request = (kind, detail) =>
   new Promise((resolve) => {
     const token = ++seq;
@@ -69,14 +70,19 @@ onmessage = async ({ data }) => {
         throw Error('Select an executable from the loaded package');
       if (!iced) {
         emit({ type: 'log', text: 'Loading x86 decoder…' });
-        const url = `${import.meta.env.BASE_URL}vendor/iced.js`;
+        // Vite adds ?import to relative dynamic URLs in dev, but public/
+        // assets must be loaded directly. Keep iced's own import.meta.url at
+        // /vendor/iced.js so its adjacent WASM resolves in dev and Pages.
+        const url = new URL(`${import.meta.env.BASE_URL}vendor/iced.js`, self.location.origin).href;
         iced = await (await import(/* @vite-ignore */ url)).init();
       }
+      const graphics = new WebGPURenderer({ emit });
       const runtime = new Runtime(iced, {
         files: pkg.files,
         exe: data.exe,
         args: data.args ?? [],
         builtinFiles,
+        graphics,
         emit,
         request,
         // Manual sessions last until the guest exits or the user presses Stop.
@@ -90,6 +96,7 @@ onmessage = async ({ data }) => {
         result = await runtime.run();
       } finally {
         activeRuntime = null;
+        graphics.dispose();
       }
       try {
         await saveOutputs(id, result.outputs);

@@ -1,8 +1,9 @@
 # Graphics integration handoff — 2026-09-18
 
-Research is complete for this handoff; graphics integration has not started.
-Development resumed on 2026-09-18, starting with Wine initialization and calling
-conventions. These are proposed milestones, not compatibility claims.
+Development resumed on 2026-09-18. An original native D3D9 cube now passes
+browser EXE/ZIP execution through a bounded COM frontend and worker WebGPU
+renderer; see [current graphics scope](graphics-runtime.md). The broader Wine
+and DirectX milestones below remain proposals.
 See [the task list](../TASKS.md).
 
 ## Execution and reuse
@@ -56,5 +57,7 @@ Suggested acceptance gates:
    root signatures, barriers and pipeline state. Many games also require x64,
    threads and exception support. OpenGL/WGL and broader audio remain separate.
 
-No D3D9 device or DX12 application has been demonstrated by this work. Current
-playable evidence remains the GDI-based Tetris and Breakout examples.
+The original D3D9 cube fixture now demonstrates device creation, transforms,
+depth, drawing and presentation. This is a bootstrap adapter, not a WineD3D
+port or independent application compatibility result. DX10/11/12 are not yet
+demonstrated. GDI-based Tetris and Breakout remain separate playable examples.

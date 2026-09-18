@@ -48,6 +48,7 @@ export class Runtime {
       args = [],
       builtinFiles = new Map(),
       nlsFiles,
+      graphics,
     },
   ) {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
@@ -62,6 +63,7 @@ export class Runtime {
     this.lastProgress = performance.now();
 
     this.args = args;
+    this.graphics = graphics;
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles);
     this.memory = new WebAssembly.Memory({ initial: 1024, maximum: 1024 });
     this.regions = [{ start: 0x2e00000, end: 0x4000000, write: true, exec: false }];
@@ -125,7 +127,11 @@ export class Runtime {
     const argument = (index) => this.read32(stackPointer + 4 + index * 4);
     let response;
     if (entry.kind === 'wine-nt') response = await dispatchWineNt(this, entry);
-    else {
+    else if (entry.kind === 'com') {
+      this.calls++;
+      if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);
+      response = await entry.invoke(this, argument);
+    } else {
       const handler = this.apiProvider.get(importKey(entry.dll, entry.name));
       if (!handler) throw Error(`Unimplemented import ${importKey(entry.dll, entry.name)}`);
       this.calls++;

@@ -78,6 +78,15 @@
       "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable.",
       "zip": "breakout.zip",
       "zipSha256": "996ae2fdd0fd940c3c44eec5c986858ec992244ce3480d9707401be4af311314"
+    },
+    {
+      "name": "d3d9-cube",
+      "description": "Native Windows Direct3D 9 cube: browser x86-to-Wasm compilation, WebGPU transforms and depth. Close the window to exit.",
+      "exe": "d3d9-cube/d3d9-cube.exe",
+      "zip": "d3d9-cube.zip",
+      "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D9 bootstrap subset, not WineD3D.",
+      "exeSha256": "e4548f849394a78ba6028d5330fc698d25a3ab53e6f299132eb7da067af6fbac",
+      "zipSha256": "1e6ce0852b78974a623d1ba6394a5c42c14e0067fdb17bbbd48b9a93e5fb3dd7"
     }
   ]
 }

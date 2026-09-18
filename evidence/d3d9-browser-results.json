@@ -1,0 +1,93 @@
+{
+  "date": "2026-09-18T23:12:42.248Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "153.0.8010.48",
+  "nativeGame": "d3d9-cube",
+  "browserCompilation": true,
+  "workerWebGPU": true,
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "exeSha256": "e4548f849394a78ba6028d5330fc698d25a3ab53e6f299132eb7da067af6fbac",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "hash": "bbb563e1bfdf3ad49d1c729dbc4143b2b670a6c70154be5011c0cdaf2e7b52a2",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77284,
+        "colors": [
+          "121,216,117"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 17,
+        "hash": "cd7a20799ad1b1602e0927d685913a1109117f63ee65a2c19c3ead13cf4c96dc",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77284,
+        "colors": [
+          "93,197,239"
+        ]
+      },
+      "exitCode": 0,
+      "compiledBlocks": 63,
+      "instructions": 2538,
+      "apiCalls": 250
+    },
+    {
+      "mode": "hosted-zip",
+      "exeSha256": "e4548f849394a78ba6028d5330fc698d25a3ab53e6f299132eb7da067af6fbac",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "hash": "7da060142ac992981a56eaaa6b39d48292655c8b074da1de4e33aa8e82f2eee9",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77812,
+        "colors": [
+          "232,101,84",
+          "121,216,117"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 16,
+        "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 74972,
+        "colors": [
+          "121,216,117",
+          "93,197,239"
+        ]
+      },
+      "exitCode": 0,
+      "compiledBlocks": 63,
+      "instructions": 2449,
+      "apiCalls": 241
+    }
+  ],
+  "errors": []
+}

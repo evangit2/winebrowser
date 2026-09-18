@@ -4,6 +4,8 @@ import { tokenNtServices } from './wine-token.js';
 import { systemNtServices } from './wine-system.js';
 import { memoryNtServices } from './memory-protection.js';
 import { threadNtServices } from './wine-thread.js';
+import { processorFeatureNtServices } from './processor-features.js';
+import { registerThunk } from './thunk-addresses.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -55,7 +57,6 @@ export function installWineNtBridge(runtime, module) {
     services.set(id, { name: entry.name, argc: stackBytes / 4 });
   }
   if (!services.size) throw Error('Unsupported Wine i386 syscall wrapper ABI');
-  const address = 0x80000000 + runtime.thunks.size * 16;
   let tebSlot;
   if (hasTebWrappers) {
     if (!runtime.cpu.fsBase) throw Error('Wine FS syscall wrapper requires a guest TEB');
@@ -63,7 +64,7 @@ export function installWineNtBridge(runtime, module) {
     runtime.check(tebSlot, 4, true);
     if (runtime.read32(tebSlot)) throw Error('Wine TEB syscall dispatcher is already installed');
   }
-  runtime.thunks.set(address, {
+  const address = registerThunk(runtime.thunks, {
     dll: module.name,
     name: '__wine_syscall_dispatcher',
     kind: 'wine-nt',
@@ -118,6 +119,7 @@ export const ntServices = {
   ...systemNtServices,
   ...memoryNtServices,
   ...threadNtServices,
+  ...processorFeatureNtServices,
   NtClose: {
     argc: 1,
     call: (r, a) => {

@@ -1,0 +1,57 @@
+{
+  "scope": "WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance",
+  "frames": [
+    {
+      "center": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "corner": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "center": [
+        0,
+        0,
+        255,
+        255
+      ],
+      "corner": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "center": [
+        37,
+        45,
+        65,
+        255
+      ],
+      "corner": [
+        37,
+        45,
+        65,
+        255
+      ]
+    }
+  ],
+  "submittedFrames": 3,
+  "draws": 5,
+  "cases": [
+    "invalid command rejected",
+    "invalid command rejected",
+    "invalid command rejected"
+  ],
+  "date": "2026-09-18T23:10:38.509Z",
+  "browser": "153.0.8010.48",
+  "passed": true
+}

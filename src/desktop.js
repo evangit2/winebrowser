@@ -460,10 +460,34 @@ export class VirtualDesktop {
     this.windows.set(state.id, window);
   }
 
-  frame({ windowId, width, height, pixels }) {
+  frame({ windowId, width, height, pixels, bitmap, renderer, graphicsFrames }) {
     const window = this.windows.get(windowId);
-    if (!window || !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1)
+    if (
+      !window ||
+      !Number.isInteger(width) ||
+      !Number.isInteger(height) ||
+      width < 1 ||
+      height < 1
+    ) {
+      bitmap?.close();
       return false;
+    }
+    if (bitmap) {
+      try {
+        if (bitmap.width !== width || bitmap.height !== height) return false;
+        if (window.canvas.width !== width || window.canvas.height !== height) {
+          window.canvas.width = width;
+          window.canvas.height = height;
+          window.imageData = null;
+        }
+        window.context.drawImage(bitmap, 0, 0);
+        window.canvas.dataset.renderer = renderer ?? 'bitmap';
+        window.canvas.dataset.graphicsFrames = String(graphicsFrames ?? 0);
+        return true;
+      } finally {
+        bitmap.close();
+      }
+    }
     const bytes = pixels instanceof Uint8Array ? pixels : new Uint8Array(pixels);
     if (bytes.byteLength !== width * height * 4) return false;
     if (!window.imageData || window.canvas.width !== width || window.canvas.height !== height) {

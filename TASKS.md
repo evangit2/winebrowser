@@ -31,11 +31,13 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [x] Build a pinned generic Wine ntdll with an explicit source-level loader bootstrap; verify module indexes, native version initialization, allocation-failure rollback and ownership guards in Node and a Chromium worker. See [the experiment](docs/wine-loader-bridge.md).
 - [x] Change committed private VM and non-executable image-data page protections through the native NT boundary; verify read-only enforcement, rollback on invalid requests and Wine export-table updates.
 - [x] Initialize Wine-owned dynamic TLS bitmaps and verify 65 guest kernelbase slots, expansion, free and cleared-value reuse; implement one-thread `ThreadZeroTlsCell`.
+- [x] Run an original native D3D9 cube EXE and ZIP with browser x86-to-Wasm compilation, guest COM calls, worker WebGPU transforms/D16 depth and clean window/device release. Record backend pixel checks and full browser acceptance separately.
+- [x] Report a conservative guest CPU feature profile to Wine; partial SIMD support does not advertise complete host instruction families.
 - [x] Keep code split by runtime service, with tests and an intentionally plain test harness.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine startup:** finish the NT registry, locale and loader services reached by the real CRT closure. The optional [source-built loader probe](evidence/wine-loader-crt-results.json) passes version, dynamic TLS and C-locale setup, then reaches a CPU-feature query. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary; neither is an application test.
+- [ ] **Wine startup:** finish the NT registry, locale and loader services reached by the real CRT closure. The optional [source-built loader probe](evidence/wine-loader-crt-results.json) passes version, dynamic TLS and C-locale setup, and conservative CPU-feature queries, then reaches `NtQueryVolumeInformationFile` during CRT standard-stream initialization. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary; neither is an application test.
 - [ ] Unify host and Wine loader transactions for module load/unload, reference counts, attach order and static TLS. The optional one-shot loader bridge only registers an existing graph and supports read-only queries.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
@@ -43,7 +45,7 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [ ] Run more unchanged desktop targets, starting with Minesweeper (32 unresolved imports at the last inspection); implement reusable dialog/menu/common-control/GDI services where Wine reuse is feasible.
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
-- [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. First establish a Wine-derived D3D9 device/Clear/Present path with an independent unchanged EXE; then resources, shaders and draws. See [graphics handoff](docs/graphics-handoff.md).
+- [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. The native D3D9 cube passes a bounded bootstrap frontend. Next establish Wine-derived state/resources and programmable shaders with an independent upstream EXE. See [graphics handoff](docs/graphics-handoff.md).
 - [ ] Treat D3D10/11 and DX12/DXGI/vkd3d as additional compatibility milestones. DX12 command lists, descriptors, barriers and x64 game execution are not delivered by a D3D9 renderer. No all-games or instant-startup claim is supported.
 - [ ] Expand audio beyond synchronous PCM, and add networking and other OS services with explicit browser constraints.
 - [ ] Persist registry and application-file overlays between runs; support reopening saved applications.
@@ -51,13 +53,14 @@ backlog. General Windows application and DirectX compatibility is **not complete
 
 ## Evidence and commands
 
-- [Live harness](https://evangit2.github.io/winebrowser/): Load tetris or Load breakout, then Run executable.
+- [Live harness](https://evangit2.github.io/winebrowser/): Load d3d9-cube, Load tetris or Load breakout, then Run executable.
 - [Tetris browser evidence](evidence/tetris-browser.json), [window evidence](evidence/windows-browser-results.json), [external executable evidence](evidence/external-browser-results.json).
 - [Target catalog](tests/targets.json), [static blockers](evidence/target-blockers.json), [architecture](docs/architecture.md), [NLS scope](docs/wine-nls.md).
-- `npm test`: 229 passing tests at the current verified milestone.
+- `npm test`: 238 passing tests at the current verified milestone.
 - `npm run test:browser`, `npm run test:controls`, `npm run test:external`.
 - Pages server: `WINEBROWSER_BASE_PATH=/winebrowser/ npm run build`, then `npm run serve:pages`.
-- Against that server: `npm run test:pages`, `npm run test:windows`, `npm run test:tetris`.
+- Against that server: `npm run test:pages`, `npm run test:windows`, `npm run test:tetris`, `npm run test:d3d9`.
+- `npm run test:webgpu`: isolated backend pixel tests; [native D3D9 browser evidence](evidence/d3d9-browser-results.json) verifies the complete EXE path.
 - Optional whole-Wine probe (expected to report blocked startup):
   `npm run probe:wine-crt -- /path/to/i386-windows /path/to/wine/nls`.
 

@@ -1,6 +1,7 @@
 import { parsePE, mapPE } from './pe.js';
 import { normalizePath } from './package.js';
 import { importKey } from './win32.js';
+import { registerThunk } from './thunk-addresses.js';
 
 const dllName = (name) => {
   const path = normalizePath(name);
@@ -183,10 +184,15 @@ export class ModuleGraph {
       return target.module.base + target.rva;
     }
     const key = importKey(target.module.name, target.symbol);
-    let thunk = [...this.thunks].find(([, entry]) => importKey(entry.dll, entry.name) === key)?.[0];
+    let thunk = [...this.thunks].find(
+      ([, entry]) =>
+        entry.kind === undefined &&
+        typeof entry.dll === 'string' &&
+        typeof entry.name === 'string' &&
+        importKey(entry.dll, entry.name) === key,
+    )?.[0];
     if (thunk === undefined) {
-      thunk = 0x80000000 + this.thunks.size * 16;
-      this.thunks.set(thunk, { dll: target.module.name, name: target.symbol });
+      thunk = registerThunk(this.thunks, { dll: target.module.name, name: target.symbol });
     }
     return thunk;
   }
