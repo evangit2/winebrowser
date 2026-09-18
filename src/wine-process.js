@@ -1,8 +1,27 @@
-// Minimal process bootstrap for a guest Wine ntdll. The heap implementation
-// stays inside the unmodified PE; only its normal PEB pointer is installed here.
+// Process bootstrap for a guest Wine ntdll. Heap, lock, parameters and NLS
+// initialization execute inside the unmodified PE; host code owns their mappings.
 import { PEB_PROCESS_HEAP } from './process-layout.js';
+import { initializeWineNlsProcess, PEB_NLS_POINTERS } from './wine-nls-process.js';
+import {
+  initializeWineParameters,
+  PEB_FAST_LOCK,
+  PEB_PROCESS_PARAMETERS,
+} from './wine-parameters.js';
 export { PEB_PROCESS_HEAP } from './process-layout.js';
 const HEAP_EXPORTS = ['RtlCreateHeap', 'RtlAllocateHeap', 'RtlFreeHeap', 'RtlDestroyHeap'];
+
+export function snapshotWineProcessPointers(runtime) {
+  return [
+    PEB_PROCESS_HEAP,
+    PEB_FAST_LOCK,
+    PEB_PROCESS_PARAMETERS,
+    ...Object.values(PEB_NLS_POINTERS),
+  ].map((address) => [address, runtime.read32(address)]);
+}
+
+export function restoreWineProcessPointers(runtime, pointers) {
+  for (const [address, value] of pointers) runtime.write32(address, value);
+}
 
 export async function initializeWineProcess(runtime, module) {
   if (!module.ntBridge || runtime.wineProcess) return;
@@ -13,22 +32,28 @@ export async function initializeWineProcess(runtime, module) {
   const exports = Object.fromEntries(entries.map((entry) => [entry.name, module.base + entry.rva]));
   const before = new Set(runtime.virtualMemory.reservations.keys());
   const image = runtime.data.slice(module.base, module.base + module.pe.imageSize);
+  const pointers = snapshotWineProcessPointers(runtime);
   let heap;
+  let parameters;
+  let nls;
   try {
     heap = await runtime.callGuest(exports.RtlCreateHeap, [2, 0, 0, 0, 0, 0]);
     if (!heap) throw Error('Wine process heap creation failed');
+    runtime.write32(PEB_PROCESS_HEAP, heap);
+    parameters = await initializeWineParameters(runtime, module, heap, exports);
+    nls = await initializeWineNlsProcess(runtime, module);
   } catch (error) {
     // The DLL may already have assigned its private process_heap global.
     runtime.data.set(image, module.base);
+    restoreWineProcessPointers(runtime, pointers);
     for (const base of runtime.virtualMemory.reservations.keys())
       if (!before.has(base)) runtime.virtualMemory.free(base, 0, 0x8000);
     throw error;
   }
-  runtime.write32(PEB_PROCESS_HEAP, heap);
   const reservations = [...runtime.virtualMemory.reservations.keys()].filter(
     (base) => !before.has(base),
   );
-  runtime.wineProcess = { module, heap, exports, reservations };
+  runtime.wineProcess = { module, heap, exports, reservations, nls, ...parameters };
 }
 
 export function callWineHeap(runtime, name, args) {

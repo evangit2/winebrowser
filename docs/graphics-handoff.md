@@ -1,8 +1,9 @@
 # Graphics integration handoff — 2026-09-18
 
-Research is complete for this handoff; graphics integration has not started. Work
-stopped at the owner's request. These are proposed milestones, not compatibility
-claims or scheduled tasks. See [the task list](../TASKS.md).
+Research is complete for this handoff; graphics integration has not started.
+Development resumed on 2026-09-18, starting with Wine initialization and calling
+conventions. These are proposed milestones, not compatibility claims.
+See [the task list](../TASKS.md).
 
 ## Execution and reuse
 

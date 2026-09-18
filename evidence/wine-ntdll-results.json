@@ -1,12 +1,55 @@
 {
-  "date": "2026-09-18T17:36:29.870Z",
+  "date": "2026-09-18T21:38:30.989Z",
   "dll": {
     "name": "ntdll.dll",
     "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
     "bytes": 696334
   },
+  "nls": [
+    {
+      "name": "c_1252.nls",
+      "bytes": 66082,
+      "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+    },
+    {
+      "name": "c_437.nls",
+      "bytes": 66594,
+      "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+    },
+    {
+      "name": "l_intl.nls",
+      "bytes": 5564,
+      "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+    }
+  ],
   "scope": "Whole unmodified Wine DLL: real process attach and selected pure exports. Includes NT clocks, virtual memory and the native Wine heap; not general application compatibility.",
   "cases": [
+    {
+      "export": "RtlInitNlsTables/RtlResetRtlTranslations/RtlUpcaseUnicodeChar/RtlMultiByteToUnicodeN",
+      "ansiCodePage": 1252,
+      "oemCodePage": 437,
+      "unicodeCaseMapping": true,
+      "euroByteConverted": true,
+      "immutableTables": true,
+      "passed": true
+    },
+    {
+      "export": "RtlCreateProcessParametersEx/RtlAcquirePebLock/RtlReleasePebLock/RtlQueryEnvironmentVariable_U",
+      "normalizedParameters": true,
+      "quotedCommandLine": true,
+      "isolatedEmptyEnvironment": true,
+      "independentlyOwnedEnvironment": true,
+      "environmentSetGrowQueryDelete": true,
+      "recursiveLockOwnership": true,
+      "missingVariableStatus": "0xc0000100",
+      "passed": true
+    },
+    {
+      "export": "NtQueryInformationToken/RtlValidSid/RtlFormatCurrentUserKeyPath/RtlOpenCurrentUser/NtClose",
+      "isolatedUserSid": "S-1-5-21-0-0-0-1000",
+      "currentUserHiveOpened": true,
+      "passed": true
+    },
     {
       "export": "__wine_dbg_strdup",
       "ringBufferWrap": true,
@@ -61,9 +104,9 @@
     {
       "export": "NtQuerySystemTime",
       "status": 0,
-      "before": 1789752990207,
-      "after": 1789752990207,
-      "milliseconds": 1789752990207,
+      "before": 1789767511173,
+      "after": 1789767511173,
+      "milliseconds": 1789767511173,
       "invalidPointerStatus": 3221225477,
       "passed": true
     },
@@ -83,7 +126,7 @@
     },
     {
       "export": "NtAllocateVirtualMemory/NtFreeVirtualMemory",
-      "base": 33685504,
+      "base": 34013184,
       "size": 8192,
       "reserveCommitDecommitRecommitRelease": true,
       "accessEnforced": true,
@@ -93,30 +136,30 @@
     {
       "export": "RtlCreateHeap/RtlAllocateHeap/RtlFreeHeap/RtlDestroyHeap",
       "processHeap": 33554432,
-      "privateHeap": 33685504,
+      "privateHeap": 34013184,
       "allocations": [
         {
-          "pointer": 33686664,
+          "pointer": 34014344,
           "size": 32,
           "pattern": 49
         },
         {
-          "pointer": 33686704,
+          "pointer": 34014384,
           "size": 64,
           "pattern": 50
         },
         {
-          "pointer": 33686776,
+          "pointer": 34014456,
           "size": 1000,
           "pattern": 51
         },
         {
-          "pointer": 33816608,
+          "pointer": 34144288,
           "size": 65536,
           "pattern": 52
         },
         {
-          "pointer": 33882152,
+          "pointer": 34209832,
           "size": 200000,
           "pattern": 53
         }
@@ -157,17 +200,22 @@
   "ntHostProbe": {
     "status": "blocked",
     "export": "NtClose",
-    "error": "Unsupported Wine NT service NtClose",
+    "error": "Unsupported Wine NT service NtClose for handle 0x1234",
     "reason": "Clock dispatch works; NT handle/object services are not yet implemented."
   },
   "status": "passed-selected-exports",
-  "blocks": 17160,
-  "instructions": 80343,
-  "compiledBlocks": 389,
+  "blocks": 27373,
+  "instructions": 121273,
+  "compiledBlocks": 742,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtQueryInformationToken",
+    "ntdll.dll!NtQueryInformationToken",
+    "ntdll.dll!NtQueryInformationToken",
+    "ntdll.dll!NtCreateKey",
+    "ntdll.dll!NtClose",
     "ntdll.dll!NtQuerySystemTime",
     "ntdll.dll!NtQuerySystemTime",
     "ntdll.dll!NtQueryPerformanceCounter",
@@ -178,6 +226,7 @@
     "ntdll.dll!NtFreeVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtFreeVirtualMemory",
+    "ntdll.dll!NtClose",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",

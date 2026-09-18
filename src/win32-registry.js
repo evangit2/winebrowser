@@ -1,3 +1,5 @@
+import { PROCESS_USER_SID } from './process-identity.js';
+
 const ERROR_SUCCESS = 0;
 const ERROR_FILE_NOT_FOUND = 2;
 const ERROR_ACCESS_DENIED = 5;
@@ -62,14 +64,37 @@ function stateFor(runtime) {
   let state = states.get(runtime);
   if (state) return state;
   const roots = new Map(PREDEFINED_ROOTS.map(([handle, name]) => [handle, createNode(name)]));
+  const users = roots.get(0x80000003);
+  const currentUser = createNode(PROCESS_USER_SID, users);
+  users.children.set(PROCESS_USER_SID.toUpperCase(), currentUser);
+  roots.set(0x80000001, currentUser);
   state = {
     roots,
     handles: new Map(),
     nextHandle: 0x51000000,
-    keyCount: 0,
+    keyCount: 1,
     valueCount: 0,
     totalValueBytes: 0,
   };
+  // The Wine server normally loads these parent keys from its registry prefix.
+  // This process-local store has no prefix, so seed only the parents that Wine
+  // locale initialization opens beneath HKLM before the guest can create them.
+  const machine = roots.get(0x80000002);
+  for (const path of [
+    ['System', 'CurrentControlSet', 'Control'],
+    ['Software', 'Microsoft', 'Windows NT', 'CurrentVersion'],
+  ]) {
+    let parent = machine;
+    for (const name of path) {
+      let child = parent.children.get(name.toUpperCase());
+      if (!child) {
+        child = createNode(name, parent);
+        parent.children.set(name.toUpperCase(), child);
+        state.keyCount++;
+      }
+      parent = child;
+    }
+  }
   states.set(runtime, state);
   return state;
 }
@@ -319,20 +344,27 @@ function regSetValueExW(runtime, argument) {
   if (accessDenied(opened, KEY_SET_VALUE)) return response(ERROR_ACCESS_DENIED, 6);
   if (byteCount && !dataAddress) return response(ERROR_INVALID_PARAMETER, 6);
   if (byteCount > MAX_VALUE_BYTES) return response(ERROR_NOT_ENOUGH_MEMORY, 6);
-  const oldValue = opened.node.values.get(valueName.toUpperCase());
-  if (
-    (!oldValue && state.valueCount >= MAX_VALUES) ||
-    state.totalValueBytes - (oldValue?.data.byteLength ?? 0) + byteCount > MAX_TOTAL_VALUE_BYTES
-  )
-    return response(ERROR_NOT_ENOUGH_MEMORY, 6);
   if (byteCount) runtime.check(dataAddress, byteCount);
   const bytes = byteCount
     ? runtime.data.slice(dataAddress, dataAddress + byteCount)
     : new Uint8Array();
+  return response(storeValue(state, opened, valueName, type, bytes), 6);
+}
+
+function storeValue(state, opened, valueName, type, bytes) {
+  if (valueName.length > MAX_VALUE_NAME_LENGTH) return ERROR_INVALID_PARAMETER;
+  if (!(bytes instanceof Uint8Array)) return ERROR_INVALID_PARAMETER;
+  if (bytes.length > MAX_VALUE_BYTES) return ERROR_NOT_ENOUGH_MEMORY;
+  const oldValue = opened.node.values.get(valueName.toUpperCase());
+  if (
+    (!oldValue && state.valueCount >= MAX_VALUES) ||
+    state.totalValueBytes - (oldValue?.data.byteLength ?? 0) + bytes.length > MAX_TOTAL_VALUE_BYTES
+  )
+    return ERROR_NOT_ENOUGH_MEMORY;
   if (!oldValue) state.valueCount++;
-  state.totalValueBytes += byteCount - (oldValue?.data.byteLength ?? 0);
+  state.totalValueBytes += bytes.length - (oldValue?.data.byteLength ?? 0);
   opened.node.values.set(valueName.toUpperCase(), { name: valueName, type, data: bytes });
-  return response(ERROR_SUCCESS, 6);
+  return ERROR_SUCCESS;
 }
 
 function regDeleteKeyW(runtime, argument) {
@@ -349,6 +381,7 @@ function regDeleteKeyW(runtime, argument) {
   }
   const key = childOf(current, path.at(-1));
   if (!key || key.deletePending) return response(ERROR_FILE_NOT_FOUND, 2);
+  if (key === state.roots.get(0x80000001)) return response(ERROR_ACCESS_DENIED, 2);
   if (key.children.size) return response(ERROR_ACCESS_DENIED, 2);
   key.deletePending = true;
   if (key.openHandles === 0) removeDeletedNode(state, key);
@@ -375,3 +408,22 @@ export const registryApis = {
   'advapi32.dll!RegDeleteKeyW': regDeleteKeyW,
   'advapi32.dll!RegCloseKey': regCloseKey,
 };
+
+// The NT registry adapter shares these exact nodes, handles, access checks and
+// quotas with Advapi32. Only the wire ABI and result status differ.
+export const registryStore = Object.freeze({
+  stateFor,
+  keyFor,
+  createHandle,
+  releaseHandle,
+  openPath,
+  createPath,
+  supportedAccess,
+  accessDenied,
+  storeValue,
+  KEY_QUERY_VALUE,
+  KEY_SET_VALUE,
+  MAX_KEY_NAME_LENGTH,
+  MAX_VALUE_NAME_LENGTH,
+  MAX_VALUE_BYTES,
+});

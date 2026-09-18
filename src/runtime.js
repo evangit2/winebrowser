@@ -3,8 +3,13 @@ import { PROCESS_LAYOUT, initializeProcessLayout } from './process-layout.js';
 import { VirtualMemory } from './virtual-memory.js';
 import { SectionViews } from './section-views.js';
 import { createNlsState } from './wine-nls.js';
+import { cleanupWineNlsProcess } from './wine-nls-process.js';
 import { installWineNtBridge, dispatchWineNt } from './wine-nt.js';
-import { initializeWineProcess, PEB_PROCESS_HEAP } from './wine-process.js';
+import {
+  initializeWineProcess,
+  snapshotWineProcessPointers,
+  restoreWineProcessPointers,
+} from './wine-process.js';
 import { StaticTLS } from './tls.js';
 import { WindowManager } from './win32-windows.js';
 import { flushGdi } from './win32-gdi.js';
@@ -114,8 +119,8 @@ export class Runtime {
   }
 
   async api(entry) {
-    // PE import thunks use x86 stdcall: the guest leaves arguments on its
-    // stack, so the host shim pops the return address and removes arguments.
+    // Host imports may use stdcall or cdecl. Both pop the return address;
+    // only stdcall removes arguments before the guest resumes.
     const stackPointer = this.cpu.r[4].value >>> 0;
     const argument = (index) => this.read32(stackPointer + 4 + index * 4);
     let response;
@@ -127,9 +132,11 @@ export class Runtime {
       if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
       response = await handler(this, argument);
     }
-    const { result, argc } = response;
+    const { result, argc, convention = 'stdcall' } = response;
+    if (convention !== 'stdcall' && convention !== 'cdecl')
+      throw Error(`Unsupported host import convention: ${convention}`);
     const returnAddress = this.cpu.pop() >>> 0;
-    this.cpu.r[4].value = (this.cpu.r[4].value + argc * 4) | 0;
+    if (convention === 'stdcall') this.cpu.r[4].value = (this.cpu.r[4].value + argc * 4) | 0;
     this.cpu.r[0].value = result | 0;
     return returnAddress;
   }
@@ -238,7 +245,7 @@ export class Runtime {
     const checkpoint = this.graph.checkpoint();
     const tlsCheckpoint = this.tls.checkpoint();
     const wineProcess = this.wineProcess,
-      processHeap = this.read32(PEB_PROCESS_HEAP);
+      processPointers = snapshotWineProcessPointers(this);
     const existingNtdll = checkpoint.modules.get('ntdll.dll')?.module;
     const ntdllBeforeBootstrap =
       !wineProcess && existingNtdll?.mapped
@@ -291,12 +298,13 @@ export class Runtime {
           this.write32(module.ntBridge.slot, 0);
       }
       if (this.wineProcess && this.wineProcess !== wineProcess) {
+        cleanupWineNlsProcess(this, this.wineProcess.nls);
         for (const base of this.wineProcess.reservations) this.virtualMemory.free(base, 0, 0x8000);
         if (ntdllBeforeBootstrap) this.data.set(ntdllBeforeBootstrap, existingNtdll.base);
       }
       this.graph.restore(checkpoint);
       this.wineProcess = wineProcess;
-      this.write32(PEB_PROCESS_HEAP, processHeap);
+      restoreWineProcessPointers(this, processPointers);
       // DLL callbacks may have changed process virtual allocations. Remove
       // only rolled-back images; preserve the memory manager's current state.
       const retained = this.regions.filter(

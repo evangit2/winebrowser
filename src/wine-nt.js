@@ -1,4 +1,7 @@
 import { nlsServices } from './wine-nls.js';
+import { closeRegistryHandle, registryNtServices } from './wine-registry.js';
+import { tokenNtServices } from './wine-token.js';
+import { systemNtServices } from './wine-system.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -108,6 +111,20 @@ function writeLargeInteger(runtime, address, value) {
 
 export const ntServices = {
   ...nlsServices,
+  ...registryNtServices,
+  ...tokenNtServices,
+  ...systemNtServices,
+  NtClose: {
+    argc: 1,
+    call: (r, a) => {
+      const result = closeRegistryHandle(r, a(0));
+      if (result === null)
+        throw Error(
+          `Unsupported Wine NT service NtClose for handle 0x${(a(0) >>> 0).toString(16)}`,
+        );
+      return result;
+    },
+  },
   NtUnmapViewOfSection: {
     argc: 2,
     call: (r, a) => (a(0) === 0xffffffff ? r.sectionViews.unmap(a(1)) : 0xc0000008),

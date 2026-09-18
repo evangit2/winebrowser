@@ -40,3 +40,21 @@ Data redistribution requires a separate review: Wine's NLS generators consume
 multiple upstream datasets with their own notices, not solely Wine's LGPL code.
 See the pinned [Wine NLS mapping implementation](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/env.c)
 and [data generator](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/tools/make_unicode).
+
+## Process bootstrap with supplied tables
+
+When a whole Wine ntdll is loaded and NLS resources are supplied, the runtime
+requires `c_1252.nls`, `c_437.nls` and `l_intl.nls`. It maps these tables read-only,
+publishes their PEB pointers and calls the unchanged guest `RtlInitNlsTables` and
+`RtlResetRtlTranslations`. Table-building scratch is released immediately;
+bootstrap-owned mappings and PEB pointers roll back if initialization or attach
+fails. Other section views retain their own lifetimes.
+
+With no NLS resources, this optional step is skipped; the tested pure Wine
+exports retain Wine's limited startup/ASCII fallback. This does not provide
+locale-dependent CRT startup without data. A partial set fails explicitly.
+
+`npm run test:wine -- /path/to/ntdll.dll /path/to/wine/nls` verifies the three
+files against the retained manifest and executes real Wine CP1252/CP437 byte
+conversion and Unicode case mapping, alongside process/heap checks. The files
+remain external installed data and are not redistributed.

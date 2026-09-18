@@ -178,6 +178,51 @@ Implemented services include `NtQueryInformationProcess(ProcessWow64Information)
 
 `src/wine-process.js` follows Wine’s [loader bootstrap ordering](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/loader.c): call the guest RtlCreateHeap with HEAP_GROWABLE, publish PEB.ProcessHeap, then run DLL attach. The first heap remains Wine’s process heap; a separate private heap tests destruction. PEB.NumberOfProcessors and TEB.ClientId describe one guest thread. Kernel32 GetProcessHeap returns the Wine handle after bootstrap, and HeapAlloc/HeapFree dispatch to guest Rtl functions; allocations made earlier with the bootstrap host handle retain their original allocator. Bootstrap failure restores DLL data and releases newly reserved heap pages. This is a limited process-initialization slice; loader lists, thread-local Windows services, locks requiring kernel objects and full CRT startup remain outstanding.
 
-The Node probe checks five simultaneous allocations from 32 to 200,000 bytes, zeroing, independent contents, freeing, private-heap page release, and Kernel32/legacy-heap routing. The Chromium probe observes 32 zeroed bytes written from a real Wine heap allocation, successful free, and private-heap destruction with NT page release. NT handle/object services remain absent. Wine’s pinned [NT syscall declarations](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/ntdll.spec), [i386 dispatcher](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/signal_i386.c), [virtual-memory implementation](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/virtual.c) and [server protocol](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/server.c) define the integration boundary. Portable native fixtures exercise the same dispatcher ABI in CI without redistributing an installed Wine binary.
+`src/wine-parameters.js` then calls the same guest DLL's
+`RtlInitializeCriticalSectionEx` and `RtlCreateProcessParametersEx`, publishing
+`PEB.FastPebLock` and `PEB.ProcessParameters` before DLL attach. Arguments share
+the existing command-line quoting rules; image/current-directory paths remain
+relative to the virtual package. Stdout/stderr match the browser console provider;
+stdin remains unavailable. `RtlCreateEnvironment` and `RtlSetCurrentEnvironment`
+install an independently allocated empty environment, following Wine's ownership
+rule so later variable changes may safely resize/free it. Host environment
+variables are never copied. Parameter-construction scratch buffers are released,
+and initialization/attach failure restores the published PEB pointers along with the
+new native heap reservations. Guest tests verify recursive locking, command-line
+quoting, missing variables, case-insensitive lookup and environment growth/deletion.
+This does not implement guest threads or contention through kernel wait objects.
+With supplied NLS data, `src/wine-nls-process.js` maps the real CP1252/CP437/case
+tables and calls guest `RtlInitNlsTables` and `RtlResetRtlTranslations`. Its owned
+views and PEB pointers also roll back on failed startup. See [NLS scope](wine-nls.md).
 
-A whole msvcrt integration is relevant to 7zr, but its installed Wine closure includes kernel32, kernelbase and ntdll. Mapping that closure (approximately 4.3 MiB for the inspected build) is feasible; its normal startup now executes through the architecture query and memory allocations through the NLS mapping calls when supplied with verified data, before a later guest read violation. The optional `scripts/probe-wine-crt.mjs` pins all four DLLs and records pre-rollback module state and the exact failure. Kernelbase locale initialization requires real Wine locale/geo, sorting and normalization data mappings; a success stub would immediately yield invalid guest pointers. Process parameters and other NT services remain later prerequisites. The OpenGL32 closure additionally needs User32, GDI and Win32u/Unix driver integration. A small module image or a low import count does not make those services browser-compatible.
+The NT registry adapter (`src/wine-registry.js`) implements create/open/set/query
+and registry-handle close over the same nodes, quotas and access masks as the
+Advapi32 provider. Native creation requires an existing parent; native relative
+paths require an opened handle rather than a Win32 HKEY pseudo root. Value
+queries currently support `KeyValuePartialInformation`, including size probes and
+bounded partial copies. Unsupported attributes, create options and query classes
+return errors. The initial store includes the parent keys normally supplied by a
+Wine registry prefix; it invents no successful locale-value queries.
+
+`NtQueryInformationToken(TokenUser)` exposes one isolated guest user for the
+process/effective-token pseudo handles. Its PE32 `TOKEN_USER` points into the
+caller's own buffer. HKCU aliases that user's node under HKU, so native Wine and
+Advapi32 see the same values. This identity is synthetic and never derived from
+the host account. A thread impersonation token is absent; other token information
+classes and real token handles remain unsupported. No host security boundary or
+authentication operation is represented by these guest identity bytes. The virtual
+process uses UTC with no daylight-saving rules; timezone queries do not inspect
+the host timezone. Basic system information reports the actual guest memory size,
+page/allocation granularity, address bounds and single processor rather than host
+machine resources.
+
+Host imports can declare `convention: 'cdecl'` in their response; the runtime
+pops the return address and leaves arguments for the caller. The default remains
+stdcall. Wine's NT dispatcher retains its own validated wrapper convention.
+Unknown conventions fail explicitly. SIMD coverage includes SSE2
+`PEXTRW r32, xmm, imm8`, including lane masking and zero-extension, which Wine's
+parameter-building string routines execute. SSE2 PADDW supplies wrapping word-lane addition, and scalar BSWAP uses direct Wasm lowering. Unsupported MMX/SSE4.1 variants still fail explicitly.
+
+The Node probe checks five simultaneous allocations from 32 to 200,000 bytes, zeroing, independent contents, freeing, private-heap page release, and Kernel32/legacy-heap routing. The Chromium probe observes 32 zeroed bytes written from a real Wine heap allocation, successful free, and private-heap destruction with NT page release. Registry handles can now be closed through NtClose; other NT handle/object services remain absent. Wine’s pinned [NT syscall declarations](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/ntdll.spec), [i386 dispatcher](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/signal_i386.c), [virtual-memory implementation](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/virtual.c) and [server protocol](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/ntdll/unix/server.c) define the integration boundary. Portable native fixtures exercise the same dispatcher ABI in CI without redistributing an installed Wine binary.
+
+A whole msvcrt integration is relevant to 7zr, but its installed Wine closure includes kernel32, kernelbase and ntdll. Mapping that closure (approximately 4.3 MiB for the inspected build) is feasible; its normal startup now executes through the architecture query and memory allocations through the NLS mapping calls when supplied with verified data, before further NT services needed by locale initialization. The optional `scripts/probe-wine-crt.mjs` pins all four DLLs and records pre-rollback module state and the exact failure. Kernelbase locale initialization requires real Wine locale/geo, sorting and normalization data mappings; a success stub would immediately yield invalid guest pointers. Process parameters now initialize through Wine exports; further NT and loader services remain prerequisites. The OpenGL32 closure additionally needs User32, GDI and Win32u/Unix driver integration. A small module image or a low import count does not make those services browser-compatible.

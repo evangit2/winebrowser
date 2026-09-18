@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-13T00:19:44.030Z",
+  "date": "2026-09-18T21:26:15.898Z",
   "target": {
     "id": "winapiexec-1.2-x86",
     "path": ".cache/targets/winapiexec.exe",
@@ -25,7 +25,7 @@
     "winapiexecPcmPackage": {
       "id": "winapiexec-1.2-x86+generated-pcm-test-data",
       "archive": "winapiexec-pcm.zip",
-      "archiveSha256": "234b6f8a2eb1150fb1a35cecb14ae284ca37f78fb4f3a80c2e78fc67761c7daa",
+      "archiveSha256": "fe7fe4804828ed58c29878e83da4ff8b4f8c6932d4ecab7fc5c717ffc0647591",
       "executableId": "winapiexec-1.2-x86",
       "executablePath": ".cache/targets/winapiexec.exe",
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
@@ -123,7 +123,7 @@
     "wineNtdllPackage": {
       "id": "winapiexec-1.2-x86+verified-wine-ntdll",
       "archive": "winapiexec-wine-ntdll.zip",
-      "archiveSha256": "72c09b9a1375ba79ef746ae70a12fa460a949bc4ffea874fc086b70474fe86a2",
+      "archiveSha256": "b3cc7e41a079f9d944353abbf42d6fb3dfc87b3ff6efbb7b51e8d74b04fcb4db",
       "entries": [
         "winapiexec.exe",
         "ntdll.dll"
@@ -230,7 +230,7 @@
           "initialized": true
         }
       ],
-      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 64.5 ms",
+      "metrics": "154 Wasm blocks · 4523 x86 instructions · 32 API calls · 39.1 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -358,7 +358,7 @@
           "initialized": true
         }
       ],
-      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 117.5 ms",
+      "metrics": "150 Wasm blocks · 7662 x86 instructions · 41 API calls · 27.2 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -434,7 +434,7 @@
           "initialized": true
         }
       ],
-      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 119.2 ms",
+      "metrics": "128 Wasm blocks · 4387 x86 instructions · 14 API calls · 66.3 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "dialog": {
         "title": "External target",
@@ -511,13 +511,13 @@
           "initialized": true
         }
       ],
-      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 64.7 ms",
+      "metrics": "111 Wasm blocks · 1656 x86 instructions · 14 API calls · 1631.6 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…",
       "tone": {
         "frequency": 440,
         "gain": 0.11999999731779099,
-        "start": 0.72,
-        "stop": 0.74,
+        "start": 0,
+        "stop": 0.02,
         "durationMs": 20
       },
       "dialog": null,
@@ -573,7 +573,7 @@
         }
       ],
       "stdout": "",
-      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 46.1 ms",
+      "metrics": "7 Wasm blocks · 18 x86 instructions · 4 API calls · 63.5 ms",
       "expectedTrace": [
         "LoadLibraryA",
         "GetProcAddress",
@@ -606,7 +606,7 @@
         "0x20002"
       ],
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
-      "generatedArchiveSha256": "234b6f8a2eb1150fb1a35cecb14ae284ca37f78fb4f3a80c2e78fc67761c7daa",
+      "generatedArchiveSha256": "fe7fe4804828ed58c29878e83da4ff8b4f8c6932d4ecab7fc5c717ffc0647591",
       "audioFixture": {
         "path": "tone.wav",
         "format": "PCM WAV",
@@ -701,7 +701,7 @@
         "created": true,
         "started": true,
         "ended": true,
-        "startedAt": 2041.4200000017881,
+        "startedAt": 3091.9149999916553,
         "numberOfChannels": 1,
         "sampleRate": 8000,
         "length": 80,
@@ -787,7 +787,7 @@
           0.25,
           -0.25
         ],
-        "endedAt": 2047.2049999982119
+        "endedAt": 3098.6800000071526
       },
       "exitCode": 1,
       "apiTrace": [
@@ -847,14 +847,14 @@
         }
       ],
       "stdout": "",
-      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 78.3 ms",
-      "completedAt": 2058.8500000089407,
+      "metrics": "126 Wasm blocks · 2591 x86 instructions · 15 API calls · 38.3 ms",
+      "completedAt": 3108.5099999904633,
       "bufferSources": [
         {
           "created": true,
           "started": true,
           "ended": true,
-          "startedAt": 2041.4200000017881,
+          "startedAt": 3091.9149999916553,
           "numberOfChannels": 1,
           "sampleRate": 8000,
           "length": 80,
@@ -940,7 +940,7 @@
             0.25,
             -0.25
           ],
-          "endedAt": 2047.2049999982119
+          "endedAt": 3098.6800000071526
         }
       ],
       "checks": [
@@ -1148,7 +1148,7 @@
         "SetPixel",
         "ReleaseDC"
       ],
-      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 58.4 ms",
+      "metrics": "144 Wasm blocks · 12143 x86 instructions · 60 API calls · 34.4 ms",
       "checks": [
         {
           "name": "exit code 1",
@@ -1421,7 +1421,7 @@
           "initialized": true
         }
       ],
-      "metrics": "177 Wasm blocks · 32008 x86 instructions · 114 API calls · 66.6 ms",
+      "metrics": "177 Wasm blocks · 32008 x86 instructions · 114 API calls · 36.2 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "dialog": null,
       "checks": [
@@ -1596,7 +1596,7 @@
           "initialized": true
         }
       ],
-      "metrics": "260 Wasm blocks · 12001 x86 instructions · 48 API calls · 112.6 ms",
+      "metrics": "260 Wasm blocks · 12001 x86 instructions · 48 API calls · 46.8 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "assertedModule": {
         "name": "wine-format.dll",
@@ -1868,7 +1868,7 @@
           255
         ]
       },
-      "metrics": "144 Wasm blocks · 29775 x86 instructions · 141 API calls · 68.6 ms",
+      "metrics": "144 Wasm blocks · 29775 x86 instructions · 141 API calls · 33.4 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "expectedSha256": "0de47aa0956b0ff3f4103256df87b71edd3f60a6cc7080857f6ebe2e616f261d",
       "checks": [
@@ -1976,7 +1976,7 @@
           "initialized": true
         }
       ],
-      "metrics": "371 Wasm blocks · 10087 x86 instructions · 24 API calls · 196.8 ms",
+      "metrics": "464 Wasm blocks · 14354 x86 instructions · 24 API calls · 105.9 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2127,24 +2127,24 @@
         {
           "path": "winebrowser-filetime.bin",
           "bytes": [
-            64,
-            233,
-            188,
-            150,
-            21,
-            67,
+            192,
+            31,
+            129,
+            90,
+            180,
+            71,
             221,
             1
           ]
         }
       ],
-      "metrics": "393 Wasm blocks · 21387 x86 instructions · 49 API calls · 171.7 ms",
+      "metrics": "478 Wasm blocks · 26308 x86 instructions · 49 API calls · 88.5 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
-      "fileTime": "0x01dd431596bce940",
-      "unixMilliseconds": 1789258789332,
+      "fileTime": "0x01dd47b45a811fc0",
+      "unixMilliseconds": 1789766782908,
       "wallClockWindow": {
-        "before": 1789258789134,
-        "after": 1789258789364
+        "before": 1789766782792,
+        "after": 1789766782924
       },
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2276,7 +2276,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "408 Wasm blocks · 17081 x86 instructions · 33 API calls · 174.2 ms",
+      "metrics": "493 Wasm blocks · 21770 x86 instructions · 33 API calls · 69.0 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2493,7 +2493,7 @@
           ]
         }
       ],
-      "metrics": "406 Wasm blocks · 35290 x86 instructions · 65 API calls · 141.6 ms",
+      "metrics": "489 Wasm blocks · 40673 x86 instructions · 65 API calls · 83.3 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "zeroedHeapOutput": {
         "path": "winebrowser-heap-zero.bin",
@@ -2674,7 +2674,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "413 Wasm blocks · 26188 x86 instructions · 46 API calls · 137.6 ms",
+      "metrics": "499 Wasm blocks · 31005 x86 instructions · 46 API calls · 76.0 ms",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…\nLoading x86 decoder…",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2704,7 +2704,7 @@
   "errors": [],
   "selectedExecutable": "winapiexec.exe",
   "crossOriginIsolated": true,
-  "browser": "152.0.7977.84",
+  "browser": "153.0.8010.48",
   "externalRequests": [],
   "shell32": {
     "name": "shell32.dll",

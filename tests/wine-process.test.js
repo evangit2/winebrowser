@@ -6,6 +6,8 @@ import { PROCESS_LAYOUT } from '../src/process-layout.js';
 import { Runtime } from '../src/runtime.js';
 import { parsePE } from '../src/pe.js';
 import { PEB_PROCESS_HEAP, initializeWineProcess } from '../src/wine-process.js';
+import { PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS } from '../src/wine-parameters.js';
+import { PEB_NLS_POINTERS } from '../src/wine-nls-process.js';
 import { processApis } from '../src/win32-process.js';
 
 const fixture = new URL('./fixtures/wine-nt/ntdll.dll', import.meta.url);
@@ -30,7 +32,10 @@ function addHeapExports(module) {
   });
 }
 
-function installStubHeap(runtime) {
+function installStubHeap(
+  runtime,
+  { parameters = false, failParameters = false, nls = false, rejectAttach = false } = {},
+) {
   const initialize = runtime.initializeModules.bind(runtime);
   const originalCall = runtime.callGuest.bind(runtime);
   const modules = new WeakSet();
@@ -39,6 +44,19 @@ function installStubHeap(runtime) {
     const module = this.graph.modules.get('ntdll.dll');
     if (module && !modules.has(module)) {
       addHeapExports(module);
+      if (parameters)
+        [
+          'RtlInitializeCriticalSectionEx',
+          'RtlCreateProcessParametersEx',
+          'RtlCreateEnvironment',
+          'RtlSetCurrentEnvironment',
+        ].forEach((name, i) =>
+          module.pe.exports.push({ name, ordinal: 0x710 + i, rva: 0x200 + i * 4 }),
+        );
+      if (nls)
+        ['RtlInitNlsTables', 'RtlResetRtlTranslations'].forEach((name, i) =>
+          module.pe.exports.push({ name, ordinal: 0x720 + i, rva: 0x300 + i * 4 }),
+        );
       modules.add(module);
     }
     return initialize();
@@ -47,15 +65,36 @@ function installStubHeap(runtime) {
     const module = this.graph.modules.get('ntdll.dll');
     if (module) {
       const exported = module.pe.exports.find((entry) => module.base + entry.rva === address);
+      if (['RtlInitNlsTables', 'RtlResetRtlTranslations'].includes(exported?.name)) return 0;
       if (exported?.name === 'RtlCreateHeap') {
         events.push({ kind: 'create', args, pebHeap: this.read32(PEB_PROCESS_HEAP) });
         const result = this.virtualMemory.allocate(0, 0x1000, 0x3000, 4);
         assert.equal(result.status, 0, 'stub heap obtains a real VM reservation');
         return result.base;
       }
+      if (exported?.name === 'RtlInitializeCriticalSectionEx') {
+        events.push({ kind: 'initialize-lock', args });
+        this.write32(args[0] + 4, 0xffffffff);
+        return 0;
+      }
+      if (exported?.name === 'RtlCreateProcessParametersEx') {
+        events.push({ kind: 'parameters', args });
+        assert.ok(this.read32(PEB_FAST_LOCK));
+        if (failParameters) throw Error('synthetic parameter failure');
+        this.write32(args[0], this.read32(PEB_PROCESS_HEAP) + 128);
+        return 0;
+      }
+      if (exported?.name === 'RtlCreateEnvironment') {
+        this.write32(args[1], this.read32(PEB_PROCESS_HEAP) + 96);
+        return 0;
+      }
+      if (exported?.name === 'RtlSetCurrentEnvironment') {
+        this.write32(this.read32(PEB_PROCESS_PARAMETERS) + 0x48, args[0]);
+        return 0;
+      }
       if (exported?.name === 'RtlAllocateHeap') {
         events.push({ kind: 'allocate', args });
-        return 0x12345678;
+        return parameters ? args[0] + 64 : 0x12345678;
       }
       if (exported?.name === 'RtlFreeHeap') {
         events.push({ kind: 'free', args });
@@ -67,6 +106,7 @@ function installStubHeap(runtime) {
       }
       if (address === module.pe.entryPoint && args[1] === 1) {
         events.push({ kind: 'attach', pebHeap: this.read32(PEB_PROCESS_HEAP) });
+        if (rejectAttach) return 0;
       }
     }
     return originalCall(address, args, convention);
@@ -112,6 +152,8 @@ test('failed RtlCreateHeap restores DLL image bytes and releases only new VM res
   const freed = [];
   const runtime = {
     data,
+    read32: () => 0,
+    write32: () => {},
     virtualMemory: {
       reservations,
       free(address, size, type) {
@@ -189,4 +231,59 @@ test('Wine debug storage does not overwrite process data or the published heap',
   assert.deepEqual(runtime.data.slice(peb, peb + 0x100), before);
   assert.equal(runtime.read32(peb + 8), runtime.pe.imageBase);
   assert.equal(runtime.read32(PEB_PROCESS_HEAP), runtime.wineProcess.heap);
+});
+
+test('parameter initialization failure rolls back the heap, PEB pointers and scratch allocations', async () => {
+  const runtime = await makeRuntime();
+  installStubHeap(runtime, { parameters: true, failParameters: true });
+  const originalAllocations = [...runtime.heap.allocations];
+  const originalReservations = [...runtime.virtualMemory.reservations];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await assert.rejects(runtime.loadLibrary('ntdll.dll'), /synthetic parameter failure/);
+    assert.equal(runtime.wineProcess, undefined);
+    for (const pointer of [PEB_PROCESS_HEAP, PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS])
+      assert.equal(runtime.read32(pointer), 0);
+    assert.deepEqual([...runtime.heap.allocations], originalAllocations);
+    assert.deepEqual([...runtime.virtualMemory.reservations], originalReservations);
+  }
+});
+
+test('rejected DLL attach rolls back successful Wine process parameters', async () => {
+  const dll = new Uint8Array(await readFile(fixture));
+  const pe = parsePE(dll, { allowDll: true });
+  const section = pe.sections.find(
+    (s) => pe.entryPointRva >= s.rva && pe.entryPointRva < s.rva + s.rawSize,
+  );
+  dll.set([0x31, 0xc0, 0xc2, 12, 0], section.rawOffset + pe.entryPointRva - section.rva);
+  const runtime = await makeRuntime(dll);
+  const events = installStubHeap(runtime, { parameters: true });
+  const originalAllocations = [...runtime.heap.allocations];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await assert.rejects(runtime.loadLibrary('ntdll.dll'), /DllMain rejected process attach/);
+    assert.equal(runtime.wineProcess, undefined);
+    for (const pointer of [PEB_PROCESS_HEAP, PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS])
+      assert.equal(runtime.read32(pointer), 0);
+    assert.equal(runtime.virtualMemory.reservations.size, 0);
+    assert.deepEqual([...runtime.heap.allocations], originalAllocations);
+  }
+  assert.equal(events.filter((event) => event.kind === 'parameters').length, 2);
+});
+
+test('rejected attach releases bootstrap NLS views without unmapping unrelated sections', async () => {
+  const runtime = await makeRuntime();
+  runtime.nls.files = new Map(
+    ['c_1252.nls', 'c_437.nls', 'l_intl.nls'].map((name) => [name, Uint8Array.of(1, 2, 3, 4)]),
+  );
+  installStubHeap(runtime, { parameters: true, nls: true, rejectAttach: true });
+  const unrelated = runtime.sectionViews.map(Uint8Array.of(42), { name: 'unrelated' });
+  const allocations = [...runtime.heap.allocations];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await assert.rejects(runtime.loadLibrary('ntdll.dll'), /DllMain rejected process attach/);
+    assert.equal(runtime.wineProcess, undefined);
+    assert.deepEqual([...runtime.sectionViews.views.keys()], [unrelated.base]);
+    assert.equal(runtime.data[unrelated.base], 42);
+    assert.equal(runtime.virtualMemory.reservations.size, 0);
+    assert.deepEqual([...runtime.heap.allocations], allocations);
+    for (const pointer of Object.values(PEB_NLS_POINTERS)) assert.equal(runtime.read32(pointer), 0);
+  }
 });

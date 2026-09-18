@@ -123,6 +123,35 @@ test('MOVDDUP duplicates a memory or XMM low qword into both vector halves', () 
   assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 0, pf: 1 });
 });
 
+test('PEXTRW selects all eight XMM words, masks the immediate, and zero-extends the GPR', () => {
+  const words = [0x0001, 0x8002, 0x0003, 0xffff, 0x4444, 0x5555, 0x6666, 0x7777];
+  const initialFlags = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+  for (const immediate of [...Array(8).keys(), 8, 0xff]) {
+    const { cpu } = machine([0x66, 0x0f, 0xc5, 0xf0, immediate]); // pextrw esi, xmm0, imm8
+    const vector = [0x80020001, 0xffff0003, 0x55554444, 0x77776666];
+    cpu.simd.registers[0].set(vector);
+    cpu.r[6].value = -1;
+    cpu.f = { ...initialFlags };
+
+    cpu.step(CODE);
+
+    assert.equal(cpu.r[6].value >>> 0, words[immediate & 7], `lane ${immediate}`);
+    assert.deepEqual(lanes(cpu), vector, `source XMM remains unchanged for lane ${immediate}`);
+    assert.deepEqual(cpu.f, initialFlags, `flags remain unchanged for lane ${immediate}`);
+  }
+});
+
+test('PEXTRW decodes a nonzero XMM source and a different destination register', () => {
+  const { cpu } = machine([0x66, 0x0f, 0xc5, 0xff, 0x07]); // pextrw edi, xmm7, 7
+  cpu.simd.registers[7].set([1, 2, 3, 0xdeadbeef]);
+  cpu.r[7].value = 0x12340000;
+
+  cpu.step(CODE);
+
+  assert.equal(cpu.r[7].value >>> 0, 0xdead);
+  assert.deepEqual(lanes(cpu, 7), [1, 2, 3, 0xdeadbeef]);
+});
+
 test('MOVDQA, MOVDQU, MOVUPS, and MOVAPS move 128-bit XMM values with required alignment', () => {
   const { cpu, view } = machine([
     0x0f,
@@ -243,6 +272,58 @@ test('PUNPCKLDQ with an aliased source reads both old values before writing', ()
   assert.deepEqual(lanes(cpu), [1, 1, 2, 2]);
 });
 
+test('PADDW adds eight independent words with wraparound and preserves flags', () => {
+  const { cpu } = machine([0x66, 0x0f, 0xfd, 0xc1]); // paddw xmm0, xmm1
+  cpu.simd.registers[0].set([0xffff0001, 0x7fff8000, 0x0000ffff, 0x1234abcd]);
+  cpu.simd.registers[1].set([0x0001ffff, 0x00018000, 0xffff0001, 0xedcc5433]);
+  cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+
+  cpu.step(CODE);
+
+  assert.deepEqual(lanes(cpu), [0, 0x80000000, 0xffff0000, 0]);
+  assert.deepEqual(lanes(cpu, 1), [0x0001ffff, 0x00018000, 0xffff0001, 0xedcc5433]);
+  assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+});
+
+test('PADDW handles an aliased XMM source using each old word', () => {
+  const { cpu } = machine([0x66, 0x0f, 0xfd, 0xc0]); // paddw xmm0, xmm0
+  cpu.simd.registers[0].set([0xffff8000, 0x7fff0001, 0x80018001, 0xffffffff]);
+
+  cpu.step(CODE);
+
+  assert.deepEqual(lanes(cpu), [0xfffe0000, 0xfffe0002, 0x00020002, 0xfffefffe]);
+});
+
+test('PADDW reads a full aligned memory operand before updating the destination', () => {
+  const { cpu, view } = machine([0x66, 0x0f, 0xfd, 0x08]); // paddw xmm1, [eax]
+  cpu.r[0].value = DATA;
+  cpu.simd.registers[1].set([0x0001ffff, 0xffffffff, 0x1234abcd, 0]);
+  for (const [lane, value] of [0xffff0001, 0x00010001, 0xedcc5433, 0x80008000].entries())
+    view.setUint32(DATA + lane * 4, value, true);
+
+  cpu.step(CODE);
+
+  assert.deepEqual(lanes(cpu, 1), [0, 0, 0, 0x80008000]);
+});
+
+test('PADDW memory access enforces alignment and read permission before mutation', () => {
+  const misaligned = machine([0x66, 0x0f, 0xfd, 0x08]); // paddw xmm1, [eax]
+  misaligned.cpu.r[0].value = DATA + 4;
+  misaligned.cpu.simd.registers[1].set([1, 2, 3, 4]);
+  assert.throws(() => misaligned.cpu.step(CODE), /16-byte alignment/);
+  assert.deepEqual(lanes(misaligned.cpu, 1), [1, 2, 3, 4]);
+
+  const denied = machine([0x66, 0x0f, 0xfd, 0x08], {
+    check: (address, size, write) => {
+      if (address === DATA && size === 16 && !write) throw Error('whole PADDW read denied');
+    },
+  });
+  denied.cpu.r[0].value = DATA;
+  denied.cpu.simd.registers[1].set([1, 2, 3, 4]);
+  assert.throws(() => denied.cpu.step(CODE), /whole PADDW read denied/);
+  assert.deepEqual(lanes(denied.cpu, 1), [1, 2, 3, 4]);
+});
+
 test('XMM snapshots are deep copies and restore all vector state', () => {
   const { cpu } = machine([0x90]);
   cpu.simd.registers[7].set([1, 2, 3, 4]);
@@ -259,4 +340,12 @@ test('unsupported floating-point/SSE and MMX instructions still fail explicitly'
   assert.throws(() => float.cpu.step(CODE), /Unsupported instruction/);
   const mmx = machine([0x0f, 0x6f, 0xc1]); // movq mm0, mm1
   assert.throws(() => mmx.cpu.step(CODE), /Unsupported instruction/);
+  const mmxExtract = machine([0x0f, 0xc5, 0xf0, 0x01]); // pextrw esi, mm0, 1
+  assert.throws(() => mmxExtract.cpu.step(CODE), /Unsupported instruction/);
+  const memoryCapableExtract = machine([0x66, 0x0f, 0x3a, 0x15, 0xc0, 0x01]); // SSE4.1 pextrw eax, xmm0, 1
+  assert.throws(() => memoryCapableExtract.cpu.step(CODE), /Unsupported instruction/);
+  const mmxPaddw = machine([0x0f, 0xfd, 0xc1]); // paddw mm0, mm1
+  assert.throws(() => mmxPaddw.cpu.step(CODE), /Unsupported instruction/);
+  const vexPaddw = machine([0xc5, 0xf1, 0xfd, 0xc2]); // vpaddw xmm0, xmm1, xmm2
+  assert.throws(() => vexPaddw.cpu.step(CODE), /Unsupported instruction/);
 });

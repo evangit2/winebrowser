@@ -555,6 +555,30 @@ export class CPU {
                 ...call(Host.bitScan),
               ]),
             );
+          } else if (m === M.Bswap) {
+            if (i.opCount !== 1 || i.opKind(0) !== K.Register || width(i, 0) !== 32)
+              throw Error('BSWAP requires a 32-bit register (16-bit form is undefined)');
+            // Swap bytes within each word, then exchange the two words. Flags are unchanged.
+            code.push(
+              ...operand(i, 0),
+              0x21,
+              0,
+              ...write(i, 0, [
+                ...local(0),
+                ...constant(0x00ff00ff),
+                0x71,
+                ...constant(8),
+                0x74,
+                ...local(0),
+                ...constant(8),
+                0x76,
+                ...constant(0x00ff00ff),
+                0x71,
+                0x72,
+                ...constant(16),
+                0x77,
+              ]),
+            );
           } else if ([M.Bt, M.Bts, M.Btr, M.Btc].includes(m)) {
             if (i.opCount !== 2 || i.opKind(0) !== K.Register)
               throw Error('Memory bitstring operations unsupported');

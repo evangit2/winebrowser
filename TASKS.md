@@ -1,8 +1,7 @@
 # WineBrowser task list
 
-Work stopped at the owner's request on 2026-09-18. The remaining items below
-are a backlog, not scheduled work. General Windows application compatibility
-is **not complete**.
+Development resumed on 2026-09-18. The remaining items below are the working
+backlog. General Windows application and DirectX compatibility is **not complete**.
 
 ## Done and verified
 
@@ -24,19 +23,24 @@ is **not complete**.
 - [x] Finish the current Wine NLS mapping boundary: supplied real data, read-only sections, unmap, locale queries and missing-data errors. The optional installed-Wine probe passes the former missing NLS calls and records the next failure.
 - [x] Fix the Wine i386 debug-buffer/PEB overlap; retain guest state in CRT failure evidence before module rollback.
 - [x] Recheck current DirectWebGPU graphics reuse and document the WineD3D integration path, licensing boundaries and separate DX12 requirements in [graphics handoff](docs/graphics-handoff.md).
+- [x] Bootstrap the PEB lock, normalized process parameters and a separately owned environment using unchanged Wine exports; verify recursive locks, quoting, environment resize/query/delete and failed-load rollback.
+- [x] Support explicit cdecl host imports, BSWAP and SSE2 PEXTRW/PADDW used by Wine startup.
+- [x] Share native NT registry keys/values with Advapi32, enforce native parent/handle semantics, and map Wine current-user queries to the same isolated HKCU node.
+- [x] Initialize Wine code-page and Unicode-case tables from supplied real NLS files through guest exports; verify CP1252/CP437 conversions and rollback ownership.
+- [x] Report guest-sized basic system information and a stable UTC timezone through the NT information-query boundary.
 - [x] Keep code split by runtime service, with tests and an intentionally plain test harness.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine startup:** initialize `PEB.FastPebLock` and process parameters/environment using Wine-compatible structures and ownership. The previous `0x58494e69` failure came from Wine's debug ring overwriting the PEB; after separating them, `RtlEnterCriticalSection` receives a null lock and faults at `0x14`. See [recorded probe](evidence/wine-crt-results.json). This is the next observed blocker, not a complete list of CRT dependencies.
-- [ ] Complete Wine process initialization, including ACP/OEM/case-table PEB pointers, process parameters, locale/timezone/registry services and further NT calls as demonstrated by real guest execution.
+- [ ] **Wine startup:** finish the NT registry, locale and loader services reached by the real CRT closure. Process lock/parameter initialization now passes; [the recorded probe](evidence/wine-crt-results.json) identifies the next observed blocker, not a complete dependency list.
+- [ ] Complete Wine process initialization, including ACP/OEM/case-table PEB pointers, locale/timezone/registry services and further NT calls as demonstrated by real guest execution.
+- [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
 - [ ] Expand CPU coverage for floating point, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.
 - [ ] Run more unchanged desktop targets, starting with Minesweeper (32 unresolved imports at the last inspection); implement reusable dialog/menu/common-control/GDI services where Wine reuse is feasible.
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
 - [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. First establish a Wine-derived D3D9 device/Clear/Present path with an independent unchanged EXE; then resources, shaders and draws. See [graphics handoff](docs/graphics-handoff.md).
-- [ ] Add explicit cdecl host-import dispatch before adapting WineD3D/UCRT exports; direct guest cdecl calls already exist but do not solve host thunk stack cleanup.
 - [ ] Treat D3D10/11 and DX12/DXGI/vkd3d as additional compatibility milestones. DX12 command lists, descriptors, barriers and x64 game execution are not delivered by a D3D9 renderer. No all-games or instant-startup claim is supported.
 - [ ] Expand audio beyond synchronous PCM, and add networking and other OS services with explicit browser constraints.
 - [ ] Persist registry and application-file overlays between runs; support reopening saved applications.
@@ -47,7 +51,7 @@ is **not complete**.
 - [Live harness](https://evangit2.github.io/winebrowser/): Load tetris or Load breakout, then Run executable.
 - [Tetris browser evidence](evidence/tetris-browser.json), [window evidence](evidence/windows-browser-results.json), [external executable evidence](evidence/external-browser-results.json).
 - [Target catalog](tests/targets.json), [static blockers](evidence/target-blockers.json), [architecture](docs/architecture.md), [NLS scope](docs/wine-nls.md).
-- `npm test`: 186 passing tests at this wrap-up.
+- `npm test`: 218 passing tests at the current verified milestone.
 - `npm run test:browser`, `npm run test:controls`, `npm run test:external`.
 - Pages server: `WINEBROWSER_BASE_PATH=/winebrowser/ npm run build`, then `npm run serve:pages`.
 - Against that server: `npm run test:pages`, `npm run test:windows`, `npm run test:tetris`.

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-18T17:36:29.851Z",
+  "date": "2026-09-18T21:40:53.779Z",
   "status": "blocked-startup",
   "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
   "nls": {
@@ -7598,44 +7598,61 @@
       "ntdll.dll!NtAllocateVirtualMemory",
       "ntdll.dll!NtInitializeNlsFiles",
       "ntdll.dll!NtGetNlsSectionPtr",
-      "ntdll.dll!NtQueryDefaultLocale"
+      "ntdll.dll!NtQueryDefaultLocale",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtQuerySystemInformation"
     ],
-    "blocks": 1522
+    "blocks": 11686
   },
   "firstFailure": {
     "phase": "guest x86 execution",
     "error": {
       "name": "Error",
-      "message": "Guest read violation at 0x14 (4 bytes)"
+      "message": "Guest read violation at 0x4 (4 bytes)"
     },
-    "instructionPointer": "0x1331b00",
+    "instructionPointer": "0x1336b40",
     "recentInstructionPointers": [
-      "0x134df20",
-      "0x134df3a",
-      "0x134de20",
-      "0x134de41",
-      "0x134deac",
-      "0x134deb0",
-      "0x134df45",
-      "0x134e0a8",
-      "0x134e017",
-      "0x13814b4",
-      "0x13814c9",
-      "0x133efeb",
-      "0x133ef47",
-      "0x133ef54",
-      "0x133eff0",
-      "0x1331b00"
+      "0x133bb7d",
+      "0x134282a",
+      "0x1014eda",
+      "0x100fdc8",
+      "0x109f4b0",
+      "0x10a2fb0",
+      "0x1342e00",
+      "0x1342bf0",
+      "0x1342c0a",
+      "0x1342c13",
+      "0x1342c70",
+      "0x1342c8d",
+      "0x1342e21",
+      "0x1342e2b",
+      "0x10ef8a0",
+      "0x1336b40"
     ],
     "registers": {
       "eax": "0x0",
-      "ecx": "0xa",
-      "edx": "0x2e00000",
-      "ebx": "0x0",
-      "esp": "0x3ffebfc",
-      "ebp": "0x3ffec04",
-      "esi": "0x3ffec5c",
-      "edi": "0x22eb69c"
+      "ecx": "0x1123c80",
+      "edx": "0x1",
+      "ebx": "0x1123ca0",
+      "esp": "0x3ffedcc",
+      "ebp": "0x3ffedd8",
+      "esi": "0x20004a8",
+      "edi": "0x0"
     },
     "modulesAtFailure": [
       {
@@ -7660,7 +7677,7 @@
         "base": 17235968,
         "preferredBase": 2063597568,
         "refs": 0,
-        "initialized": false
+        "initialized": true
       },
       {
         "name": "ntdll.dll",
@@ -7679,7 +7696,7 @@
         "initialized": false
       }
     ],
-    "blocks": 1519
+    "blocks": 11680
   },
   "scope": "Optional probe of the whole unmodified installed Wine DLL closure rooted at msvcrt.dll. It performs Runtime.loadLibrary only; successful closure loading is not application execution or general CRT compatibility.",
   "sources": [

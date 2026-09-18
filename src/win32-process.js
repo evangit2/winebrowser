@@ -1,3 +1,5 @@
+import { processCommandLine } from './command-line.js';
+export { quoteArgument } from './command-line.js';
 import { encodeAnsi, decodeAnsi } from './encoding.js';
 // Browser host services needed by ordinary PE startup and Wine's guest helpers.
 // This file owns no guest instruction execution or PE parsing.
@@ -17,10 +19,6 @@ function writeString(r, address, value, wide = false) {
       wide ? 2 : 1,
     );
   return address;
-}
-export function quoteArgument(value) {
-  if (value && !/[\s"]/u.test(value)) return value;
-  return '"' + value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1') + '"';
 }
 function moduleHandle(r, a, wide) {
   if (!a(0)) return ok(r.pe.imageBase, 1);
@@ -82,7 +80,7 @@ async function heapFree(r, a) {
 }
 function commandLine(r, wide) {
   const name = wide ? 'commandLineW' : 'commandLineA';
-  r[name] ??= r.allocString([r.exe, ...r.args].map(quoteArgument).join(' '), wide);
+  r[name] ??= r.allocString(processCommandLine(r), wide);
   return ok(r[name]);
 }
 function moduleFilename(r, a, wide) {

@@ -1,8 +1,12 @@
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { PEB_PROCESS_HEAP, PROCESS_LAYOUT } from '../src/process-layout.js';
+import { PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS } from '../src/wine-parameters.js';
+import { PROCESS_USER_SID } from '../src/process-identity.js';
+import { PEB_NLS_POINTERS } from '../src/wine-nls-process.js';
 import { Runtime } from '../src/runtime.js';
 
 // Optional test of an entire, unmodified installed Wine DLL. It is not bundled
@@ -14,10 +18,25 @@ if (!dllPath)
 const bytes = new Uint8Array(await readFile(dllPath));
 const sha256 = createHash('sha256').update(bytes).digest('hex');
 assert.equal(sha256, expectedSha256, 'installed Wine DLL must match the recorded build');
+const nlsDirectory = process.argv[3] || process.env.WINEBROWSER_NLS_DIR;
+const nlsFiles = new Map();
+const nlsEvidence = [];
+if (nlsDirectory) {
+  const manifest = JSON.parse(await readFile('runtime/wine/nls-probe-manifest.json', 'utf8'));
+  for (const name of ['c_1252.nls', 'c_437.nls', 'l_intl.nls']) {
+    const data = new Uint8Array(await readFile(path.join(nlsDirectory, name)));
+    const hash = createHash('sha256').update(data).digest('hex');
+    assert.equal(hash, manifest.files[name].sha256, `NLS hash ${name}`);
+    assert.equal(data.length, manifest.files[name].bytes, `NLS length ${name}`);
+    nlsFiles.set(name, data);
+    nlsEvidence.push({ name, bytes: data.length, sha256: hash });
+  }
+}
 const exe = 'console.exe';
 const report = {
   date: new Date().toISOString(),
   dll: { name: 'ntdll.dll', sha256, bytes: bytes.length },
+  nls: nlsEvidence,
   scope:
     'Whole unmodified Wine DLL: real process attach and selected pure exports. Includes NT clocks, virtual memory and the native Wine heap; not general application compatibility.',
   cases: [],
@@ -26,12 +45,172 @@ const runtime = new Runtime(iced, {
   files: new Map([[exe, new Uint8Array(await readFile('public/demos/console/console.exe'))]]),
   exe,
   builtinFiles: new Map([['ntdll.dll', bytes]]),
+  args: ['argument with spaces', ''],
+  nlsFiles,
 });
 try {
   await runtime.loadLibrary('ntdll.dll');
   const module = runtime.graph.modules.get('ntdll.dll');
   assert.ok(module.initialized && module.mapped);
   report.modules = runtime.graph.describe();
+  if (nlsFiles.size) {
+    assert.equal(runtime.wineProcess.nls.initialized, true);
+    for (const pointer of Object.values(PEB_NLS_POINTERS)) {
+      const base = runtime.read32(pointer);
+      assert.ok(runtime.sectionViews.views.has(base));
+      assert.throws(() => runtime.write32(base, 0), /write violation/);
+    }
+    assert.equal(runtime.read32(await runtime.resolveExport(module, 'NlsAnsiCodePage')), 1252);
+    const upcase = await runtime.resolveExport(module, 'RtlUpcaseUnicodeChar');
+    assert.equal(await runtime.callGuest(upcase, [0x00e9]), 0x00c9);
+    const input = runtime.allocate(1),
+      output = runtime.allocate(2),
+      length = runtime.allocate(4);
+    runtime.data[input] = 0x80;
+    const convert = await runtime.resolveExport(module, 'RtlMultiByteToUnicodeN');
+    assert.equal(await runtime.callGuest(convert, [output, 2, length, input, 1]), 0);
+    assert.equal(runtime.read32(length), 2);
+    assert.equal(runtime.view.getUint16(output, true), 0x20ac);
+    runtime.data[input] = 0x82;
+    const convertOem = await runtime.resolveExport(module, 'RtlOemToUnicodeN');
+    assert.equal(await runtime.callGuest(convertOem, [output, 2, length, input, 1]), 0);
+    assert.equal(runtime.view.getUint16(output, true), 0x00e9);
+
+    report.cases.push({
+      export:
+        'RtlInitNlsTables/RtlResetRtlTranslations/RtlUpcaseUnicodeChar/RtlMultiByteToUnicodeN',
+      ansiCodePage: 1252,
+      oemCodePage: 437,
+      unicodeCaseMapping: true,
+      euroByteConverted: true,
+      immutableTables: true,
+      passed: true,
+    });
+  }
+  const parameters = runtime.read32(PEB_PROCESS_PARAMETERS);
+  const lock = runtime.read32(PEB_FAST_LOCK);
+  assert.equal(parameters, runtime.wineProcess.parameters);
+  assert.equal(lock, runtime.wineProcess.lock);
+  assert.equal(runtime.read32(parameters + 8), 1, 'normalized process parameters');
+  assert.equal(runtime.read32(parameters + 0x1c), 1, 'stdout matches the browser console');
+  assert.equal(runtime.read32(parameters + 0x20), 2, 'stderr matches the browser console');
+  assert.equal(runtime.wideString(runtime.read32(parameters + 0x3c)), exe);
+  assert.equal(
+    runtime.wideString(runtime.read32(parameters + 0x44)),
+    'console.exe "argument with spaces" ""',
+  );
+  const commandLine = runtime.apiProvider.get('kernel32.dll!GetCommandLineW')(runtime).result;
+  assert.equal(
+    runtime.wideString(commandLine),
+    runtime.wideString(runtime.read32(parameters + 0x44)),
+  );
+  assert.equal(runtime.wideString(runtime.read32(parameters + 0x48)), '');
+  const environmentSize = await runtime.callGuest(
+    await runtime.resolveExport(module, 'RtlSizeHeap'),
+    [runtime.wineProcess.heap, 0, runtime.read32(parameters + 0x48)],
+  );
+  assert.ok(
+    environmentSize >= 2 && environmentSize < 64,
+    'environment is its own valid Wine heap allocation',
+  );
+  const acquireLock = await runtime.resolveExport(module, 'RtlAcquirePebLock');
+  const releaseLock = await runtime.resolveExport(module, 'RtlReleasePebLock');
+  await runtime.callGuest(acquireLock, []);
+  await runtime.callGuest(acquireLock, []);
+  assert.equal(runtime.read32(lock + 8), 2, 'recursive acquisition is guest Wine behavior');
+  assert.equal(runtime.read32(lock + 12), 1, 'TEB thread identity owns the lock');
+  await runtime.callGuest(releaseLock, []);
+  await runtime.callGuest(releaseLock, []);
+  assert.equal(runtime.read32(lock + 4), 0xffffffff);
+  assert.equal(runtime.read32(lock + 8), 0);
+  const name = runtime.allocString('WINEBROWSER_ABSENT', true);
+  const queryName = runtime.allocate(8);
+  runtime.guestMemory.write(queryName, 17 * 2, 2);
+  runtime.guestMemory.write(queryName + 2, 18 * 2, 2);
+  runtime.write32(queryName + 4, name);
+  const queryValue = runtime.allocate(8);
+  const queryEnvironment = await runtime.resolveExport(module, 'RtlQueryEnvironmentVariable_U');
+  assert.equal(await runtime.callGuest(queryEnvironment, [0, queryName, queryValue]), 0xc0000100);
+  assert.equal(runtime.read32(lock + 8), 0, 'environment lookup releases the PEB lock');
+  const setEnvironment = await runtime.resolveExport(module, 'RtlSetEnvironmentVariable');
+  const unicode = (value) => {
+    const descriptor = runtime.allocate(8);
+    runtime.guestMemory.write(descriptor, value.length * 2, 2);
+    runtime.guestMemory.write(descriptor + 2, (value.length + 1) * 2, 2);
+    runtime.write32(descriptor + 4, runtime.allocString(value, true));
+    return descriptor;
+  };
+  const environmentName = unicode('WineBrowser_Value');
+  const environmentQueryName = unicode('winebrowser_value');
+  const valueBuffer = runtime.allocate(1024);
+  runtime.guestMemory.write(queryValue + 2, 1024, 2);
+  runtime.write32(queryValue + 4, valueBuffer);
+  for (const value of ['déjà vu ✓', 'longer environment value '.repeat(10)]) {
+    assert.equal(await runtime.callGuest(setEnvironment, [0, environmentName, unicode(value)]), 0);
+    assert.equal(
+      await runtime.callGuest(queryEnvironment, [0, environmentQueryName, queryValue]),
+      0,
+    );
+    assert.equal(runtime.wideString(valueBuffer), value);
+  }
+  assert.equal(await runtime.callGuest(setEnvironment, [0, environmentName, 0]), 0);
+  assert.equal(
+    await runtime.callGuest(queryEnvironment, [0, environmentQueryName, queryValue]),
+    0xc0000100,
+  );
+  assert.equal(
+    runtime.wideString(runtime.read32(parameters + 0x44)),
+    'console.exe "argument with spaces" ""',
+  );
+
+  report.cases.push({
+    export:
+      'RtlCreateProcessParametersEx/RtlAcquirePebLock/RtlReleasePebLock/RtlQueryEnvironmentVariable_U',
+    normalizedParameters: true,
+    quotedCommandLine: true,
+    isolatedEmptyEnvironment: true,
+    independentlyOwnedEnvironment: true,
+    environmentSetGrowQueryDelete: true,
+    recursiveLockOwnership: true,
+    missingVariableStatus: '0xc0000100',
+    passed: true,
+  });
+  const tokenBuffer = runtime.allocate(80);
+  const tokenLength = runtime.allocate(4);
+  const queryToken = await runtime.resolveExport(module, 'NtQueryInformationToken');
+  assert.equal(
+    await runtime.callGuest(queryToken, [0xfffffffa, 1, tokenBuffer, 80, tokenLength]),
+    0,
+  );
+  assert.equal(runtime.read32(tokenLength), 36);
+  const validSid = await runtime.resolveExport(module, 'RtlValidSid');
+  assert.equal((await runtime.callGuest(validSid, [runtime.read32(tokenBuffer)])) & 255, 1);
+  const currentUserPath = runtime.allocate(8);
+  const formatUserPath = await runtime.resolveExport(module, 'RtlFormatCurrentUserKeyPath');
+  assert.equal(await runtime.callGuest(formatUserPath, [currentUserPath]), 0);
+  assert.equal(
+    runtime.wideString(runtime.read32(currentUserPath + 4)),
+    '\\Registry\\User\\' + PROCESS_USER_SID,
+  );
+  await runtime.callGuest(await runtime.resolveExport(module, 'RtlFreeUnicodeString'), [
+    currentUserPath,
+  ]);
+  const userKey = runtime.allocate(4);
+  const openCurrentUser = await runtime.resolveExport(module, 'RtlOpenCurrentUser');
+  assert.equal(await runtime.callGuest(openCurrentUser, [1, userKey]), 0);
+  assert.equal(
+    await runtime.callGuest(await runtime.resolveExport(module, 'NtClose'), [
+      runtime.read32(userKey),
+    ]),
+    0,
+  );
+  report.cases.push({
+    export:
+      'NtQueryInformationToken/RtlValidSid/RtlFormatCurrentUserKeyPath/RtlOpenCurrentUser/NtClose',
+    isolatedUserSid: PROCESS_USER_SID,
+    currentUserHiveOpened: true,
+    passed: true,
+  });
   // Exercise the unchanged Wine helper that originally overwrote our PEB.
   const debugString = await runtime.resolveExport(module, '__wine_dbg_strdup');
   const pebBefore = runtime.data.slice(PROCESS_LAYOUT.peb, PROCESS_LAYOUT.peb + 0x100);

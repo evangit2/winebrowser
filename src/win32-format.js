@@ -14,7 +14,11 @@ async function format(r, a, wide, variadic) {
     address = await r.resolveExport(module, symbol);
     r.wineFormatExports.set(symbol, address);
   }
-  return { result: await r.callGuest(address, args), argc: variadic ? 0 : 3 };
+  return {
+    result: await r.callGuest(address, args),
+    argc: variadic ? 0 : 3,
+    convention: variadic ? 'cdecl' : 'stdcall',
+  };
 }
 export const formatApis = {};
 for (const wide of [false, true]) {

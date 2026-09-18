@@ -20,6 +20,9 @@ export const SIMD_OP = Object.freeze({
   PSHUFD_XMM_MEM: 18,
   MOVDDUP_XMM_XMM: 19,
   MOVDDUP_XMM_MEM: 20,
+  PEXTRW_GPR_XMM: 21,
+  PADDW_XMM_XMM: 22,
+  PADDW_XMM_MEM: 23,
 });
 
 const ALIGNED_MOVES = new Set(['Movdqa', 'Movaps']);
@@ -147,7 +150,8 @@ export function classifySse(instruction, iced) {
     }
     case C.Punpckldq_xmm_xmmm128:
     case C.Punpcklqdq_xmm_xmmm128:
-    case C.Pxor_xmm_xmmm128: {
+    case C.Pxor_xmm_xmmm128:
+    case C.Paddw_xmm_xmmm128: {
       const dst = xmm(0);
       if (dst === null) return null;
       const src = source(1, mem128);
@@ -157,7 +161,9 @@ export function classifySse(instruction, iced) {
           ? [SIMD_OP.PUNPCKLDQ_XMM_XMM, SIMD_OP.PUNPCKLDQ_XMM_MEM]
           : instruction.mnemonic === iced.Mnemonic.Punpcklqdq
             ? [SIMD_OP.PUNPCKLQDQ_XMM_XMM, SIMD_OP.PUNPCKLQDQ_XMM_MEM]
-            : [SIMD_OP.PXOR_XMM_XMM, SIMD_OP.PXOR_XMM_MEM];
+            : instruction.mnemonic === iced.Mnemonic.Pxor
+              ? [SIMD_OP.PXOR_XMM_XMM, SIMD_OP.PXOR_XMM_MEM]
+              : [SIMD_OP.PADDW_XMM_XMM, SIMD_OP.PADDW_XMM_MEM];
       return {
         op: src.memory ? operation[1] : operation[0],
         dst,
@@ -178,6 +184,18 @@ export function classifySse(instruction, iced) {
         addressOperand: src.memory ? 1 : -1,
         immediate: instruction.immediate8,
         aligned: src.memory,
+      };
+    }
+    case C.Pextrw_r32_xmm_imm8: {
+      const dst = gpr(0);
+      const src = xmm(1);
+      if (dst === null || src === null || instruction.opKind(2) !== K.Immediate8) return null;
+      return {
+        op: SIMD_OP.PEXTRW_GPR_XMM,
+        dst,
+        src,
+        addressOperand: -1,
+        immediate: instruction.immediate8,
       };
     }
     default:
@@ -292,6 +310,17 @@ export class SIMDState {
         for (let lane = 0; lane < 4; lane++) d[lane] ^= value[lane];
         return;
       }
+      case SIMD_OP.PADDW_XMM_XMM:
+      case SIMD_OP.PADDW_XMM_MEM: {
+        const value = op === SIMD_OP.PADDW_XMM_MEM ? load(16) : s;
+        for (let lane = 0; lane < 4; lane++) {
+          const left = d[lane],
+            right = value[lane];
+          d[lane] =
+            (((left + right) & 0xffff) | ((((left >>> 16) + (right >>> 16)) & 0xffff) << 16)) >>> 0;
+        }
+        return;
+      }
       case SIMD_OP.PSHUFD_XMM_XMM:
         d.set(Array.from({ length: 4 }, (_, lane) => s[(immediate >>> (lane * 2)) & 3]));
         return;
@@ -306,6 +335,11 @@ export class SIMDState {
       case SIMD_OP.MOVDDUP_XMM_MEM: {
         const value = load(8);
         d.set([value[0], value[1], value[0], value[1]]);
+        return;
+      }
+      case SIMD_OP.PEXTRW_GPR_XMM: {
+        const lane = immediate & 7;
+        this.generalRegisters[dst].value = (s[lane >>> 1] >>> ((lane & 1) * 16)) & 0xffff;
         return;
       }
       default:
