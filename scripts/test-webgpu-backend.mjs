@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
+import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 
 const server = await createServer({
   base: '/',
@@ -12,11 +13,7 @@ let browser;
 try {
   await server.listen();
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
-  browser = await chromium.launch({
-    channel: process.env.BROWSER_CHANNEL || 'chrome',
-    headless: true,
-    args: ['--enable-unsafe-webgpu'],
-  });
+  browser = await chromium.launch(webgpuBrowserOptions);
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));

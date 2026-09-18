@@ -2,12 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
+import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 
 const url = process.env.WINEBROWSER_TEST_URL || 'http://127.0.0.1:4193/winebrowser/';
-const browser = await chromium.launch({
-  channel: process.env.BROWSER_CHANNEL || 'chrome',
-  args: ['--enable-unsafe-webgpu'],
-});
+const browser = await chromium.launch(webgpuBrowserOptions);
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
   const errors = [];
