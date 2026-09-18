@@ -1,0 +1,1268 @@
+{
+  "date": "2026-09-18T22:35:16.335Z",
+  "status": "blocked-guest",
+  "scope": "Optional diagnostic of a source-built Wine loader bridge with pinned installed CRT DLLs. No EXE entry point runs. After-attach loader metadata synchronization is not implemented; no general application support is claimed.",
+  "operation": "map full msvcrt closure; process bootstrap; source loader registration; kernelbase dynamic TLS; normal DLL attach",
+  "inputs": {
+    "manifest": ".cache/wine-loader/manifest.json",
+    "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+    "nlsDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls",
+    "dlls": [
+      {
+        "name": "ntdll.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/d7af04ba4da472f91071bc7e703f558b5c1a0ad0f50efdb7c70132414b29e9f4/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3780616,
+        "sha256": "fb802fc6ff74dc940a41126b22c237a30930628b5e1e288d395a73c785bfbc64"
+      },
+      {
+        "name": "msvcrt.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msvcrt.dll",
+        "bytes": 679950,
+        "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernel32.dll",
+        "bytes": 397326,
+        "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernelbase.dll",
+        "bytes": 2703374,
+        "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+      }
+    ],
+    "nls": [
+      {
+        "name": "locale.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/locale.nls",
+        "bytes": 794914,
+        "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+      },
+      {
+        "name": "sortdefault.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/sortdefault.nls",
+        "bytes": 3380468,
+        "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+      },
+      {
+        "name": "l_intl.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/l_intl.nls",
+        "bytes": 5564,
+        "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+      },
+      {
+        "name": "normnfc.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/normnfc.nls",
+        "bytes": 60194,
+        "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+      },
+      {
+        "name": "c_1252.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_1252.nls",
+        "bytes": 66082,
+        "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+      },
+      {
+        "name": "c_437.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_437.nls",
+        "bytes": 66594,
+        "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+      },
+      {
+        "name": "c_20127.nls",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_20127.nls",
+        "bytes": 66082,
+        "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
+      }
+    ],
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+    "patchSha256": "d7af04ba4da472f91071bc7e703f558b5c1a0ad0f50efdb7c70132414b29e9f4",
+    "executable": {
+      "name": "console.exe",
+      "sha256": "9b7849f5321c97af70c9fda2c1f531e7968592dd8f8999dff534020bfceaf6d9",
+      "bytes": 6834
+    }
+  },
+  "phases": [
+    {
+      "name": "input integrity",
+      "passed": true
+    },
+    {
+      "name": "map full guest closure",
+      "modules": [
+        {
+          "name": "console.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "host": false,
+          "base": 17235968,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "host": false,
+          "base": 19988480,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "host": false,
+          "base": 23527424,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "Wine process heap, parameters and NLS bootstrap",
+      "heap": "0x2000000",
+      "passed": true
+    },
+    {
+      "name": "source loader registration before DLL attach",
+      "moduleCount": 5,
+      "status": "0x0",
+      "passed": true
+    },
+    {
+      "name": "kernelbase dynamic TLS before DLL attach",
+      "allocations": 65,
+      "inlineSlots": 62,
+      "expansionSlots": 3,
+      "reused": 1,
+      "passed": true
+    }
+  ],
+  "nlsRequests": [
+    {
+      "name": "NtInitializeNlsFiles",
+      "arguments": [
+        67103856,
+        20629224,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "arguments": [
+        9,
+        0,
+        0,
+        67104100,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "arguments": [
+        12,
+        1,
+        0,
+        17966172,
+        67103932
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "arguments": [
+        11,
+        20127,
+        0,
+        67102204,
+        67102208
+      ],
+      "result": "0x0"
+    }
+  ],
+  "recentNtCalls": [
+    {
+      "name": "NtOpenKeyEx",
+      "arguments": [
+        67103364,
+        983359,
+        67102888,
+        0
+      ],
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "arguments": [
+        67103732,
+        131097,
+        67103344,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "arguments": [
+        102,
+        67104272,
+        432,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "arguments": [
+        67103828,
+        983103,
+        67103440,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateKey",
+      "arguments": [
+        67103936,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "arguments": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        10
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "arguments": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        8
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "arguments": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        12
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "arguments": [
+        1358954502
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "arguments": [
+        0,
+        17043648,
+        44,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "arguments": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "result": "0x0",
+      "protection": {
+        "basePointer": "0x3ffef80",
+        "base": "0x1042668",
+        "sizePointer": "0x3ffef84",
+        "size": 4,
+        "newProtection": "0x4",
+        "oldProtectionPointer": "0x3ffefc8",
+        "mappedModule": {
+          "name": "kernel32.dll",
+          "offset": "0x42668"
+        },
+        "mappedSection": {
+          "name": ".edata",
+          "rva": "0x42668",
+          "characteristics": "0x40000040"
+        },
+        "regions": [
+          {
+            "start": "0x1000000",
+            "end": "0x1062000",
+            "kind": "image-reservation",
+            "module": "kernel32.dll",
+            "read": false,
+            "write": false,
+            "exec": false
+          },
+          {
+            "start": "0x1042000",
+            "end": "0x104e000",
+            "kind": null,
+            "module": "kernel32.dll",
+            "read": true,
+            "write": false,
+            "exec": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "arguments": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "result": "0x0",
+      "protection": {
+        "basePointer": "0x3ffef80",
+        "base": "0x1042668",
+        "sizePointer": "0x3ffef84",
+        "size": 4,
+        "newProtection": "0x2",
+        "oldProtectionPointer": "0x3ffefc8",
+        "mappedModule": {
+          "name": "kernel32.dll",
+          "offset": "0x42668"
+        },
+        "mappedSection": {
+          "name": ".edata",
+          "rva": "0x42668",
+          "characteristics": "0x40000040"
+        },
+        "regions": [
+          {
+            "start": "0x1000000",
+            "end": "0x1062000",
+            "kind": "image-reservation",
+            "module": "kernel32.dll",
+            "read": false,
+            "write": false,
+            "exec": false
+          },
+          {
+            "start": "0x1042000",
+            "end": "0x1043000",
+            "kind": null,
+            "module": "kernel32.dll",
+            "read": true,
+            "write": true,
+            "exec": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "arguments": [
+        4294967295,
+        67104504,
+        0,
+        67104656,
+        8192,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "arguments": [
+        4294967295,
+        67104504,
+        0,
+        67104660,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "arguments": [
+        4294967295,
+        38863968,
+        0,
+        67104624,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "arguments": [
+        11,
+        20127,
+        0,
+        67102204,
+        67102208
+      ],
+      "result": "0x0"
+    }
+  ],
+  "firstFailure": {
+    "phase": "normal DLL initialization after source registration",
+    "error": {
+      "name": "Error",
+      "message": "Unsupported Wine NT service NtWow64IsProcessorFeaturePresent"
+    },
+    "instructionPointer": "0x131e0e4",
+    "recentInstructionPointers": [
+      "0x169d6af",
+      "0x133c480",
+      "0x133c510",
+      "0x133c505",
+      "0x169d6c1",
+      "0x16988b3",
+      "0x1698832",
+      "0x16bc5e1",
+      "0x167ac7e",
+      "0x167ac86",
+      "0x16bc600",
+      "0x100de94",
+      "0x10a5370",
+      "0x133b8e0",
+      "0x131e0a4",
+      "0x131e0e4"
+    ],
+    "registers": {
+      "eax": "0x104",
+      "ecx": "0x25109b4",
+      "edx": "0x131e0e4",
+      "ebx": "0x1",
+      "esp": "0x3ffef90",
+      "ebp": "0x3ffef9c",
+      "esi": "0x0",
+      "edi": "0x0"
+    },
+    "stackWords": [
+      20046000,
+      20166897,
+      10,
+      67104680,
+      17453956,
+      10,
+      67104692,
+      23840275,
+      10,
+      67104748,
+      23571601,
+      23527424
+    ],
+    "pebTlsBitmap": 20628856,
+    "pebTlsExpansionBitmap": 20628848,
+    "modules": [
+      {
+        "name": "console.exe",
+        "host": false,
+        "base": 4194304,
+        "preferredBase": 4194304,
+        "refs": 0,
+        "initialized": false
+      },
+      {
+        "name": "kernel32.dll",
+        "host": false,
+        "base": 16777216,
+        "preferredBase": 2071986176,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "kernelbase.dll",
+        "host": false,
+        "base": 17235968,
+        "preferredBase": 2063597568,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "ntdll.dll",
+        "host": false,
+        "base": 19988480,
+        "preferredBase": 2076180480,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "msvcrt.dll",
+        "host": false,
+        "base": 23527424,
+        "preferredBase": 268435456,
+        "refs": 1,
+        "initialized": false
+      }
+    ],
+    "apiTrace": [
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtQueryValueKey",
+      "ntdll.dll!NtQueryValueKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtQueryInformationProcess",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtInitializeNlsFiles",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtQueryDefaultLocale",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtProtectVirtualMemory",
+      "ntdll.dll!NtProtectVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtGetNlsSectionPtr"
+    ],
+    "recentServices": [
+      {
+        "name": "NtSetInformationThread",
+        "arguments": [
+          4294967294,
+          10,
+          67104764,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtSetInformationThread",
+        "arguments": [
+          4294967294,
+          10,
+          67104764,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtSetInformationThread",
+        "arguments": [
+          4294967294,
+          10,
+          67104764,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtSetInformationThread",
+        "arguments": [
+          4294967294,
+          10,
+          67104764,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtQueryInformationProcess",
+        "arguments": [
+          4294967295,
+          26,
+          67104728,
+          4,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtAllocateVirtualMemory",
+        "arguments": [
+          4294967295,
+          67104728,
+          0,
+          67104724,
+          4096,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtInitializeNlsFiles",
+        "arguments": [
+          67103856,
+          20629224,
+          67104272
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtGetNlsSectionPtr",
+        "arguments": [
+          9,
+          0,
+          0,
+          67104100,
+          67104272
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtQueryDefaultLocale",
+        "arguments": [
+          1,
+          17971876
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtGetNlsSectionPtr",
+        "arguments": [
+          12,
+          1,
+          0,
+          17966172,
+          67103932
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtCreateKey",
+        "arguments": [
+          67103832,
+          33554432,
+          67103744,
+          0,
+          0,
+          0,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtCreateKey",
+        "arguments": [
+          17971868,
+          983103,
+          67103744,
+          0,
+          67103840,
+          0,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtCreateKey",
+        "arguments": [
+          17971864,
+          983103,
+          67103744,
+          0,
+          67103840,
+          0,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtQueryInformationToken",
+        "arguments": [
+          4294967290,
+          1,
+          67103636,
+          80,
+          67103632
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtCreateKey",
+        "arguments": [
+          67103832,
+          33554432,
+          67103764,
+          0,
+          0,
+          0,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtCreateKey",
+        "arguments": [
+          17971872,
+          983103,
+          67103744,
+          0,
+          67103840,
+          0,
+          0
+        ],
+        "result": "0xc0000034"
+      },
+      {
+        "name": "NtOpenKeyEx",
+        "arguments": [
+          67103364,
+          983359,
+          67102888,
+          0
+        ],
+        "result": "0xc000000d"
+      },
+      {
+        "name": "NtOpenKeyEx",
+        "arguments": [
+          67103732,
+          131097,
+          67103344,
+          0
+        ],
+        "result": "0xc0000034"
+      },
+      {
+        "name": "NtQuerySystemInformation",
+        "arguments": [
+          102,
+          67104272,
+          432,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtOpenKeyEx",
+        "arguments": [
+          67103828,
+          983103,
+          67103440,
+          0
+        ],
+        "result": "0xc0000034"
+      },
+      {
+        "name": "NtCreateKey",
+        "arguments": [
+          67103936,
+          983103,
+          67103744,
+          0,
+          67103840,
+          0,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtSetValueKey",
+        "arguments": [
+          1358954502,
+          67103840,
+          0,
+          1,
+          67104100,
+          10
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtSetValueKey",
+        "arguments": [
+          1358954502,
+          67103840,
+          0,
+          1,
+          67104100,
+          8
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtSetValueKey",
+        "arguments": [
+          1358954502,
+          67103840,
+          0,
+          1,
+          67104100,
+          12
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtClose",
+        "arguments": [
+          1358954502
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtQuerySystemInformation",
+        "arguments": [
+          0,
+          17043648,
+          44,
+          0
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtProtectVirtualMemory",
+        "arguments": [
+          4294967295,
+          67104640,
+          67104644,
+          4,
+          67104712
+        ],
+        "result": "0x0",
+        "protection": {
+          "basePointer": "0x3ffef80",
+          "base": "0x1042668",
+          "sizePointer": "0x3ffef84",
+          "size": 4,
+          "newProtection": "0x4",
+          "oldProtectionPointer": "0x3ffefc8",
+          "mappedModule": {
+            "name": "kernel32.dll",
+            "offset": "0x42668"
+          },
+          "mappedSection": {
+            "name": ".edata",
+            "rva": "0x42668",
+            "characteristics": "0x40000040"
+          },
+          "regions": [
+            {
+              "start": "0x1000000",
+              "end": "0x1062000",
+              "kind": "image-reservation",
+              "module": "kernel32.dll",
+              "read": false,
+              "write": false,
+              "exec": false
+            },
+            {
+              "start": "0x1042000",
+              "end": "0x104e000",
+              "kind": null,
+              "module": "kernel32.dll",
+              "read": true,
+              "write": false,
+              "exec": false
+            }
+          ]
+        }
+      },
+      {
+        "name": "NtProtectVirtualMemory",
+        "arguments": [
+          4294967295,
+          67104640,
+          67104644,
+          2,
+          67104712
+        ],
+        "result": "0x0",
+        "protection": {
+          "basePointer": "0x3ffef80",
+          "base": "0x1042668",
+          "sizePointer": "0x3ffef84",
+          "size": 4,
+          "newProtection": "0x2",
+          "oldProtectionPointer": "0x3ffefc8",
+          "mappedModule": {
+            "name": "kernel32.dll",
+            "offset": "0x42668"
+          },
+          "mappedSection": {
+            "name": ".edata",
+            "rva": "0x42668",
+            "characteristics": "0x40000040"
+          },
+          "regions": [
+            {
+              "start": "0x1000000",
+              "end": "0x1062000",
+              "kind": "image-reservation",
+              "module": "kernel32.dll",
+              "read": false,
+              "write": false,
+              "exec": false
+            },
+            {
+              "start": "0x1042000",
+              "end": "0x1043000",
+              "kind": null,
+              "module": "kernel32.dll",
+              "read": true,
+              "write": true,
+              "exec": false
+            }
+          ]
+        }
+      },
+      {
+        "name": "NtAllocateVirtualMemory",
+        "arguments": [
+          4294967295,
+          67104504,
+          0,
+          67104656,
+          8192,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtAllocateVirtualMemory",
+        "arguments": [
+          4294967295,
+          67104504,
+          0,
+          67104660,
+          4096,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtAllocateVirtualMemory",
+        "arguments": [
+          4294967295,
+          38863968,
+          0,
+          67104624,
+          4096,
+          4
+        ],
+        "result": "0x0"
+      },
+      {
+        "name": "NtGetNlsSectionPtr",
+        "arguments": [
+          11,
+          20127,
+          0,
+          67102204,
+          67102208
+        ],
+        "result": "0x0"
+      }
+    ],
+    "blocks": 67235,
+    "dispatcher": {
+      "dll": "ntdll.dll",
+      "name": "__wine_syscall_dispatcher",
+      "serviceId": "0x104",
+      "serviceName": "NtWow64IsProcessorFeaturePresent",
+      "arguments": [
+        10
+      ],
+      "returnAddresses": [
+        {
+          "address": "0x131e0b0",
+          "module": {
+            "name": "ntdll.dll",
+            "offset": "0xe0b0"
+          }
+        },
+        {
+          "address": "0x133b8f1",
+          "module": {
+            "name": "ntdll.dll",
+            "offset": "0x2b8f1"
+          }
+        }
+      ]
+    }
+  },
+  "runtime": {
+    "modulesAfterFailure": [
+      {
+        "name": "console.exe",
+        "host": false,
+        "base": 4194304,
+        "preferredBase": 4194304,
+        "refs": 0,
+        "initialized": false
+      },
+      {
+        "name": "kernel32.dll",
+        "host": false,
+        "base": 16777216,
+        "preferredBase": 2071986176,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "kernelbase.dll",
+        "host": false,
+        "base": 17235968,
+        "preferredBase": 2063597568,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "ntdll.dll",
+        "host": false,
+        "base": 19988480,
+        "preferredBase": 2076180480,
+        "refs": 0,
+        "initialized": true
+      },
+      {
+        "name": "msvcrt.dll",
+        "host": false,
+        "base": 23527424,
+        "preferredBase": 268435456,
+        "refs": 1,
+        "initialized": false
+      }
+    ],
+    "apiTrace": [
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtQueryValueKey",
+      "ntdll.dll!NtQueryValueKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtQueryInformationProcess",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtInitializeNlsFiles",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtQueryDefaultLocale",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtProtectVirtualMemory",
+      "ntdll.dll!NtProtectVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtGetNlsSectionPtr"
+    ],
+    "blocks": 67235
+  },
+  "processExitCode": 1
+}

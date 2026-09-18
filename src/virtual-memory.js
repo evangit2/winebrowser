@@ -23,6 +23,7 @@ export const NTSTATUS = Object.freeze({
   INVALID_PARAMETER: 0xc000000d,
   NO_MEMORY: 0xc0000017,
   CONFLICTING_ADDRESSES: 0xc0000018,
+  NOT_COMMITTED: 0xc000002d,
   INVALID_PAGE_PROTECTION: 0xc0000045,
   MEMORY_NOT_ALLOCATED: 0xc00000a0,
 });
@@ -149,6 +150,25 @@ export class VirtualMemory {
     }
     this.syncRegions();
     return ok(start, end - start);
+  }
+
+  protect(base, size, protection) {
+    if (!this.validInput(base, size) || base === 0 || size === 0 || base + size > 0x100000000)
+      return { status: NTSTATUS.INVALID_PARAMETER, base, size };
+    if (![1, 2, 4].includes(protection))
+      return { status: NTSTATUS.INVALID_PAGE_PROTECTION, base, size };
+    const start = alignDown(base, PAGE_SIZE);
+    const end = alignUp(base + size, PAGE_SIZE);
+    const reservation = this.containingReservation(start, end);
+    if (!reservation) return { status: NTSTATUS.MEMORY_NOT_ALLOCATED, base, size };
+    for (let page = start; page < end; page += PAGE_SIZE)
+      if (reservation.pages.get(page) == null)
+        return { status: NTSTATUS.NOT_COMMITTED, base, size };
+
+    const oldProtect = reservation.pages.get(start);
+    for (let page = start; page < end; page += PAGE_SIZE) reservation.pages.set(page, protection);
+    this.syncRegions();
+    return { ...ok(start, end - start), oldProtect };
   }
 
   findFreeReservation(size) {

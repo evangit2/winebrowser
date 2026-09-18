@@ -2,6 +2,8 @@ import { nlsServices } from './wine-nls.js';
 import { closeRegistryHandle, registryNtServices } from './wine-registry.js';
 import { tokenNtServices } from './wine-token.js';
 import { systemNtServices } from './wine-system.js';
+import { memoryNtServices } from './memory-protection.js';
+import { threadNtServices } from './wine-thread.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -114,6 +116,8 @@ export const ntServices = {
   ...registryNtServices,
   ...tokenNtServices,
   ...systemNtServices,
+  ...memoryNtServices,
+  ...threadNtServices,
   NtClose: {
     argc: 1,
     call: (r, a) => {

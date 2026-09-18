@@ -1,0 +1,2 @@
+# Unified patches encode an empty context line with one literal space.
+runtime/wine/*.patch whitespace=-blank-at-eol

@@ -128,3 +128,16 @@ test('other system information classes remain explicitly unsupported', () => {
   const r = runtime();
   assert.throws(() => query(r, 93, 0, 0), /Unsupported Wine system information class 93/);
 });
+
+test('Wine Unix host metadata is explicitly unavailable without touching the output', () => {
+  const r = runtime();
+  const output = r.allocate(256);
+  const length = r.allocate(4);
+  r.data.fill(0xaa, output, output + 256);
+  r.write32(length, 999);
+  assert.equal(query(r, 1000, output, 256, length), 0xc0000003);
+  assert.equal(r.read32(length), 0);
+  assert.ok(r.data.slice(output, output + 256).every((byte) => byte === 0xaa));
+  assert.equal(query(r, 1000, 0, 0), 0xc0000003);
+  assert.equal(query(r, 1000, output, 256, 0x40000000), 0xc0000005);
+});

@@ -28,12 +28,15 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [x] Share native NT registry keys/values with Advapi32, enforce native parent/handle semantics, and map Wine current-user queries to the same isolated HKCU node.
 - [x] Initialize Wine code-page and Unicode-case tables from supplied real NLS files through guest exports; verify CP1252/CP437 conversions and rollback ownership.
 - [x] Report guest-sized basic system information and a stable UTC timezone through the NT information-query boundary.
+- [x] Build a pinned generic Wine ntdll with an explicit source-level loader bootstrap; verify module indexes, native version initialization, allocation-failure rollback and ownership guards in Node and a Chromium worker. See [the experiment](docs/wine-loader-bridge.md).
+- [x] Change committed private VM and non-executable image-data page protections through the native NT boundary; verify read-only enforcement, rollback on invalid requests and Wine export-table updates.
+- [x] Initialize Wine-owned dynamic TLS bitmaps and verify 65 guest kernelbase slots, expansion, free and cleared-value reuse; implement one-thread `ThreadZeroTlsCell`.
 - [x] Keep code split by runtime service, with tests and an intentionally plain test harness.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine startup:** finish the NT registry, locale and loader services reached by the real CRT closure. Process lock/parameter initialization now passes; [the recorded probe](evidence/wine-crt-results.json) identifies the next observed blocker, not a complete dependency list.
-- [ ] Complete Wine process initialization, including ACP/OEM/case-table PEB pointers, locale/timezone/registry services and further NT calls as demonstrated by real guest execution.
+- [ ] **Wine startup:** finish the NT registry, locale and loader services reached by the real CRT closure. The optional [source-built loader probe](evidence/wine-loader-crt-results.json) passes version, dynamic TLS and C-locale setup, then reaches a CPU-feature query. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary; neither is an application test.
+- [ ] Unify host and Wine loader transactions for module load/unload, reference counts, attach order and static TLS. The optional one-shot loader bridge only registers an existing graph and supports read-only queries.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
 - [ ] Expand CPU coverage for floating point, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.
@@ -51,7 +54,7 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [Live harness](https://evangit2.github.io/winebrowser/): Load tetris or Load breakout, then Run executable.
 - [Tetris browser evidence](evidence/tetris-browser.json), [window evidence](evidence/windows-browser-results.json), [external executable evidence](evidence/external-browser-results.json).
 - [Target catalog](tests/targets.json), [static blockers](evidence/target-blockers.json), [architecture](docs/architecture.md), [NLS scope](docs/wine-nls.md).
-- `npm test`: 218 passing tests at the current verified milestone.
+- `npm test`: 229 passing tests at the current verified milestone.
 - `npm run test:browser`, `npm run test:controls`, `npm run test:external`.
 - Pages server: `WINEBROWSER_BASE_PATH=/winebrowser/ npm run build`, then `npm run serve:pages`.
 - Against that server: `npm run test:pages`, `npm run test:windows`, `npm run test:tetris`.

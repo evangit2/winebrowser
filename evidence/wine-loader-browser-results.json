@@ -1,0 +1,154 @@
+{
+  "date": "2026-09-18T22:36:24.262Z",
+  "scope": "Experimental source-built Wine loader metadata and version bootstrap. No application entry point or graphics execution; normal package loading is unchanged.",
+  "build": {
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+    "patchSha256": "d7af04ba4da472f91071bc7e703f558b5c1a0ad0f50efdb7c70132414b29e9f4",
+    "dllSha256": "fb802fc6ff74dc940a41126b22c237a30930628b5e1e288d395a73c785bfbc64",
+    "dllBytes": 3780616,
+    "compilers": {
+      "native": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
+      "i386": "i686-w64-mingw32-gcc (GCC) 16.1.0"
+    }
+  },
+  "nls": [
+    {
+      "name": "c_1252.nls",
+      "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76",
+      "bytes": 66082
+    },
+    {
+      "name": "c_437.nls",
+      "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0",
+      "bytes": 66594
+    },
+    {
+      "name": "l_intl.nls",
+      "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584",
+      "bytes": 5564
+    }
+  ],
+  "status": "passed-experimental-loader-bootstrap",
+  "cases": [
+    {
+      "name": "invalid and duplicate registration",
+      "passed": true
+    },
+    {
+      "name": "allocation failure rollback",
+      "injection": "fourth RtlAllocateHeap call returns null",
+      "passed": true
+    },
+    {
+      "name": "bootstrap after failed registration",
+      "secondBootstrapRejected": true,
+      "sameHeap": true,
+      "noAdditionalAttach": true,
+      "passed": true
+    },
+    {
+      "name": "Wine RtlGetVersion",
+      "major": 10,
+      "minor": 0,
+      "build": 19045,
+      "passed": true
+    },
+    {
+      "name": "read-only Wine module lookups",
+      "modules": [
+        {
+          "name": "console.exe",
+          "base": 4194304
+        },
+        {
+          "name": "ntdll.dll",
+          "base": 16777216
+        },
+        {
+          "name": "math.dll",
+          "base": 20316160
+        }
+      ],
+      "passed": true
+    },
+    {
+      "name": "unsupported loader ownership changes",
+      "guestDllStillCallable": true,
+      "passed": true
+    },
+    {
+      "name": "native NT page protection",
+      "restoredWritablePage": true,
+      "contentsRetained": true,
+      "passed": true
+    },
+    {
+      "name": "process and thread ownership guards",
+      "passed": true,
+      "interception": "stop at exported RtlRaiseStatus before unsupported guest exception dispatch",
+      "statuses": [
+        3221225659,
+        3221225659,
+        3221225659
+      ]
+    }
+  ],
+  "blocks": 12061,
+  "apiTrace": [
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtQuerySystemInformation",
+    "ntdll.dll!NtQueryInformationToken",
+    "ntdll.dll!NtCreateKey",
+    "ntdll.dll!NtOpenKey",
+    "ntdll.dll!NtClose",
+    "ntdll.dll!NtOpenKey",
+    "ntdll.dll!NtQueryValueKey",
+    "ntdll.dll!NtQueryValueKey",
+    "ntdll.dll!NtClose",
+    "ntdll.dll!NtOpenKey",
+    "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtProtectVirtualMemory",
+    "ntdll.dll!NtProtectVirtualMemory",
+    "ntdll.dll!NtFreeVirtualMemory"
+  ],
+  "modules": [
+    {
+      "name": "console.exe",
+      "host": false,
+      "base": 4194304,
+      "preferredBase": 4194304,
+      "refs": 0,
+      "initialized": false
+    },
+    {
+      "name": "kernel32.dll",
+      "host": true,
+      "base": 1879048192,
+      "refs": 0,
+      "initialized": true
+    },
+    {
+      "name": "ntdll.dll",
+      "host": false,
+      "base": 16777216,
+      "preferredBase": 2076180480,
+      "refs": 1,
+      "initialized": true
+    },
+    {
+      "name": "math.dll",
+      "host": false,
+      "base": 20316160,
+      "preferredBase": 268435456,
+      "refs": 1,
+      "initialized": true
+    }
+  ],
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "153.0.8010.48",
+  "outboundRequests": []
+}

@@ -102,6 +102,65 @@ test('decommit rounds across touched pages and recommit zeroes them', () => {
   assert.equal(view.getUint32(base + 0x1000, true), 0xcafebabe);
 });
 
+test('protect rounds touched committed pages, reports the first old protection, and retains data', () => {
+  const { memory, regions, vm } = allocator();
+  const guest = new GuestMemory(memory, regions);
+  const { base } = vm.allocate(0, 0x3000, C.MEM_RESERVE | C.MEM_COMMIT, C.PAGE_READWRITE);
+  guest.write32(base + 0xffc, 0x12345678);
+  guest.write32(base + 0x1000, 0xdeadbeef);
+  guest.write32(base + 0x2000, 0xcafebabe);
+
+  assert.deepEqual(vm.protect(base + 0xfff, 2, C.PAGE_READONLY), {
+    status: NTSTATUS.SUCCESS,
+    base,
+    size: 0x2000,
+    oldProtect: C.PAGE_READWRITE,
+  });
+  assert.equal(guest.read32(base + 0xffc), 0x12345678);
+  assert.equal(guest.read32(base + 0x1000), 0xdeadbeef);
+  assert.throws(() => guest.write32(base + 0x1000, 1), /write violation/);
+  guest.write32(base + 0x2000, 0xfeedface);
+  assert.equal(regionAt(regions, base).write, false);
+  assert.equal(regionAt(regions, base + 0x2000).write, true);
+
+  assert.deepEqual(vm.protect(base + 0x1001, 1, C.PAGE_NOACCESS), {
+    status: NTSTATUS.SUCCESS,
+    base: base + 0x1000,
+    size: C.pageSize,
+    oldProtect: C.PAGE_READONLY,
+  });
+  assert.throws(() => guest.read32(base + 0x1000), /read violation/);
+  assert.equal(vm.protect(base + 0x1000, 1, C.PAGE_READWRITE).oldProtect, C.PAGE_NOACCESS);
+  assert.equal(guest.read32(base + 0x1000), 0xdeadbeef);
+});
+
+test('protect rejects any uncommitted page atomically and never changes other reservations', () => {
+  const { memory, regions, vm } = allocator();
+  const guest = new GuestMemory(memory, regions);
+  const { base } = vm.allocate(0, 0x3000, C.MEM_RESERVE, C.PAGE_NOACCESS);
+  vm.allocate(base, C.pageSize, C.MEM_COMMIT, C.PAGE_READONLY);
+  vm.allocate(base + 0x2000, C.pageSize, C.MEM_COMMIT, C.PAGE_READWRITE);
+  guest.write32(base + 0x2000, 0xaabbccdd);
+
+  assert.deepEqual(vm.protect(base, 0x3000, C.PAGE_READWRITE), {
+    status: NTSTATUS.NOT_COMMITTED,
+    base,
+    size: 0x3000,
+  });
+  assert.equal(regionAt(regions, base).write, false);
+  assert.equal(regionAt(regions, base + 0x1000).read, false);
+  assert.equal(regionAt(regions, base + 0x2000).write, true);
+  assert.equal(guest.read32(base + 0x2000), 0xaabbccdd);
+
+  assert.equal(
+    vm.protect(base + 0x3000, 1, C.PAGE_READWRITE).status,
+    NTSTATUS.MEMORY_NOT_ALLOCATED,
+  );
+  assert.equal(vm.protect(base, 0, C.PAGE_READWRITE).status, NTSTATUS.INVALID_PARAMETER);
+  assert.equal(vm.protect(base, 1, 0x20).status, NTSTATUS.INVALID_PAGE_PROTECTION);
+  assert.equal(regionAt(regions, base).write, false);
+});
+
 test('release requires exact allocation base and zero size, then permits address reuse', () => {
   const { regions, vm } = allocator();
   const allocated = vm.allocate(0, 0x2001, C.MEM_RESERVE | C.MEM_COMMIT, C.PAGE_READWRITE);

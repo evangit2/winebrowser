@@ -8,7 +8,7 @@ WineBrowser's original code is MIT licensed; see LICENSE. It is an independent p
 | fflate      | npm 0.8.3; https://github.com/101arrowz/fflate                                          | Bounded streaming ZIP deflate decoding.                                                                                          | MIT; retained in `third_party/fflate-LICENSE.txt`.                               |
 | Hamsterball | https://github.com/evangit2/Hamsterball/commit/71c6ad56acf585d719c520ff070f4c14827a2ab3 | `src/audio-scheduling.js`, copied from `audio-scheduling.js`; browser audio queue policy.                                        | MIT, copyright 2026 evangit2; retained in `third_party/Hamsterball-LICENSE.txt`. |
 
-DirectWebGPU and Hamsterball inform the architectural study. No Theseus runtime code, generated translated game, WineD3D binary, or proprietary game asset is distributed here. Theseus' inspected revision lacked a license declaration; its reuse is not assumed. The future Wine/WineD3D work must retain applicable LGPL source, modification and relinking materials. The Wine-derived CommandLineToArgvW guest component below is the only Wine code included; this is not a full Wine runtime.
+DirectWebGPU and Hamsterball inform the architectural study. No Theseus runtime code, generated translated game, WineD3D binary, or proprietary game asset is distributed here. Theseus' inspected revision lacked a license declaration; its reuse is not assumed. The future Wine/WineD3D work must retain applicable LGPL source, modification and relinking materials. The included Wine-derived code comprises the parser and formatter guest components below and an optional loader source patch; this is not a full Wine runtime.
 
 Vite, Playwright and Prettier are development dependencies with licenses in their pinned npm packages. `package-lock.json` pins the dependency graph. Re-run `scripts/prepare-decoder.mjs` after installation; do not hand-edit generated browser decoder files.
 
@@ -25,3 +25,9 @@ The guest library in `public/runtime/shell32.dll` and `runtime/wine/command-line
 `public/runtime/wine-format.dll` contains the unchanged Wine 11.0 USER32 formatter bodies. The complete pinned source is `third_party/wine/user32-wsprintf.c`, with LGPL-2.1-or-later terms in `third_party/wine/COPYING.LIB`. See `runtime/wine-format/manifest.json` and its README for source hashes, portability adapters, exact imports and rebuild instructions.
 
 The DLL links GCC 16.1.0 libgcc integer division/remainder helpers under GPLv3 with the GCC Runtime Library Exception 3.1. Both texts are retained in `third_party/gcc/` and copied beside the hosted DLL. The Wine formatter itself remains under its original LGPL terms.
+
+## Experimental Wine loader patch
+
+`runtime/wine/browser-loader.patch` modifies Wine 11.0 `dlls/ntdll/loader.c` and `ntdll.spec` at commit `db11d0fe6a169c457e23d007e20404643d067aa8`. The upstream loader is copyright 1995, 2003 Alexandre Julliard and 2002 Dmitry Timoshkov for CodeWeavers; browser-bridge changes are copyright 2026 evangit2. This derivative patch is LGPL-2.1-or-later, with the license retained at `third_party/wine/COPYING.LIB`. The repository MIT license does not replace these terms.
+
+`scripts/build-wine-loader.py` downloads and verifies the complete pinned Wine source archive, retains the patched sources in `.cache/wine-loader/`, and records source, patch, compiler, and output hashes. The complete rebuilt DLL and NLS data are optional local test inputs and are not distributed in this repository or the Pages harness. See [the experiment and rebuild instructions](docs/wine-loader-bridge.md).

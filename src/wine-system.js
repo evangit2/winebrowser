@@ -50,6 +50,19 @@ export const systemNtServices = {
     argc: 4,
     call(runtime, argument) {
       const informationClass = argument(0) >>> 0;
+      if (informationClass === 1000) {
+        // Wine's private SystemWineVersionInformation describes its Unix host
+        // (four NUL-separated strings). This browser has no Wine Unix host.
+        // Report its absence, as an NT host without this extension would;
+        // version_init still selects Wine's Windows version defaults itself.
+        const returnLength = argument(3) >>> 0;
+        try {
+          if (returnLength) runtime.write32(returnLength, 0);
+        } catch {
+          return STATUS_ACCESS_VIOLATION;
+        }
+        return 0xc0000003; // STATUS_INVALID_INFO_CLASS, never fabricated success.
+      }
       if (informationClass !== 0 && informationClass !== 44 && informationClass !== 102)
         throw Error(`Unsupported Wine system information class ${informationClass}`);
       const value =
