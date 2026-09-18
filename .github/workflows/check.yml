@@ -25,6 +25,7 @@ jobs:
       - run: npm run test:webgpu
         env:
           BROWSER_CHANNEL: chromium
+          DEBUG: pw:browser
       - run: node scripts/fetch-targets.mjs winapiexec-1.2-x86 pts-tinype-hh4t-x86
       - run: node scripts/test-external-browser.mjs
         env:

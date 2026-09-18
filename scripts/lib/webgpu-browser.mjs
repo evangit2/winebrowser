@@ -10,6 +10,7 @@ export const webgpuBrowserOptions = {
           '--use-angle=vulkan',
           '--enable-features=Vulkan',
           '--use-vulkan=swiftshader',
+          '--use-webgpu-adapter=swiftshader',
           '--disable-vulkan-surface',
         ]
       : []),
