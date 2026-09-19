@@ -66,17 +66,21 @@ Map/Unmap and GPU virtual addresses, a POSITION/COLOR float4 vertex layout,
 a D16 committed depth texture, DSV descriptors, depth clears and testing,
 and `IDXGISwapChain3::GetCurrentBackBufferIndex`. Its original MIT HLSL is
 compiled to ordinary SM5 DXBC when building the native fixture; those DXBC
-bytes are then translated in the browser at runtime. Precomputed geometry
-frames keep this fixture independent of the unfinished guest floating-point
-instruction coverage. WebGPU still rasterizes the triangles, interpolates
-attributes and resolves depth each frame.
+bytes are then translated in the browser at runtime. The EXE computes yaw,
+pitch and perspective projection each frame using native x87 arithmetic,
+with 24 model vertices and 36 R16 indices. There are no stored animation frames.
+The browser CPU emitter dispatches x87 operations to the separate Berkeley
+SoftFloat ext80 Wasm library. WebGPU rasterizes the indexed triangles,
+interpolates attributes and resolves depth each frame.
 
 [Cube browser evidence](../evidence/d3d12-cube-browser-results.json) records
-157 x86 blocks compiled in the browser, changed colored frames, native buffer
-and depth API calls, and exit code 0 for both EXE and ZIP. [Backend pixel tests](../evidence/d3d12-backend-results.json)
+170 x86 blocks compiled in the browser, changed colored frames, native buffer
+and depth/indexed-draw API calls, and exit code 0 for both EXE and ZIP. [Backend pixel tests](../evidence/d3d12-backend-results.json)
 separately verify near geometry occludes far geometry, disabling depth changes
 the visible color, nonzero vertex offsets work, depth clears affect subsequent
-draws, and invalid or released resources fail. The same checks pass the bounded
+draws, and invalid or released resources fail. Indexed pixel cases exercise
+R16 and R32 formats, a nonzero first index, positive and negative base vertices,
+and the WebGPU padding required for a six-byte R16 triangle. The same checks pass the bounded
 [readback presentation path](../evidence/d3d12-backend-readback-results.json)
 used with software WebGPU adapters.
 
@@ -85,8 +89,12 @@ validates live resources and captures bounded copies immediately before GPU
 submission. Writes made after recording and before submission are visible.
 Backbuffer transitions commit only after successful submission, and queue
 signals follow completed GPU work. Limits include 256 commands and 8 MiB of
-vertex snapshots per list/submission, with one 32-byte vertex buffer in slot 0
-and one instance per draw. Unsupported API/state combinations fail explicitly.
+combined vertex/index snapshots per list/submission, with one 32-byte vertex buffer in slot 0
+and one instance per draw. `IASetIndexBuffer` accepts R16_UINT/R32_UINT
+upload views; `DrawIndexedInstanced` records counts and offsets. At execution,
+shared validation scans only the drawn index range, applies the signed base
+vertex without integer wrapping, and rejects out-of-range vertex references.
+A null index view unbinds it. Unsupported API/state combinations fail explicitly.
 
 `src/shader-compiler.js` lazily loads two replaceable Wasm libraries in the
 worker: **libvkd3d-shader 2.1** compiles DXBC to SPIR-V; **Naga 30.0.1** validates
@@ -114,6 +122,14 @@ compute, textures, descriptor tables, arbitrary root bindings, indirect draws,
 x64 and general game compatibility remain unfinished. D3D10 and D3D11 need their
 own frontends; a D3D12 draw does not provide them automatically.
 
+The same compiler now accepts bounded shader-model 1–3 token pairs through
+`compileLegacyPair`. It builds the varying map between vertex and pixel stages,
+then translates both through libvkd3d and Naga. Licensed Wine VS 1.1/PS 2.0
+fixtures compile in an isolated worker and produce WGSL accepted by WebGPU.
+That check does not render Humus or add programmable D3D9 calls. Resource
+binding details and the retained point-size portability patch are documented
+in [the compiler ABI](../runtime/shaders/vkd3d/README.md).
+
 ## Broader DirectX work
 
 The original bounded D3D9/D3D12 COM adapters are **not WineD3D**. Broader support
@@ -126,7 +142,7 @@ Independent acceptance targets keep API claims concrete:
 
 | API   | Target and remaining gate                                                                                                                                                                                                                                                       |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D3D9  | Source-built cube passes; next run an independently sourced PE32 application unchanged, with broader resources and Wine semantics.                                                                                                                                              |
+| D3D9  | Source-built cube passes; pinned Humus Dynamic Branching is the next unchanged EXE. Startup, further x87 operations, programmable shaders, buffers, textures and stencil remain.                                                                                                |
 | D3D10 | Original [Humus Inferno target](../tests/targets.json): DXGI/D3D10 device/state, shaders, CRT and Win32 dependencies remain.                                                                                                                                                    |
 | D3D11 | Microsoft's [Tutorial02](https://github.com/microsoft/DirectX-SDK-Samples/blob/main/C%2B%2B/Direct3D11/Tutorials/Tutorial02/Tutorial02.cpp), built as ordinary PE32: implement device/context/resources and validate a native draw.                                             |
 | D3D12 | Native PE32 shader triangle and depth-tested cube pass. Microsoft's [HelloTriangle](https://github.com/microsoft/DirectX-Graphics-Samples/tree/213dd4fd4918ea009dd8f35adee1aff1f2ecaba4/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle) remains a later x64/SM6 DXIL target. |

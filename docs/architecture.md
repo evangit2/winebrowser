@@ -45,6 +45,26 @@ resumes the host operation with the guest return value. Calling a host Wasm func
 with a guest address or assuming the host's native ABI matches stdcall is incorrect. Re-entry
 through an asynchronous browser prompt needs explicit suspension/resumption rules as well.
 
+## Extended-precision arithmetic
+
+The block emitter uses [`src/x87.js`](../src/x87.js) for a bounded x87 core.
+Each guest CPU owns eight 80-bit register values, tags, TOP, status and control.
+A block is decoded and compiled first; only execution of a block containing x87
+loads the shared SoftFloat Wasm module. Arithmetic crosses a checked byte-buffer
+ABI and preserves extended precision without narrowing registers to JavaScript
+numbers. Module-global arithmetic controls are saved/restored around each call,
+and each runtime frees its own scratch allocation on exit. No guest memory
+pointer is used as a SoftFloat heap pointer.
+
+Guest-to-guest calls naturally share x87 state. Host-driven callbacks preserve
+the interrupted state; the current host callback ABI returns an integer, not
+ST(0). Supported instructions include ordinary loads/stores, signed integer
+conversion, stack copies/exchange, arithmetic, comparisons, square root and
+control/status transfers. Transcendentals, FRNDINT, environment save/restore
+and structured delivery of unmasked exceptions remain separate work. The
+[native D3D12 cube](../demos/d3d12-cube/main.c) exercises this core with rotation
+and perspective calculated during execution.
+
 ## NT and Unix host boundary
 
 Wine separates Windows-facing PE DLLs from Unix-side implementations through defined Unix

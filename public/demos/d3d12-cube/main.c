@@ -9,12 +9,15 @@
 #include <stdint.h>
 
 #include "shaders.h"
-#include "vertices.h"
 
 #define WIDTH 640
 #define HEIGHT 480
 #define BUFFER_COUNT 2
-#define FRAME_BYTES (CUBE_VERTEX_COUNT * CUBE_VERTEX_STRIDE)
+#define CUBE_VERTEX_COUNT 24u
+#define CUBE_VERTEX_STRIDE 32u
+#define CUBE_INDEX_COUNT 36u
+#define VERTEX_BYTES (CUBE_VERTEX_COUNT * CUBE_VERTEX_STRIDE)
+#define INDEX_BYTES (CUBE_INDEX_COUNT * sizeof(uint16_t))
 
 void *memset(void *target, int value, size_t count)
 {
@@ -28,6 +31,60 @@ static void copy_bytes(void *target, const void *source, UINT count)
     unsigned char *out = target;
     const unsigned char *in = source;
     while (count--) *out++ = *in++;
+}
+
+struct source_vertex { float x, y, z, r, g, b, a; };
+struct gpu_vertex { float x, y, z, w, r, g, b, a; };
+
+#define FACE(x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3, r,g,b) \
+    {x0,y0,z0,r,g,b,1}, {x1,y1,z1,r,g,b,1}, \
+    {x2,y2,z2,r,g,b,1}, {x3,y3,z3,r,g,b,1}
+
+static const struct source_vertex cube_vertices[CUBE_VERTEX_COUNT] = {
+    FACE(-1,-1,-1, -1, 1,-1,  1, 1,-1,  1,-1,-1, .91f,.25f,.20f),
+    FACE( 1,-1, 1,  1, 1, 1, -1, 1, 1, -1,-1, 1, .18f,.66f,.94f),
+    FACE(-1,-1, 1, -1, 1, 1, -1, 1,-1, -1,-1,-1, .95f,.76f,.19f),
+    FACE( 1,-1,-1,  1, 1,-1,  1, 1, 1,  1,-1, 1, .25f,.82f,.38f),
+    FACE(-1, 1,-1, -1, 1, 1,  1, 1, 1,  1, 1,-1, .67f,.34f,.91f),
+    FACE(-1,-1, 1, -1,-1,-1,  1,-1,-1,  1,-1, 1, .94f,.46f,.17f),
+};
+
+static const uint16_t cube_indices[CUBE_INDEX_COUNT] = {
+     0, 1, 2,  0, 2, 3,   4, 5, 6,  4, 6, 7,
+     8, 9,10,  8,10,11,  12,13,14, 12,14,15,
+    16,17,18, 16,18,19,  20,21,22, 20,22,23,
+};
+
+/* Incremental rotations avoid trigonometry while exercising native x87 math. */
+static float yaw_cos = 1.0f, yaw_sin = 0.0f;
+static float pitch_cos = 1.0f, pitch_sin = 0.0f;
+static volatile float projection_aspect = 1.333333333f;
+static volatile float depth_range = 9.0f;
+
+static void transform_vertices(struct gpu_vertex *out)
+{
+    const float yaw_step_cos = 0.9987954562f, yaw_step_sin = 0.0490676743f;
+    const float pitch_step_cos = 0.9996988187f, pitch_step_sin = 0.0245412285f;
+    const float y_scale = 1.732050808f;
+    float next_yaw_cos = yaw_cos * yaw_step_cos - yaw_sin * yaw_step_sin;
+    float next_yaw_sin = yaw_sin * yaw_step_cos + yaw_cos * yaw_step_sin;
+    float next_pitch_cos = pitch_cos * pitch_step_cos - pitch_sin * pitch_step_sin;
+    float next_pitch_sin = pitch_sin * pitch_step_cos + pitch_cos * pitch_step_sin;
+    yaw_cos = next_yaw_cos; yaw_sin = next_yaw_sin;
+    pitch_cos = next_pitch_cos; pitch_sin = next_pitch_sin;
+
+    for (UINT i = 0; i < CUBE_VERTEX_COUNT; ++i) {
+        const struct source_vertex *in = &cube_vertices[i];
+        float x = in->x * yaw_cos + in->z * yaw_sin;
+        float yaw_z = in->z * yaw_cos - in->x * yaw_sin;
+        float y = in->y * pitch_cos - yaw_z * pitch_sin;
+        float z = in->y * pitch_sin + yaw_z * pitch_cos + 4.25f;
+        out[i].x = x * y_scale / projection_aspect;
+        out[i].y = y * y_scale;
+        out[i].z = (z * 10.0f - 10.0f) / depth_range;
+        out[i].w = z;
+        out[i].r = in->r; out[i].g = in->g; out[i].b = in->b; out[i].a = in->a;
+    }
 }
 
 static volatile int running = 1;
@@ -63,7 +120,7 @@ static int run(void)
     IDXGISwapChain *swapchain = 0;
     IDXGISwapChain3 *swapchain3 = 0;
     ID3D12DescriptorHeap *rtv_heap = 0, *dsv_heap = 0;
-    ID3D12Resource *buffers[BUFFER_COUNT] = {0}, *depth = 0, *vertices = 0;
+    ID3D12Resource *buffers[BUFFER_COUNT] = {0}, *depth = 0, *vertices = 0, *indices = 0;
     ID3D12CommandAllocator *allocator = 0;
     ID3D12GraphicsCommandList *list = 0;
     ID3D12RootSignature *root = 0;
@@ -147,7 +204,7 @@ static int run(void)
     upload_heap.VisibleNodeMask = 1;
     D3D12_RESOURCE_DESC vertex_desc = {0};
     vertex_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    vertex_desc.Width = FRAME_BYTES;
+    vertex_desc.Width = VERTEX_BYTES;
     vertex_desc.Height = 1;
     vertex_desc.DepthOrArraySize = 1;
     vertex_desc.MipLevels = 1;
@@ -157,7 +214,18 @@ static int run(void)
     if (FAILED(ID3D12Device_CreateCommittedResource(device, &upload_heap, D3D12_HEAP_FLAG_NONE,
             &vertex_desc, D3D12_RESOURCE_STATE_GENERIC_READ, 0,
             &IID_ID3D12Resource, (void **)&vertices))) goto done;
+    D3D12_RESOURCE_DESC index_desc = vertex_desc;
+    index_desc.Width = INDEX_BYTES;
     result = 14;
+    if (FAILED(ID3D12Device_CreateCommittedResource(device, &upload_heap, D3D12_HEAP_FLAG_NONE,
+            &index_desc, D3D12_RESOURCE_STATE_GENERIC_READ, 0,
+            &IID_ID3D12Resource, (void **)&indices))) goto done;
+    void *mapped_indices = 0;
+    if (FAILED(ID3D12Resource_Map(indices, 0, 0, &mapped_indices))) goto done;
+    copy_bytes(mapped_indices, cube_indices, INDEX_BYTES);
+    D3D12_RANGE indices_written = {0, INDEX_BYTES};
+    ID3D12Resource_Unmap(indices, 0, &indices_written);
+    result = 15;
     if (FAILED(ID3D12Device_CreateCommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT,
             &IID_ID3D12CommandAllocator, (void **)&allocator))) goto done;
     result = 16;
@@ -209,11 +277,14 @@ static int run(void)
 
     D3D12_VERTEX_BUFFER_VIEW vertex_view;
     vertex_view.BufferLocation = ID3D12Resource_GetGPUVirtualAddress(vertices);
-    vertex_view.SizeInBytes = FRAME_BYTES;
+    vertex_view.SizeInBytes = VERTEX_BYTES;
     vertex_view.StrideInBytes = CUBE_VERTEX_STRIDE;
+    D3D12_INDEX_BUFFER_VIEW index_view;
+    index_view.BufferLocation = ID3D12Resource_GetGPUVirtualAddress(indices);
+    index_view.SizeInBytes = INDEX_BYTES;
+    index_view.Format = DXGI_FORMAT_R16_UINT;
     /* Exercise the complete PE32 EDX:EAX fence return, including its high word. */
     UINT64 fence_value = 0x100000000ull;
-    UINT frame = 0;
     while (running) {
         MSG message;
         while (PeekMessageA(&message, 0, 0, 0, PM_REMOVE)) {
@@ -225,10 +296,9 @@ static int run(void)
         /* The prior fence completed before this upload memory is overwritten. */
         void *mapped_vertices = 0;
         if (FAILED(ID3D12Resource_Map(vertices, 0, 0, &mapped_vertices))) goto done;
-        copy_bytes(mapped_vertices, cube_frames + frame * FRAME_BYTES, FRAME_BYTES);
-        D3D12_RANGE written = {0, FRAME_BYTES};
+        transform_vertices((struct gpu_vertex *)mapped_vertices);
+        D3D12_RANGE written = {0, VERTEX_BYTES};
         ID3D12Resource_Unmap(vertices, 0, &written);
-        frame = (frame + 1) % CUBE_FRAME_COUNT;
         UINT index = IDXGISwapChain3_GetCurrentBackBufferIndex(swapchain3);
         result = 21;
         if (FAILED(ID3D12CommandAllocator_Reset(allocator))) goto done;
@@ -251,7 +321,8 @@ static int run(void)
         ID3D12GraphicsCommandList_SetGraphicsRootSignature(list, root);
         ID3D12GraphicsCommandList_IASetPrimitiveTopology(list, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ID3D12GraphicsCommandList_IASetVertexBuffers(list, 0, 1, &vertex_view);
-        ID3D12GraphicsCommandList_DrawInstanced(list, CUBE_VERTEX_COUNT, 1, 0, 0);
+        ID3D12GraphicsCommandList_IASetIndexBuffer(list, &index_view);
+        ID3D12GraphicsCommandList_DrawIndexedInstanced(list, CUBE_INDEX_COUNT, 1, 0, 0, 0);
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
         ID3D12GraphicsCommandList_ResourceBarrier(list, 1, &barrier);
@@ -276,6 +347,7 @@ done:
     if (error_blob) ID3D10Blob_Release(error_blob);
     if (list) ID3D12GraphicsCommandList_Release(list);
     if (allocator) ID3D12CommandAllocator_Release(allocator);
+    if (indices) ID3D12Resource_Release(indices);
     if (vertices) ID3D12Resource_Release(vertices);
     if (depth) ID3D12Resource_Release(depth);
     for (UINT i = 0; i < BUFFER_COUNT; ++i) if (buffers[i]) ID3D12Resource_Release(buffers[i]);

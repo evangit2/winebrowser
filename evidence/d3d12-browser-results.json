@@ -1,7 +1,7 @@
 {
   "demo": "d3d12-triangle",
   "scope": "Native PE32 D3D12 fixture with SM5 shaders, empty root signature, RTV descriptors, command lists, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
-  "date": "2026-09-19T00:24:27.410Z",
+  "date": "2026-09-19T01:07:09.929Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "153.0.8010.48",
   "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
@@ -10,7 +10,45 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 2958,
+      "firstFourFramesMs": 594,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "green": 108000,
+        "colored": 108000,
+        "colors": 1,
+        "corner": [
+          14,
+          24,
+          48,
+          255
+        ],
+        "hash": "9b2852158c9d160bbb95bde8bee8abd687f41a3a465b56ff4e7c701dd26616d3"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 30,
+        "green": 108000,
+        "colored": 108000,
+        "colors": 1,
+        "corner": [
+          14,
+          24,
+          48,
+          255
+        ],
+        "hash": "fea1f763c054eed2422545f9b068b8d88d22990ea61b4a8ed101268607c28fc5"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 126,
+      "instructions": 10717,
+      "apiCalls": 759
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 1204,
       "first": {
         "width": 640,
         "height": 480,
@@ -24,7 +62,7 @@
           48,
           255
         ],
-        "hash": "1afa7636518b13a032e7845597ba044af146e52d70dc006722d5652dd9a4b96a"
+        "hash": "fea1f763c054eed2422545f9b068b8d88d22990ea61b4a8ed101268607c28fc5"
       },
       "second": {
         "width": 640,
@@ -39,50 +77,12 @@
           48,
           255
         ],
-        "hash": "fcf8f5a38c96842c7e8807b8f0395b384e48d5c0298e8d72850b50530f3ecee9"
-      },
-      "exitCode": 0,
-      "compiledBlocks": 126,
-      "instructions": 10331,
-      "apiCalls": 721
-    },
-    {
-      "mode": "hosted-zip",
-      "firstFourFramesMs": 338,
-      "first": {
-        "width": 640,
-        "height": 480,
-        "frames": 4,
-        "green": 108000,
-        "colored": 108000,
-        "colors": 1,
-        "corner": [
-          14,
-          24,
-          48,
-          255
-        ],
         "hash": "1afa7636518b13a032e7845597ba044af146e52d70dc006722d5652dd9a4b96a"
       },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "frames": 23,
-        "green": 108000,
-        "colored": 108000,
-        "colors": 1,
-        "corner": [
-          14,
-          24,
-          48,
-          255
-        ],
-        "hash": "fcf8f5a38c96842c7e8807b8f0395b384e48d5c0298e8d72850b50530f3ecee9"
-      },
       "exitCode": 0,
       "compiledBlocks": 126,
-      "instructions": 9173,
-      "apiCalls": 607
+      "instructions": 10524,
+      "apiCalls": 740
     }
   ],
   "errors": []

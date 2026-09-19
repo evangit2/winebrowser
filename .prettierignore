@@ -5,6 +5,7 @@ public/coi-serviceworker.js
 public/demos/
 public/examples/
 public/shaders/
+public/runtime/softfloat/
 evidence/
 third_party/
 .cache/

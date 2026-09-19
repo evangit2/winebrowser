@@ -12,7 +12,6 @@ for tool in "$CC" "$STRIP" python3; do
     command -v "$tool" >/dev/null 2>&1 || { echo "missing build tool: $tool" >&2; exit 1; }
 done
 
-python3 "$source_dir/generate_vertices.py" "$tmp_dir/vertices.h"
 python3 - "$source_dir/shaders" "$tmp_dir/shaders.h" <<'PY'
 from pathlib import Path
 import sys
@@ -29,7 +28,8 @@ with target.open('w') as out:
         out.write('};\n')
 PY
 
-SOURCE_DATE_EPOCH=0 "$CC" -m32 -O1 -ffreestanding -fno-builtin \
+SOURCE_DATE_EPOCH=0 "$CC" -m32 -O1 -mfpmath=387 -mno-sse -mno-sse2 \
+    -ffreestanding -fno-builtin \
     -fno-tree-loop-distribute-patterns -fno-stack-protector \
     -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident \
     -Wall -Wextra -Werror -nostdlib -I "$tmp_dir" \

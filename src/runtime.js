@@ -179,7 +179,12 @@ export class Runtime {
     while (this.exitCode === null && ip !== until) {
       if (++this.blocks > this.maxBlocks) throw Error('Execution block budget exceeded');
       const thunk = this.thunks.get(ip);
-      ip = thunk ? await this.api(thunk) : this.cpu.step(ip);
+      if (thunk) ip = await this.api(thunk);
+      else {
+        const preparation = this.cpu.prepare(ip);
+        if (preparation) await preparation;
+        ip = this.cpu.step(ip);
+      }
       if (this.blocks % 2048 === 0) {
         flushGdi(this);
         const now = performance.now();
@@ -204,6 +209,10 @@ export class Runtime {
       flags = { ...this.cpu.f },
       direction = this.cpu.df,
       simd = this.cpu.simd.snapshot(),
+      // Host-driven callbacks are an isolation boundary: as with GPR/SIMD
+      // state, their x87 stack is restored after return. Direct guest CALLs
+      // remain native and can return an x87 value in ST(0).
+      x87 = this.cpu.x87.snapshot(),
       sentinel = 0xffff0000 + this.callDepth * 16;
     try {
       for (const arg of [...args].reverse()) this.cpu.push(arg);
@@ -220,6 +229,7 @@ export class Runtime {
       this.cpu.f = flags;
       this.cpu.df = direction;
       this.cpu.simd.restore(simd);
+      this.cpu.x87.restore(x87);
       this.callDepth--;
     }
   }
@@ -321,7 +331,7 @@ export class Runtime {
       );
       this.regions.splice(0, this.regions.length, ...retained);
       this.refreshCodeRanges();
-      this.cpu.cache.clear(); // Compiled code may refer to unloaded guest addresses.
+      this.cpu.clearCache(); // Compiled code may refer to unloaded guest addresses.
       if (!guestStarted) error.win32Error = missingError;
       throw error;
     }
@@ -402,7 +412,7 @@ export class Runtime {
       ...this.regions.filter((region) => !removedNames.has(region.module)),
     );
     this.refreshCodeRanges();
-    this.cpu.cache.clear();
+    this.cpu.clearCache();
     return true;
   }
   async resolveExport(module, symbol) {
@@ -414,6 +424,7 @@ export class Runtime {
       return await this.#runProcess();
     } finally {
       this.windows.dispose();
+      this.cpu.dispose();
     }
   }
   async #runProcess() {

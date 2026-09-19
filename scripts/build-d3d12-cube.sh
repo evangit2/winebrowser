@@ -34,17 +34,24 @@ expected = {'d3d12.dll', 'dxgi.dll', 'kernel32.dll', 'user32.dll'}
 if imports != expected:
     raise SystemExit(f'unexpected imported DLLs: {sorted(imports)}')
 disassembly = (temporary / 'disassembly.txt').read_text()
-if re.search(r'\b(?:fld|fild|fstp|fadd|fmul|fsub|fdiv|fsin|fcos)\b', disassembly):
-    raise SystemExit('x87 instruction found')
+for operation, pattern in {
+    'load': r'\bfld', 'store': r'\bfst', 'add': r'\bfadd',
+    'subtract': r'\bfsub', 'multiply': r'\bfmul', 'divide': r'\bfdiv',
+}.items():
+    if not re.search(pattern, disassembly):
+        raise SystemExit(f'native x87 {operation} instruction not found')
+if 'IASetIndexBuffer' not in (source / 'main.c').read_text() or 'DrawIndexedInstanced' not in (source / 'main.c').read_text():
+    raise SystemExit('indexed D3D12 draw calls missing from source')
 
 exe = temporary / 'd3d12-cube.exe'
 data = exe.read_bytes()
 destination.mkdir(parents=True, exist_ok=True)
+for old in destination.rglob('*'):
+    if old.is_file(): old.unlink()
 shutil.copyfile(exe, destination / exe.name)
-for name in ('README.md', 'LICENSE', 'main.c', 'build.sh', 'generate_vertices.py'):
+for name in ('README.md', 'LICENSE', 'main.c', 'build.sh'):
     shutil.copyfile(source / name, destination / name)
 (destination / 'build.sh').chmod(0o755)
-(destination / 'generate_vertices.py').chmod(0o755)
 shader_destination = destination / 'shaders'
 shader_destination.mkdir(parents=True, exist_ok=True)
 for path in sorted((source / 'shaders').iterdir()):
@@ -62,7 +69,7 @@ with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslev
         info = zipfile.ZipInfo(f'd3d12-cube/{relative.as_posix()}', (1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         info.create_system = 3
-        executable = relative.as_posix() in ('build.sh', 'generate_vertices.py', 'shaders/build.sh')
+        executable = relative.as_posix() in ('build.sh', 'shaders/build.sh')
         info.external_attr = ((0o100755 if executable else 0o100644) & 0xffff) << 16
         package.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 print(f'PE32: {digest}  {exe.name}')

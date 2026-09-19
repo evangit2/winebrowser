@@ -1,5 +1,6 @@
 import { ShaderCompiler } from './shader-compiler.js';
 import { reflectDXBCInputSignature } from './dxbc-signature.js';
+import { validateIndexSnapshot } from './d3d12-indices.js';
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 const finite = (value) => Number.isFinite(value) && Number.isFinite(Math.fround(value));
@@ -16,6 +17,7 @@ export class D3D12Renderer {
     this.pipelines = new Map();
     this.drawSlots = [];
     this.vertexSlots = [];
+    this.indexSlots = [];
     this.frames = 0;
     this.draws = 0;
   }
@@ -246,6 +248,7 @@ export class D3D12Renderer {
           throw Error('Invalid D3D12 clear color');
       } else if (command.type === 'draw') {
         const p = this.pipelines.get(command.pipeline);
+        const indexed = command.indexCount !== undefined;
         const depth = this.resources.get(command.depthTarget);
         if (
           !p ||
@@ -262,13 +265,23 @@ export class D3D12Renderer {
             !(command.vertices instanceof Uint8Array) ||
             command.vertexStride !== p.vertexStride ||
             command.vertices.length % p.vertexStride ||
-            command.vertices.length < (command.firstVertex + command.vertexCount) * p.vertexStride
+            (!indexed &&
+              command.vertices.length <
+                (command.firstVertex + command.vertexCount) * p.vertexStride)
           )
             throw Error('Invalid D3D12 vertex buffer snapshot');
           vertexBytes += command.vertices.length;
-          if (vertexBytes > 8 * 1024 * 1024) throw Error('D3D12 vertex submission limit exceeded');
         } else if (command.vertices?.length || command.vertexStride)
           throw Error('Unexpected D3D12 vertex input');
+        if (indexed) {
+          validateIndexSnapshot(
+            command,
+            p.vertexStride ? command.vertices.length / p.vertexStride : null,
+          );
+          vertexBytes += command.indices.length;
+        } else if (command.indices || command.indexFormat)
+          throw Error('Unexpected D3D12 index input');
+        if (vertexBytes > 8 * 1024 * 1024) throw Error('D3D12 upload submission limit exceeded');
         const v = command.viewport,
           s = command.scissor;
         if (
@@ -289,9 +302,9 @@ export class D3D12Renderer {
           !integer(s.right, s.left, resource.chain.width) ||
           !integer(s.top, 0, resource.chain.height) ||
           !integer(s.bottom, s.top, resource.chain.height) ||
-          !integer(command.vertexCount, 0, 65535) ||
+          (!indexed && !integer(command.vertexCount, 0, 65535)) ||
           !integer(command.instanceCount, 0, 1024) ||
-          !integer(command.firstVertex, 0, 0x7fffffff - command.vertexCount) ||
+          (!indexed && !integer(command.firstVertex, 0, 0x7fffffff - command.vertexCount)) ||
           !integer(command.firstInstance, 0, 0x7fffffff - command.instanceCount)
         )
           throw Error('Unsupported D3D12 draw state');
@@ -299,23 +312,28 @@ export class D3D12Renderer {
     }
   }
 
-  vertexBuffer(index, bytes) {
-    let slot = this.vertexSlots[index];
-    if (slot && slot.size !== bytes.length) {
+  uploadBuffer(slots, index, bytes, usage) {
+    const size = Math.ceil(bytes.length / 4) * 4;
+    let slot = slots[index];
+    if (slot && slot.size !== size) {
       slot.buffer.destroy();
       slot = null;
     }
     if (!slot) {
       slot = {
-        size: bytes.length,
+        size,
         buffer: this.device.createBuffer({
-          size: bytes.length,
-          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+          size,
+          usage: usage | GPUBufferUsage.COPY_DST,
         }),
       };
-      this.vertexSlots[index] = slot;
+      slots[index] = slot;
     }
-    this.device.queue.writeBuffer(slot.buffer, 0, bytes);
+    // WebGPU writes require a multiple of four bytes; R16 index views may
+    // contain an odd number of indices. Padding is never exposed to the draw.
+    const upload = size === bytes.length ? bytes : new Uint8Array(size);
+    if (upload !== bytes) upload.set(bytes);
+    this.device.queue.writeBuffer(slot.buffer, 0, upload);
     return slot.buffer;
   }
 
@@ -335,7 +353,7 @@ export class D3D12Renderer {
     this.device.queue.writeBuffer(
       slot.buffer,
       0,
-      new Int32Array([command.firstVertex, command.firstInstance, 0, 0]),
+      new Int32Array([command.baseVertex ?? command.firstVertex, command.firstInstance, 0, 0]),
     );
     return slot.group;
   }
@@ -347,7 +365,8 @@ export class D3D12Renderer {
     this.device.pushErrorScope('validation');
     let failure,
       draws = 0,
-      vertexDraws = 0;
+      vertexDraws = 0,
+      indexDraws = 0;
     try {
       const encoder = this.device.createCommandEncoder();
       for (const command of commands) {
@@ -383,17 +402,45 @@ export class D3D12Renderer {
           const p = this.pipelines.get(command.pipeline);
           pass.setPipeline(p.pipeline);
           if (p.vertexStride)
-            pass.setVertexBuffer(0, this.vertexBuffer(vertexDraws++, command.vertices));
+            pass.setVertexBuffer(
+              0,
+              this.uploadBuffer(
+                this.vertexSlots,
+                vertexDraws++,
+                command.vertices,
+                GPUBufferUsage.VERTEX,
+              ),
+            );
           for (let group = 0; group < 3; group++) pass.setBindGroup(group, this.emptyGroup);
           pass.setBindGroup(3, this.drawParameters(draws++, command));
           pass.setViewport(v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth);
           pass.setScissorRect(s.left, s.top, s.right - s.left, s.bottom - s.top);
-          pass.draw(
-            command.vertexCount,
-            command.instanceCount,
-            command.firstVertex,
-            command.firstInstance,
-          );
+          if (command.indexCount !== undefined) {
+            pass.setIndexBuffer(
+              this.uploadBuffer(
+                this.indexSlots,
+                indexDraws++,
+                command.indices,
+                GPUBufferUsage.INDEX,
+              ),
+              command.indexFormat,
+              0,
+              command.indices.length,
+            );
+            pass.drawIndexed(
+              command.indexCount,
+              command.instanceCount,
+              command.firstIndex,
+              command.baseVertex,
+              command.firstInstance,
+            );
+          } else
+            pass.draw(
+              command.vertexCount,
+              command.instanceCount,
+              command.firstVertex,
+              command.firstInstance,
+            );
         }
         pass.end();
       }
@@ -405,6 +452,7 @@ export class D3D12Renderer {
     const validation = await this.device.popErrorScope();
     if (failure || validation) throw failure ?? Error(validation.message);
     for (const slot of this.vertexSlots.splice(vertexDraws)) slot.buffer.destroy();
+    for (const slot of this.indexSlots.splice(indexDraws)) slot.buffer.destroy();
     this.draws += draws;
   }
 
@@ -491,8 +539,10 @@ export class D3D12Renderer {
     for (const id of this.resources.keys()) this.destroyResource({ id });
     for (const slot of this.drawSlots) slot.buffer.destroy();
     for (const slot of this.vertexSlots) slot.buffer.destroy();
+    for (const slot of this.indexSlots) slot.buffer.destroy();
     this.drawSlots.length = 0;
     this.vertexSlots.length = 0;
+    this.indexSlots.length = 0;
     this.pipelines.clear();
   }
 }

@@ -1,6 +1,7 @@
 // Bounded PE32 D3D12/DXGI bootstrap. Slot order and struct offsets are from
 // i686-w64-mingw32 d3d12.h/dxgi.h (MinGW-w64 14.0.0).
 import { ComObjects, readGuid } from './com.js';
+import { validateIndexSnapshot } from './d3d12-indices.js';
 import {
   parseCommittedResourceDescriptor,
   parsePipelineDescriptor,
@@ -173,7 +174,7 @@ function uploadAt(r, address, size, dev) {
     )
       return item;
   }
-  throw Error('D3D12 vertex buffer view is outside an upload resource');
+  throw Error('D3D12 buffer view is outside an upload resource');
 }
 function viewport(r, ptr) {
   r.check(ptr, 24);
@@ -200,6 +201,81 @@ function scissor(r, ptr) {
     throw Error('Unsupported D3D12 scissor rect');
   return { left, top, right, bottom };
 }
+function recordDraw(r, a, o, indexed) {
+  const s = o.state;
+  const count = number(a(1)),
+    instances = number(a(2)),
+    first = number(a(3));
+  const baseVertex = indexed ? a(4) | 0 : 0;
+  const firstInstance = number(a(indexed ? 5 : 4));
+  if (
+    !count ||
+    count > 65535 ||
+    instances !== 1 ||
+    first > 0x7fffffff - count ||
+    firstInstance > 0x7fffffff - instances ||
+    !s.pipeline ||
+    !s.root ||
+    s.pipeline.state.root !== s.root ||
+    !s.viewport ||
+    !s.scissor ||
+    s.topology !== 4 ||
+    !s.target
+  )
+    throw Error(
+      'Unsupported D3D12 ' + (indexed ? 'DrawIndexedInstanced' : 'DrawInstanced') + ' state',
+    );
+  const pipeline = s.pipeline.state;
+  let vertexView = null,
+    vertexStride = 0;
+  if (pipeline.inputLayout.length) {
+    const view = s.vertexBuffer;
+    if (
+      !view ||
+      view.stride !== pipeline.vertexStride ||
+      (!indexed && (first + count) * view.stride > view.size)
+    )
+      throw Error('D3D12 draw exceeds the bound vertex buffer');
+    object(r, view.resource.pointer, 'resource', s.device);
+    vertexView = view;
+    vertexStride = view.stride;
+  } else if (s.vertexBuffer) throw Error('D3D12 pipeline has no input layout');
+  let indexView = null;
+  if (indexed) {
+    indexView = s.indexBuffer;
+    if (!indexView || (first + count) * indexView.width > indexView.size)
+      throw Error('D3D12 draw exceeds the bound index buffer');
+    object(r, indexView.resource.pointer, 'resource', s.device);
+  }
+  if (!!pipeline.depth !== !!s.depthTarget)
+    throw Error('D3D12 pipeline depth state does not match bound target');
+  const snapshotBytes = (vertexView?.size ?? 0) + (indexView?.size ?? 0);
+  if (s.vertexBytes + snapshotBytes > MAX_RESOURCE_BYTES)
+    throw Error('D3D12 command list upload snapshot limit exceeded');
+  add(o, {
+    type: 'draw',
+    target: s.target.pointer,
+    pipeline: s.pipeline.pointer,
+    viewport: { ...s.viewport },
+    scissor: { ...s.scissor },
+    ...(indexed
+      ? {
+          indexCount: count,
+          firstIndex: first,
+          baseVertex,
+          indexFormat: indexView.format,
+          indexView,
+        }
+      : { vertexCount: count, firstVertex: first }),
+    instanceCount: instances,
+    firstInstance,
+    vertexView,
+    vertexStride,
+    depthTarget: s.depthTarget?.pointer ?? 0,
+  });
+  s.vertexBytes += snapshotBytes;
+  return undefined;
+}
 function listMethods() {
   const methods = {
     9: {
@@ -223,6 +299,7 @@ function listMethods() {
         o.state.target = null;
         o.state.depthTarget = null;
         o.state.vertexBuffer = null;
+        o.state.indexBuffer = null;
         o.state.viewport = null;
         o.state.scissor = null;
         o.state.topology = 0;
@@ -235,61 +312,11 @@ function listMethods() {
     },
     12: {
       argc: 5,
-      invoke(_r, a, o) {
-        const s = o.state;
-        const count = number(a(1)),
-          instances = number(a(2));
-        if (
-          !count ||
-          count > 65535 ||
-          instances !== 1 ||
-          number(a(3)) > 0x7fffffff - count ||
-          number(a(4)) > 0x7fffffff - instances ||
-          !s.pipeline ||
-          !s.root ||
-          s.pipeline.state.root !== s.root ||
-          !s.viewport ||
-          !s.scissor ||
-          s.topology !== 4 ||
-          !s.target
-        )
-          throw Error('Unsupported D3D12 DrawInstanced state');
-        const pipeline = s.pipeline.state;
-        let vertexView = null,
-          vertexStride = 0;
-        if (pipeline.inputLayout.length) {
-          const view = s.vertexBuffer;
-          if (
-            !view ||
-            view.stride !== pipeline.vertexStride ||
-            (number(a(3)) + count) * view.stride > view.size
-          )
-            throw Error('D3D12 draw exceeds the bound vertex buffer');
-          object(_r, view.resource.pointer, 'resource', s.device);
-          vertexView = view;
-          vertexStride = view.stride;
-        } else if (s.vertexBuffer) throw Error('D3D12 pipeline has no input layout');
-        if (!!pipeline.depth !== !!s.depthTarget)
-          throw Error('D3D12 pipeline depth state does not match bound target');
-        if (s.vertexBytes + (vertexView?.size ?? 0) > MAX_RESOURCE_BYTES)
-          throw Error('D3D12 command list vertex snapshot limit exceeded');
-        add(o, {
-          type: 'draw',
-          target: s.target.pointer,
-          pipeline: s.pipeline.pointer,
-          viewport: { ...s.viewport },
-          scissor: { ...s.scissor },
-          vertexCount: count,
-          instanceCount: instances,
-          firstVertex: number(a(3)),
-          firstInstance: number(a(4)),
-          vertexView,
-          vertexStride,
-          depthTarget: s.depthTarget?.pointer ?? 0,
-        });
-        s.vertexBytes += vertexView?.size ?? 0;
-        return undefined;
-      },
+      invoke: (r, a, o) => recordDraw(r, a, o, false),
+    },
+    13: {
+      argc: 6,
+      invoke: (r, a, o) => recordDraw(r, a, o, true),
     },
     20: {
       argc: 2,
@@ -351,6 +378,32 @@ function listMethods() {
       argc: 2,
       invoke(r, a, o) {
         o.state.root = object(r, a(1), 'root', o.state.device);
+        return undefined;
+      },
+    },
+    43: {
+      argc: 2,
+      invoke(r, a, o) {
+        const p = number(a(1));
+        if (!p) {
+          o.state.indexBuffer = null;
+          return undefined;
+        }
+        r.check(p, 16);
+        if (u32(r, p, 4)) throw Error('Unsupported 64-bit D3D12 guest GPU address');
+        const address = u32(r, p),
+          size = u32(r, p, 8),
+          format = u32(r, p, 12);
+        const width = format === 57 ? 2 : format === 42 ? 4 : 0;
+        if (!width || !size || size > MAX_RESOURCE_BYTES || size % width || address % width)
+          throw Error('Invalid D3D12 index buffer view');
+        o.state.indexBuffer = {
+          resource: uploadAt(r, address, size, o.state.device),
+          address,
+          size,
+          width,
+          format: width === 2 ? 'uint16' : 'uint32',
+        };
         return undefined;
       },
     },
@@ -644,6 +697,7 @@ function deviceMethods() {
             target: null,
             depthTarget: null,
             vertexBuffer: null,
+            indexBuffer: null,
             viewport: null,
             scissor: null,
             topology: 0,
@@ -876,9 +930,11 @@ function queueMethods() {
                 }
                 if (c.vertexView)
                   object(r, c.vertexView.resource.pointer, 'resource', q.state.device);
-                vertexBytes += c.vertexView?.size ?? 0;
+                if (c.indexView)
+                  object(r, c.indexView.resource.pointer, 'resource', q.state.device);
+                vertexBytes += (c.vertexView?.size ?? 0) + (c.indexView?.size ?? 0);
                 if (vertexBytes > MAX_RESOURCE_BYTES)
-                  throw Error('D3D12 vertex snapshot limit exceeded');
+                  throw Error('D3D12 upload snapshot limit exceeded');
               }
               const current = states.get(res) ?? res.state.state;
               if (current !== 4) throw Error('D3D12 render target is not in RENDER_TARGET state');
@@ -889,7 +945,18 @@ function queueMethods() {
                     ? r.data.slice(c.vertexView.address, c.vertexView.address + c.vertexView.size)
                     : new Uint8Array(0),
                 };
+                if (c.indexView) {
+                  delivered.indices = r.data.slice(
+                    c.indexView.address,
+                    c.indexView.address + c.indexView.size,
+                  );
+                  validateIndexSnapshot(
+                    delivered,
+                    c.vertexStride ? delivered.vertices.length / c.vertexStride : null,
+                  );
+                }
                 delete delivered.vertexView;
+                delete delivered.indexView;
                 commands.push(delivered);
               } else commands.push(c);
             }

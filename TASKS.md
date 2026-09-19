@@ -35,20 +35,24 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [x] Run a native PE32 D3D12 shader fixture through real DXGI backbuffers, empty root signatures, pipeline state, command lists, resource barriers, queue submission and completed 64-bit fences; verify both EXE upload and hosted ZIP.
 - [x] Run the native D3D12 cube with upload vertex buffers, D16 depth, DSV/RTV descriptors, swapchain buffer indexes, completed fences, browser shader compilation and clean release; test depth/vertex rendering independently on both GPU presentation paths.
 - [x] Compile guest SM5 DXBC to SPIR-V with libvkd3d-shader and then WGSL with Naga inside the browser worker; retain complete licensed compiler source/rebuild materials and verify shader pixels, nonzero draw offsets and invalid input rejection.
+- [x] Execute native x87 load/store, conversion, stack, arithmetic and comparison/control instructions through Berkeley SoftFloat ext80; the D3D12 cube now computes rotation/projection in its EXE each frame instead of using precomputed geometry.
+- [x] Support 16/32-bit D3D12 index buffers and indexed draws with first-index/signed-base-vertex offsets, submission-time snapshots, shared bounds checks and pixel tests on both presentation paths.
+- [x] Compile licensed Wine VS 1.1/PS 2.0 token streams in a Chromium worker using the reusable legacy shader-model 1–3 compiler interface; verify WebGPU accepts their WGSL. Programmable D3D9 rendering remains separate work.
+- [x] Initialize the real Wine CRT through the optional loader bridge and execute guest `calloc`, `sprintf`, `strlen`, `_write` and `free` in Node and an isolated Chromium worker. NT file services share the runtime's bounded files and output streams.
 - [x] Report a conservative guest CPU feature profile to Wine; partial SIMD support does not advertise complete host instruction families.
 - [x] Keep code split by runtime service, with tests and an intentionally plain test harness.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine startup:** finish the NT registry, locale and loader services reached by the real CRT closure. The optional [source-built loader probe](evidence/wine-loader-crt-results.json) passes version, dynamic TLS and C-locale setup, and conservative CPU-feature queries, then reaches `NtQueryVolumeInformationFile` during CRT standard-stream initialization. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary; neither is an application test.
+- [ ] **Wine application startup:** progress from the passing optional [CRT service probe](evidence/wine-loader-crt-browser-results.json) to real application entry points, including native file creation, loader callbacks and process shutdown. The source-built diagnostic attaches the CRT and tests exports, but runs no EXE entry point. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
 - [ ] Unify host and Wine loader transactions for module load/unload, reference counts, attach order and static TLS. The optional one-shot loader bridge only registers an existing graph and supports read-only queries.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
-- [ ] Expand CPU coverage for floating point, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.
+- [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, FRNDINT, environment save/restore, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.
 - [ ] Run more unchanged desktop targets, starting with Minesweeper (32 unresolved imports at the last inspection); implement reusable dialog/menu/common-control/GDI services where Wine reuse is feasible.
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
-- [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. The native D3D9 cube passes a bounded bootstrap frontend. Next establish Wine-derived state/resources and programmable shaders with an independent upstream EXE. See [graphics handoff](docs/graphics-handoff.md).
+- [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. The native D3D9 cube passes a bounded bootstrap frontend. Next establish Wine-derived state/resources and programmable rendering with the pinned Humus Dynamic Branching D3D9 EXE. Legacy shader compilation passes separately; the application remains blocked on Win32 startup, further CPU coverage, buffers, textures, stencil and indexed D3D9 draws. See [graphics handoff](docs/graphics-handoff.md).
 - [ ] Implement D3D10/11 frontends and expand the bounded D3D12 path: root bindings, textures, resource formats, shaders, compute and DXIL. The passing native DX12 fixture does not establish independent game compatibility or x64 execution. No all-games or instant-startup claim is supported.
 - [ ] Expand audio beyond synchronous PCM, and add networking and other OS services with explicit browser constraints.
 - [ ] Persist registry and application-file overlays between runs; support reopening saved applications.
@@ -66,6 +70,7 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - `npm run test:webgpu`: isolated backend pixel tests; [native D3D9 browser evidence](evidence/d3d9-browser-results.json) verifies the complete EXE path.
 - `npm run test:shaders`: worker shader compiler pixels/validation; [D3D12 browser evidence](evidence/d3d12-browser-results.json) verifies the separate native EXE path.
 - `npm run test:d3d12-backend`: compiled shader geometry/depth pixels; [native cube evidence](evidence/d3d12-cube-browser-results.json) covers uploads, animation and clean exit.
+- Optional passing CRT-services probe with the rebuilt loader: `npm run probe:wine-loader-crt -- /path/to/i386-windows /path/to/wine/nls --browser`.
 - Optional whole-Wine probe (expected to report blocked startup):
   `npm run probe:wine-crt -- /path/to/i386-windows /path/to/wine/nls`.
 

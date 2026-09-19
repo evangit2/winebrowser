@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-18T23:12:17.732Z",
+  "date": "2026-09-19T01:09:25.746Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "target": "wesmar-tetris-2026-07-x86",
   "sha256": "3687bc1cfe9a7657ca9da1daacec9f97a92946f0b0440acdb70d3a71a4560007",
@@ -17,8 +17,8 @@
     "Public ZIP example loads and Stop terminates its worker"
   ],
   "exitCode": 0,
-  "blocks": 1013433,
+  "blocks": 1035826,
   "compiledBlocks": 577,
-  "elapsedMs": 12289.560000002384,
+  "elapsedMs": 12394.194999992847,
   "scope": "Interactive browser smoke test of the unchanged upstream release. No pixel-exact native font comparison, complete game-rule proof, or persistent registry claim."
 }

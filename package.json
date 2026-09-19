@@ -44,7 +44,9 @@
     "test:shaders": "node scripts/test-dxbc-browser.mjs",
     "test:d3d12": "node scripts/test-d3d12-browser.mjs",
     "test:d3d12-backend": "node scripts/test-d3d12-backend.mjs",
-    "test:d3d12-cube": "node scripts/test-d3d12-browser.mjs --cube"
+    "test:d3d12-cube": "node scripts/test-d3d12-browser.mjs --cube",
+    "build:softfloat": "python3 scripts/build-softfloat.py",
+    "test:softfloat": "node runtime/softfloat/test.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

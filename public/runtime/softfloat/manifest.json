@@ -1,0 +1,81 @@
+{
+  "source": {
+    "name": "Berkeley SoftFloat Release 3e",
+    "revision": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "url": "https://github.com/ucb-bar/berkeley-softfloat-3/archive/a0c6494cdc11865811dec815d5c0049fba9d82a8.tar.gz",
+    "archiveSha256": "1f719bcc8878be9627f6cfc44a0d6dbddf32bacc70ac81193bcbf2c62f97cbe9",
+    "patches": []
+  },
+  "toolchain": {
+    "emscripten": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.7 (8dc91db45bf96c174531006839472a3924d105aa)"
+  },
+  "adapter": {
+    "path": "runtime/softfloat/adapter.c",
+    "bytes": 10604,
+    "sha256": "3012102a76af2bdf425df47b3e0d448a552e4530a8c5eeb430384313b7a030da"
+  },
+  "buildScript": {
+    "path": "scripts/build-softfloat.py",
+    "bytes": 6661,
+    "sha256": "4a05579dfd49b76495e5de751adfb9faaa65dd38c1d18311925480b0d4979b54"
+  },
+  "artifacts": {
+    "softfloat.js": {
+      "bytes": 9265,
+      "sha256": "7c371d62eb6a1a88076b2b866135e36b012c800149ad2960e270c75a91f6b5cf"
+    },
+    "softfloat.wasm": {
+      "bytes": 16819,
+      "sha256": "3b576f8a34c18eded476b6d05ddd4a8eb85cc420313abcd930a5376a6677c06a"
+    },
+    "COPYING.txt": {
+      "bytes": 1738,
+      "sha256": "145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7"
+    },
+    "ADAPTER-LICENSE": {
+      "bytes": 1081,
+      "sha256": "9ee46f5466859bea6ddebfd3a7dd9bc0c27e102411ed1b436b3e3839031de94f"
+    },
+    "README.md": {
+      "bytes": 3215,
+      "sha256": "6593f830c19bfabe51ebfd0bf42def967398f81110a00fcadd8f660d8d111dfb"
+    }
+  },
+  "sourceBundle": {
+    "berkeley-softfloat-3-a0c6494.tar.gz": {
+      "path": "public/runtime/softfloat/source/berkeley-softfloat-3-a0c6494.tar.gz",
+      "bytes": 151003,
+      "sha256": "1f719bcc8878be9627f6cfc44a0d6dbddf32bacc70ac81193bcbf2c62f97cbe9"
+    },
+    "COPYING.txt": {
+      "path": "public/runtime/softfloat/source/COPYING.txt",
+      "bytes": 1738,
+      "sha256": "145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7"
+    },
+    "README.md": {
+      "path": "public/runtime/softfloat/source/README.md",
+      "bytes": 1052,
+      "sha256": "52c1646a4124364b6f984ad520a6512f2259e0f53fe4d2f8bcd9ddcd996334b3"
+    },
+    "adapter.c": {
+      "path": "public/runtime/softfloat/source/adapter.c",
+      "bytes": 10604,
+      "sha256": "3012102a76af2bdf425df47b3e0d448a552e4530a8c5eeb430384313b7a030da"
+    },
+    "ADAPTER-LICENSE": {
+      "path": "public/runtime/softfloat/source/ADAPTER-LICENSE",
+      "bytes": 1081,
+      "sha256": "9ee46f5466859bea6ddebfd3a7dd9bc0c27e102411ed1b436b3e3839031de94f"
+    },
+    "test.mjs": {
+      "path": "public/runtime/softfloat/source/test.mjs",
+      "bytes": 3863,
+      "sha256": "6429592974eca6c7b8da0c908222afda833347dc316aafea587360477017c6d8"
+    },
+    "build-softfloat.py": {
+      "path": "public/runtime/softfloat/source/build-softfloat.py",
+      "bytes": 6661,
+      "sha256": "4a05579dfd49b76495e5de751adfb9faaa65dd38c1d18311925480b0d4979b54"
+    }
+  }
+}

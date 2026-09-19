@@ -101,6 +101,21 @@ try {
           firstVertex,
           firstInstance: 0,
         });
+        const indexedDraw = (width, color, values, firstIndex = 0, baseVertex = 0) => {
+          const command = draw(0.25, color, true, Math.max(baseVertex, 0));
+          delete command.vertexCount;
+          delete command.firstVertex;
+          return {
+            ...command,
+            indices: new Uint8Array(
+              (width === 2 ? new Uint16Array(values) : new Uint32Array(values)).buffer,
+            ),
+            indexFormat: width === 2 ? 'uint16' : 'uint32',
+            indexCount: 3,
+            firstIndex,
+            baseVertex,
+          };
+        };
         const clear = { type: 'clear', target: 2, color: [17 / 255, 34 / 255, 51 / 255, 0] };
         const clearDepth = { type: 'clear-depth', target: 4, depth: 1 };
         for (const commands of [
@@ -108,6 +123,9 @@ try {
           [clear, clearDepth, draw(0.25, [1, 0, 0, 1]), draw(0.75, [0, 0, 1, 1], false)],
           [clear, clearDepth, draw(0.25, [0, 1, 0, 1], true, 3)],
           [clear, { ...clearDepth, depth: 0.1 }, draw(0.25, [1, 0, 0, 1])],
+          [clear, clearDepth, indexedDraw(2, [1, 1, 0, 1], [0, 1, 2])],
+          [clear, clearDepth, indexedDraw(2, [1, 0, 1, 1], [99, 3, 1, 2], 1, -1)],
+          [clear, clearDepth, indexedDraw(4, [0, 1, 1, 1], [99, 0, 1, 2], 1, 3)],
         ]) {
           await renderer.execute({ commands });
           await renderer.present({ id: 1, index: 0 });
@@ -119,6 +137,10 @@ try {
           { ...draw(0.25, [1, 0, 0, 1]), depthTarget: 2 },
           { ...clearDepth, depth: 2 },
           { ...clear, target: 4 },
+          indexedDraw(2, [1, 0, 0, 1], [0, 1, 3]),
+          indexedDraw(4, [1, 0, 0, 1], [0, 1, 0xffffffff]),
+          indexedDraw(2, [1, 0, 0, 1], [0, 1, 2], 0, -1),
+          indexedDraw(4, [1, 0, 0, 1], [0, 1, 2], 1),
         ]) {
           let rejected = false;
           try {
@@ -160,6 +182,9 @@ try {
       [0, 0, 255, 255],
       [0, 255, 0, 255],
       [17, 34, 51, 255],
+      [255, 255, 0, 255],
+      [255, 0, 255, 255],
+      [0, 255, 255, 255],
     ],
   );
   assert.ok(
@@ -167,7 +192,7 @@ try {
       (frame) => JSON.stringify(frame.corner) === JSON.stringify([17, 34, 51, 255]),
     ),
   );
-  assert.equal(report.draws, 6);
+  assert.equal(report.draws, 9);
   assert.deepEqual(errors, []);
   await mkdir('evidence', { recursive: true });
   const filename = forceReadback
@@ -178,7 +203,7 @@ try {
     JSON.stringify(
       {
         scope:
-          'Actual DXBC shader compilation, vertex input and D16 depth rendering; separate from native EXE acceptance',
+          'Actual DXBC shader compilation, vertex input, R16/R32 indexed draws with signed base vertex and first index, and D16 depth rendering; separate from native EXE acceptance',
         date: new Date().toISOString(),
         browser: browser.version(),
         passed: true,

@@ -1,6 +1,7 @@
 // Direct x86 basic-block -> WebAssembly emitter. iced decodes; it does not execute.
 import { moduleBytes, constant, get, set, local, call, Host } from './wasm.js';
 import { classifySse, SIMDState } from './simd.js';
+import { classifyX87, X87State } from './x87.js';
 export class CPU {
   constructor(
     iced,
@@ -14,6 +15,8 @@ export class CPU {
       executableRanges,
       stackTop = 0x3fff000,
       fsBase = 0,
+      x87ModuleUrl,
+      x87WasmUrl,
     },
   ) {
     if (typeof SharedArrayBuffer !== 'undefined' && memory.buffer instanceof SharedArrayBuffer)
@@ -44,7 +47,16 @@ export class CPU {
         write ? write(address, value, width) : write32(address, value),
       check: (address, size, isWrite) => this.checkMemory(address, size, isWrite),
     });
+    this.x87 = new X87State({
+      memory,
+      check: (address, size, isWrite) => this.checkMemory(address, size, isWrite),
+      registers: this.r,
+      flags: this,
+      moduleUrl: x87ModuleUrl,
+      wasmUrl: x87WasmUrl,
+    });
     this.cache = new Map();
+    this.x87Blocks = new Set();
     this.compiledBytes = 0;
     this.instructions = 0;
     this.f = { cf: 0, zf: 0, sf: 0, of: 0, pf: 0 };
@@ -83,6 +95,8 @@ export class CPU {
       },
       simd: (op, dst, src, address, immediate) =>
         this.simd.execute(op, dst, src, address, immediate),
+      x87: (op, a, b, address, width, options) =>
+        this.x87.execute(op, a, b, address, width, options),
       bitScan: (value, previous, reverse) => {
         this.f.zf = Number(value === 0);
         // The zero-input destination and non-ZF flags are architecturally undefined;
@@ -147,6 +161,9 @@ export class CPU {
       },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
+  }
+  initialize() {
+    return this.x87.initialize();
   }
   push(v) {
     const sp = (this.r[4].value - 4) >>> 0;
@@ -282,7 +299,8 @@ export class CPU {
     d.ip = BigInt(ip);
     let code = [],
       count = 0,
-      end = ip;
+      end = ip,
+      usesX87 = false;
     const regInfo = (r) => {
       if (r >= R.EAX && r <= R.EDI) return { index: r - R.EAX, width: 32, shift: 0 };
       if (r >= R.AX && r <= R.DI) return { index: r - R.AX, width: 16, shift: 0 };
@@ -384,6 +402,7 @@ export class CPU {
           if (i.isInvalid || next > range[1]) throw Error('Invalid or truncated x86 instruction');
           const m = i.mnemonic;
           const simd = classifySse(i, this.iced);
+          const x87 = classifyX87(i, this.iced);
           if (i.hasLockPrefix) {
             const lockable = [
               M.Add,
@@ -451,6 +470,19 @@ export class CPU {
               ...constant(simd.immediate ?? 0),
               ...call(Host.simd),
             );
+          } else if (x87) {
+            if (i.hasLockPrefix || i.hasRepPrefix || i.hasRepnePrefix)
+              throw Error('Unsupported prefix on x87 instruction');
+            code.push(
+              ...constant(x87.op),
+              ...constant(x87.a),
+              ...constant(x87.b),
+              ...(x87.memory ? addr(i) : constant(0)),
+              ...constant(x87.width),
+              ...constant(x87.flags),
+              ...call(Host.x87),
+            );
+            usesX87 = true;
           } else if (m === M.Mov) code.push(...write(i, 0, operand(i, 1)));
           else if (m === M.Movzx || m === M.Movsx) {
             let value = operand(i, 1);
@@ -754,6 +786,7 @@ export class CPU {
       this.compiledBytes += binary.length;
       const block = { run, count, bytes: binary.length };
       this.cache.set(ip, block);
+      if (usesX87) this.x87Blocks.add(ip);
       return block;
     } catch (error) {
       throw Error(`x86 block 0x${ip.toString(16)}: ${error.message}`);
@@ -765,5 +798,16 @@ export class CPU {
     const block = this.cache.get(ip) || this.compile(ip);
     this.instructions += block.count;
     return block.run() >>> 0;
+  }
+  prepare(ip) {
+    if (!this.cache.has(ip)) this.compile(ip);
+    return this.x87Blocks.has(ip) ? this.initialize() : null;
+  }
+  clearCache() {
+    this.cache.clear();
+    this.x87Blocks.clear();
+  }
+  dispose() {
+    this.x87.dispose();
   }
 }

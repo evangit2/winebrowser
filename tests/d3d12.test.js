@@ -162,6 +162,8 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
   const allocator = await create(dev, 9, [0], 'allocator');
   const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
   for (const [slot, method] of [
+    [13, 'DrawIndexedInstanced'],
+    [43, 'IASetIndexBuffer'],
     [44, 'IASetVertexBuffers'],
     [46, 'OMSetRenderTargets'],
     [47, 'ClearDepthStencilView'],
@@ -402,6 +404,57 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
   assert.equal(depthExecute.commands[1].vertices[7], 0x77);
   assert.equal(depthExecute.commands[1].vertexStride, 32);
   assert.equal(depthExecute.commands[1].depthTarget, depthResource);
+  // Index values are read at execution time, including a signed base vertex
+  // and a nonzero first index. Bad values must fail before committing barriers.
+  const indexUpload = await create(dev, 27, [heapProps, 0, bufferDesc, 0xac3, 0], 'resource');
+  await call(indexUpload, 8, 0, 0, mappedOut);
+  const indexData = r.read32(mappedOut),
+    indexView = alloc(16);
+  r.write32(indexView, indexData);
+  r.write32(indexView + 8, 8);
+  r.write32(indexView + 12, 57); // DXGI_FORMAT_R16_UINT
+  await call(allocator, 8);
+  await call(list, 10, allocator, depthPipeline);
+  r.write32(barrier + 16, 0);
+  r.write32(barrier + 20, 4);
+  await call(list, 26, 1, barrier);
+  await call(list, 46, 1, target, 0, dsvPointer);
+  await call(list, 44, 0, 1, vertexView);
+  await call(list, 21, 1, vp);
+  await call(list, 22, 1, rect);
+  await call(list, 30, root);
+  await call(list, 20, 4);
+  await call(list, 43, indexView);
+  await call(list, 43, 0); // A null view unbinds the index buffer.
+  await assert.rejects(call(list, 13, 3, 1, 1, -1, 0), /bound index buffer/);
+  r.write32(indexView + 12, 28);
+  await assert.rejects(call(list, 43, indexView), /index buffer view/);
+  r.write32(indexView + 12, 57);
+  await call(list, 43, indexView);
+  await assert.rejects(call(list, 13, 4, 1, 1, -1, 0), /bound index buffer/);
+  assert.equal((await call(list, 13, 3, 1, 1, -1, 0)).argc, 6);
+  r.write32(barrier + 16, 4);
+  r.write32(barrier + 20, 0);
+  await call(list, 26, 1, barrier);
+  await call(list, 9);
+  [99, 4, 1, 2].forEach((v, i) => r.view.setUint16(indexData + i * 2, v, true));
+  const executeCount = events.filter((event) => event.type === 'execute').length;
+  await assert.rejects(call(queue, 10, 1, lists), /index references a vertex outside/);
+  assert.equal(events.filter((event) => event.type === 'execute').length, executeCount);
+  assert.equal(r.comObjects.objects.get(buffers[0]).state.state, 0);
+  r.view.setUint16(indexData + 2, 3, true);
+  await call(queue, 10, 1, lists);
+  const indexedDraw = events.filter((event) => event.type === 'execute').at(-1).commands[0];
+  assert.equal(indexedDraw.baseVertex, -1);
+  assert.equal(indexedDraw.firstIndex, 1);
+  assert.equal(indexedDraw.indexCount, 3);
+  assert.equal(indexedDraw.indexFormat, 'uint16');
+  assert.deepEqual([...indexedDraw.indices], [99, 0, 3, 0, 1, 0, 2, 0]);
+  r.data.fill(0, indexData, indexData + 8);
+  assert.equal(indexedDraw.indices[2], 3, 'Submitted index bytes do not alias guest storage');
+  await call(indexUpload, 2);
+  await assert.rejects(call(queue, 10, 1, lists), /Invalid or released ID3D12Resource/);
+  assert.ok(freed.includes(indexData));
   // A rejected submission must not commit the transition to RENDER_TARGET.
   await call(allocator, 8);
   await call(list, 10, allocator, pipeline);

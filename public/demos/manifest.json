@@ -103,8 +103,8 @@
       "exe": "d3d12-cube/d3d12-cube.exe",
       "zip": "d3d12-cube.zip",
       "provenance": "Original MIT PE32 C application and HLSL shaders; ordinary native build plus deterministic geometry data. Complete source and rebuild materials included.",
-      "exeSha256": "69c9444a5a8604295a59e73b23e7005900b2ca89365756742d765b478af93df0",
-      "zipSha256": "30b5a6be24e3ae3b5595cf3f95bfec480411e234d1135d80415aac16c572c42a"
+      "exeSha256": "172155247cbed000cb046289acab47ea6ac0783d96edbab1447e3cf16d957553",
+      "zipSha256": "23e570f0e5324416bd31231d7be249d85f7d9d935f404b4b9460f0120d183d38"
     }
   ]
 }

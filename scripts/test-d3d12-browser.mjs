@@ -126,7 +126,6 @@ try {
       'd3d12.dll!D3D12SerializeRootSignature',
       'ID3D12Device.CreateGraphicsPipelineState',
       'ID3D12GraphicsCommandList.ResourceBarrier',
-      'ID3D12GraphicsCommandList.DrawInstanced',
       'ID3D12CommandQueue.ExecuteCommandLists',
       'IDXGISwapChain.Present',
       'ID3D12CommandQueue.Signal',
@@ -140,11 +139,13 @@ try {
             'ID3D12Resource.Unmap',
             'ID3D12Resource.GetGPUVirtualAddress',
             'ID3D12GraphicsCommandList.IASetVertexBuffers',
+            'ID3D12GraphicsCommandList.IASetIndexBuffer',
+            'ID3D12GraphicsCommandList.DrawIndexedInstanced',
             'ID3D12Device.CreateDepthStencilView',
             'ID3D12GraphicsCommandList.ClearDepthStencilView',
             'IDXGISwapChain.GetCurrentBackBufferIndex',
           ]
-        : []),
+        : ['ID3D12GraphicsCommandList.DrawInstanced']),
     ])
       assert.ok(result.apiTrace.includes(call), `Guest called ${call}`);
     assert.equal(await page.locator('.virtual-desktop-window').count(), 0);
@@ -175,6 +176,14 @@ try {
     exeSha256: fixture.exeSha256,
     browserCompilation: true,
     browserShaderCompilation: true,
+    ...(cube
+      ? {
+          nativeVertexTransforms: true,
+          vertexArithmetic: 'x87 runtime rotation and perspective projection',
+          indexFormat: 'R16_UINT',
+          drawIndexedArguments: [36, 1, 0, 0, 0],
+        }
+      : {}),
     runs,
     errors,
   };
