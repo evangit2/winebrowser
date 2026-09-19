@@ -214,3 +214,140 @@ test('devices without a depth surface reject depth clear and depth enable', asyn
   await call(device, 42);
   await call(device, 17, 0, 0, 0, 0);
 });
+
+test('programmable DrawPrimitiveUP owns shaders and snapshots declaration, vertices, and constants', async () => {
+  const { runtime, events, call, create } = fixture();
+  const device = await create();
+  const vsWords = [
+    0xfffe0101, 0x0000001f, 0x80000000, 0x900f0000, 0x0000001f, 0x8000000a, 0x900f0001, 0x00000001,
+    0xc00f0000, 0x90e40000, 0x00000005, 0xd00f0000, 0xa0e40000, 0x90e40001, 0x0000ffff,
+  ];
+  // COMMENT uses a 15-bit payload length; a payload over 15 DWORDs must not
+  // be mistaken for an unsupported instruction length.
+  vsWords.splice(1, 0, 0x0014fffe, ...Array(20).fill(0x12345678));
+  const psWords = [
+    0xffff0200, 0x0200001f, 0x80000000, 0x900f0000, 0x02000001, 0x800f0800, 0x90e40000, 0x0000ffff,
+  ];
+  const words = (values) => {
+    const pointer = runtime.allocate(values.length * 4);
+    values.forEach((value, index) => runtime.write32(pointer + index * 4, value));
+    return pointer;
+  };
+  const vsSource = words(vsWords),
+    psSource = words(psWords),
+    out = runtime.allocate(4);
+  assert.equal((await call(device, 91, vsSource, out)).result, 0);
+  const vertexShader = runtime.read32(out);
+  assert.equal((await call(device, 106, psSource, out)).result, 0);
+  const pixelShader = runtime.read32(out);
+
+  const declarationSource = runtime.allocate(24);
+  const element = (at, offset, type, usage) => {
+    runtime.view.setUint16(at, 0, true);
+    runtime.view.setUint16(at + 2, offset, true);
+    runtime.data.set([type, 0, usage, 0], at + 4);
+  };
+  element(declarationSource, 0, 3, 0); // POSITION0 float4.
+  element(declarationSource + 8, 16, 3, 10); // COLOR0 float4.
+  runtime.view.setUint16(declarationSource + 16, 0xff, true);
+  runtime.data[declarationSource + 20] = 17;
+  assert.equal((await call(device, 86, declarationSource, out)).result, 0);
+  const declaration = runtime.read32(out);
+  const declarationCount = runtime.allocate(4);
+  assert.equal((await call(declaration, 4, 0, declarationCount)).result, 0);
+  assert.equal(runtime.read32(declarationCount), 3, 'GetDeclaration counts elements including END');
+  const declarationCopy = runtime.allocate(24);
+  runtime.data.fill(0xa5, declarationCopy, declarationCopy + 24);
+  runtime.write32(declarationCount, 2);
+  assert.equal((await call(declaration, 4, declarationCopy, declarationCount)).result, 0x8876086c);
+  assert.equal(runtime.read32(declarationCount), 2);
+  assert.deepEqual(
+    [...runtime.data.subarray(declarationCopy, declarationCopy + 24)],
+    Array(24).fill(0xa5),
+    'short GetDeclaration buffer is untouched',
+  );
+  runtime.write32(declarationCount, 3);
+  assert.equal((await call(declaration, 4, declarationCopy, declarationCount)).result, 0);
+  assert.equal(runtime.read32(declarationCount), 3);
+  assert.deepEqual(
+    [...runtime.data.subarray(declarationCopy, declarationCopy + 24)],
+    [...runtime.data.subarray(declarationSource, declarationSource + 24)],
+  );
+  assert.equal((await call(device, 87, declaration)).result, 0);
+  assert.equal((await call(device, 92, vertexShader)).result, 0);
+  assert.equal((await call(device, 107, pixelShader)).result, 0);
+
+  const constants = runtime.allocate(17) + 1; // Guest pointers need not be aligned.
+  [0.5, 1, 0.25, 1].forEach((value, index) =>
+    runtime.view.setFloat32(constants + index * 4, value, true),
+  );
+  assert.equal((await call(device, 94, 0, constants, 1)).result, 0);
+  assert.equal((await call(device, 94, 255, constants, 2)).result, 0x8876086c);
+  const readback = runtime.allocate(17) + 1;
+  assert.equal((await call(device, 95, 0, readback, 1)).result, 0);
+  assert.equal(runtime.view.getFloat32(readback, true), 0.5);
+
+  await call(device, 57, 22, 1);
+  await call(device, 41);
+  const vertices = runtime.allocate(96);
+  const data = [
+    [-0.8, -0.8, 0.5, 1, 1, 0, 0, 1],
+    [0.8, -0.8, 0.5, 1, 0, 1, 0, 1],
+    [0, 0.8, 0.5, 1, 0, 0, 1, 1],
+  ];
+  data.flat().forEach((value, index) => runtime.view.setFloat32(vertices + index * 4, value, true));
+  assert.equal((await call(device, 83, 4, 1, vertices, 32)).result, 0);
+  assert.equal(
+    runtime.comObjects.objects.get(device).state.frameBytes,
+    96 + vsWords.length * 4 + psWords.length * 4 + 256 * 16 + 224 * 16,
+    'frame accounting includes copied bytecode and both constant files',
+  );
+  runtime.data.fill(0, vertices, vertices + 96);
+  runtime.data.fill(0, constants, constants + 16);
+  runtime.write32(vsSource, 0);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+
+  const command = events.at(-1).commands[0];
+  assert.equal(command.type, 'draw-programmable');
+  assert.deepEqual(command.attributes, [
+    { shaderLocation: 0, offset: 0, format: 'float32x4' },
+    { shaderLocation: 1, offset: 16, format: 'float32x4' },
+  ]);
+  assert.equal(new DataView(command.vertices.buffer).getFloat32(0, true), Math.fround(-0.8));
+  assert.equal(command.vertexConstants[0], 0.5);
+  assert.equal(new Uint32Array(command.vertexShader.buffer)[0], 0xfffe0101);
+
+  const payloadBytes = 96 + vsWords.length * 4 + psWords.length * 4 + 256 * 16 + 224 * 16;
+  const deviceState = runtime.comObjects.objects.get(device).state;
+  deviceState.frameBytes = 8 * 1024 * 1024 - payloadBytes + 1;
+  await call(device, 41);
+  await assert.rejects(call(device, 83, 4, 1, vertices, 32), /frame command limit/);
+  await call(device, 42);
+  deviceState.frameBytes = 0;
+
+  const vertexObject = runtime.comObjects.objects.get(vertexShader);
+  const pixelObject = runtime.comObjects.objects.get(pixelShader);
+  const declarationObject = runtime.comObjects.objects.get(declaration);
+  assert.equal((await call(vertexShader, 2)).result, 0);
+  assert.equal(vertexObject.state.internalRefs, 1, 'binding owns a released shader internally');
+  assert.equal((await call(device, 93, out)).result, 0);
+  assert.equal(
+    runtime.read32(out),
+    vertexShader,
+    'GetVertexShader revives a bound internal object',
+  );
+  assert.equal((await call(vertexShader, 2)).result, 0);
+  assert.equal(
+    (await call(device, 2)).result,
+    2,
+    'externally retained children keep the device alive',
+  );
+  assert.notEqual(events.at(-1).type, 'destroy');
+  assert.equal((await call(pixelShader, 2)).result, 0);
+  assert.equal((await call(declaration, 2)).result, 0);
+  assert.deepEqual(events.at(-1), { type: 'destroy', id: device });
+  assert.equal(vertexObject.state.internalRefs, 0);
+  assert.equal(pixelObject.state.internalRefs, 0);
+  assert.equal(declarationObject.state.internalRefs, 0);
+});

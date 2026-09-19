@@ -74,6 +74,44 @@ try {
       color: 0x00252d41, // Guest window presentation is opaque despite clear alpha.
       depth: 1,
     };
+    const legacyShader = async (path) =>
+      new Uint8Array(await (await fetch('/tests/fixtures/shaders/legacy/' + path)).arrayBuffer());
+    const programmable = async (pixelOnly = false) => {
+      const data = new Float32Array([
+        -0.75, -0.75, 0.25, 1, 1, 1, 1, 1, 0.75, -0.75, 0.25, 1, 1, 1, 1, 1, 0, 0.75, 0.25, 1, 1, 1,
+        1, 1,
+      ]);
+      const vertexConstants = new Float32Array(256 * 4);
+      if (!pixelOnly) vertexConstants.set([1, 0.5, 0.25, 1]);
+      const pixelConstants = new Float32Array(224 * 4);
+      if (pixelOnly) {
+        pixelConstants.set([0.25, 0.25, 0.5, 0.5], 4); // c1
+        pixelConstants.set([0, 0.25, 0.25, 0.5], 8); // c2
+      }
+      return {
+        type: 'draw-programmable',
+        vertices: new Uint8Array(data.buffer),
+        vertexCount: 3,
+        stride: 32,
+        attributes: [
+          { shaderLocation: 0, offset: 0, format: 'float32x4' },
+          { shaderLocation: 1, offset: 16, format: 'float32x4' },
+        ],
+        vertexShader: await legacyShader(
+          pixelOnly ? 'wine-color.vs11.d3dbc' : 'wine-color-constant.vs11.d3dbc',
+        ),
+        pixelShader: await legacyShader(
+          pixelOnly ? 'wine-pixel-constant.ps20.d3dbc' : 'wine-color.ps20.d3dbc',
+        ),
+        vertexShaderId: pixelOnly ? 3 : 1,
+        pixelShaderId: pixelOnly ? 4 : 2,
+        vertexConstants,
+        pixelConstants,
+        depthTest: true,
+        depthWrite: true,
+        cullMode: 'none',
+      };
+    };
     try {
       await renderer.createDevice({ id: 1, windowId: 1, width: 130, height: 128, depth: true });
       await renderer.present({
@@ -90,6 +128,8 @@ try {
         id: 1,
         commands: [clear, draw(0.25, 0xffff0000, true, translated)],
       });
+      await renderer.present({ id: 1, commands: [clear, await programmable()] });
+      await renderer.present({ id: 1, commands: [clear, await programmable(true)] });
       const cases = [];
       for (const command of [
         { ...draw(0.5, 0xff00ff00), stride: 12 },
@@ -131,13 +171,15 @@ try {
       [255, 0, 0, 255],
       [0, 0, 255, 255],
       [37, 45, 65, 255],
+      [255, 128, 64, 255],
+      [64, 128, 191, 255],
     ],
   );
   assert.ok(
     report.frames.every((f) => JSON.stringify(f.corner) === JSON.stringify([37, 45, 65, 255])),
   );
-  assert.equal(report.submittedFrames, 3);
-  assert.equal(report.draws, 5);
+  assert.equal(report.submittedFrames, 5);
+  assert.equal(report.draws, 7);
   assert.deepEqual(errors, []);
   await writeFile(
     forceReadback

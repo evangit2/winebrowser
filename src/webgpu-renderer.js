@@ -1,3 +1,5 @@
+import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
+
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
 const COLOR_SHADER = `
@@ -37,6 +39,7 @@ export class WebGPURenderer {
     this.forceReadback = forceReadback;
     this.surfaces = new Map();
     this.pipelines = new Map();
+    this.programmable = new D3D9ProgrammableRenderer(this);
     this.frames = 0;
     this.draws = 0;
   }
@@ -179,6 +182,10 @@ export class WebGPURenderer {
           throw Error('Unsupported or invalid graphics draw command');
         bytes += command.vertices.length;
         if (bytes > MAX_FRAME_BYTES) throw Error('Graphics frame upload limit exceeded');
+      } else if (command.type === 'draw-programmable') {
+        this.programmable.validate(surface, command);
+        bytes += command.vertices.length;
+        if (bytes > MAX_FRAME_BYTES) throw Error('Graphics frame upload limit exceeded');
       } else throw Error(`Unsupported graphics command: ${command.type}`);
     }
   }
@@ -273,6 +280,13 @@ export class WebGPURenderer {
     if (this.failure) throw Error(this.failure);
     this.validate(surface, commands);
     const drawCount = commands.filter((command) => command.type === 'draw').length;
+    const programmableCommands = commands.filter((command) => command.type === 'draw-programmable');
+    const programmable = await Promise.all(
+      programmableCommands.map((command, index) =>
+        this.programmable.prepare(surface, index, command),
+      ),
+    );
+    this.programmable.trim(surface, programmable.length);
     for (const slot of surface.slots.splice(drawCount)) {
       slot.vertex?.destroy();
       slot.uniform.destroy();
@@ -309,17 +323,22 @@ export class WebGPURenderer {
         });
         surface.depthInitialized = true;
       };
+      let programmableIndex = 0;
       for (const command of commands) {
         if (command.type === 'clear') {
           begin(command);
           continue;
         }
         if (!pass) begin();
-        const slot = this.upload(surface, drawIndex++, command);
-        pass.setPipeline(this.pipeline(surface, command));
-        pass.setBindGroup(0, slot.bindGroup);
-        pass.setVertexBuffer(0, slot.vertex);
-        pass.draw(command.vertexCount);
+        if (command.type === 'draw-programmable') {
+          this.programmable.draw(pass, programmable[programmableIndex++]);
+        } else {
+          const slot = this.upload(surface, drawIndex++, command);
+          pass.setPipeline(this.pipeline(surface, command));
+          pass.setBindGroup(0, slot.bindGroup);
+          pass.setVertexBuffer(0, slot.vertex);
+          pass.draw(command.vertexCount);
+        }
       }
       if (!pass) begin();
       pass.end();
@@ -361,7 +380,7 @@ export class WebGPURenderer {
       }
     }
     const bitmap = surface.canvas.transferToImageBitmap();
-    this.draws += drawCount;
+    this.draws += drawCount + programmable.length;
     this.frames++;
     this.emit({
       type: 'frame',
@@ -382,6 +401,7 @@ export class WebGPURenderer {
       slot.vertex?.destroy();
       slot.uniform.destroy();
     }
+    this.programmable.destroySurface(surface);
     surface.depthTexture?.destroy();
     surface.readback?.destroy();
     surface.renderTexture?.destroy();
@@ -395,5 +415,6 @@ export class WebGPURenderer {
     this.device?.destroy();
     this.device = null;
     this.pipelines.clear();
+    this.programmable.dispose();
   }
 }

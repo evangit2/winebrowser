@@ -1,4 +1,14 @@
 import { ComObjects } from './com.js';
+import {
+  bindObject,
+  createDeclarationObject,
+  createShaderObject,
+  getBoundObject,
+  getFloatConstants,
+  programmableDraw,
+  releaseComReference,
+  setFloatConstants,
+} from './d3d9-programmable.js';
 
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
@@ -145,6 +155,19 @@ function deviceMethods() {
         const primitiveCount = argument(2) >>> 0;
         const pointer = argument(3) >>> 0;
         const stride = argument(4) >>> 0;
+        if (!state.inScene) return D3DERR_INVALIDCALL;
+        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
+        if (!primitiveCount || primitiveCount * 3 > MAX_VERTICES)
+          throw Error('D3D9 vertex count limit exceeded');
+        const vertexCount = primitiveCount * 3;
+        const programmable = programmableDraw(runtime, state, pointer, stride, vertexCount);
+        if (programmable) {
+          if (primitive !== 4 || state.cullMode !== 'none')
+            throw Error('Unsupported programmable IDirect3DDevice9.DrawPrimitiveUP state');
+          const { payloadBytes, ...command } = programmable;
+          queue(state, command, payloadBytes);
+          return D3D_OK;
+        }
         if (
           primitive !== 4 ||
           stride !== 16 ||
@@ -153,11 +176,6 @@ function deviceMethods() {
           state.cullMode !== 'none'
         )
           throw Error('Unsupported IDirect3DDevice9.DrawPrimitiveUP format or render state');
-        if (!state.inScene) return D3DERR_INVALIDCALL;
-        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
-        if (!primitiveCount || primitiveCount * 3 > MAX_VERTICES)
-          throw Error('D3D9 vertex count limit exceeded');
-        const vertexCount = primitiveCount * 3;
         const size = vertexCount * stride;
         if (state.frameBytes + size > MAX_FRAME_BYTES)
           throw Error('D3D9 frame vertex limit exceeded');
@@ -193,8 +211,83 @@ function deviceMethods() {
         const fvf = argument(1) >>> 0;
         if (fvf !== 0x42) throw Error(`Unsupported IDirect3DDevice9.SetFVF 0x${fvf.toString(16)}`);
         object.state.fvf = fvf;
+        bindObject(_runtime, object, 'vertexDeclaration', 0, 'IDirect3DVertexDeclaration9');
         return D3D_OK;
       },
+    },
+    86: {
+      argc: 3,
+      invoke(runtime, argument, device) {
+        const output = argument(2) >>> 0;
+        runtime.check(output, 4, true);
+        runtime.write32(output, 0);
+        const declaration = createDeclarationObject(runtime, device, argument(1) >>> 0);
+        runtime.write32(output, declaration.pointer);
+        return D3D_OK;
+      },
+    },
+    87: {
+      argc: 2,
+      invoke(runtime, argument, device) {
+        const result = bindObject(
+          runtime,
+          device,
+          'vertexDeclaration',
+          argument(1) >>> 0,
+          'IDirect3DVertexDeclaration9',
+        );
+        if (result === D3D_OK) device.state.fvf = 0;
+        return result;
+      },
+    },
+    88: { argc: 2, invoke: (r, a, d) => getBoundObject(r, d, 'vertexDeclaration', a(1)) },
+    91: {
+      argc: 3,
+      invoke(runtime, argument, device) {
+        const output = argument(2) >>> 0;
+        runtime.check(output, 4, true);
+        runtime.write32(output, 0);
+        const shader = createShaderObject(runtime, device, argument(1) >>> 0, 'vertex');
+        runtime.write32(output, shader.pointer);
+        return D3D_OK;
+      },
+    },
+    92: {
+      argc: 2,
+      invoke: (r, a, d) => bindObject(r, d, 'vertexShader', a(1) >>> 0, 'IDirect3DVertexShader9'),
+    },
+    93: { argc: 2, invoke: (r, a, d) => getBoundObject(r, d, 'vertexShader', a(1)) },
+    94: {
+      argc: 4,
+      invoke: (r, a, d) => setFloatConstants(r, d.state.vertexConstants, a(1), a(2), a(3), 256),
+    },
+    95: {
+      argc: 4,
+      invoke: (r, a, d) => getFloatConstants(r, d.state.vertexConstants, a(1), a(2), a(3), 256),
+    },
+    106: {
+      argc: 3,
+      invoke(runtime, argument, device) {
+        const output = argument(2) >>> 0;
+        runtime.check(output, 4, true);
+        runtime.write32(output, 0);
+        const shader = createShaderObject(runtime, device, argument(1) >>> 0, 'pixel');
+        runtime.write32(output, shader.pointer);
+        return D3D_OK;
+      },
+    },
+    107: {
+      argc: 2,
+      invoke: (r, a, d) => bindObject(r, d, 'pixelShader', a(1) >>> 0, 'IDirect3DPixelShader9'),
+    },
+    108: { argc: 2, invoke: (r, a, d) => getBoundObject(r, d, 'pixelShader', a(1)) },
+    109: {
+      argc: 4,
+      invoke: (r, a, d) => setFloatConstants(r, d.state.pixelConstants, a(1), a(2), a(3), 224),
+    },
+    110: {
+      argc: 4,
+      invoke: (r, a, d) => getFloatConstants(r, d.state.pixelConstants, a(1), a(2), a(3), 224),
     },
   };
 }
@@ -264,6 +357,11 @@ function factoryMethods() {
           world: IDENTITY.slice(),
           view: IDENTITY.slice(),
           projection: IDENTITY.slice(),
+          vertexDeclaration: null,
+          vertexShader: null,
+          pixelShader: null,
+          vertexConstants: new Float32Array(256 * 4),
+          pixelConstants: new Float32Array(224 * 4),
         };
         const object = runtime.comObjects.create({
           name: 'IDirect3DDevice9',
@@ -272,8 +370,13 @@ function factoryMethods() {
           methods: deviceMethods(),
           state,
           onRelease: async () => {
+            for (const field of ['vertexDeclaration', 'vertexShader', 'pixelShader']) {
+              const bound = state[field];
+              if (bound) bound.state.internalRefs--;
+              state[field] = null;
+            }
             await requireGraphics(runtime).destroyDevice({ id: state.id });
-            factory.refs--;
+            await releaseComReference(factory);
           },
         });
         state.id = object.pointer;

@@ -126,9 +126,24 @@ The same compiler now accepts bounded shader-model 1–3 token pairs through
 `compileLegacyPair`. It builds the varying map between vertex and pixel stages,
 then translates both through libvkd3d and Naga. Licensed Wine VS 1.1/PS 2.0
 fixtures compile in an isolated worker and produce WGSL accepted by WebGPU.
-That check does not render Humus or add programmable D3D9 calls. Resource
-binding details and the retained point-size portability patch are documented
-in [the compiler ABI](../runtime/shaders/vkd3d/README.md).
+The D3D9 frontend now connects this compiler to real shader/declaration COM
+objects, float constant registers and programmable `DrawPrimitiveUP` triangle
+lists. Vertex attributes follow declaration semantics and shader register
+numbers; D3DCOLOR bytes convert from BGRA before upload. Submission snapshots
+include vertex bytes, both shaders and the full float constant files, with one
+shared frame-size bound. Internal binding references are separate from COM
+references so releasing bound resources does not keep the device alive in a
+reference cycle.
+
+`src/d3d9-programmable-renderer.js` compiles the guest shader bytes, caches the
+pipeline and owns per-draw GPU buffers. Vertex float constants use group 0,
+pixel float constants group 1, both at binding 0. The backend pixel test uses
+licensed Wine VS 1.1 / PS 2.0 and a nonidentity constant; both canvas and forced
+readback paths produce the expected `[255, 128, 64, 255]` center pixel. This
+does not establish Humus compatibility. Textures/samplers, integer/boolean
+constants, vertex/index buffer objects, indexed draws and additional primitive
+types remain unsupported. Resource binding details and the retained point-size
+portability patch are documented in [the compiler ABI](../runtime/shaders/vkd3d/README.md).
 
 ## Broader DirectX work
 
@@ -142,7 +157,7 @@ Independent acceptance targets keep API claims concrete:
 
 | API   | Target and remaining gate                                                                                                                                                                                                                                                       |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D3D9  | Source-built cube passes; pinned Humus Dynamic Branching is the next unchanged EXE. Startup, further x87 operations, programmable shaders, buffers, textures and stencil remain.                                                                                                |
+| D3D9  | Source-built cube passes; pinned Humus Dynamic Branching is the next unchanged EXE. A bounded programmable path passes pixel checks; application startup, further x87 operations, buffers, textures and stencil remain.                                                         |
 | D3D10 | Original [Humus Inferno target](../tests/targets.json): DXGI/D3D10 device/state, shaders, CRT and Win32 dependencies remain.                                                                                                                                                    |
 | D3D11 | Microsoft's [Tutorial02](https://github.com/microsoft/DirectX-SDK-Samples/blob/main/C%2B%2B/Direct3D11/Tutorials/Tutorial02/Tutorial02.cpp), built as ordinary PE32: implement device/context/resources and validate a native draw.                                             |
 | D3D12 | Native PE32 shader triangle and depth-tested cube pass. Microsoft's [HelloTriangle](https://github.com/microsoft/DirectX-Graphics-Samples/tree/213dd4fd4918ea009dd8f35adee1aff1f2ecaba4/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle) remains a later x64/SM6 DXIL target. |

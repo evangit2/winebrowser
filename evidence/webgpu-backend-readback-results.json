@@ -42,10 +42,38 @@
         65,
         255
       ]
+    },
+    {
+      "center": [
+        255,
+        128,
+        64,
+        255
+      ],
+      "corner": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "center": [
+        64,
+        128,
+        191,
+        255
+      ],
+      "corner": [
+        37,
+        45,
+        65,
+        255
+      ]
     }
   ],
-  "submittedFrames": 3,
-  "draws": 5,
+  "submittedFrames": 5,
+  "draws": 7,
   "presentationMode": "readback",
   "fallbackAdapter": false,
   "logs": [
@@ -56,7 +84,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-18T23:35:26.318Z",
+  "date": "2026-09-19T01:55:50.325Z",
   "browser": "153.0.8010.48",
   "passed": true
 }
