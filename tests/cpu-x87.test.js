@@ -151,11 +151,13 @@ test('comparisons update x87 condition codes or integer flags and pop as encoded
   ]);
   cpu.r[0].value = DATA;
   view.setFloat32(DATA, 2, true);
+  cpu.af = 1;
 
   cpu.step(CODE);
 
   assert.equal(cpu.x87.status & 0x4500, 0x0100);
   assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 0, of: 0, pf: 0 });
+  assert.equal(cpu.af, 0);
   assert.ok(cpu.x87.tags.every((tag) => tag === 3));
 });
 
@@ -255,7 +257,150 @@ test('masked FCOM rejects quiet NaN while FUCOM reports unordered without invali
   assert.deepEqual(fucom.f, { cf: 1, zf: 1, sf: 0, of: 0, pf: 1 });
 });
 
-test('FRNDINT remains explicit unsupported until the ext80 adapter exposes roundToInt', async () => {
-  const { cpu } = await machine([0xd9, 0xfc]);
-  assert.throws(() => cpu.step(CODE), /Unsupported instruction frndint/);
+const ext80 = (significand, signExponent) => {
+  const bytes = new Uint8Array(10);
+  const view = new DataView(bytes.buffer);
+  view.setBigUint64(0, significand, true);
+  view.setUint16(8, signExponent, true);
+  return bytes;
+};
+
+async function roundExt80(value, control = 0x037f) {
+  const { cpu, bytes } = await machine([
+    0xdb,
+    0x28, // fld tbyte ptr [eax]
+    0xd9,
+    0xfc, // frndint
+    0xdb,
+    0x3a, // fstp tbyte ptr [edx]
+  ]);
+  cpu.r[0].value = DATA;
+  cpu.r[2].value = DATA + 16;
+  cpu.x87.control = control;
+  bytes.set(value, DATA);
+  cpu.step(CODE);
+  return { cpu, value: bytes.slice(DATA + 16, DATA + 26) };
+}
+
+test('FRNDINT rounds ext80 directly in all x87 RC modes and reports inexact', async () => {
+  const one = ext80(0x8000000000000000n, 0x3fff);
+  const two = ext80(0x8000000000000000n, 0x4000);
+  const onePointFive = ext80(0xc000000000000000n, 0x3fff);
+  const cases = [
+    [0x037f, two], // nearest even
+    [0x077f, one], // toward -infinity
+    [0x0b7f, two], // toward +infinity
+    [0x0f7f, one], // toward zero
+  ];
+  for (const [control, expected] of cases) {
+    const rounded = await roundExt80(onePointFive, control);
+    assert.deepEqual(rounded.value, expected);
+    assert.equal(rounded.cpu.x87.status & 0x20, 0x20);
+  }
+});
+
+test('FRNDINT preserves large integral ext80, signed zero, infinity and quiet NaN', async () => {
+  const values = [
+    ext80(0x8000000000000001n, 0x403f), // integral and beyond signed int64
+    ext80(0n, 0x8000), // negative zero
+    ext80(0x8000000000000000n, 0x7fff), // positive infinity
+    ext80(0xc000000000001234n, 0xffff), // negative quiet NaN payload
+  ];
+  for (const value of values) {
+    const rounded = await roundExt80(value);
+    assert.deepEqual(rounded.value, value);
+    assert.equal(rounded.cpu.x87.status & 0x21, 0);
+  }
+});
+
+test('FRNDINT quiets signaling NaN and handles masked or unmasked invalid', async () => {
+  const signaling = ext80(0x8000000000001234n, 0x7fff);
+  const masked = await roundExt80(signaling);
+  assert.equal(masked.cpu.x87.status & 1, 1);
+  assert.equal(masked.value[9] & 0x7f, 0x7f);
+  assert.notEqual(masked.value[7] & 0x40, 0, 'result is a quiet NaN');
+
+  const { cpu, bytes } = await machine([0xdb, 0x28, 0xd9, 0xfc]);
+  bytes.set(signaling, DATA);
+  cpu.r[0].value = DATA;
+  cpu.x87.control &= ~1;
+  assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x1/);
+  assert.deepEqual(cpu.x87.values[cpu.x87.top], signaling, 'ST(0) is unchanged');
+  assert.equal(cpu.x87.status & 0x81, 0x81);
+});
+
+test('FCHS and FABS manipulate only the ext80 sign bit, including signed zero', async () => {
+  const { cpu, bytes } = await machine([
+    0xdb,
+    0x28, // fld -0
+    0xd9,
+    0xe0, // fchs => +0
+    0xd9,
+    0xe0, // fchs => -0
+    0xd9,
+    0xe1, // fabs => +0
+    0xdb,
+    0x3a, // fstp tbyte [edx]
+  ]);
+  bytes.set(ext80(0n, 0x8000), DATA);
+  cpu.r[0].value = DATA;
+  cpu.r[2].value = DATA + 16;
+  cpu.step(CODE);
+  assert.deepEqual(bytes.slice(DATA + 16, DATA + 26), ext80(0n, 0));
+  assert.equal(cpu.x87.status & 0x3f, 0);
+});
+
+test('FTST compares ST(0) with positive zero and applies FCOM NaN behavior', async () => {
+  const run = async (value) => {
+    const { cpu, bytes } = await machine([0xdb, 0x28, 0xd9, 0xe4]);
+    bytes.set(value, DATA);
+    cpu.r[0].value = DATA;
+    cpu.step(CODE);
+    return cpu.x87.status;
+  };
+  assert.equal((await run(ext80(0x8000000000000000n, 0x3fff))) & 0x4500, 0);
+  assert.equal((await run(ext80(0x8000000000000000n, 0xbfff))) & 0x4500, 0x0100);
+  assert.equal((await run(ext80(0n, 0x8000))) & 0x4500, 0x4000);
+  const qnanStatus = await run(ext80(0xc000000000000001n, 0x7fff));
+  assert.equal(qnanStatus & 0x4501, 0x4501);
+});
+
+test('WAIT continues with masked or absent x87 exceptions and preserves state', async () => {
+  const { cpu } = await machine([0x9b]);
+  cpu.x87.status = 0x21;
+  cpu.x87.control = 0x037f;
+  cpu.r[0].value = 0x12345678;
+  cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+
+  cpu.step(CODE);
+
+  assert.equal(cpu.x87.status, 0x21);
+  assert.equal(cpu.x87.control, 0x037f);
+  assert.equal(cpu.r[0].value >>> 0, 0x12345678);
+  assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+});
+
+test('WAIT detects pending exception bits unmasked by the x87 control word', async () => {
+  const { cpu } = await machine([0x9b]);
+  cpu.x87.status = 0x21;
+  cpu.x87.control = 0x037e; // invalid unmasked; precision remains masked
+  const snapshot = cpu.x87.snapshot();
+
+  assert.throws(() => cpu.step(CODE), /Pending unmasked x87 exception 0x1 delivery unsupported/);
+  assert.equal(cpu.x87.status, snapshot.status | 0x80);
+  assert.equal(cpu.x87.control, snapshot.control);
+  assert.equal(cpu.x87.top, snapshot.top);
+  assert.deepEqual(cpu.x87.tags, snapshot.tags);
+  assert.deepEqual(cpu.x87.values, snapshot.values);
+});
+
+test('FNCLEX clears pending exception state before a following WAIT', async () => {
+  const { cpu } = await machine([0xdb, 0xe2, 0x9b]); // fnclex; wait
+  cpu.x87.status = 0xe1;
+  cpu.x87.control = 0x037e;
+
+  cpu.step(CODE);
+
+  assert.equal(cpu.x87.status & 0xff, 0);
+  assert.equal(cpu.x87.control, 0x037e);
 });

@@ -140,6 +140,20 @@ int wb_sf_sqrt(wb_state *state, uint32_t state_size, uint8_t *out,
     return finish(state, &saved, WB_OK);
 }
 
+int wb_sf_round(wb_state *state, uint32_t state_size, uint8_t *out,
+        uint32_t out_size, const uint8_t *a, uint32_t a_size)
+{
+    if (state_size < 4 || out_size < 10 || a_size < 10 ||
+            !bounded(out, out_size) || !bounded(a, a_size)) return WB_BOUNDS;
+    saved_state saved;
+    int status = begin(state, &saved);
+    if (status) return status;
+    extFloat80_t av = read_ext(a), result;
+    extF80M_roundToInt(&av, state->rounding, true, &result);
+    write_ext(out, result);
+    return finish(state, &saved, WB_OK);
+}
+
 int wb_sf_from_f32(wb_state *state, uint32_t state_size, uint8_t *out,
         uint32_t out_size, const uint8_t *in, uint32_t in_size)
 {

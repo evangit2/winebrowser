@@ -16,6 +16,9 @@ async function callbackRuntime(fail) {
   bytes.set(
     [
       0xfd, // STD: callback-local direction flag must be restored too.
+      0xb4,
+      0x10,
+      0x9e, // mov ah,10h; sahf: callback-local AF must be restored.
       0xb8,
       0x78,
       0x56,
@@ -52,6 +55,7 @@ for (const fail of [false, true]) {
       registers,
     );
     assert.deepEqual(runtime.cpu.f, flags);
+    assert.equal(runtime.cpu.af, 0);
     assert.equal(runtime.cpu.df, 0);
     assert.equal(runtime.callDepth, 0);
   });

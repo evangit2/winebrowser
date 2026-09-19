@@ -11,22 +11,22 @@
   },
   "adapter": {
     "path": "runtime/softfloat/adapter.c",
-    "bytes": 10604,
-    "sha256": "3012102a76af2bdf425df47b3e0d448a552e4530a8c5eeb430384313b7a030da"
+    "bytes": 11141,
+    "sha256": "41a1409a9d4f69692069f8f5b8a70f0924d41ff16b6d34656850bcc0339b01c5"
   },
   "buildScript": {
     "path": "scripts/build-softfloat.py",
-    "bytes": 6661,
-    "sha256": "4a05579dfd49b76495e5de751adfb9faaa65dd38c1d18311925480b0d4979b54"
+    "bytes": 6677,
+    "sha256": "5897e16bae059048b6766ddb06a4dd1b06944b7c2aa80bdc3f7bf3510ced6d9c"
   },
   "artifacts": {
     "softfloat.js": {
-      "bytes": 9265,
-      "sha256": "7c371d62eb6a1a88076b2b866135e36b012c800149ad2960e270c75a91f6b5cf"
+      "bytes": 9322,
+      "sha256": "b063269928d67e93e28f81fda8402fe67d9c3c5816d52bdd2fb49dc3247da3c7"
     },
     "softfloat.wasm": {
-      "bytes": 16819,
-      "sha256": "3b576f8a34c18eded476b6d05ddd4a8eb85cc420313abcd930a5376a6677c06a"
+      "bytes": 17898,
+      "sha256": "93694907828f6797f4563965fca346d0f8bef48b96a00f20c0587da4df561ae6"
     },
     "COPYING.txt": {
       "bytes": 1738,
@@ -37,8 +37,8 @@
       "sha256": "9ee46f5466859bea6ddebfd3a7dd9bc0c27e102411ed1b436b3e3839031de94f"
     },
     "README.md": {
-      "bytes": 3215,
-      "sha256": "6593f830c19bfabe51ebfd0bf42def967398f81110a00fcadd8f660d8d111dfb"
+      "bytes": 3450,
+      "sha256": "5ff9d0d11bd335b6e42a4711f4b235504a521daa292c623b9f757a266b0b5815"
     }
   },
   "sourceBundle": {
@@ -59,8 +59,8 @@
     },
     "adapter.c": {
       "path": "public/runtime/softfloat/source/adapter.c",
-      "bytes": 10604,
-      "sha256": "3012102a76af2bdf425df47b3e0d448a552e4530a8c5eeb430384313b7a030da"
+      "bytes": 11141,
+      "sha256": "41a1409a9d4f69692069f8f5b8a70f0924d41ff16b6d34656850bcc0339b01c5"
     },
     "ADAPTER-LICENSE": {
       "path": "public/runtime/softfloat/source/ADAPTER-LICENSE",
@@ -69,13 +69,13 @@
     },
     "test.mjs": {
       "path": "public/runtime/softfloat/source/test.mjs",
-      "bytes": 3863,
-      "sha256": "6429592974eca6c7b8da0c908222afda833347dc316aafea587360477017c6d8"
+      "bytes": 4745,
+      "sha256": "64bdc4889c684e884ee27d0f6ad27695bcfadb9fb4eeec14e60e98531ae71250"
     },
     "build-softfloat.py": {
       "path": "public/runtime/softfloat/source/build-softfloat.py",
-      "bytes": 6661,
-      "sha256": "4a05579dfd49b76495e5de751adfb9faaa65dd38c1d18311925480b0d4979b54"
+      "bytes": 6677,
+      "sha256": "5897e16bae059048b6766ddb06a4dd1b06944b7c2aa80bdc3f7bf3510ced6d9c"
     }
   }
 }

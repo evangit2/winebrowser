@@ -60,6 +60,7 @@ export class CPU {
     this.compiledBytes = 0;
     this.instructions = 0;
     this.f = { cf: 0, zf: 0, sf: 0, of: 0, pf: 0 };
+    this.af = 0;
     this.host = {
       load: (a, width) =>
         read
@@ -97,6 +98,19 @@ export class CPU {
         this.simd.execute(op, dst, src, address, immediate),
       x87: (op, a, b, address, width, options) =>
         this.x87.execute(op, a, b, address, width, options),
+      flagByte: (value, write) => {
+        if (write) {
+          this.f.sf = (value >>> 7) & 1;
+          this.f.zf = (value >>> 6) & 1;
+          this.af = (value >>> 4) & 1;
+          this.f.pf = (value >>> 2) & 1;
+          this.f.cf = value & 1;
+          return 0;
+        }
+        return (
+          (this.f.sf << 7) | (this.f.zf << 6) | (this.af << 4) | (this.f.pf << 2) | 2 | this.f.cf
+        );
+      },
       bitScan: (value, previous, reverse) => {
         this.f.zf = Number(value === 0);
         // The zero-input destination and non-ZF flags are architecturally undefined;
@@ -183,7 +197,8 @@ export class CPU {
       ru = (r & mask) >>> 0;
     const sign = width === 32 ? 0x80000000 : 1 << (width - 1),
       carry = this.f.cf;
-    const originalKind = k;
+    const originalKind = k,
+      previousAf = this.af;
     if (k === 6) k = 0;
     if (k === 7) k = 1;
     this.f = {
@@ -206,6 +221,10 @@ export class CPU {
       this.f.cf = originalKind === 6 ? +(au + bu + carry > mask >>> 0) : +(au < bu + carry);
       this.f.of = +(exact < -(2 ** (width - 1)) || exact >= 2 ** (width - 1));
     }
+    // ADD/SUB/ADC/SBB/CMP/INC/DEC/NEG define AF as the carry or borrow
+    // across bit 3. Logical, shift, and multiply instructions leave AF
+    // undefined, so retain its prior internal value without promising it.
+    this.af = [0, 1, 3, 4, 6, 7].includes(originalKind) ? +!!((au ^ bu ^ ru) & 0x10) : previousAf;
     if (k === 5) {
       const signed = (x) => BigInt(width === 32 ? x | 0 : (x << (32 - width)) >> (32 - width));
       const product = signed(a) * signed(b);
@@ -484,7 +503,29 @@ export class CPU {
             );
             usesX87 = true;
           } else if (m === M.Mov) code.push(...write(i, 0, operand(i, 1)));
-          else if (m === M.Movzx || m === M.Movsx) {
+          else if (m === M.Sahf) {
+            code.push(
+              ...get(0),
+              ...constant(8),
+              0x76,
+              ...constant(1),
+              ...call(Host.flagByte),
+              0x1a,
+            );
+          } else if (m === M.Lahf) {
+            code.push(
+              ...get(0),
+              ...constant(~0xff00),
+              0x71,
+              ...constant(0),
+              ...constant(0),
+              ...call(Host.flagByte),
+              ...constant(8),
+              0x74,
+              0x72,
+              ...set(0),
+            );
+          } else if (m === M.Movzx || m === M.Movsx) {
             let value = operand(i, 1);
             if (m === M.Movsx) {
               const shift = 32 - width(i, 1);

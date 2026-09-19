@@ -207,6 +207,7 @@ export class Runtime {
     if (++this.callDepth > 32) throw Error('Guest callback depth exceeded');
     const saved = this.cpu.r.map((r) => r.value),
       flags = { ...this.cpu.f },
+      auxiliaryCarry = this.cpu.af,
       direction = this.cpu.df,
       simd = this.cpu.simd.snapshot(),
       // Host-driven callbacks are an isolation boundary: as with GPR/SIMD
@@ -227,6 +228,7 @@ export class Runtime {
     } finally {
       saved.forEach((value, n) => (this.cpu.r[n].value = value));
       this.cpu.f = flags;
+      this.cpu.af = auxiliaryCarry;
       this.cpu.df = direction;
       this.cpu.simd.restore(simd);
       this.cpu.x87.restore(x87);

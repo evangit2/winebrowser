@@ -18,13 +18,16 @@ export const X87Op = Object.freeze({
   storeStatus: 14,
   initialize: 15,
   clearExceptions: 16,
+  sign: 17,
+  wait: 18,
 });
 
 const POP = 1,
   MEMORY = 2,
   REVERSE = 4,
   EFLAGS = 8,
-  UNORDERED = 16;
+  UNORDERED = 16,
+  ZERO = 32;
 
 const stIndex = (register, R) => (register >= R.ST0 && register <= R.ST7 ? register - R.ST0 : -1);
 
@@ -99,12 +102,16 @@ export function classifyX87(i, iced) {
     );
   }
   if (m === M.Fsqrt) return result(X87Op.sqrt);
+  if (m === M.Frndint) return result(X87Op.round);
+  if (m === M.Fabs || m === M.Fchs) return result(X87Op.sign, m === M.Fchs ? 1 : 0);
+  if (m === M.Ftst) return result(X87Op.compare, 0, 0, ZERO);
   if (m === M.Fldcw) return result(X87Op.loadControl);
   if (m === M.Fnstcw || m === M.Fstcw) return result(X87Op.storeControl);
   if (m === M.Fnstsw || m === M.Fstsw)
     return result(X87Op.storeStatus, i.opCount && i.opKind(0) === K.Register ? 1 : 0);
   if (m === M.Fninit || m === M.Finit) return result(X87Op.initialize);
   if (m === M.Fnclex || m === M.Fclex) return result(X87Op.clearExceptions);
+  if (m === M.Wait) return result(X87Op.wait);
   return null;
 }
 
@@ -295,6 +302,16 @@ export class X87State {
 
   execute(op, a, b, address, width, options) {
     if (!this.sf) throw Error('x87 SoftFloat runtime is not initialized');
+    if (op === X87Op.wait) {
+      const pending = this.status & ~this.control & 0x3f;
+      if (pending) {
+        this.status |= 0x80;
+        throw Error(
+          `Pending unmasked x87 exception 0x${pending.toString(16)} delivery unsupported`,
+        );
+      }
+      return;
+    }
     if (op === X87Op.initialize) return this.reset();
     if (op === X87Op.clearExceptions) return (this.status &= ~0xff);
     if (op === X87Op.loadControl) {
@@ -343,6 +360,12 @@ export class X87State {
       this.#set(0, y);
       this.#set(a, x);
       return;
+    }
+    if (op === X87Op.sign) {
+      const value = this.#value(0).slice();
+      if (a) value[9] ^= 0x80;
+      else value[9] &= 0x7f;
+      return this.#set(0, value);
     }
     if (op === X87Op.storeFloat || op === X87Op.storeInt) {
       if (op === X87Op.storeFloat && ![4, 8, 10].includes(width))
@@ -394,9 +417,17 @@ export class X87State {
         this.#operation(() => this.sf._wb_sf_sqrt(this.p, 4, this.p + 24, 10, this.p + 4, 10)),
       );
     }
+    if (op === X87Op.round) {
+      this.#put(this.#value(0), 4);
+      return this.#set(
+        0,
+        this.#operation(() => this.sf._wb_sf_round(this.p, 4, this.p + 24, 10, this.p + 4, 10)),
+      );
+    }
     if (op === X87Op.compare) {
       let right;
-      if (options & MEMORY) {
+      if (options & ZERO) right = CONSTANTS[0];
+      else if (options & MEMORY) {
         if (![4, 8].includes(width)) throw Error(`Unsupported x87 compare width ${width}`);
         right = this.#convertFrom(this.#read(address, width), width === 4 ? 'f32' : 'f64');
       } else right = this.#value(a);
@@ -418,6 +449,7 @@ export class X87State {
         f.zf = +(result === 0 || unordered);
         f.pf = +unordered;
         f.of = f.sf = 0;
+        this.flags.af = 0;
       } else {
         this.status &= ~0x4500;
         if (result < 0) this.status |= 0x0100;

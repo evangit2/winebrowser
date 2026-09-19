@@ -70,7 +70,7 @@ def main():
     specialized = object_names("OBJS_SPECIALIZE")
     sources = [source / "source" / f"{name}.c" for name in ordinary]
     sources += [source / "source/8086-SSE" / f"{name}.c" for name in specialized]
-    exports = ["_malloc", "_free", "_wb_sf_init", "_wb_sf_binary", "_wb_sf_sqrt",
+    exports = ["_malloc", "_free", "_wb_sf_init", "_wb_sf_binary", "_wb_sf_sqrt", "_wb_sf_round",
                "_wb_sf_from_f32", "_wb_sf_to_f32", "_wb_sf_from_f64", "_wb_sf_to_f64",
                "_wb_sf_from_i32", "_wb_sf_to_i32", "_wb_sf_from_i64", "_wb_sf_to_i64",
                "_wb_sf_compare", "_wb_sf_classify"]

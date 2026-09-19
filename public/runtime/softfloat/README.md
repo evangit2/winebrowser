@@ -31,6 +31,9 @@ pointer argument is followed by its byte length.
 - `_wb_sf_binary(state,4,op,out,10,a,10,b,10)`: op 0 add, 1 subtract, 2
   multiply, or 3 divide.
 - `_wb_sf_sqrt(state,4,out,10,a,10)`.
+- `_wb_sf_round(state,4,out,10,a,10)`: round directly from ext80 to integral
+  ext80 using the state's rounding mode. It preserves the full ext80 range and
+  reports inexact or invalid without converting through a fixed-width integer.
 - `_wb_sf_from_f32` and `_wb_sf_to_f32`: four raw IEEE binary32 bytes.
 - `_wb_sf_from_f64` and `_wb_sf_to_f64`: eight raw IEEE binary64 bytes.
 - `_wb_sf_from_i32`, `_wb_sf_to_i32`, `_wb_sf_from_i64`, and

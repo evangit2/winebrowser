@@ -59,8 +59,11 @@ pointer is used as a SoftFloat heap pointer.
 Guest-to-guest calls naturally share x87 state. Host-driven callbacks preserve
 the interrupted state; the current host callback ABI returns an integer, not
 ST(0). Supported instructions include ordinary loads/stores, signed integer
-conversion, stack copies/exchange, arithmetic, comparisons, square root and
-control/status transfers. Transcendentals, FRNDINT, environment save/restore
+conversion, stack copies/exchange, arithmetic, comparisons, square root,
+round-to-integer under all four rounding modes, and control/status transfers.
+`SAHF`/`LAHF` bridge status bits to integer branches; `WAIT` checks pending
+unmasked x87 exceptions and reports unsupported exception delivery.
+Transcendentals and environment save/restore
 and structured delivery of unmasked exceptions remain separate work. The
 [native D3D12 cube](../demos/d3d12-cube/main.c) exercises this core with rotation
 and perspective calculated during execution.

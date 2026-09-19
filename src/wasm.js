@@ -49,6 +49,7 @@ export const Host = Object.freeze({
   direction: 13,
   popStore: 14,
   x87: 15,
+  flagByte: 16,
 });
 const signatures = [
   [2, 1],
@@ -67,6 +68,7 @@ const signatures = [
   [1, 0],
   [2, 0],
   [6, 0],
+  [2, 1],
 ];
 const hostNames = Object.keys(Host);
 export function moduleBytes(code) {

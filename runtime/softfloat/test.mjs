@@ -38,8 +38,27 @@ assert.equal(sf._wb_sf_binary(state, 4, 0, out, 10, a, 10, b, 10), 0);
 assert.deepEqual(readExt(out), [0x8000000000000000n, 0x3fff]);
 assert.equal(sf.HEAPU8[state + 3], 1);
 
+// Direct ext80 round-to-integral preserves range and signed zero.
+init(0, 64);
+ext(a, 0xc000000000000000n, 0x3fff); // 1.5
+assert.equal(sf._wb_sf_round(state, 4, out, 10, a, 10), 0);
+assert.deepEqual(readExt(out), [0x8000000000000000n, 0x4000]);
+assert.equal(sf.HEAPU8[state + 3], 1);
+ext(a, 0x8000000000000001n, 0x403f); // integral value above 2^64
+assert.equal(sf._wb_sf_round(state, 4, out, 10, a, 10), 0);
+assert.deepEqual(readExt(out), readExt(a));
+assert.equal(sf.HEAPU8[state + 3], 0);
+ext(a, 0n, 0x8000); // negative zero
+assert.equal(sf._wb_sf_round(state, 4, out, 10, a, 10), 0);
+assert.deepEqual(readExt(out), [0n, 0x8000]);
+ext(a, 0x8000000000000001n, 0x7fff); // signaling NaN
+assert.equal(sf._wb_sf_round(state, 4, out, 10, a, 10), 0);
+assert.equal(sf._wb_sf_classify(out, 10) & 16, 16);
+assert.equal(sf.HEAPU8[state + 3], 16);
+
 // At PC24, upward rounding of the halfway increment advances one float32 ULP.
 init(3, 24);
+ext(a, 0x8000000000000000n, 0x3fff);
 ext(b, 0x8000000000000000n, 0x3fe7); // 2^-24
 assert.equal(sf._wb_sf_binary(state, 4, 0, out, 10, a, 10, b, 10), 0);
 assert.deepEqual(readExt(out), [0x8000010000000000n, 0x3fff]);
