@@ -100,6 +100,30 @@ export class VirtualDesktop {
     window.viewport.style.height = `${window.height}px`;
   }
 
+  #applyIcon(window, icon) {
+    if (icon === undefined) return;
+    const valid =
+      icon &&
+      Number.isInteger(icon.width) &&
+      Number.isInteger(icon.height) &&
+      icon.width > 0 &&
+      icon.height > 0 &&
+      icon.width <= 256 &&
+      icon.height <= 256;
+    window.iconCanvas.hidden = !valid;
+    if (!valid) return;
+    const bytes = icon.pixels instanceof Uint8Array ? icon.pixels : new Uint8Array(icon.pixels);
+    if (bytes.byteLength !== icon.width * icon.height * 4) {
+      window.iconCanvas.hidden = true;
+      return;
+    }
+    window.iconCanvas.width = icon.width;
+    window.iconCanvas.height = icon.height;
+    const image = window.iconContext.createImageData(icon.width, icon.height);
+    image.data.set(bytes);
+    window.iconContext.putImageData(image, 0, 0);
+  }
+
   #createWindow(state) {
     const element = document.createElement('section');
     element.className = 'virtual-desktop-window';
@@ -111,6 +135,11 @@ export class VirtualDesktop {
     const title = document.createElement('span');
     title.className = 'virtual-desktop-title';
     title.textContent = state.title ?? String(state.id);
+
+    const iconCanvas = document.createElement('canvas');
+    iconCanvas.className = 'virtual-desktop-window-icon';
+    iconCanvas.hidden = true;
+    iconCanvas.setAttribute('aria-hidden', 'true');
 
     const close = document.createElement('button');
     close.type = 'button';
@@ -124,7 +153,7 @@ export class VirtualDesktop {
       this.#emit(window.id, 'close');
     });
 
-    titlebar.append(title, close);
+    titlebar.append(iconCanvas, title, close);
 
     const viewport = document.createElement('div');
     viewport.className = 'virtual-desktop-viewport';
@@ -149,6 +178,8 @@ export class VirtualDesktop {
       element,
       titlebar,
       titleElement: title,
+      iconCanvas,
+      iconContext: iconCanvas.getContext('2d'),
       viewport,
       canvas,
       context: canvas.getContext('2d', { alpha: false }),
@@ -206,6 +237,7 @@ export class VirtualDesktop {
 
     this.container.append(element);
     this.#applyGeometry(window);
+    this.#applyIcon(window, state.icon);
     this.#setVisibility(window, state.visible !== false);
     return window;
   }
@@ -439,6 +471,7 @@ export class VirtualDesktop {
       height: Number.isFinite(state.height) ? Math.max(1, state.height) : window.height,
     });
     window.titleElement.textContent = window.titleText;
+    this.#applyIcon(window, state.icon);
     if (state.enabled !== undefined) {
       window.enabled = !!state.enabled;
       window.element.inert = !window.enabled;

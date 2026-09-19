@@ -30,7 +30,6 @@
   display: flex;
   flex: 0 0 28px;
   align-items: center;
-  justify-content: space-between;
   box-sizing: border-box;
   height: 28px;
   margin: 0;
@@ -42,11 +41,20 @@
   touch-action: none;
 }
 
+.virtual-desktop-window-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  image-rendering: pixelated;
+}
+
 .virtual-desktop-window.is-focused .virtual-desktop-titlebar {
   background: #c9c9c9;
 }
 
 .virtual-desktop-title {
+  flex: 1 1 auto;
   overflow: hidden;
   font: 12px/1.2 sans-serif;
   text-overflow: ellipsis;

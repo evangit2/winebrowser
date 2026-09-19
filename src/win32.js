@@ -7,6 +7,8 @@ import { audioApis } from './win32-audio.js';
 import { gdiApis } from './win32-gdi.js';
 import { windowApis } from './win32-windows.js';
 import { acceleratorApis } from './win32-accelerators.js';
+import { displayApis } from './win32-display.js';
+import { iconApis } from './win32-icons.js';
 import { normalizePath } from './package.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
@@ -37,6 +39,8 @@ for (const key of [
   ...Object.keys(gdiApis),
   ...Object.keys(windowApis),
   ...Object.keys(acceleratorApis),
+  ...Object.keys(displayApis),
+  ...Object.keys(iconApis),
   ...Object.keys(formatApis),
   ...Object.keys(registryApis),
   ...Object.keys(d3d9Apis),
@@ -245,6 +249,8 @@ export function createWin32ApiProvider() {
     ...Object.entries(gdiApis),
     ...Object.entries(windowApis),
     ...Object.entries(acceleratorApis),
+    ...Object.entries(displayApis),
+    ...Object.entries(iconApis),
     ...Object.entries(formatApis),
     ...Object.entries(registryApis),
     ...Object.entries(d3d9Apis),

@@ -7,6 +7,8 @@ import {
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
+import { virtualSystemMetric } from './win32-display.js';
+import { iconForHandle } from './win32-icons.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -76,6 +78,8 @@ export class WindowManager {
         readOnly,
         textAlign,
         noPrefix,
+        icon:
+          parentId || !window.cls?.icon ? undefined : iconForHandle(this.runtime, window.cls.icon),
       },
     });
   }
@@ -384,6 +388,7 @@ function register(r, a, wide, extended) {
     proc: r.read32(p + 4),
     extra,
     instance: r.read32(p + 16),
+    icon: (extended && r.read32(p + 40)) || r.read32(p + 20),
     background: r.read32(p + 28),
     wide,
   };
@@ -730,7 +735,9 @@ Object.assign(windowApis, {
     return result(1, 2);
   },
   'user32.dll!GetSystemMetrics': (r, a) => {
-    const values = { 0: 1024, 1: 768, 4: TITLE, 5: BORDER, 6: BORDER, 16: 1024, 17: 768 };
+    const values = { 4: TITLE, 5: BORDER, 6: BORDER };
+    const displayValue = virtualSystemMetric(a(0));
+    if (displayValue !== undefined) return result(displayValue, 1);
     if (!(a(0) in values)) throw Error(`Unsupported system metric ${a(0)}`);
     return result(values[a(0)], 1);
   },

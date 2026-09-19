@@ -24,7 +24,16 @@ try {
     const desktop = window.virtualDesktop;
     desktop.update({
       operation: 'create',
-      window: { id: 1, title: 'Parent', x: 0, y: 0, width: 400, height: 260, visible: true },
+      window: {
+        id: 1,
+        title: 'Parent',
+        x: 0,
+        y: 0,
+        width: 400,
+        height: 260,
+        visible: true,
+        icon: { width: 2, height: 1, pixels: new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255]) },
+      },
     });
     desktop.update({
       operation: 'create',
@@ -92,6 +101,28 @@ try {
       },
     });
   });
+
+  const icon = page.locator('[data-window-id="1"] .virtual-desktop-window-icon');
+  assert.equal(await icon.isVisible(), true);
+  assert.deepEqual(
+    await icon.evaluate((canvas) => [...canvas.getContext('2d').getImageData(0, 0, 2, 1).data]),
+    [255, 0, 0, 255, 0, 255, 0, 255],
+    'the desktop renders the guest icon pixels',
+  );
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 1, title: 'Renamed' },
+    }),
+  );
+  assert.equal(await icon.isVisible(), true, 'ordinary window updates preserve the class icon');
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 1, icon: null },
+    }),
+  );
+  assert.equal(await icon.isVisible(), false);
 
   const staticControl = page.locator('[data-window-id="2"]');
   const button = page.locator('[data-window-id="3"]');
@@ -189,6 +220,7 @@ try {
         mnemonicCaptions: true,
         readOnlyAndAlignment: true,
         editValueAndCaretPreserved: true,
+        titlebarIconPixels: true,
         pageErrors,
       },
       null,

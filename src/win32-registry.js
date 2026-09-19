@@ -1,4 +1,5 @@
 import { PROCESS_USER_SID } from './process-identity.js';
+import { decodeAnsi, encodeAnsi } from './encoding.js';
 
 const ERROR_SUCCESS = 0;
 const ERROR_FILE_NOT_FOUND = 2;
@@ -7,6 +8,7 @@ const ERROR_INVALID_HANDLE = 6;
 const ERROR_INVALID_PARAMETER = 87;
 const ERROR_MORE_DATA = 234;
 const ERROR_NOT_ENOUGH_MEMORY = 8;
+const ERROR_NO_MORE_ITEMS = 259;
 const ERROR_KEY_DELETED = 1018;
 
 const REG_CREATED_NEW_KEY = 1;
@@ -33,6 +35,7 @@ const MAX_VALUE_BYTES = 1024 * 1024;
 const MAX_TOTAL_VALUE_BYTES = 16 * 1024 * 1024;
 const MAX_KEY_NAME_LENGTH = 255;
 const MAX_VALUE_NAME_LENGTH = 16383;
+const STRING_TYPES = new Set([1, 2, 7]); // REG_SZ, REG_EXPAND_SZ, REG_MULTI_SZ
 
 const PREDEFINED_ROOTS = [
   [0x80000000, 'HKEY_CLASSES_ROOT'],
@@ -142,9 +145,13 @@ function removeDeletedNode(state, node) {
   node.values.clear();
 }
 
-function readPath(runtime, address, allowNull = false) {
+function guestString(runtime, address, ansi) {
+  return address ? (ansi ? runtime.string(address) : runtime.wideString(address)) : '';
+}
+
+function readPath(runtime, address, allowNull = false, ansi = false) {
   if (!address) return allowNull ? [] : null;
-  const value = runtime.wideString(address);
+  const value = guestString(runtime, address, ansi);
   if (!value) return [];
   const parts = value.split('\\');
   if (
@@ -222,7 +229,7 @@ function writeOutput(runtime, address, value) {
   runtime.write32(address, value);
 }
 
-function regCreateKeyExW(runtime, argument) {
+function regCreateKeyEx(runtime, argument, ansi) {
   const rootHandle = argument(0) >>> 0;
   const subkeyAddress = argument(1);
   const reserved = argument(2);
@@ -246,9 +253,9 @@ function regCreateKeyExW(runtime, argument) {
   const opened = keyFor(rootHandle, stateFor(runtime));
   if (!opened) return response(ERROR_INVALID_HANDLE, 9);
   if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 9);
-  const path = readPath(runtime, subkeyAddress);
+  const path = readPath(runtime, subkeyAddress, false, ansi);
   if (!path) return response(ERROR_INVALID_PARAMETER, 9);
-  const className = classAddress ? runtime.wideString(classAddress) : '';
+  const className = guestString(runtime, classAddress, ansi);
   const state = stateFor(runtime);
   if (state.handles.size >= MAX_HANDLES) return response(ERROR_NOT_ENOUGH_MEMORY, 9);
   const outcome = createPath(state, rootHandle, opened.node, path, className);
@@ -265,7 +272,15 @@ function regCreateKeyExW(runtime, argument) {
   return response(ERROR_SUCCESS, 9);
 }
 
-function regOpenKeyExW(runtime, argument) {
+function regCreateKeyExW(runtime, argument) {
+  return regCreateKeyEx(runtime, argument, false);
+}
+
+function regCreateKeyExA(runtime, argument) {
+  return regCreateKeyEx(runtime, argument, true);
+}
+
+function regOpenKeyEx(runtime, argument, ansi) {
   const rootHandle = argument(0) >>> 0;
   const subkeyAddress = argument(1);
   const options = argument(2) >>> 0;
@@ -278,7 +293,7 @@ function regOpenKeyExW(runtime, argument) {
   const opened = keyFor(rootHandle, state);
   if (!opened) return response(ERROR_INVALID_HANDLE, 5);
   if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 5);
-  const path = readPath(runtime, subkeyAddress, true);
+  const path = readPath(runtime, subkeyAddress, true, ansi);
   if (!path) return response(ERROR_INVALID_PARAMETER, 5);
   if (!path.length && opened.predefined) {
     writeOutput(runtime, resultAddress, rootHandle);
@@ -292,12 +307,52 @@ function regOpenKeyExW(runtime, argument) {
   return response(ERROR_SUCCESS, 5);
 }
 
-function regQueryValueExW(runtime, argument) {
+function regOpenKeyExW(runtime, argument) {
+  return regOpenKeyEx(runtime, argument, false);
+}
+
+function regOpenKeyExA(runtime, argument) {
+  return regOpenKeyEx(runtime, argument, true);
+}
+
+function regOpenKeyA(runtime, argument) {
+  const resultAddress = argument(2);
+  if (!checkedOutput(runtime, resultAddress)) return response(ERROR_INVALID_PARAMETER, 3);
+  const subkeyAddress = argument(1);
+  if (!subkeyAddress || guestString(runtime, subkeyAddress, true) === '') {
+    writeOutput(runtime, resultAddress, argument(0));
+    return response(ERROR_SUCCESS, 3);
+  }
+  const args = [argument(0), subkeyAddress, 0, SUPPORTED_ACCESS, resultAddress];
+  const result = regOpenKeyExA(runtime, (index) => args[index]);
+  return response(result.result, 3);
+}
+
+function ansiValueData(type, bytes) {
+  if (!STRING_TYPES.has(type)) return bytes;
+  const value = decodeAnsi(bytes);
+  const result = new Uint8Array(value.length * 2);
+  const view = new DataView(result.buffer);
+  for (let index = 0; index < value.length; index++)
+    view.setUint16(index * 2, value.charCodeAt(index), true);
+  return result;
+}
+
+function unicodeValueData(type, bytes) {
+  if (!STRING_TYPES.has(type)) return bytes;
+  let value = '';
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let offset = 0; offset + 1 < bytes.length; offset += 2)
+    value += String.fromCharCode(view.getUint16(offset, true));
+  return encodeAnsi(value).bytes;
+}
+
+function regQueryValueEx(runtime, argument, ansi) {
   const state = stateFor(runtime);
   const opened = keyFor(argument(0), state);
   if (!opened) return response(ERROR_INVALID_HANDLE, 6);
   if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 6);
-  const valueName = runtime.wideString(argument(1));
+  const valueName = guestString(runtime, argument(1), ansi);
   const reserved = argument(2);
   const typeAddress = argument(3);
   const dataAddress = argument(4);
@@ -308,33 +363,42 @@ function regQueryValueExW(runtime, argument) {
 
   const value = opened.node.values.get(valueName.toUpperCase());
   if (!value) return response(ERROR_FILE_NOT_FOUND, 6);
+  const data = ansi ? unicodeValueData(value.type, value.data) : value.data;
   if (typeAddress) runtime.check(typeAddress, 4, true);
   if (sizeAddress) runtime.check(sizeAddress, 4, true);
   if (!dataAddress) {
     if (typeAddress) writeOutput(runtime, typeAddress, value.type);
-    if (sizeAddress) writeOutput(runtime, sizeAddress, value.data.byteLength);
+    if (sizeAddress) writeOutput(runtime, sizeAddress, data.byteLength);
     return response(ERROR_SUCCESS, 6);
   }
 
   const capacity = runtime.read32(sizeAddress);
-  if (capacity < value.data.byteLength) {
+  if (capacity < data.byteLength) {
     if (typeAddress) writeOutput(runtime, typeAddress, value.type);
-    writeOutput(runtime, sizeAddress, value.data.byteLength);
+    writeOutput(runtime, sizeAddress, data.byteLength);
     return response(ERROR_MORE_DATA, 6);
   }
-  runtime.check(dataAddress, value.data.byteLength, true);
+  runtime.check(dataAddress, data.byteLength, true);
   if (typeAddress) writeOutput(runtime, typeAddress, value.type);
-  runtime.data.set(value.data, dataAddress);
-  writeOutput(runtime, sizeAddress, value.data.byteLength);
+  runtime.data.set(data, dataAddress);
+  writeOutput(runtime, sizeAddress, data.byteLength);
   return response(ERROR_SUCCESS, 6);
 }
 
-function regSetValueExW(runtime, argument) {
+function regQueryValueExW(runtime, argument) {
+  return regQueryValueEx(runtime, argument, false);
+}
+
+function regQueryValueExA(runtime, argument) {
+  return regQueryValueEx(runtime, argument, true);
+}
+
+function regSetValueEx(runtime, argument, ansi) {
   const state = stateFor(runtime);
   const opened = keyFor(argument(0), state);
   if (!opened) return response(ERROR_INVALID_HANDLE, 6);
   if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 6);
-  const valueName = runtime.wideString(argument(1));
+  const valueName = guestString(runtime, argument(1), ansi);
   const reserved = argument(2);
   const type = argument(3) >>> 0;
   const dataAddress = argument(4) >>> 0;
@@ -345,10 +409,73 @@ function regSetValueExW(runtime, argument) {
   if (byteCount && !dataAddress) return response(ERROR_INVALID_PARAMETER, 6);
   if (byteCount > MAX_VALUE_BYTES) return response(ERROR_NOT_ENOUGH_MEMORY, 6);
   if (byteCount) runtime.check(dataAddress, byteCount);
-  const bytes = byteCount
+  let bytes = byteCount
     ? runtime.data.slice(dataAddress, dataAddress + byteCount)
     : new Uint8Array();
+  if (ansi) bytes = ansiValueData(type, bytes);
   return response(storeValue(state, opened, valueName, type, bytes), 6);
+}
+
+function regSetValueExW(runtime, argument) {
+  return regSetValueEx(runtime, argument, false);
+}
+
+function regSetValueExA(runtime, argument) {
+  return regSetValueEx(runtime, argument, true);
+}
+
+function regEnumValueA(runtime, argument) {
+  const nameAddress = argument(2) >>> 0;
+  const nameSizeAddress = argument(3) >>> 0;
+  const reserved = argument(4) >>> 0;
+  const typeAddress = argument(5) >>> 0;
+  const dataAddress = argument(6) >>> 0;
+  const dataSizeAddress = argument(7) >>> 0;
+  if (!nameAddress || !nameSizeAddress || reserved || (dataAddress && !dataSizeAddress))
+    return response(ERROR_INVALID_PARAMETER, 8);
+
+  const state = stateFor(runtime);
+  const opened = keyFor(argument(0), state);
+  if (!opened) return response(ERROR_INVALID_HANDLE, 8);
+  if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 8);
+  if (accessDenied(opened, KEY_QUERY_VALUE)) return response(ERROR_ACCESS_DENIED, 8);
+  runtime.check(nameSizeAddress, 4, true);
+  if (typeAddress) runtime.check(typeAddress, 4, true);
+  if (dataSizeAddress) runtime.check(dataSizeAddress, 4, true);
+
+  const value = [...opened.node.values.values()][argument(1) >>> 0];
+  if (!value) return response(ERROR_NO_MORE_ITEMS, 8);
+  const name = encodeAnsi(value.name).bytes;
+  const data = unicodeValueData(value.type, value.data);
+  let status = ERROR_SUCCESS;
+
+  if (dataAddress) {
+    const capacity = runtime.read32(dataSizeAddress) >>> 0;
+    if (capacity < data.length) status = ERROR_MORE_DATA;
+    else {
+      runtime.check(dataAddress, data.length, true);
+      runtime.data.set(data, dataAddress);
+    }
+  }
+  if (status === ERROR_SUCCESS) {
+    const capacity = runtime.read32(nameSizeAddress) >>> 0;
+    if (capacity <= name.length) {
+      status = ERROR_MORE_DATA;
+      if (capacity) {
+        runtime.check(nameAddress, capacity, true);
+        runtime.data.set(name.subarray(0, capacity - 1), nameAddress);
+        runtime.data[nameAddress + capacity - 1] = 0;
+      }
+    } else {
+      runtime.check(nameAddress, name.length + 1, true);
+      runtime.data.set(name, nameAddress);
+      runtime.data[nameAddress + name.length] = 0;
+      writeOutput(runtime, nameSizeAddress, name.length);
+    }
+  }
+  if (typeAddress) writeOutput(runtime, typeAddress, value.type);
+  if (dataSizeAddress) writeOutput(runtime, dataSizeAddress, data.length);
+  return response(status, 8);
 }
 
 function storeValue(state, opened, valueName, type, bytes) {
@@ -401,10 +528,16 @@ function regCloseKey(runtime, argument) {
  * provider boundary; parent create/delete operations therefore do not model ACLs.
  */
 export const registryApis = {
+  'advapi32.dll!RegCreateKeyExA': regCreateKeyExA,
   'advapi32.dll!RegCreateKeyExW': regCreateKeyExW,
+  'advapi32.dll!RegOpenKeyA': regOpenKeyA,
+  'advapi32.dll!RegOpenKeyExA': regOpenKeyExA,
   'advapi32.dll!RegOpenKeyExW': regOpenKeyExW,
+  'advapi32.dll!RegQueryValueExA': regQueryValueExA,
   'advapi32.dll!RegQueryValueExW': regQueryValueExW,
+  'advapi32.dll!RegSetValueExA': regSetValueExA,
   'advapi32.dll!RegSetValueExW': regSetValueExW,
+  'advapi32.dll!RegEnumValueA': regEnumValueA,
   'advapi32.dll!RegDeleteKeyW': regDeleteKeyW,
   'advapi32.dll!RegCloseKey': regCloseKey,
 };

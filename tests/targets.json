@@ -205,7 +205,7 @@
             "0",
             "$$:1"
           ],
-          "expected": "exit code 1; exact 640×480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
+          "expected": "exit code 1; exact 640\u00d7480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
           "status": "passed",
           "evidence": {
             "file": "evidence/external-browser-results.json",
@@ -397,7 +397,7 @@
             "0",
             "$$:1"
           ],
-          "expected": "Creates a 3×2 compatible bitmap, paints it with a solid brush, changes one pixel, then BitBlt-copies it to the real display canvas. The full 640×480 RGBA canvas matches SHA-256 0de47aa0956b0ff3f4103256df87b71edd3f60a6cc7080857f6ebe2e616f261d; generated WAV is unrelated test data in the ZIP, and winapiexec.exe is unchanged upstream.",
+          "expected": "Creates a 3\u00d72 compatible bitmap, paints it with a solid brush, changes one pixel, then BitBlt-copies it to the real display canvas. The full 640\u00d7480 RGBA canvas matches SHA-256 0de47aa0956b0ff3f4103256df87b71edd3f60a6cc7080857f6ebe2e616f261d; generated WAV is unrelated test data in the ZIP, and winapiexec.exe is unchanged upstream.",
           "status": "passed",
           "evidence": {
             "file": "evidence/external-browser-results.json",
@@ -425,7 +425,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "prints the upstream hello-world text and exits successfully",
-      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable’s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
+      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable\u2019s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
     },
     {
       "id": "pts-tinype-hh4t-x86",
@@ -577,7 +577,7 @@
       "workingDirectory": ".cache/targets/DynamicBranching",
       "args": [],
       "expected": "opens the Dynamic Branching room scene, renders its shader variants and lighting, accepts camera/settings input, and closes cleanly",
-      "statusNote": "Selected next target. It statically links its MSVC runtime and imports only Direct3DCreate9 from d3d9.dll. Current WineBrowser inspection resolves 37 of 116 imports and reports 79 gaps (62 Kernel32, 10 User32, 6 Advapi32, 1 Shell32). After startup it needs general x87 support; it calls Direct3DCreate9 with SDK version 31, then exercises programmable shaders, vertex/index buffers, textures, stencil/depth/blending and indexed draws beyond the current fixed-function cube subset. No WineBrowser execution is claimed."
+      "statusNote": "The unchanged EXE now passes source-built Wine loader registration and real guest DLL attach, enters its native startup, loads icon resource 101 and registers its window class, completes timing calibration and enumerates the virtual display. Both engines currently stop on LOCK XADD in Wine RtlAllocateHeap. Node and Chromium-worker reports retain the next runtime failures in evidence/wine-target-startup*.json; no rendered scene or application compatibility is claimed. Normal harness static inspection still reports 69 missing imports, while the optional Wine closure leaves seven explicit host-import traps. After startup it needs programmable vertex/index buffers, textures, stencil/depth/blending and indexed D3D9 draws; it requests Direct3DCreate9 SDK31. The bounded programmable cube is a separate original fixture."
     },
     {
       "id": "humus-inferno-d3d10-x86",

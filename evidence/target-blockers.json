@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-19T00:39:44.071Z",
+  "date": "2026-09-19T02:14:40.759Z",
   "scope": "Static PE/import graph inspection only. No binaries executed; passing imports do not establish compatibility. Target DLL assets are not automatically discovered.",
   "results": [
     {
@@ -252,7 +252,6 @@
         "Unsupported import user32.dll!IsDlgButtonChecked",
         "Unsupported import user32.dll!IsIconic",
         "Unsupported import user32.dll!IsZoomed",
-        "Unsupported import user32.dll!LoadIconA",
         "Unsupported import user32.dll!LoadImageA",
         "Unsupported import user32.dll!MapDialogRect",
         "Unsupported import user32.dll!MessageBeep",
@@ -410,12 +409,8 @@
         "Unsupported import advapi32.dll!GetLengthSid",
         "Unsupported import advapi32.dll!GetUserNameA",
         "Unsupported import advapi32.dll!InitializeSecurityDescriptor",
-        "Unsupported import advapi32.dll!RegCreateKeyExA",
         "Unsupported import advapi32.dll!RegDeleteKeyA",
         "Unsupported import advapi32.dll!RegEnumKeyA",
-        "Unsupported import advapi32.dll!RegOpenKeyExA",
-        "Unsupported import advapi32.dll!RegQueryValueExA",
-        "Unsupported import advapi32.dll!RegSetValueExA",
         "Unsupported import advapi32.dll!SetSecurityDescriptorDacl",
         "Unsupported import advapi32.dll!SetSecurityDescriptorOwner"
       ]
@@ -481,8 +476,7 @@
         "Missing DLL opengl32.dll",
         "Missing DLL opengl32.dll",
         "Missing DLL opengl32.dll",
-        "Missing DLL opengl32.dll",
-        "Unsupported import user32.dll!LoadIconA"
+        "Missing DLL opengl32.dll"
       ]
     },
     {
@@ -557,21 +551,11 @@
         "Unsupported import kernel32.dll!IsProcessorFeaturePresent",
         "Unsupported import kernel32.dll!EnterCriticalSection",
         "Unsupported import user32.dll!ShowCursor",
-        "Unsupported import user32.dll!LoadIconA",
         "Unsupported import user32.dll!SetCursorPos",
-        "Unsupported import user32.dll!ChangeDisplaySettingsA",
-        "Unsupported import user32.dll!EnumDisplaySettingsA",
-        "Unsupported import user32.dll!ClientToScreen",
         "Unsupported import user32.dll!OpenClipboard",
         "Unsupported import user32.dll!EmptyClipboard",
         "Unsupported import user32.dll!SetClipboardData",
         "Unsupported import user32.dll!CloseClipboard",
-        "Unsupported import advapi32.dll!RegSetValueExA",
-        "Unsupported import advapi32.dll!RegOpenKeyExA",
-        "Unsupported import advapi32.dll!RegEnumValueA",
-        "Unsupported import advapi32.dll!RegQueryValueExA",
-        "Unsupported import advapi32.dll!RegCreateKeyExA",
-        "Unsupported import advapi32.dll!RegOpenKeyA",
         "Missing export shell32.dll!SHGetSpecialFolderPathA"
       ]
     },
@@ -610,15 +594,8 @@
         "Unsupported import user32.dll!OpenClipboard",
         "Unsupported import user32.dll!SetCursorPos",
         "Unsupported import user32.dll!CloseClipboard",
-        "Unsupported import user32.dll!ClientToScreen",
         "Unsupported import user32.dll!SetClipboardData",
-        "Unsupported import user32.dll!LoadIconA",
         "Unsupported import user32.dll!GetMonitorInfoA",
-        "Unsupported import advapi32.dll!RegSetValueExA",
-        "Unsupported import advapi32.dll!RegQueryValueExA",
-        "Unsupported import advapi32.dll!RegCreateKeyExA",
-        "Unsupported import advapi32.dll!RegOpenKeyExA",
-        "Unsupported import advapi32.dll!RegEnumValueA",
         "Missing export shell32.dll!SHGetSpecialFolderPathA",
         "Missing DLL msvcr80.dll",
         "Missing DLL msvcr80.dll",
@@ -735,7 +712,6 @@
         "Unsupported import user32.dll!LoadMenuW",
         "Unsupported import user32.dll!LoadStringW",
         "Unsupported import user32.dll!SetMenu",
-        "Unsupported import user32.dll!LoadIconW",
         "Unsupported import user32.dll!GetDlgItemInt",
         "Unsupported import user32.dll!CheckMenuItem",
         "Unsupported import user32.dll!InflateRect",

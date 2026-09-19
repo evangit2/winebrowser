@@ -2,6 +2,8 @@
 import { moduleBytes, constant, get, set, local, call, Host } from './wasm.js';
 import { classifySse, SIMDState } from './simd.js';
 import { classifyX87, X87State } from './x87.js';
+import { guestCpuid } from './processor-features.js';
+import { GuestPerformanceClock, splitGuestCounter } from './guest-clock.js';
 export class CPU {
   constructor(
     iced,
@@ -17,6 +19,7 @@ export class CPU {
       fsBase = 0,
       x87ModuleUrl,
       x87WasmUrl,
+      performanceCounter,
     },
   ) {
     if (typeof SharedArrayBuffer !== 'undefined' && memory.buffer instanceof SharedArrayBuffer)
@@ -61,6 +64,10 @@ export class CPU {
     this.instructions = 0;
     this.f = { cf: 0, zf: 0, sf: 0, of: 0, pf: 0 };
     this.af = 0;
+    const localClock = performanceCounter ? null : new GuestPerformanceClock();
+    this.performanceCounter = performanceCounter ?? (() => localClock.read());
+    if (typeof this.performanceCounter !== 'function')
+      throw new TypeError('CPU performance counter must be a function');
     this.host = {
       load: (a, width) =>
         read
@@ -89,6 +96,11 @@ export class CPU {
       },
       flags: (a, b, r, k, width) => this.flags(a, b, r, k, width),
       shift: (value, count, kind, width) => this.shift(value, count, kind, width),
+      rotateCarry: (value, count, kind, width) => this.rotateCarry(value, count, kind, width),
+      rotateCarryStore: (address, value, count, kind, width) => {
+        this.checkMemory(address >>> 0, width >>> 3, true);
+        this.host.store(address >>> 0, this.rotateCarry(value, count, kind, width), width >>> 3);
+      },
       wideMath: (operand, kind, width) => this.wideMath(operand, kind, width),
       condition: (c) => this.condition(c),
       bitTest: (value, index, width) => {
@@ -110,6 +122,18 @@ export class CPU {
         return (
           (this.f.sf << 7) | (this.f.zf << 6) | (this.af << 4) | (this.f.pf << 2) | 2 | this.f.cf
         );
+      },
+      cpuid: (leaf, subleaf) => {
+        const value = guestCpuid(leaf, subleaf);
+        this.r[0].value = value.eax | 0;
+        this.r[1].value = value.ecx | 0;
+        this.r[2].value = value.edx | 0;
+        this.r[3].value = value.ebx | 0;
+      },
+      timestamp: () => {
+        const value = splitGuestCounter(this.performanceCounter());
+        this.r[0].value = value.low | 0;
+        this.r[2].value = value.high | 0;
       },
       bitScan: (value, previous, reverse) => {
         this.f.zf = Number(value === 0);
@@ -150,28 +174,44 @@ export class CPU {
       direction: (value) => {
         this.df = value ? 1 : 0;
       },
-      string: (kind, bytes, repeated, sourceBase, at, next) => {
-        if (![1, 2, 4].includes(bytes) || ![0, 1].includes(kind))
+      string: (kind, bytes, repeat, sourceBase, at, next) => {
+        if (![1, 2, 4].includes(bytes))
           throw Error('Unsupported string instruction width or operation');
-        if (![0, 1].includes(repeated)) throw Error('Invalid string repeat mode');
-        let remaining = repeated ? this.r[1].value >>> 0 : 1;
+        if (![0, 1, 2].includes(kind) || ![0, 1, 2, 3].includes(repeat))
+          throw Error('Invalid string operation or repeat mode');
+        let remaining = repeat ? this.r[1].value >>> 0 : 1;
         const count = Math.min(remaining, 1024);
         const delta = this.df ? -bytes : bytes;
-        let completed = 0;
+        let completed = 0,
+          terminated = false;
         for (; completed < count; completed++) {
           const source = (this.r[6].value + sourceBase) >>> 0;
           const destination = this.r[7].value >>> 0;
           if (kind === 0) this.checkMemory(source, bytes, false);
-          const value = kind === 0 ? this.host.load(source, bytes) : this.r[0].value;
-          this.checkMemory(destination, bytes, true);
-          this.host.store(destination, value, bytes);
+          if (kind === 2) {
+            this.checkMemory(destination, bytes, false);
+            const bits = bytes * 8;
+            const mask = bits === 32 ? 0xffffffff : (1 << bits) - 1;
+            const accumulator = (this.r[0].value & mask) >>> 0;
+            const value = this.host.load(destination, bytes) >>> 0;
+            this.flags(accumulator, value, (accumulator - value) & mask, 1, bits);
+          } else {
+            const value = kind === 0 ? this.host.load(source, bytes) : this.r[0].value;
+            this.checkMemory(destination, bytes, true);
+            this.host.store(destination, value, bytes);
+          }
           if (kind === 0) this.r[6].value = (this.r[6].value + delta) | 0;
           this.r[7].value = (this.r[7].value + delta) | 0;
-          if (repeated) this.r[1].value = ((this.r[1].value >>> 0) - 1) | 0;
+          if (repeat) this.r[1].value = ((this.r[1].value >>> 0) - 1) | 0;
+          if (kind === 2 && ((repeat === 2 && !this.f.zf) || (repeat === 3 && this.f.zf))) {
+            completed++;
+            terminated = true;
+            break;
+          }
         }
         if (completed > 1) this.instructions += completed - 1;
         remaining -= completed;
-        return repeated && remaining ? at : next;
+        return repeat && remaining && !terminated ? at : next;
       },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
@@ -253,6 +293,30 @@ export class CPU {
     if (count === 1)
       this.f.of = kind === 0 ? this.f.sf ^ carry : kind === 1 ? (v >>> (width - 1)) & 1 : 0;
     return result & mask;
+  }
+  rotateCarry(value, count, kind, width) {
+    if (![8, 16, 32].includes(width) || ![0, 1].includes(kind))
+      throw Error('Invalid rotate-through-carry operation');
+    count &= 31;
+    if (width < 32) count %= width + 1;
+    const mask = width === 32 ? 0xffffffff : (1 << width) - 1;
+    const operand = (value & mask) >>> 0;
+    if (!count) return operand;
+    const bits = BigInt(width + 1);
+    const combinedMask = (1n << bits) - 1n;
+    let combined = (BigInt(operand) << 1n) | BigInt(this.f.cf);
+    const rotation = BigInt(count);
+    combined =
+      kind === 0
+        ? ((combined << rotation) | (combined >> (bits - rotation))) & combinedMask
+        : ((combined >> rotation) | (combined << (bits - rotation))) & combinedMask;
+    const result = Number((combined >> 1n) & BigInt(mask)) >>> 0;
+    this.f.cf = Number(combined & 1n);
+    if (count === 1) {
+      const msb = (result >>> (width - 1)) & 1;
+      this.f.of = kind === 0 ? msb ^ this.f.cf : msb ^ ((result >>> (width - 2)) & 1);
+    }
+    return result;
   }
   wideMath(operand, kind, width) {
     if (width !== 32) throw Error('Wide multiply/divide currently requires 32-bit operands');
@@ -446,30 +510,51 @@ export class CPU {
           }
           const stringMov = [M.Movsb, M.Movsw, M.Movsd].includes(m);
           const stringStos = [M.Stosb, M.Stosw, M.Stosd].includes(m);
-          const stringOp = stringMov || stringStos;
+          const stringScas = [M.Scasb, M.Scasw, M.Scasd].includes(m);
+          const stringOp = stringMov || stringStos || stringScas;
           if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp)
             throw Error('Repeat prefix unsupported');
           if (stringOp) {
-            if (i.hasRepnePrefix) throw Error('REPNE string operations are unsupported');
+            if (i.hasRepnePrefix && !stringScas)
+              throw Error('REPNE string operations are unsupported');
             const raw = new Uint8Array(this.memory.buffer, at, next - at);
             if (raw.includes(0x67)) throw Error('16-bit string address mode unsupported');
-            if (i.opCount !== 2 || i.opKind(0) !== K.MemoryESEDI)
-              throw Error('Unexpected string instruction operands');
+            if (i.opCount !== 2) throw Error('Unexpected string instruction operands');
+            if (!stringScas && i.opKind(0) !== K.MemoryESEDI)
+              throw Error('Unexpected string destination operand');
             if (stringMov && i.opKind(1) !== K.MemorySegESI)
               throw Error('Unexpected MOVS source operand');
             if (stringStos && i.opKind(1) !== K.Register)
               throw Error('Unexpected STOS accumulator operand');
-            if (i.segmentPrefix !== R.None && i.segmentPrefix !== R.DS && i.segmentPrefix !== R.FS)
+            if (stringScas && (i.opKind(0) !== K.Register || i.opKind(1) !== K.MemoryESEDI))
+              throw Error('Unexpected SCAS operands');
+            if (
+              !stringScas &&
+              i.segmentPrefix !== R.None &&
+              i.segmentPrefix !== R.DS &&
+              i.segmentPrefix !== R.FS
+            )
               throw Error('Unsupported string source segment override');
+            if (stringScas && i.segmentPrefix !== R.None && i.segmentPrefix !== R.ES)
+              throw Error('Unsupported SCAS segment override');
             if (i.segmentPrefix === R.FS && !this.fsBase)
               throw Error('FS string source requires guest TEB');
             const bytes = MemorySizeExt.size(i.memorySize);
             if (![1, 2, 4].includes(bytes)) throw Error('Unsupported string operand width');
             const sourceBase = stringMov && i.segmentPrefix === R.FS ? this.fsBase : 0;
+            const repeat = stringScas
+              ? i.hasRepnePrefix
+                ? 3
+                : i.hasRepPrefix
+                  ? 2
+                  : 0
+              : i.hasRepPrefix
+                ? 1
+                : 0;
             code.push(
-              ...constant(stringMov ? 0 : 1),
+              ...constant(stringMov ? 0 : stringStos ? 1 : 2),
               ...constant(bytes),
-              ...constant(i.hasRepPrefix ? 1 : 0),
+              ...constant(repeat),
               ...constant(sourceBase),
               ...constant(at),
               ...constant(next),
@@ -525,6 +610,12 @@ export class CPU {
               0x72,
               ...set(0),
             );
+          } else if (m === M.Cpuid) {
+            if (i.opCount !== 0) throw Error('Unexpected CPUID operands');
+            code.push(...get(0), ...get(1), ...call(Host.cpuid));
+          } else if (m === M.Rdtsc) {
+            if (i.opCount !== 0) throw Error('Unexpected RDTSC operands');
+            code.push(...call(Host.timestamp));
           } else if (m === M.Movzx || m === M.Movsx) {
             let value = operand(i, 1);
             if (m === M.Movsx) {
@@ -562,6 +653,29 @@ export class CPU {
                 ...call(Host.shift),
               ]),
             );
+          } else if ([M.Rcl, M.Rcr].includes(m)) {
+            const bits = width(i, 0);
+            if (![8, 16, 32].includes(bits)) throw Error('RCL/RCR require an 8/16/32-bit operand');
+            const rotated = [
+              ...operand(i, 0),
+              ...operand(i, 1),
+              ...constant(m === M.Rcl ? 0 : 1),
+              ...constant(bits),
+              ...call(Host.rotateCarry),
+            ];
+            if (i.opKind(0) === K.Memory) {
+              code.push(
+                ...addr(i),
+                0x21,
+                2,
+                ...local(2),
+                ...operand(i, 0),
+                ...operand(i, 1),
+                ...constant(m === M.Rcl ? 0 : 1),
+                ...constant(bits),
+                ...call(Host.rotateCarryStore),
+              );
+            } else code.push(...write(i, 0, rotated));
           } else if (m === M.Imul && i.opCount >= 2) {
             code.push(
               ...operand(i, i.opCount === 3 ? 1 : 0),

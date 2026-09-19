@@ -1,0 +1,786 @@
+{
+  "date": "2026-09-19T02:17:19.369Z",
+  "targetId": "humus-dynamic-branching-d3d9-x86",
+  "exeSha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
+  "archiveSha256": "8063039867fb69e4c58c6bad90f4aad80e43d0eb5c33818e1ba5a9c2be57077a",
+  "inputs": {
+    "manifest": ".cache/wine-loader/manifest.json",
+    "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+    "nlsDirectory": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls",
+    "dlls": [
+      {
+        "name": "ntdll.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3780616,
+        "sha256": "dced01257a23d2d7693d13149d2a40a70d6e9a26ab2132d2670e33aee9c62bd1"
+      },
+      {
+        "name": "msvcrt.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msvcrt.dll",
+        "bytes": 679950,
+        "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernel32.dll",
+        "bytes": 397326,
+        "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernelbase.dll",
+        "bytes": 2703374,
+        "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+      }
+    ],
+    "nls": [
+      {
+        "name": "locale.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/locale.nls",
+        "bytes": 794914,
+        "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+      },
+      {
+        "name": "sortdefault.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/sortdefault.nls",
+        "bytes": 3380468,
+        "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+      },
+      {
+        "name": "l_intl.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/l_intl.nls",
+        "bytes": 5564,
+        "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+      },
+      {
+        "name": "normnfc.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/normnfc.nls",
+        "bytes": 60194,
+        "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+      },
+      {
+        "name": "c_1252.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_1252.nls",
+        "bytes": 66082,
+        "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+      },
+      {
+        "name": "c_437.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_437.nls",
+        "bytes": 66594,
+        "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+      },
+      {
+        "name": "c_20127.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_20127.nls",
+        "bytes": 66082,
+        "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
+      }
+    ],
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+    "patchSha256": "02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4"
+  },
+  "status": "blocked-guest",
+  "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
+  "phases": [
+    {
+      "name": "map guest closure",
+      "passed": true,
+      "modules": [
+        {
+          "name": "dynamicbranching.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "host": false,
+          "base": 17235968,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "user32.dll",
+          "host": true,
+          "base": 1879048192,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "host": true,
+          "base": 1879113728,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "host": true,
+          "base": 1879179264,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "d3d9.dll",
+          "host": true,
+          "base": 1879244800,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "gdi32.dll",
+          "host": true,
+          "base": 1879310336,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "host": false,
+          "base": 20774912,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ]
+    },
+    {
+      "name": "Wine process bootstrap",
+      "passed": true
+    },
+    {
+      "name": "source loader registration",
+      "passed": true
+    },
+    {
+      "name": "guest DLL attach",
+      "passed": true
+    }
+  ],
+  "trappedImports": [
+    "user32.dll!ShowCursor",
+    "user32.dll!SetCursorPos",
+    "user32.dll!OpenClipboard",
+    "user32.dll!EmptyClipboard",
+    "user32.dll!SetClipboardData",
+    "user32.dll!CloseClipboard",
+    "shell32.dll!SHGetSpecialFolderPathA"
+  ],
+  "apiCalls": [
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104600,
+        0,
+        67104752,
+        8192,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104600,
+        0,
+        67104756,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        33555552,
+        0,
+        67104720,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetInformationProcess",
+      "args": [
+        4294967295,
+        34,
+        67104384,
+        4
+      ],
+      "result": "0xc0000022"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        1000,
+        17880736,
+        256,
+        0
+      ],
+      "result": "0xc0000003"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103440,
+        80,
+        67103436
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103668,
+        983103,
+        67103568,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103676,
+        983103,
+        67103716
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954496
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103680,
+        983103,
+        67103740
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954497
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103684,
+        983103,
+        67103740
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryInformationProcess",
+      "args": [
+        4294967295,
+        26,
+        67104728,
+        4,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104728,
+        0,
+        67104724,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtInitializeNlsFiles",
+      "args": [
+        67103856,
+        17876712,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        9,
+        0,
+        0,
+        67104100,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryDefaultLocale",
+      "args": [
+        1,
+        21510820
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        12,
+        1,
+        0,
+        21505116,
+        67103932
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103744,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        21510812,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        21510808,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103636,
+        80,
+        67103632
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103764,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        21510816,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103364,
+        983359,
+        67102888,
+        0
+      ],
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103732,
+        131097,
+        67103344,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        102,
+        67104272,
+        432,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103828,
+        983103,
+        67103440,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103936,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        10
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        8
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        12
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954502
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        0,
+        17043648,
+        44,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104448,
+        0,
+        67104600,
+        8192,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104448,
+        0,
+        67104604,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        38863968,
+        0,
+        67104568,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryVolumeInformationFile",
+      "args": [
+        0,
+        67104536,
+        67104528,
+        8,
+        4
+      ],
+      "result": "0xc0000008"
+    },
+    {
+      "name": "NtQueryVolumeInformationFile",
+      "args": [
+        1,
+        67104536,
+        67104528,
+        8,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryVolumeInformationFile",
+      "args": [
+        2,
+        67104536,
+        67104528,
+        8,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104316,
+        0,
+        67104348,
+        8192,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104316,
+        0,
+        67104368,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!LoadIconA",
+      "args": [
+        4194304,
+        101,
+        0,
+        0
+      ],
+      "result": "0x62000000"
+    },
+    {
+      "name": "user32.dll!LoadCursorA",
+      "args": [
+        0,
+        32512,
+        0,
+        0
+      ],
+      "result": "0x7f00"
+    },
+    {
+      "name": "user32.dll!RegisterClassA",
+      "args": [
+        67104528,
+        0,
+        0,
+        4233728
+      ],
+      "result": "0xc000"
+    },
+    {
+      "name": "advapi32.dll!RegOpenKeyExA",
+      "args": [
+        2147483650,
+        5054996,
+        0,
+        131097
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "NtQueryPerformanceCounter",
+      "args": [
+        67104488,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryPerformanceCounter",
+      "args": [
+        67104496,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!EnumDisplaySettingsA",
+      "args": [
+        0,
+        0,
+        67104284,
+        0
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "user32.dll!EnumDisplaySettingsA",
+      "args": [
+        0,
+        1,
+        67104284,
+        0
+      ],
+      "result": "0x0"
+    }
+  ],
+  "output": [],
+  "firstFailure": {
+    "phase": "native EXE entry point",
+    "message": "x86 block 0x10893b0: LOCK prefix requires a supported memory-destination RMW instruction",
+    "ip": {
+      "address": "0x10893b0",
+      "module": "ntdll.dll",
+      "offset": "0x193b0"
+    },
+    "registers": [
+      "0x2e00000",
+      "0x40",
+      "0x8",
+      "0x30",
+      "0x3ffedd0",
+      "0x3ffee2c",
+      "0x0",
+      "0x1003"
+    ],
+    "compiledBlocks": 2729,
+    "instructions": 6324091
+  }
+}

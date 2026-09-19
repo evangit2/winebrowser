@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-19T00:47:39.553Z",
+  "date": "2026-09-19T01:34:03.301Z",
   "status": "verified-crt-services",
   "scope": "Optional diagnostic of a source-built Wine loader bridge with pinned installed CRT DLLs, followed by real guest CRT allocation, formatting and output calls. No EXE entry point runs. After-attach loader metadata synchronization is not implemented; no general application support is claimed.",
   "operation": "map full msvcrt closure; process bootstrap; source loader registration; kernelbase dynamic TLS; normal DLL attach; real CRT services",
@@ -11,9 +11,9 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/d7af04ba4da472f91071bc7e703f558b5c1a0ad0f50efdb7c70132414b29e9f4/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4/build/dlls/ntdll/i386-windows/ntdll.dll",
         "bytes": 3780616,
-        "sha256": "fb802fc6ff74dc940a41126b22c237a30930628b5e1e288d395a73c785bfbc64"
+        "sha256": "dced01257a23d2d7693d13149d2a40a70d6e9a26ab2132d2670e33aee9c62bd1"
       },
       {
         "name": "msvcrt.dll",
@@ -80,7 +80,7 @@
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "d7af04ba4da472f91071bc7e703f558b5c1a0ad0f50efdb7c70132414b29e9f4",
+    "patchSha256": "02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4",
     "executable": {
       "name": "console.exe",
       "sha256": "9b7849f5321c97af70c9fda2c1f531e7968592dd8f8999dff534020bfceaf6d9",
@@ -1107,7 +1107,7 @@
       "ntdll.dll!NtQuerySystemTime",
       "ntdll.dll!NtWriteFile"
     ],
-    "blocks": 72559
+    "blocks": 72554
   },
   "processExitCode": 0
 }

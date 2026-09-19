@@ -18,9 +18,9 @@ try {
   const game = windows
     .filter({ has: page.locator('.virtual-desktop-title', { hasText: 'Breakout' }) })
     .first();
-  const canvas = game.locator('canvas');
+  const canvas = game.locator('.virtual-desktop-canvas');
   await page.waitForFunction(() =>
-    [...document.querySelectorAll('.virtual-desktop-window canvas')].some(
+    [...document.querySelectorAll('.virtual-desktop-window .virtual-desktop-canvas')].some(
       (c) =>
         c.width > 300 &&
         c
@@ -82,7 +82,7 @@ try {
   await page.mouse.up();
   await page.waitForFunction(
     ([w, h]) =>
-      [...document.querySelectorAll('.virtual-desktop-window canvas')].some(
+      [...document.querySelectorAll('.virtual-desktop-window .virtual-desktop-canvas')].some(
         (c) => c.width === w + 40 && c.height === h + 30,
       ),
     sizeBefore,

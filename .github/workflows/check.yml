@@ -49,6 +49,7 @@ jobs:
           npm run test:windows
           npm run test:tetris
           npm run test:d3d9
+          npm run test:d3d9-shader-cube
           npm run test:d3d12
           npm run test:d3d12-cube
         env:

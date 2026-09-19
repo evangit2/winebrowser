@@ -68,6 +68,12 @@ and structured delivery of unmasked exceptions remain separate work. The
 [native D3D12 cube](../demos/d3d12-cube/main.c) exercises this core with rotation
 and perspective calculated during execution.
 
+`CPUID` and Windows processor queries share a conservative virtual profile;
+partial SIMD operations do not advertise a complete SSE/MMX instruction set.
+`RDTSC` and `NtQueryPerformanceCounter` read one monotonic virtual clock at
+1 GHz. These are elapsed-time ticks, not host CPU cycles. Clock injection lets
+tests cover low-word rollover and counter ordering without wall-clock sleeps.
+
 ## NT and Unix host boundary
 
 Wine separates Windows-facing PE DLLs from Unix-side implementations through defined Unix

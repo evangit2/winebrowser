@@ -83,6 +83,7 @@ test('Wine NT clock services dispatch through the guest dispatcher and preserve 
       'NtQueryInformationProcess',
       'NtQueryPerformanceCounter',
       'NtQuerySystemTime',
+      'NtSetInformationProcess',
     ],
   );
 
@@ -168,6 +169,35 @@ test('FS syscall wrappers report the real PE32 process architecture and validate
   assert.equal(runtime.read32(output), 0xdeadbeef, 'invalid second output causes no partial write');
   assert.equal(await query(0xffffffff, 4, output, 0), 0);
   assert.ok(runtime.apiTrace.includes('ntdll.dll!NtQueryInformationProcess'));
+});
+
+test('process execute flags expose permanent browser DEP and reject policy changes', async () => {
+  const { runtime, module } = await runtimeWithWineNt();
+  const queryAddress = exportAddress(runtime, module, 'NtQueryInformationProcess');
+  const setAddress = exportAddress(runtime, module, 'NtSetInformationProcess');
+  const flags = runtime.allocate(4),
+    length = runtime.allocate(4);
+  const query = (handle = 0xffffffff, size = 4, out = flags, retLength = length) =>
+    runtime.callGuest(queryAddress, [handle, 34, out, size, retLength]);
+  const set = (value, handle = 0xffffffff, size = 4, pointer = flags) => {
+    runtime.write32(flags, value);
+    return runtime.callGuest(setAddress, [handle, 34, pointer, size]);
+  };
+
+  assert.equal(await query(), 0);
+  assert.equal(runtime.read32(flags), 0x0d, 'DEP, no thunk emulation, and permanence are enforced');
+  assert.equal(runtime.read32(length), 4);
+  assert.equal(await set(0x0d), 0, 'an exact update matching the enforced policy succeeds');
+  assert.equal(await set(0x02), 0xc0000022, 'enabling execution from guest data is denied');
+  assert.equal(await set(0x01), 0xc0000022, 'removing permanent policy bits is denied');
+  assert.equal(await set(0), 0xc000000d, 'an update without an execute selection is invalid');
+  assert.equal(await set(3), 0xc000000d, 'conflicting execute selections are invalid');
+  assert.equal(await set(0x0d, 0), 0xc0000008);
+  assert.equal(await set(0x0d, 0xffffffff, 3), 0xc000000d);
+  assert.equal(await set(0x0d, 0xffffffff, 4, 0x40000000), 0xc0000005);
+  assert.equal(await query(), 0);
+  assert.equal(runtime.read32(flags), 0x0d, 'failed updates cannot change browser DEP');
+  assert.ok(runtime.apiTrace.includes('ntdll.dll!NtSetInformationProcess'));
 });
 
 test('Wine NT virtual-memory services reserve, commit, decommit, recommit, and release guest pages', async () => {

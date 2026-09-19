@@ -24,7 +24,7 @@
      TRACE( "looking for %s in %s\n", debugstr_w(libname), debugstr_w(load_path) );
  
      if (system && system_dll_path.Buffer)
-@@ -3437,6 +3440,186 @@
+@@ -3437,6 +3440,185 @@
      return WINE_UNIX_CALL( unix_wine_server_handle_to_fd, &params );
  }
  
@@ -122,10 +122,9 @@
 +            return STATUS_INVALID_IMAGE_FORMAT;
 +        if (nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
 +            nt->FileHeader.Machine != IMAGE_FILE_MACHINE_I386 ||
-+            !(nt->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT) ||
 +            (nt->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_TLS &&
 +             nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress))
-+            return STATUS_NOT_SUPPORTED; /* no implicit ProcessExecuteFlags or static TLS ownership */
++            return STATUS_NOT_SUPPORTED; /* static TLS ownership remains outside this bridge */
 +        basename = wcsrchr( entry->name, '\\' );
 +        basename = basename ? basename + 1 : entry->name;
 +        if (!*basename) return STATUS_INVALID_PARAMETER;
@@ -211,7 +210,7 @@
  /******************************************************************
   *		LdrLoadDll (NTDLL.@)
   */
-@@ -3445,7 +3628,10 @@
+@@ -3445,7 +3627,10 @@
  {
      WINE_MODREF *wm;
      NTSTATUS nts;
@@ -223,7 +222,7 @@
  
      RtlEnterCriticalSection( &loader_section );
  
-@@ -3516,6 +3702,25 @@
+@@ -3516,6 +3701,25 @@
      TRACE( "flags %#lx, load_path %p, dll_characteristics %p, name %p, base %p.\n",
              flags, load_path, dll_characteristics, name, base );
  
@@ -249,7 +248,7 @@
      if (flags & ~valid_flags) return STATUS_INVALID_PARAMETER;
  
      if ((flags & (LDR_GET_DLL_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | LDR_GET_DLL_HANDLE_EX_FLAG_PIN))
-@@ -3572,6 +3777,7 @@
+@@ -3572,6 +3776,7 @@
      NTSTATUS ret = STATUS_SUCCESS;
      WINE_MODREF *wm;
  
@@ -257,7 +256,7 @@
      if (flags & ~LDR_ADDREF_DLL_PIN) FIXME( "%p flags %lx not implemented\n", module, flags );
  
      RtlEnterCriticalSection( &loader_section );
-@@ -3891,6 +4097,7 @@
+@@ -3891,6 +4096,7 @@
  {
      BOOL detaching = process_detaching;
  
@@ -265,7 +264,7 @@
      TRACE("()\n");
  
      process_detaching = TRUE;
-@@ -3925,6 +4132,7 @@
+@@ -3925,6 +4131,7 @@
      UINT i;
      void **pointers;
  
@@ -273,7 +272,7 @@
      TRACE("()\n");
  
      /* don't do any detach calls if process is exiting */
-@@ -4100,6 +4308,7 @@
+@@ -4100,6 +4307,7 @@
      WINE_MODREF *wm;
      NTSTATUS retv = STATUS_SUCCESS;
  
@@ -281,7 +280,7 @@
      if (process_detaching) return retv;
  
      TRACE("(%p)\n", hModule);
-@@ -4414,6 +4623,7 @@
+@@ -4414,6 +4622,7 @@
      ULONG_PTR cookie, port = 0;
      WINE_MODREF *wm;
  

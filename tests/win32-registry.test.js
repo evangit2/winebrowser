@@ -1,12 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registryApis } from '../src/win32-registry.js';
+import { encodeAnsi } from '../src/encoding.js';
 
 const registryApiSignatures = {
   RegCreateKeyExW: 9,
+  RegCreateKeyExA: 9,
   RegOpenKeyExW: 5,
+  RegOpenKeyExA: 5,
+  RegOpenKeyA: 3,
   RegQueryValueExW: 6,
+  RegQueryValueExA: 6,
   RegSetValueExW: 6,
+  RegSetValueExA: 6,
+  RegEnumValueA: 8,
   RegDeleteKeyW: 2,
   RegCloseKey: 1,
 };
@@ -20,6 +27,7 @@ const ERROR_ACCESS_DENIED = 5;
 const ERROR_INVALID_HANDLE = 6;
 const ERROR_INVALID_PARAMETER = 87;
 const ERROR_MORE_DATA = 234;
+const ERROR_NO_MORE_ITEMS = 259;
 const ERROR_NOT_ENOUGH_MEMORY = 8;
 const ERROR_KEY_DELETED = 1018;
 const REG_CREATED_NEW_KEY = 1;
@@ -70,12 +78,30 @@ function fakeRuntime() {
       }
       throw Error('Unterminated test string');
     },
+    string(address) {
+      if (!address) return '';
+      const bytes = [];
+      for (let offset = 0; offset < 0x8000; offset++) {
+        const byte = data[(address >>> 0) + offset];
+        if (!byte) return new TextDecoder('windows-1252').decode(Uint8Array.from(bytes));
+        bytes.push(byte);
+      }
+      throw Error('Unterminated test ANSI string');
+    },
     wide(value) {
       const address = nextString;
       for (let index = 0; index < value.length; index++)
         view.setUint16(address + index * 2, value.charCodeAt(index), true);
       view.setUint16(address + value.length * 2, 0, true);
       nextString += (value.length + 1) * 2 + 4;
+      return address;
+    },
+    ansi(value) {
+      const bytes = encodeAnsi(value).bytes;
+      const address = nextString;
+      data.set(bytes, address);
+      data[address + bytes.length] = 0;
+      nextString += bytes.length + 5;
       return address;
     },
     bytes(value) {
@@ -173,6 +199,169 @@ test('RegCreateKeyExW, RegOpenKeyExW and RegCloseKey retain process-local case-i
     runtime.read32(0x2010),
     HKCR,
     'empty predefined-root opens preserve the root handle',
+  );
+});
+
+test('ANSI create/open APIs decode CP1252 names and share Unicode key handles', () => {
+  const runtime = fakeRuntime();
+  const result = 0x2000;
+  const disposition = 0x2004;
+  assert.equal(
+    call(runtime, 'RegCreateKeyExA', [
+      HKCU,
+      runtime.ansi('Software\\Café €'),
+      0,
+      runtime.ansi('Class™'),
+      0,
+      KEY_READ,
+      0,
+      result,
+      disposition,
+    ]),
+    ERROR_SUCCESS,
+  );
+  assert.equal(runtime.read32(disposition), REG_CREATED_NEW_KEY);
+  assert.equal(openKey(runtime, 'software\\CAFÉ €').status, ERROR_SUCCESS);
+
+  assert.equal(
+    call(runtime, 'RegOpenKeyExA', [HKCU, runtime.ansi('SOFTWARE\\café €'), 0, KEY_READ, result]),
+    ERROR_SUCCESS,
+  );
+  assert.equal(
+    call(runtime, 'RegOpenKeyA', [HKCU, runtime.ansi('Software\\Café €'), result]),
+    ERROR_SUCCESS,
+  );
+  assert.equal(call(runtime, 'RegOpenKeyA', [HKCU, 0, result]), ERROR_SUCCESS);
+  assert.equal(runtime.read32(result), HKCU);
+});
+
+test('ANSI string values convert through CP1252 while binary data stays byte-exact', () => {
+  const runtime = fakeRuntime();
+  const { handle } = createKey(runtime, 'Software\\AnsiValues', KEY_READ | KEY_WRITE);
+  const ansiText = Uint8Array.from([...encodeAnsi('€ café').bytes, 0]);
+  assert.equal(
+    call(runtime, 'RegSetValueExA', [
+      handle,
+      runtime.ansi('Label™'),
+      0,
+      REG_SZ,
+      runtime.bytes(ansiText),
+      ansiText.length,
+    ]),
+    ERROR_SUCCESS,
+  );
+  const binary = Uint8Array.of(0x80, 0, 0xff, 0x41);
+  assert.equal(
+    call(runtime, 'RegSetValueExA', [
+      handle,
+      runtime.ansi('Raw'),
+      0,
+      3,
+      runtime.bytes(binary),
+      binary.length,
+    ]),
+    ERROR_SUCCESS,
+  );
+
+  const type = 0x2020,
+    size = 0x2024,
+    output = 0x2040;
+  runtime.write32(size, 64);
+  assert.equal(
+    call(runtime, 'RegQueryValueExW', [handle, runtime.wide('label™'), 0, type, output, size]),
+    ERROR_SUCCESS,
+  );
+  const expectedWide = new Uint8Array('€ café\0'.length * 2);
+  const expectedView = new DataView(expectedWide.buffer);
+  [...'€ café\0'].forEach((character, index) =>
+    expectedView.setUint16(index * 2, character.charCodeAt(0), true),
+  );
+  assert.deepEqual(runtime.data.slice(output, output + expectedWide.length), expectedWide);
+
+  runtime.write32(size, ansiText.length - 1);
+  runtime.data.fill(0xcc, output, output + ansiText.length);
+  assert.equal(
+    call(runtime, 'RegQueryValueExA', [handle, runtime.ansi('LABEL™'), 0, type, output, size]),
+    ERROR_MORE_DATA,
+  );
+  assert.equal(runtime.read32(size), ansiText.length);
+  assert.deepEqual(
+    runtime.data.slice(output, output + ansiText.length),
+    new Uint8Array(ansiText.length).fill(0xcc),
+  );
+  runtime.write32(size, ansiText.length);
+  assert.equal(
+    call(runtime, 'RegQueryValueExA', [handle, runtime.ansi('Label™'), 0, type, output, size]),
+    ERROR_SUCCESS,
+  );
+  assert.deepEqual(runtime.data.slice(output, output + ansiText.length), ansiText);
+
+  runtime.write32(size, binary.length);
+  assert.equal(
+    call(runtime, 'RegQueryValueExA', [handle, runtime.ansi('Raw'), 0, type, output, size]),
+    ERROR_SUCCESS,
+  );
+  assert.deepEqual(runtime.data.slice(output, output + binary.length), binary);
+});
+
+test('RegEnumValueA enumerates named/default values with independent name and data byte sizing', () => {
+  const runtime = fakeRuntime();
+  const { handle } = createKey(runtime, 'Software\\Enumeration', KEY_READ | KEY_WRITE);
+  const first = Uint8Array.from([...encodeAnsi('€').bytes, 0]);
+  assert.equal(
+    call(runtime, 'RegSetValueExA', [handle, 0, 0, REG_SZ, runtime.bytes(first), first.length]),
+    ERROR_SUCCESS,
+  );
+  assert.equal(
+    call(runtime, 'RegSetValueExW', [
+      handle,
+      runtime.wide('Café'),
+      0,
+      REG_DWORD,
+      runtime.bytes(Uint8Array.of(0x78, 0x56, 0x34, 0x12)),
+      4,
+    ]),
+    ERROR_SUCCESS,
+  );
+
+  const name = 0x2040,
+    nameSize = 0x2020,
+    type = 0x2024,
+    data = 0x2080,
+    dataSize = 0x2028;
+  runtime.write32(nameSize, 1);
+  runtime.write32(dataSize, first.length);
+  assert.equal(
+    call(runtime, 'RegEnumValueA', [handle, 0, name, nameSize, 0, type, data, dataSize]),
+    ERROR_SUCCESS,
+  );
+  assert.equal(runtime.read32(nameSize), 0);
+  assert.equal(runtime.data[name], 0);
+  assert.deepEqual(runtime.data.slice(data, data + first.length), first);
+
+  runtime.write32(nameSize, 4);
+  runtime.write32(dataSize, 4);
+  runtime.data.fill(0xcc, name, name + 8);
+  assert.equal(
+    call(runtime, 'RegEnumValueA', [handle, 1, name, nameSize, 0, type, data, dataSize]),
+    ERROR_MORE_DATA,
+  );
+  assert.equal(runtime.read32(nameSize), 4, 'short name capacity is unchanged');
+  assert.deepEqual(runtime.data.slice(name, name + 4), Uint8Array.from([0x43, 0x61, 0x66, 0]));
+
+  runtime.write32(nameSize, 5);
+  assert.equal(
+    call(runtime, 'RegEnumValueA', [handle, 1, name, nameSize, 0, type, data, dataSize]),
+    ERROR_SUCCESS,
+  );
+  assert.equal(runtime.read32(nameSize), 4);
+  assert.deepEqual(
+    runtime.data.slice(name, name + 5),
+    Uint8Array.from([0x43, 0x61, 0x66, 0xe9, 0]),
+  );
+  assert.equal(
+    call(runtime, 'RegEnumValueA', [handle, 2, name, nameSize, 0, type, data, dataSize]),
+    ERROR_NO_MORE_ITEMS,
   );
 });
 

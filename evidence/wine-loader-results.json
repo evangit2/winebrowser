@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-18T22:30:43.778Z",
+  "date": "2026-09-19T01:33:22.739Z",
   "scope": "Experimental source-built Wine loader metadata and version bootstrap. No application entry point or graphics execution; normal package loading is unchanged.",
   "build": {
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "d7af04ba4da472f91071bc7e703f558b5c1a0ad0f50efdb7c70132414b29e9f4",
-    "dllSha256": "fb802fc6ff74dc940a41126b22c237a30930628b5e1e288d395a73c785bfbc64",
+    "patchSha256": "02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4",
+    "dllSha256": "dced01257a23d2d7693d13149d2a40a70d6e9a26ab2132d2670e33aee9c62bd1",
     "dllBytes": 3780616,
     "compilers": {
       "native": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
@@ -94,7 +94,7 @@
       ]
     }
   ],
-  "blocks": 12061,
+  "blocks": 12052,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",

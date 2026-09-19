@@ -35,8 +35,18 @@ const dll = new Uint8Array(
 assert.equal(hash(dll), manifest.artifact.sha256);
 assert.equal(dll.length, manifest.artifact.bytes);
 const fixture = async (name) => new Uint8Array(await readFile(path.join(root, name)));
+const legacyMain = await fixture('public/demos/console/console.exe');
+const legacyView = new DataView(legacyMain.buffer, legacyMain.byteOffset, legacyMain.byteLength);
+const legacyPe = legacyView.getUint32(0x3c, true);
+const dllCharacteristics = legacyPe + 24 + 70;
+legacyView.setUint16(
+  dllCharacteristics,
+  legacyView.getUint16(dllCharacteristics, true) & ~0x0100,
+  true,
+);
+assert.equal(legacyView.getUint16(dllCharacteristics, true) & 0x0100, 0);
 const files = new Map([
-  ['console.exe', await fixture('public/demos/console/console.exe')],
+  ['console.exe', legacyMain],
   ['math.dll', await fixture('tests/fixtures/modules/math.dll')],
 ]);
 const nlsFiles = new Map();
@@ -62,6 +72,7 @@ const report = {
     dllBytes: dll.length,
     compilers: manifest.compilers,
   },
+  legacyNonNxMain: true,
   nls: [...nlsFiles].map(([name, bytes]) => ({ name, sha256: hash(bytes), bytes: bytes.length })),
   status: 'blocked',
   cases: [],

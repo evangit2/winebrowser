@@ -41,12 +41,12 @@ try {
   await edit.waitFor();
   assert.equal(await game.count(), 1);
   assert.equal(await game.locator('.virtual-desktop-control').count(), 5);
-  const canvas = game.locator('canvas');
+  const canvas = game.locator('.virtual-desktop-canvas');
   await page.evaluate(() => {
     // Sample cell centers using the pinned upstream renderer's 25-pixel cells.
     // Colored cells identify guest tetrominoes independently of browser fonts.
     window.__tetrisCells = () => {
-      const canvas = document.querySelector('.virtual-desktop-window canvas');
+      const canvas = document.querySelector('.virtual-desktop-window .virtual-desktop-canvas');
       if (!canvas) return [];
       const context = canvas.getContext('2d'),
         cells = [];

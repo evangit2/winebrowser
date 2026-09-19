@@ -89,6 +89,15 @@
       "zipSha256": "1e6ce0852b78974a623d1ba6394a5c42c14e0067fdb17bbbd48b9a93e5fb3dd7"
     },
     {
+      "name": "d3d9-shader-cube",
+      "description": "Native D3D9 programmable cube: x86-to-Wasm, x87 transforms, browser-compiled vertex/pixel shaders, float constants and depth. Close the window to exit.",
+      "exe": "d3d9-shader-cube/d3d9-shader-cube.exe",
+      "zip": "d3d9-shader-cube.zip",
+      "provenance": "Original MIT-licensed PE32 C application and shader tokens; complete source and rebuild materials included.",
+      "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
+      "zipSha256": "d43ef9a8047101b19d945a4562bc03a1d04ec96d3d87f27cb9c7fca723092173"
+    },
+    {
       "name": "d3d12-triangle",
       "description": "Native D3D12 shader triangle: browser-compiled SM5 shaders, moving viewport, command lists, resource transitions and fences. Initial API subset.",
       "exe": "d3d12-triangle/d3d12-triangle.exe",
@@ -99,10 +108,10 @@
     },
     {
       "name": "d3d12-cube",
-      "description": "Native Direct3D 12 rotating 3D cube: vertex uploads, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
+      "description": "Native Direct3D 12 rotating 3D cube: x87 transforms, indexed vertex uploads, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
       "exe": "d3d12-cube/d3d12-cube.exe",
       "zip": "d3d12-cube.zip",
-      "provenance": "Original MIT PE32 C application and HLSL shaders; ordinary native build plus deterministic geometry data. Complete source and rebuild materials included.",
+      "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms during execution. Complete source and rebuild materials included.",
       "exeSha256": "172155247cbed000cb046289acab47ea6ac0783d96edbab1447e3cf16d957553",
       "zipSha256": "23e570f0e5324416bd31231d7be249d85f7d9d935f404b4b9460f0120d183d38"
     }

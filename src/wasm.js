@@ -50,6 +50,10 @@ export const Host = Object.freeze({
   popStore: 14,
   x87: 15,
   flagByte: 16,
+  cpuid: 17,
+  timestamp: 18,
+  rotateCarry: 19,
+  rotateCarryStore: 20,
 });
 const signatures = [
   [2, 1],
@@ -69,6 +73,10 @@ const signatures = [
   [2, 0],
   [6, 0],
   [2, 1],
+  [2, 0],
+  [0, 0],
+  [4, 1],
+  [5, 0],
 ];
 const hostNames = Object.keys(Host);
 export function moduleBytes(code) {

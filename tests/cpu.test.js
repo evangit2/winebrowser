@@ -30,7 +30,7 @@ test('call and ret preserve guest stack and return address', () => {
   assert.equal(c.r[4].value, start);
 });
 test('unsupported instruction fails before execution', () => {
-  const c = cpu([0x0f, 0xa2]);
+  const c = cpu([0x0f, 0x0b]); // UD2; CPUID is now part of the supported profile.
   assert.throws(() => c.step(0x1000), /Unsupported instruction/);
 });
 test('INC preserves carry and changes zero flag', () => {

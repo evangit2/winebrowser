@@ -5,7 +5,7 @@ import { encodeAnsi, decodeAnsi } from './encoding.js';
 // This file owns no guest instruction execution or PE parsing.
 import { callWineHeap } from './wine-process.js';
 import { normalizePath } from './package.js';
-import { parsePE } from './pe.js';
+import { listPEResources } from './pe-resources.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
   r.lastError = error;
@@ -168,44 +168,7 @@ function multiToWide(r, a) {
   return ok(value.length, 6);
 }
 function groupIconCount(bytes) {
-  const pe = parsePE(bytes, { allowDll: true });
-  const directory = pe.directories[2];
-  if (!directory?.rva || !directory.size) return 0;
-  const end = directory.rva + directory.size;
-  const offsetOf = (rva, size) => {
-    if (rva < pe.headersSize && rva + size <= pe.headersSize) return rva;
-    const section = pe.sections.find(
-      (item) => rva >= item.rva && rva + size <= item.rva + item.rawSize,
-    );
-    if (!section) throw Error('Shell32 resource data is not file-backed');
-    return section.rawOffset + rva - section.rva;
-  };
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const entries = (rva) => {
-    if (rva < directory.rva || rva + 16 > end) throw Error('Malformed PE resource directory');
-    const offset = offsetOf(rva, 16);
-    const count = view.getUint16(offset + 12, true) + view.getUint16(offset + 14, true);
-    if (count > 4096 || rva + 16 + count * 8 > end) throw Error('Malformed PE resource entries');
-    const result = [];
-    for (let i = 0; i < count; i++) {
-      const name = view.getUint32(offset + 16 + i * 8, true),
-        target = view.getUint32(offset + 20 + i * 8, true);
-      result.push({ id: name & 0x80000000 ? null : name & 0xffff, target });
-    }
-    return result;
-  };
-  for (const type of entries(directory.rva)) {
-    if (type.id !== 14 || !(type.target & 0x80000000)) continue; // RT_GROUP_ICON
-    const typeRva = directory.rva + (type.target & 0x7fffffff);
-    let count = 0;
-    for (const group of entries(typeRva)) {
-      if (!(group.target & 0x80000000)) continue;
-      const languageRva = directory.rva + (group.target & 0x7fffffff);
-      if (entries(languageRva).length) count++;
-    }
-    return count;
-  }
-  return 0;
+  return listPEResources(bytes, 14).length;
 }
 function iconFile(r, path, wide) {
   let relative;

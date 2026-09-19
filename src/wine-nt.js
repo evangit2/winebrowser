@@ -5,6 +5,7 @@ import { systemNtServices } from './wine-system.js';
 import { memoryNtServices } from './memory-protection.js';
 import { threadNtServices } from './wine-thread.js';
 import { processorFeatureNtServices } from './processor-features.js';
+import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
 import { closeFileHandle, fileNtServices } from './wine-file.js';
 import { registerThunk } from './thunk-addresses.js';
 
@@ -77,6 +78,17 @@ export function installWineNtBridge(runtime, module) {
 }
 
 const ACCESS_VIOLATION = 0xc0000005;
+const CURRENT_PROCESS = 0xffffffff;
+const PROCESS_WOW64_INFORMATION = 26;
+const PROCESS_EXECUTE_FLAGS = 34;
+const MEM_EXECUTE_OPTION_DISABLE = 0x01;
+const MEM_EXECUTE_OPTION_ENABLE = 0x02;
+const MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION = 0x04;
+const MEM_EXECUTE_OPTION_PERMANENT = 0x08;
+const BROWSER_EXECUTE_FLAGS =
+  MEM_EXECUTE_OPTION_DISABLE |
+  MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION |
+  MEM_EXECUTE_OPTION_PERMANENT;
 function virtualMemoryCall(runtime, argument, allocate) {
   if (argument(0) !== 0xffffffff) return 0xc0000008; // Only current-process pseudo-handle.
   if (allocate && argument(2)) return 0xc000000d; // ZeroBits constraints need separate support.
@@ -142,20 +154,45 @@ export const ntServices = {
   NtQueryInformationProcess: {
     argc: 5,
     call: (r, a) => {
-      if (a(1) !== 26) throw Error(`Unsupported Wine process information class ${a(1)}`);
-      // ProcessWow64Information: this runtime executes a native PE32 process;
-      // it has no 64-bit companion PEB or WOW64 subsystem.
+      const informationClass = a(1);
+      if (![PROCESS_WOW64_INFORMATION, PROCESS_EXECUTE_FLAGS].includes(informationClass))
+        throw Error(`Unsupported Wine process information class ${informationClass}`);
       if (a(3) !== 4) return 0xc0000004; // STATUS_INFO_LENGTH_MISMATCH.
-      if (a(0) !== 0xffffffff) return 0xc0000008;
+      if (a(0) !== CURRENT_PROCESS) return 0xc0000008;
       try {
         r.check(a(2), 4, true);
         if (a(4)) r.check(a(4), 4, true);
       } catch {
         return ACCESS_VIOLATION;
       }
-      r.write32(a(2), 0);
+      // This is a native PE32 process without WOW64. Browser DEP is always on:
+      // guest data stays non-executable and ATL thunk emulation is unavailable.
+      r.write32(a(2), informationClass === PROCESS_EXECUTE_FLAGS ? BROWSER_EXECUTE_FLAGS : 0);
       if (a(4)) r.write32(a(4), 4);
       return 0;
+    },
+  },
+  NtSetInformationProcess: {
+    argc: 4,
+    call: (r, a) => {
+      const informationClass = a(1);
+      if (informationClass !== PROCESS_EXECUTE_FLAGS)
+        throw Error(`Unsupported Wine process information class ${informationClass}`);
+      if (a(0) !== CURRENT_PROCESS) return 0xc0000008;
+      if (a(3) !== 4) return 0xc000000d; // STATUS_INVALID_PARAMETER.
+      try {
+        r.check(a(2), 4, false);
+      } catch {
+        return ACCESS_VIOLATION;
+      }
+      const flags = r.read32(a(2));
+      if (flags === BROWSER_EXECUTE_FLAGS) return 0;
+      const selection = flags & (MEM_EXECUTE_OPTION_DISABLE | MEM_EXECUTE_OPTION_ENABLE);
+      if (!selection || selection === (MEM_EXECUTE_OPTION_DISABLE | MEM_EXECUTE_OPTION_ENABLE))
+        return 0xc000000d;
+      // The browser policy is permanent. In particular, ENABLE would permit
+      // execution from guest data, which this runtime never grants.
+      return 0xc0000022; // STATUS_ACCESS_DENIED.
     },
   },
   NtAllocateVirtualMemory: { argc: 6, call: (r, a) => virtualMemoryCall(r, a, true) },
@@ -173,8 +210,8 @@ export const ntServices = {
       } catch {
         return ACCESS_VIOLATION;
       }
-      writeLargeInteger(r, a(0), BigInt(Math.floor(performance.now() * 1000000)));
-      if (a(1)) writeLargeInteger(r, a(1), 1000000000n);
+      writeLargeInteger(r, a(0), r.performanceClock.read());
+      if (a(1)) writeLargeInteger(r, a(1), GUEST_PERFORMANCE_FREQUENCY);
       return 0;
     },
   },

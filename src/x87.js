@@ -160,7 +160,7 @@ export class X87State {
       this.moduleUrl ??
       (typeof location === 'undefined'
         ? new URL('../public/runtime/softfloat/softfloat.js', import.meta.url).href
-        : new URL(`${base}runtime/softfloat/softfloat.js`, location.href).href);
+        : new URL(`${base}runtime/softfloat/softfloat.js`, location.origin).href);
     const wasmUrl = this.wasmUrl ?? new URL('softfloat.wasm', moduleUrl).href;
     this.sf = await loadSoftFloat(moduleUrl, wasmUrl);
     this.p = this.sf._malloc(42);

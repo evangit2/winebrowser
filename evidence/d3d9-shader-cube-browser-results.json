@@ -1,0 +1,82 @@
+{
+  "date": "2026-09-19T02:18:57.702Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "153.0.8010.48",
+  "nativeGame": "d3d9-shader-cube",
+  "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
+  "browserCompilation": true,
+  "workerWebGPU": true,
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 12,
+        "hash": "1e8fa24a09b0a62c345ef4083f524b41c03b93fa4ad51fc4965fec2a358f9274",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 60109,
+        "colorCount": 3
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 23,
+        "hash": "b7afeb908f1c3ecb09461d63d8d585758f0df29f85d1b3b1102bf7da2bd6dbbc",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 57217,
+        "colorCount": 4
+      },
+      "exitCode": 0,
+      "compiledBlocks": 81,
+      "instructions": 59293
+    },
+    {
+      "mode": "hosted-zip",
+      "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 12,
+        "hash": "1e8fa24a09b0a62c345ef4083f524b41c03b93fa4ad51fc4965fec2a358f9274",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 60109,
+        "colorCount": 3
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 24,
+        "hash": "958e4e5dfad542b725680b56d25405949f5875c77c08ab8876878d00c17ae534",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 56314,
+        "colorCount": 4
+      },
+      "exitCode": 0,
+      "compiledBlocks": 81,
+      "instructions": 57332
+    }
+  ],
+  "errors": []
+}
