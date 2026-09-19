@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a browser ES module from pinned, unmodified vkd3d-shader 2.1."""
+"""Build a browser ES module from pinned vkd3d-shader 2.1."""
 
 import argparse
 import hashlib
@@ -22,6 +22,7 @@ CACHE = ROOT / ".cache/vkd3d-dxbc"
 PUBLIC = ROOT / "public/shaders"
 BRIDGE = ROOT / "runtime/shaders/vkd3d/bridge.c"
 BRIDGE_LICENSE = ROOT / "runtime/shaders/vkd3d/BRIDGE-LICENSE"
+VKD3D_PATCH = ROOT / "runtime/shaders/vkd3d/webgpu-vertex-point-size.patch"
 MANIFEST = ROOT / "runtime/shaders/vkd3d/manifest.json"
 
 
@@ -59,6 +60,7 @@ def publish_sources(archive, spirv, vulkan):
         "COPYING": PUBLIC / "vkd3d-COPYING",
         "LICENSE": PUBLIC / "vkd3d-LICENSE",
         "BRIDGE-LICENSE": BRIDGE_LICENSE,
+        "webgpu-vertex-point-size.patch": VKD3D_PATCH,
         "SPIRV-Headers-LICENSE": spirv / "LICENSE",
         "Vulkan-Headers-LICENSE.md": vulkan / "LICENSE.md",
     }
@@ -156,6 +158,7 @@ def main():
             package.extractall(source.parent)
     if not (source / "configure").is_file():
         raise RuntimeError("Pinned vkd3d archive has no configure script")
+    run("patch", ["patch", "-p1", "-i", VKD3D_PATCH], source, dict(os.environ))
     build = CACHE / "build"
     if build.exists():
         shutil.rmtree(build)
@@ -183,7 +186,8 @@ def main():
     exports = ["_malloc", "_free", "_wb_dxbc_compile", "_wb_result_ptr",
                "_wb_result_size", "_wb_messages_ptr", "_wb_clear",
                "_wb_root_signature_serialize", "_wb_root_signature_validate",
-               "_wb_root_signature_flags"]
+               "_wb_root_signature_flags", "_wb_d3dbc_compile_pair",
+               "_wb_d3dbc_result_ptr", "_wb_d3dbc_result_size"]
     run("bundle", [emcc, "-O2", "-DNDEBUG", "-DVKD3D_NO_TRACE_MESSAGES",
                    "-DVKD3D_NO_DEBUG_MESSAGES", f"-I{source / 'include'}",
                    f"-I{source / 'include/private'}", f"-I{build / 'include'}", BRIDGE,
@@ -205,7 +209,9 @@ def main():
     source_bundle = publish_sources(archive, spirv, vulkan)
     MANIFEST.write_text(json.dumps({
         "source": {"url": SOURCE_URL, "archiveSha256": SOURCE_SHA256,
-                   "archiveBytes": archive.stat().st_size, "version": "2.1", "patches": []},
+                   "archiveBytes": archive.stat().st_size, "version": "2.1",
+                   "patches": [{"path": "runtime/shaders/vkd3d/webgpu-vertex-point-size.patch",
+                                **artifact(VKD3D_PATCH)}]},
         "headers": header_manifest(source_bundle),
         "toolchain": {"emscripten": version},
         "bridge": {"path": "runtime/shaders/vkd3d/bridge.c", **artifact(BRIDGE)},

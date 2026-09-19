@@ -549,6 +549,37 @@
       "statusNote": "Source-built upstream OpenGL sample, not a project fixture. TLS-directory parsing now succeeds, exposing 54 unresolved imports including API-set CRT, windowing and WGL/OpenGL services. Cache-only because the archived source page has no separate license notice. No rendering execution is claimed."
     },
     {
+      "id": "humus-dynamic-branching-d3d9-x86",
+      "status": "blocked",
+      "path": ".cache/targets/DynamicBranching/DynamicBranching.exe",
+      "bytes": 925696,
+      "sha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
+      "architecture": "x86",
+      "imports": [
+        "KERNEL32.dll",
+        "USER32.dll",
+        "ADVAPI32.dll",
+        "SHELL32.dll",
+        "d3d9.dll",
+        "GDI32.dll"
+      ],
+      "downloadEntry": "DynamicBranching/DynamicBranching.exe",
+      "extractArchive": true,
+      "source": {
+        "project": "Humus 3D Dynamic Branching",
+        "version": "original upstream demo archive",
+        "url": "https://www.humus.name/index.php?ID=5&page=3D",
+        "downloadUrl": "https://humus.name/3D/DynamicBranching.zip",
+        "archiveSha256": "8063039867fb69e4c58c6bad90f4aad80e43d0eb5c33818e1ba5a9c2be57077a",
+        "license": "Freeware; upstream readme permits any use and redistribution if the readme remains included"
+      },
+      "use": "Independently authored prebuilt Direct3D 9 scene with original shaders, model and textures; unchanged executable previously exercised by a separate browser runtime, making it the next cross-runtime acceptance target rather than a WineBrowser fixture.",
+      "workingDirectory": ".cache/targets/DynamicBranching",
+      "args": [],
+      "expected": "opens the Dynamic Branching room scene, renders its shader variants and lighting, accepts camera/settings input, and closes cleanly",
+      "statusNote": "Selected next target. It statically links its MSVC runtime and imports only Direct3DCreate9 from d3d9.dll. Current WineBrowser inspection resolves 37 of 116 imports and reports 79 gaps (62 Kernel32, 10 User32, 6 Advapi32, 1 Shell32). After startup it needs general x87 support; it calls Direct3DCreate9 with SDK version 31, then exercises programmable shaders, vertex/index buffers, textures, stencil/depth/blending and indexed draws beyond the current fixed-function cube subset. No WineBrowser execution is claimed."
+    },
+    {
       "id": "humus-inferno-d3d10-x86",
       "status": "blocked",
       "path": ".cache/targets/Inferno/Inferno.exe",

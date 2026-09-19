@@ -1,0 +1,22 @@
+From: WineBrowser contributors
+Subject: [PATCH] vkd3d-shader: Honor point-size option for vertex shaders
+
+WebGPU and WGSL have no PointSize builtin. Let callers disable the fixed
+PointSize=1.0 output for vertex shaders with the existing point-size option,
+as they already can for tessellation and geometry stages.
+
+This patch is distributed under the same LGPL-2.1-or-later terms as
+vkd3d-shader.
+
+--- a/libs/vkd3d-shader/spirv.c
++++ b/libs/vkd3d-shader/spirv.c
+@@ -6945,8 +6945,8 @@ static void spirv_compiler_emit_point_size(struct spirv_compiler *compiler)
+      * PointSize for tessellation and geometry shaders. In that case the point
+      * size defaults to 1.0. */
+-    if (spirv_compiler_is_opengl_target(compiler) || compiler->shader_type == VKD3D_SHADER_TYPE_VERTEX
+-            || compiler->compile_info.write_tess_geom_point_size)
++    if (spirv_compiler_is_opengl_target(compiler)
++            || compiler->compile_info.write_tess_geom_point_size)
+     {
+         struct vsir_dst_operand dst;
+ 

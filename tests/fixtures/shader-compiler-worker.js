@@ -7,6 +7,7 @@ onmessage = async ({ data }) => {
     const start = performance.now();
     const vertex = await compiler.compile(data.vertex);
     const fragment = await compiler.compile(data.fragment);
+    const legacy = await compiler.compileLegacyPair(data.legacyVertex, data.legacyPixel);
     const compilationMs = performance.now() - start;
     const rootSignatures = [];
     for (const flags of [0, 1]) {
@@ -27,7 +28,9 @@ onmessage = async ({ data }) => {
     if (!adapter) throw Error('WebGPU adapter unavailable');
     device = await adapter.requestDevice();
     device.pushErrorScope('validation');
-    const modules = [vertex, fragment].map(({ wgsl }) => device.createShaderModule({ code: wgsl }));
+    const modules = [vertex, fragment, legacy.vertex, legacy.pixel].map(({ wgsl }) =>
+      device.createShaderModule({ code: wgsl }),
+    );
     for (const module of modules) {
       const info = await module.getCompilationInfo();
       const errors = info.messages.filter((message) => message.type === 'error');
@@ -102,6 +105,18 @@ onmessage = async ({ data }) => {
         invalid.push(error.message);
       }
     }
+    for (const [legacyVertex, legacyPixel] of [
+      [data.legacyPixel, data.legacyPixel],
+      [data.legacyVertex.slice(0, -4), data.legacyPixel],
+    ]) {
+      try {
+        await compiler.compileLegacyPair(legacyVertex, legacyPixel);
+        throw Error('Malformed legacy shader was accepted');
+      } catch (error) {
+        if (error.message === 'Malformed legacy shader was accepted') throw error;
+        invalid.push(error.message);
+      }
+    }
     postMessage(
       {
         type: 'shader-result',
@@ -110,6 +125,11 @@ onmessage = async ({ data }) => {
         drawOffsetPreserved,
         rootSignatures,
         shaders: [vertex, fragment].map(({ spirv, wgsl }) => ({ spirvBytes: spirv.length, wgsl })),
+        legacy: {
+          vertex: { spirvBytes: legacy.vertex.spirv.length, wgsl: legacy.vertex.wgsl },
+          pixel: { spirvBytes: legacy.pixel.spirv.length, wgsl: legacy.pixel.wgsl },
+          bindings: legacy.bindings,
+        },
         invalid,
       },
       [pixels.buffer],

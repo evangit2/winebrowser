@@ -4,7 +4,13 @@
     "archiveSha256": "7510146aff2adfb4ae07ab890701a607e5ff7c66e57100cfc9f630ec92eeda6a",
     "archiveBytes": 1486656,
     "version": "2.1",
-    "patches": []
+    "patches": [
+      {
+        "path": "runtime/shaders/vkd3d/webgpu-vertex-point-size.patch",
+        "bytes": 1009,
+        "sha256": "25268f8e9499cde4bb9af6040c8be9b163698cb9719a93352388491bf4f10bc0"
+      }
+    ]
   },
   "headers": {
     "spirvRevision": "04fd3caa1e8267e4d95c806cad901181728e1006",
@@ -27,22 +33,22 @@
   },
   "bridge": {
     "path": "runtime/shaders/vkd3d/bridge.c",
-    "bytes": 5630,
-    "sha256": "cf931ecd8b5f36e9ad2c23f20c27b3fead4ed47bb1ffc601b8933ffa88c2209f"
+    "bytes": 14918,
+    "sha256": "de2d5b6341178e7c3d390dbc573373160db409f05606178f4e6a45dea0c6a6c8"
   },
   "buildScript": {
     "path": "scripts/build-shader-dxbc.py",
-    "bytes": 10742,
-    "sha256": "24f515db0c39ab67b8d2d4a95722041b3ae5e04ed91cac5dcaf633ec7e2dda9a"
+    "bytes": 11171,
+    "sha256": "a05e115cc13a42b20f8e4b861143f137add8d7c1e855e6f39fb87a68c1f2e614"
   },
   "artifacts": {
     "vkd3d-shader.js": {
-      "bytes": 14402,
-      "sha256": "18574509a6d06894722f35106954f388faa56c700fee54289ffa345315b0afe5"
+      "bytes": 14684,
+      "sha256": "0ff6abc27662fdb813d87b171d964fe7e98a2968b93a623e5f4e8a8ac8ce6911"
     },
     "vkd3d-shader.wasm": {
-      "bytes": 1257836,
-      "sha256": "a5c18b32761a1448dda348feb8fdcc9bb270a23d662cd6d68246e262fef22817"
+      "bytes": 1262711,
+      "sha256": "8b709f7e15c2deeae210b1cd2e1a7d29ec17e955980e5201b7fe522429c0d803"
     },
     "vkd3d-COPYING": {
       "bytes": 786,
@@ -61,13 +67,13 @@
     },
     "bridge.c": {
       "path": "public/shaders/source/bridge.c",
-      "bytes": 5630,
-      "sha256": "cf931ecd8b5f36e9ad2c23f20c27b3fead4ed47bb1ffc601b8933ffa88c2209f"
+      "bytes": 14918,
+      "sha256": "de2d5b6341178e7c3d390dbc573373160db409f05606178f4e6a45dea0c6a6c8"
     },
     "build-shader-dxbc.py": {
       "path": "public/shaders/source/build-shader-dxbc.py",
-      "bytes": 10742,
-      "sha256": "24f515db0c39ab67b8d2d4a95722041b3ae5e04ed91cac5dcaf633ec7e2dda9a"
+      "bytes": 11171,
+      "sha256": "a05e115cc13a42b20f8e4b861143f137add8d7c1e855e6f39fb87a68c1f2e614"
     },
     "COPYING": {
       "path": "public/shaders/source/COPYING",
@@ -83,6 +89,11 @@
       "path": "public/shaders/source/BRIDGE-LICENSE",
       "bytes": 1081,
       "sha256": "9ee46f5466859bea6ddebfd3a7dd9bc0c27e102411ed1b436b3e3839031de94f"
+    },
+    "webgpu-vertex-point-size.patch": {
+      "path": "public/shaders/source/webgpu-vertex-point-size.patch",
+      "bytes": 1009,
+      "sha256": "25268f8e9499cde4bb9af6040c8be9b163698cb9719a93352388491bf4f10bc0"
     },
     "SPIRV-Headers-LICENSE": {
       "path": "public/shaders/source/SPIRV-Headers-LICENSE",

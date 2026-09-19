@@ -1,10 +1,11 @@
 # DXBC shader compiler
 
 This optional browser module compiles arbitrary Direct3D shader-model 4/5 DXBC
-containers to SPIR-V through **unmodified libvkd3d-shader 2.1**. The original
-`bridge.c` only bounds input/output, selects `VKD3D_SHADER_SOURCE_DXBC_TPF`
-and `VKD3D_SHADER_TARGET_SPIRV_BINARY`, and exposes the result. It does not
-substitute shader bytecode by application or hash.
+containers and validated shader-model 1–3 token streams to SPIR-V through
+libvkd3d-shader 2.1. The original `bridge.c` bounds input/output, selects the
+corresponding vkd3d source type and `VKD3D_SHADER_TARGET_SPIRV_BINARY`, and
+exposes the result. It does not substitute shader bytecode by application or
+hash.
 
 The vkd3d source archive originated at
 [`vkd3d-2.1.tar.xz`](https://dl.winehq.org/vkd3d/source/vkd3d-2.1.tar.xz),
@@ -13,7 +14,9 @@ The exact archive is also distributed at
 [`public/shaders/source/vkd3d-2.1.tar.xz`](../../../public/shaders/source/vkd3d-2.1.tar.xz),
 alongside copies of `bridge.c`, `build-shader-dxbc.py`, and both upstream
 license files. The build script retains the same archive in `.cache/vkd3d-dxbc`
-and extracts a clean source tree there. No source patch is applied. The built
+and extracts a clean source tree there. It applies the retained LGPL
+`webgpu-vertex-point-size.patch`, which makes vkd3d's existing point-size
+option cover vertex shaders because WGSL has no PointSize builtin. The built
 library is LGPL-2.1 or later; its original `COPYING` and `LICENSE` also ship
 next to the JS and Wasm artifacts. The bridge is MIT-licensed; its full license
 ships as `public/shaders/source/BRIDGE-LICENSE`. [manifest.json](manifest.json)
@@ -56,6 +59,26 @@ after copying output. The caller owns buffers allocated with `_malloc` and
 releases them with `_free`. Input is capped at 1 MiB, output at 16 MiB, and
 the Wasm heap at 128 MiB. The bridge is synchronous and holds one result at a
 time, so callers must serialize compilation per module instance.
+
+`_wb_d3dbc_compile_pair(vs_ptr, vs_length, ps_ptr, ps_length)` accepts a
+validated vertex/pixel pair in the legacy DWORD token format and compiles both
+through `VKD3D_SHADER_SOURCE_D3D_BYTECODE`. Vertex versions 1.1, 2.0 and 3.0
+and pixel versions 1.0–1.4, 2.0 and 3.0 are admitted; malformed stages,
+versions, alignment, missing END tokens, unsupported descriptors, or inputs
+over 1 MiB fail with a diagnostic. Pair compilation builds vkd3d's varying map
+before either stage is exposed. `_wb_d3dbc_result_ptr(stage)` and
+`_wb_d3dbc_result_size(stage)` return the SPIR-V for stage 0 (vertex) or 1
+(pixel).
+
+Legacy resources have an explicit WebGPU layout. Vertex resources use group 0
+and pixel resources group 1. Float, integer and boolean constant files use
+bindings 0, 1 and 2 respectively. For sampler register `s`, its texture is
+binding `16 + 2*s` and sampler is binding `17 + 2*s`; the current bridge
+accepts `s0` through `s15`. The renderer must upload complete constant-file
+buffers with the element types and minimum sizes reflected by the resulting
+WGSL. The bridge disables vkd3d's synthetic fixed PointSize output through the
+retained source patch; an application-written point-size output remains an
+explicit unsupported WebGPU case.
 
 The same bridge also exposes a narrow, real DXBC root-signature path:
 `_wb_root_signature_serialize(flags)` emits an empty version 1.0 signature

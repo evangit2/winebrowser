@@ -1,12 +1,14 @@
 {
-  "scope": "Browser-worker DXBC SM5 -> SPIR-V -> WGSL compilation and WebGPU draw; separate from Windows EXE or D3D12 frontend acceptance",
+  "scope": "Browser-worker DXBC SM5 and licensed Wine VS1.1/PS2.0 token streams -> SPIR-V -> WGSL; WebGPU draw covers SM5 and is separate from Windows EXE acceptance",
   "browser": "153.0.8010.48",
   "sourceHashes": [
     "15514bd251d50567365499ff9e8bb7b8516538e8440d9ede3fd1b63b875cd73a",
-    "c94dd3ed71e1f0e8a7f103940d2999b0cccb03f789eb2b4d741a31923f106768"
+    "c94dd3ed71e1f0e8a7f103940d2999b0cccb03f789eb2b4d741a31923f106768",
+    "bd1532419e53e000d64db47bcf193a33cf481e676f3dd28a5c76e3b9b3fca1af",
+    "2a3343269640171fd70fdfe41b052822e086028451cfd1777456d45463f20c53"
   ],
   "type": "shader-result",
-  "compilationMs": 92.01499998569489,
+  "compilationMs": 56.69499999284744,
   "drawOffsetPreserved": true,
   "rootSignatures": [
     {
@@ -28,9 +30,31 @@
       "wgsl": "var<private> o0_: vec4<f32>;\n\nfn main_1() {\n    o0_ = vec4<f32>(0f, 1f, 0f, 1f);\n    return;\n}\n\n@fragment \nfn main() -> @location(0) vec4<f32> {\n    main_1();\n    let _e1 = o0_;\n    return _e1;\n}\n"
     }
   ],
+  "legacy": {
+    "vertex": {
+      "spirvBytes": 668,
+      "wgsl": "struct VertexOutput {\n    @builtin(position) member: vec4<f32>,\n    @location(8) member_1: vec4<f32>,\n}\n\nvar<private> v0_1: vec4<f32>;\nvar<private> v1_1: vec4<f32>;\nvar<private> o0_: vec4<f32> = vec4<f32>(0f, 0f, 0f, 1f);\nvar<private> o1_: vec4<f32>;\n\nfn main_1() {\n    let _e8 = v0_1;\n    o0_ = _e8;\n    let _e9 = v1_1;\n    o1_ = clamp(_e9, vec4<f32>(0f, 0f, 0f, 0f), vec4<f32>(1f, 1f, 1f, 1f));\n    return;\n}\n\n@vertex \nfn main(@location(0) v0_: vec4<f32>, @location(1) v1_: vec4<f32>) -> VertexOutput {\n    v0_1 = v0_;\n    v1_1 = v1_;\n    main_1();\n    let _e6 = o0_;\n    let _e7 = o1_;\n    return VertexOutput(_e6, _e7);\n}\n"
+    },
+    "pixel": {
+      "spirvBytes": 396,
+      "wgsl": "var<private> v0_1: vec4<f32>;\nvar<private> o0_: vec4<f32>;\n\nfn main_1() {\n    let _e2 = v0_1;\n    o0_ = _e2;\n    return;\n}\n\n@fragment \nfn main(@location(8) v0_: vec4<f32>) -> @location(0) vec4<f32> {\n    v0_1 = v0_;\n    main_1();\n    let _e3 = o0_;\n    return _e3;\n}\n"
+    },
+    "bindings": {
+      "vertexGroup": 0,
+      "pixelGroup": 1,
+      "floatConstantsBinding": 0,
+      "integerConstantsBinding": 1,
+      "booleanConstantsBinding": 2,
+      "textureBindingBase": 16,
+      "samplerBindingBase": 17,
+      "samplerBindingStride": 2
+    }
+  },
   "invalid": [
     "Expected a bounded DXBC shader container",
-    "DXBC compilation failed: <anonymous>: E0003: Invalid DXBC checksum.\n"
+    "DXBC compilation failed: <anonymous>: E0003: Invalid DXBC checksum.\n",
+    "Unsupported legacy vertex shader version 0xffff0200",
+    "Legacy vertex shader END token is missing"
   ],
   "center": [
     0,

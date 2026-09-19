@@ -21,8 +21,10 @@ try {
   await page.goto(origin + '/tests/fixtures/desktop-controls.html');
   const vertex = await readFile('tests/fixtures/shaders/fullscreen.vs.dxbc');
   const fragment = await readFile('tests/fixtures/shaders/green.ps.dxbc');
+  const legacyVertex = await readFile('tests/fixtures/shaders/legacy/wine-color.vs11.d3dbc');
+  const legacyPixel = await readFile('tests/fixtures/shaders/legacy/wine-color.ps20.d3dbc');
   const result = await page.evaluate(
-    ({ vertex, fragment }) =>
+    ({ vertex, fragment, legacyVertex, legacyPixel }) =>
       new Promise((resolve, reject) => {
         const worker = new Worker('/tests/fixtures/shader-compiler-worker.js', { type: 'module' });
         const timeout = setTimeout(() => {
@@ -61,9 +63,16 @@ try {
         worker.postMessage({
           vertex: Uint8Array.from(vertex),
           fragment: Uint8Array.from(fragment),
+          legacyVertex: Uint8Array.from(legacyVertex),
+          legacyPixel: Uint8Array.from(legacyPixel),
         });
       }),
-    { vertex: [...vertex], fragment: [...fragment] },
+    {
+      vertex: [...vertex],
+      fragment: [...fragment],
+      legacyVertex: [...legacyVertex],
+      legacyPixel: [...legacyPixel],
+    },
   );
   assert.deepEqual(result.center, [0, 255, 0, 255]);
   assert.deepEqual(result.corner, [17, 34, 51, 255]);
@@ -73,7 +82,19 @@ try {
     true,
     'Nonzero first vertex is subtracted through draw parameters',
   );
-  assert.equal(result.invalid.length, 2);
+  assert.equal(result.invalid.length, 4);
+  assert.match(result.legacy.vertex.wgsl, /@vertex/);
+  assert.match(result.legacy.pixel.wgsl, /@fragment/);
+  assert.deepEqual(result.legacy.bindings, {
+    vertexGroup: 0,
+    pixelGroup: 1,
+    floatConstantsBinding: 0,
+    integerConstantsBinding: 1,
+    booleanConstantsBinding: 2,
+    textureBindingBase: 16,
+    samplerBindingBase: 17,
+    samplerBindingStride: 2,
+  });
   assert.deepEqual(
     result.rootSignatures.map((entry) => entry.flags),
     [0, 1],
@@ -83,9 +104,9 @@ try {
   await page.locator('canvas').screenshot({ path: 'evidence/dxbc-shader-browser.png' });
   const report = {
     scope:
-      'Browser-worker DXBC SM5 -> SPIR-V -> WGSL compilation and WebGPU draw; separate from Windows EXE or D3D12 frontend acceptance',
+      'Browser-worker DXBC SM5 and licensed Wine VS1.1/PS2.0 token streams -> SPIR-V -> WGSL; WebGPU draw covers SM5 and is separate from Windows EXE acceptance',
     browser: browser.version(),
-    sourceHashes: [vertex, fragment].map((bytes) =>
+    sourceHashes: [vertex, fragment, legacyVertex, legacyPixel].map((bytes) =>
       createHash('sha256').update(bytes).digest('hex'),
     ),
     ...result,
@@ -103,6 +124,17 @@ try {
           spirvBytes,
           wgslBytes: wgsl.length,
         })),
+        legacy: {
+          vertex: {
+            spirvBytes: result.legacy.vertex.spirvBytes,
+            wgslBytes: result.legacy.vertex.wgsl.length,
+          },
+          pixel: {
+            spirvBytes: result.legacy.pixel.spirvBytes,
+            wgslBytes: result.legacy.pixel.wgsl.length,
+          },
+          bindings: result.legacy.bindings,
+        },
       },
       null,
       2,
