@@ -5,6 +5,7 @@ import { systemNtServices } from './wine-system.js';
 import { memoryNtServices } from './memory-protection.js';
 import { threadNtServices } from './wine-thread.js';
 import { processorFeatureNtServices } from './processor-features.js';
+import { closeFileHandle, fileNtServices } from './wine-file.js';
 import { registerThunk } from './thunk-addresses.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
@@ -120,15 +121,18 @@ export const ntServices = {
   ...memoryNtServices,
   ...threadNtServices,
   ...processorFeatureNtServices,
+  ...fileNtServices,
   NtClose: {
     argc: 1,
     call: (r, a) => {
       const result = closeRegistryHandle(r, a(0));
-      if (result === null)
+      if (result !== null) return result;
+      const fileResult = closeFileHandle(r, a(0));
+      if (fileResult === null)
         throw Error(
           `Unsupported Wine NT service NtClose for handle 0x${(a(0) >>> 0).toString(16)}`,
         );
-      return result;
+      return fileResult;
     },
   },
   NtUnmapViewOfSection: {
