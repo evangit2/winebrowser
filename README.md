@@ -4,7 +4,7 @@
 
 An experimental **browser-local Windows PE runtime**. Choose an `.exe` or a ZIP containing executables and assets; the runtime loads the PE image, translates supported x86 basic blocks directly to WebAssembly, and bridges a small Windows API subset to browser services. There is no server compiler and no full PC emulator.
 
-**The test harness runs the unchanged wesmar/Tetris Windows release in a virtual desktop, alongside a native D3D9 cube rendered with WebGPU, native fixtures and independent winapiexec and pts-tinype executables across console, files, dialogs, PCM audio and GDI drawing. General Windows compatibility remains incomplete.** Wine's unchanged CommandLineToArgvW and wsprintf implementations now run as guest DLLs; additional Wine compatibility modules remain the direction for broad API support.
+**The test harness runs the unchanged wesmar/Tetris Windows release in a virtual desktop, alongside native D3D9 and D3D12 graphics fixtures rendered with WebGPU, native fixtures and independent winapiexec and pts-tinype executables across console, files, dialogs, PCM audio and GDI drawing. General Windows compatibility remains incomplete.** Wine's unchanged CommandLineToArgvW and wsprintf implementations now run as guest DLLs; additional Wine compatibility modules remain the direction for broad API support.
 
 **Try the [live WineBrowser test harness](https://evangit2.github.io/winebrowser/).** It runs locally in your browser. Use a modern Chromium browser such as Chrome or Edge.
 
@@ -22,7 +22,11 @@ These examples demonstrate specific tested behavior, not broad Windows compatibi
 
 ## Run
 
-**Native 3D demo:** choose **Load d3d9-cube**, then **Run executable** in the live harness. [Cube EXE](https://evangit2.github.io/winebrowser/demos/d3d9-cube/d3d9-cube.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/d3d9-cube.zip) · [source](demos/d3d9-cube/main.c). The Windows PE32 program rotates a colored cube using D3D9 transforms, depth testing and `DrawPrimitiveUP`; its x86 code compiles to Wasm during browser execution and a worker submits graphics to WebGPU. Close its window to exit. This is an original API fixture using a narrow bootstrap frontend; WineD3D and D3D10–12 are not implemented yet. See [graphics scope and acceptance path](docs/graphics-runtime.md).
+**Native 3D demo:** choose **Load d3d9-cube**, then **Run executable** in the live harness. [Cube EXE](https://evangit2.github.io/winebrowser/demos/d3d9-cube/d3d9-cube.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/d3d9-cube.zip) · [source](demos/d3d9-cube/main.c). The Windows PE32 program rotates a colored cube using D3D9 transforms, depth testing and `DrawPrimitiveUP`; its x86 code compiles to Wasm during browser execution and a worker submits graphics to WebGPU. Close its window to exit. This is an original API fixture using a narrow bootstrap frontend; WineD3D and D3D10/11 are not implemented yet. See [graphics scope and acceptance path](docs/graphics-runtime.md).
+
+**Native D3D12 3D demo:** choose **Load d3d12-cube**, then **Run executable**. [Cube EXE](https://evangit2.github.io/winebrowser/demos/d3d12-cube/d3d12-cube.exe) · [ZIP with source](https://evangit2.github.io/winebrowser/demos/d3d12-cube.zip) · [source](demos/d3d12-cube/main.c). This Windows program uploads rotating cube vertices, runs its DXBC vertex/pixel shaders through the browser compiler, and uses a D16 depth buffer, command lists and fences. Rotation/projection data is precomputed in the fixture; the runtime handles ordinary API calls without application-specific branches. The EXE and ZIP both pass animation, pixel and clean-exit checks. Close the virtual window to exit.
+
+**Native D3D12 shader demo:** choose **Load d3d12-triangle**, then **Run executable**. [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-triangle/d3d12-triangle.exe) · [ZIP with source](https://evangit2.github.io/winebrowser/demos/d3d12-triangle.zip). The PE32 program creates DXGI backbuffers, a root signature and pipeline, records command lists with resource barriers, draws through its own SM5 shaders, presents, and waits on a fence. Its full-screen triangle fills a moving viewport. Both the x86 machine code and the DXBC shaders compile locally during browser execution; libvkd3d-shader and Naga provide the shader translation. This bounded path does not provide general DX12 game compatibility, DXIL or x64 support.
 
 **Interactive native game:** [Breakout EXE](https://evangit2.github.io/winebrowser/demos/breakout/breakout.exe) or [ZIP](https://evangit2.github.io/winebrowser/demos/breakout.zip). In the live harness, choose **Load breakout**, then **Run executable**. Use the arrow keys or mouse to move the paddle, Space to pause, and R to restart. The game opens two independent guest windows; drag their title bars, resize their corners, and close both to exit. This is an original MIT-licensed Win32 C program compiled to PE32, with [source](demos/breakout/main.c) and a reproducible build. Minesweeper remains a blocked follow-on target.
 
@@ -72,38 +76,40 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 
 ## Maintainable boundaries
 
-| Module                                 | Responsibility                                                  |
-| -------------------------------------- | --------------------------------------------------------------- |
-| `src/package.js`                       | ZIP validation, bounded expansion, virtual paths                |
-| `src/pe.js`                            | PE parsing, imports, image mapping                              |
-| `src/wasm.js`                          | Small binary Wasm module encoder                                |
-| `src/cpu.js`                           | x86 lowering, registers, flags, block cache                     |
-| `src/simd.js`                          | Bounded XMM operations and vector memory checks                 |
-| `src/wine-parameters.js`               | Wine-owned process lock, parameters and environment             |
-| `src/process-layout.js`                | TEB, Wine debug storage and PEB address layout                  |
-| `src/wine-process.js`                  | Native Wine process heap bootstrap and routing                  |
-| `src/tls.js`                           | Static TLS storage, callbacks and failed-load cleanup           |
-| `src/memory.js`                        | Guest memory regions and checked accesses                       |
-| `src/win32.js`                         | Replaceable bootstrap API provider                              |
-| `src/modules.js`                       | DLL graph, export resolution, relocation and linking            |
-| `src/wine-nt.js`                       | Validated Wine syscall ABI and NT host services                 |
-| `src/virtual-memory.js`                | Page reservations, commitment, protection and release           |
-| `src/heap.js`                          | Guest allocation, free and coalescing                           |
-| `src/win32-process.js`                 | Process, module and UTF-16 host services                        |
-| `src/win32-gdi.js`                     | Window/memory DCs, bitmaps, brushes and raster drawing          |
-| `src/win32-audio.js`, `src/wave.js`    | WinMM adapter and bounded PCM decoding                          |
-| `src/runtime.js`                       | Process construction, import thunks, dispatch loop              |
-| `src/com.js`, `src/d3d9.js`            | Guest COM lifetimes and bounded D3D9 frontend                   |
-| `src/webgpu-renderer.js`               | Worker graphics surfaces, transforms, depth and draw submission |
-| `src/worker.js`                        | Package/run protocol and host requests                          |
-| `src/storage.js`                       | OPFS package and output persistence                             |
-| `src/main.js`                          | Browser UI, user gestures, dialog/audio bridge                  |
-| `src/isolation.js`                     | Static-host service worker activation and reload                |
-| `src/win32-windows.js`                 | Guest window lifecycle, messages, input and timers              |
-| `src/win32-controls.js`                | Standard child control messages and notifications               |
-| `src/gdi-raster.js`, `src/gdi-text.js` | Pixel drawing, font matching and bounded glyph cache            |
-| `src/desktop.js`                       | Browser window frames and input forwarding                      |
-| `demos/`, `tests/`                     | Native fixture sources and behavioral checks                    |
+| Module                                       | Responsibility                                                  |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| `src/package.js`                             | ZIP validation, bounded expansion, virtual paths                |
+| `src/pe.js`                                  | PE parsing, imports, image mapping                              |
+| `src/wasm.js`                                | Small binary Wasm module encoder                                |
+| `src/cpu.js`                                 | x86 lowering, registers, flags, block cache                     |
+| `src/simd.js`                                | Bounded XMM operations and vector memory checks                 |
+| `src/wine-parameters.js`                     | Wine-owned process lock, parameters and environment             |
+| `src/process-layout.js`                      | TEB, Wine debug storage and PEB address layout                  |
+| `src/wine-process.js`                        | Native Wine process heap bootstrap and routing                  |
+| `src/tls.js`                                 | Static TLS storage, callbacks and failed-load cleanup           |
+| `src/memory.js`                              | Guest memory regions and checked accesses                       |
+| `src/win32.js`                               | Replaceable bootstrap API provider                              |
+| `src/modules.js`                             | DLL graph, export resolution, relocation and linking            |
+| `src/wine-nt.js`                             | Validated Wine syscall ABI and NT host services                 |
+| `src/virtual-memory.js`                      | Page reservations, commitment, protection and release           |
+| `src/heap.js`                                | Guest allocation, free and coalescing                           |
+| `src/win32-process.js`                       | Process, module and UTF-16 host services                        |
+| `src/win32-gdi.js`                           | Window/memory DCs, bitmaps, brushes and raster drawing          |
+| `src/win32-audio.js`, `src/wave.js`          | WinMM adapter and bounded PCM decoding                          |
+| `src/runtime.js`                             | Process construction, import thunks, dispatch loop              |
+| `src/com.js`, `src/d3d9.js`                  | Guest COM lifetimes and bounded D3D9 frontend                   |
+| `src/d3d12.js`, `src/d3d12-renderer.js`      | DXGI/D3D12 objects, commands, resources and WebGPU submission   |
+| `src/shader-compiler.js`, `runtime/shaders/` | Browser DXBC → SPIR-V → WGSL libraries and reproducible sources |
+| `src/webgpu-renderer.js`                     | Worker graphics surfaces, transforms, depth and draw submission |
+| `src/worker.js`                              | Package/run protocol and host requests                          |
+| `src/storage.js`                             | OPFS package and output persistence                             |
+| `src/main.js`                                | Browser UI, user gestures, dialog/audio bridge                  |
+| `src/isolation.js`                           | Static-host service worker activation and reload                |
+| `src/win32-windows.js`                       | Guest window lifecycle, messages, input and timers              |
+| `src/win32-controls.js`                      | Standard child control messages and notifications               |
+| `src/gdi-raster.js`, `src/gdi-text.js`       | Pixel drawing, font matching and bounded glyph cache            |
+| `src/desktop.js`                             | Browser window frames and input forwarding                      |
+| `demos/`, `tests/`                           | Native fixture sources and behavioral checks                    |
 
 Keep guest pointers as integer virtual addresses; never confuse them with host or Wasm-library pointers. New API families should get a provider with explicit ownership and unsupported behavior, rather than app-specific branches in the CPU. Tests should exercise observable guest behavior, including failure paths. See [architecture](docs/architecture.md), [reference study](docs/reference-study.md), and [test targets](docs/test-targets.md).
 
@@ -112,6 +118,8 @@ Keep guest pointers as integer virtual addresses; never confuse them with host o
 ```sh
 npm test
 npm run build
+npm run test:d3d12-backend # translated shaders, vertex input and depth occlusion
+npm run test:shaders # actual browser-worker DXBC compilation and pixel checks
 npm run test:webgpu  # geometry, depth and transforms on an actual GPU backend
 npm run test:controls # DOM control behavior
 npm run test:browser  # installed Google Chrome; BROWSER_CHANNEL selects another channel
@@ -122,13 +130,13 @@ node scripts/test-external-browser.mjs
 
 For Playwright's downloaded Chromium instead, install it with `npx playwright install chromium` and set `BROWSER_CHANNEL=chromium`. Browser checks exercise the production build, ZIP upload, five native PE fixtures (including EXE/DLL TLS), OPFS output, and worker termination. Their machine-readable report is in `evidence/browser-results.json`; audio validation covers Web Audio scheduling and guest success, not physical speaker capture.
 
-Rebuild the native cube with `npm run build:d3d9`. Rebuild other native fixtures with `npm run build:demos` (MinGW i686 compiler and Python 3 required). The binaries and ZIPs have reproducible timestamps and SHA-256 manifests. `npm run fetch:targets` downloads the hash-pinned catalog into ignored `.cache/targets/`. `npm run inspect:targets` reads those files and records loader/import blockers without executing them. See [independent target results](docs/targets-progress.md). Rebuild the Wine parser with `npm run build:wine`, the formatter with `npm run build:wine-format` and DLL fixtures with `npm run build:modules`.
+Rebuild the native D3D9 cube with `npm run build:d3d9` and D3D12 fixtures with `npm run build:d3d12` / `npm run build:d3d12-cube`. Shader compiler rebuilds use `npm run build:shader-dxbc` (Emscripten) and `npm run build:shader-wgsl` (Rust/wasm-bindgen); pinned toolchains and source delivery are documented under `runtime/shaders/`. Rebuild other native fixtures with `npm run build:demos` (MinGW i686 compiler and Python 3 required). The binaries and ZIPs have reproducible timestamps and SHA-256 manifests. `npm run fetch:targets` downloads the hash-pinned catalog into ignored `.cache/targets/`. `npm run inspect:targets` reads those files and records loader/import blockers without executing them. See [independent target results](docs/targets-progress.md). Rebuild the Wine parser with `npm run build:wine`, the formatter with `npm run build:wine-format` and DLL fixtures with `npm run build:modules`.
 
 ## Reuse and next steps
 
 Studied [DirectWebGPU](https://github.com/evangit2/DirectWebGPU) and [Hamsterball](https://github.com/evangit2/Hamsterball). Their execution path translates x86 to Rust/Wasm ahead of time; Hamsterball decrypts a prebuilt payload using a supplied EXE. WineBrowser instead emits Wasm blocks in the browser. It reuses the MIT-licensed iced-x86 decoder and a small Hamsterball audio queue helper, and retains their worker/service separation as an architectural reference. Theseus runtime code and generated game payloads are not included. See [notices](THIRD_PARTY_NOTICES.md).
 
-The first Wine component integration is in [runtime/wine](runtime/wine/README.md), with retained LGPL source and rebuild instructions. An optional test also executes an entire unmodified installed Wine 11 i386 `ntdll.dll`, including its real DLL initialization, CRC32, string/memory comparison and NT-status conversion exports. The matching Chromium probe packages that DLL with unchanged winapiexec and verifies CRC32, NT services, zeroed heap bytes, freeing and private-heap destruction. Set `WINEBROWSER_NTDLL` to the installed DLL path and run `npm run test:wine` or `npm run test:external`. The probe pins one DLL build by SHA-256; that binary is not distributed in this repo. The Wine i386 dispatcher now supplies real NT clock and bounded virtual-memory services. `evidence/wine-ntdll-results.json` verifies page lifecycle/access behavior and native heap allocation/free/destruction; NT file, event and synchronization-handle services remain incomplete. The next milestone is more independent executables and larger Wine modules, driven by the recorded blockers in [the target catalog](tests/targets.json). Broader CPU semantics and PE loading must advance alongside that work. WineD3D/vkd3d-shader, GDI, OpenGL and audio need separate browser backends and acceptance tests; importing their source does not automatically make them portable or compatible.
+The first Wine component integration is in [runtime/wine](runtime/wine/README.md), with retained LGPL source and rebuild instructions. An optional test also executes an entire unmodified installed Wine 11 i386 `ntdll.dll`, including its real DLL initialization, CRC32, string/memory comparison and NT-status conversion exports. The matching Chromium probe packages that DLL with unchanged winapiexec and verifies CRC32, NT services, zeroed heap bytes, freeing and private-heap destruction. Set `WINEBROWSER_NTDLL` to the installed DLL path and run `npm run test:wine` or `npm run test:external`. The probe pins one DLL build by SHA-256; that binary is not distributed in this repo. The Wine i386 dispatcher now supplies real NT clock and bounded virtual-memory services. `evidence/wine-ntdll-results.json` verifies page lifecycle/access behavior and native heap allocation/free/destruction; NT file, event and synchronization-handle services remain incomplete. The next milestone is more independent executables and larger Wine modules, driven by the recorded blockers in [the target catalog](tests/targets.json). Broader CPU semantics and PE loading must advance alongside that work. Broader WineD3D, GDI, OpenGL and audio need their own browser backends and acceptance tests; importing their source does not automatically make them portable or compatible.
 
 The interface is a plain test bench: no landing page, visual branding or product presentation. Independent executable evidence is recorded in `evidence/external-browser-results.json`; the target catalog distinguishes source-built samples from downloaded original binaries.
 

@@ -1,0 +1,89 @@
+{
+  "demo": "d3d12-triangle",
+  "scope": "Native PE32 D3D12 fixture with SM5 shaders, empty root signature, RTV descriptors, command lists, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
+  "date": "2026-09-19T00:24:27.410Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "153.0.8010.48",
+  "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
+  "browserCompilation": true,
+  "browserShaderCompilation": true,
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "firstFourFramesMs": 2958,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 5,
+        "green": 108000,
+        "colored": 108000,
+        "colors": 1,
+        "corner": [
+          14,
+          24,
+          48,
+          255
+        ],
+        "hash": "1afa7636518b13a032e7845597ba044af146e52d70dc006722d5652dd9a4b96a"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 29,
+        "green": 108000,
+        "colored": 108000,
+        "colors": 1,
+        "corner": [
+          14,
+          24,
+          48,
+          255
+        ],
+        "hash": "fcf8f5a38c96842c7e8807b8f0395b384e48d5c0298e8d72850b50530f3ecee9"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 126,
+      "instructions": 10331,
+      "apiCalls": 721
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 338,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "green": 108000,
+        "colored": 108000,
+        "colors": 1,
+        "corner": [
+          14,
+          24,
+          48,
+          255
+        ],
+        "hash": "1afa7636518b13a032e7845597ba044af146e52d70dc006722d5652dd9a4b96a"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 23,
+        "green": 108000,
+        "colored": 108000,
+        "colors": 1,
+        "corner": [
+          14,
+          24,
+          48,
+          255
+        ],
+        "hash": "fcf8f5a38c96842c7e8807b8f0395b384e48d5c0298e8d72850b50530f3ecee9"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 126,
+      "instructions": 9173,
+      "apiCalls": 607
+    }
+  ],
+  "errors": []
+}

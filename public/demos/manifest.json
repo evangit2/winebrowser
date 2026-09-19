@@ -87,6 +87,24 @@
       "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D9 bootstrap subset, not WineD3D.",
       "exeSha256": "e4548f849394a78ba6028d5330fc698d25a3ab53e6f299132eb7da067af6fbac",
       "zipSha256": "1e6ce0852b78974a623d1ba6394a5c42c14e0067fdb17bbbd48b9a93e5fb3dd7"
+    },
+    {
+      "name": "d3d12-triangle",
+      "description": "Native D3D12 shader triangle: browser-compiled SM5 shaders, moving viewport, command lists, resource transitions and fences. Initial API subset.",
+      "exe": "d3d12-triangle/d3d12-triangle.exe",
+      "zip": "d3d12-triangle.zip",
+      "provenance": "Original MIT PE32 API fixture embedding unmodified LGPL Wine shader bytecode; complete shader and application sources included.",
+      "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
+      "zipSha256": "8cc317d0328b0807bcdace2ece46b4bb52dc495d4c8c63faabd4ae3aea700679"
+    },
+    {
+      "name": "d3d12-cube",
+      "description": "Native Direct3D 12 rotating 3D cube: vertex uploads, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
+      "exe": "d3d12-cube/d3d12-cube.exe",
+      "zip": "d3d12-cube.zip",
+      "provenance": "Original MIT PE32 C application and HLSL shaders; ordinary native build plus deterministic geometry data. Complete source and rebuild materials included.",
+      "exeSha256": "69c9444a5a8604295a59e73b23e7005900b2ca89365756742d765b478af93df0",
+      "zipSha256": "30b5a6be24e3ae3b5595cf3f95bfec480411e234d1135d80415aac16c572c42a"
     }
   ]
 }

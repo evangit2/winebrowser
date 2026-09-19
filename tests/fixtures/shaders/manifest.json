@@ -1,0 +1,36 @@
+{
+  "expected": {
+    "geometry": "SV_VertexID full-screen triangle; no vertex buffer",
+    "pixelColorRGBA8": [
+      0,
+      255,
+      0,
+      255
+    ],
+    "viewportTest": "green inside inset viewport, unchanged background outside"
+  },
+  "format": 1,
+  "license": "LGPL-2.1-or-later; see COPYING.LIB and retained d3d12.c",
+  "shaderBlobs": [
+    {
+      "array": "vs_code",
+      "bytes": 396,
+      "path": "fullscreen.vs.dxbc",
+      "profile": "vs_5_0",
+      "sha256": "15514bd251d50567365499ff9e8bb7b8516538e8440d9ede3fd1b63b875cd73a",
+      "stage": "vertex"
+    },
+    {
+      "array": "ps_code",
+      "bytes": 216,
+      "path": "green.ps.dxbc",
+      "profile": "ps_5_0",
+      "sha256": "c94dd3ed71e1f0e8a7f103940d2999b0cccb03f789eb2b4d741a31923f106768",
+      "stage": "pixel"
+    }
+  ],
+  "sourceSha256": "052ac26aa54e7122df25e1fde05f9f6ad227f67ffa4a540a1c5bf75c583e92c8",
+  "spirvEntryPointWhenCompiled": "main",
+  "upstream": "Wine 11.0 d3d12/tests/d3d12.c",
+  "wineRevision": "db11d0fe6a169c457e23d007e20404643d067aa8"
+}

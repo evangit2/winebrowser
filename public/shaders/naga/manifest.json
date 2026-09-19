@@ -1,0 +1,23 @@
+{
+  "api": "default init(); spirv_to_wgsl(Uint8Array): string",
+  "artifacts": {
+    "winebrowser_shader_wgsl.js": {
+      "bytes": 6086,
+      "sha256": "50b872681336444c823a9111e17b117ee859b92016eaa0554c13989ef25f22de"
+    },
+    "winebrowser_shader_wgsl_bg.wasm": {
+      "bytes": 1456335,
+      "sha256": "b49cd080407dfe230403d106237fbfb9ecacce8a04300b1274f6e57a3e7b2d09"
+    }
+  },
+  "drawParameters": {
+    "binding": 0,
+    "group": 3,
+    "layout": "i32[4]: baseVertex, baseInstance, reserved, reserved"
+  },
+  "format": 1,
+  "maximumWasmMemoryBytes": 134217728,
+  "nagaVersion": "30.0.1",
+  "package": "winebrowser-shader-wgsl",
+  "wasmBindgenVersion": "0.2.121"
+}

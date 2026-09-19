@@ -1,5 +1,6 @@
 import { registryApis } from './win32-registry.js';
 import { d3d9Apis } from './d3d9.js';
+import { d3d12Apis, dxgiApis } from './d3d12.js';
 import { formatApis } from './win32-format.js';
 import { processApis } from './win32-process.js';
 import { audioApis } from './win32-audio.js';
@@ -39,6 +40,8 @@ for (const key of [
   ...Object.keys(formatApis),
   ...Object.keys(registryApis),
   ...Object.keys(d3d9Apis),
+  ...Object.keys(d3d12Apis),
+  ...Object.keys(dxgiApis),
 ]) {
   const [dll, name] = key.split('!');
   API_NAMES[dll] ??= [];
@@ -245,6 +248,8 @@ export function createWin32ApiProvider() {
     ...Object.entries(formatApis),
     ...Object.entries(registryApis),
     ...Object.entries(d3d9Apis),
+    ...Object.entries(d3d12Apis),
+    ...Object.entries(dxgiApis),
     ['kernel32.dll!ExitProcess', exitProcess],
     ['kernel32.dll!GetStdHandle', getStdHandle],
     ['kernel32.dll!WriteFile', writeFile],

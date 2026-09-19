@@ -1,0 +1,37 @@
+{
+  "files": {
+    "LICENSE": {
+      "bytes": 1081,
+      "sha256": "9ee46f5466859bea6ddebfd3a7dd9bc0c27e102411ed1b436b3e3839031de94f"
+    },
+    "README.md": {
+      "bytes": 1217,
+      "sha256": "fc5621deb1e5615838fcddb4f784ef231d7f4fece59a12541aaca10209a32cd0"
+    },
+    "build.sh": {
+      "bytes": 2145,
+      "sha256": "3f14a7c57addb66509142dae4c62a59b69aaf5407998b8963b1720f1a42a1abe"
+    },
+    "compile-dxbc.c": {
+      "bytes": 1910,
+      "sha256": "cd707733b9e3b94f63017e1d03e2ed302e3a7926c7965d7d954267ed65321849"
+    },
+    "cube.ps.dxbc": {
+      "bytes": 476,
+      "sha256": "154341983dff3c30ed2914567fc3120491cbd14ca54f1e471661dd24663f8553"
+    },
+    "cube.ps.hlsl": {
+      "bytes": 100,
+      "sha256": "f025a96196819df6e9be64e1b1e4f3e0f79653a09ecfaafb80867f540b77b81e"
+    },
+    "cube.vs.dxbc": {
+      "bytes": 628,
+      "sha256": "859d4fe3564ca58b2fa065d40ef04e58ef2f94e02938d2ce20790da0f760d1df"
+    },
+    "cube.vs.hlsl": {
+      "bytes": 465,
+      "sha256": "be0353d810d66f29306042b64955b48be01e13305423e285c27a500766944212"
+    }
+  },
+  "format": 1
+}

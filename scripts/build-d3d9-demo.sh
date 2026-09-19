@@ -66,3 +66,5 @@ with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslev
 print(f'PE32: {digest}  {exe.name}')
 print(f'ZIP:  {hashlib.sha256(archive.read_bytes()).hexdigest()}  {archive.name}')
 PY
+
+python3 "$repo_dir/scripts/update-demo-hashes.py" d3d9-cube

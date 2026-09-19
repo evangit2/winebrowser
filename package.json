@@ -36,7 +36,15 @@
     "probe:wine-loader-crt": "node scripts/probe-wine-loader-crt.mjs",
     "build:d3d9": "bash scripts/build-d3d9-demo.sh",
     "test:webgpu": "node scripts/test-webgpu-backend.mjs",
-    "test:d3d9": "node scripts/test-d3d9-browser.mjs"
+    "test:d3d9": "node scripts/test-d3d9-browser.mjs",
+    "build:d3d12": "bash scripts/build-d3d12-demo.sh",
+    "build:d3d12-cube": "bash scripts/build-d3d12-cube.sh",
+    "build:shader-dxbc": "python3 scripts/build-shader-dxbc.py",
+    "build:shader-wgsl": "bash scripts/build-shader-wgsl.sh",
+    "test:shaders": "node scripts/test-dxbc-browser.mjs",
+    "test:d3d12": "node scripts/test-d3d12-browser.mjs",
+    "test:d3d12-backend": "node scripts/test-d3d12-backend.mjs",
+    "test:d3d12-cube": "node scripts/test-d3d12-browser.mjs --cube"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -5,7 +5,7 @@ const E_NOINTERFACE = 0x80004002;
 const E_POINTER = 0x80004003;
 const IUNKNOWN = '00000000-0000-0000-c000-000000000046';
 
-function guid(runtime, address) {
+export function readGuid(runtime, address) {
   runtime.check(address, 16);
   const bytes = runtime.data;
   const hex = (start, count) =>
@@ -31,7 +31,7 @@ export class ComObjects {
     this.objects = new Map();
   }
 
-  create({ name, iid, methodNames, methods = {}, onRelease, state = {} }) {
+  create({ name, iid, iids = [], methodNames, methods = {}, onRelease, state = {} }) {
     if (this.objects.size >= 64) throw Error('COM object limit exceeded');
     if (methodNames.length < 3 || methodNames.length > 128)
       throw Error(`Invalid ${name} vtable size`);
@@ -39,7 +39,16 @@ export class ComObjects {
     const vtable = runtime.allocate(methodNames.length * 4);
     const pointer = runtime.allocate(4);
     runtime.write32(pointer, vtable);
-    const object = { name, iid: iid.toLowerCase(), pointer, vtable, refs: 1, state, onRelease };
+    const object = {
+      name,
+      iid: iid.toLowerCase(),
+      iids: new Set([iid.toLowerCase(), ...iids.map((value) => value.toLowerCase())]),
+      pointer,
+      vtable,
+      refs: 1,
+      state,
+      onRelease,
+    };
     this.objects.set(pointer, object);
     for (const [slot, methodName] of methodNames.entries()) {
       const address = registerThunk(runtime.thunks, {
@@ -53,8 +62,8 @@ export class ComObjects {
             const out = argument(2) >>> 0;
             if (!out) return { result: E_POINTER, argc: 3 };
             runtime.check(out, 4, true);
-            const requested = guid(runtime, argument(1) >>> 0);
-            if (requested !== IUNKNOWN && requested !== object.iid) {
+            const requested = readGuid(runtime, argument(1) >>> 0);
+            if (requested !== IUNKNOWN && !object.iids.has(requested)) {
               runtime.write32(out, 0);
               return { result: E_NOINTERFACE, argc: 3 };
             }
@@ -74,7 +83,10 @@ export class ComObjects {
           }
           const method = methods[slot];
           if (!method) throw Error(`Unsupported COM method ${name}.${methodName}`);
-          return { result: await method.invoke(runtime, argument, object), argc: method.argc };
+          const response = await method.invoke(runtime, argument, object);
+          return typeof response === 'object' && response !== null
+            ? { ...response, argc: method.argc }
+            : { result: response, argc: method.argc };
         },
       });
       runtime.write32(vtable + slot * 4, address);

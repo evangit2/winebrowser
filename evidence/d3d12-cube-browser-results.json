@@ -1,0 +1,89 @@
+{
+  "demo": "d3d12-cube",
+  "scope": "Rotating 3D cube with upload vertex buffers and D16 depth. Native PE32 D3D12 fixture with SM5 shaders, empty root signature, RTV descriptors, command lists, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
+  "date": "2026-09-19T00:24:06.619Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "153.0.8010.48",
+  "exeSha256": "69c9444a5a8604295a59e73b23e7005900b2ca89365756742d765b478af93df0",
+  "browserCompilation": true,
+  "browserShaderCompilation": true,
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "firstFourFramesMs": 558,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "green": 0,
+        "colored": 65444,
+        "colors": 4,
+        "corner": [
+          9,
+          17,
+          36,
+          255
+        ],
+        "hash": "e261e19d6c0712813d54151d121a152569ef5c8bd8e4bd9b9abc809423019112"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 26,
+        "green": 0,
+        "colored": 62992,
+        "colors": 3,
+        "corner": [
+          9,
+          17,
+          36,
+          255
+        ],
+        "hash": "c082a5e8c5f960bf1dbadc9ff8c0290e5547a61179f246e6b32eee3d298395c9"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 157,
+      "instructions": 201858,
+      "apiCalls": 826
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 313,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "green": 0,
+        "colored": 65444,
+        "colors": 4,
+        "corner": [
+          9,
+          17,
+          36,
+          255
+        ],
+        "hash": "e261e19d6c0712813d54151d121a152569ef5c8bd8e4bd9b9abc809423019112"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 27,
+        "green": 0,
+        "colored": 64519,
+        "colors": 4,
+        "corner": [
+          9,
+          17,
+          36,
+          255
+        ],
+        "hash": "db4cfab799a0a4e7437a74548803aebe211fc2b2ac20ab06f915a16fbe8253eb"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 157,
+      "instructions": 195856,
+      "apiCalls": 803
+    }
+  ],
+  "errors": []
+}

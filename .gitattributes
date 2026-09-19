@@ -1,2 +1,7 @@
 # Unified patches encode an empty context line with one literal space.
 runtime/wine/*.patch whitespace=-blank-at-eol
+# Retain generated compiler bytes and upstream license texts exactly as hashed.
+public/shaders/** whitespace=-blank-at-eol,-blank-at-eof
+demos/d3d12-triangle/SHADERS-LICENSE whitespace=-blank-at-eol
+public/demos/d3d12-triangle/SHADERS-LICENSE whitespace=-blank-at-eol
+tests/fixtures/shaders/COPYING.LIB whitespace=-blank-at-eol

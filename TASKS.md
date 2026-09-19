@@ -32,6 +32,9 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [x] Change committed private VM and non-executable image-data page protections through the native NT boundary; verify read-only enforcement, rollback on invalid requests and Wine export-table updates.
 - [x] Initialize Wine-owned dynamic TLS bitmaps and verify 65 guest kernelbase slots, expansion, free and cleared-value reuse; implement one-thread `ThreadZeroTlsCell`.
 - [x] Run an original native D3D9 cube EXE and ZIP with browser x86-to-Wasm compilation, guest COM calls, worker WebGPU transforms/D16 depth and clean window/device release. Record backend pixel checks and full browser acceptance separately.
+- [x] Run a native PE32 D3D12 shader fixture through real DXGI backbuffers, empty root signatures, pipeline state, command lists, resource barriers, queue submission and completed 64-bit fences; verify both EXE upload and hosted ZIP.
+- [x] Run the native D3D12 cube with upload vertex buffers, D16 depth, DSV/RTV descriptors, swapchain buffer indexes, completed fences, browser shader compilation and clean release; test depth/vertex rendering independently on both GPU presentation paths.
+- [x] Compile guest SM5 DXBC to SPIR-V with libvkd3d-shader and then WGSL with Naga inside the browser worker; retain complete licensed compiler source/rebuild materials and verify shader pixels, nonzero draw offsets and invalid input rejection.
 - [x] Report a conservative guest CPU feature profile to Wine; partial SIMD support does not advertise complete host instruction families.
 - [x] Keep code split by runtime service, with tests and an intentionally plain test harness.
 
@@ -46,21 +49,23 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
 - [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. The native D3D9 cube passes a bounded bootstrap frontend. Next establish Wine-derived state/resources and programmable shaders with an independent upstream EXE. See [graphics handoff](docs/graphics-handoff.md).
-- [ ] Treat D3D10/11 and DX12/DXGI/vkd3d as additional compatibility milestones. DX12 command lists, descriptors, barriers and x64 game execution are not delivered by a D3D9 renderer. No all-games or instant-startup claim is supported.
+- [ ] Implement D3D10/11 frontends and expand the bounded D3D12 path: root bindings, textures, resource formats, shaders, compute and DXIL. The passing native DX12 fixture does not establish independent game compatibility or x64 execution. No all-games or instant-startup claim is supported.
 - [ ] Expand audio beyond synchronous PCM, and add networking and other OS services with explicit browser constraints.
 - [ ] Persist registry and application-file overlays between runs; support reopening saved applications.
 - [ ] Add wider compatibility/performance testing against native behavior. No claim that arbitrary EXEs run or can simply be compiled to Wasm.
 
 ## Evidence and commands
 
-- [Live harness](https://evangit2.github.io/winebrowser/): Load d3d9-cube, Load tetris or Load breakout, then Run executable.
+- [Live harness](https://evangit2.github.io/winebrowser/): Load d3d9-cube, Load d3d12-cube, Load d3d12-triangle, Load tetris or Load breakout, then Run executable.
 - [Tetris browser evidence](evidence/tetris-browser.json), [window evidence](evidence/windows-browser-results.json), [external executable evidence](evidence/external-browser-results.json).
 - [Target catalog](tests/targets.json), [static blockers](evidence/target-blockers.json), [architecture](docs/architecture.md), [NLS scope](docs/wine-nls.md).
-- `npm test`: 238 passing tests at the current verified milestone.
+- `npm test`: runtime, native ABI, resource ownership and failure-path tests.
 - `npm run test:browser`, `npm run test:controls`, `npm run test:external`.
 - Pages server: `WINEBROWSER_BASE_PATH=/winebrowser/ npm run build`, then `npm run serve:pages`.
-- Against that server: `npm run test:pages`, `npm run test:windows`, `npm run test:tetris`, `npm run test:d3d9`.
+- Against that server: `npm run test:pages`, `npm run test:windows`, `npm run test:tetris`, `npm run test:d3d9`, `npm run test:d3d12`, `npm run test:d3d12-cube`.
 - `npm run test:webgpu`: isolated backend pixel tests; [native D3D9 browser evidence](evidence/d3d9-browser-results.json) verifies the complete EXE path.
+- `npm run test:shaders`: worker shader compiler pixels/validation; [D3D12 browser evidence](evidence/d3d12-browser-results.json) verifies the separate native EXE path.
+- `npm run test:d3d12-backend`: compiled shader geometry/depth pixels; [native cube evidence](evidence/d3d12-cube-browser-results.json) covers uploads, animation and clean exit.
 - Optional whole-Wine probe (expected to report blocked startup):
   `npm run probe:wine-crt -- /path/to/i386-windows /path/to/wine/nls`.
 

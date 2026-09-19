@@ -1,0 +1,100 @@
+{
+  "source": {
+    "url": "https://dl.winehq.org/vkd3d/source/vkd3d-2.1.tar.xz",
+    "archiveSha256": "7510146aff2adfb4ae07ab890701a607e5ff7c66e57100cfc9f630ec92eeda6a",
+    "archiveBytes": 1486656,
+    "version": "2.1",
+    "patches": []
+  },
+  "headers": {
+    "spirvRevision": "04fd3caa1e8267e4d95c806cad901181728e1006",
+    "spirvURL": "https://github.com/KhronosGroup/SPIRV-Headers.git",
+    "spirvLicense": {
+      "path": "public/shaders/source/SPIRV-Headers-LICENSE",
+      "bytes": 23503,
+      "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+    },
+    "vulkanRevision": "ee2ec5fd83dafce291024683b50dc89219333076",
+    "vulkanURL": "https://github.com/KhronosGroup/Vulkan-Headers.git",
+    "vulkanLicense": {
+      "path": "public/shaders/source/Vulkan-Headers-LICENSE.md",
+      "bytes": 495,
+      "sha256": "95ad366d23fadf701d355bc45fb8b82ae2d700239471d35d41286ac3b08ff903"
+    }
+  },
+  "toolchain": {
+    "emscripten": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.7 (8dc91db45bf96c174531006839472a3924d105aa)"
+  },
+  "bridge": {
+    "path": "runtime/shaders/vkd3d/bridge.c",
+    "bytes": 5630,
+    "sha256": "cf931ecd8b5f36e9ad2c23f20c27b3fead4ed47bb1ffc601b8933ffa88c2209f"
+  },
+  "buildScript": {
+    "path": "scripts/build-shader-dxbc.py",
+    "bytes": 10742,
+    "sha256": "24f515db0c39ab67b8d2d4a95722041b3ae5e04ed91cac5dcaf633ec7e2dda9a"
+  },
+  "artifacts": {
+    "vkd3d-shader.js": {
+      "bytes": 14402,
+      "sha256": "18574509a6d06894722f35106954f388faa56c700fee54289ffa345315b0afe5"
+    },
+    "vkd3d-shader.wasm": {
+      "bytes": 1257836,
+      "sha256": "a5c18b32761a1448dda348feb8fdcc9bb270a23d662cd6d68246e262fef22817"
+    },
+    "vkd3d-COPYING": {
+      "bytes": 786,
+      "sha256": "1f69abfaeee0131bba28ad72d87683a223743d8c9ee1da113fde10cb082f3c91"
+    },
+    "vkd3d-LICENSE": {
+      "bytes": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+    }
+  },
+  "sourceBundle": {
+    "vkd3d-2.1.tar.xz": {
+      "path": "public/shaders/source/vkd3d-2.1.tar.xz",
+      "bytes": 1486656,
+      "sha256": "7510146aff2adfb4ae07ab890701a607e5ff7c66e57100cfc9f630ec92eeda6a"
+    },
+    "bridge.c": {
+      "path": "public/shaders/source/bridge.c",
+      "bytes": 5630,
+      "sha256": "cf931ecd8b5f36e9ad2c23f20c27b3fead4ed47bb1ffc601b8933ffa88c2209f"
+    },
+    "build-shader-dxbc.py": {
+      "path": "public/shaders/source/build-shader-dxbc.py",
+      "bytes": 10742,
+      "sha256": "24f515db0c39ab67b8d2d4a95722041b3ae5e04ed91cac5dcaf633ec7e2dda9a"
+    },
+    "COPYING": {
+      "path": "public/shaders/source/COPYING",
+      "bytes": 786,
+      "sha256": "1f69abfaeee0131bba28ad72d87683a223743d8c9ee1da113fde10cb082f3c91"
+    },
+    "LICENSE": {
+      "path": "public/shaders/source/LICENSE",
+      "bytes": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+    },
+    "BRIDGE-LICENSE": {
+      "path": "public/shaders/source/BRIDGE-LICENSE",
+      "bytes": 1081,
+      "sha256": "9ee46f5466859bea6ddebfd3a7dd9bc0c27e102411ed1b436b3e3839031de94f"
+    },
+    "SPIRV-Headers-LICENSE": {
+      "path": "public/shaders/source/SPIRV-Headers-LICENSE",
+      "bytes": 23503,
+      "sha256": "ea43b1de38a6f90c488800d66dec1ed671e68cda530266bc96951fb5b6307613"
+    },
+    "Vulkan-Headers-LICENSE.md": {
+      "path": "public/shaders/source/Vulkan-Headers-LICENSE.md",
+      "bytes": 495,
+      "sha256": "95ad366d23fadf701d355bc45fb8b82ae2d700239471d35d41286ac3b08ff903"
+    }
+  },
+  "sourceRetention": "public/shaders/source/vkd3d-2.1.tar.xz",
+  "cacheSourceArchive": ".cache/vkd3d-dxbc/vkd3d-2.1.tar.xz"
+}

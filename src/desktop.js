@@ -460,7 +460,7 @@ export class VirtualDesktop {
     this.windows.set(state.id, window);
   }
 
-  frame({ windowId, width, height, pixels, bitmap, renderer, graphicsFrames }) {
+  frame({ windowId, width, height, pixels, bitmap, renderer, graphicsApi, graphicsFrames }) {
     const window = this.windows.get(windowId);
     if (
       !window ||
@@ -482,6 +482,7 @@ export class VirtualDesktop {
         }
         window.context.drawImage(bitmap, 0, 0);
         window.canvas.dataset.renderer = renderer ?? 'bitmap';
+        window.canvas.dataset.graphicsApi = graphicsApi ?? (renderer === 'webgpu' ? 'd3d9' : '');
         window.canvas.dataset.graphicsFrames = String(graphicsFrames ?? 0);
         return true;
       } finally {

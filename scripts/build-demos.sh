@@ -11,12 +11,12 @@ command -v "$CC" >/dev/null || { echo "missing compiler: $CC" >&2; exit 1; }
 command -v "$OBJDUMP" >/dev/null || { echo "missing objdump: $OBJDUMP" >&2; exit 1; }
 command -v "$PYTHON" >/dev/null || { echo "missing Python: $PYTHON" >&2; exit 1; }
 
-rm -rf "$OUT"
 mkdir -p "$OUT"
 
 build_one() {
     local name="$1" subsystem="$2"
     local dest="$OUT/$name"
+    rm -rf "$dest"
     mkdir -p "$dest"
     local -a link_args=("-Wl,--no-insert-timestamp" "-Wl,--entry,_start" "-Wl,--subsystem,$subsystem")
     local -a libraries=("${@:3}")
@@ -75,7 +75,9 @@ for name in sorted(descriptions):
         "zipSha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
         "expected": descriptions[name],
     })
-manifest = {"format": 1, "architecture": "x86 (PE32)", "fixtures": items}
+manifest_path = root / "manifest.json"
+manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+manifest.update({"format": 1, "architecture": "x86 (PE32)", "fixtures": items})
 (root / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 

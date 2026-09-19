@@ -2,8 +2,9 @@
 
 WineBrowser loads ordinary PE32 EXEs or ZIPs in the browser. Its x86 decoder
 compiles encountered basic blocks to WebAssembly on demand; there is no
-per-application offline translation or full PC emulator. The first graphics
-path targets native Direct3D 9 calls from that same guest process.
+per-application offline translation or full PC emulator. The graphics
+frontends accept bounded native Direct3D 9 and Direct3D 12 calls from that same
+guest process.
 
 ## Current D3D9 boundary
 
@@ -42,37 +43,94 @@ window-close exit code 0. COM creation, draw, present and release were traced.
 This establishes the narrow native API fixture, not compatibility with an
 independent upstream D3D9 application.
 
+## Current D3D12 boundary
+
+`src/d3d12.js` owns PE32 DXGI/D3D12 COM objects, checked guest descriptors,
+command recording, resource state transitions and fences. `src/d3d12-renderer.js`
+consumes validated submission snapshots and shares the worker WebGPU device
+with the D3D9 backend. The first native fixture creates a two-buffer RGBA8
+swapchain, an RTV descriptor heap, empty root signature, pipeline state,
+allocator, command list and fence. It submits a real shader draw, transitions
+PRESENT/RENDER_TARGET states, presents alternating buffers, signals the queue
+and reads the completed 64-bit fence value through the PE32 EDX:EAX ABI.
+
+The [triangle fixture](../demos/d3d12-triangle/main.c) uses Wine's retained,
+licensed SM5 DXBC bytecode. Its procedural full-screen triangle is clipped to
+a moving viewport, producing a green rectangle on a dark background.
+[Browser evidence](../evidence/d3d12-browser-results.json) verifies both the
+original EXE upload and hosted ZIP, exact pixels, animation, native API traces,
+browser-compiled machine-code blocks and clean window-close exit code 0.
+
+The [D3D12 cube](../demos/d3d12-cube/main.c) adds committed upload buffers,
+Map/Unmap and GPU virtual addresses, a POSITION/COLOR float4 vertex layout,
+a D16 committed depth texture, DSV descriptors, depth clears and testing,
+and `IDXGISwapChain3::GetCurrentBackBufferIndex`. Its original MIT HLSL is
+compiled to ordinary SM5 DXBC when building the native fixture; those DXBC
+bytes are then translated in the browser at runtime. Precomputed geometry
+frames keep this fixture independent of the unfinished guest floating-point
+instruction coverage. WebGPU still rasterizes the triangles, interpolates
+attributes and resolves depth each frame.
+
+[Cube browser evidence](../evidence/d3d12-cube-browser-results.json) records
+157 x86 blocks compiled in the browser, changed colored frames, native buffer
+and depth API calls, and exit code 0 for both EXE and ZIP. [Backend pixel tests](../evidence/d3d12-backend-results.json)
+separately verify near geometry occludes far geometry, disabling depth changes
+the visible color, nonzero vertex offsets work, depth clears affect subsequent
+draws, and invalid or released resources fail. The same checks pass the bounded
+[readback presentation path](../evidence/d3d12-backend-readback-results.json)
+used with software WebGPU adapters.
+
+Upload buffers remain guest-owned. Command lists record their views; execution
+validates live resources and captures bounded copies immediately before GPU
+submission. Writes made after recording and before submission are visible.
+Backbuffer transitions commit only after successful submission, and queue
+signals follow completed GPU work. Limits include 256 commands and 8 MiB of
+vertex snapshots per list/submission, with one 32-byte vertex buffer in slot 0
+and one instance per draw. Unsupported API/state combinations fail explicitly.
+
+`src/shader-compiler.js` lazily loads two replaceable Wasm libraries in the
+worker: **libvkd3d-shader 2.1** compiles DXBC to SPIR-V; **Naga 30.0.1** validates
+and translates that SPIR-V to WGSL. The browser then creates the WebGPU pipeline.
+The guest's shaders are translated from their bytes; there are no application
+hash substitutions or precompiled WGSL fixtures. This shader path is distinct
+from the x86-to-Wasm compiler that executes the EXE. vkd3d also serializes and
+parses real empty DXBC root signatures. Complete source and rebuild materials
+ship with the compiler modules; see [notices](../THIRD_PARTY_NOTICES.md).
+
+The backend reads the DXBC input signature and maps vertex attributes by
+semantic name/index to the shader's declared registers. It does not assume
+POSITION and COLOR always use a particular register order.
+
+The SPIR-V bridge lowers BaseVertex/BaseInstance to a reserved 16-byte uniform
+at group 3/binding 0 and preserves the shader's subtraction. It removes only
+constant PointSize=1 output for triangle rendering. Other unsupported shader
+forms fail. [Separate shader evidence](../evidence/dxbc-shader-browser-results.json)
+checks the actual worker compilation/rendering path, nonzero draw offsets,
+malformed bytecode and root-signature validation.
+
+Current limits include PE32 x86, a direct queue, empty root signatures, bounded
+command batches, triangle lists, RGBA8 backbuffers and no multisampling. DXIL,
+compute, textures, descriptor tables, arbitrary root bindings, indirect draws,
+x64 and general game compatibility remain unfinished. D3D10 and D3D11 need their
+own frontends; a D3D12 draw does not provide them automatically.
+
 ## Broader DirectX work
 
-The present D3D9 frontend and shader are a small bootstrap, **not WineD3D**.
-Broader D3D8/9 should use a pinned, licensed Wine frontend and WineD3D-derived
-state/resource core with a browser WebGPU backend, maintaining one owner for
-guest COM objects, resources, and lifetimes. Wine's [D3D9 source at the pinned
-revision](https://github.com/wine-mirror/wine/tree/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/d3d9)
-is LGPL-2.1-or-later. Legacy programmable shader work can reuse
-[libvkd3d-shader](https://gitlab.winehq.org/wine/vkd3d) under LGPL-2.1-or-later
-and [Naga](https://github.com/gfx-rs/wgpu/tree/trunk/naga) under MIT/Apache-2.0
-for a validated bytecode-to-WGSL path. The cached DirectWebGPU renderer is a
-reference, not integrated or assumed redistributable code.
+The original bounded D3D9/D3D12 COM adapters are **not WineD3D**. Broader support
+should preserve Wine-derived state/resource ownership behind a browser backend.
+The pinned Wine source and shader compiler libraries provide licensed reusable
+components; the cached DirectWebGPU renderer remains an architectural reference,
+not integrated or assumed redistributable code. See [graphics handoff](graphics-handoff.md).
 
-Independent acceptance targets keep each API claim concrete:
+Independent acceptance targets keep API claims concrete:
 
-| API   | Target and gate                                                                                                                                                                                                                    | Additional boundary                                                                                                                   |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| D3D9  | Packaged source-built cube above passes; next gate is an independently sourced D3D9 PE32 application rendering unchanged                                                                                                           | Expand Wine semantics and resources beyond the fixture's narrow call set.                                                             |
-| D3D10 | Existing [Humus Inferno target](../tests/targets.json): original PE32 EXE and assets render a scene                                                                                                                                | DXGI, D3D10 device/state, shader bytecode, and its CRT/Win32 imports.                                                                 |
-| D3D11 | Microsoft's [Direct3D 11 Tutorial02 triangle](https://github.com/microsoft/DirectX-SDK-Samples/blob/main/C%2B%2B/Direct3D11/Tutorials/Tutorial02/Tutorial02.cpp), built once as an ordinary PE32 fixture, renders its own triangle | DXGI swap chain, D3D11 device/context/resources, input layout and shaders.                                                            |
-| D3D12 | Microsoft's [D3D12 HelloTriangle](https://github.com/microsoft/DirectX-Graphics-Samples/tree/213dd4fd4918ea009dd8f35adee1aff1f2ecaba4/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle) is a later x64 acceptance target          | x64 execution, DXGI, root signature, descriptors, pipeline state, shader model, command allocators/lists, barriers, queue and fences. |
+| API   | Target and remaining gate                                                                                                                                                                                                                                                       |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D3D9  | Source-built cube passes; next run an independently sourced PE32 application unchanged, with broader resources and Wine semantics.                                                                                                                                              |
+| D3D10 | Original [Humus Inferno target](../tests/targets.json): DXGI/D3D10 device/state, shaders, CRT and Win32 dependencies remain.                                                                                                                                                    |
+| D3D11 | Microsoft's [Tutorial02](https://github.com/microsoft/DirectX-SDK-Samples/blob/main/C%2B%2B/Direct3D11/Tutorials/Tutorial02/Tutorial02.cpp), built as ordinary PE32: implement device/context/resources and validate a native draw.                                             |
+| D3D12 | Native PE32 shader triangle and depth-tested cube pass. Microsoft's [HelloTriangle](https://github.com/microsoft/DirectX-Graphics-Samples/tree/213dd4fd4918ea009dd8f35adee1aff1f2ecaba4/Samples/Desktop/D3D12HelloWorld/src/HelloTriangle) remains a later x64/SM6 DXIL target. |
 
-Before that x64 target, a smaller native PE32 D3D12 triangle can use licensed
-[Wine D3D12 test DXBC vertex/pixel blobs](https://github.com/wine-mirror/wine/blob/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/d3d12/tests/d3d12.c)
-and `SV_VertexID`, avoiding a separate vertex upload while still exercising
-DXGI backbuffers, root signature, pipeline state, command recording, barriers,
-queue submission and fences. This is a proposed gate, not implemented support.
-The Microsoft project currently has x64/ARM64 configurations and builds its
-SM6 DXIL `.cso` files with DXC; it supplies no checked-in DXBC blobs, so the
-current SM1–3 shader bridge cannot run that sample as-is.
-
-Shared WebGPU surface, resource, shader and submission services may support
-those frontends, but API-specific ownership and validation cannot be inferred
-from the D3D9 subset. DX10/11/12 rendering has not been demonstrated here.
+Neither narrow fixture establishes arbitrary application compatibility or instant
+startup. The machine-code translator, CRT/OS services and graphics semantics all
+need independent application tests.

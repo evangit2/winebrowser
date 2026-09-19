@@ -4,3 +4,5 @@ public/vendor/
 evidence/*.png
 .DS_Store
 .cache/
+__pycache__/
+runtime/shaders/naga/target/

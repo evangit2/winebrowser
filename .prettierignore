@@ -4,8 +4,10 @@ public/vendor/
 public/coi-serviceworker.js
 public/demos/
 public/examples/
+public/shaders/
 evidence/
 third_party/
 .cache/
 package-lock.json
 runtime/wine-format/manifest.json
+tests/fixtures/shaders/

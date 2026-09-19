@@ -49,6 +49,7 @@ export class Runtime {
       builtinFiles = new Map(),
       nlsFiles,
       graphics,
+      graphics12,
     },
   ) {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
@@ -64,6 +65,7 @@ export class Runtime {
 
     this.args = args;
     this.graphics = graphics;
+    this.graphics12 = graphics12;
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles);
     this.memory = new WebAssembly.Memory({ initial: 1024, maximum: 1024 });
     this.regions = [{ start: 0x2e00000, end: 0x4000000, write: true, exec: false }];
@@ -138,12 +140,13 @@ export class Runtime {
       if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
       response = await handler(this, argument);
     }
-    const { result, argc, convention = 'stdcall' } = response;
+    const { result, resultHigh, argc, convention = 'stdcall' } = response;
     if (convention !== 'stdcall' && convention !== 'cdecl')
       throw Error(`Unsupported host import convention: ${convention}`);
     const returnAddress = this.cpu.pop() >>> 0;
     if (convention === 'stdcall') this.cpu.r[4].value = (this.cpu.r[4].value + argc * 4) | 0;
     this.cpu.r[0].value = result | 0;
+    if (resultHigh !== undefined) this.cpu.r[2].value = resultHigh | 0;
     return returnAddress;
   }
 

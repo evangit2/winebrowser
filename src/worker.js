@@ -4,6 +4,7 @@ import wineFormat from '../runtime/wine-format/manifest.json';
 import { inspect, Runtime } from './runtime.js';
 import { createCanvasTextRasterizer } from './gdi-text.js';
 import { WebGPURenderer } from './webgpu-renderer.js';
+import { D3D12Renderer } from './d3d12-renderer.js';
 import { packageId, savePackage, saveOutputs } from './storage.js';
 let pkg,
   activeRuntime,
@@ -77,12 +78,14 @@ onmessage = async ({ data }) => {
         iced = await (await import(/* @vite-ignore */ url)).init();
       }
       const graphics = new WebGPURenderer({ emit });
+      const graphics12 = new D3D12Renderer(graphics);
       const runtime = new Runtime(iced, {
         files: pkg.files,
         exe: data.exe,
         args: data.args ?? [],
         builtinFiles,
         graphics,
+        graphics12,
         emit,
         request,
         // Manual sessions last until the guest exits or the user presses Stop.
@@ -96,6 +99,7 @@ onmessage = async ({ data }) => {
         result = await runtime.run();
       } finally {
         activeRuntime = null;
+        graphics12.dispose();
         graphics.dispose();
       }
       try {

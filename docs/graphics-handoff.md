@@ -2,8 +2,9 @@
 
 Development resumed on 2026-09-18. An original native D3D9 cube now passes
 browser EXE/ZIP execution through a bounded COM frontend and worker WebGPU
-renderer; see [current graphics scope](graphics-runtime.md). The broader Wine
-and DirectX milestones below remain proposals.
+renderer; see [current graphics scope](graphics-runtime.md). The native D3D12 shader triangle and depth-tested cube also now run through browser DXBC → SPIR-V →
+WGSL compilation, vertex uploads, depth resources, command lists, barriers and fences. The broader Wine and
+DirectX milestones below remain proposals.
 See [the task list](../TASKS.md).
 
 ## Execution and reuse
@@ -23,8 +24,9 @@ DirectWebGPU's WineD3D mode is not a complete port of the WineD3D core.
 
 Keep license provenance explicit: Wine and libvkd3d-shader require their LGPL
 source/rebuild obligations; Naga uses MIT/Apache-2.0. No blanket license is inferred
-for DirectWebGPU's root or Theseus. No new upstream graphics code is copied into
-this handoff, and the other project's renderer results are not WineBrowser tests.
+for DirectWebGPU's root or Theseus. WineBrowser now bundles the licensed libvkd3d-shader and Naga compilers with
+source/rebuild materials and original adapters; it does not copy the other
+project's bridge. The other project's renderer results are not WineBrowser tests.
 
 ## Proposed Wine path
 
@@ -59,5 +61,7 @@ Suggested acceptance gates:
 
 The original D3D9 cube fixture now demonstrates device creation, transforms,
 depth, drawing and presentation. This is a bootstrap adapter, not a WineD3D
-port or independent application compatibility result. DX10/11/12 are not yet
-demonstrated. GDI-based Tetris and Breakout remain separate playable examples.
+port or independent application compatibility result. A separate native PE32
+D3D12 fixture now passes with SM5 shaders compiled by browser Wasm libraries;
+DX10/11 frontends and broader DX12 resources remain unfinished. GDI-based
+Tetris and Breakout remain separate playable examples.
