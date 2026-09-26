@@ -55,12 +55,45 @@ export class VirtualMemory {
 
   allocate(base, size, type, protect) {
     if (!this.validInput(base, size) || ![0x1000, 0x2000, 0x3000].includes(type))
-      return { status: NTSTATUS.INVALID_PARAMETER, base, size };
+      return this.#logged('allocate', base, size, `type=${type}`, {
+        status: NTSTATUS.INVALID_PARAMETER,
+        base,
+        size,
+      });
     if (![1, 2, 4].includes(protect))
-      return { status: NTSTATUS.INVALID_PAGE_PROTECTION, base, size };
+      return this.#logged('allocate', base, size, `type=${type}`, {
+        status: NTSTATUS.INVALID_PAGE_PROTECTION,
+        base,
+        size,
+      });
 
-    if (type & 0x2000 || base === 0) return this.reserve(base, size, type, protect);
-    return this.commit(base, size, protect);
+    return this.#logged(
+      'allocate',
+      base,
+      size,
+      `type=${type} protect=${protect}`,
+      type & 0x2000 || base === 0
+        ? this.reserve(base, size, type, protect)
+        : this.commit(base, size, protect),
+    );
+  }
+
+  // Bounded log of every allocator operation with its result, so an unexpected
+  // reserved-but-uncommitted access can be matched to the exact call sequence.
+  #logged(operation, base, size, detail, result) {
+    this.ops ??= [];
+    if (this.ops.length >= 2048) this.ops.shift();
+    this.ops.push({
+      n: (this.opCount = (this.opCount ?? 0) + 1),
+      operation,
+      base: (base >>> 0).toString(16),
+      size: (size >>> 0).toString(16),
+      detail,
+      status: `0x${(result.status >>> 0).toString(16)}`,
+      resultBase: (result.base >>> 0).toString(16),
+      resultSize: (result.size >>> 0).toString(16),
+    });
+    return result;
   }
 
   free(base, size, type) {
@@ -69,11 +102,16 @@ export class VirtualMemory {
 
     if (type === 0x8000) {
       const reservation = this.reservations.get(base);
-      if (!reservation || size !== 0) return { status: NTSTATUS.MEMORY_NOT_ALLOCATED, base, size };
+      if (!reservation || size !== 0)
+        return this.#logged('free', base, size, 'type=0x8000', {
+          status: NTSTATUS.MEMORY_NOT_ALLOCATED,
+          base,
+          size,
+        });
       const releasedSize = reservation.end - reservation.base;
       this.reservations.delete(base);
       this.syncRegions();
-      return ok(base, releasedSize);
+      return this.#logged('free', base, releasedSize, 'type=0x8000', ok(base, releasedSize));
     }
 
     let start, end;
@@ -155,7 +193,11 @@ export class VirtualMemory {
 
   commit(base, size, protect) {
     if (base === 0 || size === 0 || base + size > 0x100000000)
-      return { status: NTSTATUS.INVALID_PARAMETER, base, size };
+      return this.#logged('commit', base, size, `protect=${protect}`, {
+        status: NTSTATUS.INVALID_PARAMETER,
+        base,
+        size,
+      });
     const start = alignDown(base, PAGE_SIZE);
     const end = alignUp(base + size, PAGE_SIZE);
     const reservation = this.containingReservation(start, end);
@@ -167,7 +209,7 @@ export class VirtualMemory {
       reservation.pages.set(page, protect);
     }
     this.syncRegions();
-    return ok(start, end - start);
+    return this.#logged('commit', start, end - start, `protect=${protect}`, ok(start, end - start));
   }
 
   protect(base, size, protection) {

@@ -325,7 +325,7 @@ export async function probeWineTarget(
           const basePointer = args[1],
             sizePointer = allocate ? args[3] : args[2];
           report.vmCalls ??= [];
-          if (report.vmCalls.length > 1024) report.vmCalls.shift();
+          if (report.vmCalls.length > 4096) report.vmCalls.shift();
           report.vmCalls.push({
             op: allocate ? 'alloc' : 'free',
             base: hex(runtime.read32(basePointer)),
@@ -382,6 +382,12 @@ export async function probeWineTarget(
       try {
         const next = await api(entry);
         record.result = hex(runtime.cpu.r[0].value);
+        // Attach the status to the matching virtual-memory trace entry.
+        if (
+          (name === 'NtAllocateVirtualMemory' || name === 'NtFreeVirtualMemory') &&
+          report.vmCalls?.length
+        )
+          report.vmCalls.at(-1).status = record.result;
         return next;
       } catch (error) {
         if (runtime.threads.isExit(error)) record.threadExit = true;
@@ -539,6 +545,7 @@ export async function probeWineTarget(
     if (runtime?.virtualMemory?.stats) {
       try {
         report.virtualMemory = runtime.virtualMemory.stats();
+        report.vmOps = runtime.virtualMemory.ops ?? [];
         // If the run failed on a memory violation, report the allocator history
         // for the reservation that contains the fault address.
         const message = report.firstFailure?.message ?? '';
@@ -553,7 +560,7 @@ export async function probeWineTarget(
           };
           // Keep the last 80 guest virtual-memory calls; together with the
           // allocator history they identify the whole sequence for the run.
-          report.vmCalls = (report.vmCalls ?? []).slice(-80);
+          report.vmCalls = report.vmCalls ?? [];
           report.vmHistory = (runtime.virtualMemory.history ?? []).filter(
             (entry) =>
               !range ||
