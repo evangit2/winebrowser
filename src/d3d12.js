@@ -29,7 +29,13 @@ const iids = {
   fence: '0a753dcf-c4d8-4b91-adf6-be5a60d95a76',
   heap: '8efb471d-616c-4f49-90f7-127bb763fa51',
   resource: '696442be-a72e-4059-bc79-5b5c98040fad',
-  factory: '770aae78-f26f-4dba-a829-253c83d1b387',
+  factory: '770aae78-f26f-4dba-a829-253c83d1b387', // IDXGIFactory1
+  factory1: '770aae78-f26f-4dba-a829-253c83d1b387',
+  factoryBase: '7b7166ec-21c7-44ae-b21a-c9ae321ae369',
+  factory2: '50c83a1c-e072-4c48-87b0-3630fa36a6d0',
+  factory3: '25483823-cd46-4c7d-86ca-47aa95b837bd',
+  factory4: '1bc6ea02-ef36-464f-bf0c-21ca39e5168a',
+  adapter: '29038f61-3839-4626-91fd-086879011a05',
   swapchain: '310d36a0-d2e7-4c0a-aa04-6a9d23b8886a',
   swapchain1: '790a45f7-0d42-4876-983a-0a55cfe6f4aa',
   swapchain2: 'a8be2ac4-199f-4946-b331-79599fb98de7',
@@ -45,7 +51,8 @@ const names = {
   fence: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetCompletedValue SetEventOnCompletion Signal`,
   heap: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetDesc GetCPUDescriptorHandleForHeapStart GetGPUDescriptorHandleForHeapStart`,
   resource: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Map Unmap GetDesc GetGPUVirtualAddress WriteToSubresource ReadFromSubresource GetHeapProperties`,
-  factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent`,
+  factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent IsWindowedStereoEnabled CreateSwapChainForHwnd CreateSwapChainForCoreWindow GetSharedResourceAdapterLuid RegisterStereoStatusWindow RegisterStereoStatusEvent UnregisterStereoStatus RegisterOcclusionStatusWindow RegisterOcclusionStatusEvent UnregisterOcclusionStatus CreateSwapChainForComposition GetCreationFlags EnumAdapterByLuid EnumWarpAdapter`,
+  adapter: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1`,
   swapchain: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDevice Present GetBuffer SetFullscreenState GetFullscreenState GetDesc ResizeBuffers ResizeTarget GetContainingOutput GetFrameStatistics GetLastPresentCount GetDesc1 GetFullscreenDesc GetHwnd GetCoreWindow Present1 IsTemporaryMonoSupported GetRestrictToOutput SetBackgroundColor GetBackgroundColor SetRotation GetRotation SetSourceSize GetSourceSize SetMaximumFrameLatency GetMaximumFrameLatency GetFrameLatencyWaitableObject SetMatrixTransform GetMatrixTransform GetCurrentBackBufferIndex CheckColorSpaceSupport SetColorSpace1 ResizeBuffers1`,
 };
 const name = {
@@ -59,6 +66,7 @@ const name = {
   heap: 'ID3D12DescriptorHeap',
   resource: 'ID3D12Resource',
   factory: 'IDXGIFactory1',
+  adapter: 'IDXGIAdapter1',
   swapchain: 'IDXGISwapChain',
 };
 const number = (value) => value >>> 0;
@@ -97,6 +105,26 @@ function output(r, ptr) {
   r.check(number(ptr), 4, true);
   r.write32(number(ptr), 0);
 }
+// Additional QueryInterface identities per COM object kind. The factory chain
+// shares one vtable with IDXGIFactory4's trailing methods; adapters expose only
+// their own interface plus IUnknown.
+function extraIids(kind, parent) {
+  if (kind === 'factory')
+    return [iids.factoryBase, iids.factory1, iids.factory2, iids.factory3, iids.factory4];
+  if (kind === 'adapter' || kind === 'swapchain')
+    return kind === 'swapchain' ? [iids.swapchain1, iids.swapchain2, iids.swapchain3] : [];
+  if (kind === 'device') return [OBJECT];
+  if (!parent) return [];
+  return [
+    OBJECT,
+    CHILD,
+    ...(['queue', 'allocator', 'pipeline', 'heap', 'fence', 'resource'].includes(kind)
+      ? [PAGEABLE]
+      : []),
+    ...(kind === 'list' ? [COMMAND_LIST] : []),
+  ];
+}
+
 function make(r, kind, methods, itemState = {}, parent = null, onRelease = null) {
   if (parent) {
     if (parent.refs >= 0x7fffffff) throw Error('D3D12 parent reference limit exceeded');
@@ -106,25 +134,7 @@ function make(r, kind, methods, itemState = {}, parent = null, onRelease = null)
     return r.comObjects.create({
       name: name[kind],
       iid: iids[kind],
-      iids:
-        kind === 'factory'
-          ? ['7b7166ec-21c7-44ae-b21a-c9ae321ae369']
-          : kind === 'swapchain'
-            ? [iids.swapchain1, iids.swapchain2, iids.swapchain3]
-            : kind === 'device'
-              ? [OBJECT]
-              : parent && kind !== 'swapchain'
-                ? [
-                    OBJECT,
-                    CHILD,
-                    ...(['queue', 'allocator', 'pipeline', 'heap', 'fence', 'resource'].includes(
-                      kind,
-                    )
-                      ? [PAGEABLE]
-                      : []),
-                    ...(kind === 'list' ? [COMMAND_LIST] : []),
-                  ]
-                : [],
+      iids: extraIids(kind, parent),
       methodNames: names[kind].split(' '),
       methods,
       state: itemState,
@@ -980,10 +990,19 @@ function queueMethods() {
 }
 export const d3d12Apis = {
   'd3d12.dll!D3D12CreateDevice': (r, a) => {
+    // A NULL adapter selects the default hardware adapter; a NULL output is the
+    // documented capability probe that must not create a device.
+    const adapter = number(a(0));
+    if (adapter) {
+      const item = r.comObjects?.objects.get(adapter);
+      if (!item || !item.refs || item.name !== name.adapter)
+        return { result: E_INVALIDARG, argc: 4 };
+    }
     const out = number(a(3));
-    output(r, out);
-    if (number(a(0)) || number(a(1)) !== 0xb000) return { result: E_INVALIDARG, argc: 4 };
+    if (out) output(r, out);
+    if (number(a(1)) !== 0xb000) return { result: E_INVALIDARG, argc: 4 };
     if (!iid(r, a(2), 'device')) return { result: E_NOINTERFACE, argc: 4 };
+    if (!out) return { result: S_OK, argc: 4 };
     requireBackend(r);
     state(r);
     const dev = make(r, 'device', deviceMethods());
@@ -1073,67 +1092,232 @@ function swapchainMethods() {
     },
   };
 }
-export const dxgiApis = {
-  'dxgi.dll!CreateDXGIFactory1': (r, a) => {
-    const out = number(a(1));
-    output(r, out);
-    if (!['7b7166ec-21c7-44ae-b21a-c9ae321ae369', iids.factory].includes(readGuid(r, number(a(0)))))
-      return { result: E_NOINTERFACE, argc: 2 };
-    requireBackend(r);
-    state(r);
-    const factory = make(r, 'factory', {
-      10: {
-        argc: 4,
-        async invoke(rt, arg, self) {
-          const result = number(arg(3));
-          output(rt, result);
-          const queue = object(rt, arg(1), 'queue');
-          const desc = swapchainDesc(rt, number(arg(2)));
-          const s = make(
-            rt,
-            'swapchain',
-            swapchainMethods(),
-            { queue, index: 0, buffers: [] },
-            self,
-            async (item) => {
-              for (const b of item.state.buffers) if (!--b.refs) queue.state.device.refs--;
-              await requireBackend(rt).destroySwapChain({ id: item.pointer });
-              queue.refs--;
-            },
-          );
-          queue.refs++;
-          for (let i = 0; i < 2; i++)
-            s.state.buffers.push(
-              make(
-                rt,
-                'resource',
-                {},
-                { device: queue.state.device, kind: 'color', swapchain: s, index: i, state: 0 },
-                queue.state.device,
-              ),
-            );
-          try {
-            await requireBackend(rt).createSwapChain({
-              id: s.pointer,
-              ...desc,
-              bufferIds: s.state.buffers.map((b) => b.pointer),
-            });
-          } catch (error) {
-            s.refs = 0;
-            self.refs--;
-            queue.refs--;
-            for (const b of s.state.buffers) {
-              b.refs = 0;
-              queue.state.device.refs--;
-            }
-            throw error;
-          }
-          rt.write32(result, s.pointer);
-          return S_OK;
-        },
-      },
+// DXGI_ADAPTER_DESC1 is 296 bytes on i386: a WCHAR[128] description, four
+// UINT ids, three SIZE_T memory counts, an 8-byte LUID and a flags word.
+function writeAdapterDesc(r, ptr, withFlags, warp) {
+  const size = withFlags ? 296 : 292;
+  r.check(ptr, size, true);
+  r.data.fill(0, ptr, ptr + size);
+  for (const [i, ch] of [...'WineBrowser WebGPU Adapter'].entries())
+    r.view.setUint16(ptr + i * 2, ch.charCodeAt(0), true);
+  r.write32(ptr + 256, 0x1af4); // VendorId.
+  r.write32(ptr + 260, 0x1050); // DeviceId.
+  r.write32(ptr + 272, 0x40000000); // DedicatedVideoMemory.
+  r.write32(ptr + 280, 0x40000000); // SharedSystemMemory.
+  if (withFlags) r.write32(ptr + 292, warp ? 2 : 0); // DXGI_ADAPTER_FLAG_SOFTWARE.
+  return S_OK;
+}
+
+// DXGI_SWAP_CHAIN_DESC1 is 48 bytes; the same offscreen swap chain backend is
+// reused with the FLIP_DISCARD defaults the modern samples request.
+function swapchainDesc1(r, ptr, windowId) {
+  r.check(ptr, 48);
+  if (!r.windows?.windows?.has(windowId))
+    throw Error('DXGI swap chain window is not a live guest window');
+  const width = u32(r, ptr),
+    height = u32(r, ptr, 4);
+  if (
+    !width ||
+    !height ||
+    width > 2048 ||
+    height > 2048 ||
+    u32(r, ptr, 8) !== 28 ||
+    u32(r, ptr, 12) ||
+    u32(r, ptr, 16) !== 1 ||
+    u32(r, ptr, 20) ||
+    u32(r, ptr, 24) !== 0x20 ||
+    u32(r, ptr, 28) !== 2 ||
+    u32(r, ptr, 32) ||
+    u32(r, ptr, 36) !== 4 ||
+    u32(r, ptr, 40) ||
+    u32(r, ptr, 44)
+  )
+    throw Error('Unsupported DXGI swap chain description 1');
+  return { windowId, width, height };
+}
+
+// Shared creation path for IDXGIFactory.CreateSwapChain and the ForHwnd variant.
+async function createSwapChain(rt, self, queue, desc, result) {
+  output(rt, result);
+  const s = make(
+    rt,
+    'swapchain',
+    swapchainMethods(),
+    { queue, index: 0, buffers: [] },
+    self,
+    async (item) => {
+      for (const b of item.state.buffers) if (!--b.refs) queue.state.device.refs--;
+      await requireBackend(rt).destroySwapChain({ id: item.pointer });
+      queue.refs--;
+    },
+  );
+  queue.refs++;
+  for (let i = 0; i < 2; i++)
+    s.state.buffers.push(
+      make(
+        rt,
+        'resource',
+        {},
+        { device: queue.state.device, kind: 'color', swapchain: s, index: i, state: 0 },
+        queue.state.device,
+      ),
+    );
+  try {
+    await requireBackend(rt).createSwapChain({
+      id: s.pointer,
+      ...desc,
+      bufferIds: s.state.buffers.map((b) => b.pointer),
     });
-    r.write32(out, factory.pointer);
-    return { result: S_OK, argc: 2 };
-  },
+  } catch (error) {
+    s.refs = 0;
+    self.refs--;
+    queue.refs--;
+    for (const b of s.state.buffers) {
+      b.refs = 0;
+      queue.state.device.refs--;
+    }
+    throw error;
+  }
+  rt.write32(result, s.pointer);
+  return S_OK;
+}
+
+// The virtual desktop exposes exactly one hardware adapter. A second
+// enumeration returns DXGI_ERROR_NOT_FOUND, which ends the sample's loop.
+function enumAdapter(r, index, out, self) {
+  output(r, out);
+  if (index !== 0) return 0x887a0002;
+  const adapter = make(r, 'adapter', adapterMethods(), {}, self);
+  r.write32(out, adapter.pointer);
+  return S_OK;
+}
+
+function factoryMethods() {
+  return {
+    7: {
+      argc: 3,
+      invoke: (r, a, self) => enumAdapter(r, number(a(1)), number(a(2)), self),
+    },
+    8: {
+      argc: 3,
+      invoke(r, a, self) {
+        const win = r.windows?.windows?.get(number(a(1)));
+        // DXGI_MWA_VALID is 0x7; DXGI_MWA_NO_ALT_ENTER (0x2) is what the
+        // Microsoft samples request, and all three no-op flags are accepted.
+        if (!win || number(a(2)) & ~0x07) return E_INVALIDARG;
+        self.state.windowAssociation = number(a(1));
+        return S_OK;
+      },
+    },
+    9: {
+      argc: 2,
+      invoke(r, a, self) {
+        output(r, number(a(1)));
+        r.write32(number(a(1)), self.state.windowAssociation ?? 0);
+        return S_OK;
+      },
+    },
+    10: {
+      argc: 4,
+      async invoke(rt, arg, self) {
+        const queue = object(rt, arg(1), 'queue');
+        return createSwapChain(rt, self, queue, swapchainDesc(rt, number(arg(2))), number(arg(3)));
+      },
+    },
+    12: {
+      argc: 3,
+      invoke: (r, a, self) => enumAdapter(r, number(a(1)), number(a(2)), self),
+    },
+    13: {
+      argc: 1,
+      invoke: (_r, _a, self) => (self.state.current === false ? 0 : 1),
+    },
+    15: {
+      argc: 7,
+      async invoke(rt, arg, self) {
+        if (number(arg(4)) || number(arg(5)))
+          throw Error('Unsupported DXGI swap chain fullscreen or output restriction');
+        const windowId = number(arg(2));
+        if (!rt.windows?.windows?.has(windowId)) return E_INVALIDARG;
+        const queue = object(rt, arg(1), 'queue');
+        return createSwapChain(
+          rt,
+          self,
+          queue,
+          swapchainDesc1(rt, number(arg(3)), windowId),
+          number(arg(6)),
+        );
+      },
+    },
+    25: {
+      argc: 1,
+      invoke: (_r, _a, self) => self.state.creationFlags ?? 0,
+    },
+    27: {
+      // EnumWarpAdapter(IID, void **) — the software adapter is exposed only
+      // when explicitly requested, and it carries the software flag.
+      argc: 3,
+      invoke(rt, arg, self) {
+        const out = number(arg(2));
+        output(rt, out);
+        if (!iid(rt, arg(1), 'adapter')) return E_NOINTERFACE;
+        const adapter = make(rt, 'adapter', adapterMethods(), { warp: true }, self);
+        rt.write32(out, adapter.pointer);
+        return S_OK;
+      },
+    },
+  };
+}
+
+function adapterMethods() {
+  return {
+    7: {
+      // EnumOutputs(Output, IDXGIOutput **) — no outputs on the virtual adapter.
+      argc: 3,
+      invoke: (r, a) => {
+        output(r, number(a(2)));
+        return 0x887a0002;
+      },
+    },
+    8: {
+      argc: 2,
+      invoke: (r, a) => writeAdapterDesc(r, number(a(1)), false, false),
+    },
+    9: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return number(a(1)) === 0xb000 ? S_OK : E_INVALIDARG;
+      },
+    },
+    10: {
+      argc: 2,
+      invoke: (r, a, self) => writeAdapterDesc(r, number(a(1)), true, !!self.state.warp),
+    },
+  };
+}
+
+const createFactoryApi = (argc, flagsIndex, iidIndex, outIndex) => (r, a) => {
+  const out = number(a(outIndex));
+  output(r, out);
+  if (
+    ![iids.factoryBase, iids.factory1, iids.factory2, iids.factory3, iids.factory4].includes(
+      readGuid(r, number(a(iidIndex))),
+    )
+  )
+    return { result: E_NOINTERFACE, argc };
+  const flags = flagsIndex === null ? 0 : number(a(flagsIndex));
+  // Only DXGI_CREATE_FACTORY_DEBUG is defined and it is a no-op for the harness.
+  if (flags & ~1) return { result: E_INVALIDARG, argc };
+  requireBackend(r);
+  state(r);
+  const factory = make(r, 'factory', factoryMethods(), { creationFlags: flags }, null);
+  r.write32(out, factory.pointer);
+  return { result: S_OK, argc };
+};
+
+export const dxgiApis = {
+  'dxgi.dll!CreateDXGIFactory': createFactoryApi(2, null, 0, 1),
+  'dxgi.dll!CreateDXGIFactory1': createFactoryApi(2, null, 0, 1),
+  'dxgi.dll!CreateDXGIFactory2': createFactoryApi(3, 0, 1, 2),
 };

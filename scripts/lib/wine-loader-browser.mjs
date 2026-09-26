@@ -1,5 +1,6 @@
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
+import { webgpuBrowserOptions } from './webgpu-browser.mjs';
 
 const probes = {
   x87integer: { script: 'x87-integer-probe.js', entry: 'probeX87Integer' },
@@ -42,10 +43,9 @@ async function probeInBrowser(root, kind, input) {
   try {
     await server.listen();
     const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
-    browser = await chromium.launch({
-      channel: process.env.BROWSER_CHANNEL || 'chrome',
-      headless: true,
-    });
+    // The D3D12/DXGI target probe exercises real swap-chain presentation, so
+    // launch with the same WebGPU flags the automated graphics fixtures use.
+    browser = await chromium.launch({ ...webgpuBrowserOptions, headless: true });
     const context = await browser.newContext();
     const outbound = [];
     await context.route('**/*', async (route) => {

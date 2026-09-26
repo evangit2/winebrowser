@@ -36,8 +36,15 @@ function validateLegacyShader(bytes, stage) {
     throw Error(`Legacy ${stage} shader END token is missing`);
 }
 
+// Vite provides import.meta.env.BASE_URL in the browser build; plain Node
+// diagnostic runs and workers without that replacement use the site root.
+function defaultBaseURL() {
+  const base = import.meta.env?.BASE_URL ?? '/';
+  return new URL(base, globalThis.location?.origin ?? 'http://127.0.0.1/');
+}
+
 export class ShaderCompiler {
-  constructor({ baseURL = new URL(import.meta.env.BASE_URL, globalThis.location?.origin) } = {}) {
+  constructor({ baseURL = defaultBaseURL() } = {}) {
     this.baseURL = baseURL;
   }
 

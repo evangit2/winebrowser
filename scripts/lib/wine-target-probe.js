@@ -4,6 +4,7 @@ import { parsePE } from '../../src/pe.js';
 import { installWineNtBridge } from '../../src/wine-nt.js';
 import { initializeWineProcess } from '../../src/wine-process.js';
 import { WebGPURenderer } from '../../src/webgpu-renderer.js';
+import { D3D12Renderer } from '../../src/d3d12-renderer.js';
 import { WineLoader, wineModulePath } from '../../src/wine-loader.js';
 import { resolveApiSet } from '../../src/api-sets.js';
 
@@ -33,6 +34,7 @@ export async function probeWineTarget(
   const recentBlocks = [];
   let runtime,
     graphics,
+    graphics12,
     phase = 'map guest closure',
     lastIP;
   const guestModules = () => [...runtime.graph.modules.values()].filter((m) => m.mapped);
@@ -71,6 +73,7 @@ export async function probeWineTarget(
         message.bitmap?.close();
       },
     });
+    const graphics12 = new D3D12Renderer(graphics);
     runtime = new Runtime(iced, {
       files,
       exe,
@@ -78,6 +81,7 @@ export async function probeWineTarget(
       nlsFiles,
       hostModuleImages: true,
       graphics,
+      graphics12,
       request: async (kind, detail) => {
         report.requests.push({ kind, ...detail });
         throw Error(
@@ -363,6 +367,7 @@ export async function probeWineTarget(
     runtime?.syncObjects?.dispose();
     runtime?.windows.dispose();
     runtime?.cpu.dispose();
+    graphics12?.dispose();
     graphics?.dispose();
   }
   return report;
