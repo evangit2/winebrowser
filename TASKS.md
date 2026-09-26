@@ -83,8 +83,11 @@ D3D10/11 and broader D3D12 support are still required.
       FICOM/FICOMP. Tests cover exact conversion, ext80 low bits, all precision/
       rounding modes, C1, compare/pop behavior and faults; native fixtures pass
       in Node and Chromium.
-- [ ] Continue Hamsterball EXE startup through `ole32.dll!CLSIDFromString`, after
-      8,776,204 guest instructions in both Node and Chromium.
+- [x] Parse and format COM GUIDs, including malformed-field partial output and
+      direct guest registry ProgID lookup. Native COM activation uses the resolved
+      CLSID in Node and Chromium.
+- [ ] Continue Hamsterball EXE startup through `user32.dll!FindWindowA`, after
+      8,793,485 guest instructions in both Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

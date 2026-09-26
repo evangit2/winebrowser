@@ -117,10 +117,10 @@ messages and hidden descriptor sessions; ACM discovery and packed BASS attachmen
 complete. The game reaches its original EXE entry. The fixed-address shared-user-data
 clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
 pass predefined cursor loading, including IDC_HAND, and x87 integer-operand
-arithmetic/comparisons. Both probes next stop at `ole32.dll!CLSIDFromString`,
-after 8,776,204 guest instructions.
+arithmetic/comparisons. COM GUID conversion now passes as well. Both probes
+next stop at `user32.dll!FindWindowA`, after 8,793,485 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is COM identifier conversion and remaining
+unverified. The next work is window lookup and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.

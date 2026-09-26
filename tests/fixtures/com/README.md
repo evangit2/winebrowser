@@ -11,6 +11,15 @@ balances initialization, and exercises factory references, server locks and
 `DllCanUnloadNow` before unload/reload. Each object owns independent heap-backed
 state. The DLL checks that its real process-attach callback ran.
 
+Before COM initialization the client also parses mixed-case GUIDs, formats them
+as uppercase UTF-16, checks null/malformed inputs, HRESULTs and buffer bounds,
+and resolves a guest registry ProgID to the CLSID used for native activation.
+Unit checks additionally cover partial output on malformed GUID fields, all byte
+values in text round trips, signed buffer capacities and process isolation.
+`CLSIDFromString`, `IIDFromString` and `StringFromGUID2` use these generic services.
+The ProgID lookup reads a direct `CLSID` subkey; `CurVer` aliases and OLE 1 class
+generation remain unfinished, as do activation-context registrations.
+
 `npm test` runs these and additional failure tests in Node. `npm run test:com`
 runs the client and DLL in an isolated Chromium worker and writes hashed input
 evidence to `evidence/com-browser-results.json`. A nonzero client exit code is a
@@ -29,3 +38,8 @@ References: Microsoft's [CoCreateInstance](https://learn.microsoft.com/en-us/win
 [CoInitializeEx](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-coinitializeex)
 and [InprocServer32](https://learn.microsoft.com/en-us/windows/win32/com/inprocserver32)
 contracts.
+
+Identifier references: Microsoft's [CLSIDFromString](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-clsidfromstring)
+and [IIDFromString](https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-iidfromstring),
+plus the pinned Wine `dlls/combase/combase.c` implementation and
+`dlls/ole32/tests/compobj.c` field-level failure checks.

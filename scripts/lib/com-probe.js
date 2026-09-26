@@ -13,7 +13,7 @@ export async function probeCom(iced, { files }) {
       exitCode: result.exitCode,
       instructions: runtime.cpu.instructions,
       scope:
-        'Native PE32 in-process class factory, object calls, failure HRESULTs, reference counts, locks, unload/reload and balanced single-thread COM initialization; no cross-apartment or remote COM.',
+        'Native PE32 GUID parsing/formatting and registry ProgID resolution, in-process class factory, object calls, failure HRESULTs, reference counts, locks, unload/reload and balanced single-thread COM initialization; no cross-apartment or remote COM.',
     };
   } catch (error) {
     return { status: 'failed', failure: error.message };

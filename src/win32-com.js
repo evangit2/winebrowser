@@ -2,7 +2,8 @@
 // Cross-apartment proxies, activation manifests and out-of-process servers are
 // separate services; never substitute a host object for an unknown CLSID.
 import { readGuid } from './com.js';
-import { registryStore } from './win32-registry.js';
+import { classRegistryKey, registryString } from './com-registry.js';
+import { guidApis } from './win32-guid.js';
 
 const E_POINTER = 0x80004003;
 const E_INVALIDARG = 0x80070057;
@@ -35,28 +36,11 @@ function initialize(r, reserved, flags, argc) {
   return response(state.count++ ? 1 : 0, argc);
 }
 
-function registryString(node, name = '') {
-  const value = node?.values.get(name.toUpperCase());
-  if (!value || value.type !== 1 || value.data.length % 2 || value.data.length > 65536) return null;
-  const text = new TextDecoder('utf-16le').decode(value.data);
-  const end = text.indexOf('\0');
-  return end < 0 ? text : text.slice(0, end);
-}
-
 function serverFor(r, clsid) {
-  const registry = registryStore.stateFor(r);
-  // This runtime has an explicit HKCR store; also accept conventional per-user
-  // and machine registrations. No host-machine registry is read.
-  const paths = [
-    [0x80000000, ['CLSID', `{${clsid}}`, 'InprocServer32']],
-    [0x80000001, ['Software', 'Classes', 'CLSID', `{${clsid}}`, 'InprocServer32']],
-    [0x80000002, ['Software', 'Classes', 'CLSID', `{${clsid}}`, 'InprocServer32']],
-  ];
-  for (const [root, path] of paths) {
-    const node = registryStore.openPath(registry.roots.get(root), path);
-    if (node) return { path: registryString(node), model: registryString(node, 'ThreadingModel') };
-  }
-  return null;
+  const node = classRegistryKey(r, ['CLSID', `{${clsid}}`, 'InprocServer32']);
+  return node
+    ? { path: registryString(node), model: registryString(node, 'ThreadingModel') }
+    : null;
 }
 
 function output(r, pointer) {
@@ -183,6 +167,7 @@ async function freeUnused(r) {
 }
 
 export const comApis = {
+  ...guidApis,
   'ole32.dll!CoInitialize': (r, a) => initialize(r, a(0), 2, 1),
   'ole32.dll!CoInitializeEx': (r, a) => initialize(r, a(0), a(1) >>> 0, 2),
   'ole32.dll!CoUninitialize': async (r) => {
