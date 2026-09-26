@@ -119,7 +119,9 @@
     "test:wide-math": "node scripts/test-wide-math-browser.mjs",
     "build:hlsl": "sh scripts/build-hlsl-fixture.sh",
     "test:hlsl": "node scripts/test-hlsl-browser.mjs",
-    "test:hlsl-native": "node scripts/test-hlsl-native-browser.mjs"
+    "test:hlsl-native": "node scripts/test-hlsl-native-browser.mjs",
+    "build:ucrt": "sh scripts/build-ucrt-fixture.sh",
+    "test:ucrt-native": "node scripts/test-ucrt-native.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -4,6 +4,7 @@ import { importKey } from './win32.js';
 import { registerThunk } from './thunk-addresses.js';
 import { hostModuleImage } from './host-module-image.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
+import { resolveApiSet } from './api-sets.js';
 
 const dllName = (name) => {
   if (typeof name !== 'string' || !name || name.includes('\0')) throw Error('Invalid DLL name');
@@ -79,7 +80,7 @@ export class ModuleGraph {
     return paths;
   }
   findLoaded(name) {
-    name = dllName(name);
+    name = resolveApiSet(dllName(name));
     if (!/[/:]/.test(name))
       return [...this.modules.values()].find((module) => module.name === name.toLowerCase());
     for (const path of this.paths(name)) {
@@ -88,7 +89,7 @@ export class ModuleGraph {
     }
   }
   load(name, retain = false, options = {}) {
-    name = dllName(name);
+    name = resolveApiSet(dllName(name));
     const qualified = /[/:]/.test(name);
     const paths = this.paths(name, options.searchDirectories);
     const targetPath = paths.find(

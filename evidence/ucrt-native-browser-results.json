@@ -1,0 +1,100 @@
+{
+  "date": "2026-09-26T14:38:03.108Z",
+  "status": "passed",
+  "scope": "Native PE32 API-set imports execute pinned Wine UCRT exports: malloc/calloc/realloc/free, narrow/wide strings and conversion, stdio object access, native GetModuleHandle/LoadLibrary/GetProcAddress identity and retained imports after FreeLibrary. Installed Wine/NLS supplied only to diagnostic.",
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e",
+  "inputDlls": [
+    {
+      "name": "ntdll.dll",
+      "sha256": "dadbac5ae6697fd2bea95c745b065074a244ac954f9ff6d9c666d45fe83bee14"
+    },
+    {
+      "name": "wine-format.dll",
+      "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+    },
+    {
+      "name": "msvcrt.dll",
+      "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+    },
+    {
+      "name": "kernel32.dll",
+      "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+    },
+    {
+      "name": "kernelbase.dll",
+      "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+    },
+    {
+      "name": "msacm32.dll",
+      "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+    }
+  ],
+  "exeSha256": "c63bc2e51db8b71d702450d5a5f3995f66f61427e1a07babb57a893eef8facad",
+  "contracts": [
+    "api-ms-win-crt-convert-l1-1-0.dll",
+    "api-ms-win-crt-heap-l1-1-0.dll",
+    "api-ms-win-crt-private-l1-1-0.dll",
+    "api-ms-win-crt-stdio-l1-1-0.dll",
+    "api-ms-win-crt-string-l1-1-0.dll"
+  ],
+  "browser": "154.0.8037.57",
+  "worker": true,
+  "exitCode": 0,
+  "output": [
+    "ucrt-ok\n"
+  ],
+  "modules": [
+    {
+      "name": "ucrt.exe",
+      "path": "ucrt.exe",
+      "host": false,
+      "base": 4194304,
+      "preferredBase": 4194304,
+      "refs": 0,
+      "initialized": false
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "host": false,
+      "base": 16777216,
+      "preferredBase": 2071986176,
+      "refs": 0,
+      "initialized": false
+    },
+    {
+      "name": "ucrtbase.dll",
+      "path": "@runtime/ucrtbase.dll",
+      "host": false,
+      "base": 17235968,
+      "preferredBase": 268435456,
+      "refs": 0,
+      "initialized": false
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "host": false,
+      "base": 18153472,
+      "preferredBase": 2063597568,
+      "refs": 0,
+      "initialized": false
+    },
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "host": false,
+      "base": 20905984,
+      "preferredBase": 2076180480,
+      "refs": 0,
+      "initialized": false
+    }
+  ],
+  "firstFailure": null,
+  "outboundRequests": []
+}

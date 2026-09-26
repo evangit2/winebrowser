@@ -196,7 +196,11 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Integrate host-owned static TLS with the source-built Wine loader: native
       EXE/DLL templates, callback order, thread isolation and FLS cleanup pass
       in Node/Chromium. Real Microsoft HelloTriangle reaches its EXE entry and
-      stops at UCRT `__acrt_iob_func`; API-set redirection is the next gate.
+      initially stopped at UCRT `__acrt_iob_func`.
+- [x] Resolve fifteen UCRT API-set contracts to the actual guest ucrtbase DLL;
+      native memory/string/stdio/module-identity checks pass in Node/Chromium.
+- [ ] Implement NtDuplicateObject for the current thread: the real Microsoft
+      executable now passes UCRT imports and stops on this native service.
 - [ ] Priority: compile, load and render an independently maintained real D3D12
       demo through the ordinary browser PE/ZIP path. Pin upstream source and
       binary provenance; verify guest execution, browser shader compilation and

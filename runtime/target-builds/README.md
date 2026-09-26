@@ -20,7 +20,8 @@ browser is a separate unimplemented capability.
 
 The full executable does not render yet. Its native Wine diagnostic currently
 passes host-owned static TLS and enters the original EXE, then stops at
-`api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func`. UCRT API-set mapping,
+`NtDuplicateObject` (current-thread duplication) after real UCRT imports resolve.
+Thread handle duplication,
 DXGI factory2/4 enumeration and swapchains, null-output device probing,
 and float3 vertex layouts/default pipeline state remain required next steps.
 The HLSL compiler is verified separately without claiming upstream EXE success.

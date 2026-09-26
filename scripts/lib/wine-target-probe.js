@@ -5,6 +5,7 @@ import { installWineNtBridge } from '../../src/wine-nt.js';
 import { initializeWineProcess } from '../../src/wine-process.js';
 import { WebGPURenderer } from '../../src/webgpu-renderer.js';
 import { WineLoader, wineModulePath } from '../../src/wine-loader.js';
+import { resolveApiSet } from '../../src/api-sets.js';
 
 const hex = (value) => `0x${(value >>> 0).toString(16)}`;
 
@@ -56,7 +57,7 @@ export async function probeWineTarget(
       const dll = imported.dll.toLowerCase(),
         name = imported.name ?? `#${imported.ordinal}`;
       if (
-        nativeNames.has(dll) ||
+        nativeNames.has(resolveApiSet(dll)) ||
         API_NAMES[dll]?.includes(canonicalHostSymbol(dll, name, API_NAMES[dll]))
       )
         continue;
