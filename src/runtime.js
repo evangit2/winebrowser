@@ -19,6 +19,7 @@ import { ModuleGraph } from './modules.js';
 import { GuestMemory } from './memory.js';
 import { API_NAMES, createWin32ApiProvider, importKey } from './win32.js';
 import { GuestPerformanceClock } from './guest-clock.js';
+import { createSharedUserData } from './shared-user-data.js';
 
 export { API_NAMES };
 
@@ -52,6 +53,7 @@ export class Runtime {
       graphics,
       graphics12,
       performanceNow,
+      systemNow = () => Date.now(),
       hostModuleImages = true,
     },
   ) {
@@ -70,6 +72,7 @@ export class Runtime {
     this.graphics = graphics;
     this.graphics12 = graphics12;
     this.performanceClock = new GuestPerformanceClock(performanceNow);
+    this.systemNow = systemNow;
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles, { hostModuleImages });
     this.memory = new WebAssembly.Memory({ initial: 1024, maximum: 1024 });
     this.regions = [{ start: 0x2e00000, end: 0x4000000, write: true, exec: false }];
@@ -77,6 +80,7 @@ export class Runtime {
     this.pe = this.graph.main.pe;
     this.guestMemory = new GuestMemory(this.memory, this.regions, {
       onCodeWrite: (address, size) => this.cpu?.invalidateRange(address, size),
+      readOnlyViews: [createSharedUserData(this.performanceClock, this.systemNow)],
     });
     this.virtualMemory = new VirtualMemory(this.memory, this.regions);
     this.sectionViews = new SectionViews(this.memory, this.regions, this.virtualMemory);
@@ -88,8 +92,9 @@ export class Runtime {
       read32: (a) => this.read32(a),
       write32: (a, v) => this.write32(a, v),
       read: (a, w) => this.guestMemory.read(a, w),
+      readBytes: (a, size) => this.guestMemory.readBytes(a, size),
       write: (a, v, w) => this.guestMemory.write(a, v, w),
-      check: (address, size, write) => this.check(address, size, write),
+      check: (address, size, write) => this.guestMemory.check(address, size, write),
       executableRanges: [],
       fsBase: PROCESS_LAYOUT.teb,
       performanceCounter: () => this.performanceClock.read(),
@@ -115,7 +120,7 @@ export class Runtime {
   }
 
   check(address, size, write = false) {
-    return this.guestMemory.check(address, size, write);
+    return this.guestMemory.checkLinear(address, size, write);
   }
 
   read32(address) {

@@ -12,6 +12,7 @@ export class CPU {
       read32,
       write32,
       read,
+      readBytes,
       write,
       check,
       executableRanges,
@@ -54,6 +55,7 @@ export class CPU {
     });
     this.x87 = new X87State({
       memory,
+      readBytes,
       check: (address, size, isWrite) => this.checkMemory(address, size, isWrite),
       registers: this.r,
       flags: this,

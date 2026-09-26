@@ -72,9 +72,13 @@ D3D10/11 and broader D3D12 support are still required.
       WinMM. Native fixtures verify instances, messages, registry aliases, hidden
       sessions, failure cleanup and unload in Node and Chromium. Native ACM now
       completes driver discovery and BASS DLL attachment.
-- [ ] Continue original Hamsterball EXE startup through the shared-user-data read
-      at `0x7ffe0320` in Kernel32 (`+0x1b870`). Node and Chromium reach this read
-      after 8,770,928 guest instructions and pass all guest DLL attachment.
+- [x] Supply read-only shared-user-data clock and processor fields at their real
+      high guest addresses without enlarging linear memory. Native Kernel32
+      GetTickCount/GetTickCount64 and direct reads pass in Node and Chromium;
+      scalar/SIMD/x87/copy reads, rollover and access restrictions are tested.
+- [ ] Continue Hamsterball EXE startup through the predefined `IDC_HAND` cursor
+      (`LoadCursorA(NULL,32649)`), incorrectly labeled a custom cursor by the
+      existing provider. Both probes now reach it after 8,773,043 guest instructions.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

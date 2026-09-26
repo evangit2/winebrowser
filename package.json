@@ -65,7 +65,9 @@
     "build:characters": "sh scripts/build-character-fixture.sh",
     "probe:characters": "node scripts/probe-wine-target.mjs tests/fixtures/characters",
     "build:drivers": "sh scripts/build-driver-fixtures.sh",
-    "test:drivers": "node scripts/test-drivers-browser.mjs"
+    "test:drivers": "node scripts/test-drivers-browser.mjs",
+    "build:shared-data": "sh scripts/build-shared-data-fixture.sh",
+    "test:shared-data": "node scripts/test-shared-data-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

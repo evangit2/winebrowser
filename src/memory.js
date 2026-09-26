@@ -1,14 +1,66 @@
 /** Bounds-checked access to the mapped PE and its guest stack/heap regions. */
 export class GuestMemory {
-  constructor(memory, regions, { onCodeWrite } = {}) {
+  constructor(memory, regions, { onCodeWrite, readOnlyViews = [] } = {}) {
     this.memory = memory;
     this.regions = regions;
     this.view = new DataView(memory.buffer);
     this.data = new Uint8Array(memory.buffer);
     this.onCodeWrite = onCodeWrite;
+    this.readOnlyViews = readOnlyViews.map((mapping) => {
+      const { start, bytes, ranges = [[0, bytes?.length]] } = mapping;
+      if (
+        !(bytes instanceof Uint8Array) ||
+        !bytes.length ||
+        !Number.isSafeInteger(start) ||
+        start < this.data.length ||
+        start + bytes.length > 0x100000000 ||
+        ranges.some(
+          ([a, b]) =>
+            !Number.isSafeInteger(a) ||
+            !Number.isSafeInteger(b) ||
+            a < 0 ||
+            a >= b ||
+            b > bytes.length,
+        )
+      )
+        throw Error('Invalid external read-only guest mapping');
+      return {
+        ...mapping,
+        ranges,
+        end: start + bytes.length,
+        view: new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      };
+    });
+    for (const [index, mapping] of this.readOnlyViews.entries())
+      if (
+        this.readOnlyViews
+          .slice(index + 1)
+          .some((other) => mapping.start < other.end && other.start < mapping.end)
+      )
+        throw Error('Overlapping external guest mappings');
   }
 
   check(address, size, write = false) {
+    address >>>= 0;
+    if (address < this.data.length) return this.checkLinear(address, size, write);
+    const mapping = this.readOnlyViews.find((m) => address >= m.start && address < m.end);
+    if (!mapping) return this.checkLinear(address, size, write);
+    const offset = address - mapping.start;
+    if (
+      write ||
+      !Number.isSafeInteger(size) ||
+      size < 0 ||
+      !mapping.ranges.some(([start, end]) => offset >= start && offset + size <= end)
+    )
+      throw Error(
+        `Guest ${write ? 'write' : 'read'} violation at 0x${address.toString(16)} (${size} bytes)`,
+      );
+    return address;
+  }
+
+  // Raw linear-buffer consumers must use this check, never accept an external
+  // address and then silently index an unrelated/empty TypedArray slice.
+  checkLinear(address, size, write = false) {
     address >>>= 0;
     const permitted = (region) =>
       region.read !== false && (!write || (region.write && (!region.exec || this.onCodeWrite)));
@@ -49,11 +101,32 @@ export class GuestMemory {
   }
 
   read(address, width = 4) {
+    address >>>= 0;
+    if (![1, 2, 4].includes(width)) throw Error('Unsupported guest read width');
     this.check(address, width);
-    if (width === 1) return this.view.getUint8(address);
-    if (width === 2) return this.view.getUint16(address, true);
-    if (width === 4) return this.view.getUint32(address, true);
+    const mapping =
+      address < this.data.length
+        ? null
+        : this.readOnlyViews.find((m) => address >= m.start && address < m.end);
+    const offset = mapping ? address - mapping.start : address;
+    if (mapping) mapping.refresh?.(offset, width);
+    const view = mapping?.view ?? this.view;
+    if (width === 1) return view.getUint8(offset);
+    if (width === 2) return view.getUint16(offset, true);
+    if (width === 4) return view.getUint32(offset, true);
     throw Error('Unsupported guest read width');
+  }
+  readBytes(address, size) {
+    address >>>= 0;
+    this.check(address, size);
+    const mapping =
+      address < this.data.length
+        ? null
+        : this.readOnlyViews.find((m) => address >= m.start && address < m.end);
+    if (!mapping) return this.data.slice(address, address + size);
+    const offset = address - mapping.start;
+    mapping.refresh?.(offset, size);
+    return mapping.bytes.slice(offset, offset + size);
   }
   write(address, value, width = 4) {
     this.check(address, width, true);
@@ -63,7 +136,9 @@ export class GuestMemory {
     else throw Error('Unsupported guest write width');
   }
   read32(address) {
-    return this.view.getUint32(this.check(address, 4), true);
+    address >>>= 0;
+    if (address < this.data.length) return this.view.getUint32(this.checkLinear(address, 4), true);
+    return this.read(address, 4);
   }
 
   write32(address, value) {
@@ -74,7 +149,7 @@ export class GuestMemory {
     if (!address) return '';
     const bytes = [];
     for (let offset = 0; offset < 32768; offset++) {
-      const byte = this.data[this.check(address + offset, 1)];
+      const byte = this.read(address + offset, 1);
       if (!byte) return new TextDecoder('windows-1252').decode(new Uint8Array(bytes));
       bytes.push(byte);
     }

@@ -139,9 +139,10 @@ const INDEFINITE = Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0xc0, 0xff, 0xff]);
 const SOFT_TO_X87 = [0, 5, 4, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0];
 
 export class X87State {
-  constructor({ memory, check, registers, flags, moduleUrl, wasmUrl }) {
+  constructor({ memory, check, readBytes, registers, flags, moduleUrl, wasmUrl }) {
     this.memory = memory;
     this.check = check;
+    this.readBytes = readBytes;
     this.registers = registers;
     this.flags = flags;
     this.moduleUrl = moduleUrl;
@@ -275,6 +276,7 @@ export class X87State {
 
   #read(address, width) {
     address = this.check(address >>> 0, width, false);
+    if (this.readBytes) return this.readBytes(address, width);
     return new Uint8Array(this.memory.buffer, address, width).slice();
   }
 

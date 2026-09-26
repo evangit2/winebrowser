@@ -13,6 +13,7 @@ import { iconApis } from './win32-icons.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileShareConflict } from './wine-file.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
+import { splitGuestCounter } from './guest-clock.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
@@ -29,6 +30,7 @@ export const API_NAMES = {
     'GetLastError',
     'SetLastError',
     'GetTickCount',
+    'GetTickCount64',
     'Sleep',
     'Beep',
     'GetModuleHandleA',
@@ -88,8 +90,8 @@ function setLastError(runtime, argument) {
   return success(0, 1);
 }
 
-function getTickCount() {
-  return success(Math.floor(performance.now()) >>> 0);
+function getTickCount(runtime) {
+  return success(Number((runtime.performanceClock.read() / 1_000_000n) & 0xffffffffn));
 }
 
 function getModuleHandle(runtime, argument) {
@@ -276,6 +278,13 @@ export function createWin32ApiProvider() {
     ['kernel32.dll!GetLastError', getLastError],
     ['kernel32.dll!SetLastError', setLastError],
     ['kernel32.dll!GetTickCount', getTickCount],
+    [
+      'kernel32.dll!GetTickCount64',
+      (r) => {
+        const { low, high } = splitGuestCounter(r.performanceClock.read() / 1_000_000n);
+        return { result: low, resultHigh: high, argc: 0 };
+      },
+    ],
     ['kernel32.dll!Sleep', sleep],
     ['kernel32.dll!Beep', beep],
     ['user32.dll!MessageBoxA', messageBox],

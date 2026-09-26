@@ -6,6 +6,7 @@ import { memoryNtServices } from './memory-protection.js';
 import { threadNtServices } from './wine-thread.js';
 import { processorFeatureNtServices } from './processor-features.js';
 import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
+import { systemFileTime } from './shared-user-data.js';
 import { closeFileHandle, fileNtServices } from './wine-file.js';
 import { registerThunk } from './thunk-addresses.js';
 
@@ -213,7 +214,7 @@ export const ntServices = {
   NtFreeVirtualMemory: { argc: 4, call: (r, a) => virtualMemoryCall(r, a, false) },
   NtQuerySystemTime: {
     argc: 1,
-    call: (r, a) => writeLargeInteger(r, a(0), BigInt(Date.now()) * 10000n + 116444736000000000n),
+    call: (r, a) => writeLargeInteger(r, a(0), systemFileTime(r.systemNow())),
   },
   NtQueryPerformanceCounter: {
     argc: 2,

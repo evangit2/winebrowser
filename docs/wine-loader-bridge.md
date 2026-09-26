@@ -114,11 +114,13 @@ and x87 `FISTTP` conversions. User32 character calls now execute native Wine
 KernelBase/NLS code, and legacy registry create/open aliases share the existing
 key store. WinMM now loads native DriverProc exports and manages real instances,
 messages and hidden descriptor sessions; ACM discovery and packed BASS attachment
-complete. The game reaches its original EXE entry. Both Node and Chromium stop on
-a Kernel32 read at `0x7ffe0320`, after 8,770,928 guest instructions.
+complete. The game reaches its original EXE entry. The fixed-address shared-user-data
+clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
+next stop at `LoadCursorA(NULL,32649)` (the predefined hand cursor), after
+8,773,043 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is the Windows shared-user-data memory boundary and
-remaining audio/Win32 services, followed by
+unverified. The next work is predefined cursor support and remaining
+audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 
@@ -142,3 +144,11 @@ optional Wine base closure. `npm run test:drivers` verifies the native client an
 DriverProc ABI in Chromium; fixture scope and limitations are in
 [the driver fixture](../tests/fixtures/drivers/README.md). Native ACM discovery
 uses this same bridge; it does not substitute successful codec responses.
+
+The shared-data mapping has a separate 4 KiB backing view and leaves the linear
+application arena at 64 MiB. Its clock fields share the runtime's monotonic
+performance counter and NT wall-clock source. Processor-feature bytes use the
+same conservative virtual CPU profile. The
+[fixture documentation](../tests/fixtures/shared-data/README.md) identifies the
+supported fields, memory-access boundary and both ordinary/native-Wine browser
+checks; other shared-data fields and raw host-buffer consumers remain unfinished.

@@ -1,0 +1,650 @@
+{
+  "date": "2026-09-26T03:22:48.622Z",
+  "targetId": "tests/fixtures/shared-data",
+  "exe": "shared-data.exe",
+  "exeSha256": "deff91dbea4989e7ee4a4720b98dc9b93613ae221bfd256bb1e2bce665ff192a",
+  "packageFiles": [
+    {
+      "name": "shared-data.c",
+      "bytes": 1328,
+      "sha256": "c33a5e5ca6b60ff7c4c36f358850d1ab6314c763bc831b5b1301bc2743a21e1b"
+    },
+    {
+      "name": "shared-data.exe",
+      "bytes": 3072,
+      "sha256": "deff91dbea4989e7ee4a4720b98dc9b93613ae221bfd256bb1e2bce665ff192a"
+    }
+  ],
+  "inputs": {
+    "manifest": ".cache/wine-loader/manifest.json",
+    "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+    "nlsDirectory": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls",
+    "dlls": [
+      {
+        "name": "ntdll.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797467,
+        "sha256": "857d6368024b2b37dae567aa4625e05dd80eb57532e431fe110d9032311fe26a"
+      },
+      {
+        "name": "wine-format.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "bytes": 10752,
+        "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+      },
+      {
+        "name": "msvcrt.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msvcrt.dll",
+        "bytes": 679950,
+        "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernel32.dll",
+        "bytes": 397326,
+        "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernelbase.dll",
+        "bytes": 2703374,
+        "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+      },
+      {
+        "name": "msacm32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msacm32.dll",
+        "bytes": 126990,
+        "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+      },
+      {
+        "name": "ucrtbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/ucrtbase.dll",
+        "bytes": 892942,
+        "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+      }
+    ],
+    "nls": [
+      {
+        "name": "locale.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/locale.nls",
+        "bytes": 794914,
+        "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+      },
+      {
+        "name": "sortdefault.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/sortdefault.nls",
+        "bytes": 3380468,
+        "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+      },
+      {
+        "name": "l_intl.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/l_intl.nls",
+        "bytes": 5564,
+        "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+      },
+      {
+        "name": "normnfc.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/normnfc.nls",
+        "bytes": 60194,
+        "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+      },
+      {
+        "name": "c_1252.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_1252.nls",
+        "bytes": 66082,
+        "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+      },
+      {
+        "name": "c_437.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_437.nls",
+        "bytes": 66594,
+        "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+      },
+      {
+        "name": "c_20127.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_20127.nls",
+        "bytes": 66082,
+        "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
+      }
+    ],
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+    "patchSha256": "ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21"
+  },
+  "status": "entry-returned",
+  "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
+  "phases": [
+    {
+      "name": "map guest closure",
+      "passed": true,
+      "modules": [
+        {
+          "name": "shared-data.exe",
+          "path": "shared-data.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "winmm.dll",
+          "path": "@host/winmm.dll",
+          "host": true,
+          "base": 17235968,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 17301504,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 20054016,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        }
+      ]
+    },
+    {
+      "name": "Wine process bootstrap",
+      "passed": true
+    },
+    {
+      "name": "source loader registration",
+      "passed": true
+    },
+    {
+      "name": "source loader callbacks",
+      "passed": true
+    },
+    {
+      "name": "guest DLL attach",
+      "passed": true
+    },
+    {
+      "name": "native EXE entry point",
+      "passed": true
+    }
+  ],
+  "trappedImports": [
+    "advapi32.dll!RegEnumKeyExW",
+    "advapi32.dll!RegEnumValueW",
+    "advapi32.dll!RegQueryInfoKeyW",
+    "user32.dll!DialogBoxIndirectParamW",
+    "user32.dll!DialogBoxParamW",
+    "user32.dll!EndDialog",
+    "user32.dll!GetPropW",
+    "user32.dll!RegisterWindowMessageW",
+    "user32.dll!SendDlgItemMessageW",
+    "user32.dll!SetPropW"
+  ],
+  "apiCalls": [
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104600,
+        0,
+        67104752,
+        8192,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104600,
+        0,
+        67104756,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        33555552,
+        0,
+        67104720,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        1000,
+        20702880,
+        256,
+        0
+      ],
+      "result": "0xc0000003"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103440,
+        80,
+        67103436
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103668,
+        983103,
+        67103568,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103676,
+        983103,
+        67103716
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954496
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103680,
+        983103,
+        67103740
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954497
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103684,
+        983103,
+        67103740
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryInformationProcess",
+      "args": [
+        4294967295,
+        26,
+        67104728,
+        4,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104728,
+        0,
+        67104724,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtInitializeNlsFiles",
+      "args": [
+        67103856,
+        20698856,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        9,
+        0,
+        0,
+        67104100,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryDefaultLocale",
+      "args": [
+        1,
+        18037412
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        12,
+        1,
+        0,
+        18031708,
+        67103932
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103744,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        18037404,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        18037400,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103636,
+        80,
+        67103632
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103764,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        18037408,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103364,
+        983359,
+        67102888,
+        0
+      ],
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103732,
+        131097,
+        67103344,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        102,
+        67104272,
+        432,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103828,
+        983103,
+        67103440,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103936,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        10
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        8
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        12
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954502
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        0,
+        17043648,
+        44,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "winmm.dll!timeGetTime",
+      "args": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x56a"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        6,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        4294967295,
+        0
+      ],
+      "result": "0x0"
+    }
+  ],
+  "output": [],
+  "requests": [],
+  "frames": 0,
+  "nativeLoaderCalls": [],
+  "firstFailure": null,
+  "exitCode": 0,
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}
