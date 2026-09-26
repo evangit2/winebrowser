@@ -396,3 +396,62 @@ test('D3D8 SDK versions use distinct IIDs, 52-byte presentation parameters and F
   assert.equal((await call(device, 2)).result, 0);
   await assert.rejects(call(factory, 4), /Released COM object/);
 });
+
+for (const version of [8, 9]) {
+  test(`D3D${version} display enumeration matches USER32 and validates outputs atomically`, async () => {
+    const { runtime, call, factory, create } = fixture(version);
+    const output = runtime.allocate(24),
+      pointer = output + 4;
+    runtime.data.fill(0xa5, output, output + 24);
+    const current = await call(factory, 8, 0, pointer);
+    assert.deepEqual(current, { result: 0, argc: 3 });
+    assert.deepEqual(
+      Array.from({ length: 4 }, (_, i) => runtime.read32(pointer + i * 4)),
+      [1024, 768, 60, 22],
+    );
+    assert.equal(runtime.read32(output), 0xa5a5a5a5);
+    assert.equal(runtime.read32(output + 20), 0xa5a5a5a5);
+    assert.equal((await call(factory, 6, 0, 22)).result, 1);
+    assert.equal((await call(factory, 6, 1, 22)).result, 0);
+    if (version === 9) assert.equal((await call(factory, 6, 0, 23)).result, 0);
+    const enumArgs = (adapter, mode, ptr) =>
+      version === 8 ? [adapter, mode, ptr] : [adapter, 22, mode, ptr];
+    assert.deepEqual(await call(factory, 7, ...enumArgs(0, 0, pointer)), {
+      result: 0,
+      argc: version === 8 ? 4 : 5,
+    });
+    const snapshot = runtime.data.slice(output, output + 24);
+    for (const [slot, args] of [
+      [8, [1, pointer]],
+      [8, [0, 0]],
+      [8, [0, runtime.data.length - 12]],
+      [7, enumArgs(1, 0, pointer)],
+      [7, enumArgs(0, 1, pointer)],
+      [7, enumArgs(0, 0, 0)],
+      [7, enumArgs(0, 0, runtime.data.length - 12)],
+      ...(version === 9 ? [[7, [0, 23, 0, pointer]]] : []),
+    ])
+      assert.equal((await call(factory, slot, ...args)).result, 0x8876086c);
+    assert.deepEqual(runtime.data.slice(output, output + 24), snapshot);
+    const device = await create(); // Its 640x480 backbuffer is not the desktop mode.
+    await call(factory, 8, 0, pointer);
+    assert.equal(runtime.read32(pointer), 1024);
+    assert.equal(runtime.read32(pointer + 4), 768);
+    await call(device, 2);
+    await call(factory, 2);
+  });
+}
+
+for (const version of [8, 9]) {
+  test(`D3D${version} depth matching exposes only the implemented D16 attachment`, async () => {
+    const { call, factory } = fixture(version);
+    for (const color of [21, 22])
+      assert.deepEqual(await call(factory, 12, 0, 1, 22, color, 80), { result: 0, argc: 6 });
+    for (const depth of [0, 70, 75, 77, 79])
+      assert.equal((await call(factory, 12, 0, 1, 22, 22, depth)).result, 0x8876086a);
+    assert.equal((await call(factory, 12, 0, 1, 23, 22, 80)).result, 0x8876086a);
+    assert.equal((await call(factory, 12, 0, 1, 22, 23, 80)).result, 0x8876086a);
+    assert.equal((await call(factory, 12, 0, 2, 22, 22, 80)).result, 0x8876086a);
+    assert.equal((await call(factory, 12, 1, 1, 22, 22, 80)).result, 0x8876086c);
+  });
+}

@@ -135,9 +135,12 @@ D3D10/11 and broader D3D12 support are still required.
       priorities, waits, return/exit codes and cancellation cleanup. Native Wine
       TLS/FLS and DLL lifecycle pass Node/Chromium fixtures; ordinary uploads pass
       EXE/ZIP tests and separate static TLS/DLL callback tests.
-- [ ] Continue Hamsterball through `IDirect3D8.GetAdapterDisplayMode`, after
-      8,854,836 instructions in Node and 8,854,844 in Chromium. Two guest workers
-      initialize and its 800×600 window is created.
+- [x] Implement shared D3D8/9 virtual-display queries and D16 depth matching.
+      Native EXE/ZIP cubes verify both COM ABIs, invalid queries and real rendering.
+- [ ] Continue Hamsterball through `IDirect3D8.CreateDevice`. Two guest workers
+      initialize and its 800×600 window is created. Display/depth queries pass;
+      its fullscreen/FLIP/R5G6B5 request currently returns `D3DERR_INVALIDCALL`.
+      See `docs/d3d-display.md` for captured settings and presentation work.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

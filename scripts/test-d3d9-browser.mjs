@@ -113,6 +113,10 @@ try {
     );
     for (const call of [
       `d3d${version}.dll!Direct3DCreate${version}`,
+      `IDirect3D${version}.GetAdapterDisplayMode`,
+      `IDirect3D${version}.GetAdapterModeCount`,
+      `IDirect3D${version}.EnumAdapterModes`,
+      `IDirect3D${version}.CheckDepthStencilMatch`,
       `IDirect3D${version}.CreateDevice`,
       `IDirect3DDevice${version}.DrawPrimitiveUP`,
       `IDirect3DDevice${version}.Present`,

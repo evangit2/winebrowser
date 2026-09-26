@@ -9,6 +9,10 @@
 #define Direct3DCreate9 Direct3DCreate8
 #define IDirect3D9_CreateDevice IDirect3D8_CreateDevice
 #define IDirect3D9_Release IDirect3D8_Release
+#define IDirect3D9_GetAdapterDisplayMode IDirect3D8_GetAdapterDisplayMode
+#define IDirect3D9_CheckDepthStencilMatch IDirect3D8_CheckDepthStencilMatch
+#define IDirect3D9_GetAdapterModeCount(p, a, f) IDirect3D8_GetAdapterModeCount(p, a)
+#define IDirect3D9_EnumAdapterModes(p, a, f, i, m) IDirect3D8_EnumAdapterModes(p, a, i, m)
 #define IDirect3DDevice9_SetRenderState IDirect3DDevice8_SetRenderState
 #define IDirect3DDevice9_SetFVF IDirect3DDevice8_SetVertexShader
 #define IDirect3DDevice9_SetTransform IDirect3DDevice8_SetTransform

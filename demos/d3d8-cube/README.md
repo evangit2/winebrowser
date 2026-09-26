@@ -9,3 +9,8 @@ Rebuild with `sh scripts/build-d3d9-demo.sh 8`. This verifies the bounded
 color/depth/FVF path, not full D3D8 or Hamsterball compatibility. D3D8 texture
 resources, shaders, state blocks and the remaining device methods still need
 adaptation to the shared renderer.
+
+Before creating the device, the native program verifies adapter display mode and
+enumeration against USER32 screen dimensions, invalid adapter/index results,
+D16 depth compatibility and rejection of unimplemented D24S8 stencil. The browser
+regression requires these calls and subsequent real animated WebGPU frames.

@@ -157,7 +157,14 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       const args = [];
       const count =
         service?.argc ??
-        { 'user32.dll!SetWindowPos': 7, 'dinput8.dll!DirectInput8Create': 5 }[name] ??
+        {
+          'user32.dll!SetWindowPos': 7,
+          'dinput8.dll!DirectInput8Create': 5,
+          'IDirect3D8.CreateDevice': 7,
+          'IDirect3D9.CreateDevice': 7,
+          'IDirect3D8.CheckDepthStencilMatch': 6,
+          'IDirect3D9.CheckDepthStencilMatch': 6,
+        }[name] ??
         4;
       for (let i = 0; i < count; i++) {
         try {
@@ -176,6 +183,16 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
           runtime.check(buffer, length);
           record.path = new TextDecoder('utf-16le').decode(
             runtime.data.subarray(buffer, buffer + length),
+          );
+        } catch (error) {
+          record.traceError = error.message;
+        }
+      }
+      if (/^IDirect3D[89]\.CreateDevice$/.test(name)) {
+        try {
+          record.presentation = Array.from(
+            { length: name.startsWith('IDirect3D8.') ? 13 : 14 },
+            (_, i) => runtime.read32(args[5] + i * 4),
           );
         } catch (error) {
           record.traceError = error.message;

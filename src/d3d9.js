@@ -1,4 +1,5 @@
 import { ComObjects } from './com.js';
+import { displayMethods } from './d3d-display.js';
 import { D3D8_METHODS, DEVICE8_METHODS, device8Methods } from './d3d8-abi.js';
 import {
   bindObject,
@@ -343,6 +344,7 @@ function createDevice(runtime, argument, version) {
 
 function factoryMethods(version = 9) {
   return {
+    ...displayMethods(version),
     4: { argc: 1, invoke: () => 1 },
     [version === 8 ? 15 : 16]: {
       argc: 7,

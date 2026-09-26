@@ -85,6 +85,26 @@ static int run(void)
 
     IDirect3D9 *d3d = Direct3DCreate9(D3D_SDK_VERSION);
     if (!d3d) return 4;
+    D3DDISPLAYMODE desktop = {0}, enumerated = {0};
+    if (FAILED(IDirect3D9_GetAdapterDisplayMode(d3d, 0, &desktop)) ||
+            desktop.Width != (UINT)GetSystemMetrics(SM_CXSCREEN) ||
+            desktop.Height != (UINT)GetSystemMetrics(SM_CYSCREEN) ||
+            desktop.RefreshRate != 60 || desktop.Format != D3DFMT_X8R8G8B8) return 30;
+    if (IDirect3D9_GetAdapterModeCount(d3d, 0, desktop.Format) != 1 ||
+            IDirect3D9_GetAdapterModeCount(d3d, 1, desktop.Format) != 0 ||
+            FAILED(IDirect3D9_EnumAdapterModes(d3d, 0, desktop.Format, 0, &enumerated)) ||
+            enumerated.Width != desktop.Width || enumerated.Height != desktop.Height ||
+            enumerated.Format != desktop.Format || enumerated.RefreshRate != desktop.RefreshRate)
+        return 31;
+    enumerated.Width = 123;
+    if (IDirect3D9_EnumAdapterModes(d3d, 0, desktop.Format, 1, &enumerated) != D3DERR_INVALIDCALL ||
+            enumerated.Width != 123 ||
+            IDirect3D9_GetAdapterDisplayMode(d3d, 1, &enumerated) != D3DERR_INVALIDCALL ||
+            enumerated.Width != 123) return 32;
+    if (FAILED(IDirect3D9_CheckDepthStencilMatch(d3d, 0, D3DDEVTYPE_HAL, desktop.Format,
+                    D3DFMT_X8R8G8B8, D3DFMT_D16)) ||
+            IDirect3D9_CheckDepthStencilMatch(d3d, 0, D3DDEVTYPE_HAL, desktop.Format,
+                    D3DFMT_X8R8G8B8, D3DFMT_D24S8) != D3DERR_NOTAVAILABLE) return 33;
     D3DPRESENT_PARAMETERS params = {0};
     params.BackBufferWidth = WIDTH;
     params.BackBufferHeight = HEIGHT;

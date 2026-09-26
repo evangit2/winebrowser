@@ -124,10 +124,11 @@ fixtures. Event creation and waits now run through native Wine. Initializing
 the TEB activation-context stack and Unicode scratch buffer fixes native module
 lookup and filename conversion. Package metadata queries now pass, including
 the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
-It reaches `IDirect3D8.GetAdapterDisplayMode` at 8,854,836 guest instructions in
-Node and 8,854,844 in Chromium.
+It passes D3D8 display/depth queries and reaches `IDirect3D8.CreateDevice` after
+about 8.86 million guest instructions in both probes. Its fullscreen/FLIP/R5G6B5
+request fails with `D3DERR_INVALIDCALL`; see [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is the D3D8 display query and broader resources, with remaining
+unverified. The next work is D3D8 presentation and broader resources, with remaining
 audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 

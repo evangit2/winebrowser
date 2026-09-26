@@ -12,3 +12,8 @@ license in `LICENSE`.
 
 This demo is a compatibility target. Its presence in the package does not by
 itself establish that WineBrowser implements Direct3D 9 rendering yet.
+
+Before creating the device, the native program verifies adapter display mode and
+enumeration against USER32 screen dimensions, invalid adapter/index results,
+D16 depth compatibility and rejection of unimplemented D24S8 stencil. The browser
+regression requires these calls and subsequent real animated WebGPU frames.

@@ -58,7 +58,8 @@ including dynamic TLS/FLS and process shutdown. Reports are in
 and `evidence/threads-native-browser-results.json`.
 
 Original Hamsterball now initializes two workers, creates its 800×600 window and
-reaches `IDirect3D8.GetAdapterDisplayMode` after about 8.85 million guest instructions
-in both Node and Chromium. No game frame renders yet. The reference Theseus
+passes D3D8 display/depth queries after about 8.86 million guest instructions
+in both Node and Chromium. Its next device request is outside the current
+[presentation support](d3d-display.md). No game frame renders yet. The reference Theseus
 `kernel32/thread.rs` uses host `std::thread::spawn`; this browser scheduler instead
 uses the existing guest CPU and Wine's lifecycle routines.
