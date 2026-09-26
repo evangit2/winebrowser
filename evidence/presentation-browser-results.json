@@ -1,47 +1,14 @@
 {
-  "date": "2026-09-26T09:36:18.392Z",
+  "date": "2026-09-26T09:58:04.586Z",
   "status": "passed",
   "browser": "154.0.8037.57",
-  "exeSha256": "1c98c9b97cd442386cfd97bc50052df678b7c43f33ec4a7e55f7e572ec020842",
+  "exeSha256": "b147ec6248bef440a4b859a3375c8362edd73ef6e1f937da732725a07f12e9ea",
   "scope": "Native D3D8 EXE/ZIP: 800x600 RGB565 fullscreen/FLIP/interval ONE, real GPU animation, Escape, and native assertions that desktop mode/window geometry/style restore on release.",
   "runs": [
     {
       "name": "fullscreen.exe",
       "pixels": {
-        "hash": "71472fd95919eb906913186e90c1b58cd11a2dcb81258bc781b4a89dfde2074d",
-        "width": 800,
-        "height": 600,
-        "frames": 8,
-        "bad": 0,
-        "colored": 119716,
-        "colors": [
-          "25,28,49",
-          "239,206,90"
-        ]
-      },
-      "animated": {
-        "hash": "7af2d8419bc6afea178044f70ef6af35bad083551abe87c4c4125ec5314a36b3",
-        "width": 800,
-        "height": 600,
-        "frames": 28,
-        "bad": 0,
-        "colored": 116844,
-        "colors": [
-          "25,28,49",
-          "189,142,230",
-          "230,101,82",
-          "123,215,115",
-          "239,158,82"
-        ]
-      },
-      "exitCode": 0,
-      "instructions": 4961,
-      "errors": []
-    },
-    {
-      "name": "fullscreen.zip",
-      "pixels": {
-        "hash": "1382d29aace3a402786ad421de5c25bc01bfe1433416957b8c51fac6ad64fe72",
+        "hash": "4a8d30f9a1d0f6c487d62affbaa02dcdd5931e1cb3e2fe84353ad9549df7f0e6",
         "width": 800,
         "height": 600,
         "frames": 6,
@@ -50,13 +17,18 @@
         "colors": [
           "25,28,49",
           "189,142,230",
-          "123,215,115",
-          "90,198,239",
+          "247,206,90",
+          "239,206,90",
+          "239,101,90",
+          "230,97,82",
+          "247,210,90",
+          "230,101,82",
+          "247,210,99",
           "239,158,82"
         ]
       },
       "animated": {
-        "hash": "fb7b34cb3a7c3b394a4482f12a89b583e7736ca29050dde13f76a7e5cfbb3435",
+        "hash": "f25e5da0a2348cee97d2183281c77163b2f4962f73b56b4781429e3980dc2597",
         "width": 800,
         "height": 600,
         "frames": 25,
@@ -64,14 +36,73 @@
         "colored": 121712,
         "colors": [
           "25,28,49",
-          "90,198,239",
-          "239,206,90",
+          "230,101,82",
+          "123,219,123",
+          "230,97,82",
+          "115,215,115",
+          "123,215,115",
+          "123,219,115",
+          "239,101,90",
+          "197,146,239",
           "189,142,230",
-          "239,158,82"
+          "230,154,82",
+          "239,158,90"
         ]
       },
       "exitCode": 0,
-      "instructions": 4577,
+      "instructions": 4645,
+      "errors": []
+    },
+    {
+      "name": "fullscreen.zip",
+      "pixels": {
+        "hash": "4f5c60b3ea96e5492f4d300605cfe2ab8a8145a59fdc4ecb2f45defc634cd04d",
+        "width": 800,
+        "height": 600,
+        "frames": 6,
+        "bad": 0,
+        "colored": 121712,
+        "colors": [
+          "25,28,49",
+          "123,215,115",
+          "99,198,247",
+          "115,215,115",
+          "123,219,115",
+          "90,194,239",
+          "90,198,239",
+          "123,219,123",
+          "99,198,239",
+          "197,146,239",
+          "189,142,230",
+          "230,154,82",
+          "239,158,90"
+        ]
+      },
+      "animated": {
+        "hash": "7ea63f583a99ddf359dd12eb0ce8a63ef74ed2d1512ff864c284422019968afb",
+        "width": 800,
+        "height": 600,
+        "frames": 26,
+        "bad": 0,
+        "colored": 117072,
+        "colors": [
+          "25,28,49",
+          "90,198,239",
+          "247,210,99",
+          "239,206,90",
+          "197,146,239",
+          "247,206,90",
+          "99,198,239",
+          "247,210,90",
+          "90,194,239",
+          "99,198,247",
+          "115,215,115",
+          "123,219,123",
+          "230,154,82"
+        ]
+      },
+      "exitCode": 0,
+      "instructions": 4839,
       "errors": []
     }
   ]

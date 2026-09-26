@@ -21,6 +21,7 @@ export function validRasterState(command) {
   return (
     CULL_MODE.includes(command.cullMode) &&
     command.cullMode !== null &&
+    (command.dither === undefined || typeof command.dither === 'boolean') &&
     DEPTH_COMPARE.slice(1).includes(command.depthCompare ?? 'less-equal')
   );
 }

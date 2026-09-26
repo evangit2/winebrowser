@@ -150,9 +150,13 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Implement D3D8/9 viewport queries/updates, draw depth ranges and rectangular
       clears clipped to the viewport. Native cubes round-trip the COM structures;
       fixed/shader pixel tests cover every pixel in 18 canvas/readback cases.
-- [ ] Continue Hamsterball through `D3DRS_DITHERENABLE=TRUE` at EXE offset `0x54630`.
+- [x] Quantize RGB565 per draw/clear and implement optional 4×4 ordered dithering,
+      including shader discard/depth preservation and immutable queued state.
+      Thirty-six full-image cases pass on canvas/readback. Native cubes set the
+      implemented Gouraud/solid/clipping defaults and query the DITHER cap.
+- [ ] Continue Hamsterball through `IDirect3DDevice8.SetTextureStageState` at EXE offset `0x546cf`.
       Chromium passes capabilities, viewport setup and a finite projection after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,861,145 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,861,208 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

@@ -261,7 +261,7 @@ try {
         return copy;
       };
       const inside = (x, y, r) => x >= r.x && y >= r.y && x < r.x + r.width && y < r.y + r.height;
-      const checkPixels = (name, expected) => {
+      const checkPixels = (name, expected, results = viewportCases) => {
         const pixels = context.getImageData(0, 0, 130, 128).data;
         const colors = {};
         for (let y = 0; y < 128; y++)
@@ -274,7 +274,7 @@ try {
               );
             colors[want.join(',')] = (colors[want.join(',')] ?? 0) + 1;
           }
-        viewportCases.push({ name, verifiedPixels: 130 * 128, colors });
+        results.push({ name, verifiedPixels: 130 * 128, colors });
         frames.pop();
       };
       const bg = [37, 45, 65, 255],
@@ -378,6 +378,207 @@ try {
       checkPixels('partial clear without depth attachment', (x, y) =>
         inside(x, y, regionA) ? blue : bg,
       );
+      renderer.destroyDevice({ id: 5 });
+      renderer.destroyDevice({ id: 6 });
+      const colorCases = [];
+      const bayer = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+      // Integer-rational reference: avoid reproducing WGSL float arithmetic.
+      const rgb565 = (rgb, x, y, dither) =>
+        rgb
+          .map((byte, channel) => {
+            const levels = channel === 1 ? 63 : 31;
+            const threshold = dither ? 2 * bayer[(y % 4) * 4 + (x % 4)] + 1 : 16;
+            const value = Math.floor((byte * levels * 32 + threshold * 255) / (255 * 32));
+            return Math.round((value * 255) / levels);
+          })
+          .concat(255);
+      const sample = [127, 63, 31];
+      const programmed = { ...shaderDraw, vertexConstants: shaderDraw.vertexConstants.slice() };
+      programmed.vertexConstants.set(sample.map((v) => v / 255).concat(1));
+      for (const colorFormat of [23, 22]) {
+        await renderer.createDevice({
+          id: 7,
+          windowId: 1,
+          width: 130,
+          height: 128,
+          depth: true,
+          colorFormat,
+          swapEffect: 3,
+        });
+        for (const path of ['fixed', 'programmable']) {
+          const base = fullTriangle(path === 'fixed' ? draw(0.25, 0xff7f3f1f) : programmed);
+          const expected = (x, y, enabled) =>
+            colorFormat === 23 ? rgb565(sample, x, y, enabled) : sample.concat(255);
+          for (const dither of [true, false]) {
+            await renderer.present({ id: 7, commands: [clear, { ...base, dither }] });
+            checkPixels(
+              `${path}/${colorFormat}: dither=${dither}`,
+              (x, y) => expected(x, y, dither),
+              colorCases,
+            );
+          }
+          await renderer.present({
+            id: 7,
+            commands: [
+              clear,
+              {
+                ...base,
+                dither: true,
+                viewport: { x: 0, y: 0, width: 64, height: 128, minZ: 0, maxZ: 1 },
+              },
+              {
+                ...base,
+                dither: false,
+                viewport: { x: 64, y: 0, width: 66, height: 128, minZ: 0, maxZ: 1 },
+              },
+            ],
+          });
+          checkPixels(
+            `${path}/${colorFormat}: queued dithering states`,
+            (x, y) => expected(x, y, x < 64),
+            colorCases,
+          );
+          await renderer.present({ id: 7, commands: [] });
+          checkPixels(
+            `${path}/${colorFormat}: COPY retains quantized pixels`,
+            (x, y) => expected(x, y, x < 64),
+            colorCases,
+          );
+          await renderer.present({
+            id: 7,
+            commands: [
+              { ...clear, color: 0xff7f3f1f, depth: 0 },
+              { ...base, dither: true },
+            ],
+          });
+          checkPixels(
+            `${path}/${colorFormat}: occluded draw leaves clear undithered`,
+            (x, y) => expected(x, y, false),
+            colorCases,
+          );
+          await renderer.present({
+            id: 7,
+            commands: [
+              clear,
+              { ...base, dither: true, viewport: { ...regionA, minZ: 0, maxZ: 1 } },
+            ],
+          });
+          checkPixels(
+            `${path}/${colorFormat}: untouched pixels remain clear`,
+            (x, y) =>
+              inside(x, y, regionA)
+                ? expected(x, y, true)
+                : colorFormat === 23
+                  ? rgb565(bg.slice(0, 3), x, y, false)
+                  : bg,
+            colorCases,
+          );
+          await renderer.present({
+            id: 7,
+            commands: [clear, { ...clear, color: 0xff7f3f1f, regions: [regionA] }],
+          });
+          checkPixels(
+            `${path}/${colorFormat}: partial clear quantizes without dithering`,
+            (x, y) =>
+              inside(x, y, regionA)
+                ? expected(x, y, false)
+                : colorFormat === 23
+                  ? rgb565(bg.slice(0, 3), x, y, false)
+                  : bg,
+            colorCases,
+          );
+        }
+        renderer.destroyDevice({ id: 7 });
+      }
+      await renderer.createDevice({
+        id: 8,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: true,
+        colorFormat: 23,
+        swapEffect: 2,
+      });
+      const flippingDraw = fullTriangle(draw(0.25, 0xff7f3f1f));
+      for (const [index, dither] of [true, false, true, false].entries()) {
+        await renderer.present({
+          id: 8,
+          commands: index < 2 ? [clear, { ...flippingDraw, dither }] : [],
+        });
+        checkPixels(
+          `FLIP ${index}: preserved dither=${dither}`,
+          (x, y) => rgb565(sample, x, y, dither),
+          colorCases,
+        );
+      }
+      const { rgb565Shader } = await import('/src/d3d-presentation.js');
+      const vertex = renderer.device.createShaderModule({
+        code: `
+        @vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4<f32> {
+          let p = array<vec2<f32>, 3>(vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+          return vec4(p[i], 0.9, 1.0);
+        }`,
+      });
+      await renderer.createDevice({
+        id: 9,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: true,
+        colorFormat: 23,
+        swapEffect: 3,
+      });
+      for (const structuredInput of [false, true]) {
+        const position = structuredInput ? 'input.pos' : 'pos';
+        const code = `struct Input { @builtin(position) pos: vec4<f32>, }
+          struct Result { @location(0) color: vec4<f32>, @builtin(frag_depth) depth: f32, }
+          @fragment fn main(${structuredInput ? 'input: Input' : '@builtin(position) pos: vec4<f32>'}) -> Result {
+            if (${position}.x < 64.0) { discard; }
+            return Result(vec4(127.0/255.0, 63.0/255.0, 31.0/255.0, 1.0), 0.25);
+          }`;
+        const pipeline = await renderer.device.createRenderPipelineAsync({
+          layout: 'auto',
+          vertex: { module: vertex, entryPoint: 'vs' },
+          fragment: {
+            module: renderer.device.createShaderModule({ code: rgb565Shader(code, 'main', true) }),
+            entryPoint: 'main',
+            targets: [{ format: renderer.format }],
+          },
+          primitive: { topology: 'triangle-list' },
+          depthStencil: { format: 'depth16unorm', depthWriteEnabled: true, depthCompare: 'always' },
+        });
+        await renderer.present({ id: 9, commands: [{ ...clear, depth: 0.75 }] });
+        frames.pop();
+        const surface = renderer.surfaces.get(9),
+          encoder = renderer.device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [
+            { view: surface.colors[0].createView(), loadOp: 'load', storeOp: 'store' },
+          ],
+          depthStencilAttachment: {
+            view: surface.depthTexture.createView(),
+            depthLoadOp: 'load',
+            depthStoreOp: 'store',
+          },
+        });
+        pass.setPipeline(pipeline);
+        pass.draw(3);
+        pass.end();
+        renderer.device.queue.submit([encoder.finish()]);
+        await renderer.device.queue.onSubmittedWorkDone();
+        await renderer.present({ id: 9, commands: [] });
+        checkPixels(
+          `wrapped struct output/${structuredInput}: discard survives`,
+          (x, y) => rgb565(x < 64 ? bg.slice(0, 3) : sample, x, y, x >= 64),
+          colorCases,
+        );
+        await renderer.present({ id: 9, commands: [fullTriangle(draw(0.5, 0xff0000ff))] });
+        checkPixels(
+          `wrapped struct output/${structuredInput}: depth output survives`,
+          (x, y) => (x < 64 ? blue : rgb565(sample, x, y, true)),
+          colorCases,
+        );
+      }
       return {
         scope:
           'WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance',
@@ -389,6 +590,7 @@ try {
         quantizedDraw,
         rasterCases,
         viewportCases,
+        colorCases,
         pacedIntervals: times.slice(1).map((time, i) => time - times[i]),
         presentationMode: renderer.presentationMode,
         fallbackAdapter: renderer.fallbackAdapter,

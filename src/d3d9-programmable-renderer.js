@@ -1,3 +1,4 @@
+import { rgb565Shader } from './d3d-presentation.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { ShaderCompiler } from './shader-compiler.js';
 
@@ -60,6 +61,8 @@ export class D3D9ProgrammableRenderer {
       command.depthWrite,
       command.depthCompare ?? 'less-equal',
       command.cullMode,
+      surface.colorFormat,
+      !!command.dither,
     ].join('|');
     let cached = this.pipelines.get(key);
     if (cached) return cached;
@@ -95,7 +98,12 @@ export class D3D9ProgrammableRenderer {
           ],
         },
         fragment: {
-          module: this.owner.device.createShaderModule({ code: translated.pixel.wgsl }),
+          module: this.owner.device.createShaderModule({
+            code:
+              surface.colorFormat === 23
+                ? rgb565Shader(translated.pixel.wgsl, 'main', command.dither)
+                : translated.pixel.wgsl,
+          }),
           entryPoint: 'main',
           targets: [{ format: this.owner.format }],
         },

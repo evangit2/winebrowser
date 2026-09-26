@@ -1,6 +1,6 @@
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
-import { D3DPresentation } from './d3d-presentation.js';
+import { clearColor, rgb565Shader } from './d3d-presentation.js';
 import { defaultViewport, validViewport, validRegion } from './d3d-viewport.js';
 import { D3DClearRenderer } from './d3d-clear-renderer.js';
 
@@ -24,12 +24,6 @@ const MAX_DEVICES = 4;
 const MAX_DIMENSION = 2048;
 const MAX_COMMANDS = 256;
 const MAX_FRAME_BYTES = 8 * 1024 * 1024;
-const color = (argb) => ({
-  r: ((argb >>> 16) & 255) / 255,
-  g: ((argb >>> 8) & 255) / 255,
-  b: (argb & 255) / 255,
-  a: ((argb >>> 24) & 255) / 255,
-});
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 const matrix = (value) =>
   (Array.isArray(value) || value instanceof Float32Array) &&
@@ -44,7 +38,6 @@ export class WebGPURenderer {
     this.surfaces = new Map();
     this.pipelines = new Map();
     this.programmable = new D3D9ProgrammableRenderer(this);
-    this.presentation = new D3DPresentation(this);
     this.clears = new D3DClearRenderer(this);
     this.frames = 0;
     this.draws = 0;
@@ -108,7 +101,6 @@ export class WebGPURenderer {
     let context = null,
       context2d = null,
       colors = [],
-      quantized = null,
       readback = null,
       depthTexture = null,
       bytesPerRow = 0;
@@ -126,13 +118,6 @@ export class WebGPURenderer {
               GPUTextureUsage.TEXTURE_BINDING,
           }),
         );
-      if (colorFormat === 23)
-        quantized = this.device.createTexture({
-          label: 'guest RGB565 conversion buffer',
-          size: [width, height],
-          format: this.format,
-          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-        });
       if (this.presentationMode === 'readback') {
         context2d = canvas.getContext('2d');
         if (!context2d) throw Error('2D OffscreenCanvas is unavailable for WebGPU readback');
@@ -164,7 +149,6 @@ export class WebGPURenderer {
       depthTexture?.destroy();
       readback?.destroy();
       for (const texture of colors) texture.destroy();
-      quantized?.destroy();
       context?.unconfigure();
       throw error;
     }
@@ -181,7 +165,6 @@ export class WebGPURenderer {
       colorFormat,
       swapEffect,
       interval,
-      quantized,
       lastPresented: 0,
       readback,
       bytesPerRow,
@@ -254,15 +237,23 @@ export class WebGPURenderer {
       command.depthWrite,
       command.depthCompare ?? 'less-equal',
       command.cullMode,
+      surface.colorFormat,
+      !!command.dither,
     ].join(':');
-    if (!this.pipelines.has(key))
+    if (!this.pipelines.has(key)) {
+      const shader =
+        surface.colorFormat === 23
+          ? this.device.createShaderModule({
+              code: rgb565Shader(COLOR_SHADER, 'fragmentMain', command.dither),
+            })
+          : this.shader;
       this.pipelines.set(
         key,
         this.device.createRenderPipeline({
           label: 'XYZ diffuse triangle pipeline',
           layout: this.pipelineLayout,
           vertex: {
-            module: this.shader,
+            module: shader,
             entryPoint: 'vertexMain',
             buffers: [
               {
@@ -275,7 +266,7 @@ export class WebGPURenderer {
             ],
           },
           fragment: {
-            module: this.shader,
+            module: shader,
             entryPoint: 'fragmentMain',
             targets: [{ format: this.format }],
           },
@@ -293,6 +284,7 @@ export class WebGPURenderer {
             : {}),
         }),
       );
+    }
     return this.pipelines.get(key);
   }
 
@@ -368,7 +360,7 @@ export class WebGPURenderer {
               view: target,
               loadOp: clear?.clearColor ? 'clear' : 'load',
               storeOp: 'store',
-              clearValue: color(clear?.color ?? 0xff000000),
+              clearValue: clearColor(clear?.color ?? 0xff000000, surface.colorFormat),
             },
           ],
           ...(depthView
@@ -423,7 +415,6 @@ export class WebGPURenderer {
       if (!pass) begin();
       pass.end();
       this.clears.trim(surface, clearIndex);
-      this.presentation.quantize(encoder, surface, texture);
       if (surface.readback)
         encoder.copyTextureToBuffer(
           { texture },
@@ -502,7 +493,6 @@ export class WebGPURenderer {
     surface.depthTexture?.destroy();
     surface.readback?.destroy();
     for (const texture of surface.colors) texture.destroy();
-    surface.quantized?.destroy();
     surface.context?.unconfigure();
     this.surfaces.delete(id);
   }

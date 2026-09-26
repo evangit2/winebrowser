@@ -6,7 +6,7 @@ export function deviceCaps(version) {
   caps[5] = 0x80000001; // Virtual ONE and IMMEDIATE presentation.
   caps[7] = 0x00080800; // HWRASTERIZATION | CANRENDERAFTERFLIP.
   caps[8] = 0x72; // MASKZ | CULLNONE | CULLCW | CULLCCW.
-  caps[9] = 0x00400010; // COLORPERSPECTIVE | ZTEST.
+  caps[9] = 0x00400011; // COLORPERSPECTIVE | ZTEST | DITHER.
   caps[10] = 0xff; // All eight D3DCMPFUNC depth comparisons.
   caps[14] = 0x8; // COLORGOURAUDRGB.
   new Float32Array(caps.buffer)[28] = 1e10; // Finite homogeneous W range.

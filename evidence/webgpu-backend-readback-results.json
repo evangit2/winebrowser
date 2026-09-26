@@ -1031,10 +1031,318 @@
       }
     }
   ],
+  "colorCases": [
+    {
+      "name": "fixed/23: dither=true",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 4160,
+        "123,65,33,255": 2112,
+        "132,65,33,255": 7264,
+        "123,61,33,255": 3104
+      }
+    },
+    {
+      "name": "fixed/23: dither=false",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,65,33,255": 16640
+      }
+    },
+    {
+      "name": "fixed/23: queued dithering states",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 2048,
+        "123,65,33,255": 9472,
+        "132,65,33,255": 3584,
+        "123,61,33,255": 1536
+      }
+    },
+    {
+      "name": "fixed/23: COPY retains quantized pixels",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 2048,
+        "123,65,33,255": 9472,
+        "132,65,33,255": 3584,
+        "123,61,33,255": 1536
+      }
+    },
+    {
+      "name": "fixed/23: occluded draw leaves clear undithered",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,65,33,255": 16640
+      }
+    },
+    {
+      "name": "fixed/23: untouched pixels remain clear",
+      "verifiedPixels": 16640,
+      "colors": {
+        "33,45,66,255": 16320,
+        "123,61,25,255": 80,
+        "132,65,33,255": 140,
+        "123,65,33,255": 40,
+        "123,61,33,255": 60
+      }
+    },
+    {
+      "name": "fixed/23: partial clear quantizes without dithering",
+      "verifiedPixels": 16640,
+      "colors": {
+        "33,45,66,255": 16320,
+        "123,65,33,255": 320
+      }
+    },
+    {
+      "name": "programmable/23: dither=true",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 4160,
+        "123,65,33,255": 2112,
+        "132,65,33,255": 7264,
+        "123,61,33,255": 3104
+      }
+    },
+    {
+      "name": "programmable/23: dither=false",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,65,33,255": 16640
+      }
+    },
+    {
+      "name": "programmable/23: queued dithering states",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 2048,
+        "123,65,33,255": 9472,
+        "132,65,33,255": 3584,
+        "123,61,33,255": 1536
+      }
+    },
+    {
+      "name": "programmable/23: COPY retains quantized pixels",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 2048,
+        "123,65,33,255": 9472,
+        "132,65,33,255": 3584,
+        "123,61,33,255": 1536
+      }
+    },
+    {
+      "name": "programmable/23: occluded draw leaves clear undithered",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,65,33,255": 16640
+      }
+    },
+    {
+      "name": "programmable/23: untouched pixels remain clear",
+      "verifiedPixels": 16640,
+      "colors": {
+        "33,45,66,255": 16320,
+        "123,61,25,255": 80,
+        "132,65,33,255": 140,
+        "123,65,33,255": 40,
+        "123,61,33,255": 60
+      }
+    },
+    {
+      "name": "programmable/23: partial clear quantizes without dithering",
+      "verifiedPixels": 16640,
+      "colors": {
+        "33,45,66,255": 16320,
+        "123,65,33,255": 320
+      }
+    },
+    {
+      "name": "fixed/22: dither=true",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "fixed/22: dither=false",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "fixed/22: queued dithering states",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "fixed/22: COPY retains quantized pixels",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "fixed/22: occluded draw leaves clear undithered",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "fixed/22: untouched pixels remain clear",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "127,63,31,255": 320
+      }
+    },
+    {
+      "name": "fixed/22: partial clear quantizes without dithering",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "127,63,31,255": 320
+      }
+    },
+    {
+      "name": "programmable/22: dither=true",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "programmable/22: dither=false",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "programmable/22: queued dithering states",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "programmable/22: COPY retains quantized pixels",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "programmable/22: occluded draw leaves clear undithered",
+      "verifiedPixels": 16640,
+      "colors": {
+        "127,63,31,255": 16640
+      }
+    },
+    {
+      "name": "programmable/22: untouched pixels remain clear",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "127,63,31,255": 320
+      }
+    },
+    {
+      "name": "programmable/22: partial clear quantizes without dithering",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "127,63,31,255": 320
+      }
+    },
+    {
+      "name": "FLIP 0: preserved dither=true",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 4160,
+        "123,65,33,255": 2112,
+        "132,65,33,255": 7264,
+        "123,61,33,255": 3104
+      }
+    },
+    {
+      "name": "FLIP 1: preserved dither=false",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,65,33,255": 16640
+      }
+    },
+    {
+      "name": "FLIP 2: preserved dither=true",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,61,25,255": 4160,
+        "123,65,33,255": 2112,
+        "132,65,33,255": 7264,
+        "123,61,33,255": 3104
+      }
+    },
+    {
+      "name": "FLIP 3: preserved dither=false",
+      "verifiedPixels": 16640,
+      "colors": {
+        "123,65,33,255": 16640
+      }
+    },
+    {
+      "name": "wrapped struct output/false: discard survives",
+      "verifiedPixels": 16640,
+      "colors": {
+        "33,45,66,255": 8192,
+        "123,61,25,255": 2112,
+        "123,65,33,255": 1088,
+        "132,65,33,255": 3680,
+        "123,61,33,255": 1568
+      }
+    },
+    {
+      "name": "wrapped struct output/false: depth output survives",
+      "verifiedPixels": 16640,
+      "colors": {
+        "0,0,255,255": 8192,
+        "123,61,25,255": 2112,
+        "123,65,33,255": 1088,
+        "132,65,33,255": 3680,
+        "123,61,33,255": 1568
+      }
+    },
+    {
+      "name": "wrapped struct output/true: discard survives",
+      "verifiedPixels": 16640,
+      "colors": {
+        "33,45,66,255": 8192,
+        "123,61,25,255": 2112,
+        "123,65,33,255": 1088,
+        "132,65,33,255": 3680,
+        "123,61,33,255": 1568
+      }
+    },
+    {
+      "name": "wrapped struct output/true: depth output survives",
+      "verifiedPixels": 16640,
+      "colors": {
+        "0,0,255,255": 8192,
+        "123,61,25,255": 2112,
+        "123,65,33,255": 1088,
+        "132,65,33,255": 3680,
+        "123,61,33,255": 1568
+      }
+    }
+  ],
   "pacedIntervals": [
-    16.009999990463257,
-    18.730000019073486,
-    19.0349999666214
+    16.860000014305115,
+    18.644999980926514,
+    18.024999976158142
   ],
   "presentationMode": "readback",
   "fallbackAdapter": false,
@@ -1046,7 +1354,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-26T09:36:13.098Z",
+  "date": "2026-09-26T09:56:25.277Z",
   "browser": "154.0.8037.57",
   "passed": true
 }

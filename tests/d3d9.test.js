@@ -479,6 +479,7 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p), 1);
     assert.equal(runtime.read32(p + 8 * 4), 0x72);
     assert.equal(runtime.read32(p + 10 * 4), 0xff);
+    assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
     for (const index of [15, 16, 17, 18, 22, 23, 34, 37, 38, 40, 47, 49, 51])
       assert.equal(runtime.read32(p + index * 4), 0);
@@ -501,6 +502,26 @@ for (const version of [8, 9]) {
       p = runtime.allocate(4),
       vertices = runtime.allocate(48);
     await call(d, setState, 137, 0);
+    for (const [state, value] of [
+      [8, 3],
+      [9, 2],
+      [136, 1],
+    ]) {
+      await call(d, getState, state, p);
+      assert.equal(runtime.read32(p), value);
+      assert.equal((await call(d, setState, state, value)).result, 0);
+    }
+    for (const [state, value] of [
+      [8, 2],
+      [9, 1],
+      [136, 0],
+    ])
+      await assert.rejects(call(d, setState, state, value), /Unsupported.*SetRenderState/);
+    await call(d, getState, 26, p);
+    assert.equal(runtime.read32(p), 0);
+    await call(d, setState, 26, 1);
+    await call(d, getState, 26, p);
+    assert.equal(runtime.read32(p), 1);
     await call(d, version === 8 ? 76 : 89, 0x42);
     await call(d, setState, 22, 3);
     await call(d, setState, 23, 5);
@@ -513,9 +534,12 @@ for (const version of [8, 9]) {
     await call(d, version === 8 ? 35 : 42);
     await call(d, setState, 22, 1);
     await call(d, setState, 23, 1);
+    await call(d, setState, 26, 0);
     await call(d, version === 8 ? 15 : 17, 0, 0, 0, 0);
     assert.equal(events.at(-1).commands[0].cullMode, 'ccw');
     assert.equal(events.at(-1).commands[0].depthCompare, 'greater');
+    assert.equal(events.at(-1).commands[0].dither, true);
+    await assert.rejects(call(d, setState, 26, 2), /Unsupported.*SetRenderState/);
     await assert.rejects(call(d, setState, 23, 9), /Unsupported.*SetRenderState/);
     await call(d, 2);
   });

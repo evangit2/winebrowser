@@ -134,10 +134,10 @@ lookup and filename conversion. Package metadata queries now pass, including
 the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
 It passes D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP
 device, passes capabilities and initial SetTransform, then stops at
-`D3DRS_DITHERENABLE=TRUE` at 8,861,145 guest instructions;
+`IDirect3DDevice8.SetTextureStageState` at 8,861,208 guest instructions;
 Node stops at device creation without WebGPU. See [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is D3D8 dithering and broader resources, with remaining
+unverified. The next work is D3D8 texture-stage/sampler state and resources, with remaining
 audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 

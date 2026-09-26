@@ -93,7 +93,8 @@ static int run(void)
         caps.DeviceType != D3DDEVTYPE_HAL || caps.AdapterOrdinal != 0 ||
         (caps.PrimitiveMiscCaps & (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW)) !=
             (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW) ||
-        caps.ZCmpCaps != 0xff || caps.MaxPrimitiveCount != 21845 || caps.MaxVertexW <= 0 ||
+        caps.ZCmpCaps != 0xff || !(caps.RasterCaps & D3DPRASTERCAPS_DITHER) ||
+        caps.MaxPrimitiveCount != 21845 || caps.MaxVertexW <= 0 ||
         caps.MaxTextureWidth || caps.MaxSimultaneousTextures || caps.StencilCaps) return 36;
     D3DDISPLAYMODE desktop = {0}, enumerated = {0};
     if (FAILED(IDirect3D9_GetAdapterDisplayMode(d3d, 0, &desktop)) ||
@@ -169,6 +170,10 @@ static int run(void)
     if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, D3DZB_TRUE))) return 8;
     if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_ZWRITEENABLE, TRUE))) return 9;
     if (FAILED(IDirect3DDevice9_SetFVF(device, D3DFVF_XYZ | D3DFVF_DIFFUSE))) return 10;
+    if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_DITHERENABLE, TRUE))) return 42;
+    if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_SHADEMODE, D3DSHADE_GOURAUD)) ||
+        FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_FILLMODE, D3DFILL_SOLID)) ||
+        FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_CLIPPING, TRUE))) return 43;
     if (FAILED(IDirect3DDevice9_SetTransform(device, D3DTS_VIEW, (const D3DMATRIX *)view))) return 11;
     if (FAILED(IDirect3DDevice9_SetTransform(device, D3DTS_PROJECTION, (const D3DMATRIX *)projection))) return 12;
 

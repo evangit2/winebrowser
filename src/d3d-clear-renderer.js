@@ -1,3 +1,4 @@
+import { clearColor } from './d3d-presentation.js';
 // Partial clears are attachment writes clipped to viewport/rectangle bounds.
 // They must not inherit guest shaders, depth comparisons or viewport depth range.
 const SHADER = `
@@ -80,20 +81,11 @@ export class D3DClearRenderer {
       };
       surface.clearSlots[index] = slot;
     }
-    const c = command.color;
+    const c = clearColor(command.color, surface.colorFormat);
     device.queue.writeBuffer(
       slot.uniform,
       0,
-      new Float32Array([
-        ((c >>> 16) & 255) / 255,
-        ((c >>> 8) & 255) / 255,
-        (c & 255) / 255,
-        (c >>> 24) / 255,
-        command.clearDepth ? command.depth : 0,
-        0,
-        0,
-        0,
-      ]),
+      new Float32Array([c.r, c.g, c.b, c.a, command.clearDepth ? command.depth : 0, 0, 0, 0]),
     );
     pass.setBindGroup(0, slot.group);
     pass.setViewport(0, 0, surface.width, surface.height, 0, 1);

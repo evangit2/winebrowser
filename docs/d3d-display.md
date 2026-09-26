@@ -29,13 +29,25 @@ texture. The canvas is a presentation destination rather than the sole storage
 for guest pixels. Normal hardware presentation copies GPU-to-GPU. The existing
 fallback/diagnostic readback path uses the same color-buffer rotation.
 
-WebGPU has no RGB565 render attachment. `src/d3d-presentation.js` converts each
-presented image on the GPU to 5/6/5 channel precision and stores expanded UNORM8
-values back into the current color buffer. This preserves quantized pixels across
-subsequent flips. The current supported draws have no blending or render-target
-feedback. Those future paths need per-operation RGB565 conversion semantics;
-this presentation pass alone will not establish them. Hardware dithering is not
-emulated. Interval DEFAULT/ONE limits delivery to the virtual 60 Hz refresh;
+WebGPU has no RGB565 render attachment. The runtime stores expanded UNORM8
+values and quantizes each color write to 5/6/5 precision. Full and rectangular
+clears round to the nearest representable channel value. Fixed-function and
+translated pixel shaders convert their final output before storing it. Optional
+`D3DRS_DITHERENABLE` uses a deterministic 4×4 Bayer pattern in target pixel
+coordinates. The DITHER capability now reports this path; 32-bit targets retain
+their original precision. Shaders retain discard and explicit depth outputs.
+The wrapper accepts one location-zero RGBA output, either direct or in a struct.
+
+Each draw snapshots its dither state. Pixels rejected by depth or outside the
+draw are unchanged, and COPY/FLIP retains the actual quantized pixels. There is
+no final full-frame quantization pass or conversion texture. Thirty-six full-image
+cases check fixed/programmed draws, state changes, clears, depth rejection,
+untouched pixels, COPY/FLIP, shader discard/depth and 32-bit targets against an
+integer-rational reference in canvas and readback modes. Blending and render-target
+feedback remain unsupported and will require conversion after those operations;
+this shader-output path does not establish their semantics. The pattern is the
+virtual driver's choice, not an emulation of a particular physical GPU.
+Interval DEFAULT/ONE limits delivery to the virtual 60 Hz refresh;
 physical vblank synchronization remains owned by the browser compositor.
 
 `EnumDisplaySettingsA`, `GetSystemMetrics` and D3D queries reflect the active
@@ -85,7 +97,7 @@ clears and color targets without a depth attachment.
 
 Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
-`GetDeviceCaps`, viewport setup and finite projection `SetTransform`, then stops at unsupported `D3DRS_DITHERENABLE=TRUE` (EXE offset `0x54630`) at 8,861,145 guest instructions;
+`GetDeviceCaps`, viewport setup and finite projection `SetTransform`, then stops at unsupported `IDirect3DDevice8.SetTextureStageState` (EXE offset `0x546cf`) at 8,861,208 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.

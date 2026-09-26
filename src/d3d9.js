@@ -162,9 +162,15 @@ function deviceMethods(version = 9) {
       invoke(_runtime, argument, object) {
         const state = argument(1) >>> 0;
         const value = argument(2) >>> 0;
-        if (state === 22 && CULL_MODE[value]) object.state.cullMode = CULL_MODE[value];
+        // The current fixed-function path already uses perspective Gouraud
+        // interpolation; other shade modes need their own interpolation path.
+        if (state === 9 && value === 2) object.state.shadeMode = value;
+        else if (state === 8 && value === 3) object.state.fillMode = value;
+        else if (state === 136 && value === 1) object.state.clipping = true;
+        else if (state === 22 && CULL_MODE[value]) object.state.cullMode = CULL_MODE[value];
         else if (state === 23 && DEPTH_COMPARE[value])
           object.state.depthCompare = DEPTH_COMPARE[value];
+        else if (state === 26 && value <= 1) object.state.dither = !!value;
         else if (state === 137 && value === 0) object.state.lighting = false;
         else if (state === 7 && value <= 1) {
           if (value && !object.state.hasDepth) return D3DERR_INVALIDCALL;
@@ -182,10 +188,14 @@ function deviceMethods(version = 9) {
         const s = object.state;
         const value = {
           7: Number(s.depthTest),
+          8: s.fillMode,
+          9: s.shadeMode,
           14: Number(s.depthWrite),
           22: CULL_MODE.indexOf(s.cullMode),
           23: DEPTH_COMPARE.indexOf(s.depthCompare),
+          26: Number(s.dither),
           137: Number(s.lighting),
+          136: Number(s.clipping),
         }[a(1)];
         if (value === undefined) throw Error(`Unsupported IDirect3DDevice9.GetRenderState ${a(1)}`);
         r.write32(a(2), value);
@@ -239,6 +249,7 @@ function deviceMethods(version = 9) {
             depthTest: state.depthTest,
             depthWrite: state.depthWrite,
             depthCompare: state.depthCompare,
+            dither: state.dither,
             cullMode: state.cullMode,
           },
           size,
@@ -417,11 +428,15 @@ function factoryMethods(version = 9) {
           inScene: false,
           fvf: 0,
           lighting: true,
+          shadeMode: 2,
+          fillMode: 3,
+          clipping: true,
           cullMode: 'ccw',
           hasDepth: options.depth,
           depthTest: options.depth,
           depthWrite: options.depth,
           depthCompare: 'less-equal',
+          dither: false,
           world: IDENTITY.slice(),
           view: IDENTITY.slice(),
           projection: IDENTITY.slice(),
