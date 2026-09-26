@@ -321,6 +321,13 @@ D3D10/11 and broader D3D12 support are still required.
 ## Remaining, in suggested order
 
 - [ ] **Wine application startup:** finish initialization after the optional [CRT service probe](evidence/wine-loader-crt-browser-results.json). Fresh unchanged Humus EXE diagnostics pass Wine DLL attach but reach the 45-second execution deadline in application model preprocessing before graphics setup. [Node](evidence/wine-target-startup.json) and [browser](evidence/wine-target-startup-browser.json) retain the actual guest location and recent calls. Profile this startup work and then extend the bounded capabilities/resources; zero frames, no independent Humus compatibility claim. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
+- [x] Render real frames from the original Hamsterball. The unchanged EXE
+      now presents six frames with non-uniform pixels, 30 fixed-function
+      draws and 5 presents, then faults reading reserved-but-uncommitted
+      virtual memory (`0x507c950` inside reservation `0x4fd0000-0x5fa0000`).
+      The target probe reports the faulting reservation's committed extents
+      and a bounded allocator op log; separating an application expectation
+      from a decommit-accounting defect is the next step.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
