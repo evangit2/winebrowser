@@ -29,8 +29,8 @@ Device creation accepts windowed or virtual fullscreen presentation, RGB32/RGB56
 DISCARD/FLIP/COPY, no multisampling and optional D16 depth; see
 [display and presentation](d3d-display.md). Factory/device capabilities describe
 only implemented paths. The fixed-function triangle-list path supports
-`D3DFVF_XYZ | D3DFVF_DIFFUSE`, full-target color/depth Clear, world/view/projection
-Set/GetTransform, lighting off, all depth comparisons and all culling modes.
+`D3DFVF_XYZ | D3DFVF_DIFFUSE`, viewport/rectangle color/depth Clear, world/view/projection
+Set/GetTransform, viewport position/depth range, lighting off, all depth comparisons and all culling modes.
 Draws copy bounded 16-byte XYZ/color vertices and their transform/raster state
 from guest memory before queuing a frame. Nonfinite transform state may be stored
 and read, but fails if consumed by a draw. The bounded programmable shader path

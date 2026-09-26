@@ -142,6 +142,7 @@ test('Clear and DrawPrimitiveUP snapshot colored 3D vertices and transformed sta
     depth: 1,
     clearColor: true,
     clearDepth: true,
+    regions: [{ x: 0, y: 0, width: 640, height: 480 }],
   });
   assert.equal(frame.commands[1].vertexCount, 3);
   assert.equal(frame.commands[1].stride, 16);
@@ -534,6 +535,88 @@ for (const version of [8, 9]) {
     await call(d, version === 8 ? 37 : 44, 3, p);
     await call(d, version === 8 ? 38 : 45, 3, q);
     assert.ok(runtime.data.subarray(q, q + 64).every((v) => v === 0));
+    await call(d, 2);
+  });
+}
+
+for (const version of [8, 9]) {
+  test(`D3D${version} viewport ABI, bounds and queued draw/clear snapshots`, async () => {
+    const { runtime: r, call, create, events } = fixture(version);
+    const d = await create(),
+      p = r.allocate(32),
+      q = r.allocate(24),
+      rects = r.allocate(48);
+    const set = version === 8 ? 40 : 47,
+      get = version === 8 ? 41 : 48,
+      clear = version === 8 ? 36 : 43;
+    const write = (x, y, width, height, minZ = 0, maxZ = 1) => {
+      [x, y, width, height].forEach((v, i) => r.write32(p + i * 4, v));
+      r.view.setFloat32(p + 16, minZ, true);
+      r.view.setFloat32(p + 20, maxZ, true);
+    };
+    const read = (ptr) =>
+      [0, 4, 8, 12]
+        .map((i) => r.read32(ptr + i))
+        .concat([16, 20].map((i) => r.view.getFloat32(ptr + i, true)));
+    assert.deepEqual(await call(d, get, q), { result: 0, argc: 2 });
+    assert.deepEqual(read(q), [0, 0, 640, 480, 0, 1]);
+    for (const v of [
+      [639, 0, 2, 1],
+      [0, 480, 1, 1],
+      [0xffffffff, 0, 1, 1],
+      [0, 0, 10, 10, NaN, 1],
+      [0, 0, 10, 10, 1, 0],
+    ]) {
+      write(...v);
+      assert.equal((await call(d, set, p)).result, 0x8876086c);
+    }
+    for (const ptr of [0, r.data.length - 20]) {
+      assert.equal((await call(d, get, ptr)).result, 0x8876086c);
+      assert.equal((await call(d, set, ptr)).result, 0x8876086c);
+    }
+    await call(d, get, q);
+    assert.deepEqual(read(q), [0, 0, 640, 480, 0, 1]);
+    write(100, 50, 200, 150, 0.25, 0.75);
+    assert.deepEqual(await call(d, set, p), { result: 0, argc: 2 });
+    await call(d, get, q);
+    assert.deepEqual(read(q), [100, 50, 200, 150, 0.25, 0.75]);
+    // Signed screen rectangles intersect the viewport, including negative starts.
+    [-20, -10, 150, 100, 250, 175, 500, 300, 400, 400, 500, 500].forEach((v, i) =>
+      r.write32(rects + i * 4, v),
+    );
+    await call(d, clear, 3, rects, 3, 0xff123456, 0x3f800000, 0);
+    await call(d, clear, 0, 0, 1, 0xff112233, 0, 0);
+    const v = r.allocate(48);
+    await call(d, version === 8 ? 50 : 57, 137, 0);
+    await call(d, version === 8 ? 76 : 89, 0x42);
+    await call(d, version === 8 ? 34 : 41);
+    await call(d, version === 8 ? 72 : 83, 4, 1, v, 16);
+    await call(d, version === 8 ? 35 : 42);
+    write(0, 0, 640, 480);
+    await call(d, set, p);
+    r.data.fill(0, rects, rects + 48);
+    for (const [count, ptr] of [
+      [1, 0],
+      [0, rects],
+      [3, r.data.length - 16],
+    ])
+      assert.equal((await call(d, clear, count, ptr, 1, 0, 0, 0)).result, 0x8876086c);
+    await call(d, version === 8 ? 15 : 17, 0, 0, 0, 0);
+    const commands = events.at(-1).commands;
+    assert.equal(commands.length, 3);
+    assert.deepEqual(commands[0].regions, [
+      { x: 100, y: 50, width: 50, height: 50 },
+      { x: 250, y: 175, width: 50, height: 25 },
+    ]);
+    assert.deepEqual(commands[1].regions, [{ x: 100, y: 50, width: 200, height: 150 }]);
+    assert.deepEqual(commands[2].viewport, {
+      x: 100,
+      y: 50,
+      width: 200,
+      height: 150,
+      minZ: 0.25,
+      maxZ: 0.75,
+    });
     await call(d, 2);
   });
 }

@@ -147,9 +147,12 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Implement x87 FFREE with logical-stack tag addressing, unchanged TOP/data,
       reusable push slots and pending-exception checks. Tests cover all registers
       and TOP values; the original game passes its matrix routine in Chromium.
-- [ ] Continue Hamsterball through `IDirect3DDevice8.GetViewport` at EXE offset `0x55040`.
-      Chromium passes capability queries and initial SetTransform after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,858,270 guest instructions.
+- [x] Implement D3D8/9 viewport queries/updates, draw depth ranges and rectangular
+      clears clipped to the viewport. Native cubes round-trip the COM structures;
+      fixed/shader pixel tests cover every pixel in 18 canvas/readback cases.
+- [ ] Continue Hamsterball through `D3DRS_DITHERENABLE=TRUE` at EXE offset `0x54630`.
+      Chromium passes capabilities, viewport setup and a finite projection after creating
+      its 800×600 RGB565/FLIP device, then stops at 8,861,145 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
@@ -207,11 +210,11 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Verify the existing LOCK XADD implementation; add 8/16/32-bit ROL/ROR with count masking, carry/overflow and memory-fault tests. Decode F3 bit scans as BSF/BSR consistently with the guest CPU's absent BMI1/LZCNT features.
 - [x] Implement bounded synchronous NT file create/open, sharing, position/size queries, seek, append-only writes and truncation. Host Win32 and Wine share path resolution and sharing checks; parent paths can reach sibling package assets without escaping the package volume.
 - [x] Execute real Wine CRT `_open`, `_write`, `_filelength`, `_lseek`, `_read`, `_close` and reopen in Node and Chromium, verifying binary bytes and EOF. This remains an optional supplied-Wine probe, separate from ordinary uploads.
-- [x] Accept D3D9 SDK 31 with the existing COM ABI. Prior unchanged Humus probes reached `IDirect3D9.GetDeviceCaps`; that method is now implemented. Fresh startup diagnostics hit their execution deadline earlier in application configuration code, with no frames. Retain that regression for investigation.
+- [x] Accept D3D9 SDK 31 with the existing COM ABI. Prior unchanged Humus probes reached `IDirect3D9.GetDeviceCaps`; that method is now implemented. Fresh startup diagnostics hit their execution deadline earlier in application model preprocessing, with no frames. Retain that startup performance boundary for investigation.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine application startup:** finish initialization after the optional [CRT service probe](evidence/wine-loader-crt-browser-results.json). Fresh unchanged Humus EXE diagnostics pass Wine DLL attach but reach the 45-second execution deadline in application configuration code before graphics setup. [Node](evidence/wine-target-startup.json) and [browser](evidence/wine-target-startup-browser.json) retain the actual guest location and recent calls. Investigate this regression and then extend the bounded capabilities/resources; zero frames, no independent Humus compatibility claim. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
+- [ ] **Wine application startup:** finish initialization after the optional [CRT service probe](evidence/wine-loader-crt-browser-results.json). Fresh unchanged Humus EXE diagnostics pass Wine DLL attach but reach the 45-second execution deadline in application model preprocessing before graphics setup. [Node](evidence/wine-target-startup.json) and [browser](evidence/wine-target-startup-browser.json) retain the actual guest location and recent calls. Profile this startup work and then extend the bounded capabilities/resources; zero frames, no independent Humus compatibility claim. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.

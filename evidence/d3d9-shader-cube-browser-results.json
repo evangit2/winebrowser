@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T09:18:13.661Z",
+  "date": "2026-09-26T09:36:17.763Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.57",
   "nativeGame": "d3d9-shader-cube",
@@ -13,34 +13,34 @@
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 12,
-        "hash": "1e8fa24a09b0a62c345ef4083f524b41c03b93fa4ad51fc4965fec2a358f9274",
+        "frames": 14,
+        "hash": "a8bd8c7849019da429b5e229b29ae1f2af9de2cf3de875100216325150a94c65",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 60109,
-        "colorCount": 3
+        "coloredPixels": 60662,
+        "colorCount": 5
       },
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 24,
-        "hash": "958e4e5dfad542b725680b56d25405949f5875c77c08ab8876878d00c17ae534",
+        "frames": 27,
+        "hash": "5c82a6b30150cc85641e408246d4a5d19a809a3d3a6e5d1574fb674d31cc4f33",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 56314,
-        "colorCount": 4
+        "coloredPixels": 54948,
+        "colorCount": 3
       },
       "exitCode": 0,
       "compiledBlocks": 93,
-      "instructions": 59461
+      "instructions": 67321
     },
     {
       "mode": "hosted-zip",

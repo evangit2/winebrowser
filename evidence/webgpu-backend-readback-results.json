@@ -888,10 +888,153 @@
       ]
     }
   ],
+  "viewportCases": [
+    {
+      "name": "independent clear uniforms and exact rectangle edges",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 15570,
+        "0,0,255,255": 320,
+        "0,255,0,255": 750
+      }
+    },
+    {
+      "name": "fixed: offset",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 14640,
+        "255,0,0,255": 2000
+      }
+    },
+    {
+      "name": "fixed: far depth range",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16640
+      }
+    },
+    {
+      "name": "fixed: near depth range",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 14640,
+        "255,0,0,255": 2000
+      }
+    },
+    {
+      "name": "fixed: collapsed depth range",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 14640,
+        "255,0,0,255": 2000
+      }
+    },
+    {
+      "name": "fixed: zero width",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16640
+      }
+    },
+    {
+      "name": "fixed: depth-only clear and reset of clear scissor/viewport",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 15570,
+        "255,0,0,255": 1070
+      }
+    },
+    {
+      "name": "fixed: color-only clear preserves depth",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "0,255,0,255": 320
+      }
+    },
+    {
+      "name": "fixed: multiple draw viewports and empty clear",
+      "verifiedPixels": 16640,
+      "colors": {
+        "255,0,0,255": 800,
+        "37,45,65,255": 15840
+      }
+    },
+    {
+      "name": "programmable: offset",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 14640,
+        "255,128,64,255": 2000
+      }
+    },
+    {
+      "name": "programmable: far depth range",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16640
+      }
+    },
+    {
+      "name": "programmable: near depth range",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 14640,
+        "255,128,64,255": 2000
+      }
+    },
+    {
+      "name": "programmable: collapsed depth range",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 14640,
+        "255,128,64,255": 2000
+      }
+    },
+    {
+      "name": "programmable: zero width",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16640
+      }
+    },
+    {
+      "name": "programmable: depth-only clear and reset of clear scissor/viewport",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 15570,
+        "255,128,64,255": 1070
+      }
+    },
+    {
+      "name": "programmable: color-only clear preserves depth",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "0,255,0,255": 320
+      }
+    },
+    {
+      "name": "programmable: multiple draw viewports and empty clear",
+      "verifiedPixels": 16640,
+      "colors": {
+        "255,128,64,255": 800,
+        "37,45,65,255": 15840
+      }
+    },
+    {
+      "name": "partial clear without depth attachment",
+      "verifiedPixels": 16640,
+      "colors": {
+        "37,45,65,255": 16320,
+        "0,0,255,255": 320
+      }
+    }
+  ],
   "pacedIntervals": [
-    18.789999961853027,
-    22.475000023841858,
-    17.0900000333786
+    16.009999990463257,
+    18.730000019073486,
+    19.0349999666214
   ],
   "presentationMode": "readback",
   "fallbackAdapter": false,
@@ -903,7 +1046,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-26T09:17:07.659Z",
+  "date": "2026-09-26T09:36:13.098Z",
   "browser": "154.0.8037.57",
   "passed": true
 }

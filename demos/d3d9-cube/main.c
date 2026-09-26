@@ -145,6 +145,16 @@ static int run(void)
     if (FAILED(IDirect3DDevice9_GetDeviceCaps(device, &device_caps))) return 37;
     for (UINT i = 0; i < sizeof(caps) / sizeof(DWORD); i++)
         if (((DWORD *)&caps)[i] != ((DWORD *)&device_caps)[i]) return 38;
+    D3DVIEWPORT9 viewport, returned, small = {16, 16, 32, 32, 0.25f, 0.75f};
+    if (FAILED(IDirect3DDevice9_GetViewport(device, &viewport)) || viewport.X || viewport.Y ||
+        viewport.Width != WIDTH || viewport.Height != HEIGHT || viewport.MinZ != 0 || viewport.MaxZ != 1)
+        return 39;
+    if (FAILED(IDirect3DDevice9_SetViewport(device, &small)) ||
+        FAILED(IDirect3DDevice9_GetViewport(device, &returned)) ||
+        returned.X != small.X || returned.Y != small.Y || returned.Width != small.Width ||
+        returned.Height != small.Height || returned.MinZ != small.MinZ || returned.MaxZ != small.MaxZ)
+        return 40;
+    if (FAILED(IDirect3DDevice9_SetViewport(device, &viewport))) return 41;
 #ifdef WINEBROWSER_FULLSCREEN
     D3DDISPLAYMODE active;
     RECT fullscreen;

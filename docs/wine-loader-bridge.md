@@ -85,9 +85,9 @@ The inner deadline preserves the guest location if startup spins. The unchanged
 Humus Dynamic Branching binary passes Wine registration and DLL attach. Earlier
 probes reached its capability query after native timing calibration, window creation
 and `Direct3DCreate9(31)`. That query is now implemented. Fresh September 26 probes
-instead stop at the execution deadline in application configuration code (Node
+instead stop at the execution deadline in application model preprocessing (Node
 EXE offset `0x806a`, Chromium `0x9516`) before a window or graphics device is
-created. This startup regression needs investigation. Zero frames are presented;
+created. The bundled Main.cpp loads Map.hmdl and calls fixTJunctions before graphics setup; the stopped EXE blocks perform vector arithmetic. Profile that preprocessing before diagnosing a correctness regression. Zero frames are presented;
 this does not run the demo's graphics. The [Node report](../evidence/wine-target-startup.json)
 and [Chromium-worker report](../evidence/wine-target-startup-browser.json) retain
 the first actual failure, module-relative address, registers, executed instruction
@@ -134,10 +134,10 @@ lookup and filename conversion. Package metadata queries now pass, including
 the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
 It passes D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP
 device, passes capabilities and initial SetTransform, then stops at
-`IDirect3DDevice8.GetViewport` at 8,858,270 guest instructions;
+`D3DRS_DITHERENABLE=TRUE` at 8,861,145 guest instructions;
 Node stops at device creation without WebGPU. See [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is D3D8 viewports and broader resources, with remaining
+unverified. The next work is D3D8 dithering and broader resources, with remaining
 audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 

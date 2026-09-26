@@ -21,6 +21,8 @@ export function device8Methods(methods9, names9) {
     'Clear',
     'SetTransform',
     'GetTransform',
+    'SetViewport',
+    'GetViewport',
     'SetRenderState',
     'GetRenderState',
     'DrawPrimitiveUP',

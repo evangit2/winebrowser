@@ -5,6 +5,9 @@
 #define WINEBROWSER_D3D8
 #define D3D_VERSION_TEXT "8"
 #define D3DCAPS9 D3DCAPS8
+#define D3DVIEWPORT9 D3DVIEWPORT8
+#define IDirect3DDevice9_GetViewport IDirect3DDevice8_GetViewport
+#define IDirect3DDevice9_SetViewport IDirect3DDevice8_SetViewport
 #define IDirect3D9 IDirect3D8
 #define IDirect3DDevice9 IDirect3DDevice8
 #define Direct3DCreate9 Direct3DCreate8

@@ -1,6 +1,7 @@
 import { ComObjects } from './com.js';
 import { writeDeviceCaps } from './d3d-caps.js';
 import { CULL_MODE, DEPTH_COMPARE } from './d3d-render-state.js';
+import { defaultViewport, setViewport, getViewport, clearRegions } from './d3d-viewport.js';
 import { displayMethods, displayFormat } from './d3d-display.js';
 import { VIRTUAL_DISPLAY_MODES, currentDisplayMode } from './win32-display.js';
 import { enterFullscreen, leaveFullscreen } from './d3d-fullscreen.js';
@@ -99,14 +100,12 @@ function deviceMethods(version = 9) {
     },
     43: {
       argc: 7,
-      invoke(_runtime, argument, object) {
+      invoke(runtime, argument, object) {
         const count = argument(1) >>> 0;
         const rects = argument(2) >>> 0;
         const flags = argument(3) >>> 0;
         const depth = floatFromBits(argument(5));
         if (
-          count ||
-          rects ||
           argument(6) ||
           !flags ||
           flags & ~3 ||
@@ -116,13 +115,20 @@ function deviceMethods(version = 9) {
         )
           throw Error('Unsupported IDirect3DDevice9.Clear parameters');
         if (flags & 2 && !object.state.hasDepth) return D3DERR_INVALIDCALL;
-        queue(object.state, {
-          type: 'clear',
-          color: argument(4) >>> 0,
-          depth,
-          clearColor: !!(flags & 1),
-          clearDepth: !!(flags & 2),
-        });
+        const regions = clearRegions(runtime, rects, count, object.state.viewport);
+        if (!regions) return D3DERR_INVALIDCALL;
+        queue(
+          object.state,
+          {
+            type: 'clear',
+            color: argument(4) >>> 0,
+            depth,
+            clearColor: !!(flags & 1),
+            clearDepth: !!(flags & 2),
+            regions,
+          },
+          regions.length * 16,
+        );
         return D3D_OK;
       },
     },
@@ -149,6 +155,8 @@ function deviceMethods(version = 9) {
         return 0;
       },
     },
+    47: { argc: 2, invoke: (r, a, o) => setViewport(r, a(1), o.state) },
+    48: { argc: 2, invoke: (r, a, o) => getViewport(r, a(1), o.state) },
     57: {
       argc: 3,
       invoke(_runtime, argument, object) {
@@ -227,6 +235,7 @@ function deviceMethods(version = 9) {
             world: state.world.slice(),
             view: state.view.slice(),
             projection: state.projection.slice(),
+            viewport: { ...state.viewport },
             depthTest: state.depthTest,
             depthWrite: state.depthWrite,
             depthCompare: state.depthCompare,
@@ -416,6 +425,9 @@ function factoryMethods(version = 9) {
           world: IDENTITY.slice(),
           view: IDENTITY.slice(),
           projection: IDENTITY.slice(),
+          width: options.width,
+          height: options.height,
+          viewport: defaultViewport(options.width, options.height),
           vertexDeclaration: null,
           vertexShader: null,
           pixelShader: null,

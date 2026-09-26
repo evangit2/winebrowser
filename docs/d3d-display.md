@@ -66,16 +66,35 @@ in both canvas and readback modes. `SetTransform` stores all matrix bits, includ
 startup NaNs, like Wine; `GetTransform` returns them unchanged. Draw submission
 still rejects a nonfinite matrix if the application actually consumes it.
 
+Viewports initialize to the full render target with depth range 0–1. Set/GetViewport
+use the 24-byte D3D8/9 layout and validate the complete memory range. The bounded
+backend accepts rectangles contained in the target (including zero-area views)
+and finite 0–1 depth ranges with MinZ ≤ MaxZ. Each queued draw owns its viewport,
+so later state changes do not move earlier geometry. Other depth mappings remain
+unsupported.
+
+Clear accepts up to 256 signed screen rectangles and intersects them with the
+current viewport. Empty intersections do nothing. Full-surface clears retain the
+attachment fast path; partial clears use a dedicated GPU pipeline with independent
+color/depth write masks. They ignore guest depth comparisons and viewport depth
+range, preserve untouched pixels and use distinct uniform buffers per queued clear.
+The next draw restores its own viewport and scissor. Eighteen backend cases check
+all 299,520 output pixels per presentation mode, covering fixed and shader draws,
+depth mapping, zero width, multiple views, exact clear boundaries, depth/color-only
+clears and color targets without a depth attachment.
+
 Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
-`GetDeviceCaps` and initial `SetTransform`, then stops at unsupported `IDirect3DDevice8.GetViewport` (EXE offset `0x55040`) at 8,858,270 guest instructions;
+`GetDeviceCaps`, viewport setup and finite projection `SetTransform`, then stops at unsupported `D3DRS_DITHERENABLE=TRUE` (EXE offset `0x54630`) at 8,861,145 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.
 
 Sources: pinned Wine 11.0 `dlls/d3d8/directx.c`, `dlls/d3d9/directx.c`, MinGW
 D3D8/9 headers, the local DirectWebGPU/Hamsterball presentation implementations,
-and Microsoft's [capability query](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3d9-getdevicecaps),
+and Microsoft's [viewport](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3ddevice9-setviewport),
+[clear](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3ddevice9-clear),
+[capability query](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3d9-getdevicecaps),
 [culling state](https://learn.microsoft.com/en-us/windows/win32/direct3d9/culling-state),
 [presentation parameters](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dpresent-parameters)
 and [swap effects](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dswapeffect)

@@ -246,6 +246,138 @@ try {
           }
         }
       }
+      const viewportCases = [];
+      const fullTriangle = (command) => {
+        const copy = { ...command, vertices: command.vertices.slice() };
+        const view = new DataView(copy.vertices.buffer);
+        for (const [i, [x, y]] of [
+          [-1, -1],
+          [3, -1],
+          [-1, 3],
+        ].entries()) {
+          view.setFloat32(i * copy.stride, x, true);
+          view.setFloat32(i * copy.stride + 4, y, true);
+        }
+        return copy;
+      };
+      const inside = (x, y, r) => x >= r.x && y >= r.y && x < r.x + r.width && y < r.y + r.height;
+      const checkPixels = (name, expected) => {
+        const pixels = context.getImageData(0, 0, 130, 128).data;
+        const colors = {};
+        for (let y = 0; y < 128; y++)
+          for (let x = 0; x < 130; x++) {
+            const index = (y * 130 + x) * 4,
+              want = expected(x, y);
+            if (want.some((n, i) => pixels[index + i] !== n))
+              throw Error(
+                `${name}: pixel ${x},${y} is ${[...pixels.slice(index, index + 4)]}, expected ${want}`,
+              );
+            colors[want.join(',')] = (colors[want.join(',')] ?? 0) + 1;
+          }
+        viewportCases.push({ name, verifiedPixels: 130 * 128, colors });
+        frames.pop();
+      };
+      const bg = [37, 45, 65, 255],
+        red = [255, 0, 0, 255],
+        blue = [0, 0, 255, 255],
+        green = [0, 255, 0, 255];
+      const regionA = { x: 10, y: 12, width: 20, height: 16 },
+        regionB = { x: 50, y: 60, width: 30, height: 25 };
+      await renderer.present({
+        id: 5,
+        commands: [
+          clear,
+          { ...clear, color: 0xff0000ff, regions: [regionA] },
+          { ...clear, color: 0xff00ff00, regions: [regionB] },
+        ],
+      });
+      checkPixels('independent clear uniforms and exact rectangle edges', (x, y) =>
+        inside(x, y, regionA) ? blue : inside(x, y, regionB) ? green : bg,
+      );
+      for (const path of ['fixed', 'programmable']) {
+        const base = fullTriangle(path === 'fixed' ? draw(0.25, 0xffff0000) : shaderDraw);
+        const drawn = path === 'fixed' ? red : [255, 128, 64, 255];
+        for (const [name, viewport, visible] of [
+          ['offset', { x: 10, y: 20, width: 40, height: 50, minZ: 0, maxZ: 1 }, true],
+          ['far depth range', { x: 10, y: 20, width: 40, height: 50, minZ: 0.75, maxZ: 1 }, false],
+          ['near depth range', { x: 10, y: 20, width: 40, height: 50, minZ: 0, maxZ: 0.25 }, true],
+          [
+            'collapsed depth range',
+            { x: 10, y: 20, width: 40, height: 50, minZ: 0, maxZ: 0 },
+            true,
+          ],
+          ['zero width', { x: 10, y: 20, width: 0, height: 50, minZ: 0, maxZ: 1 }, false],
+        ]) {
+          await renderer.present({
+            id: 5,
+            commands: [
+              { ...clear, depth: 0.5 },
+              { ...base, viewport },
+            ],
+          });
+          checkPixels(`${path}: ${name}`, (x, y) =>
+            visible && inside(x, y, viewport) ? drawn : bg,
+          );
+        }
+        await renderer.present({
+          id: 5,
+          commands: [
+            { ...clear, depth: 0 },
+            { ...clear, clearColor: false, depth: 1, regions: [regionA, regionB] },
+            base,
+          ],
+        });
+        checkPixels(`${path}: depth-only clear and reset of clear scissor/viewport`, (x, y) =>
+          inside(x, y, regionA) || inside(x, y, regionB) ? drawn : bg,
+        );
+        await renderer.present({
+          id: 5,
+          commands: [
+            { ...clear, depth: 0 },
+            { ...clear, clearDepth: false, color: 0xff00ff00, regions: [regionA] },
+            base,
+          ],
+        });
+        checkPixels(`${path}: color-only clear preserves depth`, (x, y) =>
+          inside(x, y, regionA) ? green : bg,
+        );
+        await renderer.present({
+          id: 5,
+          commands: [
+            clear,
+            { ...base, viewport: { x: 0, y: 0, width: 20, height: 20, minZ: 0, maxZ: 1 } },
+            { ...clear, regions: [], color: 0xff0000ff },
+            { ...base, viewport: { x: 100, y: 100, width: 20, height: 20, minZ: 0, maxZ: 1 } },
+          ],
+        });
+        checkPixels(`${path}: multiple draw viewports and empty clear`, (x, y) =>
+          (x < 20 && y < 20) || (x >= 100 && y >= 100 && x < 120 && y < 120) ? drawn : bg,
+        );
+      }
+      for (const command of [
+        { ...clear, regions: [{ x: 129, y: 0, width: 2, height: 1 }] },
+        { ...clear, regions: Array(257).fill(regionA) },
+        { ...draw(0.25, 0xffff0000), viewport: { ...regionA, minZ: 1, maxZ: 0 } },
+      ]) {
+        let rejected = false;
+        try {
+          await renderer.present({ id: 5, commands: [command] });
+        } catch {
+          rejected = true;
+        }
+        if (!rejected) throw Error('Invalid viewport/rectangle command accepted');
+      }
+      await renderer.createDevice({ id: 6, windowId: 1, width: 130, height: 128, depth: false });
+      await renderer.present({
+        id: 6,
+        commands: [
+          { ...clear, clearDepth: false },
+          { ...clear, clearDepth: false, color: 0xff0000ff, regions: [regionA] },
+        ],
+      });
+      checkPixels('partial clear without depth attachment', (x, y) =>
+        inside(x, y, regionA) ? blue : bg,
+      );
       return {
         scope:
           'WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance',
@@ -256,6 +388,7 @@ try {
         copied,
         quantizedDraw,
         rasterCases,
+        viewportCases,
         pacedIntervals: times.slice(1).map((time, i) => time - times[i]),
         presentationMode: renderer.presentationMode,
         fallbackAdapter: renderer.fallbackAdapter,

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T09:18:09.345Z",
+  "date": "2026-09-26T09:36:11.298Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.57",
   "nativeGame": "d3d9-cube",
@@ -8,11 +8,11 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "377e52c24007424b35756fa1341d86e42f2a6c2450fc7f47e995eaefce54eb33",
+      "exeSha256": "cbf184d7788f20c8ed3867dcad37ec9f9c7d150b0710cd06ef4f95679c8a85d8",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 6,
+        "frames": 5,
         "hash": "60a119531d0a6dcc5eba31188ab53f3374570d24f89f85243ffb41220beeaa58",
         "corner": [
           23,
@@ -30,30 +30,31 @@
         "width": 640,
         "height": 480,
         "frames": 19,
-        "hash": "a93354cf26c6fda1be5d511962aedc76dc8ac2ca6999547912071a0e3cf3e8f2",
+        "hash": "f282d6841154c3748a98263dd314389b16059d0c2bace8db19406f58f200c8d9",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 77284,
+        "coloredPixels": 74972,
         "colors": [
-          "242,207,91"
+          "242,207,91",
+          "232,101,84"
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 123,
-      "instructions": 3766,
-      "apiCalls": 280
+      "compiledBlocks": 146,
+      "instructions": 3948,
+      "apiCalls": 293
     },
     {
       "mode": "hosted-zip",
-      "exeSha256": "377e52c24007424b35756fa1341d86e42f2a6c2450fc7f47e995eaefce54eb33",
+      "exeSha256": "cbf184d7788f20c8ed3867dcad37ec9f9c7d150b0710cd06ef4f95679c8a85d8",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 5,
+        "frames": 6,
         "hash": "bbb563e1bfdf3ad49d1c729dbc4143b2b670a6c70154be5011c0cdaf2e7b52a2",
         "corner": [
           23,
@@ -69,8 +70,8 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 18,
-        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
+        "frames": 20,
+        "hash": "60a119531d0a6dcc5eba31188ab53f3374570d24f89f85243ffb41220beeaa58",
         "corner": [
           23,
           29,
@@ -80,13 +81,13 @@
         "coloredPixels": 74972,
         "colors": [
           "93,197,239",
-          "121,216,117"
+          "242,207,91"
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 123,
-      "instructions": 3574,
-      "apiCalls": 262
+      "compiledBlocks": 146,
+      "instructions": 4524,
+      "apiCalls": 347
     }
   ],
   "errors": []

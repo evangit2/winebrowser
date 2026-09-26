@@ -1,6 +1,8 @@
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
 import { D3DPresentation } from './d3d-presentation.js';
+import { defaultViewport, validViewport, validRegion } from './d3d-viewport.js';
+import { D3DClearRenderer } from './d3d-clear-renderer.js';
 
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
@@ -43,6 +45,7 @@ export class WebGPURenderer {
     this.pipelines = new Map();
     this.programmable = new D3D9ProgrammableRenderer(this);
     this.presentation = new D3DPresentation(this);
+    this.clears = new D3DClearRenderer(this);
     this.frames = 0;
     this.draws = 0;
   }
@@ -194,6 +197,11 @@ export class WebGPURenderer {
       throw Error('Graphics frame command limit exceeded');
     let bytes = 0;
     for (const command of commands) {
+      if (
+        command.viewport !== undefined &&
+        !validViewport(command.viewport, surface.width, surface.height)
+      )
+        throw Error('Invalid graphics viewport');
       if (command.type === 'clear') {
         if (
           !integer(command.color, 0, 0xffffffff) ||
@@ -202,9 +210,14 @@ export class WebGPURenderer {
           command.depth > 1 ||
           typeof command.clearColor !== 'boolean' ||
           typeof command.clearDepth !== 'boolean' ||
-          (command.clearDepth && !surface.depthTexture)
+          (command.clearDepth && !surface.depthTexture) ||
+          (command.regions !== undefined &&
+            (!Array.isArray(command.regions) ||
+              command.regions.length > 256 ||
+              command.regions.some((r) => !validRegion(r, surface.width, surface.height))))
         )
           throw Error('Invalid graphics clear command');
+        bytes += (command.regions?.length ?? 0) * 16;
       } else if (command.type === 'draw') {
         if (
           !(command.vertices instanceof Uint8Array) ||
@@ -229,6 +242,7 @@ export class WebGPURenderer {
         bytes += command.vertices.length;
         if (bytes > MAX_FRAME_BYTES) throw Error('Graphics frame upload limit exceeded');
       } else throw Error(`Unsupported graphics command: ${command.type}`);
+      if (bytes > MAX_FRAME_BYTES) throw Error('Graphics frame upload limit exceeded');
     }
   }
 
@@ -370,13 +384,32 @@ export class WebGPURenderer {
         });
         surface.depthInitialized = true;
       };
-      let programmableIndex = 0;
+      let programmableIndex = 0,
+        clearIndex = 0;
       for (const command of commands) {
         if (command.type === 'clear') {
-          begin(command);
+          const regions = command.regions ?? [
+            { x: 0, y: 0, width: surface.width, height: surface.height },
+          ];
+          if (
+            regions.some(
+              (r) =>
+                r.x === 0 && r.y === 0 && r.width === surface.width && r.height === surface.height,
+            )
+          ) {
+            begin(command);
+          } else if (regions.some((r) => r.width && r.height)) {
+            if (!pass) begin();
+            this.clears.draw(pass, surface, clearIndex++, command, regions);
+          }
           continue;
         }
         if (!pass) begin();
+        const v = command.viewport ?? defaultViewport(surface.width, surface.height);
+        // A zero-area viewport has no fragments; consume prepared draw slots
+        // normally so later draws retain their own uploaded data.
+        pass.setViewport(v.x, v.y, v.width, v.height, v.minZ, v.maxZ);
+        pass.setScissorRect(0, 0, surface.width, surface.height);
         if (command.type === 'draw-programmable') {
           this.programmable.draw(pass, programmable[programmableIndex++]);
         } else {
@@ -389,6 +422,7 @@ export class WebGPURenderer {
       }
       if (!pass) begin();
       pass.end();
+      this.clears.trim(surface, clearIndex);
       this.presentation.quantize(encoder, surface, texture);
       if (surface.readback)
         encoder.copyTextureToBuffer(
@@ -464,6 +498,7 @@ export class WebGPURenderer {
       slot.uniform.destroy();
     }
     this.programmable.destroySurface(surface);
+    this.clears.trim(surface, 0);
     surface.depthTexture?.destroy();
     surface.readback?.destroy();
     for (const texture of surface.colors) texture.destroy();
@@ -479,5 +514,6 @@ export class WebGPURenderer {
     this.device = null;
     this.pipelines.clear();
     this.programmable.dispose();
+    this.clears.dispose();
   }
 }
