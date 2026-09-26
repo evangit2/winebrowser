@@ -14,7 +14,14 @@ import { normalizePath } from '../src/package.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { values: options, positionals } = parseArgs({
   allowPositionals: true,
-  options: { browser: { type: 'boolean' }, exe: { type: 'string' }, report: { type: 'string' } },
+  options: {
+    browser: { type: 'boolean' },
+    exe: { type: 'string' },
+    report: { type: 'string' },
+    'worker-timeout': { type: 'string' },
+    'max-blocks': { type: 'string' },
+    'max-ms': { type: 'string' },
+  },
 });
 const [
   targetId = 'humus-dynamic-branching-d3d9-x86',
@@ -53,7 +60,21 @@ const { builtinFiles, nlsFiles, inputs } = await loadWineProbeInputs(root, {
   nlsDirectory,
 });
 const browser = options.browser;
-const input = { files, exe, builtinFiles, nlsFiles };
+const input = {
+  files,
+  exe,
+  builtinFiles,
+  nlsFiles,
+  ...(options['worker-timeout'] ? { workerTimeoutMs: Number(options['worker-timeout']) } : {}),
+  ...(options['max-blocks'] || options['max-ms']
+    ? {
+        limits: {
+          ...(options['max-blocks'] ? { maxBlocks: Number(options['max-blocks']) } : {}),
+          ...(options['max-ms'] ? { maxExecutionMs: Number(options['max-ms']) } : {}),
+        },
+      }
+    : {}),
+};
 const report = browser
   ? await (await import('./lib/wine-loader-browser.mjs')).probeWineTargetInBrowser(root, input)
   : await probeWineTarget(iced, input);

@@ -77,7 +77,7 @@ async function probeInBrowser(root, kind, input) {
               if (!response.ok) throw Error('Probe asset unavailable: ' + key);
               return new Uint8Array(await response.arrayBuffer());
             };
-            const input = { testStaticTLS: data.testStaticTLS };
+            const input = { testStaticTLS: data.testStaticTLS, limits: data.limits };
             for (const [field, entries] of Object.entries(data.descriptors))
               input[field] = new Map(await Promise.all(entries.map(async ([name,key]) => [name,await fetchBytes(key)])));
             for (const field of data.byteFields) input[field] = await fetchBytes(field);
@@ -91,7 +91,13 @@ async function probeInBrowser(root, kind, input) {
         const worker = new Worker(url, { type: 'module' });
         try {
           return await new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => reject(Error('Wine worker probe timed out')), 60000);
+            // The guest budget is bounded by the probe's own diagnostic clock;
+            // this only guards a wedged worker. Allow a generous margin so a
+            // long block budget is not cut short by transport timeouts.
+            const timeout = setTimeout(
+              () => reject(Error('Wine worker probe timed out')),
+              Number(payload.workerTimeoutMs) || 60000,
+            );
             worker.onmessage = (event) => {
               clearTimeout(timeout);
               resolve(event.data);
@@ -114,6 +120,8 @@ async function probeInBrowser(root, kind, input) {
         byteFields: ['dll', 'executable'].filter((field) => input[field]),
         exe: input.exe,
         testStaticTLS: input.testStaticTLS,
+        workerTimeoutMs: input.workerTimeoutMs,
+        limits: input.limits,
       },
     );
     if (result.worker !== true || result.crossOriginIsolated !== true)

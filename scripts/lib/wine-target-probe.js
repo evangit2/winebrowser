@@ -16,7 +16,7 @@ const hex = (value) => `0x${(value >>> 0).toString(16)}`;
 // The normal package loader continues rejecting unresolved imports up front.
 export async function probeWineTarget(
   iced,
-  { files, exe, builtinFiles, nlsFiles, testStaticTLS = false },
+  { files, exe, builtinFiles, nlsFiles, testStaticTLS = false, limits = {} },
 ) {
   const report = {
     status: 'blocked-guest',
@@ -36,7 +36,10 @@ export async function probeWineTarget(
     firstFailure: null,
     frameSamples: [],
     pendingSamples: [],
-    diagnosticLimits: { maxBlocks: 10_000_000, maxExecutionMs: 45_000 },
+    diagnosticLimits: {
+      maxBlocks: limits.maxBlocks ?? 10_000_000,
+      maxExecutionMs: limits.maxExecutionMs ?? 45_000,
+    },
   };
   const restore = new Map();
   const recentBlocks = [];
