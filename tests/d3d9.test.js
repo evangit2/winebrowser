@@ -159,6 +159,236 @@ test('Clear and DrawPrimitiveUP snapshot colored 3D vertices and transformed sta
   assert.equal(events.at(-1).commands.length, 0);
 });
 
+test('D3D9 vertex and index buffers drive buffered and indexed draws', async () => {
+  const { runtime, events, call, create } = fixture();
+  const device = await create();
+  await call(device, 89, 0x42);
+  const vbOut = runtime.allocate(4),
+    ibOut = runtime.allocate(4);
+  // Vertex buffer: four XYZ+diffuse vertices, 16 bytes each.
+  assert.equal((await call(device, 26, 64, 0, 0x42, 0, vbOut, 0)).result, 0);
+  assert.equal((await call(device, 27, 6, 0, 101, 0, ibOut, 0)).result, 0);
+  const vb = runtime.read32(vbOut),
+    ib = runtime.read32(ibOut);
+  assert.ok(vb && ib && vb !== ib);
+  const lockOut = runtime.allocate(4),
+    indexLockOut = runtime.allocate(4);
+  assert.equal((await call(vb, 11, 0, 0, lockOut, 0)).result, 0);
+  assert.equal((await call(ib, 11, 0, 0, indexLockOut, 0)).result, 0);
+  const vertexData = runtime.read32(lockOut),
+    indexData = runtime.read32(indexLockOut);
+  for (let i = 0; i < 4; i++) {
+    runtime.view.setFloat32(vertexData + i * 16, i, true);
+    runtime.view.setFloat32(vertexData + i * 16 + 4, i * 2, true);
+    runtime.view.setFloat32(vertexData + i * 16 + 8, 0, true);
+    runtime.write32(vertexData + i * 16 + 12, 0xff00ff00);
+  }
+  for (const [offset, value] of [
+    [0, 0],
+    [2, 1],
+    [4, 2],
+  ])
+    runtime.view.setUint16(indexData + offset, value, true);
+  assert.equal((await call(vb, 12)).result, 0);
+  assert.equal((await call(ib, 12)).result, 0);
+
+  // Describe and stream queries round-trip through the guest A/W structures.
+  const desc = runtime.allocate(24);
+  assert.equal((await call(vb, 13, desc)).result, 0);
+  assert.deepEqual(
+    [0, 4, 8, 12, 16, 20].map((o) => runtime.read32(desc + o)),
+    [100, 6, 0, 0, 64, 0x42],
+  );
+  assert.equal((await call(device, 100, 0, vb, 0, 16)).result, 0);
+  const streamOut = runtime.allocate(4),
+    offsetOut = runtime.allocate(4),
+    strideOut = runtime.allocate(4);
+  assert.equal((await call(device, 101, 0, streamOut, offsetOut, strideOut)).result, 0);
+  assert.deepEqual(
+    [streamOut, offsetOut, strideOut].map((a) => runtime.read32(a)),
+    [vb, 0, 16],
+  );
+  // A rejected stream leaves the previous binding intact.
+  assert.equal((await call(device, 100, 0, 0, 4, 16)).result, 0x8876086c);
+  assert.equal((await call(device, 101, 0, streamOut, offsetOut, strideOut)).result, 0);
+  assert.equal(runtime.read32(streamOut), vb);
+  assert.equal((await call(device, 100, 0, vb, 0, 10)).result, 0x8876086c);
+
+  // Non-indexed buffered draw: primitive type and start vertex are honored.
+  assert.equal((await call(device, 41)).result, 0);
+  assert.equal((await call(device, 81, 4, 1, 1)).result, 0);
+  assert.equal((await call(device, 42)).result, 0);
+  assert.equal((await call(device, 17, 0, 0, 0, 0)).result, 0);
+  let frame = events.at(-1);
+  assert.equal(frame.commands.length, 1);
+  assert.equal(frame.commands[0].vertexCount, 3);
+  assert.equal(frame.commands[0].stride, 16);
+  assert.equal(new DataView(frame.commands[0].vertices.buffer).getFloat32(0, true), 1);
+  assert.equal(new DataView(frame.commands[0].vertices.buffer).getFloat32(4, true), 2);
+
+  // Indexed draw with a base vertex shift.
+  assert.equal((await call(device, 104, ib)).result, 0);
+  const indexOut = runtime.allocate(4);
+  assert.equal((await call(device, 105, indexOut)).result, 0);
+  assert.equal(runtime.read32(indexOut), ib);
+  assert.equal((await call(device, 41)).result, 0);
+  assert.equal((await call(device, 82, 4, 1, 0, 4, 0, 1)).result, 0);
+  assert.equal((await call(device, 42)).result, 0);
+  assert.equal((await call(device, 17, 0, 0, 0, 0)).result, 0);
+  frame = events.at(-1);
+  assert.equal(frame.commands[0].vertexCount, 3);
+  const floats = [0, 1, 2].map((i) =>
+    new DataView(frame.commands[0].vertices.buffer).getFloat32(i * 16, true),
+  );
+  assert.deepEqual(floats, [1, 2, 3]);
+
+  // Out-of-window indices and locked buffers fail explicitly.
+  assert.equal((await call(device, 41)).result, 0);
+  await assert.rejects(call(device, 82, 4, 0, 0, 4, 1, 1), /exceeds the bound index buffer/);
+  await assert.rejects(call(device, 82, 4, 1, 0, 2, 0, 1), /outside the declared window/);
+  assert.equal((await call(vb, 11, 0, 0, lockOut, 0)).result, 0);
+  await assert.rejects(call(device, 82, 4, 0, 0, 4, 0, 1), /unlocked vertex buffer/);
+  assert.equal((await call(vb, 12)).result, 0);
+  assert.equal((await call(device, 42)).result, 0);
+  assert.equal((await call(device, 100, 0, 0, 0, 0)).result, 0);
+  assert.equal((await call(device, 41)).result, 0);
+  await assert.rejects(call(device, 82, 4, 0, 0, 4, 0, 1), /vertex stream/);
+  await assert.rejects(call(device, 81, 2, 0, 1), /primitive type/);
+  assert.equal((await call(device, 100, 0, vb, 0, 16)).result, 0);
+  assert.equal((await call(vb, 11, 0, 0, lockOut, 0)).result, 0);
+  await assert.rejects(call(device, 81, 4, 0, 1), /unlocked vertex buffer/);
+  assert.equal((await call(vb, 12)).result, 0);
+  assert.equal((await call(device, 42)).result, 0);
+
+  // Buffers retain the device; releasing them releases the retained reference
+  // and only then destroys the device and drops internal bindings.
+  assert.equal((await call(device, 104, 0)).result, 0);
+  // GetStreamSource/GetIndices hand back AddRef'd references, and each buffer
+  // holds a device reference; releasing every application reference in turn
+  // must reach zero and destroy the device.
+  for (const buffer of [vb, ib])
+    while (runtime.comObjects.objects.get(buffer).refs) await call(buffer, 2);
+  // The device still pins the vertex buffer through its stream binding; the
+  // binding is dropped when the device itself is finally released.
+  assert.equal(runtime.comObjects.objects.get(vb).state.internalRefs, 1);
+  assert.equal(runtime.comObjects.objects.get(device).refs, 1);
+  assert.equal((await call(device, 2)).result, 0);
+  assert.deepEqual(events.at(-1), { type: 'destroy', id: device });
+  assert.equal(runtime.comObjects.objects.get(vb).state.internalRefs, 0);
+  assert.equal(runtime.comObjects.objects.get(ib).state.internalRefs, 0);
+  await assert.rejects(call(vb, 1), /Released COM object/);
+});
+
+for (const version of [8, 9]) {
+  test(`D3D${version} buffers use the version-specific ABI for creation, streaming and indexed draws`, async () => {
+    const { runtime, events, call, create } = fixture(version);
+    const device = await create();
+    await call(device, version === 8 ? 76 : 89, 0x42);
+    const vbOut = runtime.allocate(4),
+      ibOut = runtime.allocate(4);
+    // D3D8 uses a different device vtable slot order and no trailing
+    // pSharedHandle argument on buffer creation.
+    const slots =
+      version === 8
+        ? {
+            createVertex: 23,
+            createIndex: 24,
+            draw: 70,
+            drawIndexed: 71,
+            setStream: 83,
+            getStream: 84,
+            setIndices: 85,
+            getIndices: 86,
+            begin: 34,
+            end: 35,
+            present: 15,
+          }
+        : {
+            createVertex: 26,
+            createIndex: 27,
+            draw: 81,
+            drawIndexed: 82,
+            setStream: 100,
+            getStream: 101,
+            setIndices: 104,
+            getIndices: 105,
+            begin: 41,
+            end: 42,
+            present: 17,
+          };
+    const cvb = version === 8 ? [64, 0, 0x42, 0, vbOut] : [64, 0, 0x42, 0, vbOut, 0];
+    const cib = version === 8 ? [6, 0, 101, 0, ibOut] : [6, 0, 101, 0, ibOut, 0];
+    assert.equal((await call(device, slots.createVertex, ...cvb)).result, 0);
+    assert.equal((await call(device, slots.createIndex, ...cib)).result, 0);
+    const vb = runtime.read32(vbOut),
+      ib = runtime.read32(ibOut);
+    assert.equal(
+      runtime.comObjects.objects.get(vb).name,
+      version === 8 ? 'IDirect3DVertexBuffer8' : 'IDirect3DVertexBuffer9',
+    );
+    assert.equal(
+      runtime.comObjects.objects.get(ib).name,
+      version === 8 ? 'IDirect3DIndexBuffer8' : 'IDirect3DIndexBuffer9',
+    );
+    const lockOut = runtime.allocate(4),
+      indexLockOut = runtime.allocate(4);
+    await call(vb, 11, 0, 0, lockOut, 0);
+    await call(ib, 11, 0, 0, indexLockOut, 0);
+    const base = runtime.read32(lockOut),
+      indexBase = runtime.read32(indexLockOut);
+    for (let i = 0; i < 4; i++) {
+      runtime.view.setFloat32(base + i * 16, i, true);
+      runtime.view.setFloat32(base + i * 16 + 4, 1, true);
+      runtime.view.setFloat32(base + i * 16 + 8, 0, true);
+      runtime.write32(base + i * 16 + 12, 0xffffffff);
+      if (i < 3) runtime.view.setUint16(indexBase + i * 2, i, true);
+    }
+    await call(vb, 12);
+    await call(ib, 12);
+
+    // D3D8 SetStreamSource(Stream, Buffer, Stride) has no byte offset;
+    // D3D9 adds OffsetInBytes before Stride. GetStreamSource mirrors that.
+    const streamArgs = version === 8 ? [0, vb, 16] : [0, vb, 0, 16];
+    assert.equal((await call(device, slots.setStream, ...streamArgs)).result, 0);
+    const streamOut = runtime.allocate(4),
+      offsetOut = runtime.allocate(4),
+      strideOut = runtime.allocate(4);
+    const getArgs =
+      version === 8 ? [0, streamOut, strideOut] : [0, streamOut, offsetOut, strideOut];
+    assert.equal((await call(device, slots.getStream, ...getArgs)).result, 0);
+    assert.equal(runtime.read32(streamOut), vb);
+    assert.equal(runtime.read32(strideOut), 16);
+    // D3D8 SetIndices carries BaseVertexIndex; D3D9 passes it per draw.
+    const setIndicesArgs = version === 8 ? [ib, 1] : [ib];
+    assert.equal((await call(device, slots.setIndices, ...setIndicesArgs)).result, 0);
+    const indexOut = runtime.allocate(4);
+    const getIndicesArgs = version === 8 ? [indexOut, runtime.allocate(4)] : [indexOut];
+    assert.equal((await call(device, slots.getIndices, ...getIndicesArgs)).result, 0);
+    assert.equal(runtime.read32(indexOut), ib);
+
+    await call(device, slots.begin);
+    const drawArgs = version === 8 ? [4, 0, 4, 0, 1] : [4, 1, 0, 4, 0, 1];
+    assert.equal((await call(device, slots.drawIndexed, ...drawArgs)).result, 0, 'indexed draw');
+    await call(device, slots.end);
+    await call(device, slots.present, 0, 0, 0, 0);
+    const present = events.filter((event) => event.type === 'present').at(-1);
+    assert.equal(present.commands[0].vertexCount, 3);
+    const floats = [0, 1, 2].map((i) =>
+      new DataView(present.commands[0].vertices.buffer).getFloat32(i * 16, true),
+    );
+    // D3D8 applies BaseVertexIndex from SetIndices; D3D9 from the draw call.
+    assert.deepEqual(floats, [1, 2, 3]);
+
+    // Non-indexed buffered draw at a nonzero start vertex.
+    await call(device, slots.begin);
+    assert.equal((await call(device, slots.draw, 4, 1, 1)).result, 0);
+    await call(device, slots.end);
+    await call(device, slots.present, 0, 0, 0, 0);
+    const streamed = events.filter((event) => event.type === 'present').at(-1);
+    assert.equal(new DataView(streamed.commands[0].vertices.buffer).getFloat32(0, true), 1);
+  });
+}
+
 test('Unsupported D3D9 methods and render modes fail explicitly; failed Present retains commands', async () => {
   const { runtime, events, call, factory, params, output, create } = fixture();
   assert.equal(d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 0).result, 0);

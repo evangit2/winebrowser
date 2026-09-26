@@ -32,9 +32,21 @@ import {
   getBoundObject,
   getFloatConstants,
   programmableDraw,
+  programmableDrawFromVertices,
   releaseComReference,
   setFloatConstants,
 } from './d3d9-programmable.js';
+import {
+  bufferedVertices,
+  createIndexBufferMethod,
+  createVertexBufferMethod,
+  getIndices,
+  getStreamSource,
+  indexedVertices,
+  releaseBufferBindings,
+  setIndices,
+  setStreamSource,
+} from './d3d9-buffers.js';
 
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
@@ -66,6 +78,76 @@ function requireGraphics(runtime) {
   )
     throw Error('D3D9 graphics backend is unavailable');
   return runtime.graphics;
+}
+
+// Shared by DrawPrimitiveUP, buffered and indexed draws. Vertices are always an
+// immutable contiguous snapshot by the time a command reaches the renderer.
+function fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCount) {
+  const layout = fvfLayout(state.fvf);
+  if (primitive !== 4 || !layout || stride < layout.size || stride > 256 || stride % 4)
+    throw Error('Unsupported D3D9 draw format or render state');
+  const texturing = fixedTextureDraw(runtime, state);
+  const texture = texturing?.texture;
+  const textureBytes =
+    texture && !state.textureSnapshots.has(texture)
+      ? texture.levels.reduce((n, l) => n + l.rgba.length, 0)
+      : 0;
+  const size = vertexCount * stride;
+  if (state.frameBytes + size > MAX_FRAME_BYTES) throw Error('D3D9 frame vertex limit exceeded');
+  if (state.frameTextureBytes + textureBytes > 32 * 1024 * 1024)
+    throw Error('D3D9 frame texture limit exceeded');
+  const view = new DataView(vertices.buffer, vertices.byteOffset, vertices.byteLength);
+  const floatOffsets = [0, 4, 8];
+  if (layout.normal !== null)
+    floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
+  if (layout.uv !== null) floatOffsets.push(layout.uv, layout.uv + 4);
+  for (let i = 0; i < vertexCount; i++)
+    for (const offset of floatOffsets)
+      if (!Number.isFinite(view.getFloat32(i * stride + offset, true)))
+        throw Error('Unsupported D3D9 non-finite vertex');
+  queue(
+    state,
+    {
+      type: 'draw',
+      fvf: state.fvf,
+      lighting: lightingSnapshot(state),
+      specularEnable: !!state.lightState[29],
+      texturing,
+      vertices,
+      vertexCount,
+      stride,
+      world: state.world.slice(),
+      view: state.view.slice(),
+      projection: state.projection.slice(),
+      viewport: { ...state.viewport },
+      depthTest: state.depthTest,
+      depthWrite: state.depthWrite,
+      depthCompare: state.depthCompare,
+      dither: state.dither,
+      blend: { ...state.blendState },
+      cullMode: state.cullMode,
+    },
+    size,
+  );
+  if (texture) {
+    state.textureSnapshots.add(texture);
+    state.frameTextureBytes += textureBytes;
+  }
+  return D3D_OK;
+}
+
+// Draws queued from a buffer gather vertices host-side; programmable draws use
+// the same snapshot. Returns null when no programmable pipeline is bound.
+function bufferedDraw(runtime, state, source, primitive) {
+  const { vertices, stride, vertexCount } = source;
+  const programmable = programmableDrawFromVertices(state, vertices, stride, vertexCount);
+  if (programmable) {
+    if (primitive !== 4) throw Error('Unsupported programmable D3D9 draw state');
+    const { payloadBytes, ...command } = programmable;
+    queue(state, command, payloadBytes);
+    return D3D_OK;
+  }
+  return fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCount);
 }
 
 function queue(state, command, bytes = 0) {
@@ -273,62 +355,77 @@ function deviceMethods(version = 9) {
           queue(state, command, payloadBytes);
           return D3D_OK;
         }
-        const layout = fvfLayout(state.fvf);
-        if (primitive !== 4 || !layout || stride < layout.size || stride > 256 || stride % 4)
-          throw Error('Unsupported IDirect3DDevice9.DrawPrimitiveUP format or render state');
-        const texturing = fixedTextureDraw(runtime, state);
-        const texture = texturing?.texture;
-        const textureBytes =
-          texture && !state.textureSnapshots.has(texture)
-            ? texture.levels.reduce((n, l) => n + l.rgba.length, 0)
-            : 0;
         const size = vertexCount * stride;
-        if (state.frameBytes + size > MAX_FRAME_BYTES)
-          throw Error('D3D9 frame vertex limit exceeded');
-        if (state.frameTextureBytes + textureBytes > 32 * 1024 * 1024)
-          throw Error('D3D9 frame texture limit exceeded');
         runtime.check(pointer, size);
-        const vertices = runtime.data.slice(pointer, pointer + size);
-        const view = new DataView(vertices.buffer);
-        const floatOffsets = [0, 4, 8];
-        if (layout.normal !== null)
-          floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
-        if (layout.uv !== null) floatOffsets.push(layout.uv, layout.uv + 4);
-        for (let i = 0; i < vertexCount; i++)
-          for (const offset of floatOffsets)
-            if (!Number.isFinite(view.getFloat32(i * stride + offset, true)))
-              throw Error('Unsupported D3D9 non-finite vertex');
-        queue(
+        return fixedFunctionDraw(
+          runtime,
           state,
-          {
-            type: 'draw',
-            fvf: state.fvf,
-            lighting: lightingSnapshot(state),
-            specularEnable: !!state.lightState[29],
-            texturing,
-            vertices,
-            vertexCount,
-            stride,
-            world: state.world.slice(),
-            view: state.view.slice(),
-            projection: state.projection.slice(),
-            viewport: { ...state.viewport },
-            depthTest: state.depthTest,
-            depthWrite: state.depthWrite,
-            depthCompare: state.depthCompare,
-            dither: state.dither,
-            blend: { ...state.blendState },
-            cullMode: state.cullMode,
-          },
-          size,
+          primitive,
+          runtime.data.slice(pointer, pointer + size),
+          stride,
+          vertexCount,
         );
-        if (texture) {
-          state.textureSnapshots.add(texture);
-          state.frameTextureBytes += textureBytes;
-        }
-        return D3D_OK;
       },
     },
+    26: createVertexBufferMethod(version),
+    27: createIndexBufferMethod(version),
+    81: {
+      // DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount)
+      argc: 4,
+      invoke(runtime, argument, object) {
+        const state = object.state;
+        const primitive = argument(1) >>> 0;
+        const startVertex = argument(2) >>> 0;
+        const primitiveCount = argument(3) >>> 0;
+        if (!state.inScene) return D3DERR_INVALIDCALL;
+        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
+        return bufferedDraw(
+          runtime,
+          state,
+          bufferedVertices(runtime, object, startVertex, primitive, primitiveCount),
+          primitive,
+        );
+      },
+    },
+    82: {
+      // D3D9: (PrimitiveType, BaseVertexIndex, MinVertexIndex, NumVertices,
+      //        StartIndex, PrimitiveCount). D3D8 omits BaseVertexIndex, which
+      // SetIndices stores per buffer instead.
+      argc: version === 8 ? 6 : 7,
+      invoke(runtime, argument, object) {
+        const state = object.state;
+        const params =
+          version === 8
+            ? {
+                primitive: argument(1) >>> 0,
+                baseVertex: 0,
+                minVertexIndex: argument(2) >>> 0,
+                numVertices: argument(3) >>> 0,
+                startIndex: argument(4) >>> 0,
+                primitiveCount: argument(5) >>> 0,
+              }
+            : {
+                primitive: argument(1) >>> 0,
+                baseVertex: argument(2) | 0,
+                minVertexIndex: argument(3) >>> 0,
+                numVertices: argument(4) >>> 0,
+                startIndex: argument(5) >>> 0,
+                primitiveCount: argument(6) >>> 0,
+              };
+        if (!state.inScene) return D3DERR_INVALIDCALL;
+        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
+        return bufferedDraw(
+          runtime,
+          state,
+          indexedVertices(runtime, object, params.primitive, params.primitiveCount, params),
+          params.primitive,
+        );
+      },
+    },
+    100: { argc: version === 8 ? 4 : 5, invoke: (r, a, d) => setStreamSource(r, d, version, a) },
+    101: { argc: version === 8 ? 4 : 5, invoke: (r, a, d) => getStreamSource(r, d, version, a) },
+    104: { argc: version === 8 ? 3 : 2, invoke: (r, a, d) => setIndices(r, d, version, a) },
+    105: { argc: version === 8 ? 3 : 2, invoke: (r, a, d) => getIndices(r, d, version, a) },
     89: {
       argc: 2,
       invoke(_runtime, argument, object) {
@@ -534,6 +631,9 @@ function factoryMethods(version = 9) {
           vertexDeclaration: null,
           vertexShader: null,
           pixelShader: null,
+          streamSource: null,
+          indexBuffer: null,
+          indexBaseVertex: 0,
           vertexConstants: new Float32Array(256 * 4),
           pixelConstants: new Float32Array(224 * 4),
         };
@@ -548,6 +648,7 @@ function factoryMethods(version = 9) {
           state,
           onRelease: async () => {
             unbindTextures(runtime, object);
+            releaseBufferBindings(state);
             state.commands = [];
             state.textureSnapshots.clear();
             state.frameBytes = state.frameTextureBytes = 0;

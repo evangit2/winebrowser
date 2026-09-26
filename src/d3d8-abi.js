@@ -39,6 +39,14 @@ export function device8Methods(methods9, names9) {
     'SetRenderState',
     'GetRenderState',
     'DrawPrimitiveUP',
+    'CreateVertexBuffer',
+    'CreateIndexBuffer',
+    'DrawPrimitive',
+    'DrawIndexedPrimitive',
+    'SetStreamSource',
+    'GetStreamSource',
+    'SetIndices',
+    'GetIndices',
   ])
     methods[DEVICE8_METHODS.indexOf(name)] = methods9[names9.indexOf(name)];
   // In D3D8, a vertex shader value can be an FVF instead of a shader handle.

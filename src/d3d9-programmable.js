@@ -345,13 +345,9 @@ export function getFloatConstants(runtime, state, start, pointer, count, limit) 
   return D3D_OK;
 }
 
-export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
-  const vertex = state.vertexShader;
-  const pixel = state.pixelShader;
-  const declaration = state.vertexDeclaration;
-  if (!vertex && !pixel && !declaration) return null;
-  if (!vertex || !pixel || !declaration)
-    throw Error('Programmable D3D9 draw requires vertex declaration and both shaders');
+function programmableAttributes(state, stride) {
+  const vertex = state.vertexShader,
+    declaration = state.vertexDeclaration;
   const inputs = vertex.state.inputs;
   const attributes = declaration.state.elements.map((element) => {
     const input = inputs.find(
@@ -368,9 +364,22 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
   });
   if (inputs.length !== attributes.length || attributes.some((a) => a.offset + a.size > stride))
     throw Error('D3D9 declaration does not cover the vertex shader inputs');
-  const size = vertexCount * stride;
-  runtime.check(pointer, size);
-  const vertices = runtime.data.slice(pointer, pointer + size);
+  return attributes;
+}
+
+// Shared with the buffered and indexed draw paths: they gather vertex bytes
+// before calling here, so only memory consumption stays pointer-based.
+export function programmableDrawFromVertices(state, vertices, stride, vertexCount) {
+  const vertex = state.vertexShader;
+  const pixel = state.pixelShader;
+  const declaration = state.vertexDeclaration;
+  if (!vertex && !pixel && !declaration) return null;
+  if (!vertex || !pixel || !declaration)
+    throw Error('Programmable D3D9 draw requires vertex declaration and both shaders');
+  const attributes = programmableAttributes(state, stride);
+  if (vertexCount * stride > vertices.length)
+    throw Error('Programmable D3D9 draw exceeds the supplied vertex bytes');
+  vertices = vertices.slice(0, vertexCount * stride);
   for (const attribute of attributes)
     if (attribute.d3dColor)
       for (let offset = attribute.offset; offset < vertices.length; offset += stride)
@@ -401,4 +410,21 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
       state.vertexConstants.byteLength +
       state.pixelConstants.byteLength,
   };
+}
+
+export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
+  const vertex = state.vertexShader;
+  const pixel = state.pixelShader;
+  const declaration = state.vertexDeclaration;
+  if (!vertex && !pixel && !declaration) return null;
+  if (!vertex || !pixel || !declaration)
+    throw Error('Programmable D3D9 draw requires vertex declaration and both shaders');
+  const size = vertexCount * stride;
+  runtime.check(pointer, size);
+  return programmableDrawFromVertices(
+    state,
+    runtime.data.slice(pointer, pointer + size),
+    stride,
+    vertexCount,
+  );
 }
