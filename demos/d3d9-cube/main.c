@@ -147,6 +147,12 @@ static int run(void)
     IDirect3D9_Release(d3d);
     d3d = 0;
     if (FAILED(IDirect3DDevice9_GetDirect3D(device, &d3d)) || d3d != original_d3d) return 42;
+    D3DDISPLAYMODE device_mode, adapter_mode;
+    if (FAILED(IDirect3DDevice9_GetDisplayMode(device, 0, &device_mode)) ||
+        FAILED(IDirect3D9_GetAdapterDisplayMode(d3d, 0, &adapter_mode)) ||
+        device_mode.Width != adapter_mode.Width || device_mode.Height != adapter_mode.Height ||
+        device_mode.RefreshRate != adapter_mode.RefreshRate || device_mode.Format != adapter_mode.Format)
+        return 44;
     if (FAILED(IDirect3DDevice9_GetDeviceCaps(device, &device_caps))) return 37;
     for (UINT i = 0; i < sizeof(caps) / sizeof(DWORD); i++)
         if (((DWORD *)&caps)[i] != ((DWORD *)&device_caps)[i]) return 38;

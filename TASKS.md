@@ -182,13 +182,19 @@ D3D10/11 and broader D3D12 support are still required.
       registers and state on divide faults. Native EXE/ZIP and unit vectors pass.
 - [x] Implement D3D8/9 GetDirect3D with parent COM ownership, including pending
       GPU creation, rollback and independent returned references. Native cubes pass.
-- [ ] Implement D3D8/9 device GetDisplayMode. Hamsterball maps `shadow.png`,
-      passes image-reading instructions and parent/capability queries, then stops
-      at `IDirect3DDevice8.GetDisplayMode` (caller `0x48809b`).
-      Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 9,414,665 guest instructions.
-      Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
-      `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
+- [x] Implement D3D8/9 device GetDisplayMode with the adapter's active display,
+      complete output validation and the D3D9 implicit-swapchain index. Native
+      cubes and fullscreen presentation tests pass; 552 unit tests pass.
+- [ ] Implement texture surface-level ownership and access. Original Hamsterball
+      now passes GetDisplayMode and stops at `IDirect3DTexture8.GetSurfaceLevel`
+      (caller `0x488f63`, 9,420,850 guest instructions). It maps `shadow.png` and
+      creates its texture; no original game frame renders yet. See
+      `evidence/hamsterball-startup-browser.json`.
+- [ ] Priority: compile, load and render an independently maintained real D3D12
+      demo through the ordinary browser PE/ZIP path. Pin upstream source and
+      binary provenance; verify guest execution, browser shader compilation and
+      actual pixels. Expand missing runtime features without substituting a
+      pretranslated application or treating the bounded native cube as proof.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
       input and audio, reusing the Hamsterball/DirectWebGPU implementation semantics.
 

@@ -73,7 +73,7 @@ write masks, state queries and COPY presentation.
 525 unit tests pass, along with the lighting GPU, native programmable D3D9 and
 DirectX 12 cube regressions and the production build. Original Hamsterball now
 passes SRCBLEND/DESTBLEND and disabled fog/stencil setup. It now stops at
-the `IDirect3DDevice8.GetDisplayMode`, after mapping `shadow.png` (9,414,665 guest instructions).
+the `IDirect3DTexture8.GetSurfaceLevel`, after mapping `shadow.png` (9,420,850 guest instructions).
 It still presents zero frames. The probe uses the unchanged original EXE and
 local Wine DLL/NLS closure; those assets are not distributed.
 

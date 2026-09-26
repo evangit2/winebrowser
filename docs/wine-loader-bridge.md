@@ -135,7 +135,7 @@ the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers 
 It passes D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP
 device, passes capabilities and initial SetTransform, then stops at
 texture startup: native NT sections now map `shadow.png`, followed by an unsupported
-`IDirect3DDevice8.GetDisplayMode`, after 9,414,665 guest instructions;
+`IDirect3DTexture8.GetSurfaceLevel`, after 9,420,850 guest instructions;
 Node stops at device creation without WebGPU. See [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
 unverified. The next work is device display-mode queries, remaining D3D8 texture/resource

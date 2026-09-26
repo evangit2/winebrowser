@@ -21,7 +21,7 @@ import { ComObjects } from './com.js';
 import { writeDeviceCaps } from './d3d-caps.js';
 import { CULL_MODE, DEPTH_COMPARE } from './d3d-render-state.js';
 import { defaultViewport, setViewport, getViewport, clearRegions } from './d3d-viewport.js';
-import { displayMethods, displayFormat } from './d3d-display.js';
+import { displayMethods, displayFormat, deviceDisplayModeMethod } from './d3d-display.js';
 import { VIRTUAL_DISPLAY_MODES, currentDisplayMode } from './win32-display.js';
 import { enterFullscreen, leaveFullscreen } from './d3d-fullscreen.js';
 import { D3D8_METHODS, DEVICE8_METHODS, device8Methods } from './d3d8-abi.js';
@@ -110,6 +110,7 @@ function deviceMethods(version = 9) {
     68: textureStateMethod({ version, sampler: true, get: true }),
     69: textureStateMethod({ version, sampler: true }),
     7: { argc: 2, invoke: (r, a) => writeDeviceCaps(r, a(1), version) },
+    8: deviceDisplayModeMethod(version),
     17: {
       argc: 5,
       async invoke(runtime, argument, object) {

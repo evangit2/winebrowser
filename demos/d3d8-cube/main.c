@@ -16,6 +16,7 @@
 #define IDirect3D9_GetDeviceCaps IDirect3D8_GetDeviceCaps
 #define IDirect3DDevice9_GetDeviceCaps IDirect3DDevice8_GetDeviceCaps
 #define IDirect3DDevice9_GetDirect3D IDirect3DDevice8_GetDirect3D
+#define IDirect3DDevice9_GetDisplayMode(p, s, m) IDirect3DDevice8_GetDisplayMode(p, m)
 #define IDirect3D9_GetAdapterCount IDirect3D8_GetAdapterCount
 #define IDirect3D9_GetAdapterDisplayMode IDirect3D8_GetAdapterDisplayMode
 #define IDirect3D9_CheckDepthStencilMatch IDirect3D8_CheckDepthStencilMatch

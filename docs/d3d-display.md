@@ -106,8 +106,8 @@ Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
 `GetDeviceCaps`, viewport setup, finite projection `SetTransform`, mip-bias, blend
 and disabled fog/stencil setup and custom cursor loading, then stops at the
-unsupported `IDirect3DDevice8.GetDisplayMode`, after mapping `shadow.png`
-at 9,414,665 guest instructions;
+unsupported `IDirect3DTexture8.GetSurfaceLevel`, after mapping `shadow.png`
+at 9,420,850 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.
@@ -122,3 +122,9 @@ and Microsoft's [viewport](https://learn.microsoft.com/en-us/windows/win32/api/d
 and [swap effects](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dswapeffect)
 contracts. The reference renderer's broader capabilities are not copied into
 this runtime's reported support until implemented.
+
+Device `GetDisplayMode` now returns the active adapter mode in the same 16-byte
+layout as the factory query. D3D8 has no swapchain index; D3D9 accepts only index
+zero. Windowed backbuffer dimensions do not change this result. Null, incomplete
+and nonwritable outputs fail without mutation. Both native cubes compare all
+four fields, and the fullscreen fixture verifies the changed desktop mode.

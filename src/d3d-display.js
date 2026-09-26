@@ -19,6 +19,17 @@ function writeMode(runtime, pointer, mode) {
   return 0;
 }
 
+export function deviceDisplayModeMethod(version) {
+  return {
+    argc: version === 8 ? 2 : 3,
+    invoke(r, a) {
+      // Only the implicit swapchain exists. D3D8 has no swapchain argument.
+      if (version === 9 && a(1) !== 0) return INVALID;
+      return writeMode(r, a(version === 8 ? 1 : 2), currentDisplayMode(r));
+    },
+  };
+}
+
 export function displayMethods(version) {
   // D3D8 enumerates all modes; D3D9 adds a format filter. This adapter shares
   // USER32's mode catalogue; windowed backbuffer sizes do not change the desktop.

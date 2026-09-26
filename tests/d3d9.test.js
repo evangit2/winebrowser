@@ -1275,3 +1275,36 @@ for (const fail of [false, true]) {
     assert.equal(parent.refs, 0);
   });
 }
+
+for (const version of [8, 9]) {
+  test(`D3D${version} device display mode matches the adapter independently of backbuffer size`, async () => {
+    const { runtime, call, factory, create } = fixture(version),
+      device = await create();
+    const out = runtime.allocate(20),
+      adapter = runtime.allocate(16);
+    const args = (p) => (version === 8 ? [p] : [0, p]);
+    runtime.write32(out + 16, 0xaabbccdd);
+    for (const mode of [undefined, { width: 800, height: 600, bitsPerPixel: 16, frequency: 60 }]) {
+      runtime.displayMode = mode;
+      const result = await call(device, 8, ...args(out));
+      assert.deepEqual(result, { result: 0, argc: version === 8 ? 2 : 3 });
+      assert.equal((await call(factory, 8, 0, adapter)).result, 0);
+      assert.deepEqual(
+        [...runtime.data.slice(out, out + 16)],
+        [...runtime.data.slice(adapter, adapter + 16)],
+      );
+      assert.deepEqual(
+        [0, 4, 8, 12].map((i) => runtime.read32(out + i)),
+        mode ? [800, 600, 60, 23] : [1024, 768, 60, 22],
+      );
+      assert.equal(runtime.read32(out + 16), 0xaabbccdd);
+    }
+    const before = runtime.data.slice(out, out + 20);
+    for (const pointer of [0, runtime.data.length - 12, 0xffffffff])
+      assert.equal((await call(device, 8, ...args(pointer))).result, 0x8876086c);
+    if (version === 9) assert.equal((await call(device, 8, 1, out)).result, 0x8876086c);
+    assert.deepEqual(runtime.data.slice(out, out + 20), before);
+    await call(device, 2);
+    await call(factory, 2);
+  });
+}
