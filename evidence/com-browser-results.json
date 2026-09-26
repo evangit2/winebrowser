@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-26T00:35:47.167Z",
+  "sha256": {
+    "client.exe": "3beeba5820977f60b54f0c82966006143f2c0332607b74140b46eecdae0ccdc2",
+    "plugins/counter.dll": "a893f1d18ae1d2b66ba69a50b8863d5afeb511e8235aeddd4648160382f817bf"
+  },
+  "status": "passed",
+  "exitCode": 0,
+  "instructions": 3358,
+  "scope": "Native PE32 in-process class factory, object calls, failure HRESULTs, reference counts, locks, unload/reload and balanced single-thread COM initialization; no cross-apartment or remote COM.",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}

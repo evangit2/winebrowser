@@ -13,6 +13,8 @@
     "test:pages": "node scripts/test-pages.mjs",
     "test:windows": "node scripts/test-windows-browser.mjs",
     "test:winmm": "node scripts/test-winmm-browser.mjs",
+    "test:com": "node scripts/test-com-browser.mjs",
+    "build:com": "sh scripts/build-com-fixtures.sh",
     "build:winmm": "sh scripts/build-winmm-fixture.sh",
     "build:windows": "bash scripts/build-window-demo.sh",
     "build:examples": "python3 scripts/package-examples.py",

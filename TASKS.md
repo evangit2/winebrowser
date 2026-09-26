@@ -36,9 +36,13 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Supply hash-checked native Wine ACM/UCRT DLLs to the optional application
       diagnostic; BASS resolves their exports and proceeds to OLE32. This proves
       import/startup progress, not ACM conversion or BASS playback.
-- [ ] Implement the remaining BASS dependencies, starting with the missing
-      `ole32!CoCreateInstance` export reported by its own error dialog. Foreground
-      queries now reflect the virtual window manager. Node/browser evidence is in
+- [x] Implement single-thread COM initialization and native in-process class
+      activation through real DLL factories. A native client/server pair passes
+      object calls, failure HRESULTs, reference counts, locks and unload/reload
+      in Node and Chromium; no unknown CLSID receives a substitute object.
+- [ ] Continue BASS startup past its current unimplemented x87 `FYL2X` instruction.
+      OLE32 exports now resolve; foreground queries reflect the virtual window
+      manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
       input and audio, reusing the Hamsterball/DirectWebGPU implementation semantics.

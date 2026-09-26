@@ -106,10 +106,11 @@ messages can execute. Installed DLLs remain local diagnostic inputs.
 Both Node and the Chromium worker pass source bootstrap, callback installation
 and packed BASS translation. WinMM mixer and multimedia time exports resolve,
 as do the native ACM/UCRT exports and virtual foreground-window queries. The
-first missing dynamic export is now `ole32!CoCreateInstance`; BASS's own error
-dialog names it. The game has not reached its EXE entry or rendered a frame.
-Native ACM conversion and BASS playback have not been verified. The next work
-is COM activation and the remaining native audio/Win32 services, followed by
+OLE32 exports now resolve, including `CoCreateInstance`; the current stop is the
+unimplemented x87 `FYL2X` instruction during BASS attach. The game has not reached
+its EXE entry or rendered a frame. Native ACM conversion and BASS playback have
+not been verified. The next work is x87 execution and the remaining native
+audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 

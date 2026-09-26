@@ -70,7 +70,7 @@ first D3D8 path, not full Hamsterball compatibility. The original Hamsterball EX
 has been recovered byte-for-byte from retained PE sections and is now an actual
 translation target. Its packed native BASS DLL now loads dependencies through the
 experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
-native ACM/UCRT exports, and reaches the missing `ole32!CoCreateInstance` export;
+native ACM/UCRT and OLE32 exports, and reaches the unimplemented x87 `FYL2X` instruction;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11
 frontends and broader D3D12 resources/shaders.
@@ -79,6 +79,7 @@ frontends and broader D3D12 resources/shaders.
 - PE DLL imports/exports, ordinal and forwarded exports, HIGHLOW relocations, DllMain attach/detach, guest callbacks, scalar byte/word/dword x86 instructions, calls/returns, condition flags, and direct Wasm block generation in a terminable worker.
 - Relative and sandboxed DOS DLL paths, same-basename plugins, `LoadLibraryExA/W` with flags 0 or `LOAD_WITH_ALTERED_SEARCH_PATH`, and full module filename queries. Other search/datafile flags remain unsupported.
 - Browser-provided DLL handles point to mapped PE32 images with readable headers, sorted export names and executable API stubs. Imported and dynamically resolved addresses match their PE export tables. Unsupported exports still fail explicitly.
+- Single-thread COM initialization and native in-process class activation from the package's registry. Real guest `DllGetClassObject`, class factories and objects execute through browser translation; native fixture tests cover reference counts, failure HRESULTs, server locks and unload/reload. Cross-apartment and external COM servers remain unsupported.
 - Writable PE sections invalidate overlapping translated blocks; memory operations end writable-code blocks before following instructions are decoded. A 4,096-block cache evicts old translations instead of ending large programs. Executable private allocations and changing code-page protections remain separate unfinished work.
 - Static PE TLS for one guest thread: initialized templates, zero-fill, aligned per-module storage, and process callbacks, including dynamic DLL loading.
 - Selected x87 loads/stores, integer conversions, stack operations, arithmetic, comparisons, round-to-integer and control/status instructions using an independently rebuildable SoftFloat ext80 Wasm library. Transcendentals, environment save/restore and general floating-point exceptions remain unsupported.

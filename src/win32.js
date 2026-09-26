@@ -1,4 +1,5 @@
 import { registryApis } from './win32-registry.js';
+import { comApis } from './win32-com.js';
 import { d3d9Apis } from './d3d9.js';
 import { d3d12Apis, dxgiApis } from './d3d12.js';
 import { formatApis } from './win32-format.js';
@@ -44,6 +45,7 @@ for (const key of [
   ...Object.keys(iconApis),
   ...Object.keys(formatApis),
   ...Object.keys(registryApis),
+  ...Object.keys(comApis),
   ...Object.keys(d3d9Apis),
   ...Object.keys(d3d12Apis),
   ...Object.keys(dxgiApis),
@@ -257,6 +259,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(iconApis),
     ...Object.entries(formatApis),
     ...Object.entries(registryApis),
+    ...Object.entries(comApis),
     ...Object.entries(d3d9Apis),
     ...Object.entries(d3d12Apis),
     ...Object.entries(dxgiApis),
