@@ -14,7 +14,7 @@ SDK 120/220 and FVF-valued `SetVertexShader`. The native D3D8 cube is compiled
 against MinGW's actual D3D8 header/import library and passes the EXE/ZIP Chrome
 pixel, animation and clean-exit checks in `evidence/d3d8-browser-results.json`.
 This follows the existing Hamsterball/DirectWebGPU frontend design; its broader
-textures, state blocks, shader handles and resources still require adaptation.
+texture surfaces, state blocks, shader handles and further resources still require adaptation.
 No precompiled application Wasm is used. DirectX 10/11/12 remain in the overall
 acceptance scope, with the existing D3D12 browser tests retained as regression gates.
 
@@ -29,15 +29,17 @@ Device creation accepts windowed or virtual fullscreen presentation, RGB32/RGB56
 DISCARD/FLIP/COPY, no multisampling and optional D16 depth; see
 [display and presentation](d3d-display.md). Factory/device capabilities describe
 only implemented paths. The fixed-function triangle-list path supports
-`D3DFVF_XYZ | D3DFVF_DIFFUSE`, viewport/rectangle color/depth Clear, world/view/projection
+`D3DFVF_XYZ | D3DFVF_DIFFUSE` with optional TEX1 coordinates, viewport/rectangle color/depth Clear, world/view/projection
 Set/GetTransform, viewport position/depth range, lighting off, Gouraud shading,
 solid fill, clipping enabled, all depth comparisons and all culling modes. RGB565
 draws support optional ordered dithering; clears store undithered quantized colors.
-Draws copy bounded 16-byte XYZ/color vertices and their transform/raster state
+Draws copy bounded 16/24-byte XYZ/color/UV vertices and their transform/raster state
 from guest memory before queuing a frame. Nonfinite transform state may be stored
 and read, but fails if consumed by a draw. The bounded programmable shader path
-is described below. Textures, other FVF layouts, reset, stencil and the rest of
-D3D8/9 remain unfinished.
+is described below. [Managed/dynamic 2D textures](d3d-textures.md), native locks,
+one fixed-function stage, mipmapping and point/linear filtering now pass native
+EXE/ZIP and GPU tests. Other texture types, shader sampling, other FVF layouts,
+reset, stencil and the rest of D3D8/9 remain unfinished.
 
 `src/webgpu-renderer.js` owns the browser backend inside the runtime worker.
 It receives those bounded frame snapshots, creates an `OffscreenCanvas` WebGPU

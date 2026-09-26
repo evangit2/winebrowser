@@ -1,3 +1,13 @@
+import {
+  initTextures,
+  createTextureMethod,
+  bindTexture,
+  getTexture,
+  unbindTextures,
+  fixedTextureDraw,
+  textureBytesPerPixel,
+} from './d3d9-textures.js';
+import { textureStateMethod } from './d3d-texture-state.js';
 import { ComObjects } from './com.js';
 import { writeDeviceCaps } from './d3d-caps.js';
 import { CULL_MODE, DEPTH_COMPARE } from './d3d-render-state.js';
@@ -68,6 +78,13 @@ function matrix(runtime, pointer) {
 
 function deviceMethods(version = 9) {
   const methods = {
+    23: createTextureMethod(version),
+    64: { argc: 3, invoke: (r, a, d) => getTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
+    65: { argc: 3, invoke: (r, a, d) => bindTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
+    66: textureStateMethod({ version, get: true }),
+    67: textureStateMethod({ version }),
+    68: textureStateMethod({ version, sampler: true, get: true }),
+    69: textureStateMethod({ version, sampler: true }),
     7: { argc: 2, invoke: (r, a) => writeDeviceCaps(r, a(1), version) },
     17: {
       argc: 5,
@@ -79,6 +96,8 @@ function deviceMethods(version = 9) {
         await requireGraphics(runtime).present({ id: state.id, commands: [...state.commands] });
         state.commands = [];
         state.frameBytes = 0;
+        state.textureSnapshots.clear();
+        state.frameTextureBytes = 0;
         return D3D_OK;
       },
     },
@@ -223,11 +242,24 @@ function deviceMethods(version = 9) {
           queue(state, command, payloadBytes);
           return D3D_OK;
         }
-        if (primitive !== 4 || stride !== 16 || state.fvf !== 0x42 || state.lighting)
+        if (
+          primitive !== 4 ||
+          ![0x42, 0x142].includes(state.fvf) ||
+          stride !== (state.fvf === 0x142 ? 24 : 16) ||
+          state.lighting
+        )
           throw Error('Unsupported IDirect3DDevice9.DrawPrimitiveUP format or render state');
+        const texturing = fixedTextureDraw(runtime, state);
+        const texture = texturing?.texture;
+        const textureBytes =
+          texture && !state.textureSnapshots.has(texture)
+            ? texture.levels.reduce((n, l) => n + l.rgba.length, 0)
+            : 0;
         const size = vertexCount * stride;
         if (state.frameBytes + size > MAX_FRAME_BYTES)
           throw Error('D3D9 frame vertex limit exceeded');
+        if (state.frameTextureBytes + textureBytes > 32 * 1024 * 1024)
+          throw Error('D3D9 frame texture limit exceeded');
         runtime.check(pointer, size);
         const vertices = runtime.data.slice(pointer, pointer + size);
         const view = new DataView(vertices.buffer);
@@ -235,10 +267,17 @@ function deviceMethods(version = 9) {
           for (let coordinate = 0; coordinate < 3; coordinate++)
             if (!Number.isFinite(view.getFloat32(i * stride + coordinate * 4, true)))
               throw Error('Unsupported D3D9 non-finite vertex');
+        if (state.fvf === 0x142)
+          for (let i = 0; i < vertexCount; i++)
+            for (const offset of [16, 20])
+              if (!Number.isFinite(view.getFloat32(i * stride + offset, true)))
+                throw Error('Unsupported D3D9 non-finite texture coordinate');
         queue(
           state,
           {
             type: 'draw',
+            fvf: state.fvf,
+            texturing,
             vertices,
             vertexCount,
             stride,
@@ -254,6 +293,10 @@ function deviceMethods(version = 9) {
           },
           size,
         );
+        if (texture) {
+          state.textureSnapshots.add(texture);
+          state.frameTextureBytes += textureBytes;
+        }
         return D3D_OK;
       },
     },
@@ -261,7 +304,8 @@ function deviceMethods(version = 9) {
       argc: 2,
       invoke(_runtime, argument, object) {
         const fvf = argument(1) >>> 0;
-        if (fvf !== 0x42) throw Error(`Unsupported IDirect3DDevice9.SetFVF 0x${fvf.toString(16)}`);
+        if (![0x42, 0x142].includes(fvf))
+          throw Error(`Unsupported IDirect3DDevice9.SetFVF 0x${fvf.toString(16)}`);
         object.state.fvf = fvf;
         bindObject(_runtime, object, 'vertexDeclaration', 0, 'IDirect3DVertexDeclaration9');
         return D3D_OK;
@@ -411,6 +455,16 @@ function createDevice(runtime, argument, version) {
 function factoryMethods(version = 9) {
   return {
     ...displayMethods(version),
+    10: {
+      argc: 7,
+      invoke(_r, a) {
+        if (a(1) !== 0) return D3DERR_INVALIDCALL;
+        if (a(2) !== 1 || ![22, 23].includes(a(3))) return 0x8876086a;
+        return a(5) === 3 && [0, 0x200].includes(a(4)) && textureBytesPerPixel(a(6))
+          ? 0
+          : 0x8876086a;
+      },
+    },
     [version === 8 ? 13 : 14]: {
       argc: 4,
       invoke: (r, a) => writeDeviceCaps(r, a(3), version, a(1), a(2)),
@@ -427,6 +481,7 @@ function factoryMethods(version = 9) {
           frameBytes: 0,
           inScene: false,
           fvf: 0,
+          ...initTextures(),
           lighting: true,
           shadeMode: 2,
           fillMode: 3,
@@ -459,6 +514,10 @@ function factoryMethods(version = 9) {
           methods: deviceMethods(version),
           state,
           onRelease: async () => {
+            unbindTextures(runtime, object);
+            state.commands = [];
+            state.textureSnapshots.clear();
+            state.frameBytes = state.frameTextureBytes = 0;
             for (const field of ['vertexDeclaration', 'vertexShader', 'pixelShader']) {
               const bound = state[field];
               if (bound) bound.state.internalRefs--;

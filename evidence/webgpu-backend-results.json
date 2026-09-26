@@ -1340,9 +1340,9 @@
     }
   ],
   "pacedIntervals": [
-    17.634999990463257,
-    17.680000066757202,
-    18.47499990463257
+    17.3400000333786,
+    18.125,
+    18.43999993801117
   ],
   "presentationMode": "canvas",
   "fallbackAdapter": false,
@@ -1354,7 +1354,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-26T09:56:21.081Z",
+  "date": "2026-09-26T10:34:24.269Z",
   "browser": "154.0.8037.57",
   "passed": true
 }

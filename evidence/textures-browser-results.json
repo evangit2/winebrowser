@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "date": "2026-09-26T10:34:42.236Z",
+  "browser": "154.0.8037.57",
+  "scope": "Native D3D8 and D3D9 PE32 EXE/ZIP uploads: mip descriptors, COM binding lifetime, rectangular texture uploads, two revisions in one frame, all 32,768 displayed pixels, and Escape shutdown.",
+  "runs": [
+    {
+      "name": "d3d8.exe",
+      "exeSha256": "c712649b4d24fd6b9e5524d11d3bf1c424e66fcbbf8d844071f852de97298319",
+      "pixels": {
+        "width": 256,
+        "height": 128,
+        "frames": 4,
+        "bad": 0,
+        "verifiedPixels": 32768
+      },
+      "exitCode": 0,
+      "instructions": 2703,
+      "errors": []
+    },
+    {
+      "name": "d3d8.zip",
+      "exeSha256": "c712649b4d24fd6b9e5524d11d3bf1c424e66fcbbf8d844071f852de97298319",
+      "pixels": {
+        "width": 256,
+        "height": 128,
+        "frames": 4,
+        "bad": 0,
+        "verifiedPixels": 32768
+      },
+      "exitCode": 0,
+      "instructions": 2151,
+      "errors": []
+    },
+    {
+      "name": "d3d9.exe",
+      "exeSha256": "2b7f5bb17bbf44623f5495aa85b9357eb206bb17529659016af1f246500e9695",
+      "pixels": {
+        "width": 256,
+        "height": 128,
+        "frames": 5,
+        "bad": 0,
+        "verifiedPixels": 32768
+      },
+      "exitCode": 0,
+      "instructions": 2664,
+      "errors": []
+    },
+    {
+      "name": "d3d9.zip",
+      "exeSha256": "2b7f5bb17bbf44623f5495aa85b9357eb206bb17529659016af1f246500e9695",
+      "pixels": {
+        "width": 256,
+        "height": 128,
+        "frames": 4,
+        "bad": 0,
+        "verifiedPixels": 32768
+      },
+      "exitCode": 0,
+      "instructions": 2705,
+      "errors": []
+    }
+  ]
+}

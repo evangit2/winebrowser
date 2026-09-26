@@ -1,0 +1,246 @@
+{
+  "passed": true,
+  "mode": "canvas",
+  "cases": [
+    {
+      "name": "format22/address1/mag1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/address1/mag2",
+      "pixels": 4096,
+      "maxError": 1
+    },
+    {
+      "name": "format22/address2/mag1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/address2/mag2",
+      "pixels": 4096,
+      "maxError": 1
+    },
+    {
+      "name": "format22/address3/mag1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/address3/mag2",
+      "pixels": 4096,
+      "maxError": 1
+    },
+    {
+      "name": "format22/operation2/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/operation3/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/operation4/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/operation7/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/operation2/arg18",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/operation2/arg34",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/operation2/arg50",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format22/unbound-diffuse-complement",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/address1/mag1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/address1/mag2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/address2/mag1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/address2/mag2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/address3/mag1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/address3/mag2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation2/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation3/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation4/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation7/arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation2/arg18",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation2/arg34",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/operation2/arg50",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "format23/unbound-diffuse-complement",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "point-base",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "point-bias2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "point-negative-bias",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "linear-half-lod",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "none-ignores-bias-and-maxlevel",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "point-maxlevel",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "managed-lod",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "minification-filter1/mip0",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "minification-filter1/mip1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "minification-filter1/mip2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "minification-filter2/mip0",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "minification-filter2/mip1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "minification-filter2/mip2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "attachment-alpha-op2-arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "attachment-alpha-op3-arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "attachment-alpha-op4-arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "attachment-alpha-op7-arg2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "attachment-alpha-op2-arg18",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "two revisions of one texture in one frame",
+      "pixels": 4096,
+      "maxError": 0
+    }
+  ],
+  "pixels": 192512,
+  "frames": 48,
+  "draws": 48,
+  "browser": "154.0.8037.57",
+  "date": "2026-09-26T10:34:37.793Z"
+}

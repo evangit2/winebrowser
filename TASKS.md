@@ -154,9 +154,14 @@ D3D10/11 and broader D3D12 support are still required.
       including shader discard/depth preservation and immutable queued state.
       Thirty-six full-image cases pass on canvas/readback. Native cubes set the
       implemented Gouraud/solid/clipping defaults and query the DITHER cap.
-- [ ] Continue Hamsterball through `IDirect3DDevice8.SetTextureStageState` at EXE offset `0x546cf`.
-      Chromium passes capabilities, viewport setup and a finite projection after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,861,208 guest instructions.
+- [x] Implement bounded D3D8/9 2D texture resources, mip locks, COM binding lifetime,
+      format conversion and one fixed-function stage with actual GPU sampling.
+      Native EXE/ZIP fixtures check all displayed pixels; 47 canvas/readback
+      cases cover filtering, mip LOD, color/alpha operations and revision ordering.
+      See `docs/d3d-textures.md`; surface interfaces and shader sampling remain.
+- [ ] Continue Hamsterball through `SetRenderState(NORMALIZENORMALS, FALSE)` at EXE offset `0x54714`.
+      Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
+      its 800×600 RGB565/FLIP device, then stops at 8,861,221 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

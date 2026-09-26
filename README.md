@@ -65,8 +65,10 @@ Set `WINEBROWSER_TEST_URL=https://evangit2.github.io/winebrowser/` to run the sa
 
 The local harness now also includes a native **D3D8 cube**. Its 32-bit EXE uses
 the actual D3D8 COM ABI and translates in the browser through the shared graphics
-backend; `npm run test:d3d8` checks EXE/ZIP animation and clean exit. This is the
-first D3D8 path, not full Hamsterball compatibility. The original Hamsterball EXE
+backend; `npm run test:d3d8` checks EXE/ZIP animation and clean exit. This is
+a bounded D3D8 path, not full Hamsterball compatibility. Native D3D8/9 texture
+EXEs and ZIPs also pass pixel and resource-lifetime checks; see the
+[texture scope and evidence](docs/d3d-textures.md). The original Hamsterball EXE
 has been recovered byte-for-byte from retained PE sections and is now an actual
 translation target. Its packed native BASS DLL now loads dependencies through the
 experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
@@ -87,7 +89,7 @@ metadata now passes through Win32 and native NT queries, including Hamsterball's
 initializes two workers, creates the 800×600 Hamsterball window, and passes
 D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP device
 and passes capabilities, viewport setup and a finite projection, then stops at the
-unsupported texture-stage state after about 8.86 million guest instructions;
+unsupported NORMALIZENORMALS render state after about 8.86 million guest instructions;
 no game frame renders yet. Node stops at device creation because it lacks WebGPU. See [graphics scope](docs/d3d-display.md) and [thread scope](docs/thread-runtime.md).
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the

@@ -1,3 +1,4 @@
+import { D3DTextureRenderer, fixedShader, validateTexturing } from './d3d-texture-renderer.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
 import { clearColor, rgb565Shader } from './d3d-presentation.js';
@@ -6,20 +7,7 @@ import { D3DClearRenderer } from './d3d-clear-renderer.js';
 
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
-const COLOR_SHADER = `
-struct Transforms { world: mat4x4<f32>, view: mat4x4<f32>, projection: mat4x4<f32> }
-@group(0) @binding(0) var<uniform> transforms: Transforms;
-struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: vec4<f32> }
-@vertex fn vertexMain(@location(0) position: vec3<f32>, @location(1) bgra: vec4<f32>) -> VertexOut {
-  var output: VertexOut;
-  // D3D matrices are stored row-major for row vectors; WGSL reads those bytes
-  // as transposed column-major matrices, preserving D3D's transform order.
-  output.position = transforms.projection * transforms.view * transforms.world * vec4(position, 1.0);
-  output.color = bgra.bgra;
-  return output;
-}
-@fragment fn fragmentMain(input: VertexOut) -> @location(0) vec4<f32> { return input.color; }
-`;
+const COLOR_SHADER = fixedShader();
 const MAX_DEVICES = 4;
 const MAX_DIMENSION = 2048;
 const MAX_COMMANDS = 256;
@@ -39,6 +27,7 @@ export class WebGPURenderer {
     this.pipelines = new Map();
     this.programmable = new D3D9ProgrammableRenderer(this);
     this.clears = new D3DClearRenderer(this);
+    this.textures = new D3DTextureRenderer(this);
     this.frames = 0;
     this.draws = 0;
   }
@@ -178,7 +167,9 @@ export class WebGPURenderer {
   validate(surface, commands) {
     if (!Array.isArray(commands) || commands.length > MAX_COMMANDS)
       throw Error('Graphics frame command limit exceeded');
-    let bytes = 0;
+    let bytes = 0,
+      textureUploads = 0;
+    const textures = new Map();
     for (const command of commands) {
       if (
         command.viewport !== undefined &&
@@ -202,13 +193,29 @@ export class WebGPURenderer {
           throw Error('Invalid graphics clear command');
         bytes += (command.regions?.length ?? 0) * 16;
       } else if (command.type === 'draw') {
+        const textureBytes = validateTexturing(command.texturing);
+        const texture = command.texturing?.texture;
+        if (texture) {
+          const key = `${texture.id}:${texture.revision}`;
+          if (textures.has(key) && textures.get(key) !== texture)
+            throw Error('Conflicting graphics texture snapshots');
+          if (!textures.has(key)) {
+            textureUploads += textureBytes;
+            if (textureUploads > 32 * 1024 * 1024)
+              throw Error('Graphics frame texture limit exceeded');
+            textures.set(key, texture);
+          }
+        }
         if (
           !(command.vertices instanceof Uint8Array) ||
           !integer(command.vertexCount, 3, 65535) ||
           command.vertexCount % 3 ||
           !integer(command.stride, 16, 256) ||
           command.stride % 4 ||
-          command.vertices.length < (command.vertexCount - 1) * command.stride + 16 ||
+          (command.fvf !== undefined && ![0x42, 0x142].includes(command.fvf)) ||
+          (command.fvf === 0x142 && command.stride < 24) ||
+          command.vertices.length <
+            (command.vertexCount - 1) * command.stride + (command.fvf === 0x142 ? 24 : 16) ||
           !matrix(command.world) ||
           !matrix(command.view) ||
           !matrix(command.projection) ||
@@ -239,19 +246,28 @@ export class WebGPURenderer {
       command.cullMode,
       surface.colorFormat,
       !!command.dither,
+      command.fvf ?? 0x42,
+      JSON.stringify(command.texturing?.stage),
+      !!command.texturing?.texture,
+      !!command.texturing?.sampler[7],
     ].join(':');
     if (!this.pipelines.has(key)) {
+      if (command.texturing) this.textures.initialize();
+      const code = fixedShader(command);
       const shader =
-        surface.colorFormat === 23
+        command.texturing || surface.colorFormat === 23
           ? this.device.createShaderModule({
-              code: rgb565Shader(COLOR_SHADER, 'fragmentMain', command.dither),
+              code:
+                surface.colorFormat === 23
+                  ? rgb565Shader(code, 'fragmentMain', command.dither)
+                  : code,
             })
           : this.shader;
       this.pipelines.set(
         key,
         this.device.createRenderPipeline({
           label: 'XYZ diffuse triangle pipeline',
-          layout: this.pipelineLayout,
+          layout: command.texturing ? this.textures.pipelineLayout : this.pipelineLayout,
           vertex: {
             module: shader,
             entryPoint: 'vertexMain',
@@ -261,6 +277,9 @@ export class WebGPURenderer {
                 attributes: [
                   { shaderLocation: 0, offset: 0, format: 'float32x3' },
                   { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
+                  ...(command.texturing && command.fvf === 0x142
+                    ? [{ shaderLocation: 2, offset: 16, format: 'float32x2' }]
+                    : []),
                 ],
               },
             ],
@@ -323,6 +342,7 @@ export class WebGPURenderer {
       0,
       new Float32Array([...command.world, ...command.view, ...command.projection]),
     );
+    this.textures.upload(surface, slot, command);
     return slot;
   }
 
@@ -342,6 +362,7 @@ export class WebGPURenderer {
     for (const slot of surface.slots.splice(drawCount)) {
       slot.vertex?.destroy();
       slot.uniform.destroy();
+      slot.textureUniform?.destroy();
     }
     this.device.pushErrorScope('validation');
     let error;
@@ -408,6 +429,7 @@ export class WebGPURenderer {
           const slot = this.upload(surface, drawIndex++, command);
           pass.setPipeline(this.pipeline(surface, command));
           pass.setBindGroup(0, slot.bindGroup);
+          if (command.texturing) pass.setBindGroup(1, slot.textureBindGroup);
           pass.setVertexBuffer(0, slot.vertex);
           pass.draw(command.vertexCount);
         }
@@ -433,6 +455,7 @@ export class WebGPURenderer {
         );
       this.device.queue.submit([encoder.finish()]);
       await this.device.queue.onSubmittedWorkDone();
+      this.textures.trim(surface, commands);
     } catch (caught) {
       error = caught;
     }
@@ -487,8 +510,10 @@ export class WebGPURenderer {
     for (const slot of surface.slots) {
       slot.vertex?.destroy();
       slot.uniform.destroy();
+      slot.textureUniform?.destroy();
     }
     this.programmable.destroySurface(surface);
+    this.textures.trim(surface);
     this.clears.trim(surface, 0);
     surface.depthTexture?.destroy();
     surface.readback?.destroy();
@@ -505,5 +530,6 @@ export class WebGPURenderer {
     this.pipelines.clear();
     this.programmable.dispose();
     this.clears.dispose();
+    this.textures.dispose();
   }
 }

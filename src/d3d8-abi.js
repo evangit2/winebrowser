@@ -15,6 +15,11 @@ export function device8Methods(methods9, names9) {
   const methods = {};
   for (const name of [
     'GetDeviceCaps',
+    'CreateTexture',
+    'SetTexture',
+    'GetTexture',
+    'SetTextureStageState',
+    'GetTextureStageState',
     'Present',
     'BeginScene',
     'EndScene',

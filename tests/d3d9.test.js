@@ -8,6 +8,7 @@ function fixture(version = 9) {
   const view = new DataView(buffer);
   let next = 0x1000;
   const events = [];
+  const freed = [];
   const runtime = {
     data,
     view,
@@ -23,6 +24,9 @@ function fixture(version = 9) {
       next = (next + size + 3) & ~3;
       this.check(address, size);
       return address;
+    },
+    free(address) {
+      freed.push(address);
     },
     read32(address) {
       return view.getUint32(this.check(address, 4), true);
@@ -65,7 +69,7 @@ function fixture(version = 9) {
     );
     return runtime.read32(output);
   };
-  return { runtime, events, call, factory, params, output, create };
+  return { runtime, events, call, factory, params, output, create, freed };
 }
 
 test('D3D9 factory and device expose PE32 vtables with guarded IUnknown lifetimes', async () => {
@@ -167,8 +171,8 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
   runtime.write32(params + 32, 1);
   const device = await create();
   await assert.rejects(
-    call(device, 23, 1),
-    /Unsupported COM method IDirect3DDevice9.CreateTexture/,
+    call(device, 25, 1),
+    /Unsupported COM method IDirect3DDevice9.CreateCubeTexture/,
   );
   await assert.rejects(call(device, 57, 22, 4), /Unsupported IDirect3DDevice9.SetRenderState/);
   await assert.rejects(call(device, 89, 0x44), /Unsupported IDirect3DDevice9.SetFVF/);
@@ -481,8 +485,16 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 10 * 4), 0xff);
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
-    for (const index of [15, 16, 17, 18, 22, 23, 34, 37, 38, 40, 47, 49, 51])
+    for (const index of [17, 18, 34, 40, 47, 49, 51])
       assert.equal(runtime.read32(p + index * 4), 0);
+    assert.equal(runtime.read32(p + 15 * 4), 0x4005);
+    assert.equal(runtime.read32(p + 16 * 4), 0x03030300);
+    assert.equal(runtime.read32(p + 22 * 4), 2048);
+    assert.equal(runtime.read32(p + 38 * 4), 1);
+    assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 21)).result, 0);
+    assert.equal((await call(factory, 10, 0, 1, 23, 0x200, 3, 23)).result, 0);
+    assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 21)).result, 0x8876086a);
+    assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 0x31545844)).result, 0x8876086a);
     const expected = runtime.data.slice(p, p + size),
       device = await create();
     runtime.data.fill(0xee, p, p + size);
@@ -644,3 +656,261 @@ for (const version of [8, 9]) {
     await call(d, 2);
   });
 }
+
+for (const version of [8, 9]) {
+  const slots =
+    version === 8
+      ? {
+          create: 20,
+          bind: 61,
+          get: 60,
+          stage: 63,
+          getStage: 62,
+          sampler: 63,
+          getSampler: 62,
+          lock: 16,
+          unlock: 17,
+          desc: 14,
+          scene: 34,
+          end: 35,
+          draw: 72,
+          render: 50,
+          fvf: 76,
+          present: 15,
+        }
+      : {
+          create: 23,
+          bind: 65,
+          get: 64,
+          stage: 67,
+          getStage: 66,
+          sampler: 69,
+          getSampler: 68,
+          lock: 19,
+          unlock: 20,
+          desc: 17,
+          scene: 41,
+          end: 42,
+          draw: 83,
+          render: 57,
+          fvf: 89,
+          present: 17,
+        };
+  test(`D3D${version} texture mip locks, formats, ABI and binding lifetime`, async () => {
+    const { runtime: r, call, create, output, freed } = fixture(version),
+      d = await create();
+    const make = async (format, width = 3, height = 2, levels = 0, usage = 0, pool = 1) => {
+      const result = await call(
+        d,
+        slots.create,
+        width,
+        height,
+        levels,
+        usage,
+        format,
+        pool,
+        output,
+        0,
+      );
+      assert.equal(result.argc, version === 8 ? 8 : 9);
+      assert.equal(result.result, 0);
+      return r.read32(output);
+    };
+    const tex = await make(21),
+      obj = r.comObjects.objects.get(tex);
+    assert.equal((await call(tex, 13)).result, 2);
+    const desc = r.allocate(36);
+    r.write32(desc + 32, 0x12345678);
+    assert.equal((await call(tex, slots.desc, 0, desc)).result, 0);
+    assert.deepEqual(
+      Array.from({ length: 8 }, (_, i) => r.read32(desc + i * 4)),
+      version === 8 ? [21, 1, 0, 1, 24, 0, 3, 2] : [21, 1, 0, 1, 0, 0, 3, 2],
+    );
+    assert.equal(r.read32(desc + 32), 0x12345678);
+    assert.equal((await call(tex, slots.desc, 2, desc)).result, 0x8876086c);
+    const locked = r.allocate(8),
+      rect = r.allocate(16);
+    [1, 0, 3, 2].forEach((v, i) => r.write32(rect + i * 4, v));
+    assert.equal((await call(tex, slots.lock, 0, locked, rect, 0)).argc, 5);
+    assert.equal(r.read32(locked), 12);
+    assert.equal(r.read32(locked + 4), obj.state.base + 4);
+    assert.equal((await call(tex, slots.lock, 0, locked, 0, 0)).result, 0x8876086c);
+    r.write32(r.read32(locked + 4), 0x7f112233);
+    assert.equal((await call(tex, slots.unlock, 0)).result, 0);
+    assert.equal((await call(tex, slots.unlock, 0)).result, 0x8876086c);
+    r.write32(rect + 8, 4);
+    assert.equal((await call(tex, slots.lock, 0, locked, rect, 0)).result, 0x8876086c);
+    assert.equal((await call(tex, slots.lock, 0, locked, 0, 0x2000)).result, 0x8876086c);
+    assert.equal((await call(tex, 11, 99)).result, 0);
+    assert.equal((await call(tex, 12)).result, 1);
+    assert.equal((await call(tex, 11, 0)).result, 1);
+    assert.equal((await call(d, slots.bind, 0, tex)).result, 0);
+    assert.equal((await call(tex, 2)).result, 0);
+    assert.equal(freed.includes(obj.state.base), false, 'binding retains backing memory');
+    assert.equal((await call(d, slots.get, 0, output)).result, 0);
+    assert.equal(r.read32(output), tex);
+    assert.equal((await call(tex, 3, output)).result, 0);
+    assert.equal(r.read32(output), d);
+    await call(d, 2);
+    await call(tex, 2);
+    assert.equal((await call(d, slots.bind, 0, 0)).result, 0);
+    assert.equal(freed.filter((p) => p === obj.state.base).length, 1);
+    assert.equal(r.d3dTextureBytes, 0);
+    await assert.rejects(call(tex, 13), /Released COM object/);
+    const { textureSnapshot } = await import('../src/d3d9-textures.js');
+    for (const [format, raw, expected] of [
+      [21, 0x7f112233, [17, 34, 51, 127]],
+      [22, 0x00112233, [17, 34, 51, 255]],
+      [23, 0xf800, [255, 0, 0, 255]],
+      [24, 0x001f, [0, 0, 255, 255]],
+      [25, 0x83e0, [0, 255, 0, 255]],
+      [26, 0x8123, [17, 34, 51, 136]],
+      [28, 127, [255, 255, 255, 127]],
+    ]) {
+      const t = await make(format, 1, 1, 1),
+        o = r.comObjects.objects.get(t);
+      await call(t, slots.lock, 0, locked, 0, 0);
+      const p = r.read32(locked + 4);
+      if (format === 28) r.data[p] = raw;
+      else if (format >= 23) r.view.setUint16(p, raw, true);
+      else r.write32(p, raw);
+      await call(t, slots.unlock, 0);
+      assert.deepEqual([...textureSnapshot(r, o).levels[0].rgba], expected);
+      await call(t, 2);
+    }
+    const dynamic = await make(21, 2, 2, 1, 0x200, 0);
+    assert.equal((await call(dynamic, slots.lock, 0, locked, 0, 0x2000)).result, 0);
+    assert.equal((await call(dynamic, slots.unlock, 0)).result, 0);
+    await call(dynamic, 2);
+    const bound = await make(21, 1, 1, 1);
+    await call(d, slots.bind, 0, bound);
+    await call(bound, 2);
+    await call(d, 2);
+    assert.equal(r.d3dTextureBytes, 0, 'device destruction frees internally owned textures');
+  });
+  test(`D3D${version} texture/sampler state and immutable draw snapshots`, async () => {
+    const { runtime: r, call, create, output, events } = fixture(version),
+      d = await create();
+    const bias = version === 8 ? 19 : 8,
+      mag = version === 8 ? 16 : 5;
+    await call(d, slots.getSampler, 0, bias, output);
+    assert.equal(r.read32(output), 0);
+    await call(d, slots.sampler, 0, bias, 0xbf800000);
+    await call(d, slots.getSampler, 0, bias, output);
+    assert.equal(r.read32(output), 0xbf800000);
+    await call(d, slots.sampler, 0, mag, 2);
+    await assert.rejects(call(d, slots.sampler, 0, bias, 0x7fc00000), /Unsupported.*sampler/);
+    await call(d, slots.stage, 0, 1, 4);
+    await call(d, slots.getStage, 0, 1, output);
+    assert.equal(r.read32(output), 4);
+    assert.equal((await call(d, slots.stage, 8, 1, 1)).result, 0x8876086c);
+    await call(d, slots.create, 2, 2, 1, 0, 21, 1, output, 0);
+    const t = r.read32(output),
+      locked = r.allocate(8);
+    await call(t, slots.lock, 0, locked, 0, 0);
+    const data = r.read32(locked + 4);
+    r.write32(data, 0xff112233);
+    await call(t, slots.unlock, 0);
+    await call(d, slots.bind, 0, t);
+    await call(d, slots.render, 137, 0);
+    await call(d, slots.fvf, 0x142);
+    await call(d, slots.scene);
+    const vertices = r.allocate(72);
+    for (let i = 0; i < 3; i++) r.write32(vertices + i * 24 + 12, 0xffffffff);
+    await call(d, slots.draw, 4, 1, vertices, 24);
+    await call(d, slots.draw, 4, 1, vertices, 24);
+    await call(t, slots.lock, 0, locked, 0, 0);
+    await assert.rejects(call(d, slots.draw, 4, 1, vertices, 24), /locked texture/);
+    r.write32(data, 0xffaabbcc);
+    await call(t, slots.unlock, 0);
+    await call(d, slots.sampler, 0, bias, 0x40000000);
+    await call(d, slots.draw, 4, 1, vertices, 24);
+    await call(d, slots.end);
+    await call(d, slots.present, 0, 0, 0, 0);
+    const draws = events.at(-1).commands;
+    assert.equal(
+      draws[0].texturing.texture,
+      draws[1].texturing.texture,
+      'unchanged texels share one upload',
+    );
+    assert.notEqual(draws[0].texturing.texture, draws[2].texturing.texture);
+    assert.deepEqual([...draws[0].texturing.texture.levels[0].rgba.slice(0, 4)], [17, 34, 51, 255]);
+    assert.deepEqual(
+      [...draws[2].texturing.texture.levels[0].rgba.slice(0, 4)],
+      [170, 187, 204, 255],
+    );
+    assert.equal(draws[0].texturing.sampler[8], 0xbf800000);
+    assert.equal(draws[2].texturing.sampler[8], 0x40000000);
+    assert.equal(r.comObjects.objects.get(d).state.frameBytes, 0);
+    await call(d, slots.bind, 0, 0);
+    await call(t, 2);
+    await call(d, 2);
+  });
+}
+
+for (const version of [8, 9])
+  test(`D3D${version} texture failures preserve memory and device ownership`, async () => {
+    const { runtime: r, call, create, output, freed } = fixture(version),
+      d = await create();
+    const device = r.comObjects.objects.get(d),
+      slot = version === 8 ? 20 : 23,
+      lock = version === 8 ? 16 : 19,
+      unlock = lock + 1,
+      bind = version === 8 ? 61 : 65;
+    const args = [2, 2, 1, 0, 21, 1, output, 0];
+    for (const [index, value] of [
+      [0, 0],
+      [0, 2049],
+      [2, 3],
+      [3, 1],
+      [4, 0x31545844],
+      [5, 4],
+      ...(version === 9 ? [[7, output]] : []),
+    ]) {
+      const bad = [...args];
+      bad[index] = value;
+      r.write32(output, 0x12345678);
+      assert.equal((await call(d, slot, ...bad)).result, 0x8876086c);
+      assert.equal(r.read32(output), 0);
+      assert.equal(device.refs, 1);
+      assert.equal(r.d3dTextureBytes ?? 0, 0);
+    }
+    r.d3dTextureBytes = 32 * 1024 * 1024;
+    assert.equal((await call(d, slot, ...args)).result, 0x8876017c);
+    assert.equal(device.refs, 1);
+    r.d3dTextureBytes = 0;
+    const createObject = r.comObjects.create;
+    r.comObjects.create = () => {
+      throw Error('injected object allocation failure');
+    };
+    await assert.rejects(call(d, slot, ...args), /injected/);
+    r.comObjects.create = createObject;
+    assert.equal(freed.length, 1);
+    assert.equal(device.refs, 1);
+    assert.equal(r.d3dTextureBytes, 0);
+    await call(d, slot, ...args);
+    const t = r.read32(output),
+      object = r.comObjects.objects.get(t),
+      p = r.allocate(8);
+    await call(d, bind, 0, t);
+    const other = await create();
+    assert.equal((await call(other, bind, 0, t)).result, 0x8876086c);
+    const { textureSnapshot } = await import('../src/d3d9-textures.js');
+    const before = textureSnapshot(r, object);
+    await call(t, lock, 0, p, 0, 0x10);
+    assert.equal((await call(t, unlock, 0)).result, 0);
+    assert.equal(
+      textureSnapshot(r, object),
+      before,
+      'read-only locks do not trigger another upload',
+    );
+    r.write32(p, 0x12345678);
+    r.write32(p + 4, 0xabcdef01);
+    assert.equal((await call(t, lock, 8, p, 0, 0)).result, 0x8876086c);
+    assert.equal(r.read32(p), 0x12345678);
+    assert.equal(r.read32(p + 4), 0xabcdef01);
+    await call(t, 2);
+    await call(d, 2);
+    await call(other, 2);
+    assert.equal(r.d3dTextureBytes, 0);
+  });

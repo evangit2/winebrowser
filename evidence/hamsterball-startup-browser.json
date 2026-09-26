@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T09:55:39.728Z",
+  "date": "2026-09-26T10:34:00.545Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2778,17 +2778,6 @@
       "result": "0x2"
     },
     {
-      "name": "advapi32.dll!RegQueryValueExA",
-      "args": [
-        1358954509,
-        5087008,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x2"
-    },
-    {
       "name": "advapi32.dll!RegCloseKey",
       "args": [
         1358954509,
@@ -3536,7 +3525,18 @@
         0
       ],
       "threadId": 1,
-      "error": "Unsupported COM method IDirect3DDevice8.SetTextureStageState"
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.SetRenderState",
+      "args": [
+        52454336,
+        146,
+        0,
+        39333648
+      ],
+      "threadId": 1,
+      "error": "Unsupported IDirect3DDevice9.SetRenderState 146=0"
     }
   ],
   "output": [],
@@ -4311,50 +4311,25 @@
   "firstFailure": {
     "phase": "native EXE entry point",
     "threadId": 1,
-    "message": "Unsupported COM method IDirect3DDevice8.SetTextureStageState",
+    "message": "Unsupported IDirect3DDevice9.SetRenderState 146=0",
     "ip": {
-      "address": "0x4546cf",
+      "address": "0x454714",
       "module": "hamsterball.exe",
-      "offset": "0x546cf"
+      "offset": "0x54714"
     },
     "registers": [
       "0x32063c0",
-      "0x0",
       "0x3206230",
+      "0x3f000000",
       "0x0",
-      "0x3ffecdc",
+      "0x3ffece0",
       "0x25830a4",
       "0x2582f10",
       "0x2583064"
     ],
     "compiledBlocks": 4096,
-    "instructions": 8861208,
+    "instructions": 8861221,
     "recentBlocks": [
-      {
-        "threadId": 1,
-        "address": "0x48c287",
-        "module": "hamsterball.exe",
-        "offset": "0x8c287",
-        "registers": [
-          "0x3f800000",
-          "0x258310c",
-          "0x258310c",
-          "0x3ffed58",
-          "0x3ffecec",
-          "0x3ffecf8",
-          "0x3ffed20",
-          "0x2583118"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
       {
         "threadId": 1,
         "address": "0x48c29d",
@@ -4713,6 +4688,31 @@
         "registers": [
           "0x0",
           "0x4fd680",
+          "0x3206230",
+          "0x0",
+          "0x3ffecf0",
+          "0x25830a4",
+          "0x2582f10",
+          "0x2583064"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x454714",
+        "module": "hamsterball.exe",
+        "offset": "0x54714",
+        "registers": [
+          "0x0",
+          "0x0",
           "0x3206230",
           "0x0",
           "0x3ffecf0",

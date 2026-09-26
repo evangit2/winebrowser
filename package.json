@@ -98,7 +98,10 @@
     "test:presentation": "node scripts/test-presentation-browser.mjs",
     "build:threads": "sh scripts/build-threads-fixture.sh",
     "test:threads": "node scripts/test-threads-browser.mjs",
-    "test:threads-native": "node scripts/test-threads-native.mjs"
+    "test:threads-native": "node scripts/test-threads-native.mjs",
+    "build:textures": "sh scripts/build-textures-fixture.sh",
+    "test:textures": "node scripts/test-textures-browser.mjs",
+    "test:textures-backend": "node scripts/test-d3d-textures-backend.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

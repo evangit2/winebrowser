@@ -64,9 +64,9 @@ FLIP/COPY contents, RGB565 values, pacing and both canvas/readback paths.
 
 Factory and device `GetDeviceCaps` write the complete D3DCAPS8 (212 bytes) or
 D3DCAPS9 (304 bytes) structure after validating the entire destination. The HAL
-profile reports implemented presentation, Gouraud color, depth and culling paths;
-texture limits, stencil, lighting, indexed streams and general shader-model support
-remain zero. The existing bounded shader pairs remain usable without claiming full
+profile reports implemented presentation, Gouraud color, depth, culling and
+[one-stage 2D textures](d3d-textures.md). Stencil, lighting, indexed streams and
+general shader-model support remain zero. The existing bounded shader pairs remain usable without claiming full
 shader-model conformance. Native cubes compare factory and device results using
 MinGW's structure layouts.
 
@@ -97,7 +97,7 @@ clears and color targets without a depth attachment.
 
 Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
-`GetDeviceCaps`, viewport setup and finite projection `SetTransform`, then stops at unsupported `IDirect3DDevice8.SetTextureStageState` (EXE offset `0x546cf`) at 8,861,208 guest instructions;
+`GetDeviceCaps`, viewport setup, finite projection `SetTransform` and mip-bias setup, then stops at unsupported `SetRenderState(NORMALIZENORMALS, FALSE)` (EXE offset `0x54714`) at 8,861,221 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.
