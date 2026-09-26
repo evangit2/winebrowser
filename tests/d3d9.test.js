@@ -389,6 +389,44 @@ for (const version of [8, 9]) {
   });
 }
 
+test('XYZRHW ignores an undefined depth slot when depth is disabled but rejects other non-finite values', async () => {
+  const { runtime, events, call, create } = fixture();
+  const device = await create();
+  // Depth testing and writing both default to enabled when a depth buffer
+  // exists; disable them so the depth component is architecturally unused.
+  await call(device, 57, 7, 0);
+  await call(device, 57, 14, 0);
+  await call(device, 89, 0x144);
+  await call(device, 41);
+  const vertices = runtime.allocate(4 * 28);
+  for (let i = 0; i < 4; i++) {
+    const base = vertices + i * 28;
+    runtime.view.setFloat32(base, i * 100, true);
+    runtime.view.setFloat32(base + 4, i * 50, true);
+    // 0xffffffff is a NaN in the unused depth slot.
+    runtime.view.setUint32(base + 8, 0xffffffff, true);
+    runtime.view.setFloat32(base + 12, 1, true);
+    runtime.write32(base + 16, 0xffffffff);
+  }
+  assert.equal((await call(device, 83, 5, 2, vertices, 28)).result, 0);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const command = events.at(-1).commands[0];
+  const out = new DataView(
+    command.vertices.buffer,
+    command.vertices.byteOffset,
+    command.vertices.byteLength,
+  );
+  // Every submitted vertex has a finite z after sanitization.
+  for (let i = 0; i < command.vertexCount; i++)
+    assert.ok(Number.isFinite(out.getFloat32(i * 28 + 8, true)));
+  // A non-finite x is still rejected even though depth is unused.
+  runtime.view.setFloat32(vertices, NaN, true);
+  await call(device, 41);
+  await assert.rejects(call(device, 83, 5, 2, vertices, 28), /non-finite vertex/);
+  await call(device, 42);
+});
+
 test('triangle strips and fans expand to lists with correct winding', async () => {
   for (const [primitive, count, expected] of [
     [4, 2, [0, 1, 2, 3, 4, 5]],

@@ -287,6 +287,8 @@ export async function probeWineTarget(
           'IDirect3D9.CreateDevice': 7,
           'IDirect3D8.CheckDepthStencilMatch': 6,
           'IDirect3D9.CheckDepthStencilMatch': 6,
+          'IDirect3DDevice8.DrawPrimitiveUP': 5,
+          'IDirect3D9.DrawPrimitiveUP': 5,
         }[name] ??
         4;
       for (let i = 0; i < count; i++) {
@@ -307,6 +309,23 @@ export async function probeWineTarget(
           record.path = new TextDecoder('utf-16le').decode(
             runtime.data.subarray(buffer, buffer + length),
           );
+        } catch (error) {
+          record.traceError = error.message;
+        }
+      }
+      if (/DrawPrimitiveUP$/.test(name) && args.length >= 5) {
+        try {
+          const primitive = args[1],
+            count = args[2],
+            pointer = args[3],
+            stride = args[4];
+          const vertices = primitive === 4 ? count * 3 : count + 2;
+          record.draw = { primitive, count, pointer: hex(pointer), stride };
+          if (stride > 0 && stride <= 256 && vertices * stride <= 4096) {
+            record.draw.bytes = [...runtime.data.slice(pointer, pointer + vertices * stride)].map(
+              (b) => b.toString(16).padStart(2, '0'),
+            );
+          }
         } catch (error) {
           record.traceError = error.message;
         }
