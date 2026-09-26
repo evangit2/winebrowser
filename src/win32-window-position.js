@@ -1,4 +1,9 @@
-import { frameForWindow, compareWindowOrder } from './window-frame.js';
+import {
+  frameForWindow,
+  compareWindowOrder,
+  MAX_WINDOW_WIDTH,
+  MAX_WINDOW_HEIGHT,
+} from './window-frame.js';
 import { resizeWindowSurface } from './win32-gdi.js';
 
 const S = {
@@ -105,8 +110,8 @@ export async function setWindowPos(r, a) {
     if (
       width < 1 ||
       height < 1 ||
-      width > 1024 ||
-      height > 768 ||
+      width > MAX_WINDOW_WIDTH ||
+      height > MAX_WINDOW_HEIGHT ||
       Math.abs(x) > 32767 ||
       Math.abs(y) > 32767
     )

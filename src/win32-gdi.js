@@ -1,3 +1,4 @@
+import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
 import {
   colorRefRgb as colorRgb,
   surfaceRgb,
@@ -26,8 +27,6 @@ const STOCK_BLACK_PEN = 0x11101;
 const STOCK_WHITE_PEN = 0x11102;
 const STOCK_NULL_PEN = 0x11103;
 const STOCK_SYSTEM_FONT = 0x11104;
-const MAX_WINDOW_WIDTH = 1024;
-const MAX_WINDOW_HEIGHT = 768;
 const MAX_WINDOW_SURFACES = 8;
 const MAX_TOTAL_SURFACE_PIXELS = 16 * 1024 * 1024;
 const PATCOPY = 0x00f00021;

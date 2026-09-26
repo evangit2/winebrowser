@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
-import { compareWindowOrder } from '../src/window-frame.js';
+import { compareWindowOrder, MAX_WINDOW_WIDTH } from '../src/window-frame.js';
 import { flushGdi } from '../src/win32-gdi.js';
 
 const api = (r, name, ...args) => r.apiProvider.get(name)(r, (i) => args[i] >>> 0);
@@ -158,7 +158,7 @@ test('hidden child descendants lose focus; invalid handles and callbacks fail wi
   for (const args of [
     [100, 101, 1, 2, 90, 80, 16],
     [100, 0, 1, 2, 90, 80, 0x8000],
-    [100, 0, 1, 2, 2000, 80, 16],
+    [100, 0, 1, 2, MAX_WINDOW_WIDTH + 52, 80, 16],
     [999, 0, 1, 2, 90, 80, 16],
   ])
     assert.equal((await pos(r, ...args)).result, 0);

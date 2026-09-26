@@ -618,3 +618,34 @@ test('process exit releases its virtual windows and timers for direct Runtime co
     ),
   );
 });
+
+test('windows larger than the desktop retain client geometry through native and browser resizing', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const hwnd = (await createWindow(r, atom, { width: 1282, height: 750 })).result;
+  assert.ok(hwnd);
+  const window = r.windows.windows.get(hwnd);
+  assert.deepEqual([window.width, window.height], [1280, 720]);
+  const rect = r.allocate(16);
+  assert.equal((await call(r, 'user32.dll!GetClientRect', [hwnd, rect])).result, 1);
+  assert.deepEqual(
+    [8, 12].map((i) => r.read32(rect + i)),
+    [1280, 720],
+  );
+  assert.equal(
+    (await call(r, 'user32.dll!SetWindowPos', [hwnd, 0, 0, 0, 1922, 1110, 4 | 16 | 1024])).result,
+    1,
+  );
+  assert.deepEqual([window.width, window.height], [1920, 1080]);
+  await call(r, 'user32.dll!ShowWindow', [hwnd, 5]);
+  r.windows.input({ type: 'resize', windowId: hwnd, width: 1280, height: 720 });
+  assert.deepEqual([window.width, window.height], [1280, 720]);
+  const dc = (await call(r, 'user32.dll!GetDC', [hwnd])).result;
+  assert.ok(dc);
+  assert.equal((await call(r, 'gdi32.dll!SetPixel', [dc, 1279, 719, 0x123456])).result, 0x123456);
+  assert.equal((await call(r, 'gdi32.dll!GetPixel', [dc, 1279, 719])).result, 0x123456);
+  await call(r, 'user32.dll!ReleaseDC', [hwnd, dc]);
+  assert.equal((await createWindow(r, atom, { width: 2051, height: 750 })).result, 0);
+  assert.deepEqual([window.width, window.height], [1280, 720]);
+});

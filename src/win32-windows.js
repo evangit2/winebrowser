@@ -11,7 +11,12 @@ import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
 import { windowFindApis } from './win32-window-find.js';
-import { windowFrame, frameForWindow } from './window-frame.js';
+import {
+  windowFrame,
+  frameForWindow,
+  MAX_WINDOW_WIDTH,
+  MAX_WINDOW_HEIGHT,
+} from './window-frame.js';
 import { windowDataApis } from './win32-window-data.js';
 import { setWindowPos } from './win32-window-position.js';
 import { inputState } from './dinput-device.js';
@@ -322,9 +327,11 @@ export class WindowManager {
       this.emit(window);
     } else if (event.type === 'resize') {
       if (!Number.isFinite(event.width) || !Number.isFinite(event.height)) return;
-      window.width = Math.max(1, Math.min(1024, Math.round(event.width)));
-      window.height = Math.max(1, Math.min(768, Math.round(event.height)));
-      resizeWindowSurface(this.runtime, hwnd, window.width, window.height);
+      const width = Math.max(1, Math.min(MAX_WINDOW_WIDTH, Math.round(event.width))),
+        height = Math.max(1, Math.min(MAX_WINDOW_HEIGHT, Math.round(event.height)));
+      if (!resizeWindowSurface(this.runtime, hwnd, width, height)) return;
+      window.width = width;
+      window.height = height;
       this.invalidate(window, null, true);
       this.post(hwnd, 5, 0, pair(window.width, window.height));
       this.emit(window);
@@ -514,7 +521,12 @@ async function create(r, a, wide) {
   const frame = windowFrame(a(3)),
     border = child ? control.controlBorder : frame.border,
     titleHeight = child ? 0 : frame.title;
-  if (width < 2 * border || height < titleHeight + 2 * border || width > 1026 || height > 798)
+  if (
+    width < 2 * border ||
+    height < titleHeight + 2 * border ||
+    width - 2 * border > MAX_WINDOW_WIDTH ||
+    height - titleHeight - 2 * border > MAX_WINDOW_HEIGHT
+  )
     return m.fail(87, 12);
   const w = {
     id: m.nextWindow++,
@@ -662,8 +674,8 @@ async function defaultProc(r, a, wide) {
           0,
           1 + 2 * frame.border,
           1 + 2 * frame.border + frame.title,
-          1026,
-          798,
+          MAX_WINDOW_WIDTH + 2 * frame.border,
+          MAX_WINDOW_HEIGHT + 2 * frame.border + frame.title,
         ].forEach((v, i) => r.write32(info + i * 4, v));
         await r.windows.send(hwnd, 0x24, 0, info);
         if (r.windows.windows.has(hwnd))

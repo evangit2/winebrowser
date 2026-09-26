@@ -1,3 +1,8 @@
+// Client-area bounds shared by native window creation, resizing and GDI.
+// The desktop display mode is independent: applications may create larger windows.
+export const MAX_WINDOW_WIDTH = 2048;
+export const MAX_WINDOW_HEIGHT = 2048;
+
 // Geometry of the browser desktop theme, in guest pixels. Overlapped windows
 // receive the default caption; WS_POPUP only gets explicitly requested chrome.
 export function windowFrame(style = 0) {
