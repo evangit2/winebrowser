@@ -7,6 +7,19 @@ import { flushGdi } from '../src/win32-gdi.js';
 
 const executableUrl = new URL('../public/demos/console/console.exe', import.meta.url);
 
+test('native window lookup fixture passes through the ordinary runtime', async () => {
+  const bytes = new Uint8Array(await readFile('tests/fixtures/window-find/window-find.exe'));
+  const runtime = new Runtime(iced, {
+    files: new Map([['window-find.exe', bytes]]),
+    exe: 'window-find.exe',
+  });
+  try {
+    assert.equal((await runtime.run()).exitCode, 0);
+  } finally {
+    runtime.windows.dispose();
+  }
+});
+
 async function makeRuntime(t) {
   const executable = new Uint8Array(await readFile(executableUrl));
   const events = [];
@@ -145,6 +158,137 @@ async function createWindow(
   const created = await call(runtime, 'user32.dll!CreateWindowExA', args);
   return { ...created, titlePtr, args };
 }
+
+test('FindWindow A/W matches actual top-level classes, atoms and stored titles while preserving last error', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address, { name: 'LookupClass' });
+  const first = (await createWindow(r, atom, { title: 'Caf\u00e9' })).result;
+  const second = (await createWindow(r, atom, { title: '' })).result;
+  const count = proc.messages().length;
+  for (const wide of [false, true]) {
+    const find = (cls, title) =>
+      call(r, `user32.dll!FindWindow${wide ? 'W' : 'A'}`, [
+        typeof cls === 'string' ? r.allocString(cls, wide) : cls,
+        typeof title === 'string' ? r.allocString(title, wide) : title,
+      ]);
+    r.lastError = 0x11223344;
+    assert.deepEqual(await find(null, null), { result: second, argc: 2 });
+    assert.equal((await find('lookupCLASS', 'CAF\u00c9')).result, first);
+    assert.equal((await find(atom, 'cAf\u00e9')).result, first);
+    assert.equal((await find(0, '')).result, second);
+    assert.equal((await find('', 0)).result, 0, 'empty class differs from wildcard');
+    assert.equal((await find('absent', 0)).result, 0);
+    assert.equal((await find(0xfffe, 0)).result, 0);
+    assert.equal((await find(0, 'Caf')).result, 0, 'title length must match');
+    assert.equal(r.lastError, 0x11223344);
+  }
+  assert.equal(proc.messages().length, count, 'native FindWindow does not send WM_GETTEXT');
+  await call(r, 'user32.dll!DefWindowProcW', [first, 0xc, 0, r.allocString('\u00dfs', true)]);
+  assert.equal(
+    (await call(r, 'user32.dll!FindWindowW', [0, r.allocString('s\u00df', true)])).result,
+    0,
+    'full case expansions must not equate different code units',
+  );
+  await call(r, 'user32.dll!DestroyWindow', [second]);
+  assert.equal((await call(r, 'user32.dll!FindWindowA', [atom, 0])).result, first);
+});
+
+test('FindWindowEx follows direct sibling order and FindWindow excludes child controls', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const first = (await createWindow(r, atom)).result,
+    second = (await createWindow(r, atom)).result;
+  const control = async (parent, title) =>
+    (
+      await call(r, 'user32.dll!CreateWindowExW', [
+        0,
+        r.allocString('STATIC', true),
+        r.allocString(title, true),
+        0x40000000,
+        0,
+        0,
+        40,
+        20,
+        parent,
+        1,
+        r.pe.imageBase,
+        0,
+      ])
+    ).result;
+  const one = await control(first, 'Child'),
+    two = await control(first, 'Child'),
+    grandchild = await control(one, 'Nested');
+  assert.ok(one && two && grandchild);
+  const find = async (parent, after = 0, cls = 0, title = 0) =>
+    (await call(r, 'user32.dll!FindWindowExW', [parent, after, cls, title])).result;
+  assert.equal(await find(first), one, 'new child controls go to the bottom');
+  assert.equal(await find(first, one), two);
+  assert.equal(await find(first, two), 0);
+  assert.equal(await find(one), grandchild);
+  assert.equal(await find(first, 0, 0, r.allocString('Nested', true)), 0);
+  assert.equal(await find(first, grandchild), 0, 'after must be a direct sibling');
+  assert.equal(
+    await find(second, one),
+    0,
+    'unrelated valid after window does not restart the search',
+  );
+  assert.equal(
+    (await call(r, 'user32.dll!FindWindowW', [0, r.allocString('Child', true)])).result,
+    0,
+  );
+  assert.equal(
+    await find(first, 0, r.allocString('static', true), r.allocString('CHILD', true)),
+    one,
+  );
+  assert.equal(await find(0xfffffffd), 0, 'no message-only windows exist in this runtime');
+  assert.equal(await find(0, second), first);
+  assert.equal(await find(0, first), 0);
+  assert.equal(await find(0xdeadbeef), 0);
+  assert.equal(r.lastError, 1400);
+  assert.equal(await find(first, 0xdeadbeef), 0);
+  assert.equal(r.lastError, 1400);
+  await call(r, 'user32.dll!DestroyWindow', [one]);
+  assert.equal(await find(first), two);
+  assert.equal(r.windows.windows.has(grandchild), false);
+});
+
+test('window lookup tracks native activation and browser focus order, including focus inside a control', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const first = (await createWindow(r, atom)).result,
+    second = (await createWindow(r, atom)).result;
+  const top = async () => (await call(r, 'user32.dll!FindWindowA', [atom, 0])).result;
+  assert.equal(await top(), second);
+  await call(r, 'user32.dll!ShowWindow', [first, 5]);
+  assert.equal(await top(), first);
+  await call(r, 'user32.dll!ShowWindow', [second, 8]);
+  assert.equal(await top(), first, 'show without activation retains order');
+  r.windows.input({ type: 'focus', windowId: second });
+  assert.equal(await top(), second);
+  await call(r, 'user32.dll!SetFocus', [first]);
+  assert.equal(await top(), first);
+  const child = (
+    await call(r, 'user32.dll!CreateWindowExW', [
+      0,
+      r.allocString('STATIC', true),
+      0,
+      0x50000000,
+      0,
+      0,
+      40,
+      20,
+      second,
+      1,
+      r.pe.imageBase,
+      0,
+    ])
+  ).result;
+  r.windows.input({ type: 'focus', windowId: child });
+  assert.equal(await top(), second);
+});
 
 test('registers a class and delivers real guest WM_NCCREATE then WM_CREATE with a valid CREATESTRUCT', async (t) => {
   const { runtime } = await makeRuntime(t);

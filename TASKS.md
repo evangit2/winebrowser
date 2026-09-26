@@ -86,8 +86,12 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Parse and format COM GUIDs, including malformed-field partial output and
       direct guest registry ProgID lookup. Native COM activation uses the resolved
       CLSID in Node and Chromium.
-- [ ] Continue Hamsterball EXE startup through `user32.dll!FindWindowA`, after
-      8,793,485 guest instructions in both Node and Chromium.
+- [x] Find actual guest windows by class name/atom and caption, including direct
+      child lookup and activation order. Native EXE and ZIP upload checks pass.
+      Nested controls now render with independent client layers and preserve
+      focus, geometry, ancestor visibility/enabling and destruction.
+- [ ] Continue Hamsterball EXE startup through 24-bit icon DIB decoding in
+      `LoadIconA`, after 8,800,518 guest instructions in both Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

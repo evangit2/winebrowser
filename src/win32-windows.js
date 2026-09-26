@@ -10,6 +10,7 @@ import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './
 import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
+import { windowFindApis } from './win32-window-find.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -34,6 +35,7 @@ export class WindowManager {
     this.nextAccelerator = 0x30000;
     this.nextAtom = 0xc000;
     this.nextWindow = 0x20000;
+    this.nextZOrder = 1;
     this.nextTimer = 1;
     this.focus = 0;
     this.active = 0;
@@ -211,6 +213,10 @@ export class WindowManager {
     while (window?.parentId) window = this.windows.get(window.parentId);
     return window?.id ?? 0;
   }
+  raise(hwnd) {
+    const window = this.windows.get(this.topLevel(hwnd));
+    if (window) window.zOrder = this.nextZOrder++;
+  }
   isEnabled(hwnd) {
     let window = this.windows.get(hwnd);
     if (!window) return false;
@@ -241,6 +247,7 @@ export class WindowManager {
     if (event.type === 'close') this.post(hwnd, 0x10);
     else if (event.type === 'focus') {
       this.active = this.topLevel(hwnd);
+      this.raise(hwnd);
       if (this.focus === hwnd) return;
       if (this.focus) this.post(this.focus, 8, hwnd);
       const previous = this.focus;
@@ -446,6 +453,8 @@ async function create(r, a, wide) {
     return m.fail(87, 12);
   const w = {
     id: m.nextWindow++,
+    // New child controls go behind siblings; top-level windows go in front.
+    zOrder: (child ? -1 : 1) * m.nextZOrder++,
     cls,
     proc: cls.proc,
     title: text(r, a(2), wide),
@@ -507,8 +516,10 @@ async function show(r, a) {
   const previous = w.visible;
   w.visible = a(1) !== 0;
   if (!w.parentId) {
-    if (w.visible && a(1) !== 8) r.windows.active = w.id;
-    else if (!w.visible && r.windows.active === w.id) r.windows.active = 0;
+    if (w.visible && a(1) !== 8) {
+      r.windows.active = w.id;
+      r.windows.raise(w.id);
+    } else if (!w.visible && r.windows.active === w.id) r.windows.active = 0;
   }
   r.windows.emit(w);
   await r.windows.send(w.id, 0x18, w.visible ? 1 : 0);
@@ -614,7 +625,7 @@ async function beginPaint(r, a) {
   return result(dc, 2);
 }
 
-export const windowApis = { ...cursorApis };
+export const windowApis = { ...cursorApis, ...windowFindApis };
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
   windowApis[`user32.dll!GetWindowText${suffix}`] = async (r, a) =>
@@ -733,7 +744,10 @@ Object.assign(windowApis, {
     if (a(0) && !r.windows.isEnabled(a(0))) return r.windows.fail(87, 1);
     if (previous === a(0)) return result(previous, 1);
     r.windows.focus = a(0);
-    if (a(0)) r.windows.active = r.windows.topLevel(a(0));
+    if (a(0)) {
+      r.windows.active = r.windows.topLevel(a(0));
+      r.windows.raise(a(0));
+    }
     r.emit({ type: 'window-focus', windowId: a(0) });
     if (previous) await r.windows.send(previous, 8, a(0));
     if (a(0)) await r.windows.send(a(0), 7, previous);
