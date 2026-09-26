@@ -1,5 +1,5 @@
 // Direct x86 basic-block -> WebAssembly emitter. iced decodes; it does not execute.
-import { moduleBytes, constant, get, set, local, call, Host } from './wasm.js';
+import { moduleBytes, constant, get, set, local, call, Host, FS_BASE_GLOBAL } from './wasm.js';
 import { classifySse, SIMDState } from './simd.js';
 import { classifyX87, X87State } from './x87.js';
 import { guestCpuid } from './processor-features.js';
@@ -27,6 +27,7 @@ export class CPU {
       throw Error('Shared WebAssembly.Memory is unsupported until host atomics are implemented');
     this.iced = iced;
     this.memory = memory;
+    this.fsBaseGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
     this.fsBase = fsBase;
     this.df = 0;
     this.read32 = read32;
@@ -319,9 +320,43 @@ export class CPU {
       },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
+    this.host.fsBase = this.fsBaseGlobal;
+  }
+  get fsBase() {
+    return this.fsBaseGlobal.value >>> 0;
+  }
+  set fsBase(address) {
+    if (!Number.isInteger(address) || address < 0 || address > 0xffffffff)
+      throw Error('Invalid FS base');
+    this.fsBaseGlobal.value = address | 0;
   }
   initialize() {
     return this.x87.initialize();
+  }
+  // Internal execution state, not a serialized Windows CONTEXT structure.
+  // The dispatcher owns EIP; memory, code cache and instruction counts belong
+  // to the process and deliberately remain shared across context switches.
+  captureContext() {
+    return {
+      registers: this.r.map((r) => r.value),
+      flags: { ...this.f },
+      af: this.af,
+      df: this.df,
+      controlFlags: this.controlFlags,
+      fsBase: this.fsBase,
+      simd: this.simd.snapshot(),
+      x87: this.x87.snapshot(),
+    };
+  }
+  restoreContext(context) {
+    context.registers.forEach((value, n) => (this.r[n].value = value));
+    this.f = { ...context.flags };
+    this.af = context.af;
+    this.df = context.df;
+    this.controlFlags = context.controlFlags;
+    this.fsBase = context.fsBase;
+    this.simd.restore(context.simd);
+    this.x87.restore(context.x87);
   }
   push(v) {
     const sp = (this.r[4].value - 4) >>> 0;
@@ -529,7 +564,8 @@ export class CPU {
     let code = [],
       count = 0,
       end = ip,
-      usesX87 = false;
+      usesX87 = false,
+      usesFS = false;
     const regInfo = (r) => {
       if (r >= R.EAX && r <= R.EDI) return { index: r - R.EAX, width: 32, shift: 0 };
       if (r >= R.AX && r <= R.DI) return { index: r - R.AX, width: 16, shift: 0 };
@@ -568,7 +604,8 @@ export class CPU {
       let a = constant(Number(i.memoryDisplacement));
       if (applySegment && i.segmentPrefix === R.FS) {
         if (!this.fsBase) throw Error('FS requires guest TEB');
-        a.push(...constant(this.fsBase), 0x6a);
+        usesFS = true;
+        a.push(...get(FS_BASE_GLOBAL), 0x6a);
       }
       if (i.memoryBase !== R.None) {
         a.push(...get(reg(i.memoryBase)));
@@ -695,7 +732,8 @@ export class CPU {
               throw Error('FS string source requires guest TEB');
             const bytes = MemorySizeExt.size(i.memorySize);
             if (![1, 2, 4].includes(bytes)) throw Error('Unsupported string operand width');
-            const sourceBase = stringMov && i.segmentPrefix === R.FS ? this.fsBase : 0;
+            const sourceUsesFS = stringMov && i.segmentPrefix === R.FS;
+            if (sourceUsesFS) usesFS = true;
             const repeat = stringScas
               ? i.hasRepnePrefix
                 ? 3
@@ -709,7 +747,7 @@ export class CPU {
               ...constant(stringMov ? 0 : stringStos ? 1 : 2),
               ...constant(bytes),
               ...constant(repeat),
-              ...constant(sourceBase),
+              ...(sourceUsesFS ? get(FS_BASE_GLOBAL) : constant(0)),
               ...constant(at),
               ...constant(next),
               ...call(Host.string),
@@ -1169,7 +1207,7 @@ export class CPU {
         .run;
       if (this.cache.size >= 4096) this.removeBlock(this.cache.keys().next().value);
       this.compiledBytes += binary.length;
-      const block = { run, count, bytes: binary.length, end };
+      const block = { run, count, bytes: binary.length, end, usesFS };
       this.cache.set(ip, block);
       for (let page = ip >>> 12; page <= (end - 1) >>> 12; page++) {
         if (!this.cachePages.has(page)) this.cachePages.set(page, new Set());
@@ -1185,6 +1223,7 @@ export class CPU {
   }
   step(ip) {
     const block = this.cache.get(ip) || this.compile(ip);
+    if (block.usesFS && !this.fsBase) throw Error('FS requires guest TEB');
     this.instructions += block.count;
     return block.run() >>> 0;
   }

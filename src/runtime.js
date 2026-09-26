@@ -225,16 +225,9 @@ export class Runtime {
   }
   async callGuest(address, args = [], convention = 'stdcall') {
     if (++this.callDepth > 32) throw Error('Guest callback depth exceeded');
-    const saved = this.cpu.r.map((r) => r.value),
-      flags = { ...this.cpu.f },
-      auxiliaryCarry = this.cpu.af,
-      direction = this.cpu.df,
-      controlFlags = this.cpu.controlFlags,
-      simd = this.cpu.simd.snapshot(),
-      // Host-driven callbacks are an isolation boundary: as with GPR/SIMD
-      // state, their x87 stack is restored after return. Direct guest CALLs
-      // remain native and can return an x87 value in ST(0).
-      x87 = this.cpu.x87.snapshot(),
+    // Host-driven callbacks isolate CPU state, including the x87 stack.
+    // Direct guest CALLs remain native and can return an x87 value in ST(0).
+    const saved = this.cpu.captureContext(),
       sentinel = 0xffff0000 + this.callDepth * 16;
     try {
       for (const arg of [...args].reverse()) this.cpu.push(arg);
@@ -243,17 +236,12 @@ export class Runtime {
       const result = this.cpu.r[0].value >>> 0;
       if (this.exitCode === null) {
         if (convention === 'cdecl') this.cpu.r[4].value += args.length * 4;
-        if (this.cpu.r[4].value !== saved[4]) throw Error('Guest callback stack imbalance');
+        if (this.cpu.r[4].value !== saved.registers[4])
+          throw Error('Guest callback stack imbalance');
       }
       return result;
     } finally {
-      saved.forEach((value, n) => (this.cpu.r[n].value = value));
-      this.cpu.f = flags;
-      this.cpu.af = auxiliaryCarry;
-      this.cpu.df = direction;
-      this.cpu.controlFlags = controlFlags;
-      this.cpu.simd.restore(simd);
-      this.cpu.x87.restore(x87);
+      this.cpu.restoreContext(saved);
       this.callDepth--;
     }
   }

@@ -126,6 +126,11 @@ D3D10/11 and broader D3D12 support are still required.
       APIs. Shared timestamps track guest creation, reads, writes and truncation.
       Ordinary EXE/ZIP and real Wine DLL fixtures pass in Chromium; native Wine
       also passes in Node. Missing leaves and parents return distinct errors.
+- [x] Capture/restore CPU context and make compiled FS accesses follow the active
+      TEB without recompilation. Alternating contexts execute shared blocks with
+      independent stacks, flags, SIMD/x87 state and string-copy directions. Add
+      separate TEB/debug initialization that preserves the PEB and main thread.
+      Thread creation/scheduling remains unfinished; see `docs/thread-runtime.md`.
 - [ ] Continue Hamsterball through `NtCreateThreadEx`, after 8,840,377 guest
       instructions in Node and Chromium. Its packaged `DATA` query now passes;
       the current probe stops before window creation.

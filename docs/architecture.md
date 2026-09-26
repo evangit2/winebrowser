@@ -109,6 +109,12 @@ and execution. Do not treat them as incidental follow-up features.
 - **Threads:** each guest thread needs its own registers, stack, TEB, TLS, last-error state,
   wait state and scheduler lifecycle. Synchronization objects and callbacks must have
   guest-visible ordering. Browser workers alone do not supply Windows thread semantics.
+  The CPU now captures/restores its supported integer, flag, SIMD and x87 state,
+  and compiled FS accesses read a mutable Wasm global so contexts share the block
+  cache without retaining another thread's TEB address. Separate TEB/debug blocks
+  can be initialized without touching process data. These are tested prerequisites;
+  thread creation, scheduling and Wine thread attach/detach are still unfinished.
+  See [thread context groundwork](thread-runtime.md).
 - **Callbacks:** enumerate, window, timer and I/O callbacks can re-enter guest code while an API
   call is active. Define which thread runs them and how guest state is saved before exposing
   those APIs.
