@@ -516,6 +516,36 @@ test('pre-transformed XYZRHW draws bypass the transform state and light disable'
   assert.equal(y, 1);
 });
 
+for (const version of [8, 9]) {
+  test(`D3D${version} GetAdapterIdentifier fills the version-specific structure`, async () => {
+    const { runtime, call, factory } = fixture(version);
+    const size = version === 8 ? 1068 : 1100;
+    const out = runtime.allocate(size + 8);
+    runtime.data.fill(0xee, out, out + size + 8);
+    // An invalid adapter or null output fails without touching memory.
+    assert.equal((await call(factory, 5, 1, 0, out)).result, 0x8876086c);
+    assert.equal((await call(factory, 5, 0, 0, 0)).result, 0x8876086c);
+    assert.equal(runtime.read32(out), 0xeeeeeeee);
+    assert.equal((await call(factory, 5, 0, 0, out)).result, 0);
+    const text = (offset) => {
+      let value = '';
+      while (runtime.data[out + offset + value.length])
+        value += String.fromCharCode(runtime.data[out + offset + value.length]);
+      return value;
+    };
+    assert.equal(text(0), 'winebrowser-webgpu');
+    assert.equal(text(512), 'WineBrowser WebGPU Adapter');
+    // D3D8 omits DriverVersion, so the later fields sit 32 bytes earlier.
+    const base = version === 8 ? 1024 : 1056;
+    assert.equal(runtime.read32(out + base), 0x00010000);
+    assert.equal(runtime.read32(out + base + 8), 0x1af4);
+    assert.equal(runtime.read32(out + base + 12), 0x1050);
+    assert.equal(runtime.read32(out + base + 40), 1);
+    // The tail beyond the structure is untouched by both versions.
+    assert.equal(runtime.read32(out + size), 0xeeeeeeee);
+  });
+}
+
 test('Unsupported D3D9 methods and render modes fail explicitly; failed Present retains commands', async () => {
   const { runtime, events, call, factory, params, output, create } = fixture();
   assert.equal(d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 0).result, 0);
