@@ -236,6 +236,7 @@ export async function probeWineTarget(
         const hot = locate(ip);
         const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
         report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
+        if (report.blockHistogram.size > 200000) report.blockHistogram.clear();
         // Snapshot the runtime bytes of very hot blocks. Packed images
         // self-modify, so static disassembly of those regions is unusable.
         const HOT_SAMPLE_THRESHOLD = 20000;
