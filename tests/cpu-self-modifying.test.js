@@ -4,14 +4,15 @@ import iced from 'iced-x86';
 import { CPU } from '../src/cpu.js';
 import { GuestMemory } from '../src/memory.js';
 
-function machine(writable = true) {
-  const memory = new WebAssembly.Memory({ initial: 1 });
+function machine(writable = true, { pages = 1, codeEnd = 0x8000 } = {}) {
+  const memory = new WebAssembly.Memory({ initial: pages });
+  const memoryEnd = pages * 0x10000;
   let cpu;
   const guest = new GuestMemory(
     memory,
     [
-      { start: 0x1000, end: 0x8000, exec: true, write: writable },
-      { start: 0x8000, end: 0x10000, write: true },
+      { start: 0x1000, end: codeEnd, exec: true, write: writable },
+      { start: codeEnd, end: memoryEnd, write: true },
     ],
     {
       onCodeWrite: (address, size) => cpu.invalidateRange(address, size),
@@ -19,8 +20,8 @@ function machine(writable = true) {
   );
   cpu = new CPU(iced, {
     memory,
-    executableRanges: [[0x1000, 0x8000, writable]],
-    stackTop: 0xf000,
+    executableRanges: [[0x1000, codeEnd, writable]],
+    stackTop: memoryEnd - 0x1000,
     read32: (a) => guest.read32(a),
     write32: (a, v) => guest.write32(a, v),
     read: (a, w) => guest.read(a, w),
@@ -77,18 +78,49 @@ test('read-only code still rejects writes and retains its compiled block', () =>
   assert.equal(cpu.r[0].value, 1);
 });
 
-test('the bounded block cache evicts old translations and can recompile them', () => {
-  const { cpu, guest } = machine(false);
-  for (let i = 0; i < 4097; i++) {
+test('the bounded block cache evicts old translations and can recompile them', (t) => {
+  const { cpu, guest } = machine(false, { pages: 8, codeEnd: 0x78000 });
+  const limit = cpu.cacheLimit;
+  assert.ok(limit > 4096, 'the translation cache must exceed the packed-image working set');
+  for (let i = 0; i < limit + 1; i++) {
     const address = 0x1000 + i * 4;
     guest.data.set([0xb0, i & 255, 0xeb, 0], address);
     cpu.step(address);
   }
-  assert.equal(cpu.cache.size, 4096);
+  assert.equal(cpu.cache.size, limit);
   assert.equal(cpu.cache.has(0x1000), false);
   assert.equal(cpu.step(0x1000), 0x1004);
   assert.equal(cpu.r[0].value, 0);
-  assert.equal(cpu.cache.size, 4096);
+  assert.equal(cpu.cache.size, limit);
   cpu.clearCache();
   assert.equal(cpu.cachePages.size, 0);
+});
+
+test('the block cache evicts least-recently-used blocks, not the first inserted', () => {
+  const { cpu, guest } = machine(false, { pages: 8, codeEnd: 0x78000 });
+  const limit = cpu.cacheLimit;
+  const address = (i) => 0x1000 + i * 4;
+  const put = (i) => {
+    guest.data.set([0xb0, i & 255, 0xeb, 0], address(i));
+    cpu.step(address(i));
+  };
+  // Fill the cache, then keep re-touching block 0 so it stays hot while the
+  // remaining capacity churns. A FIFO cache would evict it; an LRU cache must
+  // retain it because it is refreshed on every access.
+  for (let i = 0; i < limit; i++) put(i);
+  const rounds = limit * 2;
+  for (let round = 0; round < rounds; round++) {
+    cpu.step(address(0));
+    put(limit + round);
+  }
+  assert.equal(cpu.cache.has(address(0)), true, 'hot block survives churn');
+  // A block that was not touched after insertion is the eviction victim.
+  assert.equal(cpu.cache.has(address(1)), false);
+  assert.equal(cpu.cache.size, limit);
+  // One compilation per distinct block plus the reload after the in-place
+  // rewrite of each new block: nothing is recompiled because it was evicted.
+  assert.ok(
+    cpu.compilations <= limit + rounds + 2,
+    `unexpected recompilation: ${cpu.compilations} for ${limit + rounds} blocks`,
+  );
 });

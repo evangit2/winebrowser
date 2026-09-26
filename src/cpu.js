@@ -4,6 +4,10 @@ import { classifySse, SIMDState } from './simd.js';
 import { classifyX87, X87State } from './x87.js';
 import { guestCpuid } from './processor-features.js';
 import { GuestPerformanceClock, splitGuestCounter } from './guest-clock.js';
+
+// Bounded translated-block cache. Code that touches more blocks than this
+// evicts least-recently-used entries instead of recompiling hot blocks.
+const MAX_TRANSLATED_BLOCKS = 16384;
 export class CPU {
   constructor(
     iced,
@@ -66,8 +70,13 @@ export class CPU {
     });
     this.cache = new Map();
     this.cachePages = new Map();
+    this.cacheLimit = MAX_TRANSLATED_BLOCKS;
+    this.cacheTail = undefined;
     this.x87Blocks = new Set();
     this.compiledBytes = 0;
+    // Total blocks compiled over the run; compared with cache.size it reveals
+    // translation-cache eviction pressure on large/packed images.
+    this.compilations = 0;
     this.instructions = 0;
     this.f = { cf: 0, zf: 0, sf: 0, of: 0, pf: 0 };
     this.af = 0;
@@ -1296,8 +1305,9 @@ export class CPU {
       const binary = moduleBytes(code);
       const run = new WebAssembly.Instance(new WebAssembly.Module(binary), { h: this.host }).exports
         .run;
-      if (this.cache.size >= 4096) this.removeBlock(this.cache.keys().next().value);
+      if (this.cache.size >= this.cacheLimit) this.evictLeastRecent();
       this.compiledBytes += binary.length;
+      this.compilations++;
       const block = { run, count, bytes: binary.length, end, usesFS };
       this.cache.set(ip, block);
       for (let page = ip >>> 12; page <= (end - 1) >>> 12; page++) {
@@ -1314,10 +1324,27 @@ export class CPU {
   }
   step(ip) {
     if (this.stringRestart && this.stringRestart.at !== ip) this.stringRestart = null;
-    const block = this.cache.get(ip) || this.compile(ip);
+    let block = this.cache.get(ip);
+    if (!block) block = this.compile(ip);
+    else if (this.cacheTail !== ip) this.promote(ip, block);
     if (block.usesFS && !this.fsBase) throw Error('FS requires guest TEB');
     this.instructions += block.count;
     return block.run() >>> 0;
+  }
+  // A Map iterates in insertion order, so re-inserting a block moves it to the
+  // most-recently-used end. Without this the cache evicts in FIFO order and a
+  // working set larger than the limit recompiles its own hot blocks forever.
+  promote(ip, block) {
+    this.cache.delete(ip);
+    this.cache.set(ip, block);
+    this.cacheTail = ip;
+  }
+  evictLeastRecent() {
+    const iterator = this.cache.keys();
+    const oldest = iterator.next().value;
+    if (oldest === undefined) return;
+    this.removeBlock(oldest);
+    if (this.cacheTail === oldest) this.cacheTail = undefined;
   }
   prepare(ip) {
     if (!this.cache.has(ip)) this.compile(ip);
@@ -1327,6 +1354,7 @@ export class CPU {
     this.cache.clear();
     this.cachePages.clear();
     this.x87Blocks.clear();
+    this.cacheTail = undefined;
   }
   removeBlock(ip) {
     const block = this.cache.get(ip);

@@ -355,6 +355,7 @@ export async function probeWineTarget(
           ip: locate(lastIP),
           registers: runtime.cpu.r.map((r) => hex(r.value)),
           compiledBlocks: runtime.cpu.cache.size,
+          compilations: runtime.cpu.compilations,
           instructions: runtime.cpu.instructions,
           recentBlocks: recentBlocks.slice(),
           blockHistogram: report.blockHistogram,
