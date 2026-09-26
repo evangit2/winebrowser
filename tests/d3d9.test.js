@@ -1793,3 +1793,29 @@ test('released COM objects free live capacity while stale pointers still fail', 
   assert.ok(objects.objects.size > 64);
   await call(device, 2);
 });
+
+test('D3D8 device GetInfo fills a bounded zeroed structure and rejects bad buffers', async () => {
+  const { runtime, call, create } = fixture(8);
+  const device = await create();
+  const out = runtime.allocate(64);
+  runtime.data.fill(0xee, out, out + 64);
+  // Resource-manager and vertex-statistics ids both return a zeroed buffer.
+  for (const id of [5, 6]) {
+    runtime.data.fill(0xee, out, out + 64);
+    assert.equal((await call(device, 65, id, out, 32)).result, 0);
+    assert.ok(runtime.data.subarray(out, out + 32).every((v) => v === 0));
+    // Only the requested span is cleared.
+    assert.equal(runtime.data[out + 32], 0xee);
+  }
+  // A null, undersized or oversized request fails without writing.
+  for (const [pointer, size] of [
+    [0, 32],
+    [out, 3],
+    [out, 4097],
+  ]) {
+    runtime.data.fill(0xee, out, out + 64);
+    assert.equal((await call(device, 65, 5, pointer, size)).result, 0x8876086c);
+    assert.equal(runtime.data[out], 0xee);
+  }
+  await call(device, 2);
+});
