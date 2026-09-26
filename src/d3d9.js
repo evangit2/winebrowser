@@ -105,11 +105,55 @@ function screenToClip(viewport) {
   ]);
 }
 
+// D3D primitive types. The renderer consumes triangle lists, so strips and
+// fans are expanded with their correct relative winding before submission.
+const D3DPT = {
+  POINTLIST: 1,
+  LINELIST: 2,
+  LINESTRIP: 3,
+  TRIANGLELIST: 4,
+  TRIANGLESTRIP: 5,
+  TRIANGLEFAN: 6,
+};
+
+// Vertices needed for a primitive count, or null when the type is unsupported.
+function primitiveVertexCount(primitive, primitiveCount) {
+  if (primitive === D3DPT.TRIANGLELIST) return primitiveCount * 3;
+  if (primitive === D3DPT.TRIANGLESTRIP || primitive === D3DPT.TRIANGLEFAN)
+    return primitiveCount + 2;
+  return null;
+}
+
+// Expand a triangle strip or fan into an explicit triangle list. Strip winding
+// alternates, so odd triangles swap their first two vertices to preserve the
+// facing the D3D rasterizer would compute.
+function expandTriangles(primitive, primitiveCount, stride, vertices) {
+  if (primitive === D3DPT.TRIANGLELIST) return { vertices, vertexCount: primitiveCount * 3 };
+  const sourceCount = primitiveCount + 2;
+  if (vertices.length < sourceCount * stride) throw Error('D3D9 draw exceeds the vertex buffer');
+  const out = new Uint8Array(primitiveCount * 3 * stride);
+  const emit = (slot, index) => {
+    out.set(vertices.subarray(index * stride, index * stride + stride), slot * stride);
+  };
+  for (let t = 0; t < primitiveCount; t++) {
+    const [a, b, c] =
+      primitive === D3DPT.TRIANGLEFAN
+        ? [0, t + 1, t + 2]
+        : t % 2 === 0
+          ? [t, t + 1, t + 2]
+          : [t + 1, t, t + 2];
+    emit(t * 3, a);
+    emit(t * 3 + 1, b);
+    emit(t * 3 + 2, c);
+  }
+  return { vertices: out, vertexCount: primitiveCount * 3 };
+}
+
 // Shared by DrawPrimitiveUP, buffered and indexed draws. Vertices are always an
 // immutable contiguous snapshot by the time a command reaches the renderer.
-function fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCount) {
+function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
   const layout = fvfLayout(state.fvf);
-  if (primitive !== 4 || !layout || stride < layout.size || stride > 256 || stride % 4)
+  if (!layout || stride < layout.size || stride > 256 || stride % 4)
     throw Error('Unsupported D3D9 draw format or render state');
   const texturing = fixedTextureDraw(runtime, state);
   const texture = texturing?.texture;
@@ -176,16 +220,24 @@ function fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCo
 
 // Draws queued from a buffer gather vertices host-side; programmable draws use
 // the same snapshot. Returns null when no programmable pipeline is bound.
-function bufferedDraw(runtime, state, source, primitive) {
-  const { vertices, stride, vertexCount } = source;
-  const programmable = programmableDrawFromVertices(state, vertices, stride, vertexCount);
+function bufferedDraw(runtime, state, source, primitive, primitiveCount) {
+  const { stride } = source;
+  // Fixed-function strips/fans become an explicit triangle list. Programmable
+  // draws stay list-only, matching that path's existing scope.
+  const expanded = expandTriangles(primitive, primitiveCount, stride, source.vertices);
+  const programmable = programmableDrawFromVertices(
+    state,
+    expanded.vertices,
+    stride,
+    expanded.vertexCount,
+  );
   if (programmable) {
-    if (primitive !== 4) throw Error('Unsupported programmable D3D9 draw state');
+    if (primitive !== D3DPT.TRIANGLELIST) throw Error('Unsupported programmable D3D9 draw state');
     const { payloadBytes, ...command } = programmable;
     queue(state, command, payloadBytes);
     return D3D_OK;
   }
-  return fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCount);
+  return fixedFunctionDraw(runtime, state, expanded.vertices, stride, expanded.vertexCount);
 }
 
 function queue(state, command, bytes = 0) {
@@ -382,27 +434,31 @@ function deviceMethods(version = 9) {
         const stride = argument(4) >>> 0;
         if (!state.inScene) return D3DERR_INVALIDCALL;
         if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
-        if (!primitiveCount || primitiveCount * 3 > MAX_VERTICES)
-          throw Error('D3D9 vertex count limit exceeded');
-        const vertexCount = primitiveCount * 3;
-        const programmable = programmableDraw(runtime, state, pointer, stride, vertexCount);
+        const vertexCount = primitiveVertexCount(primitive, primitiveCount);
+        if (!vertexCount || vertexCount > MAX_VERTICES)
+          throw Error('Unsupported D3D9 primitive type or vertex count limit');
+        const size = vertexCount * stride;
+        runtime.check(pointer, size);
+        const expanded = expandTriangles(
+          primitive,
+          primitiveCount,
+          stride,
+          runtime.data.slice(pointer, pointer + size),
+        );
+        const programmable = programmableDrawFromVertices(
+          state,
+          expanded.vertices,
+          stride,
+          expanded.vertexCount,
+        );
         if (programmable) {
-          if (primitive !== 4)
+          if (primitive !== D3DPT.TRIANGLELIST)
             throw Error('Unsupported programmable IDirect3DDevice9.DrawPrimitiveUP state');
           const { payloadBytes, ...command } = programmable;
           queue(state, command, payloadBytes);
           return D3D_OK;
         }
-        const size = vertexCount * stride;
-        runtime.check(pointer, size);
-        return fixedFunctionDraw(
-          runtime,
-          state,
-          primitive,
-          runtime.data.slice(pointer, pointer + size),
-          stride,
-          vertexCount,
-        );
+        return fixedFunctionDraw(runtime, state, expanded.vertices, stride, expanded.vertexCount);
       },
     },
     26: createVertexBufferMethod(version),
@@ -422,6 +478,7 @@ function deviceMethods(version = 9) {
           state,
           bufferedVertices(runtime, object, startVertex, primitive, primitiveCount),
           primitive,
+          primitiveCount,
         );
       },
     },
@@ -457,6 +514,7 @@ function deviceMethods(version = 9) {
           state,
           indexedVertices(runtime, object, params.primitive, params.primitiveCount, params),
           params.primitive,
+          params.primitiveCount,
         );
       },
     },

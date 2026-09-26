@@ -6,6 +6,8 @@ const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 const MAX_VERTICES = 65535;
 const D3DPT_TRIANGLELIST = 4;
+const D3DPT_TRIANGLESTRIP = 5;
+const D3DPT_TRIANGLEFAN = 6;
 const D3DUSAGE_WRITEONLY = 0x8;
 const D3DUSAGE_DYNAMIC = 0x200;
 const D3DLOCK_READONLY = 0x10;
@@ -316,10 +318,17 @@ export function getIndices(runtime, device, version, argument) {
   return D3D_OK;
 }
 
-function triangleCount(primitive, primitiveCount) {
+// Vertices the draw consumes for a primitive count. Triangle strips and fans
+// need count + 2 vertices; expansion to a list happens in the draw builder.
+function primitiveVertexCount(primitive, primitiveCount) {
   if (!primitiveCount) throw Error('D3D9 draw requires a positive primitive count');
-  if (primitive !== D3DPT_TRIANGLELIST) throw Error(`Unsupported D3D9 primitive type ${primitive}`);
-  const vertexCount = primitiveCount * 3;
+  const vertexCount =
+    primitive === D3DPT_TRIANGLELIST
+      ? primitiveCount * 3
+      : primitive === D3DPT_TRIANGLESTRIP || primitive === D3DPT_TRIANGLEFAN
+        ? primitiveCount + 2
+        : 0;
+  if (!vertexCount) throw Error(`Unsupported D3D9 primitive type ${primitive}`);
   if (vertexCount > MAX_VERTICES) throw Error('D3D9 vertex count limit exceeded');
   return vertexCount;
 }
@@ -327,7 +336,7 @@ function triangleCount(primitive, primitiveCount) {
 // Non-indexed buffered draw: copy [startVertex, startVertex + count) from the
 // bound stream so the renderer receives an immutable, contiguous snapshot.
 export function bufferedVertices(runtime, device, startVertex, primitive, primitiveCount) {
-  const vertexCount = triangleCount(primitive, primitiveCount);
+  const vertexCount = primitiveVertexCount(primitive, primitiveCount);
   const binding = device.state.streamSource;
   if (!binding) throw Error('D3D9 buffered draw requires a vertex stream');
   if (binding.object.state.locked)
@@ -342,7 +351,7 @@ export function bufferedVertices(runtime, device, startVertex, primitive, primit
 }
 
 export function indexedVertices(runtime, device, primitive, primitiveCount, params) {
-  const vertexCount = triangleCount(primitive, primitiveCount);
+  const vertexCount = primitiveVertexCount(primitive, primitiveCount);
   const object = device.state.indexBuffer;
   if (!object) throw Error('D3D9 indexed draw requires an index buffer');
   if (object.state.locked) throw Error('D3D9 indexed draw requires an unlocked index buffer');

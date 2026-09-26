@@ -389,6 +389,51 @@ for (const version of [8, 9]) {
   });
 }
 
+test('triangle strips and fans expand to lists with correct winding', async () => {
+  for (const [primitive, count, expected] of [
+    [4, 2, [0, 1, 2, 3, 4, 5]],
+    // A 4-vertex strip is two triangles; the second swaps winding.
+    [5, 2, [0, 1, 2, 2, 1, 3]],
+    // A 4-vertex fan is two triangles sharing vertex 0.
+    [6, 2, [0, 1, 2, 0, 2, 3]],
+  ]) {
+    const { runtime, events, call, create } = fixture();
+    const device = await create();
+    await call(device, 89, 0x42);
+    await call(device, 41);
+    const supplied = primitive === 4 ? count * 3 : count + 2;
+    const vertices = runtime.allocate(supplied * 16);
+    for (let i = 0; i < supplied; i++) {
+      runtime.view.setFloat32(vertices + i * 16, i, true);
+      runtime.view.setFloat32(vertices + i * 16 + 4, 0, true);
+      runtime.view.setFloat32(vertices + i * 16 + 8, 0, true);
+      runtime.write32(vertices + i * 16 + 12, 0xffffffff);
+    }
+    assert.equal((await call(device, 83, primitive, count, vertices, 16)).result, 0);
+    await call(device, 42);
+    await call(device, 17, 0, 0, 0, 0);
+    const command = events.at(-1).commands[0];
+    assert.equal(command.vertexCount, count * 3);
+    const view = new DataView(
+      command.vertices.buffer,
+      command.vertices.byteOffset,
+      command.vertices.byteLength,
+    );
+    const positions = Array.from({ length: count * 3 }, (_, i) => view.getFloat32(i * 16, true));
+    assert.deepEqual(positions, expected);
+  }
+});
+
+test('an unsupported primitive type fails explicitly', async () => {
+  const { runtime, call, create } = fixture();
+  const device = await create();
+  await call(device, 89, 0x42);
+  await call(device, 41);
+  const vertices = runtime.allocate(48);
+  // Primitive 1 is D3DPT_POINTLIST; only triangles are supported.
+  await assert.rejects(call(device, 83, 1, 3, vertices, 16), /primitive type/);
+});
+
 test('pre-transformed XYZRHW draws bypass the transform state and light disable', async () => {
   const { runtime, events, call, create } = fixture();
   const device = await create();
