@@ -31,7 +31,8 @@ const POP = 1,
   REVERSE = 4,
   EFLAGS = 8,
   UNORDERED = 16,
-  ZERO = 32;
+  ZERO = 32,
+  TRUNCATE = 64;
 
 const stIndex = (register, R) => (register >= R.ST0 && register <= R.ST7 ? register - R.ST0 : -1);
 
@@ -50,6 +51,7 @@ export function classifyX87(i, iced) {
       ? result(X87Op.storeFloat, 0, 0, m === M.Fstp ? POP : 0)
       : result(X87Op.storeStack, reg(0), 0, m === M.Fstp ? POP : 0);
   if (m === M.Fist || m === M.Fistp) return result(X87Op.storeInt, 0, 0, m === M.Fistp ? POP : 0);
+  if (m === M.Fisttp) return result(X87Op.storeInt, 0, 0, POP | TRUNCATE);
   if (m === M.Fxch) return result(X87Op.exchange, reg(i.opCount > 1 ? 1 : 0));
 
   const constants = new Map([
@@ -202,8 +204,8 @@ export class X87State {
     this.ready = null;
   }
 
-  #configure() {
-    const rounding = [0, 2, 3, 1][(this.control >>> 10) & 3];
+  #configure(roundingOverride) {
+    const rounding = roundingOverride ?? [0, 2, 3, 1][(this.control >>> 10) & 3];
     const precision = [24, 0, 53, 64][(this.control >>> 8) & 3];
     if (!precision) throw Error('Reserved x87 precision-control mode');
     if (this.sf._wb_sf_init(this.p, 4, rounding, precision, 1))
@@ -250,8 +252,8 @@ export class X87State {
     return this.p + offset;
   }
 
-  #operation(call) {
-    this.#configure();
+  #operation(call, roundingOverride) {
+    this.#configure(roundingOverride);
     const rc = call();
     if (rc) throw Error(`SoftFloat operation failed (${rc})`);
     const flags = this.sf.HEAPU8[this.p + 3];
@@ -294,7 +296,7 @@ export class X87State {
     return this.#operation(() => this.sf[fn](this.p, 4, this.p + 24, 10, this.p + 4, bytes.length));
   }
 
-  #convertTo(value, kind, width) {
+  #convertTo(value, kind, width, roundingOverride) {
     const fn =
       kind === 'f32'
         ? '_wb_sf_to_f32'
@@ -304,7 +306,20 @@ export class X87State {
             ? '_wb_sf_to_i32'
             : '_wb_sf_to_i64';
     this.#put(value, 4);
-    this.#operation(() => this.sf[fn](this.p, 4, this.p + 24, width, this.p + 4, 10));
+    this.#operation(() => {
+      const rc = this.sf[fn](this.p, 4, this.p + 24, Math.max(4, width), this.p + 4, 10);
+      if (!rc && kind === 'i32' && width === 2) {
+        const view = new DataView(this.sf.HEAPU8.buffer);
+        const integer = view.getInt32(this.p + 24, true);
+        if (integer < -32768 || integer > 32767) {
+          // Narrow integer overflow is invalid, taking priority over precision
+          // from the intermediate int32 conversion before any exception fires.
+          this.sf.HEAPU8[this.p + 3] = 16;
+          view.setUint16(this.p + 24, 0x8000, true);
+        }
+      }
+      return rc;
+    }, roundingOverride);
     return this.sf.HEAPU8.slice(this.p + 24, this.p + 24 + width);
   }
 
@@ -396,20 +411,20 @@ export class X87State {
       if (op === X87Op.storeInt && ![2, 4, 8].includes(width))
         throw Error(`Unsupported FIST width ${width}`);
       this.check(address >>> 0, width, true);
+      if (options & TRUNCATE) this.status &= ~0x200; // FISTTP always clears C1.
       let bytes;
       if (op === X87Op.storeFloat)
         bytes =
           width === 10
             ? this.#value(0).slice()
             : this.#convertTo(this.#value(0), width === 4 ? 'f32' : 'f64', width);
-      else if (width === 2) {
-        const full = this.#convertTo(this.#value(0), 'i32', 4),
-          value = new DataView(full.buffer, full.byteOffset, 4).getInt32(0, true);
-        if (value < -32768 || value > 32767) {
-          this.#exception(1, false);
-          bytes = Uint8Array.of(0, 0x80);
-        } else bytes = full.slice(0, 2);
-      } else bytes = this.#convertTo(this.#value(0), width === 4 ? 'i32' : 'i64', width);
+      else
+        bytes = this.#convertTo(
+          this.#value(0),
+          width === 8 ? 'i64' : 'i32',
+          width,
+          options & TRUNCATE ? 1 : undefined,
+        );
       this.#write(address, bytes);
       if (options & POP) this.#pop();
       return;

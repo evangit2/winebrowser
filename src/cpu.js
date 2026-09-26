@@ -142,6 +142,16 @@ export class CPU {
       },
       flags: (a, b, r, k, width) => this.flags(a, b, r, k, width),
       shift: (value, count, kind, width) => this.shift(value, count, kind, width),
+      doubleShift: (value, source, count, kind, width) =>
+        this.doubleShift(value, source, count, kind, width),
+      doubleShiftStore: (address, value, source, count, kind, width) => {
+        this.checkMemory(address >>> 0, width >>> 3, true);
+        this.host.store(
+          address >>> 0,
+          this.doubleShift(value, source, count, kind, width),
+          width >>> 3,
+        );
+      },
       rotate: (value, count, kind, width) => this.rotate(value, count, kind, width),
       rotateStore: (address, value, count, kind, width) => {
         this.checkMemory(address >>> 0, width >>> 3, true);
@@ -384,6 +394,31 @@ export class CPU {
     this.f.cf = carry;
     if (count === 1)
       this.f.of = kind === 0 ? this.f.sf ^ carry : kind === 1 ? (v >>> (width - 1)) & 1 : 0;
+    return result & mask;
+  }
+  doubleShift(value, source, count, kind, width) {
+    if (![16, 32].includes(width) || ![0, 1].includes(kind))
+      throw Error('Invalid double-width shift operation');
+    count &= 31;
+    if (!count) return value;
+    const mask = width === 32 ? 0xffffffff : 0xffff;
+    const destination = (value & mask) >>> 0,
+      input = (source & mask) >>> 0;
+    // Intel leaves 16-bit counts above 16 undefined. Choose a deterministic
+    // zero-filled concatenation result without making a compatibility promise.
+    const result =
+      width === 16 && count > 16
+        ? kind === 0
+          ? input << (count - 16)
+          : input >>> (count - 16)
+        : kind === 0
+          ? (destination << count) | (input >>> (width - count))
+          : (destination >>> count) | (input << (width - count));
+    const previousOverflow = this.f.of;
+    this.flags(destination, count, result, 2, width);
+    this.f.cf =
+      kind === 0 ? (destination >>> (width - count)) & 1 : (destination >>> (count - 1)) & 1;
+    this.f.of = count === 1 ? ((destination ^ result) >>> (width - 1)) & 1 : previousOverflow;
     return result & mask;
   }
   rotate(value, count, kind, width) {
@@ -771,6 +806,30 @@ export class CPU {
                 ...call(Host.shift),
               ]),
             );
+          } else if (m === M.Shld || m === M.Shrd) {
+            const bits = width(i, 0);
+            if (
+              i.opCount !== 3 ||
+              ![K.Register, K.Memory].includes(i.opKind(0)) ||
+              i.opKind(1) !== K.Register ||
+              ![16, 32].includes(bits) ||
+              width(i, 1) !== bits ||
+              !(
+                i.opKind(2) === K.Immediate8 ||
+                (i.opKind(2) === K.Register && i.opRegister(2) === R.CL)
+              )
+            )
+              throw Error('SHLD/SHRD requires matching 16/32-bit operands and imm8 or CL count');
+            const operation = [
+              ...operand(i, 0),
+              ...operand(i, 1),
+              ...operand(i, 2),
+              ...constant(m === M.Shld ? 0 : 1),
+              ...constant(bits),
+            ];
+            if (i.opKind(0) === K.Memory)
+              code.push(...addr(i), ...operation, ...call(Host.doubleShiftStore));
+            else code.push(...write(i, 0, [...operation, ...call(Host.doubleShift)]));
           } else if ([M.Rcl, M.Rcr, M.Rol, M.Ror].includes(m)) {
             const bits = width(i, 0);
             const kind = [M.Rcl, M.Rcr, M.Rol, M.Ror].indexOf(m);

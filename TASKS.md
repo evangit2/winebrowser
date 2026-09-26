@@ -55,7 +55,15 @@ D3D10/11 and broader D3D12 support are still required.
       MXCSR rounding/status/DAZ/FTZ and callback context preservation. Native
       fixture passes in Node/Chromium. MOVAPD/MOVUPD reuse checked 128-bit moves.
       Packed float, AVX and guest #XM delivery remain unsupported.
-- [ ] Continue BASS startup through `SHRD EAX,EDX,CL` in Wine's CRT.
+- [x] Execute 16/32-bit `SHLD`/`SHRD` with register/memory destinations,
+      immediate/CL counts, zero-count flags and checked stores. Unit tests use
+      an independent bit-string oracle and cover aliases and fault atomicity.
+- [x] Execute x87 `FISTTP` for int16/int32/int64 with truncation independent of
+      control-word rounding, preserved ext80 low bits, pop/C1 behavior and
+      checked stores. Narrow integer overflow takes priority over precision.
+- [ ] Continue BASS startup through `user32.dll!CharLowerW`. Node and Chromium
+      reach this call after 8,688,990 guest instructions during DLL attachment.
+      Reuse native Wine locale/case services where possible.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

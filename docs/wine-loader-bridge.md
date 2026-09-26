@@ -109,10 +109,12 @@ as do the native ACM/UCRT exports and virtual foreground-window queries. The
 OLE32 exports now resolve, including `CoCreateInstance`. Extended-precision
 logarithms, trigonometry and `FXAM` now execute, followed by scalar SSE moves and
 signed-int32-to-double conversion. Scalar SSE arithmetic, square roots,
-conversions, comparisons and MXCSR now execute; the current stop is `SHRD
-EAX,EDX,CL` in Wine's CRT (`msvcrt.dll+0x5b164`). The game has not reached
-its EXE entry or rendered a frame. Native ACM conversion and BASS playback have
-not been verified. The next work is double-width integer shifts and the remaining native
+conversions, comparisons and MXCSR now execute, as do 16/32-bit `SHLD`/`SHRD`
+and x87 `FISTTP` conversions. Both probes execute 8,688,990 guest instructions
+before the unresolved `user32.dll!CharLowerW` call during DLL attachment.
+The game has not reached its EXE entry or rendered a frame. Native ACM conversion
+and BASS playback have not been verified. The next work is character conversion
+through Wine's locale services and the remaining native
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.

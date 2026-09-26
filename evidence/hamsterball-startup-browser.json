@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T02:03:14.083Z",
+  "date": "2026-09-26T02:12:22.427Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2966,66 +2966,6 @@
     {
       "name": "WineBrowserLoaderCallback",
       "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
         1,
         33585856,
         0,
@@ -3374,11 +3314,87 @@
       "result": "0x0"
     },
     {
-      "name": "NtClose",
+      "name": "NtAllocateVirtualMemory",
       "args": [
+        4294967295,
+        67104544,
+        0,
+        67104696,
+        8192,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104544,
+        0,
+        67104700,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        39126112,
+        0,
+        67104664,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "advapi32.dll!RegOpenKeyExW",
+      "args": [
+        2147483650,
+        24654304,
+        0,
+        1
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        17043712,
+        264,
+        67099312,
         0
       ],
-      "error": "Unsupported Wine NT service NtClose for handle 0x0"
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67098472,
+        2148532352,
+        67098504,
+        67098484,
+        0,
+        128,
+        7,
+        1,
+        96,
+        0,
+        0
+      ],
+      "result": "0xc000003a"
+    },
+    {
+      "name": "user32.dll!CharLowerW",
+      "args": [
+        39126382,
+        0,
+        134,
+        16895679
+      ],
+      "error": "Unimplemented import user32.dll!CharLowerW"
     }
   ],
   "output": [],
@@ -4153,41 +4169,41 @@
   ],
   "firstFailure": {
     "phase": "guest DLL attach",
-    "message": "x86 block 0x17eb158: Unsupported instruction shrd eax,edx,cl at 0x17eb164",
+    "message": "Unimplemented import user32.dll!CharLowerW",
     "ip": {
-      "address": "0x17eb158",
-      "module": "msvcrt.dll",
-      "offset": "0x5b158"
+      "address": "0x13d12e8",
+      "module": "user32.dll",
+      "offset": "0x12e8"
     },
     "registers": [
-      "0x39",
-      "0xa",
-      "0x3fe62e42",
+      "0x18",
+      "0x25504c0",
       "0x0",
-      "0x3ffedb0",
-      "0x3ffedc8",
-      "0x402",
-      "0x0"
+      "0x255056e",
+      "0x3ffdc3c",
+      "0x3ffdc5c",
+      "0x2550488",
+      "0x2550500"
     ],
-    "compiledBlocks": 3932,
-    "instructions": 5433150,
+    "compiledBlocks": 4096,
+    "instructions": 8688990,
     "recentBlocks": [
       {
-        "address": "0x1431643",
-        "module": "bass.dll",
-        "offset": "0x21643",
+        "address": "0x1773400",
+        "module": "msacm32.dll",
+        "offset": "0x3400",
         "registers": [
-          "0x0",
-          "0x7f",
-          "0x0",
-          "0x1410000",
-          "0x3ffeec0",
-          "0x3ffeecc",
-          "0x0",
-          "0x8001f"
+          "0x6c",
+          "0x2570100",
+          "0x65",
+          "0x6e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
         ],
         "flags": {
-          "zf": 1,
+          "zf": 0,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4197,21 +4213,21 @@
         }
       },
       {
-        "address": "0x1431649",
-        "module": "bass.dll",
-        "offset": "0x21649",
+        "address": "0x1773400",
+        "module": "msacm32.dll",
+        "offset": "0x3400",
         "registers": [
-          "0x0",
-          "0x7f",
-          "0x0",
-          "0x1410000",
-          "0x3ffeec0",
-          "0x3ffeecc",
-          "0x0",
-          "0x8001f"
+          "0x6e",
+          "0x2570100",
+          "0x5c",
+          "0x6e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
         ],
         "flags": {
-          "zf": 1,
+          "zf": 0,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4221,18 +4237,18 @@
         }
       },
       {
-        "address": "0x143164c",
-        "module": "bass.dll",
-        "offset": "0x2164c",
+        "address": "0x1773413",
+        "module": "msacm32.dll",
+        "offset": "0x3413",
         "registers": [
+          "0x70",
+          "0x2570100",
           "0x0",
-          "0x7f",
-          "0x0",
-          "0x1410000",
-          "0x3ffeec0",
-          "0x3ffeecc",
-          "0x0",
-          "0x8001f"
+          "0x6e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
         ],
         "flags": {
           "zf": 1,
@@ -4240,95 +4256,287 @@
           "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       },
       {
-        "address": "0x1431652",
-        "module": "bass.dll",
-        "offset": "0x21652",
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
         "registers": [
-          "0x0",
-          "0x7f",
-          "0x0",
-          "0x1410000",
-          "0x3ffeec0",
-          "0x3ffeecc",
-          "0x0",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1431b26",
-        "module": "bass.dll",
-        "offset": "0x21b26",
-        "registers": [
-          "0x0",
-          "0x7f",
-          "0x0",
-          "0x1410000",
-          "0x3ffeebc",
-          "0x3ffeecc",
-          "0x0",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x179a160",
-        "module": "msvcrt.dll",
-        "offset": "0xa160",
-        "registers": [
-          "0x0",
-          "0x7f",
-          "0x0",
-          "0x1410000",
-          "0x3ffeebc",
-          "0x3ffeecc",
-          "0x0",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x179a18a",
-        "module": "msvcrt.dll",
-        "offset": "0xa18a",
-        "registers": [
-          "0x4100",
           "0x2",
+          "0x25504c0",
+          "0x6d",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x4",
+          "0x25504c0",
+          "0x73",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x6",
+          "0x25504c0",
+          "0x61",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x8",
+          "0x25504c0",
+          "0x63",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0xa",
+          "0x25504c0",
+          "0x6d",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0xc",
+          "0x25504c0",
+          "0x33",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0xe",
+          "0x25504c0",
+          "0x32",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x10",
+          "0x25504c0",
+          "0x2e",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x12",
+          "0x25504c0",
+          "0x64",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x14",
+          "0x25504c0",
+          "0x6c",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773420",
+        "module": "msacm32.dll",
+        "offset": "0x3420",
+        "registers": [
+          "0x16",
+          "0x25504c0",
+          "0x6c",
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1773430",
+        "module": "msacm32.dll",
+        "offset": "0x3430",
+        "registers": [
+          "0x18",
+          "0x25504c0",
           "0x0",
-          "0x1410000",
-          "0x3ffee74",
-          "0x3ffeeb8",
-          "0x0",
-          "0x8001f"
+          "0x255056e",
+          "0x3ffdc40",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
         ],
         "flags": {
           "zf": 1,
@@ -4341,18 +4549,18 @@
         }
       },
       {
-        "address": "0x17e91a0",
-        "module": "msvcrt.dll",
-        "offset": "0x591a0",
+        "address": "0x13d12e8",
+        "module": "user32.dll",
+        "offset": "0x12e8",
         "registers": [
-          "0x4100",
-          "0x2",
+          "0x18",
+          "0x25504c0",
           "0x0",
-          "0x1410000",
-          "0x3ffee70",
-          "0x3ffeeb8",
-          "0x0",
-          "0x8001f"
+          "0x255056e",
+          "0x3ffdc3c",
+          "0x3ffdc5c",
+          "0x2550488",
+          "0x2550500"
         ],
         "flags": {
           "zf": 1,
@@ -4361,198 +4569,6 @@
           "cf": 0,
           "of": 0,
           "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17e91ea",
-        "module": "msvcrt.dll",
-        "offset": "0x591ea",
-        "registers": [
-          "0x400",
-          "0x3ff",
-          "0x40300000",
-          "0x1410000",
-          "0x3ffedd0",
-          "0x3ffee6c",
-          "0x403",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17e9207",
-        "module": "msvcrt.dll",
-        "offset": "0x59207",
-        "registers": [
-          "0x45",
-          "0x403",
-          "0x40300000",
-          "0x1410000",
-          "0x3ffedd0",
-          "0x3ffee6c",
-          "0x403",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17e932c",
-        "module": "msvcrt.dll",
-        "offset": "0x5932c",
-        "registers": [
-          "0x0",
-          "0x0",
-          "0x3ff00000",
-          "0x100000",
-          "0x3ffedd0",
-          "0x3ffee6c",
-          "0x960",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17e93f8",
-        "module": "msvcrt.dll",
-        "offset": "0x593f8",
-        "registers": [
-          "0x39",
-          "0x0",
-          "0x3fe62e42",
-          "0x100000",
-          "0x3ffedd0",
-          "0x3ffee6c",
-          "0x402",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17eb120",
-        "module": "msvcrt.dll",
-        "offset": "0x5b120",
-        "registers": [
-          "0x39",
-          "0x0",
-          "0x3fe62e42",
-          "0x0",
-          "0x3ffedcc",
-          "0x3ffee6c",
-          "0x402",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17eb14d",
-        "module": "msvcrt.dll",
-        "offset": "0x5b14d",
-        "registers": [
-          "0x39",
-          "0xa",
-          "0x3fe62e42",
-          "0x0",
-          "0x3ffedb0",
-          "0x3ffedc8",
-          "0x402",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17eb152",
-        "module": "msvcrt.dll",
-        "offset": "0x5b152",
-        "registers": [
-          "0x39",
-          "0xa",
-          "0x3fe62e42",
-          "0x0",
-          "0x3ffedb0",
-          "0x3ffedc8",
-          "0x402",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x17eb158",
-        "module": "msvcrt.dll",
-        "offset": "0x5b158",
-        "registers": [
-          "0x39",
-          "0xa",
-          "0x3fe62e42",
-          "0x0",
-          "0x3ffedb0",
-          "0x3ffedc8",
-          "0x402",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
           "df": 0
         }
       }

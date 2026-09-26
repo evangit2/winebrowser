@@ -557,3 +557,133 @@ test('FNCLEX clears pending exception state before a following WAIT', async () =
   assert.equal(cpu.x87.status & 0xff, 0);
   assert.equal(cpu.x87.control, 0x037e);
 });
+
+test('FISTTP truncates and pops all integer widths without changing rounding control or integer flags', async () => {
+  for (const [width, opcode] of [
+    [2, 0xdf],
+    [4, 0xdb],
+    [8, 0xdd],
+  ])
+    for (const mode of [0, 1, 2, 3])
+      for (const value of [-1.75, -0.75, 0, 0.75, 1.75]) {
+        const { cpu, view, bytes } = await machine([0xdd, 0x00, opcode, 0x09]); // fld qword [eax]; fisttp [ecx]
+        cpu.r[0].value = DATA;
+        cpu.r[1].value = DATA + 17;
+        view.setFloat64(DATA, value, true);
+        bytes.fill(0xa5, DATA + 16, DATA + 32);
+        cpu.x87.control = 0x37f | (mode << 10);
+        cpu.x87.status = 0x200;
+        cpu.f = { cf: 1, zf: 1, sf: 0, of: 1, pf: 0 };
+        cpu.af = 1;
+        cpu.step(CODE);
+        const actual =
+          width === 8
+            ? view.getBigInt64(DATA + 17, true)
+            : BigInt(width === 4 ? view.getInt32(DATA + 17, true) : view.getInt16(DATA + 17, true));
+        assert.equal(actual, BigInt(Math.trunc(value)));
+        assert.equal(cpu.x87.control, 0x37f | (mode << 10));
+        assert.equal(cpu.x87.status & 0x23f, Number(!Number.isInteger(value)) * 32);
+        assert.equal(cpu.x87.top, 0);
+        assert.ok(cpu.x87.tags.every((tag) => tag === 3));
+        assert.equal(bytes[DATA + 16], 0xa5);
+        assert.equal(bytes[DATA + 17 + width], 0xa5);
+        assert.deepEqual(cpu.f, { cf: 1, zf: 1, sf: 0, of: 1, pf: 0 });
+        assert.equal(cpu.af, 1);
+        cpu.dispose();
+      }
+});
+
+test('FISTTP preserves int64 low bits and bounds without narrowing ext80 to a JS number', async () => {
+  const { cpu, view, bytes } = await machine([0xdb, 0x28, 0xdd, 0x09]);
+  cpu.r[0].value = DATA;
+  cpu.r[1].value = DATA + 16;
+  for (const [significand, exponent, expected, flags] of [
+    [0x8000000000000c00n, 0x4034, 0x20000000000003n, 0], // 2^53+3
+    [0xfffffffffffffffen, 0x403d, 0x7fffffffffffffffn, 0], // INT64_MAX
+    [0x8000000000000000n, 0xc03e, -0x8000000000000000n, 0],
+    [0x8000000000000000n, 0x403e, -0x8000000000000000n, 1], // +2^63 invalid
+  ]) {
+    cpu.x87.reset();
+    view.setBigUint64(DATA, significand, true);
+    view.setUint16(DATA + 8, exponent, true);
+    bytes.fill(0xa5, DATA + 16, DATA + 24);
+    cpu.step(CODE);
+    assert.equal(view.getBigInt64(DATA + 16, true), expected);
+    assert.equal(cpu.x87.status & 63, flags);
+  }
+  cpu.dispose();
+});
+
+test('FISTTP masked invalid stores integer indefinite; unmasked invalid/precision preserve memory and stack', async () => {
+  for (const [width, opcode, invalid] of [
+    [2, 0xdf, 32768.5],
+    [4, 0xdb, 2147483648.5],
+    [8, 0xdd, 2 ** 63],
+  ])
+    for (const value of [invalid, NaN, Infinity]) {
+      const { cpu, view, bytes } = await machine([0xdd, 0x00, opcode, 0x09]);
+      cpu.r[0].value = DATA;
+      cpu.r[1].value = DATA + 16;
+      view.setFloat64(DATA, value, true);
+      cpu.step(CODE);
+      const result = bytes.slice(DATA + 16, DATA + 16 + width);
+      assert.deepEqual([...result], [...Array(width - 1).fill(0), 0x80]);
+      assert.equal(cpu.x87.status & 63, 1);
+      cpu.x87.reset();
+      cpu.x87.control = 0x35e;
+      bytes.fill(0xa5, DATA + 16, DATA + 24); // invalid and precision unmasked
+      assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x1/);
+      assert.equal(cpu.x87.top, 7);
+      assert.notEqual(cpu.x87.tags[7], 3);
+      assert.ok(bytes.slice(DATA + 16, DATA + 24).every((x) => x === 0xa5));
+      cpu.dispose();
+    }
+  const { cpu, view, bytes } = await machine([0xdd, 0x00, 0xdd, 0x09]);
+  cpu.r[0].value = DATA;
+  cpu.r[1].value = DATA + 16;
+  view.setFloat64(DATA, 1.25, true);
+  cpu.x87.control = 0x35f;
+  bytes.fill(0xa5, DATA + 16, DATA + 24);
+  assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x20/);
+  assert.equal(cpu.x87.top, 7);
+  assert.ok(bytes.slice(DATA + 16, DATA + 24).every((x) => x === 0xa5));
+  cpu.dispose();
+});
+
+test('FISTTP preflights memory before stack/status mutation and reports empty-stack faults', async () => {
+  const { cpu } = await machine([0xdf, 0x08], () => {
+    throw Error('integer store denied');
+  });
+  cpu.x87.status = 0x200;
+  const before = cpu.x87.snapshot();
+  assert.throws(() => cpu.step(CODE), /integer store denied/);
+  assert.deepEqual(cpu.x87.snapshot(), before);
+  cpu.dispose();
+  for (const [width, opcode] of [
+    [2, 0xdf],
+    [4, 0xdb],
+    [8, 0xdd],
+  ]) {
+    const { cpu, bytes } = await machine([opcode, 0x08]);
+    cpu.r[0].value = DATA;
+    cpu.x87.status = 0x200;
+    cpu.step(CODE);
+    assert.deepEqual([...bytes.slice(DATA, DATA + width)], [...Array(width - 1).fill(0), 0x80]);
+    assert.equal(cpu.x87.status & 0x241, 0x41);
+    assert.equal(cpu.x87.top, 1);
+    cpu.dispose();
+  }
+});
+
+test('FISTP int16 range failure takes priority over an unmasked inexact intermediate', async () => {
+  const { cpu, view } = await machine([0xdd, 0x00, 0xdf, 0x19]);
+  cpu.r[0].value = DATA;
+  cpu.r[1].value = DATA + 16;
+  view.setFloat64(DATA, 32767.75, true);
+  cpu.x87.control = 0x35f; // invalid masked, precision unmasked, nearest-even
+  cpu.step(CODE);
+  assert.equal(view.getInt16(DATA + 16, true), -32768);
+  assert.equal(cpu.x87.status & 63, 1);
+  assert.equal(cpu.x87.top, 0);
+  cpu.dispose();
+});
