@@ -77,11 +77,14 @@ loading now pass. Hamsterball completes DLL attachment and reaches its original
 EXE entry. Its native clock reads now pass through the read-only Windows shared
 data mapping. Predefined cursor loading and x87 integer-operand arithmetic now
 pass, as do COM GUID conversion, window lookup and 24-bit icon decoding.
-Native window metadata now passes, and the original game creates its 800×600
-window and icon. Native window positioning and DirectSound creation now pass;
-startup next stops at `NtCreateEvent`, after 8,819,067 guest instructions in Node and Chromium.
-DirectInput 8 setup now passes; independent native browser tests verify keyboard and
-mouse formats, immediate/buffered input and focus-loss recovery.
+Native window metadata/positioning and DirectInput 8 pass independent native
+browser tests, including keyboard/mouse formats, immediate/buffered input and
+focus-loss recovery. NT/Win32 event synchronization now passes native fixtures
+through both ordinary uploads and real Wine DLLs. The TEB now provides Wine's
+activation-context stack and Unicode scratch buffer. Corrected filename
+conversion exposes Hamsterball's earlier directory query: current startup stops
+at `NtQueryAttributesFile` for `C:\winebrowser\DATA`, after 8,776,588 guest
+instructions in Node and Chromium, before window creation.
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the
 [audio fixture and limits](tests/fixtures/dsound/README.md).

@@ -118,13 +118,15 @@ complete. The game reaches its original EXE entry. The fixed-address shared-user
 clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
 pass predefined cursor loading, including IDC_HAND, and x87 integer-operand
 arithmetic/comparisons, COM GUID conversion, window lookup and 24-bit icon
-decoding. Native window metadata passes through the original game window
-procedure, and both probes create the 800×600 Hamsterball window with its native
-icon. Window positioning now passes. DirectInput 8 formats, cooperative levels and
-input setup and DirectSound creation now pass. Both next stop in native BASS
-initialization at `NtCreateEvent`, after 8,819,067 guest instructions.
+decoding. Native window metadata, positioning, DirectInput 8 formats/cooperative
+levels and DirectSound creation have passed startup probes and separate native
+fixtures. Event creation and waits now run through native Wine. Initializing
+the TEB activation-context stack and Unicode scratch buffer fixes native module
+lookup and filename conversion. The corrected path now stops earlier, before
+window creation: `NtQueryAttributesFile` queries the packaged
+`C:\winebrowser\DATA` directory at 8,776,588 guest instructions in both probes.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is synchronization and remaining
+unverified. The next work is file metadata, guest threading and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
@@ -146,6 +148,16 @@ also scales this stream. Primary buffers expose format and mix controls, while
 primary locking, capture, effects, 3D and notification events remain unfinished.
 See [the fixture and exact limits](../tests/fixtures/dsound/README.md) and
 `evidence/dsound-browser-results.json`.
+
+NT/Win32 event services now share manual/automatic reset state, named aliases,
+per-handle access and lifetime, single/multiple asynchronous waits, relative and
+absolute deadlines, pulse and signal-and-wait. Native KernelBase named events
+use virtual NT directory handles. The
+[event fixture](../tests/fixtures/events/README.md) verifies both normal uploads
+and the optional Wine closure in Node/Chromium, including native ANSI/Unicode
+module lookup and empty activation-context queries. Guest thread creation, APC
+delivery, other synchronization object types and cross-process events remain
+unfinished.
 
 The separate native character fixture verifies all eight case APIs, including
 CP1252, surrogate pairs and counted UTF-16 buffers, then exits through real Wine

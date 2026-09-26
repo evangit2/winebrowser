@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T06:12:29.936Z",
+  "date": "2026-09-26T06:50:39.572Z",
   "status": "passed",
   "browser": "154.0.8037.57",
   "exeSha256": "e7e9c315ce5250163e1d05d426fc46b105888544fe7ab7c28c65ff9b5670af3d",
@@ -13,7 +13,7 @@
       "compiledBlocks": 135,
       "chunks": 46,
       "stoppedSources": 3,
-      "maxQueueSeconds": 0.04985941043083891,
+      "maxQueueSeconds": 0.05207256235827651,
       "phases": [
         "mono-loop",
         "quiet-right",
@@ -30,7 +30,7 @@
       "compiledBlocks": 135,
       "chunks": 46,
       "stoppedSources": 3,
-      "maxQueueSeconds": 0.05141950113378724,
+      "maxQueueSeconds": 0.05141950113378674,
       "phases": [
         "mono-loop",
         "quiet-right",
@@ -42,9 +42,9 @@
     {
       "name": "dsound.exe",
       "stoppedByUser": true,
-      "chunks": 5,
+      "chunks": 4,
       "stoppedSources": 3,
-      "maxQueueSeconds": 0.04510657596371884,
+      "maxQueueSeconds": 0.04510657596371878,
       "phases": [
         "mono-loop"
       ],

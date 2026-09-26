@@ -20,6 +20,14 @@ export function initializeProcessLayout(runtime) {
   runtime.write32(teb + 0x20, 1);
   runtime.write32(teb + 0x24, 1);
   runtime.write32(teb + 0x30, peb);
+  // Wine normally initializes these in its host TEB allocator. Native ANSI
+  // filename helpers and activation-context queries require real per-thread
+  // backing storage even when the process has no active manifest context.
+  runtime.write32(teb + 0x1a8, teb + 0x184);
+  runtime.write32(teb + 0x188, teb + 0x188);
+  runtime.write32(teb + 0x18c, teb + 0x188);
+  runtime.write32(teb + 0xbf8, 522 << 16); // UNICODE_STRING: length 0, capacity 261 WCHARs.
+  runtime.write32(teb + 0xbfc, teb + 0xc00);
   runtime.write32(peb + 8, runtime.pe.imageBase);
   runtime.write32(peb + 0x64, 1);
 }

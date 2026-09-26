@@ -9,6 +9,7 @@ import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
 import { systemFileTime } from './shared-user-data.js';
 import { closeFileHandle, fileNtServices } from './wine-file.js';
 import { registerThunk } from './thunk-addresses.js';
+import { syncNtServices } from './wine-sync.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -127,6 +128,7 @@ function writeLargeInteger(runtime, address, value) {
 }
 
 export const ntServices = {
+  ...syncNtServices,
   ...nlsServices,
   ...registryNtServices,
   ...tokenNtServices,
@@ -152,6 +154,8 @@ export const ntServices = {
   NtClose: {
     argc: 1,
     call: (r, a) => {
+      const syncResult = r.syncObjects?.close(a(0)) ?? null;
+      if (syncResult !== null) return syncResult;
       const result = closeRegistryHandle(r, a(0));
       if (result !== null) return result;
       const fileResult = closeFileHandle(r, a(0));

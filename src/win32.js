@@ -5,6 +5,7 @@ import { d3d9Apis } from './d3d9.js';
 import { d3d12Apis, dxgiApis } from './d3d12.js';
 import { formatApis } from './win32-format.js';
 import { processApis } from './win32-process.js';
+import { syncApis } from './win32-sync.js';
 import { audioApis } from './win32-audio.js';
 import { gdiApis } from './win32-gdi.js';
 import { windowApis } from './win32-windows.js';
@@ -41,6 +42,7 @@ export const API_NAMES = {
 
 for (const key of [
   ...Object.keys(processApis),
+  ...Object.keys(syncApis),
   ...Object.keys(audioApis),
   ...Object.keys(gdiApis),
   ...Object.keys(windowApis),
@@ -250,6 +252,8 @@ function writeFile(runtime, argument) {
 }
 
 function closeHandle(runtime, argument) {
+  const status = runtime.syncObjects?.close(argument(0)) ?? null;
+  if (status !== null) return status ? failure(runtime, 6, 1) : success(1, 1);
   return runtime.handles.delete(argument(0)) ? success(1, 1) : failure(runtime, 6, 1);
 }
 
@@ -257,6 +261,7 @@ function closeHandle(runtime, argument) {
 export function createWin32ApiProvider() {
   return new Map([
     ...Object.entries(processApis),
+    ...Object.entries(syncApis),
     ...Object.entries(audioApis),
     ...Object.entries(gdiApis),
     ...Object.entries(windowApis),

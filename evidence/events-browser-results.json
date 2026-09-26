@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-26T06:38:49.309Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "e3e6eb5bc7c4ff43d55f991e824adda1803359664e85a35248647b7530e457df",
+  "scope": "Unchanged PE32 through ordinary EXE and ZIP upload; Manual/automatic events, A/W local/global named aliases, restricted handles, wait-any/wait-all, finite timeouts, signal-and-wait, pulse, close and named-object lifetime.",
+  "results": [
+    {
+      "name": "events.exe",
+      "exitCode": 0,
+      "instructions": 460,
+      "compiledBlocks": 132,
+      "errors": []
+    },
+    {
+      "name": "events.zip",
+      "exitCode": 0,
+      "instructions": 460,
+      "compiledBlocks": 132,
+      "errors": []
+    }
+  ]
+}

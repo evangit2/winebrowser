@@ -1,0 +1,625 @@
+{
+  "date": "2026-09-26T06:56:21.078Z",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "c31f39a27073d56152103b7dc1abdbf8c0b0c52009afb6acbfb4dacc0d727806",
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "patchSha256": "ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21",
+  "inputDlls": [
+    {
+      "name": "ntdll.dll",
+      "sha256": "857d6368024b2b37dae567aa4625e05dd80eb57532e431fe110d9032311fe26a"
+    },
+    {
+      "name": "wine-format.dll",
+      "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+    },
+    {
+      "name": "msvcrt.dll",
+      "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+    },
+    {
+      "name": "kernel32.dll",
+      "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+    },
+    {
+      "name": "kernelbase.dll",
+      "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+    },
+    {
+      "name": "msacm32.dll",
+      "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+    }
+  ],
+  "scope": "Native PE32 through real Wine Kernel32/KernelBase/NTDLL. Named A/W events and directory handles, access masks, signal/reset/pulse, wait-any/all, timed waits and close; native module lookup through TEB Unicode scratch storage, and empty activation-context query. No guest-thread or APC delivery claim.",
+  "browser": "154.0.8037.57",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "outboundRequests": [],
+  "firstFailure": null,
+  "recentNativeCalls": [
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateEvent",
+      "args": [
+        67104532,
+        2031619,
+        67104544,
+        1,
+        1
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenDirectoryObject",
+      "args": [
+        67104308,
+        6,
+        67104320
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateEvent",
+      "args": [
+        67104532,
+        2031619,
+        67104544,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731712,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731712,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        1,
+        67104640
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731720,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731720,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731720,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateEvent",
+      "args": [
+        67103964,
+        2031619,
+        67103976,
+        1,
+        0
+      ],
+      "result": "0x40000000"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731724,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtResetEvent",
+      "args": [
+        1375731724,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731720,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtOpenEvent",
+      "args": [
+        67104612,
+        1048576,
+        67104624
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731728,
+        0
+      ],
+      "result": "0xc0000022"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731724,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731728,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtResetEvent",
+      "args": [
+        1375731720,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731712,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForMultipleObjects",
+      "args": [
+        2,
+        67104368,
+        0,
+        0,
+        67104360
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731712,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731720,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForMultipleObjects",
+      "args": [
+        2,
+        67104392,
+        0,
+        1,
+        67104384
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtWaitForMultipleObjects",
+      "args": [
+        2,
+        67104368,
+        1,
+        0,
+        67104360
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "NtResetEvent",
+      "args": [
+        1375731720,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForMultipleObjects",
+      "args": [
+        2,
+        67104368,
+        1,
+        0,
+        67104360
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtSignalAndWaitForSingleObject",
+      "args": [
+        1375731712,
+        1375731712,
+        0,
+        67104640
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731712,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtPulseEvent",
+      "args": [
+        1375731720,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731720,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtCreateEvent",
+      "args": [
+        67104532,
+        2031619,
+        67104544,
+        1,
+        1
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731732,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731720,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104648,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104648,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104648,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryEvent",
+      "args": [
+        1375731720,
+        0,
+        67104724,
+        8,
+        67104720
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731720,
+        67104716
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetEvent",
+      "args": [
+        1375731720,
+        67104716
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731728,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryEvent",
+      "args": [
+        1375731712,
+        0,
+        67104724,
+        8,
+        67104720
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731732
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731712
+      ],
+      "result": "0xc0000008"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731720
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731724
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731728
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenEvent",
+      "args": [
+        67104052,
+        2031619,
+        67104064
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateEvent",
+      "args": [
+        67104532,
+        2031619,
+        67104544,
+        1,
+        1
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731736,
+        0,
+        67104648
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWaitForSingleObject",
+      "args": [
+        1375731736,
+        0,
+        67104648
+      ],
+      "result": "0x102"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1375731736
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        6,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        4294967295,
+        0
+      ],
+      "result": "0x0"
+    }
+  ]
+}

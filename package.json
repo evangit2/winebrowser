@@ -87,7 +87,10 @@
     "build:dinput-state": "sh scripts/build-dinput-state-fixture.sh",
     "test:dinput-state": "node scripts/test-dinput-state-browser.mjs",
     "build:dsound": "sh scripts/build-dsound-fixture.sh",
-    "test:dsound": "node scripts/test-dsound-browser.mjs"
+    "test:dsound": "node scripts/test-dsound-browser.mjs",
+    "build:events": "sh scripts/build-events-fixture.sh",
+    "test:events": "node scripts/test-events-browser.mjs",
+    "test:events-native": "node scripts/test-events-native.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -115,8 +115,17 @@ D3D10/11 and broader D3D12 support are still required.
       cursors, looping/one-shot playback and volume/pan/frequency controls.
       Ordinary native EXE/ZIP tests verify real Web Audio PCM and Stop/exit cleanup.
       Capture, effects, 3D and notification events remain unfinished.
-- [ ] Continue Hamsterball/BASS startup through `NtCreateEvent`, after 8,819,067
-      guest instructions in Node and Chromium. DirectSound creation now passes.
+- [x] Implement shared NT/Win32 event objects, named Local/Global aliases,
+      access masks, signaling/reset/pulse, asynchronous single/multiple waits,
+      deadlines and handle lifetime. Ordinary EXE/ZIP and real Wine DLL fixtures
+      pass in Chromium; native Wine also passes in Node.
+- [x] Initialize the TEB activation-context stack and Unicode scratch storage.
+      Native Wine module-name conversion and empty activation-context queries
+      pass; filename APIs now use their intended native paths.
+- [ ] Continue Hamsterball through `NtQueryAttributesFile` for its packaged
+      `C:\winebrowser\DATA` directory, after 8,776,588 guest instructions in Node
+      and Chromium. Corrected TEB filename conversion exposes this earlier
+      directory query; the current probe stops before window creation.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

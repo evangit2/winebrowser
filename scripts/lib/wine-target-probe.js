@@ -167,6 +167,19 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
         }
       }
       const record = { name, args };
+      if (['NtQueryAttributesFile', 'NtQueryFullAttributesFile'].includes(name)) {
+        try {
+          const string = runtime.read32(args[0] + 8),
+            length = runtime.view.getUint16(string, true),
+            buffer = runtime.read32(string + 4);
+          runtime.check(buffer, length);
+          record.path = new TextDecoder('utf-16le').decode(
+            runtime.data.subarray(buffer, buffer + length),
+          );
+        } catch (error) {
+          record.traceError = error.message;
+        }
+      }
       report.apiCalls.push(record);
       if (report.apiCalls.length > 64) report.apiCalls.shift();
       try {
@@ -259,6 +272,8 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       if (previous) API_NAMES[dll] = previous;
       else delete API_NAMES[dll];
     }
+    runtime?.directSound?.dispose();
+    runtime?.syncObjects?.dispose();
     runtime?.windows.dispose();
     runtime?.cpu.dispose();
     graphics?.dispose();
