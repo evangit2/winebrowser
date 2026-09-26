@@ -1,0 +1,961 @@
+{
+  "date": "2026-09-26T08:23:15.520Z",
+  "status": "passed",
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2",
+  "inputDlls": [
+    {
+      "name": "ntdll.dll",
+      "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
+    },
+    {
+      "name": "wine-format.dll",
+      "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+    },
+    {
+      "name": "msvcrt.dll",
+      "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+    },
+    {
+      "name": "kernel32.dll",
+      "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+    },
+    {
+      "name": "kernelbase.dll",
+      "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+    },
+    {
+      "name": "msacm32.dll",
+      "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+    }
+  ],
+  "scope": "Native PE32 through actual Wine KernelBase/NTDLL: suspended creation/resume, priority, separate TEBs/stacks/last-error values, events, preempted loops, joins, return/ExitThread status, handle lifetime, main/worker process exit and deliberate worker-fault propagation. General APC, SEH and arbitrary thread compatibility remain unfinished.",
+  "results": [
+    {
+      "name": "threads-native",
+      "passed": true,
+      "expectedExit": 0,
+      "exeSha256": "5051e8b265eeab3a60aa5bff9438bb87673694a74d1f9f7a6ba22816b3b37f05",
+      "exitCode": 0,
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtTerminateThread",
+          "args": [
+            4294967294,
+            23
+          ],
+          "threadExit": true
+        },
+        {
+          "name": "NtResetEvent",
+          "args": [
+            1375731712,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtCreateEvent",
+          "args": [
+            67104572,
+            2031619,
+            67104584,
+            0,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtCreateThreadEx",
+          "args": [
+            67104548,
+            2097151,
+            67104568,
+            4294967295,
+            4198413,
+            0,
+            1,
+            0,
+            0,
+            0,
+            67104592
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtResumeThread",
+          "args": [
+            1375731744,
+            67104556
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731740,
+            0,
+            67104688
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtSetEvent",
+          "args": [
+            1375731740,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731712,
+            0,
+            0
+          ],
+          "threadExit": true
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731744,
+            0,
+            67104688
+          ],
+          "result": "0x102"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            0
+          ],
+          "result": "0x0"
+        }
+      ]
+    },
+    {
+      "name": "worker-exit",
+      "passed": true,
+      "expectedExit": 77,
+      "exeSha256": "9658752c44aeacec0733c5445342c9b41548526b225a6e464d13a5cb3f46ab72",
+      "exitCode": 77,
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtSetValueKey",
+          "args": [
+            1358954502,
+            67103840,
+            0,
+            1,
+            67104100,
+            12
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1358954502
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtQuerySystemInformation",
+          "args": [
+            0,
+            17043648,
+            44,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtProtectVirtualMemory",
+          "args": [
+            4294967295,
+            67104640,
+            67104644,
+            4,
+            67104712
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtProtectVirtualMemory",
+          "args": [
+            4294967295,
+            67104640,
+            67104644,
+            2,
+            67104712
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtCreateThreadEx",
+          "args": [
+            67104572,
+            2097151,
+            67104592,
+            4294967295,
+            4198400,
+            0,
+            1,
+            0,
+            0,
+            0,
+            67104616
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtResumeThread",
+          "args": [
+            1375731712,
+            67104580
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731712,
+            0,
+            0
+          ],
+          "threadExit": true
+        },
+        {
+          "name": "NtDelayExecution",
+          "args": [
+            0,
+            52441032
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            77
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            77
+          ],
+          "threadExit": true
+        }
+      ]
+    },
+    {
+      "name": "main-exit",
+      "passed": true,
+      "expectedExit": 77,
+      "exeSha256": "da1ad4f4683cf7fbae4f1f89a9cda6c0103bf98aece254b280fa1cc98ce5a1e0",
+      "exitCode": 77,
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtProtectVirtualMemory",
+          "args": [
+            4294967295,
+            67104640,
+            67104644,
+            2,
+            67104712
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtCreateThreadEx",
+          "args": [
+            67104572,
+            2097151,
+            67104592,
+            4294967295,
+            4198400,
+            0,
+            1,
+            0,
+            0,
+            0,
+            67104616
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtResumeThread",
+          "args": [
+            1375731712,
+            67104580
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            4294967294,
+            12,
+            67104724,
+            4,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtWaitForAlertByThreadId",
+          "args": [
+            0,
+            52440888
+          ],
+          "result": "0x101"
+        },
+        {
+          "name": "NtAlertThreadByThreadId",
+          "args": [
+            2
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateThread",
+          "args": [
+            4294967294,
+            33
+          ],
+          "threadExit": true
+        },
+        {
+          "name": "NtDelayExecution",
+          "args": [
+            0,
+            52441032
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            4294967294,
+            12,
+            52441052,
+            4,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            77
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            77
+          ],
+          "threadExit": true
+        }
+      ]
+    },
+    {
+      "name": "thread-fault",
+      "passed": true,
+      "expectedExit": null,
+      "exeSha256": "fe764d44ae5ff490a87c64359832083292fdf8ce42caba41b7f908673e7edcdd",
+      "firstFailure": {
+        "phase": "native EXE entry point",
+        "message": "x86 block 0x401010: Unsupported instruction ud2 at 0x401013",
+        "ip": {
+          "address": "0x401010",
+          "module": "thread-fault.exe",
+          "offset": "0x1010"
+        },
+        "registers": [
+          "0x0",
+          "0x3202fe4",
+          "0x131e144",
+          "0x0",
+          "0x3202fe8",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "compiledBlocks": 1724,
+        "instructions": 109492,
+        "recentBlocks": [
+          {
+            "address": "0x137d9e4",
+            "module": "ntdll.dll",
+            "offset": "0x6d9e4",
+            "registers": [
+              "0xc0000",
+              "0x0",
+              "0x3000000",
+              "0x138921c",
+              "0x3202fc4",
+              "0x3202fcc",
+              "0x138921c",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 1,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x134d5a5",
+            "module": "ntdll.dll",
+            "offset": "0x3d5a5",
+            "registers": [
+              "0xc0000",
+              "0x0",
+              "0x3000000",
+              "0x3000000",
+              "0x3202fd4",
+              "0x3202fe8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 1,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x134d54a",
+            "module": "ntdll.dll",
+            "offset": "0x3d54a",
+            "registers": [
+              "0xc0000",
+              "0x0",
+              "0x3000000",
+              "0x3000000",
+              "0x3202fd4",
+              "0x3202fe8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 1,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x133c6c0",
+            "module": "ntdll.dll",
+            "offset": "0x2c6c0",
+            "registers": [
+              "0xc0000",
+              "0x0",
+              "0x3000000",
+              "0x3000000",
+              "0x3202fd0",
+              "0x3202fe8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 1,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x133c750",
+            "module": "ntdll.dll",
+            "offset": "0x2c750",
+            "registers": [
+              "0x0",
+              "0x0",
+              "0x13892e0",
+              "0x3000000",
+              "0x3202fac",
+              "0x3202fcc",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 1,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x133c745",
+            "module": "ntdll.dll",
+            "offset": "0x2c745",
+            "registers": [
+              "0x0",
+              "0x0",
+              "0x13892e0",
+              "0x3000000",
+              "0x3202fac",
+              "0x3202fcc",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 1,
+              "pf": 1,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x134d556",
+            "module": "ntdll.dll",
+            "offset": "0x3d556",
+            "registers": [
+              "0x0",
+              "0x0",
+              "0x13892e0",
+              "0x3000000",
+              "0x3202fd8",
+              "0x3202fe8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 1,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x401000",
+            "module": "thread-fault.exe",
+            "offset": "0x1000",
+            "registers": [
+              "0x0",
+              "0x0",
+              "0x0",
+              "0x0",
+              "0x3202fe8",
+              "0x0",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "cf": 0,
+              "zf": 0,
+              "sf": 0,
+              "of": 0,
+              "pf": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x100f3c0",
+            "module": "kernel32.dll",
+            "offset": "0xf3c0",
+            "registers": [
+              "0x0",
+              "0x0",
+              "0x0",
+              "0x0",
+              "0x3202fe0",
+              "0x0",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x10d0860",
+            "module": "kernelbase.dll",
+            "offset": "0x60860",
+            "registers": [
+              "0x0",
+              "0x0",
+              "0x0",
+              "0x0",
+              "0x3202fe0",
+              "0x0",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x10d087e",
+            "module": "kernelbase.dll",
+            "offset": "0x6087e",
+            "registers": [
+              "0x0",
+              "0x1",
+              "0x0",
+              "0x0",
+              "0x3202fc0",
+              "0x3202fd8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 0,
+              "pf": 0,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x131d404",
+            "module": "ntdll.dll",
+            "offset": "0xd404",
+            "registers": [
+              "0x3202fc8",
+              "0x1",
+              "0xffffffff",
+              "0x0",
+              "0x3202fbc",
+              "0x3202fd8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 1,
+              "pf": 1,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x131e144",
+            "module": "ntdll.dll",
+            "offset": "0xe144",
+            "registers": [
+              "0x34",
+              "0x1",
+              "0x131e144",
+              "0x0",
+              "0x3202fb8",
+              "0x3202fd8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 1,
+              "pf": 1,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x131d410",
+            "module": "ntdll.dll",
+            "offset": "0xd410",
+            "registers": [
+              "0x0",
+              "0x1",
+              "0x131e144",
+              "0x0",
+              "0x3202fbc",
+              "0x3202fd8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 1,
+              "pf": 1,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x10d08a1",
+            "module": "kernelbase.dll",
+            "offset": "0x608a1",
+            "registers": [
+              "0x0",
+              "0x1",
+              "0x131e144",
+              "0x0",
+              "0x3202fc8",
+              "0x3202fd8",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 1,
+              "pf": 1,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "address": "0x401010",
+            "module": "thread-fault.exe",
+            "offset": "0x1010",
+            "registers": [
+              "0x0",
+              "0x3202fe4",
+              "0x131e144",
+              "0x0",
+              "0x3202fe8",
+              "0x0",
+              "0x0",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 0,
+              "pf": 1,
+              "cf": 0,
+              "of": 0,
+              "af": 0,
+              "df": 0
+            }
+          }
+        ]
+      },
+      "recentNativeCalls": [
+        {
+          "name": "NtCreateKey",
+          "args": [
+            67103936,
+            983103,
+            67103744,
+            0,
+            67103840,
+            0,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtSetValueKey",
+          "args": [
+            1358954502,
+            67103840,
+            0,
+            1,
+            67104100,
+            10
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtSetValueKey",
+          "args": [
+            1358954502,
+            67103840,
+            0,
+            1,
+            67104100,
+            8
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtSetValueKey",
+          "args": [
+            1358954502,
+            67103840,
+            0,
+            1,
+            67104100,
+            12
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1358954502
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtQuerySystemInformation",
+          "args": [
+            0,
+            17043648,
+            44,
+            0
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtProtectVirtualMemory",
+          "args": [
+            4294967295,
+            67104640,
+            67104644,
+            4,
+            67104712
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtProtectVirtualMemory",
+          "args": [
+            4294967295,
+            67104640,
+            67104644,
+            2,
+            67104712
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtCreateThreadEx",
+          "args": [
+            67104572,
+            2097151,
+            67104592,
+            4294967295,
+            4198400,
+            0,
+            1,
+            0,
+            0,
+            0,
+            67104616
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtResumeThread",
+          "args": [
+            1375731712,
+            67104580
+          ],
+          "result": "0x0"
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731712,
+            0,
+            0
+          ],
+          "error": "x86 block 0x401010: Unsupported instruction ud2 at 0x401013"
+        },
+        {
+          "name": "NtDelayExecution",
+          "args": [
+            0,
+            52441032
+          ],
+          "result": "0x0"
+        }
+      ]
+    }
+  ]
+}

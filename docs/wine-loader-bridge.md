@@ -29,7 +29,7 @@ Sync creates or updates Wine metadata without mapping or calling guest entry poi
 
 Normal browser-provided DLLs now have real relocatable PE32 headers, sorted export-name tables, sparse explicit ordinals, and read-only executable stubs. An export stub tail-calls its host thunk while preserving the caller's arguments, registers and flags. IAT and GetProcAddress pointers equal the PE export address. These generic images let native import resolvers inspect modules without pretending an opaque high address is a PE. Only configured APIs appear; diagnostic trap imports still stop with their exact name when called.
 
-Wine's internal `load_dll` remains guarded because all public loader operations now delegate to the browser. `loader_init` and `LdrShutdownThread` still raise `STATUS_NOT_SUPPORTED` before changing lifecycle state. `LdrShutdownProcess` also rejects calls before callback configuration. Once configured, it sets Wine's process-detaching flag and delegates once to operation 6. The host owns reverse-order TLS/DllMain detach; recursive or repeated shutdown cannot repeat callbacks, and unload requests during detach leave that pass in control. `NtTerminateProcess(NULL, status)` lets the sole guest thread continue into cleanup; the current-process pseudo-handle terminates execution without additional notifications. These callbacks do not establish general exception handling or guest thread support. The full Wine callback path is opt-in in the diagnostic; the normal harness uses mapped host DLL images but does not bundle the full Wine base closure.
+Wine's internal `load_dll` remains guarded because all public loader operations now delegate to the browser. `loader_init` still raises `STATUS_NOT_SUPPORTED` before changing lifecycle state. `LdrShutdownThread` rejects calls before callback configuration; once configured it runs Wine's actual FLS, TLS and DLL cleanup. The private `WineBrowserThreadAttach()` export initializes the host-allocated current TEB through Wine's own FLS/TLS allocation and thread-attach routines under its loader lock. Static TLS PE images remain rejected. `LdrShutdownProcess` also rejects calls before callback configuration. Once configured, it sets Wine's process-detaching flag and delegates once to operation 6. The host owns reverse-order TLS/DllMain detach; recursive or repeated shutdown cannot repeat callbacks, and unload requests during detach leave that pass in control. `NtTerminateProcess(NULL, status)` cancels and drains other guest threads before the caller continues into cleanup; the current-process pseudo-handle terminates execution without additional notifications. The browser scheduler owns thread stacks, contexts, blocking and cancellation; see [thread scope](thread-runtime.md). General exception handling remains unfinished. The full Wine callback path is opt-in in the diagnostic; the normal harness uses mapped host DLL images but does not bundle the full Wine base closure.
 
 First gate: build the patched ntdll separately; keep the stock ntdll path unchanged. In a diagnostic runtime with the pre-existing guest heap, process parameters, NLS, registry, and token identity, pass the main EXE, ntdll, and one mapped DLL in one batch. Verify a second batch fails, `RtlGetVersion` returns Wine's initialized version, `LdrGetDllHandleEx(UNCHANGED_REFCOUNT, basename)` returns each original base, and a requested load/unload/ref mutation returns `STATUS_NOT_SUPPORTED` without changing maps or attach counts. `version_init()` itself queries `SystemWineVersionInformation` and reads registry version settings, so those NT operations must return real statuses. Do not enable the bridge in normal package loading until failure rollback and the ownership assertions pass against the pinned binary.
 
@@ -64,7 +64,7 @@ This separate diagnostic maps the pinned whole msvcrt/kernel32/kernelbase closur
 
 The native `NtProtectVirtualMemory` provider supports no-access, read-only and read-write protections on committed private VM pages and fully mapped, non-executable PE pages. Page rounding, first-page old protection and access checks are shared with the memory manager. It rejects executable protections, code changes, image gaps, immutable section snapshots and output parameters placed on newly protected pages. Wine's kernel32 can therefore temporarily update its read-only export-table slot and restore it. Writable PE code now invalidates overlapping JIT blocks through the ordinary memory path. Changing executable protections, private executable allocation and live export-table mutation remain separate work.
 
-Guest kernelbase dynamic TLS checks allocate 65 slots (including expansion), set/read/free values and verify reuse clears the value. `NtSetInformationThread(ThreadZeroTlsCell)` clears the requested cell in the sole guest thread. The host does not implement `TlsAlloc` itself; Wine uses its own bitmap and heap code. Multiple guest threads and static-TLS/Wine loader ownership are still unresolved.
+Guest kernelbase dynamic TLS checks allocate 65 slots (including expansion), set/read/free values and verify reuse clears the value. `NtSetInformationThread(ThreadZeroTlsCell)` clears the requested cell across all live guest TEBs. The host does not implement `TlsAlloc` itself; Wine uses its own bitmap and heap code. Separate native thread fixtures now verify private dynamic TLS values and FLS exit callbacks. Static-TLS/Wine loader ownership is still unresolved.
 
 With the real `c_20127.nls` ASCII table included in the optional input manifest, C-locale and conservative processor-feature queries complete. The synchronous NT file boundary supplies `FileFsDeviceInformation` for existing runtime handles, bounded byte reads/writes and close. Standard output/error are real byte-output pipes; invalid stdin remains an invalid handle that Wine handles itself. Synchronous file creation, event waits and basic/full file metadata now have separate passing fixtures. Asynchronous file I/O and broader file-information classes remain unfinished. Passing CRT exports is distinct from running an application through Wine's full loader and shutdown lifecycle.
 
@@ -123,12 +123,12 @@ levels and DirectSound creation have passed startup probes and separate native
 fixtures. Event creation and waits now run through native Wine. Initializing
 the TEB activation-context stack and Unicode scratch buffer fixes native module
 lookup and filename conversion. Package metadata queries now pass, including
-the game's `C:\winebrowser\DATA` directory. Startup reaches `NtCreateThreadEx`
-at 8,840,377 guest instructions in both probes, before window creation.
+the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
+It reaches `IDirect3D8.GetAdapterDisplayMode` at 8,854,836 guest instructions in
+Node and 8,854,844 in Chromium.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is guest threading and remaining
-audio/Win32 services, followed by
-broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
+unverified. The next work is the D3D8 display query and broader resources, with remaining
+audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 
 The virtual WinMM mixer exposes one stereo PCM destination and one wave source,
@@ -155,8 +155,9 @@ absolute deadlines, pulse and signal-and-wait. Native KernelBase named events
 use virtual NT directory handles. The
 [event fixture](../tests/fixtures/events/README.md) verifies both normal uploads
 and the optional Wine closure in Node/Chromium, including native ANSI/Unicode
-module lookup and empty activation-context queries. Guest thread creation, APC
-delivery, other synchronization object types and cross-process events remain
+module lookup and empty activation-context queries. Guest thread creation, joins
+and Wine thread alerts now have separate [native fixtures](../tests/fixtures/threads/README.md).
+APC delivery, other synchronization object types and cross-process events remain
 unfinished.
 
 The separate native character fixture verifies all eight case APIs, including

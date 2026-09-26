@@ -429,6 +429,8 @@ export function parsePE(bytes, options = {}) {
     machine,
     imageBase,
     imageSize,
+    stackReserve: u32(v, bytes, optional + 72, 'stack reserve'),
+    stackCommit: u32(v, bytes, optional + 76, 'stack commit'),
     entryPoint: entryRva ? imageBase + entryRva : 0,
     entryPointRva: entryRva,
     isDll,

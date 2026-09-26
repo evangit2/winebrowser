@@ -24,6 +24,8 @@ export class StaticTLS {
       for (const module of modules) {
         const tls = module.pe?.tls;
         if (!tls || this.records.has(module)) continue;
+        if (r.threads?.records.size > 1)
+          throw Error('Loading new static TLS modules with live guest threads is unsupported');
         if (!this.vector) {
           this.vector = r.allocate(MAX_MODULES * 4);
           r.write32(TEB_TLS_VECTOR, this.vector);
@@ -69,6 +71,38 @@ export class StaticTLS {
       record.callbacksRun++;
     }
     record.attached = true;
+  }
+
+  createThread(thread) {
+    const r = this.runtime;
+    thread.tlsAllocations = [];
+    if (!this.records.size) return;
+    const vector = r.allocate(MAX_MODULES * 4);
+    thread.tlsAllocations.push(vector);
+    r.write32(thread.teb + 0x2c, vector);
+    for (const [module, record] of this.records) {
+      const tls = module.pe.tls,
+        alignment = tls.alignment || 16;
+      const allocation = r.allocate(Math.max(tls.templateSize + tls.zeroFill, 1) + alignment - 1);
+      thread.tlsAllocations.push(allocation);
+      const pointer = Math.ceil(allocation / alignment) * alignment;
+      r.data.set(
+        r.data.subarray(
+          module.base + tls.templateRva,
+          module.base + tls.templateRva + tls.templateSize,
+        ),
+        pointer,
+      );
+      r.write32(vector + record.index * 4, pointer);
+    }
+  }
+  async notifyThread(module, reason) {
+    for (const rva of module.pe?.tls?.callbackRvas ?? [])
+      await this.runtime.callGuest(module.base + rva, [module.base, reason, 0]);
+  }
+  freeThread(thread) {
+    for (const address of thread.tlsAllocations ?? []) this.runtime.free(address);
+    thread.tlsAllocations = [];
   }
 
   async detach(module) {

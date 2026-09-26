@@ -6,6 +6,7 @@ import { d3d12Apis, dxgiApis } from './d3d12.js';
 import { formatApis } from './win32-format.js';
 import { processApis } from './win32-process.js';
 import { syncApis } from './win32-sync.js';
+import { threadApis } from './win32-threads.js';
 import { audioApis } from './win32-audio.js';
 import { gdiApis } from './win32-gdi.js';
 import { windowApis } from './win32-windows.js';
@@ -46,6 +47,7 @@ for (const key of [
   ...Object.keys(processApis),
   ...Object.keys(fileMetadataApis),
   ...Object.keys(syncApis),
+  ...Object.keys(threadApis),
   ...Object.keys(audioApis),
   ...Object.keys(gdiApis),
   ...Object.keys(windowApis),
@@ -77,8 +79,11 @@ function failure(runtime, error, argc = 0) {
   return success(0, argc);
 }
 
-function exitProcess(runtime, argument) {
-  runtime.exitCode = argument(0);
+async function exitProcess(runtime, argument) {
+  const code = argument(0);
+  runtime.exitCode = code;
+  await runtime.shutdownProcess();
+  runtime.threads.terminateProcess(code);
   return success(0, 1);
 }
 
@@ -106,10 +111,10 @@ function getModuleHandle(runtime, argument) {
   return success(runtime.pe.imageBase, 1);
 }
 
-async function sleep(_runtime, argument) {
+async function sleep(runtime, argument) {
   const milliseconds = argument(0);
   if (milliseconds > 10000) throw Error('Sleep exceeds prototype 10-second limit');
-  await new Promise((resolve) => setTimeout(resolve, milliseconds));
+  await runtime.threads.delay(milliseconds);
   return success(0, 1);
 }
 
@@ -274,6 +279,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(processApis),
     ...Object.entries(fileMetadataApis),
     ...Object.entries(syncApis),
+    ...Object.entries(threadApis),
     ...Object.entries(audioApis),
     ...Object.entries(gdiApis),
     ...Object.entries(windowApis),

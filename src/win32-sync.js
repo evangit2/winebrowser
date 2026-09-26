@@ -62,10 +62,8 @@ async function wait(r, a, multiple, extended) {
   const argc = multiple ? (extended ? 5 : 4) : extended ? 3 : 2;
   const list = multiple ? syncHandles(r, a(0), a(1)) : { handles: [a(0)] };
   if (list.status) return fail(r, list.status, argc, 0xffffffff);
-  const status = await syncObjects(r).wait(
-    list.handles,
-    multiple && !!a(2),
-    timeout(a(multiple ? 3 : 1)),
+  const status = await r.threads.block(
+    syncObjects(r).wait(list.handles, multiple && !!a(2), timeout(a(multiple ? 3 : 1))),
   );
   return status >= 0x80000000 ? fail(r, status, argc, 0xffffffff) : result(status, argc);
 }
@@ -96,6 +94,6 @@ syncApis['kernel32.dll!SignalObjectAndWait'] = async (r, a) => {
   if (valid.status) return fail(r, valid.status, 4, 0xffffffff);
   const signal = objects.change(a(0), 'set');
   if (signal.status) return fail(r, signal.status, 4, 0xffffffff);
-  const status = await objects.wait([a(1)], false, timeout(a(2)));
+  const status = await r.threads.block(objects.wait([a(1)], false, timeout(a(2))));
   return status >= 0x80000000 ? fail(r, status, 4, 0xffffffff) : result(status, 4);
 };

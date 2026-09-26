@@ -411,12 +411,14 @@ export class WindowManager {
     while (!(message = this.next(hwnd, min, max, !peek || !!(a(4) & 1)))) {
       flushGdi(this.runtime);
       if (peek) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await this.runtime.threads.block(new Promise((resolve) => setTimeout(resolve, 0)));
         return result(0, 5);
       }
-      await new Promise((resolve) => {
-        this.wake = resolve;
-      });
+      await this.runtime.threads.block(
+        new Promise((resolve) => {
+          this.wake = resolve;
+        }),
+      );
     }
     if ((!peek || a(4) & 1) && [0x100, 0x101, 0x104, 0x105].includes(message.message)) {
       const down = !(message.message & 1),

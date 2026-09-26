@@ -1,46 +1,64 @@
-# Thread context groundwork
+# Guest threads
 
-Hamsterball's current startup boundary is native Wine `NtCreateThreadEx`.
-The call requests a suspended thread in the current process. Thread creation
-is still unsupported; no successful thread handle is fabricated.
+PE32 guest threads now run in the existing browser worker. `src/guest-threads.js`
+schedules a shared CPU and translated-block cache, with private registers, flags,
+XMM/MXCSR, supported x87 state, stack, TEB and last-error value for each thread.
+Compiled FS operands read the active TEB through a mutable Wasm global. Guest
+memory stays in one worker; a translated block never yields during a LOCK operation.
+This provides interleaving, not execution on multiple host CPU cores.
 
-The runtime now provides two prerequisites for implementing it:
+Blocking event/thread waits, delays, host requests and window-message waits release
+the CPU. Their JavaScript continuations resume only after the owning context and
+guest call depth are restored. CPU-only loops yield at dispatcher checkpoints
+every 2,048 blocks. Runnable threads are selected by base priority, with round-robin
+ordering among equals. Dynamic priority boosts, affinity and scheduling classes
+are not implemented. Module transactions and DLL notifications share a reentrant
+loader lock across guest callbacks and suspension.
 
-- `CPU.captureContext()` and `restoreContext()` isolate the eight general
-  registers, arithmetic/auxiliary/direction/control flags, FS base, eight XMM
-  registers and MXCSR, and the supported x87 registers/tags/control/status.
-  Snapshots own their data. The dispatcher retains the instruction pointer;
-  memory, translated blocks and instruction accounting remain process-wide.
-  Existing host-driven guest callbacks use the same context preservation.
-- `initializeThreadLayout()` initializes a separately allocated TEB and Wine
-  debug block with stack bounds, process/thread identities, self/PEB pointers,
-  optional syscall dispatcher, activation stack and Unicode scratch storage.
-  It checks the ranges before writing and leaves the PEB/main TEB intact.
-  It does not allocate stacks, initialize TLS or deliver DLL notifications.
+The ordinary upload path implements `CreateThread`, suspended creation,
+`SuspendThread`/`ResumeThread`, identities, base priorities, exit codes,
+`ExitThread`, thread-handle waits and `DisableThreadLibraryCalls`. Closing a thread
+handle does not stop execution. Each worker receives existing static TLS templates
+and thread attach/detach callbacks. Loading new static TLS modules while other
+threads exist is explicitly unsupported. Ordinary dynamic `TlsAlloc` APIs remain
+unfinished.
 
-FS memory operands previously embedded the TEB address at translation time.
-That would direct a second thread into the first thread's storage when it reused
-a block. The Wasm block ABI now imports a mutable FS-base global after the eight
-general registers. Scalar/SIMD/x87 memory lowering and FS-prefixed MOVS use that
-global. LEA retains its normal segment-independent address calculation. Executing
-a cached block that requires FS with no active TEB fails before execution.
+The optional source-built Wine path supplies `NtCreateThreadEx` with client-ID and
+TEB output attributes, suspend/resume, thread queries, base priority and delay.
+`NtAlertThreadByThreadId` and `NtWaitForAlertByThreadId` support Wine's contended
+lock wait/wake path. `ThreadZeroTlsCell` clears the requested dynamic TLS index
+across every live TEB. The new private `WineBrowserThreadAttach` export calls
+Wine's actual FLS allocation, TLS allocation and DLL thread-attach routines.
+Returning workers enter actual `RtlExitUserThread` and `LdrShutdownThread`, including
+native FLS callbacks and DLL notifications. The complete Wine bridge still rejects
+static TLS PE images; its dynamic TLS/FLS implementation remains Wine-owned.
 
-`tests/thread-context.test.js` alternates two contexts while running actual
-translated instructions. It checks shared block identity, separate stacks and
-TEB writes, x87 arithmetic results, XMM state, flags, independent forward/backward
-string copies, process-wide instruction accounting and initialization failure
-without partial writes. Existing callback tests cover both return and fault
-restoration. These tests do not establish concurrent guest-thread execution.
+Main-thread `ExitThread` keeps the process alive until the last worker exits.
+Process exit from any thread cancels other contexts and unwinds their pending
+JavaScript stacks before CPU, audio and window disposal. Worker faults propagate
+to the process report instead of silently disappearing. Forced process termination
+does not deliver worker DLL thread-detach notifications. Native `NtTerminateThread`
+currently supports only self-termination. SEH, APC delivery, remote processes and
+general cross-thread USER32 message ownership remain unfinished.
 
-The next integration needs a scheduler that owns each context and suspended API
-call, per-thread last-error/TLS state, thread handles and waits, suspend/resume,
-exit, and Wine's actual thread attach/detach path. Host callbacks and nested DLL
-operations must resume on the owning context. Awaiting a host promise cannot
-leave another context using its registers or stack. Process shutdown must cancel
-pending waits and stop other contexts before disposing CPU/audio/window state.
+Allocation is bounded by the current 64 MiB guest arena and host heap. There are
+at most 32 live thread records, with a minimum 64 KiB stack and maximum accepted
+4 MiB requested stack size. Stacks use fixed committed storage; there is no
+guard-page growth. These limits do not establish arbitrary Windows compatibility
+or a near-native performance guarantee.
 
-The DirectWebGPU/Theseus reference's `kernel32/thread.rs` supplies useful TEB and
-stack structure, but uses host `std::thread::spawn` and ignores creation flags.
-It cannot be copied as a browser scheduler. The pinned Wine loader's
-`thread_attach()` and shutdown routines supply the DLL ordering requirements.
-General guest threads and broad application compatibility remain unfinished.
+`tests/thread-context.test.js` checks real translated instructions with alternating
+contexts, shared blocks, separate stack/TEB writes, SIMD/x87 state and flags.
+`tests/guest-threads.test.js` checks real PE workers, priority ordering, joins,
+independent static TLS, DLL callback ordering, alerts, output/access validation,
+faults and cancellation cleanup. The [native fixtures](../tests/fixtures/threads/README.md)
+add ordinary browser EXE/ZIP coverage and optional Wine Node/Chromium coverage,
+including dynamic TLS/FLS and process shutdown. Reports are in
+`evidence/threads-browser-results.json`, `evidence/threads-native-results.json`
+and `evidence/threads-native-browser-results.json`.
+
+Original Hamsterball now initializes two workers, creates its 800×600 window and
+reaches `IDirect3D8.GetAdapterDisplayMode` after about 8.85 million guest instructions
+in both Node and Chromium. No game frame renders yet. The reference Theseus
+`kernel32/thread.rs` uses host `std::thread::spawn`; this browser scheduler instead
+uses the existing guest CPU and Wine's lifecycle routines.

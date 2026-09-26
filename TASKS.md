@@ -130,10 +130,14 @@ D3D10/11 and broader D3D12 support are still required.
       TEB without recompilation. Alternating contexts execute shared blocks with
       independent stacks, flags, SIMD/x87 state and string-copy directions. Add
       separate TEB/debug initialization that preserves the PEB and main thread.
-      Thread creation/scheduling remains unfinished; see `docs/thread-runtime.md`.
-- [ ] Continue Hamsterball through `NtCreateThreadEx`, after 8,840,377 guest
-      instructions in Node and Chromium. Its packaged `DATA` query now passes;
-      the current probe stops before window creation.
+      See `docs/thread-runtime.md` for scheduler integration and remaining limits.
+- [x] Execute guest threads with separate contexts/stacks/TEBs, suspended creation,
+      priorities, waits, return/exit codes and cancellation cleanup. Native Wine
+      TLS/FLS and DLL lifecycle pass Node/Chromium fixtures; ordinary uploads pass
+      EXE/ZIP tests and separate static TLS/DLL callback tests.
+- [ ] Continue Hamsterball through `IDirect3D8.GetAdapterDisplayMode`, after
+      8,854,836 instructions in Node and 8,854,844 in Chromium. Two guest workers
+      initialize and its 800×600 window is created.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
@@ -146,7 +150,7 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Study DirectWebGPU and Hamsterball; document reuse choices and runtime architecture.
 - [x] Load PE32 x86 images and translate supported machine-code blocks to WebAssembly in a worker.
 - [x] Package validation, assets, process-local files, OPFS package/output storage and output downloads.
-- [x] Native DLL imports, named/ordinal/forwarded exports, relocations, attach/detach, dynamic loading/unloading and one-thread static TLS.
+- [x] Native DLL imports, named/ordinal/forwarded exports, relocations, attach/detach, dynamic loading/unloading and per-thread static TLS (new TLS modules require no additional live threads).
 - [x] Bounded guest heap, checked virtual memory, read-only section views and explicit failures for unsupported execution.
 - [x] Execute Wine's unchanged command-line parser and formatter as guest DLL components.
 - [x] Execute selected exports of an unchanged whole Wine ntdll, including real Wine heap operations.
@@ -167,7 +171,7 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Report guest-sized basic system information and a stable UTC timezone through the NT information-query boundary.
 - [x] Build a pinned generic Wine ntdll with an explicit source-level loader bootstrap; verify module indexes, native version initialization, allocation-failure rollback and ownership guards in Node and a Chromium worker. See [the experiment](docs/wine-loader-bridge.md).
 - [x] Change committed private VM and non-executable image-data page protections through the native NT boundary; verify read-only enforcement, rollback on invalid requests and Wine export-table updates.
-- [x] Initialize Wine-owned dynamic TLS bitmaps and verify 65 guest kernelbase slots, expansion, free and cleared-value reuse; implement one-thread `ThreadZeroTlsCell`.
+- [x] Initialize Wine-owned dynamic TLS bitmaps and verify 65 guest kernelbase slots, expansion, free and cleared-value reuse; implement `ThreadZeroTlsCell` across all live TEBs.
 - [x] Run an original native D3D9 cube EXE and ZIP with browser x86-to-Wasm compilation, guest COM calls, worker WebGPU transforms/D16 depth and clean window/device release. Record backend pixel checks and full browser acceptance separately.
 - [x] Run a native PE32 D3D12 shader fixture through real DXGI backbuffers, empty root signatures, pipeline state, command lists, resource barriers, queue submission and completed 64-bit fences; verify both EXE upload and hosted ZIP.
 - [x] Run the native D3D12 cube with upload vertex buffers, D16 depth, DSV/RTV descriptors, swapchain buffer indexes, completed fences, browser shader compilation and clean release; test depth/vertex rendering independently on both GPU presentation paths.
@@ -200,7 +204,7 @@ D3D10/11 and broader D3D12 support are still required.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
-- [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, environment save/restore, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.
+- [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, environment save/restore, additional SIMD, exception handling and broader thread semantics. x64 is a separate architectural task.
 - [ ] Run more unchanged desktop targets, starting with Minesweeper (32 unresolved imports at the last inspection); implement reusable dialog/menu/common-control/GDI services where Wine reuse is feasible.
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.

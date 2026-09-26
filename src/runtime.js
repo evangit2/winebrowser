@@ -21,6 +21,7 @@ import { API_NAMES, createWin32ApiProvider, importKey } from './win32.js';
 import { GuestPerformanceClock } from './guest-clock.js';
 import { createSharedUserData, systemFileTime } from './shared-user-data.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
+import { GuestThreads } from './guest-threads.js';
 
 export { API_NAMES };
 
@@ -69,7 +70,7 @@ export class Runtime {
     this.emit = emit;
     this.request = (kind, detail) => {
       flushGdi(this);
-      return request(kind, detail);
+      return this.threads.block(request(kind, detail));
     };
     this.maxBlocks = maxBlocks;
     this.lastProgress = performance.now();
@@ -124,6 +125,20 @@ export class Runtime {
     this.apiTrace = [];
     this.blocks = 0;
     this.apiProvider = createWin32ApiProvider();
+    this.threads = new GuestThreads(this);
+    // Module transactions may await guest callbacks. Keep their graph/TLS
+    // mutations serialized even when another thread becomes runnable.
+    for (const name of ['initializeModules', 'withModuleLoad', 'freeLibrary']) {
+      const method = this[name];
+      this[name] = (...args) => this.threads.withLoaderLock(() => method.apply(this, args));
+    }
+  }
+
+  get lastError() {
+    return this.read32(this.cpu.fsBase + 0x34);
+  }
+  set lastError(value) {
+    this.write32(this.cpu.fsBase + 0x34, value);
   }
 
   check(address, size, write = false) {
@@ -196,7 +211,9 @@ export class Runtime {
     return address;
   }
   async dispatch(ip, until) {
+    const thread = this.threads.current;
     while (this.exitCode === null && ip !== until) {
+      this.threads.checkRunning(thread);
       if (++this.blocks > this.maxBlocks) throw Error('Execution block budget exceeded');
       const thunk = this.thunks.get(ip);
       if (thunk) ip = await this.api(thunk);
@@ -219,6 +236,7 @@ export class Runtime {
           });
         }
         await new Promise((r) => setTimeout(r, 0));
+        await this.threads.yield();
       }
     }
     return ip;
@@ -460,6 +478,7 @@ export class Runtime {
     try {
       return await this.#runProcess();
     } finally {
+      await this.threads.stopOthers();
       this.directSound?.dispose();
       this.syncObjects?.dispose();
       this.windows.dispose();
@@ -471,8 +490,12 @@ export class Runtime {
     if (this.shutdownState !== 'idle' || this.nativeProcessTerminated) return;
     this.shutdownState = 'running';
     const originalExit = this.exitCode;
+    const thread = this.threads.current,
+      cleanup = thread.cleanup;
+    thread.cleanup = true;
     this.exitCode = null;
     try {
+      await this.threads.stopOthers();
       // One owner for host ExitProcess and the native LdrShutdownProcess bridge.
       // Recursive shutdown from DllMain returns to the current detach pass.
       for (const module of this.graph.initializationOrder().reverse()) {
@@ -497,13 +520,14 @@ export class Runtime {
       throw error;
     } finally {
       this.exitCode ??= originalExit;
+      thread.cleanup = cleanup;
     }
   }
   async #runProcess() {
     const started = performance.now();
     await this.initializeModules();
     await this.tls.attach(this.graph.main);
-    const entryResult = await this.callGuest(this.pe.entryPoint);
+    const entryResult = await this.runEntryPoint();
     if (this.exitCode === null) this.exitCode = entryResult;
     // Wine's process shutdown notifies DLL TLS, not the main EXE's TLS callbacks.
     await this.shutdownProcess();
@@ -520,5 +544,16 @@ export class Runtime {
       elapsedMs: performance.now() - started,
       outputs: [...this.dirty].map((path) => ({ path, bytes: this.files.get(path) })),
     };
+  }
+  async runEntryPoint() {
+    let entryResult;
+    try {
+      entryResult = await this.callGuest(this.pe.entryPoint);
+    } catch (error) {
+      if (!this.threads.isExit(error)) throw error;
+      entryResult = this.threads.main.code ?? this.exitCode ?? 0;
+      if (this.exitCode === null) await this.threads.waitForChildren();
+    }
+    return this.exitCode ?? entryResult;
   }
 }

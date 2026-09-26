@@ -141,6 +141,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
         if (report.nativeLoaderCalls.length > 64) report.nativeLoaderCalls.shift();
       }
       recentBlocks.push({
+        threadId: runtime.threads.current?.id,
         ...locate(ip),
         registers: runtime.cpu.r.map((r) => hex(r.value)),
         flags: { ...runtime.cpu.f, af: runtime.cpu.af, df: runtime.cpu.df },
@@ -166,7 +167,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
           break;
         }
       }
-      const record = { name, args };
+      const record = { name, args, threadId: runtime.threads.current?.id };
       if (['NtQueryAttributesFile', 'NtQueryFullAttributesFile'].includes(name)) {
         try {
           const string = runtime.read32(args[0] + 8),
@@ -187,7 +188,8 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
         record.result = hex(runtime.cpu.r[0].value);
         return next;
       } catch (error) {
-        record.error = error.message;
+        if (runtime.threads.isExit(error)) record.threadExit = true;
+        else record.error = error.message;
         throw error;
       }
     };
@@ -196,8 +198,10 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       try {
         return await dispatch(...args);
       } catch (error) {
+        if (runtime.threads.isExit(error)) throw error;
         report.firstFailure ??= {
           phase,
+          threadId: runtime.threads.current?.id,
           message: error.message,
           ip: locate(lastIP),
           registers: runtime.cpu.r.map((r) => hex(r.value)),
@@ -250,7 +254,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     report.phases.push({ name: phase, passed: true });
     phase = 'native EXE entry point';
     await runtime.tls.attach(runtime.graph.main);
-    const result = await runtime.callGuest(runtime.pe.entryPoint);
+    const result = await runtime.runEntryPoint();
     report.exitCode = runtime.exitCode ?? result;
     report.status = 'entry-returned';
     report.phases.push({ name: phase, passed: true });
@@ -268,10 +272,22 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
         : {}),
     };
   } finally {
+    report.threadsAtStop =
+      runtime &&
+      [...runtime.threads.records.values()].map((t) => ({
+        id: t.id,
+        teb: hex(t.teb),
+        started: !!t.started,
+        attached: !!t.attached,
+        suspended: t.suspend,
+        exited: t.done,
+        exitCode: t.code,
+      }));
     for (const [dll, previous] of restore) {
       if (previous) API_NAMES[dll] = previous;
       else delete API_NAMES[dll];
     }
+    await runtime?.threads.stopOthers();
     runtime?.directSound?.dispose();
     runtime?.syncObjects?.dispose();
     runtime?.windows.dispose();

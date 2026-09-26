@@ -24,6 +24,10 @@ export class WineLoader {
     };
     this.configureAddress = address('WineBrowserLoaderConfigure');
     this.syncAddress = address('WineBrowserLoaderSync');
+    const threadAttach = ntdll.pe.exports.find((e) => e.name === 'WineBrowserThreadAttach');
+    this.threadAttachAddress = threadAttach ? ntdll.base + threadAttach.rva : 0;
+    this.threadDetachAddress = address('LdrShutdownThread');
+    this.threadExitAddress = address('RtlExitUserThread');
   }
   async enable() {
     const r = this.runtime;

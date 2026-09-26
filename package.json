@@ -93,7 +93,10 @@
     "test:events-native": "node scripts/test-events-native.mjs",
     "build:metadata": "sh scripts/build-metadata-fixture.sh",
     "test:metadata": "node scripts/test-metadata-browser.mjs",
-    "test:metadata-native": "node scripts/test-metadata-native.mjs"
+    "test:metadata-native": "node scripts/test-metadata-native.mjs",
+    "build:threads": "sh scripts/build-threads-fixture.sh",
+    "test:threads": "node scripts/test-threads-browser.mjs",
+    "test:threads-native": "node scripts/test-threads-native.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

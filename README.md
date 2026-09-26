@@ -83,8 +83,10 @@ focus-loss recovery. NT/Win32 event synchronization now passes native fixtures
 through both ordinary uploads and real Wine DLLs. The TEB now provides Wine's
 activation-context stack and Unicode scratch buffer. Package file and directory
 metadata now passes through Win32 and native NT queries, including Hamsterball's
-`C:\winebrowser\DATA` lookup. Current startup reaches `NtCreateThreadEx` after
-8,840,377 guest instructions in Node and Chromium, before window creation.
+`C:\winebrowser\DATA` lookup. Guest threads now pass ordinary and native Wine lifecycle tests. Current startup
+initializes two workers, creates the 800×600 Hamsterball window, and reaches
+`IDirect3D8.GetAdapterDisplayMode` after about 8.85 million guest instructions in
+Node and Chromium; no game frame renders yet. See [thread scope](docs/thread-runtime.md).
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the
 [audio fixture and limits](tests/fixtures/dsound/README.md).
@@ -99,7 +101,7 @@ frontends and broader D3D12 resources/shaders.
 - Browser-provided DLL handles point to mapped PE32 images with readable headers, sorted export names and executable API stubs. Imported and dynamically resolved addresses match their PE export tables. Unsupported exports still fail explicitly.
 - Single-thread COM initialization and native in-process class activation from the package's registry. Real guest `DllGetClassObject`, class factories and objects execute through browser translation; native fixture tests cover reference counts, failure HRESULTs, server locks and unload/reload. Cross-apartment and external COM servers remain unsupported.
 - Writable PE sections invalidate overlapping translated blocks; memory operations end writable-code blocks before following instructions are decoded. A 4,096-block cache evicts old translations instead of ending large programs. Executable private allocations and changing code-page protections remain separate unfinished work.
-- Static PE TLS for one guest thread: initialized templates, zero-fill, aligned per-module storage, and process callbacks, including dynamic DLL loading.
+- Guest thread creation, scheduling, suspended start/resume, priorities, joins and exit. Static PE TLS provides separate templates and process/thread callbacks; new static TLS DLLs can currently load only before additional threads exist. The optional native Wine path owns dynamic TLS/FLS. See [thread scope](docs/thread-runtime.md).
 - Selected x87 loads/stores, integer conversions, stack operations, arithmetic, comparisons, round-to-integer, classification and control/status instructions using an independently rebuildable SoftFloat ext80 Wasm library. `FYL2X`, `FSIN`, `FCOS` and `FSINCOS` use bounded extended-precision integer intervals, verified against independent Decimal vectors in native browser fixtures. Other transcendental instructions, environment save/restore and general floating-point exception delivery remain unsupported; see [numerical scope](docs/x87-transcendentals.md).
 - Conservative CPUID identification and RDTSC using the same monotonic virtual nanosecond counter as Wine performance queries; no host CPU features are exposed.
 - Selected SSE data moves, including scalar `MOVSD`/`MOVSS` with native upper-lane behavior, exact signed-int32 `CVTSI2SD`, integer lane unpack/shuffle/XOR, LOCK XADD, ROL/ROR, 16/32-bit SHLD/SHRD and bit scans (including legacy F3 encodings consistent with the virtual CPUID profile). Scalar SSE arithmetic/square roots, float/int32 conversions, COMI/UCOMI and MXCSR rounding/DAZ/FTZ now execute through direct SoftFloat binary32/binary64 operations; see [numerical scope](docs/simd-floating-point.md). Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.

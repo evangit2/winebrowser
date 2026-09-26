@@ -102,7 +102,7 @@ generations and bounded byte buffers rather than C pointers or GPU objects.
 DLL callbacks, thread-local storage, structured exceptions and threads are coupled to loading
 and execution. Do not treat them as incidental follow-up features.
 
-- **TLS:** `src/tls.js` allocates distinct aligned module buffers and publishes their index vector at TEB+0x2c. It copies initialized data after relocation, zeroes the tail, and invokes process callbacks before DLL entry points and before the main EXE entry. All mapped templates exist before the first callback. Dynamic DLL loads allocate new slots; failed loads release only newly allocated TLS state. Limits are 128 modules/callbacks and 1 MiB data per module. Guest threads, thread notifications and dynamic TlsAlloc/TlsGetValue slots remain unsupported. The native Wine reference run and browser fixture both emit `TLS events:12349678`: DLL detach callbacks run before DllMain, and the EXE receives no TLS process-detach notification. See `evidence/tls-native-wine.json`.
+- **TLS:** `src/tls.js` allocates distinct aligned module buffers and publishes their index vector at TEB+0x2c. It copies initialized data after relocation, zeroes the tail, and invokes process callbacks before DLL entry points and before the main EXE entry. All mapped templates exist before the first callback. Dynamic DLL loads allocate new slots; failed loads release only newly allocated TLS state. Limits are 128 modules/callbacks and 1 MiB data per module. Additional threads copy existing templates and receive thread notifications; adding new static TLS modules with live threads is rejected. Ordinary dynamic TlsAlloc/TlsGetValue remains unsupported; the optional Wine closure supplies its own dynamic TLS/FLS. The native Wine reference run and browser fixture both emit `TLS events:12349678`: DLL detach callbacks run before DllMain, and the EXE receives no TLS process-detach notification. See `evidence/tls-native-wine.json`.
 - **SEH:** 32-bit Windows code commonly uses the FS-based TEB and exception registration chain.
   Correct delivery needs guest FS/TEB state, exception records, dispatcher behavior and
   unwinding; returning a JavaScript error is not equivalent to a Windows exception.
@@ -112,9 +112,10 @@ and execution. Do not treat them as incidental follow-up features.
   The CPU now captures/restores its supported integer, flag, SIMD and x87 state,
   and compiled FS accesses read a mutable Wasm global so contexts share the block
   cache without retaining another thread's TEB address. Separate TEB/debug blocks
-  can be initialized without touching process data. These are tested prerequisites;
-  thread creation, scheduling and Wine thread attach/detach are still unfinished.
-  See [thread context groundwork](thread-runtime.md).
+  are initialized without touching process data. The scheduler now integrates
+  creation, priorities, suspension, joins, exit and cancellation, with ordinary
+  static TLS or actual Wine thread attach/detach. Blocking continuations resume
+  only after their context is restored. See [thread implementation and limits](thread-runtime.md).
 - **Callbacks:** enumerate, window, timer and I/O callbacks can re-enter guest code while an API
   call is active. Define which thread runs them and how guest state is saved before exposing
   those APIs.
@@ -225,7 +226,8 @@ variables are never copied. Parameter-construction scratch buffers are released,
 and initialization/attach failure restores the published PEB pointers along with the
 new native heap reservations. Guest tests verify recursive locking, command-line
 quoting, missing variables, case-insensitive lookup and environment growth/deletion.
-This does not implement guest threads or contention through kernel wait objects.
+Guest threads and Wine alert waits now support contended lock wait/wake paths;
+see [thread implementation and limits](thread-runtime.md).
 With supplied NLS data, `src/wine-nls-process.js` maps the real CP1252/CP437/case
 tables and calls guest `RtlInitNlsTables` and `RtlResetRtlTranslations`. Its owned
 views and PEB pointers also roll back on failed startup. See [NLS scope](wine-nls.md).

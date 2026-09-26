@@ -1,0 +1,46 @@
+{
+  "date": "2026-09-26T08:23:14.848Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "04ae0314661a10520b644be26d4f235ed03676d02367b42585c51aedd4b01bb6",
+  "scope": "Native EXE/ZIP with two suspended workers, distinct TEBs/stacks/last-error values, event synchronization, CPU-loop preemption, thread joins, return/ExitThread codes, close-before-exit and process cancellation.",
+  "results": [
+    {
+      "name": "threads.exe",
+      "expectedExit": 0,
+      "exitCode": 0,
+      "instructions": 8498,
+      "compiledBlocks": 134,
+      "errors": []
+    },
+    {
+      "name": "threads.zip",
+      "expectedExit": 0,
+      "exitCode": 0,
+      "instructions": 8498,
+      "compiledBlocks": 134,
+      "errors": []
+    },
+    {
+      "name": "worker-exit.exe",
+      "expectedExit": 77,
+      "exitCode": 77,
+      "instructions": 28,
+      "compiledBlocks": 9,
+      "errors": []
+    },
+    {
+      "name": "main-exit.exe",
+      "expectedExit": 77,
+      "exitCode": 77,
+      "instructions": 26,
+      "compiledBlocks": 8,
+      "errors": []
+    },
+    {
+      "name": "thread-fault.exe",
+      "expectedExit": null,
+      "errors": []
+    }
+  ]
+}

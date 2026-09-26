@@ -97,7 +97,7 @@ export const syncNtServices = {
     argc: 3,
     call(r, a) {
       const t = timeout(r, a(2));
-      return t.status ?? syncObjects(r).wait([a(0)], false, t.value);
+      return t.status ?? r.threads.block(syncObjects(r).wait([a(0)], false, t.value));
     },
   },
   NtWaitForMultipleObjects: {
@@ -107,7 +107,11 @@ export const syncNtServices = {
       if (a(2) > 1) return SYNC.INVALID;
       const list = syncHandles(r, a(0), a(1)),
         t = timeout(r, a(4));
-      return list.status ?? t.status ?? syncObjects(r).wait(list.handles, !a(2), t.value);
+      return (
+        list.status ??
+        t.status ??
+        r.threads.block(syncObjects(r).wait(list.handles, !a(2), t.value))
+      );
     },
   },
   NtSignalAndWaitForSingleObject: {
@@ -119,7 +123,7 @@ export const syncNtServices = {
       const valid = objects.validateWait([a(1)], false);
       if (valid.status) return valid.status;
       const signaled = objects.change(a(0), 'set');
-      return signaled.status || objects.wait([a(1)], false, t.value);
+      return signaled.status || r.threads.block(objects.wait([a(1)], false, t.value));
     },
   },
 };

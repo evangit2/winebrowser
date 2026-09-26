@@ -142,12 +142,12 @@ export const ntServices = {
     call: (r, a) => {
       const handle = a(0) >>> 0;
       // Wine's first shutdown call uses NULL to terminate every *other*
-      // thread. This runtime has one thread, so the caller continues into
-      // LdrShutdownProcess. The pseudo-handle call actually ends execution.
-      if (handle === 0) return 0;
+      // thread, before the caller continues into LdrShutdownProcess.
+      if (handle === 0)
+        return r.threads.records.size > 1 ? r.threads.stopOthers().then(() => 0) : 0;
       if (handle !== CURRENT_PROCESS) return 0xc0000008;
       r.nativeProcessTerminated = true;
-      r.exitCode = a(1) >>> 0;
+      r.threads.terminateProcess(a(1));
       return 0;
     },
   },

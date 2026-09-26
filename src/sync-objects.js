@@ -146,7 +146,8 @@ export class SyncObjects {
     if (all && new Set(handles).size !== handles.length) return { status: SYNC.INVALID };
     const objects = [];
     for (const handle of handles) {
-      const found = this.lookup(handle, 'sync-event', SYNC.WAIT);
+      const kind = this.runtime.handles.get(handle)?.kind;
+      const found = this.lookup(handle, kind === 'sync-thread' ? kind : 'sync-event', SYNC.WAIT);
       if (found.status) return found;
       objects.push(found.object);
     }
