@@ -109,7 +109,10 @@
     "test:blending": "node scripts/test-blending-browser.mjs",
     "test:blending-backend": "node scripts/test-d3d-blending-backend.mjs",
     "build:custom-cursors": "sh scripts/build-custom-cursors-fixture.sh",
-    "test:custom-cursors": "node scripts/test-custom-cursors-browser.mjs"
+    "test:custom-cursors": "node scripts/test-custom-cursors-browser.mjs",
+    "build:sections": "sh scripts/build-sections-fixture.sh",
+    "test:sections": "node scripts/test-sections-browser.mjs",
+    "test:sections-native": "node scripts/test-sections-native.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

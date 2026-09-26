@@ -176,10 +176,11 @@ D3D10/11 and broader D3D12 support are still required.
       tables when IMAGE_FILE_RELOCS_STRIPPED is clear.
 - [x] Accept NT random/sequential cache hints for resident package files, with
       read/seek/EOF/access tests. The original texture file now opens successfully.
-- [ ] Implement native file-section creation and views. Hamsterball now stops at
-      `NtCreateSection` while mapping `shadow.png` (read-only, SEC_COMMIT).
+- [ ] Implement the next x86 repeat instruction used by original texture loading.
+      Hamsterball maps `shadow.png` through native file sections, then stops at
+      `0x4a6988` with `Repeat prefix unsupported`.
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,879,806 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,884,000 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
@@ -202,6 +203,10 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Play the unchanged MIT-licensed wesmar/Tetris release in Chromium; verify controls, gameplay, dialogs, sustained execution and clean exit.
 - [x] Two-window native Breakout example with browser tests for animation, input and window management.
 - [x] Pin independent target binaries and retain provenance; document unresolved imports without claiming those applications run.
+- [x] Implement unnamed read-only file sections and Win32/NT map/query/unmap APIs,
+      independent handle/view lifetimes, aligned bounded views, alias updates,
+      and backing-file truncation guards. Native and ordinary upload fixtures
+      verify actual bytes and error paths. See `docs/file-sections.md`.
 - [x] Finish the current Wine NLS mapping boundary: supplied real data, read-only sections, unmap, locale queries and missing-data errors. The optional installed-Wine probe passes the former missing NLS calls and records the next failure.
 - [x] Fix the Wine i386 debug-buffer/PEB overlap; retain guest state in CRT failure evidence before module rollback.
 - [x] Recheck current DirectWebGPU graphics reuse and document the WineD3D integration path, licensing boundaries and separate DX12 requirements in [graphics handoff](docs/graphics-handoff.md).

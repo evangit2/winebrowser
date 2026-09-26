@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-26T13:08:08.724Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "b43e4849d0b28df132fdae73cbc6267c1da6d983656465b2e99cf22f7146bfb9",
+  "scope": "PE32 EXE, EXE plus sidecar, and nested ZIP upload: A/W file sections, all 65573 generated/mapped bytes, 64K-offset views, closed-handle lifetimes, whole-page tails, alignment and collision errors, interior unmap, and ZIP sidecar mapping.",
+  "results": [
+    {
+      "name": "sections.exe",
+      "exitCode": 0,
+      "output": "sections-ok\n",
+      "instructions": 1140174,
+      "compiledBlocks": 89,
+      "errors": []
+    },
+    {
+      "name": "sections.zip",
+      "exitCode": 0,
+      "output": "sidecar-ok\nsections-ok\n",
+      "instructions": 1533692,
+      "compiledBlocks": 101,
+      "errors": []
+    },
+    {
+      "name": "sections-files",
+      "exitCode": 0,
+      "output": "sidecar-ok\nsections-ok\n",
+      "instructions": 1533692,
+      "compiledBlocks": 101,
+      "errors": []
+    }
+  ]
+}

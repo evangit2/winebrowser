@@ -91,6 +91,7 @@ function create(runtime, argument) {
     writeAccess = !!(access & 0x40000006);
   const truncate = exists && (disposition === 4 || disposition === 5);
   if (truncate && !(access & 0x40000002)) return complete(ACCESS_DENIED);
+  if (truncate && runtime.fileSections?.canResize(path, 0) === false) return complete(0xc0000243); // STATUS_USER_MAPPED_FILE
   if (
     fileShareConflict(
       runtime,
@@ -152,11 +153,14 @@ function information(runtime, argument, set) {
     if (kind === 14) opened.position = Number(value);
     else {
       if (!(opened.access & 0x40000000) || opened.appendOnly) return complete(ACCESS_DENIED);
+      if (runtime.fileSections?.canResize(opened.path, Number(value)) === false)
+        return complete(0xc0000243);
       const total = [...runtime.files.values()].reduce((sum, file) => sum + file.length, 0);
       if (total - bytes.length + Number(value) > MAX_FILESYSTEM) return complete(DISK_FULL);
       const resized = new Uint8Array(Number(value));
       resized.set(bytes.subarray(0, resized.length));
       runtime.files.set(opened.path, resized);
+      runtime.fileSections?.fileChanged(opened.path);
       touchFile(runtime, opened.path, { write: true });
       runtime.dirty.add(opened.path);
     }
@@ -283,6 +287,7 @@ function write(runtime, argument) {
   updated.set(previous);
   updated.set(bytes, start.value);
   runtime.files.set(opened.path, updated);
+  runtime.fileSections?.fileChanged(opened.path);
   if (count) touchFile(runtime, opened.path, { write: true });
   opened.position = start.value + count;
   runtime.dirty.add(opened.path);

@@ -17,6 +17,7 @@ import { resolveGuestPath } from './guest-paths.js';
 import { fileShareConflict } from './wine-file.js';
 import { touchFile, fileMetadata, FILE_PATH_NOT_FOUND } from './file-metadata.js';
 import { fileMetadataApis } from './win32-file-metadata.js';
+import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
 
@@ -46,6 +47,7 @@ export const API_NAMES = {
 for (const key of [
   ...Object.keys(processApis),
   ...Object.keys(fileMetadataApis),
+  ...Object.keys(fileSectionApis),
   ...Object.keys(syncApis),
   ...Object.keys(threadApis),
   ...Object.keys(audioApis),
@@ -206,6 +208,10 @@ function createFile(runtime, argument, wide = false) {
       runtime.lastError = 5;
       return success(0xffffffff, 7);
     }
+    if (runtime.files.has(path) && runtime.fileSections?.canResize(path, 0) === false) {
+      runtime.lastError = 1224; // ERROR_USER_MAPPED_FILE
+      return success(0xffffffff, 7);
+    }
     touchFile(runtime, path, { created: !runtime.files.has(path), write: true });
     runtime.files.set(path, new Uint8Array());
     runtime.dirty.add(path);
@@ -258,6 +264,7 @@ function writeFile(runtime, argument) {
     updatedBytes.set(previousBytes);
     updatedBytes.set(bytes, handle.position);
     runtime.files.set(handle.path, updatedBytes);
+    runtime.fileSections?.fileChanged(handle.path);
     if (count) touchFile(runtime, handle.path, { write: true });
     handle.position += count;
     runtime.dirty.add(handle.path);
@@ -268,6 +275,8 @@ function writeFile(runtime, argument) {
 }
 
 function closeHandle(runtime, argument) {
+  const sectionStatus = runtime.fileSections?.close(argument(0)) ?? null;
+  if (sectionStatus !== null) return sectionStatus ? failure(runtime, 6, 1) : success(1, 1);
   const status = runtime.syncObjects?.close(argument(0)) ?? null;
   if (status !== null) return status ? failure(runtime, 6, 1) : success(1, 1);
   return runtime.handles.delete(argument(0)) ? success(1, 1) : failure(runtime, 6, 1);
@@ -278,6 +287,7 @@ export function createWin32ApiProvider() {
   return new Map([
     ...Object.entries(processApis),
     ...Object.entries(fileMetadataApis),
+    ...Object.entries(fileSectionApis),
     ...Object.entries(syncApis),
     ...Object.entries(threadApis),
     ...Object.entries(audioApis),

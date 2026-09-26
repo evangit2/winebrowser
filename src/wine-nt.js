@@ -8,6 +8,7 @@ import { processorFeatureNtServices } from './processor-features.js';
 import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
 import { systemFileTime } from './shared-user-data.js';
 import { closeFileHandle, fileNtServices } from './wine-file.js';
+import { sectionNtServices } from './wine-sections.js';
 import { registerThunk } from './thunk-addresses.js';
 import { syncNtServices } from './wine-sync.js';
 
@@ -137,6 +138,7 @@ export const ntServices = {
   ...threadNtServices,
   ...processorFeatureNtServices,
   ...fileNtServices,
+  ...sectionNtServices,
   NtTerminateProcess: {
     argc: 2,
     call: (r, a) => {
@@ -158,6 +160,8 @@ export const ntServices = {
       if (syncResult !== null) return syncResult;
       const result = closeRegistryHandle(r, a(0));
       if (result !== null) return result;
+      const sectionResult = r.fileSections?.close(a(0)) ?? null;
+      if (sectionResult !== null) return sectionResult;
       const fileResult = closeFileHandle(r, a(0));
       if (fileResult === null)
         throw Error(

@@ -7,6 +7,7 @@ export const SectionViewStatus = Object.freeze({
   SUCCESS: NTSTATUS.SUCCESS,
   INVALID_PARAMETER: NTSTATUS.INVALID_PARAMETER,
   NO_MEMORY: NTSTATUS.NO_MEMORY,
+  CONFLICTING_ADDRESSES: NTSTATUS.CONFLICTING_ADDRESSES,
   NOT_MAPPED_VIEW: 0xc0000019,
 });
 
@@ -20,9 +21,11 @@ function asBytes(input) {
 }
 
 /**
- * Maps immutable byte snapshots as read-only, non-executable page regions in
+ * Maps byte snapshots as read-only, non-executable page regions in
  * the VM arena. These views are intentionally separate from MEM_RESERVE
  * reservations and therefore have their own unmap lifetime.
+ * NLS snapshots remain immutable; FileSections refreshes its own file-backed
+ * aliases when an ordinary file write changes their backing data.
  */
 export class SectionViews {
   constructor(memory, regions, virtualMemory) {
@@ -43,9 +46,18 @@ export class SectionViews {
     this.mappedBytes = 0;
   }
 
-  map(input, { name } = {}) {
+  map(input, { name, base: requestedBase = 0, onUnmap } = {}) {
     const source = asBytes(input);
-    if (!source || source.byteLength === 0 || (name !== undefined && typeof name !== 'string'))
+    if (
+      !source ||
+      source.byteLength === 0 ||
+      (name !== undefined && typeof name !== 'string') ||
+      !Number.isSafeInteger(requestedBase) ||
+      requestedBase < 0 ||
+      requestedBase > 0xffffffff ||
+      requestedBase % VM.allocationGranularity ||
+      (onUnmap !== undefined && typeof onUnmap !== 'function')
+    )
       return { status: SectionViewStatus.INVALID_PARAMETER, base: 0, size: 0 };
     if (this.views.size >= MAX_SECTION_VIEWS)
       return { status: SectionViewStatus.NO_MEMORY, base: 0, size: 0 };
@@ -61,7 +73,14 @@ export class SectionViews {
     )
       return { status: SectionViewStatus.NO_MEMORY, base: 0, size: 0 };
 
-    const base = this.virtualMemory.findFreeReservation(viewSize);
+    if (
+      requestedBase &&
+      (requestedBase < VM.arenaStart ||
+        requestedBase + viewSize > VM.arenaEnd ||
+        !this.virtualMemory.rangeIsFree(requestedBase, requestedBase + viewSize))
+    )
+      return { status: SectionViewStatus.CONFLICTING_ADDRESSES, base: 0, size: 0 };
+    const base = requestedBase || this.virtualMemory.findFreeReservation(viewSize);
     if (base === null || !this.virtualMemory.rangeIsFree(base, base + viewSize))
       return { status: SectionViewStatus.NO_MEMORY, base: 0, size: 0 };
 
@@ -83,7 +102,7 @@ export class SectionViews {
       kind: 'section-view',
     };
     this.regions.push(region);
-    this.views.set(base, { base, end: base + viewSize, size, viewSize, name, region });
+    this.views.set(base, { base, end: base + viewSize, size, viewSize, name, region, onUnmap });
     this.mappedBytes += viewSize;
     return { status: SectionViewStatus.SUCCESS, base, size, mappedSize: viewSize };
   }
@@ -102,6 +121,7 @@ export class SectionViews {
     if (regionIndex !== -1) this.regions.splice(regionIndex, 1);
     this.views.delete(view.base);
     this.mappedBytes -= view.viewSize;
+    view.onUnmap?.();
     return SectionViewStatus.SUCCESS;
   }
 }

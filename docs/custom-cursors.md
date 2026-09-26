@@ -58,7 +58,8 @@ the pinned Wine loader and the [PE specification](https://learn.microsoft.com/en
 
 The original Hamsterball diagnostic now passes LoadCursorA and reaches texture
 startup. The NT file adapter now accepts FILE_RANDOM_ACCESS (options 0x860),
-opens `shadow.png` and stops at unsupported NtCreateSection after 8,879,806 guest
+opens and maps `shadow.png`, then stops at an unsupported x86 repeat prefix at
+`0x4a6988` after 8,884,000 guest
 instructions. No game frame has rendered yet.
 
 References: Microsoft [LoadCursor](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadcursorw),

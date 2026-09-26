@@ -15,9 +15,9 @@ search or a complete Wine prefix. The bootstrap system/user LCID is en-US
 in the shared 14 MiB VM arena. Each mapping has an independent lifetime; a
 section cannot be freed as an ordinary virtual allocation. NtUnmapViewOfSection
 supports the current-process pseudo-handle and removes the complete view
-containing the supplied address. Shared/process-external sections, section
-handles, general NtCreateSection/NtMapViewOfSection, and writable mappings are
-not implemented. Process allocations and section effects are retained across
+containing the supplied address. NLS tables remain immutable snapshots. Bounded unnamed read-only file sections
+now have separate handles and lifetimes; see [file sections](file-sections.md).
+Shared/process-external and writable mappings remain unfinished. Process allocations and section effects are retained across
 failed DLL loads, like existing guest virtual-allocation effects.
 
 The Wine-specific contracts include:

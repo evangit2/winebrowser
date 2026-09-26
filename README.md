@@ -92,7 +92,7 @@ metadata now passes through Win32 and native NT queries, including Hamsterball's
 initializes two workers, creates the 800×600 Hamsterball window, and passes
 D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP device
 and passes capabilities, viewport setup and a finite projection, then stops at the
-unsupported `NtCreateSection` while mapping `shadow.png`, after about 8.88 million guest instructions;
+unsupported x86 repeat prefix at `0x4a6988`, after successfully mapping `shadow.png` and about 8.88 million guest instructions;
 [Custom cursor resources](docs/custom-cursors.md) and random-access file opens now pass.
 No game frame renders yet. Node stops at device creation because it lacks WebGPU. See [graphics scope](docs/d3d-display.md) and [thread scope](docs/thread-runtime.md).
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
@@ -103,6 +103,7 @@ see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11
 frontends and broader D3D12 resources/shaders.
 
+- Read-only file mappings through Win32 and native Wine NT calls, with offset views, protected pages, independent handle/view lifetimes, and coherent package-file updates. See [file section scope](docs/file-sections.md).
 - Multi-file and folder import, bounded ZIP extraction, CRC verification, path normalization, executable selection, and PE32 x86 import inspection. Top-level selected ZIPs expand into the package; ZIPs inside a selected folder remain application assets. Limits are 2,048 files, 64 MiB of selected bytes, 128 MiB expanded, and 64 directory levels. Conflicting paths are rejected. Choose the program and its supporting files together; a new selection replaces the current package.
 - PE DLL imports/exports, ordinal and forwarded exports, HIGHLOW relocations, DllMain attach/detach, guest callbacks, scalar byte/word/dword x86 instructions, calls/returns, condition flags, and direct Wasm block generation in a terminable worker.
 - Relative and sandboxed DOS DLL paths, same-basename plugins, `LoadLibraryExA/W` with flags 0 or `LOAD_WITH_ALTERED_SEARCH_PATH`, and full module filename queries. Other search/datafile flags remain unsupported.

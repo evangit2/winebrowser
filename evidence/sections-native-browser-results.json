@@ -1,0 +1,850 @@
+{
+  "date": "2026-09-26T13:06:38.994Z",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "957465a416c9e1d738591efb7a24af1da76a0e4e281d752b5572c4ce456f605c",
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2",
+  "inputDlls": [
+    {
+      "name": "ntdll.dll",
+      "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
+    },
+    {
+      "name": "wine-format.dll",
+      "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+    },
+    {
+      "name": "msvcrt.dll",
+      "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+    },
+    {
+      "name": "kernel32.dll",
+      "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+    },
+    {
+      "name": "kernelbase.dll",
+      "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+    },
+    {
+      "name": "msacm32.dll",
+      "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+    }
+  ],
+  "scope": "Native PE32 through Wine Kernel32/KernelBase/NTDLL: generated and supplied file bytes, A/W file mappings, NT create/map/query, exact section size and SEC_FILE, offset views, alignment/collision/protection errors, handle/view lifetimes and interior unmap.",
+  "browser": "154.0.8037.57",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "outboundRequests": [],
+  "firstFailure": null,
+  "recentNativeCalls": [
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        9,
+        0,
+        0,
+        67104100,
+        67104272
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryDefaultLocale",
+      "args": [
+        1,
+        17971876
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        12,
+        1,
+        0,
+        17966172,
+        67103932
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103744,
+        0,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        17971868,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        17971864,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103636,
+        80,
+        67103632
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103764,
+        0,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        17971872,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103364,
+        983359,
+        67102888,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103732,
+        131097,
+        67103344,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        102,
+        67104272,
+        432,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103828,
+        983103,
+        67103440,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103936,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        10
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        8
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        12
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954502
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        0,
+        17043648,
+        44,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104536,
+        3222274176,
+        67104568,
+        67104548,
+        0,
+        128,
+        3,
+        5,
+        96,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtWriteFile",
+      "args": [
+        256,
+        0,
+        0,
+        0,
+        67104584,
+        4206592,
+        65573,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104536,
+        2148532352,
+        67104568,
+        67104548,
+        0,
+        128,
+        3,
+        1,
+        96,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateSection",
+      "args": [
+        67104548,
+        983045,
+        67104568,
+        67104552,
+        2,
+        134217728,
+        257
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        257
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286144,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286144,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286144,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        4
+      ],
+      "threadId": 1,
+      "result": "0xc000004e"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286144,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0xc0000220"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286144,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0xc000001f"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286144,
+        4294967295,
+        67104640,
+        0,
+        0,
+        67104584,
+        67104636,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0xc0000018"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104588,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104588,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104588,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySection",
+      "args": [
+        1409286144,
+        0,
+        67104724,
+        16,
+        67104720
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateSection",
+      "args": [
+        67104716,
+        5,
+        67104684,
+        67104708,
+        2,
+        134217728,
+        256
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286148,
+        4294967295,
+        67104680,
+        0,
+        0,
+        0,
+        67104676,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0xc000001f"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286148,
+        4294967295,
+        67104680,
+        0,
+        0,
+        0,
+        67104676,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1409286148
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtUnmapViewOfSection",
+      "args": [
+        4294967295,
+        39059556
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1409286144
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtUnmapViewOfSection",
+      "args": [
+        4294967295,
+        38866944
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtUnmapViewOfSection",
+      "args": [
+        4294967295,
+        38998015
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtUnmapViewOfSection",
+      "args": [
+        4294967295,
+        38993920
+      ],
+      "threadId": 1,
+      "result": "0xc0000019"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        256
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104536,
+        2148532352,
+        67104568,
+        67104548,
+        0,
+        128,
+        3,
+        1,
+        96,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateSection",
+      "args": [
+        67104548,
+        983045,
+        67104568,
+        67104552,
+        2,
+        134217728,
+        258
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286152,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        258
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1409286152
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtUnmapViewOfSection",
+      "args": [
+        4294967295,
+        38862848
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104536,
+        2148532352,
+        67104568,
+        67104548,
+        0,
+        128,
+        3,
+        1,
+        96,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateSection",
+      "args": [
+        67104548,
+        983045,
+        67104568,
+        67104552,
+        2,
+        134217728,
+        259
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        259
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtMapViewOfSection",
+      "args": [
+        1409286156,
+        4294967295,
+        67104608,
+        0,
+        0,
+        67104552,
+        67104604,
+        1,
+        0,
+        2
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1409286156
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtUnmapViewOfSection",
+      "args": [
+        4294967295,
+        38862848
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtWriteFile",
+      "args": [
+        1,
+        0,
+        0,
+        0,
+        67104584,
+        4202612,
+        11,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtWriteFile",
+      "args": [
+        1,
+        0,
+        0,
+        0,
+        67104584,
+        4202624,
+        12,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        6,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        4294967295,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    }
+  ]
+}

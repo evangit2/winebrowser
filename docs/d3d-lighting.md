@@ -83,7 +83,7 @@ shader and native DirectX 12 cube regressions remain passing.
 The earlier report mislabeled render state 146 as NORMALIZENORMALS; its actual
 name is SPECULARMATERIALSOURCE. The numeric trace was correct. Both D3D8/9 headers
 identify NORMALIZENORMALS as 143. Original Hamsterball now passes state 146 and
-stops at NtCreateSection while mapping `shadow.png` (8,879,806 guest instructions).
+stops at the x86 repeat prefix at `0x4a6988`, after mapping `shadow.png` (8,884,000 guest instructions).
 No game frame has been presented; arbitrary-program compatibility is not established.
 
 Semantics were checked against the pinned Wine headers and fixed-function state
