@@ -81,10 +81,10 @@ Native window metadata/positioning and DirectInput 8 pass independent native
 browser tests, including keyboard/mouse formats, immediate/buffered input and
 focus-loss recovery. NT/Win32 event synchronization now passes native fixtures
 through both ordinary uploads and real Wine DLLs. The TEB now provides Wine's
-activation-context stack and Unicode scratch buffer. Corrected filename
-conversion exposes Hamsterball's earlier directory query: current startup stops
-at `NtQueryAttributesFile` for `C:\winebrowser\DATA`, after 8,776,588 guest
-instructions in Node and Chromium, before window creation.
+activation-context stack and Unicode scratch buffer. Package file and directory
+metadata now passes through Win32 and native NT queries, including Hamsterball's
+`C:\winebrowser\DATA` lookup. Current startup reaches `NtCreateThreadEx` after
+8,840,377 guest instructions in Node and Chromium, before window creation.
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the
 [audio fixture and limits](tests/fixtures/dsound/README.md).

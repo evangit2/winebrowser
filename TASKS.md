@@ -122,10 +122,13 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Initialize the TEB activation-context stack and Unicode scratch storage.
       Native Wine module-name conversion and empty activation-context queries
       pass; filename APIs now use their intended native paths.
-- [ ] Continue Hamsterball through `NtQueryAttributesFile` for its packaged
-      `C:\winebrowser\DATA` directory, after 8,776,588 guest instructions in Node
-      and Chromium. Corrected TEB filename conversion exposes this earlier
-      directory query; the current probe stops before window creation.
+- [x] Query package file/directory metadata through Win32 A/W and NT path/handle
+      APIs. Shared timestamps track guest creation, reads, writes and truncation.
+      Ordinary EXE/ZIP and real Wine DLL fixtures pass in Chromium; native Wine
+      also passes in Node. Missing leaves and parents return distinct errors.
+- [ ] Continue Hamsterball through `NtCreateThreadEx`, after 8,840,377 guest
+      instructions in Node and Chromium. Its packaged `DATA` query now passes;
+      the current probe stops before window creation.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

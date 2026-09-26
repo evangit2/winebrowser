@@ -1,5 +1,6 @@
 // Synchronous PE32 NT file services backed by Runtime's bounded virtual files.
 import { resolveGuestPath } from './guest-paths.js';
+import { fileMetadata, writeFileMetadata, touchFile } from './file-metadata.js';
 const SUCCESS = 0;
 const ACCESS_VIOLATION = 0xc0000005;
 const INVALID_HANDLE = 0xc0000008;
@@ -18,7 +19,7 @@ const NOT_SUPPORTED = 0xc00000bb;
 const NAME_NOT_FOUND = 0xc0000034;
 const PATH_NOT_FOUND = 0xc000003a;
 
-function objectPath(runtime, pointer) {
+function objectPath(runtime, pointer, allowRoot = false) {
   if (!checked(runtime, pointer, 24)) return { status: ACCESS_VIOLATION };
   if (runtime.read32(pointer) !== 24) return { status: INVALID_PARAMETER };
   // Root-directory handles and caller-supplied security are separate services.
@@ -43,7 +44,7 @@ function objectPath(runtime, pointer) {
   // NT absolute names have already been normalized by Wine's DOS path routines.
   if (!path.startsWith('\\??\\')) return { status: PATH_NOT_FOUND };
   try {
-    return { path: resolveGuestPath(path) };
+    return { path: resolveGuestPath(path, '', { allowRoot }) };
   } catch {
     return { status: PATH_NOT_FOUND };
   }
@@ -102,12 +103,14 @@ function create(runtime, argument) {
   const handle = runtime.nextHandle++;
   if (!exists || truncate) {
     runtime.files.set(path, new Uint8Array());
+    touchFile(runtime, path, { created: !exists, write: true });
     runtime.dirty.add(path);
   }
   runtime.handles.set(handle, {
     path,
     position: 0,
     access: ((readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0)) >>> 0,
+    ntAccess: access,
     share,
     options,
     inherit: !!(runtime.read32(argument(2) + 12) & 2),
@@ -123,9 +126,20 @@ function information(runtime, argument, set) {
   const opened = regular(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   const kind = argument(4) >>> 0;
-  const size = kind === 5 && !set ? 24 : kind === 14 || (kind === 20 && set) ? 8 : 0;
+  const size =
+    !set && kind === 4
+      ? 40
+      : !set && kind === 34
+        ? 56
+        : kind === 5 && !set
+          ? 24
+          : kind === 14 || (kind === 20 && set)
+            ? 8
+            : 0;
   if (!size) return complete(NOT_SUPPORTED);
   if (kind === 14 && !(opened.access & 0xc0000000)) return complete(ACCESS_DENIED);
+  if ([4, 34].includes(kind) && !((opened.ntAccess ?? opened.access) & 0x80000080))
+    return complete(ACCESS_DENIED);
   if (argument(3) >>> 0 < size) return complete(0xc0000004); // INFO_LENGTH_MISMATCH
   const buffer = argument(2) >>> 0;
   if (!checked(runtime, buffer, size, !set)) return complete(ACCESS_VIOLATION);
@@ -141,9 +155,14 @@ function information(runtime, argument, set) {
       const resized = new Uint8Array(Number(value));
       resized.set(bytes.subarray(0, resized.length));
       runtime.files.set(opened.path, resized);
+      touchFile(runtime, opened.path, { write: true });
       runtime.dirty.add(opened.path);
     }
     return complete(SUCCESS);
+  }
+  if (kind === 4 || kind === 34) {
+    writeFileMetadata(runtime, buffer, fileMetadata(runtime, opened.path), kind === 34);
+    return complete(SUCCESS, size);
   }
   runtime.data.fill(0, buffer, buffer + size);
   if (kind === 14) runtime.view.setBigInt64(buffer, BigInt(opened.position), true);
@@ -225,6 +244,7 @@ function read(runtime, argument) {
   if (transferred)
     runtime.data.set(source.subarray(start.value, start.value + transferred), argument(5) >>> 0);
   opened.position = start.value + transferred;
+  if (transferred) touchFile(runtime, opened.path, { read: true });
   if (count && !transferred) return complete(END_OF_FILE);
   return complete(SUCCESS, transferred);
 }
@@ -261,6 +281,7 @@ function write(runtime, argument) {
   updated.set(previous);
   updated.set(bytes, start.value);
   runtime.files.set(opened.path, updated);
+  if (count) touchFile(runtime, opened.path, { write: true });
   opened.position = start.value + count;
   runtime.dirty.add(opened.path);
   return complete(SUCCESS, count);
@@ -289,7 +310,19 @@ export function closeFileHandle(runtime, handle) {
   return SUCCESS;
 }
 
+function queryAttributes(runtime, argument, full) {
+  if (!checked(runtime, argument(1), full ? 56 : 40, true)) return ACCESS_VIOLATION;
+  const named = objectPath(runtime, argument(0), true);
+  if (named.status) return named.status;
+  const info = fileMetadata(runtime, named.path);
+  if (info.status) return info.status;
+  writeFileMetadata(runtime, argument(1), info, full);
+  return SUCCESS;
+}
+
 export const fileNtServices = {
+  NtQueryAttributesFile: { argc: 2, call: (r, a) => queryAttributes(r, a, false) },
+  NtQueryFullAttributesFile: { argc: 2, call: (r, a) => queryAttributes(r, a, true) },
   NtCreateFile: { argc: 11, call: create },
   NtOpenFile: {
     argc: 6,

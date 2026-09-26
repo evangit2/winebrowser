@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-26T07:24:08.622Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "4b67f6077b7f489828e9b768a72757cb6f0bc1787e4aa7d6d2cd48751ef6955d",
+  "scope": "PE32 through ordinary EXE and nested ZIP upload. A/W file attributes, actual parent directories, missing leaf/parent errors, generated file size and timestamps, binary readback and bounded metadata output.",
+  "results": [
+    {
+      "name": "metadata.exe",
+      "exitCode": 0,
+      "output": "no-data\nmetadata-ok\n",
+      "instructions": 280,
+      "compiledBlocks": 62,
+      "errors": []
+    },
+    {
+      "name": "metadata.zip",
+      "exitCode": 0,
+      "output": "data-ok\nmetadata-ok\n",
+      "instructions": 310,
+      "compiledBlocks": 71,
+      "errors": []
+    }
+  ]
+}

@@ -14,6 +14,8 @@ import { displayApis } from './win32-display.js';
 import { iconApis } from './win32-icons.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileShareConflict } from './wine-file.js';
+import { touchFile, fileMetadata, FILE_PATH_NOT_FOUND } from './file-metadata.js';
+import { fileMetadataApis } from './win32-file-metadata.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
 
@@ -42,6 +44,7 @@ export const API_NAMES = {
 
 for (const key of [
   ...Object.keys(processApis),
+  ...Object.keys(fileMetadataApis),
   ...Object.keys(syncApis),
   ...Object.keys(audioApis),
   ...Object.keys(gdiApis),
@@ -177,6 +180,11 @@ function createFile(runtime, argument, wide = false) {
     return success(0xffffffff, 7);
   }
 
+  const metadata = fileMetadata(runtime, path);
+  if (metadata.directory || metadata.status === FILE_PATH_NOT_FOUND) {
+    runtime.lastError = metadata.directory ? 5 : 3;
+    return success(0xffffffff, 7);
+  }
   if (mode === 3 && !runtime.files.has(path)) {
     runtime.lastError = 2;
     return success(0xffffffff, 7);
@@ -193,6 +201,7 @@ function createFile(runtime, argument, wide = false) {
       runtime.lastError = 5;
       return success(0xffffffff, 7);
     }
+    touchFile(runtime, path, { created: !runtime.files.has(path), write: true });
     runtime.files.set(path, new Uint8Array());
     runtime.dirty.add(path);
   }
@@ -213,6 +222,7 @@ function readFile(runtime, argument) {
   runtime.check(address, count, true);
   runtime.data.set(bytes.subarray(handle.position, handle.position + count), address);
   handle.position += count;
+  if (count) touchFile(runtime, handle.path, { read: true });
   runtime.write32(argument(3), count);
   return success(1, 5);
 }
@@ -243,6 +253,7 @@ function writeFile(runtime, argument) {
     updatedBytes.set(previousBytes);
     updatedBytes.set(bytes, handle.position);
     runtime.files.set(handle.path, updatedBytes);
+    if (count) touchFile(runtime, handle.path, { write: true });
     handle.position += count;
     runtime.dirty.add(handle.path);
   }
@@ -261,6 +272,7 @@ function closeHandle(runtime, argument) {
 export function createWin32ApiProvider() {
   return new Map([
     ...Object.entries(processApis),
+    ...Object.entries(fileMetadataApis),
     ...Object.entries(syncApis),
     ...Object.entries(audioApis),
     ...Object.entries(gdiApis),

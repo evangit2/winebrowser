@@ -1,0 +1,747 @@
+{
+  "date": "2026-09-26T07:22:54.103Z",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "c928e6e9903d767ab1b988900621f3c89496b41834bf8c047248c8a229fc9f83",
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "patchSha256": "ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21",
+  "inputDlls": [
+    {
+      "name": "ntdll.dll",
+      "sha256": "857d6368024b2b37dae567aa4625e05dd80eb57532e431fe110d9032311fe26a"
+    },
+    {
+      "name": "wine-format.dll",
+      "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+    },
+    {
+      "name": "msvcrt.dll",
+      "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+    },
+    {
+      "name": "kernel32.dll",
+      "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+    },
+    {
+      "name": "kernelbase.dll",
+      "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+    },
+    {
+      "name": "msacm32.dll",
+      "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+    }
+  ],
+  "scope": "Native PE32 through real Wine Kernel32/KernelBase/NTDLL. A/W package metadata, directories, missing leaves/parents, generated files, NtQueryAttributesFile/NtQueryFullAttributesFile, FileBasicInformation/FileNetworkOpenInformation layouts, metadata-only handle access and binary readback.",
+  "firstFailure": null,
+  "recentNativeCalls": [
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103440,
+        80,
+        67103436
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103668,
+        983103,
+        67103568,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103676,
+        983103,
+        67103716
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954496
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103680,
+        983103,
+        67103740
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954497
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103684,
+        983103,
+        67103740
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryInformationProcess",
+      "args": [
+        4294967295,
+        26,
+        67104728,
+        4,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104728,
+        0,
+        67104724,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtInitializeNlsFiles",
+      "args": [
+        67103856,
+        20633320,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        9,
+        0,
+        0,
+        67104100,
+        67104272
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryDefaultLocale",
+      "args": [
+        1,
+        17971876
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        12,
+        1,
+        0,
+        17966172,
+        67103932
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103744,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        17971868,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        17971864,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103636,
+        80,
+        67103632
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103764,
+        0,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        17971872,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103364,
+        983359,
+        67102888,
+        0
+      ],
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103732,
+        131097,
+        67103344,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        102,
+        67104272,
+        432,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103828,
+        983103,
+        67103440,
+        0
+      ],
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103936,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        10
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        8
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        12
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954502
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        0,
+        17043648,
+        44,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryAttributesFile",
+      "args": [
+        67104400,
+        67104424
+      ],
+      "path": "\\??\\C:\\winebrowser",
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryAttributesFile",
+      "args": [
+        67104400,
+        67104424
+      ],
+      "path": "\\??\\C:\\winebrowser\\",
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryAttributesFile",
+      "args": [
+        67104400,
+        67104424
+      ],
+      "path": "\\??\\C:\\winebrowser\\absent.bin",
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryAttributesFile",
+      "args": [
+        67104400,
+        67104424
+      ],
+      "path": "\\??\\C:\\winebrowser\\missing\\file.bin",
+      "result": "0xc000003a"
+    },
+    {
+      "name": "NtQueryAttributesFile",
+      "args": [
+        67104400,
+        67104424
+      ],
+      "path": "\\??\\C:\\winebrowser\\DATA",
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryFullAttributesFile",
+      "args": [
+        67104368,
+        67104392
+      ],
+      "path": "\\??\\C:\\winebrowser\\data\\payload.bin",
+      "result": "0x0"
+    },
+    {
+      "name": "NtWriteFile",
+      "args": [
+        1,
+        0,
+        0,
+        0,
+        67104416,
+        4202618,
+        8,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104408,
+        1074790528,
+        67104440,
+        67104420,
+        0,
+        128,
+        3,
+        5,
+        96,
+        0,
+        0
+      ],
+      "result": "0xc00000ba"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104408,
+        1074790528,
+        67104440,
+        67104420,
+        0,
+        128,
+        3,
+        5,
+        96,
+        0,
+        0
+      ],
+      "result": "0xc000003a"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104408,
+        3222274176,
+        67104440,
+        67104420,
+        0,
+        128,
+        3,
+        5,
+        96,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWriteFile",
+      "args": [
+        256,
+        0,
+        0,
+        0,
+        67104456,
+        67104703,
+        5,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryFullAttributesFile",
+      "args": [
+        67104368,
+        67104392
+      ],
+      "path": "\\??\\C:\\winebrowser\\output.bin",
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104460,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104460,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        19988480,
+        67104460,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryAttributesFile",
+      "args": [
+        67104604,
+        67104544
+      ],
+      "path": "\\??\\C:\\winebrowser\\output.bin",
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryFullAttributesFile",
+      "args": [
+        67104604,
+        67104544
+      ],
+      "path": "\\??\\C:\\winebrowser\\output.bin",
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationFile",
+      "args": [
+        256,
+        67104536,
+        67104544,
+        56,
+        34
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104408,
+        1048704,
+        67104440,
+        67104420,
+        0,
+        128,
+        3,
+        1,
+        96,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationFile",
+      "args": [
+        257,
+        67104536,
+        67104544,
+        40,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "args": [
+        257,
+        0,
+        0,
+        0,
+        67104456,
+        67104535,
+        1,
+        0,
+        0
+      ],
+      "result": "0xc0000022"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        257
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        256
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "args": [
+        67104408,
+        2148532352,
+        67104440,
+        67104420,
+        0,
+        128,
+        3,
+        1,
+        96,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "args": [
+        258,
+        0,
+        0,
+        0,
+        67104456,
+        67104529,
+        6,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        258
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtWriteFile",
+      "args": [
+        1,
+        0,
+        0,
+        0,
+        67104416,
+        4202783,
+        12,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        6,
+        0,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtTerminateProcess",
+      "args": [
+        4294967295,
+        0
+      ],
+      "result": "0x0"
+    }
+  ]
+}

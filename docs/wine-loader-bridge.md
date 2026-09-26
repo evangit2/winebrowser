@@ -66,7 +66,7 @@ The native `NtProtectVirtualMemory` provider supports no-access, read-only and r
 
 Guest kernelbase dynamic TLS checks allocate 65 slots (including expansion), set/read/free values and verify reuse clears the value. `NtSetInformationThread(ThreadZeroTlsCell)` clears the requested cell in the sole guest thread. The host does not implement `TlsAlloc` itself; Wine uses its own bitmap and heap code. Multiple guest threads and static-TLS/Wine loader ownership are still unresolved.
 
-With the real `c_20127.nls` ASCII table included in the optional input manifest, C-locale and conservative processor-feature queries complete. The synchronous NT file boundary supplies `FileFsDeviceInformation` for existing runtime handles, bounded byte reads/writes and close. Standard output/error are real byte-output pipes; invalid stdin remains an invalid handle that Wine handles itself. File creation, asynchronous I/O, events and general native file-information queries remain unfinished. Passing CRT exports is distinct from running an application through Wine's full loader and shutdown lifecycle.
+With the real `c_20127.nls` ASCII table included in the optional input manifest, C-locale and conservative processor-feature queries complete. The synchronous NT file boundary supplies `FileFsDeviceInformation` for existing runtime handles, bounded byte reads/writes and close. Standard output/error are real byte-output pipes; invalid stdin remains an invalid handle that Wine handles itself. Synchronous file creation, event waits and basic/full file metadata now have separate passing fixtures. Asynchronous file I/O and broader file-information classes remain unfinished. Passing CRT exports is distinct from running an application through Wine's full loader and shutdown lifecycle.
 
 ## Unchanged application startup diagnostic
 
@@ -122,11 +122,11 @@ decoding. Native window metadata, positioning, DirectInput 8 formats/cooperative
 levels and DirectSound creation have passed startup probes and separate native
 fixtures. Event creation and waits now run through native Wine. Initializing
 the TEB activation-context stack and Unicode scratch buffer fixes native module
-lookup and filename conversion. The corrected path now stops earlier, before
-window creation: `NtQueryAttributesFile` queries the packaged
-`C:\winebrowser\DATA` directory at 8,776,588 guest instructions in both probes.
+lookup and filename conversion. Package metadata queries now pass, including
+the game's `C:\winebrowser\DATA` directory. Startup reaches `NtCreateThreadEx`
+at 8,840,377 guest instructions in both probes, before window creation.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is file metadata, guest threading and remaining
+unverified. The next work is guest threading and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
@@ -186,3 +186,14 @@ and signed ShowCursor counts share process-local state. The
 [cursor fixture](../tests/fixtures/cursors/README.md) verifies normal EXE upload,
 real mouse/keyboard routing, visible CSS cursor changes and clean exit. Custom
 cursor resources and additional system cursor assets remain unfinished.
+
+Package metadata queries share the same file storage as Win32 and NT I/O.
+`GetFileAttributesA/W`, `GetFileAttributesExA/W`, `NtQueryAttributesFile`,
+`NtQueryFullAttributesFile`, and handle-based basic/network-open information
+report real byte sizes, inferred parent directories and process-local timestamps.
+Imported files receive the virtual copy's creation time; original host/archive
+dates are not retained. Guest reads/writes and creation update the shared times.
+The [metadata fixture](../tests/fixtures/file-metadata/README.md) verifies ordinary
+EXE/ZIP uploads and actual Wine KernelBase/NTDLL in Node and Chromium. Directory
+creation/enumeration, empty directory import and persistent timestamps remain
+unfinished.

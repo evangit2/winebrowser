@@ -19,7 +19,7 @@ import { ModuleGraph } from './modules.js';
 import { GuestMemory } from './memory.js';
 import { API_NAMES, createWin32ApiProvider, importKey } from './win32.js';
 import { GuestPerformanceClock } from './guest-clock.js';
-import { createSharedUserData } from './shared-user-data.js';
+import { createSharedUserData, systemFileTime } from './shared-user-data.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
 
 export { API_NAMES };
@@ -79,6 +79,7 @@ export class Runtime {
     this.graphics12 = graphics12;
     this.performanceClock = new GuestPerformanceClock(performanceNow);
     this.systemNow = systemNow;
+    this.packageFileTime = systemFileTime(systemNow());
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles, { hostModuleImages });
     this.memory = new WebAssembly.Memory({ initial: 1024, maximum: 1024 });
     this.regions = [{ start: 0x2e00000, end: 0x4000000, write: true, exec: false }];

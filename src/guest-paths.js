@@ -11,14 +11,17 @@ export function packageDosPath(path = '', directory = false) {
 
 // Resolve guest filenames within the package volume. Parent components may
 // reach sibling asset directories but cannot escape C:\winebrowser.
-export function resolveGuestPath(input, cwd = '') {
+export function resolveGuestPath(input, cwd = '', { allowRoot = false } = {}) {
   if (typeof input !== 'string' || !input || input.includes('\0'))
     throw Error('Invalid guest path');
   let path = input.replaceAll('\\', '/');
   if (path.startsWith('/??/')) path = path.slice(4);
   const root = GUEST_PACKAGE_ROOT.replaceAll('\\', '/').toLowerCase();
   let parts;
-  if (path.toLowerCase().startsWith(root)) {
+  if (allowRoot && path.toLowerCase() === root.slice(0, -1)) {
+    path = '';
+    parts = [];
+  } else if (path.toLowerCase().startsWith(root)) {
     path = path.slice(root.length);
     parts = [];
   } else {
@@ -33,5 +36,5 @@ export function resolveGuestPath(input, cwd = '') {
       parts.pop();
     } else parts.push(part);
   }
-  return normalizePath(parts.join('/'));
+  return allowRoot && !parts.length ? '' : normalizePath(parts.join('/'));
 }

@@ -90,7 +90,10 @@
     "test:dsound": "node scripts/test-dsound-browser.mjs",
     "build:events": "sh scripts/build-events-fixture.sh",
     "test:events": "node scripts/test-events-browser.mjs",
-    "test:events-native": "node scripts/test-events-native.mjs"
+    "test:events-native": "node scripts/test-events-native.mjs",
+    "build:metadata": "sh scripts/build-metadata-fixture.sh",
+    "test:metadata": "node scripts/test-metadata-browser.mjs",
+    "test:metadata-native": "node scripts/test-metadata-native.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
