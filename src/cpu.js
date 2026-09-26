@@ -231,6 +231,25 @@ export class CPU {
         }
         this.flags(accValue, oldValue, (accValue - oldValue) & mask, 1, bits);
       },
+      cmpxchg8b: (address) => {
+        // CMPXCHG8B compares EDX:EAX with the 8-byte memory operand. On a
+        // match it is replaced from ECX:EBX and ZF is set; otherwise EDX:EAX
+        // is loaded from memory and ZF is cleared.
+        this.checkMemory(address, 8, true);
+        const low = this.r[0].value >>> 0;
+        const high = this.r[2].value >>> 0;
+        const oldLow = this.host.load(address, 4) >>> 0;
+        const oldHigh = this.host.load(address + 4, 4) >>> 0;
+        const match = low === oldLow && high === oldHigh;
+        if (match) {
+          this.host.store(address, this.r[3].value, 4);
+          this.host.store(address + 4, this.r[1].value, 4);
+        } else {
+          this.r[0].value = oldLow | 0;
+          this.r[2].value = oldHigh | 0;
+        }
+        this.f.zf = Number(match);
+      },
       xadd: (
         oldDestination,
         oldSource,
@@ -736,6 +755,8 @@ export class CPU {
               M.Neg,
               M.Not,
               M.Cmpxchg,
+              M.Cmpxchg8b,
+              M.Cmpxchg16b,
               M.Xadd,
             ].includes(m);
             const memoryDestination = i.opCount > 0 && i.opKind(0) === K.Memory;
@@ -1098,6 +1119,11 @@ export class CPU {
               ...(destination ? constant(0) : addr(i)),
               ...call(Host.cmpxchg),
             );
+          } else if (m === M.Cmpxchg8b || m === M.Cmpxchg16b) {
+            if (i.opCount !== 1 || i.opKind(0) !== K.Memory)
+              throw Error('CMPXCHG8B/16B requires a memory operand');
+            if (m === M.Cmpxchg16b) throw Error('CMPXCHG16B requires 64-bit mode');
+            code.push(...addr(i), ...call(Host.cmpxchg8b));
           } else if (m === M.Xadd) {
             if (
               i.opCount !== 2 ||

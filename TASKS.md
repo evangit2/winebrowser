@@ -193,8 +193,12 @@ D3D10/11 and broader D3D12 support are still required.
       builtin guest DLL (the source-built shell32) delegates unimplemented
       exports to a host thunk instead of shadowing them, and map image modules
       after import resolution so newly discovered providers are covered.
-      Original Hamsterball now passes GetSurfaceLevel and CopyRects is its next
-      missing method (caller `0x476ecb`, 10,407,907 guest instructions). See
+      Original Hamsterball now passes GetSurfaceLevel and CopyRects
+      (caller `0x476ecb`, 10,407,907 guest instructions), plus LODSB/LODSD in
+      bass.dll and `LOCK CMPXCHG8B` in the Wine ntdll. Startup now reaches its
+      message/timer loop with three live guest threads and runs to the bounded
+      diagnostic deadline (17.6M guest instructions) without an unsupported
+      operation; no game frame renders yet. See
       `evidence/hamsterball-startup-browser.json`.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
