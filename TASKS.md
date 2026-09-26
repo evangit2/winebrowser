@@ -99,8 +99,12 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Read and write native window metadata and per-window extra bytes, including
       A/W access, byte offsets, control IDs and creation/destruction callbacks.
       Original Hamsterball creates its 800×600 window with its native icon.
-- [ ] Continue Hamsterball startup through `SetWindowPos`, after 8,800,785 guest
-      instructions in Node and Chromium.
+- [x] Position and resize native windows with mutable WINDOWPOS callbacks,
+      default MOVE/SIZE delivery, client pixel preservation, and sibling/topmost
+      ordering. EXE/ZIP browser tests verify geometry, child hit ordering and
+      activation without overriding the requested sibling placement.
+- [ ] Continue Hamsterball startup through `DirectInput8Create`, after 8,804,365
+      guest instructions in Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

@@ -120,9 +120,10 @@ pass predefined cursor loading, including IDC_HAND, and x87 integer-operand
 arithmetic/comparisons, COM GUID conversion, window lookup and 24-bit icon
 decoding. Native window metadata passes through the original game window
 procedure, and both probes create the 800×600 Hamsterball window with its native
-icon. Both next stop at `SetWindowPos`, after 8,800,785 guest instructions.
+icon. Window positioning now passes. Both next stop at `DirectInput8Create`,
+after 8,804,365 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is window positioning and remaining
+unverified. The next work is DirectInput initialization and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.

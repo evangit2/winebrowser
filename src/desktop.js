@@ -103,6 +103,17 @@ export class VirtualDesktop {
     ordered.forEach((w, i) => {
       w.element.style.zIndex = String(ordered.length - i);
     });
+    const parents = new Set(
+      [...this.windows.values()].filter((w) => w.isControl).map((w) => w.parentId),
+    );
+    for (const parent of parents) {
+      const children = [...this.windows.values()]
+        .filter((w) => w.isControl && w.parentId === parent)
+        .sort(compareWindowOrder);
+      children.forEach((w, i) => {
+        w.container.style.zIndex = String(children.length - i);
+      });
+    }
   }
 
   stack(windowId, zOrder, topmost) {
@@ -114,24 +125,36 @@ export class VirtualDesktop {
     this.#restack();
   }
 
-  #focus(window, { focusElement = false } = {}) {
+  #focus(window, { focusElement = false, preserveOrder = false } = {}) {
+    if (this.syncingFocus) return;
     const parent = this.#topLevel(window);
     if (!parent || !this.#available(window)) return;
-    if (window.isControl) {
-      if (focusElement) window.element.focus({ preventScroll: true });
-    } else this.container.focus({ preventScroll: true });
-    parent.zOrder = ++this.nextZIndex;
+    this.syncingFocus = true;
+    try {
+      if (window.isControl) {
+        if (focusElement) window.element.focus({ preventScroll: true });
+      } else this.container.focus({ preventScroll: true });
+    } finally {
+      this.syncingFocus = false;
+    }
+    if (!preserveOrder) parent.zOrder = ++this.nextZIndex;
     this.#restack();
     for (const other of this.windows.values())
       if (!other.isControl) other.element.classList.toggle('is-focused', other === parent);
     this.activeWindowId = window.id;
-    this.#emit(window.id, 'focus');
+    if (!preserveOrder) this.#emit(window.id, 'focus');
   }
 
-  focus(windowId) {
+  focus(windowId, { preserveOrder = false } = {}) {
+    if (!windowId && preserveOrder) {
+      const active = this.windows.get(this.activeWindowId);
+      active?.element.blur();
+      this.activeWindowId = null;
+      return true;
+    }
     const window = this.windows.get(windowId);
     if (!window || !this.#available(window)) return false;
-    this.#focus(window, { focusElement: true });
+    this.#focus(window, { focusElement: true, preserveOrder });
     return true;
   }
 
@@ -421,6 +444,7 @@ export class VirtualDesktop {
     if (state.controlStyle !== undefined) control.controlStyle = state.controlStyle;
     if (state.font !== undefined) control.font = state.font;
     control.parent = this.windows.get(control.parentId) ?? control.parent;
+    control.zOrder = state.zOrder ?? control.zOrder ?? 0;
     this.#applyControlGeometry(control);
   }
 
@@ -517,6 +541,7 @@ export class VirtualDesktop {
       const control = existing ?? this.#createControl(state);
       this.#applyControlState(control, state);
       this.windows.set(state.id, control);
+      this.#restack();
       if (
         !control.visible &&
         this.#descendantOf(this.windows.get(this.activeWindowId), control.id)

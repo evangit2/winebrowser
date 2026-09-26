@@ -1,0 +1,63 @@
+{
+  "date": "2026-09-26T05:12:47.347Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "d6e45acbbc465d6adaccac725df1fc5c677f55bb564895940cc8d6a216192fc7",
+  "scope": "Native PE32 through ordinary EXE and ZIP upload; native SetWindowPos callbacks, mutable WINDOWPOS, frame recalculation, topmost transitions, interactive geometry and child stacking/hiding verified in DOM hit testing.",
+  "results": [
+    {
+      "name": "window-position.exe",
+      "exitCode": 0,
+      "instructions": 3282,
+      "compiledBlocks": 138,
+      "before": [
+        40,
+        50,
+        320,
+        240,
+        40,
+        50
+      ],
+      "after": [
+        60,
+        70,
+        360,
+        260,
+        60,
+        70
+      ],
+      "childBounds": [
+        140,
+        50
+      ],
+      "errors": []
+    },
+    {
+      "name": "window-position.zip",
+      "exitCode": 0,
+      "instructions": 3282,
+      "compiledBlocks": 138,
+      "before": [
+        40,
+        50,
+        320,
+        240,
+        40,
+        50
+      ],
+      "after": [
+        60,
+        70,
+        360,
+        260,
+        60,
+        70
+      ],
+      "childBounds": [
+        140,
+        50
+      ],
+      "errors": []
+    }
+  ]
+}

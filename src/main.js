@@ -107,7 +107,8 @@ function createWorker() {
       stdout += message.text;
       $('output').textContent = stdout.slice(-64000);
     }
-    if (message.type === 'window-focus') desktop.focus(message.windowId);
+    if (message.type === 'window-focus')
+      desktop.focus(message.windowId, { preserveOrder: message.preserveOrder });
     if (message.type === 'window-stack')
       desktop.stack(message.windowId, message.zOrder, message.topmost);
     if (message.type === 'cursor') desktop.setCursor(message.css);

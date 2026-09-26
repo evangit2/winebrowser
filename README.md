@@ -78,7 +78,8 @@ EXE entry. Its native clock reads now pass through the read-only Windows shared
 data mapping. Predefined cursor loading and x87 integer-operand arithmetic now
 pass, as do COM GUID conversion, window lookup and 24-bit icon decoding.
 Native window metadata now passes, and the original game creates its 800×600
-window and icon. Startup next stops at `user32.dll!SetWindowPos`.
+window and icon. Native window positioning now passes; startup next stops at
+`dinput8.dll!DirectInput8Create`, after 8,804,365 guest instructions in Node and Chromium.
 Native process shutdown also passes a separate character-conversion fixture with the supplied Wine/NLS closure;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11

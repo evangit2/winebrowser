@@ -79,7 +79,9 @@
     "build:popup": "sh scripts/build-popup-fixture.sh",
     "test:popup": "node scripts/test-popup-browser.mjs",
     "build:window-data": "sh scripts/build-window-data-fixture.sh",
-    "test:window-data": "node scripts/test-window-data-browser.mjs"
+    "test:window-data": "node scripts/test-window-data-browser.mjs",
+    "build:window-position": "sh scripts/build-window-position-fixture.sh",
+    "test:window-position": "node scripts/test-window-position-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

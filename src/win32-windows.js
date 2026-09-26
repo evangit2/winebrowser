@@ -13,6 +13,7 @@ import { cursorApis, setCursor } from './win32-cursors.js';
 import { windowFindApis } from './win32-window-find.js';
 import { windowFrame, frameForWindow } from './window-frame.js';
 import { windowDataApis } from './win32-window-data.js';
+import { setWindowPos } from './win32-window-position.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -230,6 +231,25 @@ export class WindowManager {
           topmost: window.topmost,
         });
     }
+  }
+  async setFocus(hwnd, raise = true) {
+    const previous = this.focus;
+    if (hwnd && !this.windows.has(hwnd)) return this.fail(1400, 1);
+    if (hwnd && !this.isEnabled(hwnd)) return this.fail(87, 1);
+    if (previous === hwnd) return result(previous, 1);
+    this.focus = hwnd;
+    if (hwnd) {
+      this.active = this.topLevel(hwnd);
+      if (raise) this.raise(hwnd);
+    }
+    this.runtime.emit({
+      type: 'window-focus',
+      windowId: hwnd,
+      preserveOrder: true,
+    });
+    if (previous) await this.send(previous, 8, hwnd);
+    if (hwnd && this.focus === hwnd && this.windows.has(hwnd)) await this.send(hwnd, 7, previous);
+    return result(previous, 1);
   }
   isEnabled(hwnd) {
     let window = this.windows.get(hwnd);
@@ -583,7 +603,8 @@ async function defaultProc(r, a, wide) {
     return result(0, 4);
   }
   if (msg === 0x81) return result(1, 4);
-  if (msg === 0x83 && !wp) {
+  if (msg === 0x83) {
+    if (wp) r.check(lp, 52);
     const rect = [0, 4, 8, 12].map((i) => r.read32(lp + i) | 0);
     const { border, title } = frameForWindow(w);
     rectangle(r, lp, [
@@ -592,6 +613,51 @@ async function defaultProc(r, a, wide) {
       rect[2] - border,
       rect[3] - border,
     ]);
+    return result(0, 4);
+  }
+  if (msg === 0x47) {
+    r.check(lp, 28);
+    const flags = r.read32(lp + 24),
+      frame = frameForWindow(w);
+    if (!(flags & 0x1000))
+      await r.windows.send(hwnd, 3, 0, pair(w.x + frame.border, w.y + frame.border + frame.title));
+    if (!(flags & 0x800) && r.windows.windows.has(hwnd))
+      await r.windows.send(hwnd, 5, 0, pair(w.width, w.height));
+    return result(0, 4);
+  }
+  if (msg === 0x46) {
+    r.check(lp, 28);
+    if (!(r.read32(lp + 24) & 1) && (w.style & 0x40000 || !(w.style & 0xc0000000))) {
+      const info = r.allocate(40),
+        frame = frameForWindow(w);
+      try {
+        [
+          0,
+          0,
+          1024,
+          768,
+          0,
+          0,
+          1 + 2 * frame.border,
+          1 + 2 * frame.border + frame.title,
+          1026,
+          798,
+        ].forEach((v, i) => r.write32(info + i * 4, v));
+        await r.windows.send(hwnd, 0x24, 0, info);
+        if (r.windows.windows.has(hwnd))
+          for (const [posOffset, minOffset, maxOffset] of [
+            [16, 24, 32],
+            [20, 28, 36],
+          ]) {
+            const value = r.read32(lp + posOffset) | 0,
+              min = r.read32(info + minOffset) | 0,
+              max = r.read32(info + maxOffset) | 0;
+            r.write32(lp + posOffset, Math.max(min, Math.min(max, value)));
+          }
+      } finally {
+        r.free(info);
+      }
+    }
     return result(0, 4);
   }
   if (msg === 0x10) return result(await r.windows.destroy(hwnd), 4);
@@ -684,6 +750,7 @@ for (const wide of [false, true]) {
   });
 }
 Object.assign(windowApis, {
+  'user32.dll!SetWindowPos': setWindowPos,
   'user32.dll!AdjustWindowRect': (r, a) => adjustRect(r, a, false),
   'user32.dll!AdjustWindowRectEx': (r, a) => adjustRect(r, a, true),
   'user32.dll!ShowWindow': show,
@@ -756,21 +823,7 @@ Object.assign(windowApis, {
   'user32.dll!GetFocus': (r) => result(r.windows.focus),
   'user32.dll!GetForegroundWindow': (r) => result(r.windows.active),
   'user32.dll!GetActiveWindow': (r) => result(r.windows.active),
-  'user32.dll!SetFocus': async (r, a) => {
-    const previous = r.windows.focus;
-    if (a(0) && !r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
-    if (a(0) && !r.windows.isEnabled(a(0))) return r.windows.fail(87, 1);
-    if (previous === a(0)) return result(previous, 1);
-    r.windows.focus = a(0);
-    if (a(0)) {
-      r.windows.active = r.windows.topLevel(a(0));
-      r.windows.raise(a(0));
-    }
-    r.emit({ type: 'window-focus', windowId: a(0) });
-    if (previous) await r.windows.send(previous, 8, a(0));
-    if (a(0)) await r.windows.send(a(0), 7, previous);
-    return result(previous, 1);
-  },
+  'user32.dll!SetFocus': (r, a) => r.windows.setFocus(a(0)),
   'user32.dll!SetCapture': (r, a) => {
     if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
     const previous = r.windows.capture;

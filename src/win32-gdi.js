@@ -260,7 +260,14 @@ function getDC(runtime, argument) {
 }
 
 /** Resize or create the client-area bitmap backing a virtual HWND. */
-export function resizeWindowSurface(runtime, id, width, height) {
+export function resizeWindowSurface(
+  runtime,
+  id,
+  width,
+  height,
+  preserveContents = true,
+  redraw = true,
+) {
   const hwnd = id >>> 0;
   const window = runtime?.windows?.windows?.get(hwnd);
   if (
@@ -281,7 +288,7 @@ export function resizeWindowSurface(runtime, id, width, height) {
 
   const state = stateFor(runtime);
   const oldSurface = state.windowSurfaces.get(hwnd);
-  if (oldSurface?.width === width && oldSurface?.height === height) return true;
+  if (preserveContents && oldSurface?.width === width && oldSurface?.height === height) return true;
   if (!oldSurface && state.windowSurfaces.size >= MAX_WINDOW_SURFACES) return false;
   const totalPixels =
     totalSurfacePixels(state) -
@@ -290,7 +297,7 @@ export function resizeWindowSurface(runtime, id, width, height) {
   if (totalPixels > MAX_TOTAL_SURFACE_PIXELS) return false;
 
   const pixels = opaquePixels(width, height);
-  if (oldSurface) {
+  if (oldSurface && preserveContents) {
     const copyWidth = Math.min(width, oldSurface.width);
     const copyHeight = Math.min(height, oldSurface.height);
     for (let y = 0; y < copyHeight; y++) {
@@ -299,7 +306,7 @@ export function resizeWindowSurface(runtime, id, width, height) {
       pixels.set(oldSurface.pixels.subarray(oldOffset, oldOffset + copyWidth * 4), newOffset);
     }
   }
-  const surface = { width, height, pixels, dirty: true, windowId: hwnd };
+  const surface = { width, height, pixels, dirty: !!oldSurface?.dirty || redraw, windowId: hwnd };
   state.windowSurfaces.set(hwnd, surface);
   for (const dc of state.dcs.values()) if (dc.active && dc.hwnd === hwnd) dc.surface = surface;
   return true;
