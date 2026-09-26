@@ -88,6 +88,13 @@ static int run(void)
 
     IDirect3D9 *d3d = Direct3DCreate9(D3D_SDK_VERSION);
     if (!d3d) return 4;
+    D3DCAPS9 caps, device_caps;
+    if (FAILED(IDirect3D9_GetDeviceCaps(d3d, 0, D3DDEVTYPE_HAL, &caps)) ||
+        caps.DeviceType != D3DDEVTYPE_HAL || caps.AdapterOrdinal != 0 ||
+        (caps.PrimitiveMiscCaps & (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW)) !=
+            (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW) ||
+        caps.ZCmpCaps != 0xff || caps.MaxPrimitiveCount != 21845 || caps.MaxVertexW <= 0 ||
+        caps.MaxTextureWidth || caps.MaxSimultaneousTextures || caps.StencilCaps) return 36;
     D3DDISPLAYMODE desktop = {0}, enumerated = {0};
     if (FAILED(IDirect3D9_GetAdapterDisplayMode(d3d, 0, &desktop)) ||
             desktop.Width != (UINT)GetSystemMetrics(SM_CXSCREEN) ||
@@ -135,6 +142,9 @@ static int run(void)
     HRESULT status = IDirect3D9_CreateDevice(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
             window, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &params, &device);
     if (FAILED(status) || !device) return 5;
+    if (FAILED(IDirect3DDevice9_GetDeviceCaps(device, &device_caps))) return 37;
+    for (UINT i = 0; i < sizeof(caps) / sizeof(DWORD); i++)
+        if (((DWORD *)&caps)[i] != ((DWORD *)&device_caps)[i]) return 38;
 #ifdef WINEBROWSER_FULLSCREEN
     D3DDISPLAYMODE active;
     RECT fullscreen;

@@ -1,14 +1,14 @@
 {
-  "date": "2026-09-26T08:58:57.042Z",
+  "date": "2026-09-26T09:18:14.291Z",
   "status": "passed",
   "browser": "154.0.8037.57",
-  "exeSha256": "589e6fbe8675162af482800ec8256e9b78596f3d6736952c81c89c1a1cd0b5bd",
+  "exeSha256": "6fe6bea657072a41ce9cfdcf26728a7e2e263a5b7b15b817f995585a90d09a25",
   "scope": "Native D3D8 EXE/ZIP: 800x600 RGB565 fullscreen/FLIP/interval ONE, real GPU animation, Escape, and native assertions that desktop mode/window geometry/style restore on release.",
   "runs": [
     {
       "name": "fullscreen.exe",
       "pixels": {
-        "hash": "71472fd95919eb906913186e90c1b58cd11a2dcb81258bc781b4a89dfde2074d",
+        "hash": "7a4fa3e9e9d5efb149243b959bbf73ad4eed2436bd67235e13e4db1f4a6416e4",
         "width": 800,
         "height": 600,
         "frames": 6,
@@ -16,59 +16,63 @@
         "colored": 119716,
         "colors": [
           "25,28,49",
-          "239,206,90"
+          "90,198,239"
         ]
       },
       "animated": {
-        "hash": "7af2d8419bc6afea178044f70ef6af35bad083551abe87c4c4125ec5314a36b3",
+        "hash": "72ebfcf1d853c67f4c571e77f62e59bdc131bc4931907983f712c88c40d3bd38",
         "width": 800,
         "height": 600,
-        "frames": 26,
+        "frames": 25,
         "bad": 0,
         "colored": 116844,
         "colors": [
           "25,28,49",
           "189,142,230",
+          "239,206,90",
           "230,101,82",
-          "123,215,115",
           "239,158,82"
         ]
       },
       "exitCode": 0,
-      "instructions": 4012,
+      "instructions": 4588,
       "errors": []
     },
     {
       "name": "fullscreen.zip",
       "pixels": {
-        "hash": "3c93af169e08f3fd9d9217d299e25bee188687087ad06165832d8e9e2c3f31be",
+        "hash": "086dbb5e86418d137fd74be9283c86a5191d827c4411766386deab3d310987e5",
         "width": 800,
         "height": 600,
-        "frames": 6,
+        "frames": 7,
         "bad": 0,
-        "colored": 119716,
+        "colored": 121712,
         "colors": [
           "25,28,49",
-          "123,215,115"
+          "123,215,115",
+          "90,198,239",
+          "189,142,230",
+          "239,158,82"
         ]
       },
       "animated": {
-        "hash": "969dc246c8e1087e43a1fb7de3f5c76d1160491e41d54cc7ab5f9ff7f4b38564",
+        "hash": "e252c3fde4b642bfcda1f52ba41d450e00901f67c3c6adc0da27bfcffd3d60d3",
         "width": 800,
         "height": 600,
-        "frames": 26,
+        "frames": 28,
         "bad": 0,
-        "colored": 116844,
+        "colored": 117072,
         "colors": [
           "25,28,49",
-          "189,142,230",
           "90,198,239",
           "239,206,90",
+          "189,142,230",
+          "123,215,115",
           "239,158,82"
         ]
       },
       "exitCode": 0,
-      "instructions": 4150,
+      "instructions": 4780,
       "errors": []
     }
   ]

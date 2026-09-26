@@ -23,6 +23,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     frames: 0,
     nativeLoaderCalls: [],
     firstFailure: null,
+    diagnosticLimits: { maxBlocks: 10_000_000, maxExecutionMs: 45_000 },
   };
   const restore = new Map();
   const recentBlocks = [];
@@ -81,7 +82,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       },
       // Startup may include native timing calibration loops. Keep a bounded
       // diagnostic budget large enough to observe their eventual API calls.
-      maxBlocks: 10_000_000,
+      maxBlocks: report.diagnosticLimits.maxBlocks,
       emit: (message) => {
         if (message.type === 'stdout') report.output.push(message.text);
         if (message.type === 'window' && message.operation === 'create') {
@@ -106,8 +107,17 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
         if (!entry.forwarder && ['LdrLoadDll', 'LdrGetProcedureAddress'].includes(entry.name))
           loaderEntries.set(module.base + entry.rva, entry.name);
     const pendingLoaderCalls = [];
+    const started = performance.now();
+    let dispatches = 0;
     runtime.cpu.prepare = (ip) => {
       lastIP = ip;
+      // Retain the guest's actual location if it spins, before the browser's
+      // outer worker deadline discards the diagnostic state entirely.
+      if (
+        !(++dispatches & 255) &&
+        performance.now() - started > report.diagnosticLimits.maxExecutionMs
+      )
+        throw Error('Wine target diagnostic execution deadline exceeded');
       const stack = runtime.cpu.r[4].value >>> 0;
       for (let i = pendingLoaderCalls.length - 1; i >= 0; i--)
         if (
@@ -193,6 +203,15 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
           record.presentation = Array.from(
             { length: name.startsWith('IDirect3D8.') ? 13 : 14 },
             (_, i) => runtime.read32(args[5] + i * 4),
+          );
+        } catch (error) {
+          record.traceError = error.message;
+        }
+      }
+      if (/^IDirect3DDevice[89]\.SetTransform$/.test(name)) {
+        try {
+          record.matrix = Array.from({ length: 16 }, (_, i) =>
+            hex(runtime.read32(args[2] + i * 4)),
           );
         } catch (error) {
           record.traceError = error.message;

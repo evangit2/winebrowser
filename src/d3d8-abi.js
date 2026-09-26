@@ -14,12 +14,15 @@ export const DEVICE8_METHODS =
 export function device8Methods(methods9, names9) {
   const methods = {};
   for (const name of [
+    'GetDeviceCaps',
     'Present',
     'BeginScene',
     'EndScene',
     'Clear',
     'SetTransform',
+    'GetTransform',
     'SetRenderState',
+    'GetRenderState',
     'DrawPrimitiveUP',
   ])
     methods[DEVICE8_METHODS.indexOf(name)] = methods9[names9.indexOf(name)];

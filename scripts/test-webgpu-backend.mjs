@@ -194,6 +194,58 @@ try {
         commands: [colorClear(0xff000000), draw(0.5, 0xff7f3f1f, false)],
       });
       const quantizedDraw = frames.splice(0);
+      renderer.destroyDevice({ id: 4 });
+      await renderer.createDevice({ id: 5, windowId: 1, width: 130, height: 128, depth: true });
+      const rasterCases = [];
+      const shaderDraw = await programmable();
+      for (const path of ['fixed', 'programmable']) {
+        const triangle = (z) => {
+          if (path === 'fixed') return draw(z, 0xffff0000);
+          const command = { ...shaderDraw, vertices: shaderDraw.vertices.slice() };
+          const data = new DataView(command.vertices.buffer);
+          for (let i = 0; i < 3; i++) data.setFloat32(i * command.stride + 8, z, true);
+          return command;
+        };
+        // Exact equality uses zero, avoiding D16 rounding ambiguity at 0.5.
+        for (const [incoming, stored] of [
+          [0, 0],
+          [0.25, 0.75],
+          [0.75, 0.25],
+        ]) {
+          for (const depthCompare of [
+            'never',
+            'less',
+            'equal',
+            'less-equal',
+            'greater',
+            'not-equal',
+            'greater-equal',
+            'always',
+          ]) {
+            await renderer.present({
+              id: 5,
+              commands: [
+                { ...clear, depth: stored },
+                { ...triangle(incoming), depthCompare },
+              ],
+            });
+            rasterCases.push({ path, incoming, stored, depthCompare, pixel: frames.pop().center });
+          }
+        }
+        for (const reversed of [false, true]) {
+          for (const cullMode of ['none', 'cw', 'ccw']) {
+            const command = { ...triangle(0.25), cullMode };
+            if (reversed) {
+              const bytes = command.vertices.slice(),
+                stride = command.stride;
+              command.vertices.set(bytes.subarray(stride, stride * 2), 0);
+              command.vertices.set(bytes.subarray(0, stride), stride);
+            }
+            await renderer.present({ id: 5, commands: [clear, command] });
+            rasterCases.push({ path, reversed, cullMode, pixel: frames.pop().center });
+          }
+        }
+      }
       return {
         scope:
           'WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance',
@@ -203,6 +255,7 @@ try {
         flipped,
         copied,
         quantizedDraw,
+        rasterCases,
         pacedIntervals: times.slice(1).map((time, i) => time - times[i]),
         presentationMode: renderer.presentationMode,
         fallbackAdapter: renderer.fallbackAdapter,
@@ -250,6 +303,23 @@ try {
     ],
   );
   assert.deepEqual(report.quantizedDraw[0].center, [123, 65, 33, 255]);
+  for (const c of report.rasterCases) {
+    const visible = c.depthCompare
+      ? {
+          never: false,
+          less: c.incoming < c.stored,
+          equal: c.incoming === c.stored,
+          'less-equal': c.incoming <= c.stored,
+          greater: c.incoming > c.stored,
+          'not-equal': c.incoming !== c.stored,
+          'greater-equal': c.incoming >= c.stored,
+          always: true,
+        }[c.depthCompare]
+      : // Base triangle is counterclockwise; swapping two vertices reverses it.
+        c.cullMode === 'none' || c.cullMode === (c.reversed ? 'ccw' : 'cw');
+    const color = c.path === 'fixed' ? [255, 0, 0, 255] : [255, 128, 64, 255];
+    assert.deepEqual(c.pixel, visible ? color : [37, 45, 65, 255], JSON.stringify(c));
+  }
   assert.ok(
     report.pacedIntervals.every((ms) => ms >= 14),
     'interval ONE paces the virtual display',

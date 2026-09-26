@@ -158,8 +158,8 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
   const { runtime, events, call, factory, params, output, create } = fixture();
   assert.equal(d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 0).result, 0);
   await assert.rejects(
-    call(factory, 14, 0, 1, 0),
-    /Unsupported COM method IDirect3D9.GetDeviceCaps/,
+    call(factory, 3, 0),
+    /Unsupported COM method IDirect3D9.RegisterSoftwareDevice/,
   );
   runtime.write32(params + 32, 0);
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0x8876086c);
@@ -169,7 +169,7 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
     call(device, 23, 1),
     /Unsupported COM method IDirect3DDevice9.CreateTexture/,
   );
-  await assert.rejects(call(device, 57, 22, 3), /Unsupported IDirect3DDevice9.SetRenderState/);
+  await assert.rejects(call(device, 57, 22, 4), /Unsupported IDirect3DDevice9.SetRenderState/);
   await assert.rejects(call(device, 89, 0x44), /Unsupported IDirect3DDevice9.SetFVF/);
   await call(device, 57, 22, 1);
   await call(device, 57, 137, 0);
@@ -453,5 +453,87 @@ for (const version of [8, 9]) {
     assert.equal((await call(factory, 12, 0, 1, 22, 23, 80)).result, 0);
     assert.equal((await call(factory, 12, 0, 2, 22, 22, 80)).result, 0x8876086a);
     assert.equal((await call(factory, 12, 1, 1, 22, 22, 80)).result, 0x8876086c);
+  });
+}
+
+for (const version of [8, 9]) {
+  test(`D3D${version} factory/device capability ABI validates whole outputs and reports only implemented paths`, async () => {
+    const { runtime, call, factory, create } = fixture(version);
+    const size = version === 8 ? 212 : 304,
+      output = runtime.allocate(size + 8),
+      p = output + 4;
+    runtime.data.fill(0xcc, output, output + size + 8);
+    const slot = version === 8 ? 13 : 14;
+    for (const [adapter, type, pointer, error] of [
+      [1, 1, p, 0x8876086c],
+      [0, 2, p, 0x8876086b],
+      [0, 1, 0, 0x8876086c],
+      [0, 1, runtime.data.length - size + 1, 0x8876086c],
+    ])
+      assert.equal((await call(factory, slot, adapter, type, pointer)).result, error);
+    assert.ok(runtime.data.subarray(output, output + size + 8).every((v) => v === 0xcc));
+    assert.deepEqual(await call(factory, slot, 0, 1, p), { result: 0, argc: 4 });
+    assert.equal(runtime.read32(output), 0xcccccccc);
+    assert.equal(runtime.read32(p + size), 0xcccccccc);
+    assert.equal(runtime.read32(p), 1);
+    assert.equal(runtime.read32(p + 8 * 4), 0x72);
+    assert.equal(runtime.read32(p + 10 * 4), 0xff);
+    assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
+    for (const index of [15, 16, 17, 18, 22, 23, 34, 37, 38, 40, 47, 49, 51])
+      assert.equal(runtime.read32(p + index * 4), 0);
+    const expected = runtime.data.slice(p, p + size),
+      device = await create();
+    runtime.data.fill(0xee, p, p + size);
+    assert.deepEqual(await call(device, 7, p), { result: 0, argc: 2 });
+    assert.deepEqual(runtime.data.slice(p, p + size), expected);
+    await call(device, 2);
+    await call(factory, 2);
+  });
+}
+
+for (const version of [8, 9]) {
+  test(`D3D${version} depth/cull state queries and queued draws preserve the selected state`, async () => {
+    const { runtime, call, create, events } = fixture(version);
+    const setState = version === 8 ? 50 : 57,
+      getState = version === 8 ? 51 : 58;
+    const d = await create(),
+      p = runtime.allocate(4),
+      vertices = runtime.allocate(48);
+    await call(d, setState, 137, 0);
+    await call(d, version === 8 ? 76 : 89, 0x42);
+    await call(d, setState, 22, 3);
+    await call(d, setState, 23, 5);
+    await call(d, getState, 22, p);
+    assert.equal(runtime.read32(p), 3);
+    await call(d, getState, 23, p);
+    assert.equal(runtime.read32(p), 5);
+    await call(d, version === 8 ? 34 : 41);
+    await call(d, version === 8 ? 72 : 83, 4, 1, vertices, 16);
+    await call(d, version === 8 ? 35 : 42);
+    await call(d, setState, 22, 1);
+    await call(d, setState, 23, 1);
+    await call(d, version === 8 ? 15 : 17, 0, 0, 0, 0);
+    assert.equal(events.at(-1).commands[0].cullMode, 'ccw');
+    assert.equal(events.at(-1).commands[0].depthCompare, 'greater');
+    await assert.rejects(call(d, setState, 23, 9), /Unsupported.*SetRenderState/);
+    await call(d, 2);
+  });
+
+  test(`D3D${version} Set/GetTransform preserve nonfinite bit patterns until the application replaces startup state`, async () => {
+    const { runtime, call, create } = fixture(version);
+    const d = await create(),
+      p = runtime.allocate(64),
+      q = runtime.allocate(64);
+    runtime.write32(p, 0x7fa12345);
+    runtime.write32(p + 40, 0xffc00000);
+    await call(d, version === 8 ? 37 : 44, 3, p);
+    runtime.data.fill(0, p, p + 64);
+    await call(d, version === 8 ? 38 : 45, 3, q);
+    assert.equal(runtime.read32(q), 0x7fa12345);
+    assert.equal(runtime.read32(q + 40), 0xffc00000);
+    await call(d, version === 8 ? 37 : 44, 3, p);
+    await call(d, version === 8 ? 38 : 45, 3, q);
+    assert.ok(runtime.data.subarray(q, q + 64).every((v) => v === 0));
+    await call(d, 2);
   });
 }

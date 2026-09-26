@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T08:58:55.241Z",
+  "date": "2026-09-26T09:22:24.935Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2417,13 +2417,13 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "path": ".cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
         "bytes": 3797756,
         "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
       },
       {
         "name": "wine-format.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "path": "public/runtime/wine-format.dll",
         "bytes": 10752,
         "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
       },
@@ -2890,7 +2890,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x5935"
+      "result": "0x51a3"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -2929,7 +2929,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x593a"
+      "result": "0x51a7"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -4681,6 +4681,10 @@
         }
       }
     ]
+  },
+  "diagnosticLimits": {
+    "maxBlocks": 10000000,
+    "maxExecutionMs": 45000
   },
   "threadsAtStop": [
     {

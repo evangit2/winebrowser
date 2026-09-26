@@ -25,15 +25,17 @@ through checked thunks and tracks object references. Unsupported methods fail
 explicitly. The guest owns its Win32 window; the frontend checks the window
 handle and presentation parameters before creating a renderer surface.
 
-This bootstrap accepts one windowed X8R8G8B8 backbuffer, no multisampling,
-optional D16 depth, and the fixed-function `D3DFVF_XYZ | D3DFVF_DIFFUSE`
-triangle-list path. It implements the subset needed for device creation,
-`Clear` of the full color/depth target, world/view/projection `SetTransform`,
-lighting off, cull none, depth enable/write, `SetFVF`, `BeginScene`,
-`DrawPrimitiveUP`, `EndScene`, `Present`, and COM release. Draws copy bounded
-16-byte XYZ/color vertices and their transform state from guest memory before
-queuing a frame. Textures, programmable D3D shaders, other FVF layouts, reset,
-stencil, and the rest of D3D9 remain outside this initial scope.
+Device creation accepts windowed or virtual fullscreen presentation, RGB32/RGB565,
+DISCARD/FLIP/COPY, no multisampling and optional D16 depth; see
+[display and presentation](d3d-display.md). Factory/device capabilities describe
+only implemented paths. The fixed-function triangle-list path supports
+`D3DFVF_XYZ | D3DFVF_DIFFUSE`, full-target color/depth Clear, world/view/projection
+Set/GetTransform, lighting off, all depth comparisons and all culling modes.
+Draws copy bounded 16-byte XYZ/color vertices and their transform/raster state
+from guest memory before queuing a frame. Nonfinite transform state may be stored
+and read, but fails if consumed by a draw. The bounded programmable shader path
+is described below. Textures, other FVF layouts, reset, stencil and the rest of
+D3D8/9 remain unfinished.
 
 `src/webgpu-renderer.js` owns the browser backend inside the runtime worker.
 It receives those bounded frame snapshots, creates an `OffscreenCanvas` WebGPU
@@ -48,7 +50,7 @@ only D3D9, USER32 and KERNEL32, rotates a depth-tested cube using precomputed
 matrices, and is packaged at `public/demos/d3d9-cube.zip`.
 [Full-browser evidence](../evidence/d3d9-browser-results.json) records the
 unchanged PE working via both EXE upload and hosted ZIP: 640×480 frames with
-changing colored cube faces, 63 browser-compiled Wasm blocks, and clean guest
+changing colored cube faces, browser-compiled Wasm blocks, and clean guest
 window-close exit code 0. COM creation, draw, present and release were traced.
 This establishes the narrow native API fixture, not compatibility with an
 independent upstream D3D9 application.

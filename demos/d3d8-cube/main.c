@@ -4,11 +4,14 @@
 #include <d3d8.h>
 #define WINEBROWSER_D3D8
 #define D3D_VERSION_TEXT "8"
+#define D3DCAPS9 D3DCAPS8
 #define IDirect3D9 IDirect3D8
 #define IDirect3DDevice9 IDirect3DDevice8
 #define Direct3DCreate9 Direct3DCreate8
 #define IDirect3D9_CreateDevice IDirect3D8_CreateDevice
 #define IDirect3D9_Release IDirect3D8_Release
+#define IDirect3D9_GetDeviceCaps IDirect3D8_GetDeviceCaps
+#define IDirect3DDevice9_GetDeviceCaps IDirect3DDevice8_GetDeviceCaps
 #define IDirect3D9_GetAdapterDisplayMode IDirect3D8_GetAdapterDisplayMode
 #define IDirect3D9_CheckDepthStencilMatch IDirect3D8_CheckDepthStencilMatch
 #define IDirect3D9_GetAdapterModeCount(p, a, f) IDirect3D8_GetAdapterModeCount(p, a)

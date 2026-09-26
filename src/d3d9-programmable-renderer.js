@@ -1,3 +1,4 @@
+import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { ShaderCompiler } from './shader-compiler.js';
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
@@ -37,7 +38,7 @@ export class D3D9ProgrammableRenderer {
             attribute.format,
           ),
       ) ||
-      command.cullMode !== 'none' ||
+      !validRasterState(command) ||
       typeof command.depthTest !== 'boolean' ||
       typeof command.depthWrite !== 'boolean' ||
       ((command.depthTest || command.depthWrite) && !surface.depthTexture)
@@ -57,6 +58,8 @@ export class D3D9ProgrammableRenderer {
       !!surface.depthTexture,
       command.depthTest,
       command.depthWrite,
+      command.depthCompare ?? 'less-equal',
+      command.cullMode,
     ].join('|');
     let cached = this.pipelines.get(key);
     if (cached) return cached;
@@ -96,13 +99,13 @@ export class D3D9ProgrammableRenderer {
           entryPoint: 'main',
           targets: [{ format: this.owner.format }],
         },
-        primitive: { topology: 'triangle-list', cullMode: 'none' },
+        primitive: primitiveState(command.cullMode),
         ...(surface.depthTexture
           ? {
               depthStencil: {
                 format: 'depth16unorm',
                 depthWriteEnabled: command.depthTest && command.depthWrite,
-                depthCompare: command.depthTest ? 'less-equal' : 'always',
+                depthCompare: command.depthTest ? (command.depthCompare ?? 'less-equal') : 'always',
               },
             }
           : {}),

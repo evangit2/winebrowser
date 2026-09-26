@@ -1,3 +1,4 @@
+import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
 import { D3DPresentation } from './d3d-presentation.js';
 
@@ -215,7 +216,7 @@ export class WebGPURenderer {
           !matrix(command.world) ||
           !matrix(command.view) ||
           !matrix(command.projection) ||
-          command.cullMode !== 'none' ||
+          !validRasterState(command) ||
           typeof command.depthTest !== 'boolean' ||
           typeof command.depthWrite !== 'boolean' ||
           (command.depthTest && !surface.depthTexture)
@@ -237,6 +238,8 @@ export class WebGPURenderer {
       !!surface.depthTexture,
       command.depthTest,
       command.depthWrite,
+      command.depthCompare ?? 'less-equal',
+      command.cullMode,
     ].join(':');
     if (!this.pipelines.has(key))
       this.pipelines.set(
@@ -262,13 +265,15 @@ export class WebGPURenderer {
             entryPoint: 'fragmentMain',
             targets: [{ format: this.format }],
           },
-          primitive: { topology: 'triangle-list', cullMode: 'none' },
+          primitive: primitiveState(command.cullMode),
           ...(surface.depthTexture
             ? {
                 depthStencil: {
                   format: 'depth16unorm',
                   depthWriteEnabled: command.depthTest && command.depthWrite,
-                  depthCompare: command.depthTest ? 'less-equal' : 'always',
+                  depthCompare: command.depthTest
+                    ? (command.depthCompare ?? 'less-equal')
+                    : 'always',
                 },
               }
             : {}),

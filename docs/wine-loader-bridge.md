@@ -79,8 +79,16 @@ npm run probe:wine-target -- humus-dynamic-branching-d3d9-x86 /path/to/i386-wind
 This diagnostic verifies the catalog archive and EXE hashes, uses the same
 verified Wine/NLS inputs as the CRT probe, initializes the DLL graph, then calls
 the original application's native entry point. CPU blocks compile to Wasm
-during execution, with a ten-million-dispatch diagnostic budget and a 60-second browser-worker deadline. The unchanged Humus Dynamic Branching binary now passes Wine
-registration and DLL attach and reaches its own startup code. It also completes its native timing calibration and enumerates the virtual display. Both engines now pass `LOCK XADD`, legacy F3 bit scans and variable rotates in the real Wine heap, create the application window and call `Direct3DCreate9(31)`. They stop at the explicit unimplemented `IDirect3D9.GetDeviceCaps` boundary (EXE block offset `0x2c01`) after more than six million guest instructions. The probe uses the real WebGPU renderer interface and records zero presented frames at this boundary. This does not yet run the demo's graphics. The [Node report](../evidence/wine-target-startup.json)
+during execution, with a ten-million-dispatch budget and a 45-second execution
+deadline checked within the guest loop, inside the 60-second worker deadline.
+The inner deadline preserves the guest location if startup spins. The unchanged
+Humus Dynamic Branching binary passes Wine registration and DLL attach. Earlier
+probes reached its capability query after native timing calibration, window creation
+and `Direct3DCreate9(31)`. That query is now implemented. Fresh September 26 probes
+instead stop at the execution deadline in application configuration code (Node
+EXE offset `0x806a`, Chromium `0x9516`) before a window or graphics device is
+created. This startup regression needs investigation. Zero frames are presented;
+this does not run the demo's graphics. The [Node report](../evidence/wine-target-startup.json)
 and [Chromium-worker report](../evidence/wine-target-startup-browser.json) retain
 the first actual failure, module-relative address, registers, executed instruction
 count and recent API calls.
@@ -125,10 +133,11 @@ the TEB activation-context stack and Unicode scratch buffer fixes native module
 lookup and filename conversion. Package metadata queries now pass, including
 the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
 It passes D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP
-device and reaches `IDirect3D8.GetDeviceCaps` at 8,855,625 guest instructions;
+device, passes capabilities and initial SetTransform, then stops at x87
+`FFREE ST(3)` at 8,857,132 guest instructions;
 Node stops at device creation without WebGPU. See [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is D3D8 capabilities and broader resources, with remaining
+unverified. The next work is x87 stack management and broader D3D8 resources, with remaining
 audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 

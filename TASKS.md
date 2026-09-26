@@ -140,12 +140,14 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Add virtual fullscreen mode switching/restoration, persistent FLIP/COPY
       buffers, RGB565 GPU conversion and virtual 60 Hz presentation pacing.
       Native EXE/ZIP and canvas/readback pixel tests pass.
-- [ ] Continue Hamsterball through `IDirect3D8.GetDeviceCaps`. Chromium creates
-      its 800×600 RGB565/FLIP hardware device with D16 and calls Clear, reaching
-      8,855,625 guest instructions. Node has reached its WebGPU availability
-      boundary at device creation. See `docs/d3d-display.md`.
-      Previously required OLE32 exports resolve; foreground queries reflect the virtual window
-      manager. Node/browser evidence is in
+- [x] Implement D3D8/9 factory/device capabilities with their exact structure sizes,
+      all eight depth comparisons and all three culling modes. Native EXE/ZIP
+      cubes query both interfaces; fixed/shader pixel tests pass in canvas/readback.
+      Set/GetTransform preserves raw matrix bits; invalid matrices still fail at draw.
+- [ ] Continue Hamsterball through x87 `FFREE ST(3)` at EXE offset `0x8c3e1`.
+      Chromium passes capability queries and initial SetTransform after creating
+      its 800×600 RGB565/FLIP device, then stops at 8,857,132 guest instructions.
+      Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
       input and audio, reusing the Hamsterball/DirectWebGPU implementation semantics.
@@ -202,11 +204,11 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Verify the existing LOCK XADD implementation; add 8/16/32-bit ROL/ROR with count masking, carry/overflow and memory-fault tests. Decode F3 bit scans as BSF/BSR consistently with the guest CPU's absent BMI1/LZCNT features.
 - [x] Implement bounded synchronous NT file create/open, sharing, position/size queries, seek, append-only writes and truncation. Host Win32 and Wine share path resolution and sharing checks; parent paths can reach sibling package assets without escaping the package volume.
 - [x] Execute real Wine CRT `_open`, `_write`, `_filelength`, `_lseek`, `_read`, `_close` and reopen in Node and Chromium, verifying binary bytes and EOF. This remains an optional supplied-Wine probe, separate from ordinary uploads.
-- [x] Accept D3D9 SDK 31 with the existing COM ABI. The unchanged Humus EXE creates its window and reaches `IDirect3D9.GetDeviceCaps` in Node and Chromium; that unsupported graphics method is the current explicit stop, with zero rendered frames.
+- [x] Accept D3D9 SDK 31 with the existing COM ABI. Prior unchanged Humus probes reached `IDirect3D9.GetDeviceCaps`; that method is now implemented. Fresh startup diagnostics hit their execution deadline earlier in application configuration code, with no frames. Retain that regression for investigation.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine application startup:** finish application initialization after the passing optional [CRT service probe](evidence/wine-loader-crt-browser-results.json), beyond the verified loader callbacks, process shutdown and native synchronous file creation. The source-built application diagnostic now enters the unchanged Humus EXE after Wine DLL attach; its first runtime failure is retained in [startup evidence](evidence/wine-target-startup.json). The application does not yet render. Both engines now pass those heap instructions, icon loading, timing calibration, window creation and `Direct3DCreate9(31)`, then stop at `IDirect3D9.GetDeviceCaps`. Implement truthful capabilities alongside the resources and rendering paths the application requires; do not turn missing methods into success stubs. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
+- [ ] **Wine application startup:** finish initialization after the optional [CRT service probe](evidence/wine-loader-crt-browser-results.json). Fresh unchanged Humus EXE diagnostics pass Wine DLL attach but reach the 45-second execution deadline in application configuration code before graphics setup. [Node](evidence/wine-target-startup.json) and [browser](evidence/wine-target-startup-browser.json) retain the actual guest location and recent calls. Investigate this regression and then extend the bounded capabilities/resources; zero frames, no independent Humus compatibility claim. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.

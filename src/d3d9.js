@@ -1,4 +1,6 @@
 import { ComObjects } from './com.js';
+import { writeDeviceCaps } from './d3d-caps.js';
+import { CULL_MODE, DEPTH_COMPARE } from './d3d-render-state.js';
 import { displayMethods, displayFormat } from './d3d-display.js';
 import { VIRTUAL_DISPLAY_MODES, currentDisplayMode } from './win32-display.js';
 import { enterFullscreen, leaveFullscreen } from './d3d-fullscreen.js';
@@ -56,15 +58,16 @@ function queue(state, command, bytes = 0) {
 function matrix(runtime, pointer) {
   runtime.check(pointer, 64);
   const value = new Float32Array(16);
-  for (let i = 0; i < 16; i++) {
-    value[i] = runtime.view.getFloat32(pointer + i * 4, true);
-    if (!Number.isFinite(value[i])) throw Error('Unsupported D3D9 non-finite transform');
-  }
+  // SetTransform stores application state even when it contains NaNs. The
+  // renderer validates matrices when a draw actually consumes them.
+  const bits = new Uint32Array(value.buffer);
+  for (let i = 0; i < 16; i++) bits[i] = runtime.read32(pointer + i * 4);
   return value;
 }
 
 function deviceMethods(version = 9) {
   const methods = {
+    7: { argc: 2, invoke: (r, a) => writeDeviceCaps(r, a(1), version) },
     17: {
       argc: 5,
       async invoke(runtime, argument, object) {
@@ -134,12 +137,26 @@ function deviceMethods(version = 9) {
         return D3D_OK;
       },
     },
+    45: {
+      argc: 3,
+      invoke(r, a, object) {
+        const field =
+          a(1) === 256 ? 'world' : a(1) === 2 ? 'view' : a(1) === 3 ? 'projection' : null;
+        if (!field) throw Error(`Unsupported IDirect3DDevice9.GetTransform state ${a(1)}`);
+        r.check(a(2), 64, true);
+        const bits = new Uint32Array(object.state[field].buffer);
+        for (let i = 0; i < 16; i++) r.write32(a(2) + i * 4, bits[i]);
+        return 0;
+      },
+    },
     57: {
       argc: 3,
       invoke(_runtime, argument, object) {
         const state = argument(1) >>> 0;
         const value = argument(2) >>> 0;
-        if (state === 22 && value === 1) object.state.cullMode = 'none';
+        if (state === 22 && CULL_MODE[value]) object.state.cullMode = CULL_MODE[value];
+        else if (state === 23 && DEPTH_COMPARE[value])
+          object.state.depthCompare = DEPTH_COMPARE[value];
         else if (state === 137 && value === 0) object.state.lighting = false;
         else if (state === 7 && value <= 1) {
           if (value && !object.state.hasDepth) return D3DERR_INVALIDCALL;
@@ -149,6 +166,22 @@ function deviceMethods(version = 9) {
           object.state.depthWrite = !!value;
         } else throw Error(`Unsupported IDirect3DDevice9.SetRenderState ${state}=${value}`);
         return D3D_OK;
+      },
+    },
+    58: {
+      argc: 3,
+      invoke(r, a, object) {
+        const s = object.state;
+        const value = {
+          7: Number(s.depthTest),
+          14: Number(s.depthWrite),
+          22: CULL_MODE.indexOf(s.cullMode),
+          23: DEPTH_COMPARE.indexOf(s.depthCompare),
+          137: Number(s.lighting),
+        }[a(1)];
+        if (value === undefined) throw Error(`Unsupported IDirect3DDevice9.GetRenderState ${a(1)}`);
+        r.write32(a(2), value);
+        return 0;
       },
     },
     83: {
@@ -166,19 +199,13 @@ function deviceMethods(version = 9) {
         const vertexCount = primitiveCount * 3;
         const programmable = programmableDraw(runtime, state, pointer, stride, vertexCount);
         if (programmable) {
-          if (primitive !== 4 || state.cullMode !== 'none')
+          if (primitive !== 4)
             throw Error('Unsupported programmable IDirect3DDevice9.DrawPrimitiveUP state');
           const { payloadBytes, ...command } = programmable;
           queue(state, command, payloadBytes);
           return D3D_OK;
         }
-        if (
-          primitive !== 4 ||
-          stride !== 16 ||
-          state.fvf !== 0x42 ||
-          state.lighting ||
-          state.cullMode !== 'none'
-        )
+        if (primitive !== 4 || stride !== 16 || state.fvf !== 0x42 || state.lighting)
           throw Error('Unsupported IDirect3DDevice9.DrawPrimitiveUP format or render state');
         const size = vertexCount * stride;
         if (state.frameBytes + size > MAX_FRAME_BYTES)
@@ -202,6 +229,7 @@ function deviceMethods(version = 9) {
             projection: state.projection.slice(),
             depthTest: state.depthTest,
             depthWrite: state.depthWrite,
+            depthCompare: state.depthCompare,
             cullMode: state.cullMode,
           },
           size,
@@ -363,6 +391,10 @@ function createDevice(runtime, argument, version) {
 function factoryMethods(version = 9) {
   return {
     ...displayMethods(version),
+    [version === 8 ? 13 : 14]: {
+      argc: 4,
+      invoke: (r, a) => writeDeviceCaps(r, a(3), version, a(1), a(2)),
+    },
     4: { argc: 1, invoke: () => 1 },
     [version === 8 ? 15 : 16]: {
       argc: 7,
@@ -380,6 +412,7 @@ function factoryMethods(version = 9) {
           hasDepth: options.depth,
           depthTest: options.depth,
           depthWrite: options.depth,
+          depthCompare: 'less-equal',
           world: IDENTITY.slice(),
           view: IDENTITY.slice(),
           projection: IDENTITY.slice(),

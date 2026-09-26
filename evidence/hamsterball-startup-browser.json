@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T08:58:54.294Z",
+  "date": "2026-09-26T09:22:26.987Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2417,13 +2417,13 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "path": ".cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
         "bytes": 3797756,
         "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
       },
       {
         "name": "wine-format.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "path": "public/runtime/wine-format.dll",
         "bytes": 10752,
         "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
       },
@@ -2745,44 +2745,6 @@
   ],
   "apiCalls": [
     {
-      "name": "NtDelayExecution",
-      "args": [
-        0,
-        67103528
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeBeginPeriod",
-      "args": [
-        1,
-        33589400,
-        24781920,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
       "name": "winmm.dll!timeGetTime",
       "args": [
         33589400,
@@ -2791,7 +2753,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x5008"
+      "result": "0x4e24"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -2830,7 +2792,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x500f"
+      "result": "0x4e2a"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3475,7 +3437,63 @@
         39333776
       ],
       "threadId": 1,
-      "error": "Unsupported COM method IDirect3D8.GetDeviceCaps"
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.SetTransform",
+      "args": [
+        52454336,
+        3,
+        67103980,
+        39333988
+      ],
+      "threadId": 1,
+      "matrix": [
+        "0x3fe7c3b5",
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x401a8279",
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x0",
+        "0xffc00000",
+        "0x3f800000",
+        "0x0",
+        "0x0",
+        "0x7fc00000",
+        "0x0"
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "advapi32.dll!RegOpenKeyA",
+      "args": [
+        2147483650,
+        5088876,
+        67103640,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x2"
+    },
+    {
+      "name": "NtWow64IsProcessorFeaturePresent",
+      "args": [
+        7
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtWow64IsProcessorFeaturePresent",
+      "args": [
+        6
+      ],
+      "threadId": 1,
+      "result": "0x0"
     }
   ],
   "output": [],
@@ -4250,39 +4268,239 @@
   "firstFailure": {
     "phase": "native EXE entry point",
     "threadId": 1,
-    "message": "Unsupported COM method IDirect3D8.GetDeviceCaps",
+    "message": "x86 block 0x48c3e1: Unsupported instruction ffree st(3) at 0x48c3e1",
     "ip": {
-      "address": "0x4558be",
+      "address": "0x48c3e1",
       "module": "hamsterball.exe",
-      "offset": "0x558be"
+      "offset": "0x8c3e1"
     },
     "registers": [
-      "0x3206220",
-      "0x2582f90",
-      "0x32061e0",
-      "0x25830d8",
-      "0x3ffed30",
-      "0x25830a4",
-      "0x2582f10",
-      "0x2583064"
+      "0x3ffec38",
+      "0x2583134",
+      "0x2583174",
+      "0x3ffec38",
+      "0x3ffeb80",
+      "0x3ffebcc",
+      "0x0",
+      "0xfffffffc"
     ],
     "compiledBlocks": 4096,
-    "instructions": 8855625,
+    "instructions": 8857132,
     "recentBlocks": [
       {
         "threadId": 1,
-        "address": "0x4ba7b3",
-        "module": "hamsterball.exe",
-        "offset": "0xba7b3",
+        "address": "0x107e104",
+        "module": "ntdll.dll",
+        "offset": "0xe104",
+        "registers": [
+          "0x6",
+          "0x3ffeb08",
+          "0x1",
+          "0x4f7100",
+          "0x3ffeaec",
+          "0x3ffeaf4",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x107e144",
+        "module": "ntdll.dll",
+        "offset": "0xe144",
+        "registers": [
+          "0x104",
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7100",
+          "0x3ffeae8",
+          "0x3ffeaf4",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x107e110",
+        "module": "ntdll.dll",
+        "offset": "0xe110",
         "registers": [
           "0x0",
-          "0x2582f10",
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7100",
+          "0x3ffeaec",
+          "0x3ffeaf4",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x109bb31",
+        "module": "ntdll.dll",
+        "offset": "0x2bb31",
+        "registers": [
           "0x0",
-          "0x25830d8",
-          "0x3ffed00",
-          "0x3ffed24",
-          "0x2582f10",
-          "0x2583064"
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7100",
+          "0x3ffeaf4",
+          "0x3ffeaf4",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x14f5384",
+        "module": "kernelbase.dll",
+        "offset": "0x35384",
+        "registers": [
+          "0x0",
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7100",
+          "0x3ffeb00",
+          "0x3ffeb00",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4792ea",
+        "module": "hamsterball.exe",
+        "offset": "0x792ea",
+        "registers": [
+          "0x0",
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7100",
+          "0x3ffeb0c",
+          "0x3ffeb38",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4792f4",
+        "module": "hamsterball.exe",
+        "offset": "0x792f4",
+        "registers": [
+          "0x0",
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7100",
+          "0x3ffeb0c",
+          "0x3ffeb38",
+          "0x1",
+          "0x3ffeba8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4793b6",
+        "module": "hamsterball.exe",
+        "offset": "0x793b6",
+        "registers": [
+          "0x0",
+          "0x3ffeb08",
+          "0x107e144",
+          "0x4f7190",
+          "0x3ffebb4",
+          "0x3ffebc4",
+          "0x1",
+          "0x4f7274"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4793cc",
+        "module": "hamsterball.exe",
+        "offset": "0x793cc",
+        "registers": [
+          "0x0",
+          "0x6",
+          "0x107e144",
+          "0x4f7190",
+          "0x3ffebb8",
+          "0x3ffebc4",
+          "0x1",
+          "0x4f7274"
         ],
         "flags": {
           "zf": 1,
@@ -4296,18 +4514,18 @@
       },
       {
         "threadId": 1,
-        "address": "0x4ba7bf",
+        "address": "0x45a440",
         "module": "hamsterball.exe",
-        "offset": "0xba7bf",
+        "offset": "0x5a440",
         "registers": [
           "0x0",
+          "0x6",
+          "0x107e144",
           "0x2582f10",
+          "0x3ffebd0",
           "0x0",
-          "0x25830d8",
-          "0x3ffed00",
-          "0x3ffed24",
-          "0x2582f10",
-          "0x2583064"
+          "0x25836f8",
+          "0x25831f4"
         ],
         "flags": {
           "zf": 1,
@@ -4321,18 +4539,18 @@
       },
       {
         "threadId": 1,
-        "address": "0x42c823",
+        "address": "0x48c316",
         "module": "hamsterball.exe",
-        "offset": "0x2c823",
+        "offset": "0x8c316",
         "registers": [
           "0x0",
+          "0x6",
+          "0x107e144",
           "0x2582f10",
+          "0x3ffebd0",
           "0x0",
-          "0x25830d8",
-          "0x3ffed2c",
-          "0x25830a4",
-          "0x2582f10",
-          "0x2583064"
+          "0x25836f8",
+          "0x25831f4"
         ],
         "flags": {
           "zf": 1,
@@ -4346,18 +4564,93 @@
       },
       {
         "threadId": 1,
-        "address": "0x4ba754",
+        "address": "0x48c39a",
         "module": "hamsterball.exe",
-        "offset": "0xba754",
+        "offset": "0x8c39a",
         "registers": [
-          "0x0",
+          "0x3ffec38",
+          "0x6",
+          "0x107e144",
           "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed28",
-          "0x25830a4",
-          "0x2582f10",
-          "0xffff0000"
+          "0x3ffeb80",
+          "0x3ffebcc",
+          "0x2583174",
+          "0x25831f4"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x48c3b8",
+        "module": "hamsterball.exe",
+        "offset": "0x8c3b8",
+        "registers": [
+          "0x3ffec38",
+          "0x2583134",
+          "0x2583174",
+          "0x3ffec38",
+          "0x3ffeb80",
+          "0x3ffebcc",
+          "0xfffffffd",
+          "0xfffffffc"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x48c3b8",
+        "module": "hamsterball.exe",
+        "offset": "0x8c3b8",
+        "registers": [
+          "0x3ffec38",
+          "0x2583134",
+          "0x2583174",
+          "0x3ffec38",
+          "0x3ffeb80",
+          "0x3ffebcc",
+          "0xfffffffe",
+          "0xfffffffc"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x48c3b8",
+        "module": "hamsterball.exe",
+        "offset": "0x8c3b8",
+        "registers": [
+          "0x3ffec38",
+          "0x2583134",
+          "0x2583174",
+          "0x3ffec38",
+          "0x3ffeb80",
+          "0x3ffebcc",
+          "0xffffffff",
+          "0xfffffffc"
         ],
         "flags": {
           "zf": 0,
@@ -4371,305 +4664,34 @@
       },
       {
         "threadId": 1,
-        "address": "0x4ba7b3",
+        "address": "0x48c3e1",
         "module": "hamsterball.exe",
-        "offset": "0xba7b3",
+        "offset": "0x8c3e1",
         "registers": [
+          "0x3ffec38",
+          "0x2583134",
+          "0x2583174",
+          "0x3ffec38",
+          "0x3ffeb80",
+          "0x3ffebcc",
           "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed00",
-          "0x3ffed24",
-          "0x2582f10",
-          "0xffff0000"
+          "0xfffffffc"
         ],
         "flags": {
           "zf": 1,
           "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x4ba7bf",
-        "module": "hamsterball.exe",
-        "offset": "0xba7bf",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed00",
-          "0x3ffed24",
-          "0x2582f10",
-          "0xffff0000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x42c83d",
-        "module": "hamsterball.exe",
-        "offset": "0x2c83d",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed2c",
-          "0x25830a4",
-          "0x2582f10",
-          "0xffff0000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x4ba754",
-        "module": "hamsterball.exe",
-        "offset": "0xba754",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed28",
-          "0x25830a4",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
           "pf": 1,
           "cf": 1,
           "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x4ba7b3",
-        "module": "hamsterball.exe",
-        "offset": "0xba7b3",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed00",
-          "0x3ffed24",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x4ba7bf",
-        "module": "hamsterball.exe",
-        "offset": "0xba7bf",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed00",
-          "0x3ffed24",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x42c856",
-        "module": "hamsterball.exe",
-        "offset": "0x2c856",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed2c",
-          "0x25830a4",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x453900",
-        "module": "hamsterball.exe",
-        "offset": "0x53900",
-        "registers": [
-          "0x0",
-          "0x2582f10",
-          "0x0",
-          "0x25830d8",
-          "0x3ffed24",
-          "0x25830a4",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x45392e",
-        "module": "hamsterball.exe",
-        "offset": "0x5392e",
-        "registers": [
-          "0x3206230",
-          "0x32063c0",
-          "0xff000000",
-          "0x25830d8",
-          "0x3ffed18",
-          "0x25830a4",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x45393b",
-        "module": "hamsterball.exe",
-        "offset": "0x5393b",
-        "registers": [
-          "0x0",
-          "0x32063c0",
-          "0xff000000",
-          "0x25830d8",
-          "0x3ffed24",
-          "0x25830a4",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x42c865",
-        "module": "hamsterball.exe",
-        "offset": "0x2c865",
-        "registers": [
-          "0x0",
-          "0x32063c0",
-          "0xff000000",
-          "0x25830d8",
-          "0x3ffed2c",
-          "0x25830a4",
-          "0x2582f10",
-          "0xff000000"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x4558be",
-        "module": "hamsterball.exe",
-        "offset": "0x558be",
-        "registers": [
-          "0x0",
-          "0x32063c0",
-          "0xff000000",
-          "0x25830d8",
-          "0x3ffed44",
-          "0x25830a4",
-          "0x2582f10",
-          "0x2583064"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       }
     ]
+  },
+  "diagnosticLimits": {
+    "maxBlocks": 10000000,
+    "maxExecutionMs": 45000
   },
   "threadsAtStop": [
     {

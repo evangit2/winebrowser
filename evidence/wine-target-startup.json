@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-25T22:19:49.374Z",
+  "date": "2026-09-26T09:20:58.398Z",
   "targetId": "humus-dynamic-branching-d3d9-x86",
   "exe": "dynamicbranching/dynamicbranching.exe",
   "exeSha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
@@ -103,13 +103,13 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097/build/dlls/ntdll/i386-windows/ntdll.dll",
-        "bytes": 3797467,
-        "sha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94"
+        "path": ".cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797756,
+        "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
       },
       {
         "name": "wine-format.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "path": "public/runtime/wine-format.dll",
         "bytes": 10752,
         "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
       },
@@ -130,6 +130,18 @@
         "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernelbase.dll",
         "bytes": 2703374,
         "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+      },
+      {
+        "name": "msacm32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msacm32.dll",
+        "bytes": 126990,
+        "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+      },
+      {
+        "name": "ucrtbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/ucrtbase.dll",
+        "bytes": 892942,
+        "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
       }
     ],
     "nls": [
@@ -178,7 +190,7 @@
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097"
+    "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2"
   },
   "status": "blocked-guest",
   "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
@@ -285,29 +297,25 @@
     {
       "name": "guest DLL attach",
       "passed": true
-    },
-    {
-      "name": "window created",
-      "window": {
-        "id": 131072,
-        "title": "Title",
-        "width": 798,
-        "height": 570,
-        "icon": {
-          "width": 32,
-          "height": 32
-        }
-      }
     }
   ],
   "trappedImports": [
-    "user32.dll!ShowCursor",
     "user32.dll!SetCursorPos",
     "user32.dll!OpenClipboard",
     "user32.dll!EmptyClipboard",
     "user32.dll!SetClipboardData",
     "user32.dll!CloseClipboard",
-    "shell32.dll!SHGetSpecialFolderPathA"
+    "shell32.dll!SHGetSpecialFolderPathA",
+    "advapi32.dll!RegEnumKeyExW",
+    "advapi32.dll!RegEnumValueW",
+    "advapi32.dll!RegQueryInfoKeyW",
+    "user32.dll!DialogBoxIndirectParamW",
+    "user32.dll!DialogBoxParamW",
+    "user32.dll!EndDialog",
+    "user32.dll!GetPropW",
+    "user32.dll!RegisterWindowMessageW",
+    "user32.dll!SendDlgItemMessageW",
+    "user32.dll!SetPropW"
   ],
   "apiCalls": [
     {
@@ -320,6 +328,7 @@
         8192,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -332,6 +341,7 @@
         4096,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -344,6 +354,7 @@
         4096,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -354,6 +365,7 @@
         67104384,
         4
       ],
+      "threadId": 1,
       "result": "0xc0000022"
     },
     {
@@ -364,6 +376,7 @@
         256,
         0
       ],
+      "threadId": 1,
       "result": "0xc0000003"
     },
     {
@@ -375,6 +388,7 @@
         80,
         67103436
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -388,6 +402,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -397,6 +412,7 @@
         983103,
         67103716
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -404,6 +420,7 @@
       "args": [
         1358954496
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -413,6 +430,7 @@
         983103,
         67103740
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -425,6 +443,7 @@
         63,
         67103688
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -437,6 +456,7 @@
         63,
         67103688
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -444,6 +464,7 @@
       "args": [
         1358954497
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -453,6 +474,7 @@
         983103,
         67103740
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -464,6 +486,7 @@
         4,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -476,6 +499,7 @@
         4096,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -485,6 +509,7 @@
         17880808,
         67104272
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -496,6 +521,7 @@
         67104100,
         67104272
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -504,6 +530,7 @@
         1,
         21838500
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -515,6 +542,7 @@
         21832796,
         67103932
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -528,6 +556,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -541,6 +570,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -554,6 +584,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -565,6 +596,7 @@
         80,
         67103632
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -578,6 +610,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -591,6 +624,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -601,6 +635,7 @@
         67102888,
         0
       ],
+      "threadId": 1,
       "result": "0xc000000d"
     },
     {
@@ -611,6 +646,7 @@
         67103344,
         0
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -621,6 +657,7 @@
         432,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -631,6 +668,7 @@
         67103440,
         0
       ],
+      "threadId": 1,
       "result": "0xc0000034"
     },
     {
@@ -644,6 +682,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -656,6 +695,7 @@
         67104100,
         10
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -668,6 +708,7 @@
         67104100,
         8
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -680,6 +721,7 @@
         67104100,
         12
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -687,6 +729,7 @@
       "args": [
         1358954502
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -697,6 +740,7 @@
         44,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -708,6 +752,7 @@
         4,
         67104712
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -719,6 +764,7 @@
         2,
         67104712
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -731,6 +777,7 @@
         8192,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -743,6 +790,7 @@
         4096,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -755,6 +803,7 @@
         4096,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -766,6 +815,7 @@
         8,
         4
       ],
+      "threadId": 1,
       "result": "0xc0000008"
     },
     {
@@ -777,6 +827,7 @@
         8,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -788,6 +839,37 @@
         8,
         4
       ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        3,
+        1,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104592,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtWow64IsProcessorFeaturePresent",
+      "args": [
+        0
+      ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -800,6 +882,7 @@
         8192,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -812,6 +895,7 @@
         4096,
         4
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -822,6 +906,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x62000000"
     },
     {
@@ -832,6 +917,7 @@
         0,
         0
       ],
+      "threadId": 1,
       "result": "0x7f00"
     },
     {
@@ -842,6 +928,7 @@
         0,
         4233728
       ],
+      "threadId": 1,
       "result": "0xc000"
     },
     {
@@ -852,6 +939,7 @@
         0,
         131097
       ],
+      "threadId": 1,
       "result": "0x2"
     },
     {
@@ -860,6 +948,7 @@
         67104488,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
@@ -868,157 +957,281 @@
         67104496,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "user32.dll!EnumDisplaySettingsA",
+      "name": "NtCreateFile",
       "args": [
+        67104208,
+        2148532352,
+        67104240,
+        67104220,
         0,
+        128,
+        3,
+        1,
+        96,
         0,
-        67104284,
         0
       ],
-      "result": "0x1"
+      "threadId": 1,
+      "result": "0x0"
     },
     {
-      "name": "user32.dll!EnumDisplaySettingsA",
+      "name": "NtQueryVolumeInformationFile",
       "args": [
+        256,
+        67104304,
+        67104296,
+        8,
+        4
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "args": [
+        256,
         0,
-        1,
-        67104284,
+        0,
+        0,
+        67104304,
+        38866672,
+        4096,
+        0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "user32.dll!CreateWindowExA",
+      "name": "NtReadFile",
       "args": [
+        256,
         0,
-        5056752,
-        5056716,
-        114229248
-      ],
-      "result": "0x20000"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        129,
         0,
-        50331648
-      ],
-      "result": "0x1"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        131,
         0,
-        50331696
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!ShowWindow",
-      "args": [
-        131072,
-        5,
-        800,
-        1
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        24,
-        1,
+        67104232,
+        38874932,
+        12288,
+        0,
         0
       ],
+      "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "user32.dll!SetWindowTextA",
+      "name": "NtReadFile",
       "args": [
-        131072,
-        67104096,
-        2016950583,
-        3159861
-      ],
-      "result": "0x1"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        12,
+        256,
         0,
-        67104096
-      ],
-      "result": "0x1"
-    },
-    {
-      "name": "d3d9.dll!Direct3DCreate9",
-      "args": [
-        31,
-        600,
-        800,
-        8
-      ],
-      "result": "0x3000050"
-    },
-    {
-      "name": "IDirect3D9.GetDeviceCaps",
-      "args": [
-        50331728,
         0,
-        1,
-        39064840
+        0,
+        67104216,
+        38866672,
+        4096,
+        0,
+        0
       ],
-      "error": "Unsupported COM method IDirect3D9.GetDeviceCaps"
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "args": [
+        256,
+        0,
+        0,
+        0,
+        67104232,
+        38891540,
+        32768,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "args": [
+        256,
+        0,
+        0,
+        0,
+        67104216,
+        38866672,
+        4096,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        256
+      ],
+      "threadId": 1,
+      "result": "0x0"
     }
   ],
   "output": [],
   "requests": [],
   "frames": 0,
-  "nativeLoaderCalls": [],
+  "nativeLoaderCalls": [
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104592,
+        0,
+        67104588
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "IsProcessorFeaturePresent",
+      "status": "0x0"
+    }
+  ],
   "firstFailure": {
     "phase": "native EXE entry point",
-    "message": "Unsupported COM method IDirect3D9.GetDeviceCaps",
+    "threadId": 1,
+    "message": "Wine target diagnostic execution deadline exceeded",
     "ip": {
-      "address": "0x402c01",
+      "address": "0x40806a",
       "module": "dynamicbranching.exe",
-      "offset": "0x2c01"
+      "offset": "0x806a"
     },
     "registers": [
-      "0x3000050",
-      "0x2541508",
-      "0x3000000",
-      "0x6cf0000",
-      "0x3ffeea0",
-      "0x3ffeefc",
-      "0x2530020",
-      "0x1"
+      "0x3ffee18",
+      "0x3ffee18",
+      "0x2511274",
+      "0x2511ef8",
+      "0x3ffee2c",
+      "0x3ffeee4",
+      "0x2",
+      "0x0"
     ],
-    "compiledBlocks": 2881,
-    "instructions": 6403056,
+    "compiledBlocks": 3172,
+    "instructions": 27553833,
     "recentBlocks": [
       {
-        "address": "0x409b18",
+        "threadId": 1,
+        "address": "0x409489",
         "module": "dynamicbranching.exe",
-        "offset": "0x9b18",
+        "offset": "0x9489",
         "registers": [
+          "0x3ffee18",
+          "0x3ffee44",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffede8",
+          "0x3ffee24",
           "0x1",
-          "0x3ffed28",
-          "0x3ffed66",
-          "0x6cf0000",
-          "0x3ffee68",
-          "0x3ffee80",
-          "0x4be6e0",
-          "0x258"
+          "0x2"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40952f",
+        "module": "dynamicbranching.exe",
+        "offset": "0x952f",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee0c",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffedec",
+          "0x3ffee24",
+          "0x1",
+          "0x2"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x409489",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9489",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee0c",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffede0",
+          "0x3ffee24",
+          "0x1",
+          "0x2"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40953f",
+        "module": "dynamicbranching.exe",
+        "offset": "0x953f",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee18",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffede4",
+          "0x3ffee24",
+          "0x1",
+          "0x2"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40806a",
+        "module": "dynamicbranching.exe",
+        "offset": "0x806a",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee18",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffee2c",
+          "0x3ffeee4",
+          "0x1",
+          "0x2"
         ],
         "flags": {
           "zf": 0,
@@ -1031,47 +1244,24 @@
         }
       },
       {
-        "address": "0x409ca6",
+        "threadId": 1,
+        "address": "0x40818c",
         "module": "dynamicbranching.exe",
-        "offset": "0x9ca6",
+        "offset": "0x818c",
         "registers": [
+          "0x3ff0120",
+          "0x3ffee18",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffee38",
+          "0x3ffeee4",
           "0x1",
-          "0x20000",
-          "0x3ffed66",
-          "0x6cf0000",
-          "0x3ffee6c",
-          "0x3ffee80",
-          "0x4be6e0",
-          "0x258"
+          "0x2"
         ],
         "flags": {
           "zf": 0,
           "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x409b92",
-        "module": "dynamicbranching.exe",
-        "offset": "0x9b92",
-        "registers": [
-          "0x0",
-          "0x1",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeea4",
-          "0x3ffeeb8",
-          "0x20000",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
+          "pf": 0,
           "cf": 1,
           "of": 0,
           "af": 0,
@@ -1079,162 +1269,44 @@
         }
       },
       {
-        "address": "0x409ca6",
+        "threadId": 1,
+        "address": "0x408033",
         "module": "dynamicbranching.exe",
-        "offset": "0x9ca6",
+        "offset": "0x8033",
         "registers": [
-          "0x2530020",
           "0x1",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeea4",
-          "0x3ffeeb8",
-          "0x20000",
-          "0x258"
+          "0x3ffee18",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffee38",
+          "0x3ffeee4",
+          "0x1",
+          "0x2"
         ],
         "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
           "cf": 1,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       },
       {
-        "address": "0x409e71",
+        "threadId": 1,
+        "address": "0x409501",
         "module": "dynamicbranching.exe",
-        "offset": "0x9e71",
+        "offset": "0x9501",
         "registers": [
-          "0x20000",
-          "0x3ffef00",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffef04",
-          "0x3ffef6c",
-          "0x320",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x402bb0",
-        "module": "dynamicbranching.exe",
-        "offset": "0x2bb0",
-        "registers": [
-          "0x4be6e0",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffef00",
-          "0x3ffef6c",
-          "0x320",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x40a44c",
-        "module": "dynamicbranching.exe",
-        "offset": "0xa44c",
-        "registers": [
-          "0x4bd4ae",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeefc",
-          "0x3ffef6c",
-          "0x320",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x402bba",
-        "module": "dynamicbranching.exe",
-        "offset": "0x2bba",
-        "registers": [
-          "0x402bba",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeef0",
-          "0x3ffeefc",
-          "0x320",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x40156a",
-        "module": "dynamicbranching.exe",
-        "offset": "0x156a",
-        "registers": [
-          "0x3ffeec0",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb0",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x402bca",
-        "module": "dynamicbranching.exe",
-        "offset": "0x2bca",
-        "registers": [
-          "0x3ffeec0",
-          "0x8",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb8",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
+          "0x3ffee5c",
+          "0x3ffee74",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffee28",
+          "0x3ffeee4",
+          "0x2",
+          "0x0"
         ],
         "flags": {
           "zf": 1,
@@ -1247,138 +1319,19 @@
         }
       },
       {
-        "address": "0x406b7d",
+        "threadId": 1,
+        "address": "0x4093fd",
         "module": "dynamicbranching.exe",
-        "offset": "0x6b7d",
+        "offset": "0x93fd",
         "registers": [
-          "0x4be6e0",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb0",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x402bd5",
-        "module": "dynamicbranching.exe",
-        "offset": "0x2bd5",
-        "registers": [
-          "0x3ffeec0",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb8",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x413890",
-        "module": "dynamicbranching.exe",
-        "offset": "0x13890",
-        "registers": [
-          "0x3ffeec0",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb0",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1401000",
-        "module": "d3d9.dll",
-        "offset": "0x1000",
-        "registers": [
-          "0x3ffeec0",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb0",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x402be0",
-        "module": "dynamicbranching.exe",
-        "offset": "0x2be0",
-        "registers": [
-          "0x3000050",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb8",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x402c01",
-        "module": "dynamicbranching.exe",
-        "offset": "0x2c01",
-        "registers": [
-          "0x3000050",
-          "0x2530020",
-          "0x0",
-          "0x6cf0000",
-          "0x3ffeeb8",
-          "0x3ffeefc",
-          "0x2530020",
-          "0x258"
+          "0x3ffee18",
+          "0x3ffee74",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffedfc",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
         ],
         "flags": {
           "zf": 0,
@@ -1386,10 +1339,200 @@
           "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x409516",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9516",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee50",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffee00",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4093fd",
+        "module": "dynamicbranching.exe",
+        "offset": "0x93fd",
+        "registers": [
+          "0x3ffee0c",
+          "0x3ffee50",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffedf0",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x409525",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9525",
+        "registers": [
+          "0x3ffee0c",
+          "0x3ffee50",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffedf4",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x409489",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9489",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee50",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffede8",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40952f",
+        "module": "dynamicbranching.exe",
+        "offset": "0x952f",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee0c",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffedec",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x409489",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9489",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee0c",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffede0",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40953f",
+        "module": "dynamicbranching.exe",
+        "offset": "0x953f",
+        "registers": [
+          "0x3ffee18",
+          "0x3ffee18",
+          "0x2511274",
+          "0x2511ef8",
+          "0x3ffede4",
+          "0x3ffee24",
+          "0x2",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
           "df": 0
         }
       }
     ]
-  }
+  },
+  "diagnosticLimits": {
+    "maxBlocks": 10000000,
+    "maxExecutionMs": 45000
+  },
+  "threadsAtStop": [
+    {
+      "id": 1,
+      "teb": "0x2e00000",
+      "started": true,
+      "attached": false,
+      "suspended": 0,
+      "exited": false,
+      "exitCode": null
+    }
+  ]
 }

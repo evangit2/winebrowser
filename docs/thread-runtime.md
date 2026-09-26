@@ -59,7 +59,8 @@ and `evidence/threads-native-browser-results.json`.
 
 Original Hamsterball now initializes two workers, creates its 800×600 window and
 passes D3D8 display/depth queries. Chromium now creates its fullscreen device
-and reaches `IDirect3D8.GetDeviceCaps`; Node stops at creation without WebGPU.
+and passes capability/transform setup before stopping at x87 `FFREE ST(3)`;
+Node stops at creation without WebGPU.
 See [presentation support](d3d-display.md). No game frame renders yet. The reference Theseus
 `kernel32/thread.rs` uses host `std::thread::spawn`; this browser scheduler instead
 uses the existing guest CPU and Wine's lifecycle routines.

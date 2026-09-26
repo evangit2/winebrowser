@@ -85,8 +85,8 @@
       "exe": "d3d9-cube/d3d9-cube.exe",
       "zip": "d3d9-cube.zip",
       "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D9 bootstrap subset, not WineD3D.",
-      "exeSha256": "4b96daa7498eafb1a2391e842d73516d34c844429423a81a0aff4f6cf2a75e66",
-      "zipSha256": "6dc56581fdf7f6cc57874260aabf080f532f969e8215d7f1d98e70340aa48960"
+      "exeSha256": "377e52c24007424b35756fa1341d86e42f2a6c2450fc7f47e995eaefce54eb33",
+      "zipSha256": "9545b0d59677b99482b2c931d1f8b03d70b262b119eeeff5304cf7945c12599f"
     },
     {
       "name": "d3d9-shader-cube",
@@ -121,8 +121,8 @@
       "exe": "d3d8-cube/d3d8-cube.exe",
       "zip": "d3d8-cube.zip",
       "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D8 bootstrap subset, not WineD3D.",
-      "exeSha256": "c8cbf600ffa44b9da74eff0f41d8cd29f2425815cf2ba3992c37cb9410fb5d22",
-      "zipSha256": "4ed137722dabd8180ee147918a937960b53e7db8c891c3cd368f339e4dd4dcb7"
+      "exeSha256": "2b8c89b4d1887cbf98e62bb7418364f7f642a7d16df3e9661d081d7dfbe8497d",
+      "zipSha256": "d75707b45f715cf41e479d9b6801dc23415b104536576be8a3fb3e3bc843a6a6"
     }
   ]
 }

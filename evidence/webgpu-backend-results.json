@@ -178,10 +178,720 @@
       ]
     }
   ],
+  "rasterCases": [
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "never",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "less",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "less-equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "greater",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "not-equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "greater-equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "always",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "never",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "less",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "less-equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "greater",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "not-equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "greater-equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "always",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "never",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "less",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "less-equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "greater",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "not-equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "greater-equal",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "always",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "reversed": false,
+      "cullMode": "none",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "reversed": false,
+      "cullMode": "cw",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "reversed": false,
+      "cullMode": "ccw",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "reversed": true,
+      "cullMode": "none",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "reversed": true,
+      "cullMode": "cw",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "fixed",
+      "reversed": true,
+      "cullMode": "ccw",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "never",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "less",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "less-equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "greater",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "not-equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "greater-equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0,
+      "stored": 0,
+      "depthCompare": "always",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "never",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "less",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "less-equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "greater",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "not-equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "greater-equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.25,
+      "stored": 0.75,
+      "depthCompare": "always",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "never",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "less",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "less-equal",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "greater",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "not-equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "greater-equal",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "incoming": 0.75,
+      "stored": 0.25,
+      "depthCompare": "always",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "reversed": false,
+      "cullMode": "none",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "reversed": false,
+      "cullMode": "cw",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "reversed": false,
+      "cullMode": "ccw",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "reversed": true,
+      "cullMode": "none",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "reversed": true,
+      "cullMode": "cw",
+      "pixel": [
+        37,
+        45,
+        65,
+        255
+      ]
+    },
+    {
+      "path": "programmable",
+      "reversed": true,
+      "cullMode": "ccw",
+      "pixel": [
+        255,
+        128,
+        64,
+        255
+      ]
+    }
+  ],
   "pacedIntervals": [
-    18.960000038146973,
-    18.5900000333786,
-    18.18999993801117
+    19.924999952316284,
+    20.200000047683716,
+    16.914999961853027
   ],
   "presentationMode": "canvas",
   "fallbackAdapter": false,
@@ -193,7 +903,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-26T08:46:42.498Z",
+  "date": "2026-09-26T09:16:32.750Z",
   "browser": "154.0.8037.57",
   "passed": true
 }

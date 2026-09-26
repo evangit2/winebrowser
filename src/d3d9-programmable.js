@@ -389,6 +389,7 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
     pixelConstants: state.pixelConstants.slice(),
     depthTest: state.depthTest,
     depthWrite: state.depthWrite,
+    depthCompare: state.depthCompare,
     cullMode: state.cullMode,
     payloadBytes:
       vertices.length +
