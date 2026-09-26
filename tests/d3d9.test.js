@@ -485,12 +485,13 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 10 * 4), 0xff);
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
-    for (const index of [17, 18, 34, 40, 47, 49, 51])
-      assert.equal(runtime.read32(p + index * 4), 0);
+    for (const index of [17, 18, 34, 47, 49, 51]) assert.equal(runtime.read32(p + index * 4), 0);
     assert.equal(runtime.read32(p + 15 * 4), 0x4005);
     assert.equal(runtime.read32(p + 16 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 22 * 4), 2048);
     assert.equal(runtime.read32(p + 38 * 4), 1);
+    assert.equal(runtime.read32(p + 39 * 4), 0x3a);
+    assert.equal(runtime.read32(p + 40 * 4), 8);
     assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 21)).result, 0);
     assert.equal((await call(factory, 10, 0, 1, 23, 0x200, 3, 23)).result, 0);
     assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 21)).result, 0x8876086a);
@@ -914,3 +915,135 @@ for (const version of [8, 9])
     await call(other, 2);
     assert.equal(r.d3dTextureBytes, 0);
   });
+
+for (const version of [8, 9]) {
+  const slots =
+    version === 8
+      ? {
+          material: 42,
+          getMaterial: 43,
+          light: 44,
+          getLight: 45,
+          enable: 46,
+          getEnable: 47,
+          set: 50,
+          get: 51,
+          fvf: 76,
+          scene: 34,
+          draw: 72,
+          end: 35,
+          present: 15,
+        }
+      : {
+          material: 49,
+          getMaterial: 50,
+          light: 51,
+          getLight: 52,
+          enable: 53,
+          getEnable: 54,
+          set: 57,
+          get: 58,
+          fvf: 89,
+          scene: 41,
+          draw: 83,
+          end: 42,
+          present: 17,
+        };
+  test(`D3D${version} materials and lights use native structures with atomic validation`, async () => {
+    const { runtime: r, call, create, output } = fixture(version),
+      d = await create(),
+      material = r.allocate(72),
+      light = r.allocate(108),
+      copy = r.allocate(108);
+    assert.equal((await call(d, slots.getMaterial, copy)).argc, 2);
+    assert.ok(r.data.subarray(copy, copy + 68).every((v) => v === 0));
+    for (let i = 0; i < 17; i++) r.view.setFloat32(material + i * 4, i / 16, true);
+    r.write32(copy + 68, 0xabcdef01);
+    assert.equal((await call(d, slots.material, material)).result, 0);
+    await call(d, slots.getMaterial, copy);
+    assert.deepEqual(r.data.slice(copy, copy + 68), r.data.slice(material, material + 68));
+    assert.equal(r.read32(copy + 68), 0xabcdef01);
+    r.write32(material + 64, 0x7fc00000);
+    assert.equal((await call(d, slots.material, material)).result, 0x8876086c);
+    r.write32(material + 64, 0xbf800000);
+    assert.equal((await call(d, slots.material, material)).result, 0x8876086c);
+    await call(d, slots.getMaterial, copy);
+    assert.equal(r.read32(copy + 64), 0x3f800000);
+    assert.equal((await call(d, slots.getLight, 19, copy)).result, 0x8876086c);
+    assert.equal((await call(d, slots.enable, 19, 0)).result, 0);
+    await call(d, slots.getLight, 19, copy);
+    assert.equal(r.read32(copy), 3);
+    assert.equal(r.read32(copy + 4), 0x3f800000);
+    assert.equal(r.read32(copy + 72), 0x3f800000);
+    await call(d, slots.getEnable, 19, output);
+    assert.equal(r.read32(output), 0);
+    r.write32(light, 1);
+    r.view.setFloat32(light + 76, 10, true);
+    r.view.setFloat32(light + 84, 1, true);
+    assert.equal((await call(d, slots.light, 0xffffffff, light)).argc, 3);
+    r.write32(copy + 104, 0xfeedbeef);
+    await call(d, slots.getLight, 0xffffffff, copy);
+    assert.deepEqual(r.data.slice(copy, copy + 104), r.data.slice(light, light + 104));
+    assert.equal(r.read32(copy + 104), 0xfeedbeef);
+    r.view.setFloat32(light + 84, -1, true);
+    assert.equal((await call(d, slots.light, 0xffffffff, light)).result, 0x8876086c);
+    await call(d, slots.getLight, 0xffffffff, copy);
+    assert.equal(r.read32(copy + 84), 0x3f800000);
+    await assert.rejects(call(d, slots.getLight, 0xffffffff, r.data.length - 100), /memory/);
+    for (let i = 0; i < 8; i++) assert.equal((await call(d, slots.enable, i, 1)).result, 0);
+    assert.equal((await call(d, slots.enable, 8, 1)).result, 0x8876086c);
+    await call(d, slots.getEnable, 0, output);
+    assert.equal(r.read32(output), 128);
+    await call(d, slots.enable, 0, 0);
+    assert.equal((await call(d, slots.enable, 8, 1)).result, 0);
+    await call(d, 2);
+  });
+  test(`D3D${version} lighting and material-source states survive queued draws`, async () => {
+    const { runtime: r, call, create, output, events } = fixture(version),
+      d = await create();
+    for (const [state, value] of [
+      [29, 0],
+      [137, 1],
+      [139, 0],
+      [141, 1],
+      [142, 1],
+      [143, 0],
+      [145, 1],
+      [146, 2],
+      [147, 0],
+      [148, 0],
+    ]) {
+      await call(d, slots.get, state, output);
+      assert.equal(r.read32(output), value);
+    }
+    assert.equal((await call(d, slots.set, 146, 0)).result, 0);
+    assert.equal((await call(d, slots.set, 146, 3)).result, 0x8876086c);
+    const vertices = r.allocate(96),
+      m = r.allocate(68);
+    r.view.setFloat32(m, 1, true);
+    r.view.setFloat32(m + 12, 0.5, true);
+    await call(d, slots.material, m);
+    await call(d, slots.enable, 4, 1);
+    await call(d, slots.set, 143, 1);
+    await call(d, slots.set, 139, 0xff804020);
+    await call(d, slots.fvf, 0x112);
+    await call(d, slots.scene);
+    assert.equal((await call(d, slots.draw, 4, 1, vertices, 32)).result, 0);
+    r.view.setFloat32(m, 0, true);
+    await call(d, slots.material, m);
+    await call(d, slots.enable, 4, 0);
+    await call(d, slots.set, 143, 0);
+    await call(d, slots.draw, 4, 1, vertices, 32);
+    await call(d, slots.end);
+    await call(d, slots.present, 0, 0, 0, 0);
+    const commands = events.at(-1).commands;
+    assert.equal(commands[0].lighting.material[0], 1);
+    assert.equal(commands[1].lighting.material[0], 0);
+    assert.equal(commands[0].lighting.lights.length, 1);
+    assert.equal(commands[1].lighting.lights.length, 0);
+    assert.equal(commands[0].lighting.states[143], 1);
+    assert.equal(commands[1].lighting.states[143], 0);
+    assert.equal(commands[0].lighting.states[146], 0);
+    await call(d, 2);
+  });
+}

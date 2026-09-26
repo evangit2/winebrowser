@@ -1,3 +1,10 @@
+import { fvfLayout } from './d3d-fvf.js';
+import {
+  initLighting,
+  setLightingState,
+  lightingMethods,
+  lightingSnapshot,
+} from './d3d-lighting.js';
 import {
   initTextures,
   createTextureMethod,
@@ -78,6 +85,7 @@ function matrix(runtime, pointer) {
 
 function deviceMethods(version = 9) {
   const methods = {
+    ...lightingMethods,
     23: createTextureMethod(version),
     64: { argc: 3, invoke: (r, a, d) => getTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
     65: { argc: 3, invoke: (r, a, d) => bindTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
@@ -183,6 +191,7 @@ function deviceMethods(version = 9) {
         const value = argument(2) >>> 0;
         // The current fixed-function path already uses perspective Gouraud
         // interpolation; other shade modes need their own interpolation path.
+        if (state in object.state.lightState) return setLightingState(object.state, state, value);
         if (state === 9 && value === 2) object.state.shadeMode = value;
         else if (state === 8 && value === 3) object.state.fillMode = value;
         else if (state === 136 && value === 1) object.state.clipping = true;
@@ -190,7 +199,6 @@ function deviceMethods(version = 9) {
         else if (state === 23 && DEPTH_COMPARE[value])
           object.state.depthCompare = DEPTH_COMPARE[value];
         else if (state === 26 && value <= 1) object.state.dither = !!value;
-        else if (state === 137 && value === 0) object.state.lighting = false;
         else if (state === 7 && value <= 1) {
           if (value && !object.state.hasDepth) return D3DERR_INVALIDCALL;
           object.state.depthTest = !!value;
@@ -213,7 +221,7 @@ function deviceMethods(version = 9) {
           22: CULL_MODE.indexOf(s.cullMode),
           23: DEPTH_COMPARE.indexOf(s.depthCompare),
           26: Number(s.dither),
-          137: Number(s.lighting),
+          ...s.lightState,
           136: Number(s.clipping),
         }[a(1)];
         if (value === undefined) throw Error(`Unsupported IDirect3DDevice9.GetRenderState ${a(1)}`);
@@ -242,12 +250,8 @@ function deviceMethods(version = 9) {
           queue(state, command, payloadBytes);
           return D3D_OK;
         }
-        if (
-          primitive !== 4 ||
-          ![0x42, 0x142].includes(state.fvf) ||
-          stride !== (state.fvf === 0x142 ? 24 : 16) ||
-          state.lighting
-        )
+        const layout = fvfLayout(state.fvf);
+        if (primitive !== 4 || !layout || stride < layout.size || stride > 256 || stride % 4)
           throw Error('Unsupported IDirect3DDevice9.DrawPrimitiveUP format or render state');
         const texturing = fixedTextureDraw(runtime, state);
         const texture = texturing?.texture;
@@ -263,20 +267,21 @@ function deviceMethods(version = 9) {
         runtime.check(pointer, size);
         const vertices = runtime.data.slice(pointer, pointer + size);
         const view = new DataView(vertices.buffer);
+        const floatOffsets = [0, 4, 8];
+        if (layout.normal !== null)
+          floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
+        if (layout.uv !== null) floatOffsets.push(layout.uv, layout.uv + 4);
         for (let i = 0; i < vertexCount; i++)
-          for (let coordinate = 0; coordinate < 3; coordinate++)
-            if (!Number.isFinite(view.getFloat32(i * stride + coordinate * 4, true)))
+          for (const offset of floatOffsets)
+            if (!Number.isFinite(view.getFloat32(i * stride + offset, true)))
               throw Error('Unsupported D3D9 non-finite vertex');
-        if (state.fvf === 0x142)
-          for (let i = 0; i < vertexCount; i++)
-            for (const offset of [16, 20])
-              if (!Number.isFinite(view.getFloat32(i * stride + offset, true)))
-                throw Error('Unsupported D3D9 non-finite texture coordinate');
         queue(
           state,
           {
             type: 'draw',
             fvf: state.fvf,
+            lighting: lightingSnapshot(state),
+            specularEnable: !!state.lightState[29],
             texturing,
             vertices,
             vertexCount,
@@ -304,7 +309,7 @@ function deviceMethods(version = 9) {
       argc: 2,
       invoke(_runtime, argument, object) {
         const fvf = argument(1) >>> 0;
-        if (![0x42, 0x142].includes(fvf))
+        if (!fvfLayout(fvf))
           throw Error(`Unsupported IDirect3DDevice9.SetFVF 0x${fvf.toString(16)}`);
         object.state.fvf = fvf;
         bindObject(_runtime, object, 'vertexDeclaration', 0, 'IDirect3DVertexDeclaration9');
@@ -482,7 +487,7 @@ function factoryMethods(version = 9) {
           inScene: false,
           fvf: 0,
           ...initTextures(),
-          lighting: true,
+          ...initLighting(),
           shadeMode: 2,
           fillMode: 3,
           clipping: true,

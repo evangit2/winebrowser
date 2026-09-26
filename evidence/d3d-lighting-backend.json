@@ -1,0 +1,145 @@
+{
+  "passed": true,
+  "presentation": "canvas",
+  "cases": [
+    {
+      "name": "directional diffuse",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "reversed normal",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "ambient and emission without normals",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "diffuse material source0",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "diffuse material source1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "diffuse material source2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "missing color source falls back to material",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "COLORVERTEX disables vertex sources",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "inverse transpose normals without normalization",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "NORMALIZENORMALS restores unit normals",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "nonunit normals preserved when disabled",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "point attenuation",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "point range",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "spot cone",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "spot falloff",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "eight mixed lights",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "specular viewer0",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "specular viewer1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "specular material source1",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "specular material source2",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "ambient vertex material source",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "emissive vertex material source",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "unlit vertex specular adds after diffuse",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "specular added after texture modulation",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "camera rotation preserves directional lighting",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "queued lighting state stays per draw",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "RGB565 lit output",
+      "pixels": 4096,
+      "maxError": 0
+    }
+  ],
+  "pixels": 110592,
+  "frames": 27,
+  "browser": "154.0.8037.57",
+  "date": "2026-09-26T11:09:32.116Z"
+}

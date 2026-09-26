@@ -159,9 +159,13 @@ D3D10/11 and broader D3D12 support are still required.
       Native EXE/ZIP fixtures check all displayed pixels; 47 canvas/readback
       cases cover filtering, mip LOD, color/alpha operations and revision ordering.
       See `docs/d3d-textures.md`; surface interfaces and shader sampling remain.
-- [ ] Continue Hamsterball through `SetRenderState(NORMALIZENORMALS, FALSE)` at EXE offset `0x54714`.
+- [x] Implement D3D8/9 materials, light lifetimes/queries, material sources,
+      optional-normal/color/UV FVF layouts and actual GPU vertex lighting.
+      Directional/point/spot diffuse and specular pass 27 full-image cases on
+      canvas/readback and native EXE/ZIP uploads. See `docs/d3d-lighting.md`.
+- [ ] Continue Hamsterball through `SetRenderState(SRCBLEND, SRCALPHA)` at EXE offset `0x547c3`.
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,861,221 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,861,257 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

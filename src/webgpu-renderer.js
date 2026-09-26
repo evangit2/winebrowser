@@ -1,3 +1,5 @@
+import { fvfLayout } from './d3d-fvf.js';
+import { validLighting, lightingUniforms } from './d3d-lighting.js';
 import { D3DTextureRenderer, fixedShader, validateTexturing } from './d3d-texture-renderer.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
@@ -193,6 +195,13 @@ export class WebGPURenderer {
           throw Error('Invalid graphics clear command');
         bytes += (command.regions?.length ?? 0) * 16;
       } else if (command.type === 'draw') {
+        const layout = fvfLayout(command.fvf);
+        if (
+          !layout ||
+          !validLighting(command.lighting) ||
+          (command.specularEnable !== undefined && typeof command.specularEnable !== 'boolean')
+        )
+          throw Error('Invalid graphics fixed-function state');
         const textureBytes = validateTexturing(command.texturing);
         const texture = command.texturing?.texture;
         if (texture) {
@@ -210,12 +219,9 @@ export class WebGPURenderer {
           !(command.vertices instanceof Uint8Array) ||
           !integer(command.vertexCount, 3, 65535) ||
           command.vertexCount % 3 ||
-          !integer(command.stride, 16, 256) ||
+          !integer(command.stride, layout.size, 256) ||
           command.stride % 4 ||
-          (command.fvf !== undefined && ![0x42, 0x142].includes(command.fvf)) ||
-          (command.fvf === 0x142 && command.stride < 24) ||
-          command.vertices.length <
-            (command.vertexCount - 1) * command.stride + (command.fvf === 0x142 ? 24 : 16) ||
+          command.vertices.length < (command.vertexCount - 1) * command.stride + layout.size ||
           !matrix(command.world) ||
           !matrix(command.view) ||
           !matrix(command.projection) ||
@@ -247,6 +253,10 @@ export class WebGPURenderer {
       surface.colorFormat,
       !!command.dither,
       command.fvf ?? 0x42,
+      command.lighting
+        ? [29, 141, 142, 143, 145, 146, 147, 148].map((k) => command.lighting.states[k]).join(',')
+        : 'unlit',
+      !!command.specularEnable,
       JSON.stringify(command.texturing?.stage),
       !!command.texturing?.texture,
       !!command.texturing?.sampler[7],
@@ -255,7 +265,11 @@ export class WebGPURenderer {
       if (command.texturing) this.textures.initialize();
       const code = fixedShader(command);
       const shader =
-        command.texturing || surface.colorFormat === 23
+        command.texturing ||
+        command.lighting ||
+        command.specularEnable ||
+        (command.fvf ?? 0x42) !== 0x42 ||
+        surface.colorFormat === 23
           ? this.device.createShaderModule({
               code:
                 surface.colorFormat === 23
@@ -274,13 +288,7 @@ export class WebGPURenderer {
             buffers: [
               {
                 arrayStride: command.stride,
-                attributes: [
-                  { shaderLocation: 0, offset: 0, format: 'float32x3' },
-                  { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
-                  ...(command.texturing && command.fvf === 0x142
-                    ? [{ shaderLocation: 2, offset: 16, format: 'float32x2' }]
-                    : []),
-                ],
+                attributes: fvfLayout(command.fvf).attributes,
               },
             ],
           },
@@ -309,12 +317,15 @@ export class WebGPURenderer {
 
   upload(surface, index, command) {
     let slot = surface.slots[index];
-    if (!slot) {
+    const uniformSize = command.lighting ? 1232 : 192;
+    if (!slot || slot.uniform.size !== uniformSize) {
+      slot?.uniform.destroy();
       const uniform = this.device.createBuffer({
-        size: 192,
+        size: uniformSize,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
       slot = {
+        ...slot,
         uniform,
         bindGroup: this.device.createBindGroup({
           layout: this.bindLayout,
@@ -340,7 +351,9 @@ export class WebGPURenderer {
     this.device.queue.writeBuffer(
       slot.uniform,
       0,
-      new Float32Array([...command.world, ...command.view, ...command.projection]),
+      command.lighting
+        ? lightingUniforms(command)
+        : new Float32Array([...command.world, ...command.view, ...command.projection]),
     );
     this.textures.upload(surface, slot, command);
     return slot;

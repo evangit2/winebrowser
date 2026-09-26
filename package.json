@@ -101,7 +101,10 @@
     "test:threads-native": "node scripts/test-threads-native.mjs",
     "build:textures": "sh scripts/build-textures-fixture.sh",
     "test:textures": "node scripts/test-textures-browser.mjs",
-    "test:textures-backend": "node scripts/test-d3d-textures-backend.mjs"
+    "test:textures-backend": "node scripts/test-d3d-textures-backend.mjs",
+    "build:lighting": "sh scripts/build-lighting-fixture.sh",
+    "test:lighting": "node scripts/test-lighting-browser.mjs",
+    "test:lighting-backend": "node scripts/test-d3d-lighting-backend.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

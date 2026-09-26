@@ -9,7 +9,7 @@ export function deviceCaps(version) {
   caps[8] = 0x72; // MASKZ | CULLNONE | CULLCW | CULLCCW.
   caps[9] = 0x00400011; // COLORPERSPECTIVE | ZTEST | DITHER.
   caps[10] = 0xff; // All eight D3DCMPFUNC depth comparisons.
-  caps[14] = 0x8; // COLORGOURAUDRGB.
+  caps[14] = 0x208; // COLORGOURAUDRGB | SPECULARGOURAUDRGB.
   caps[15] = 0x4005; // PERSPECTIVE | ALPHA | MIPMAP; NPOT 2D supported.
   caps[16] = 0x03030300; // MIN/MAG/MIP POINT and LINEAR.
   caps[19] = 0x17; // WRAP | MIRROR | CLAMP | INDEPENDENTUV.
@@ -18,6 +18,8 @@ export function deviceCaps(version) {
   caps[27] = 1; // No anisotropic filtering.
   caps[35] = 1; // One FVF texture coordinate set.
   caps[36] = 0x4f; // DISABLE | SELECTARG1/2 | MODULATE | ADD.
+  caps[39] = 0x3a; // Material sources, directional/positional lights, local viewer.
+  caps[40] = 8; // Active fixed-function lights.
   caps[37] = caps[38] = 1; // One blend stage and sampled texture.
   new Float32Array(caps.buffer)[28] = 1e10; // Finite homogeneous W range.
   caps[45] = 21845; // Triangle-list primitive count (65,535 vertices).
@@ -25,7 +27,7 @@ export function deviceCaps(version) {
     caps[58] = 1; // NumberOfAdaptersInGroup.
     caps[60] = 1; // One render target.
   }
-  // Cube/volume textures, lighting, stencil, indexed streams and general shader
+  // Cube/volume textures, stencil, indexed streams and general shader
   // models remain unadvertised until their corresponding paths are implemented.
   return caps;
 }

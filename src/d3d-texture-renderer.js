@@ -1,3 +1,5 @@
+import { fvfLayout } from './d3d-fvf.js';
+import { lightingStruct, lightingFields, lightingCode } from './d3d-lighting.js';
 import { validSamplerValue, validStageValue, floatState } from './d3d-texture-state.js';
 const ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
 export function validateTexturing(t) {
@@ -56,14 +58,16 @@ function operation(op, a, b) {
 }
 export function fixedShader(command = {}) {
   const t = command.texturing,
-    uv = !!(command.fvf & 0x100),
+    layout = fvfLayout(command.fvf),
+    uv = layout.uv !== null,
     stage = t?.stage;
   const output = t
     ? `vec4(${operation(stage[1], argument(stage[2], t.texture), argument(stage[3], t.texture))}.rgb,
     ${operation(stage[4], argument(stage[5], t.texture), argument(stage[6], t.texture))}.a)`
     : 'input.color';
   return `
-struct Transforms { world: mat4x4<f32>, view: mat4x4<f32>, projection: mat4x4<f32> }
+${command.lighting ? lightingStruct : ''}
+struct Transforms { world: mat4x4<f32>, view: mat4x4<f32>, projection: mat4x4<f32> ${command.lighting ? lightingFields : ''} }
 @group(0) @binding(0) var<uniform> transforms: Transforms;
 ${
   t
@@ -73,14 +77,26 @@ ${
 @group(1) @binding(3) var magnificationSampler: sampler;`
     : ''
 }
+${command.lighting ? lightingCode(command, layout) : ''}
 struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: vec4<f32>,
+  @location(2) specular: vec4<f32>,
   ${t ? '@location(1) uv: vec2<f32>,' : ''} }
-@vertex fn vertexMain(@location(0) position: vec3<f32>, @location(1) bgra: vec4<f32>
+@vertex fn vertexMain(@location(0) position: vec3<f32>
+  ${layout.diffuse !== null ? ', @location(1) bgra: vec4<f32>' : ''}
+  ${layout.specular !== null ? ', @location(4) specularBgra: vec4<f32>' : ''}
+  ${layout.normal !== null ? ', @location(3) normal: vec3<f32>' : ''}
   ${t && uv ? ', @location(2) uv: vec2<f32>' : ''}) -> VertexOut {
   var output: VertexOut;
   // D3D row-major row-vector storage is transposed when read by WGSL.
   output.position = transforms.projection * transforms.view * transforms.world * vec4(position, 1.0);
-  output.color = bgra.bgra;
+  let color1 = ${layout.diffuse !== null ? 'bgra.bgra' : 'vec4(1.0)'};
+  let color2 = ${layout.specular !== null ? 'specularBgra.bgra' : 'vec4(0.0)'};
+  ${
+    command.lighting
+      ? `let lit=lightVertex((transforms.view*transforms.world*vec4(position,1.0)).xyz,${layout.normal !== null ? 'normal' : 'vec3(0.0)'},color1,color2);
+  output.color=lit[0];output.specular=lit[1];`
+      : 'output.color=color1;output.specular=color2;'
+  }
   ${t ? `output.uv = ${uv && stage[11] === 0 ? 'uv' : 'vec2(0.0)'};` : ''}
   return output;
 }
@@ -99,7 +115,8 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
   let texel = select(large, small, minifying);`
   }
 
-  return ${output};
+  let color = ${output};
+  return ${command.specularEnable ? 'vec4(clamp(color.rgb + input.specular.rgb,vec3(0.0),vec3(1.0)),color.a)' : 'color'};
 }`;
 }
 export class D3DTextureRenderer {

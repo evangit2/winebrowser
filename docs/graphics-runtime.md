@@ -29,16 +29,17 @@ Device creation accepts windowed or virtual fullscreen presentation, RGB32/RGB56
 DISCARD/FLIP/COPY, no multisampling and optional D16 depth; see
 [display and presentation](d3d-display.md). Factory/device capabilities describe
 only implemented paths. The fixed-function triangle-list path supports
-`D3DFVF_XYZ | D3DFVF_DIFFUSE` with optional TEX1 coordinates, viewport/rectangle color/depth Clear, world/view/projection
-Set/GetTransform, viewport position/depth range, lighting off, Gouraud shading,
+`D3DFVF_XYZ | D3DFVF_DIFFUSE` with optional normals, specular color and TEX1 coordinates, viewport/rectangle color/depth Clear, world/view/projection
+Set/GetTransform, viewport position/depth range, lighting on/off, Gouraud shading,
 solid fill, clipping enabled, all depth comparisons and all culling modes. RGB565
 draws support optional ordered dithering; clears store undithered quantized colors.
-Draws copy bounded 16/24-byte XYZ/color/UV vertices and their transform/raster state
+Draws copy bounded XYZ/normal/color/UV vertices and their transform/raster state
 from guest memory before queuing a frame. Nonfinite transform state may be stored
 and read, but fails if consumed by a draw. The bounded programmable shader path
 is described below. [Managed/dynamic 2D textures](d3d-textures.md), native locks,
 one fixed-function stage, mipmapping and point/linear filtering now pass native
-EXE/ZIP and GPU tests. Other texture types, shader sampling, other FVF layouts,
+EXE/ZIP and GPU tests. [GPU vertex lighting](d3d-lighting.md) adds material sources,
+normal transforms, eight directional/point/spot lights and post-texture specular. Other texture types, shader sampling, other FVF layouts,
 reset, stencil and the rest of D3D8/9 remain unfinished.
 
 `src/webgpu-renderer.js` owns the browser backend inside the runtime worker.
