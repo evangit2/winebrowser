@@ -25,6 +25,7 @@ export const X87Op = Object.freeze({
   logarithm: 19,
   trigonometric: 20,
   examine: 21,
+  free: 22,
 });
 
 const POP = 1,
@@ -123,6 +124,7 @@ export function classifyX87(i, iced) {
   if (m === M.Fsin || m === M.Fcos || m === M.Fsincos)
     return result(X87Op.trigonometric, m === M.Fsin ? 0 : m === M.Fcos ? 1 : 2);
   if (m === M.Fxam) return result(X87Op.examine);
+  if (m === M.Ffree) return result(X87Op.free, reg(0));
   if (m === M.Fabs || m === M.Fchs) return result(X87Op.sign, m === M.Fchs ? 1 : 0);
   if (m === M.Ftst) return result(X87Op.compare, 0, 0, ZERO);
   if (m === M.Fldcw) return result(X87Op.loadControl);
@@ -346,7 +348,7 @@ export class X87State {
 
   execute(op, a, b, address, width, options) {
     if (!this.sf) throw Error('x87 SoftFloat runtime is not initialized');
-    if (op === X87Op.wait) {
+    if (op === X87Op.wait || op === X87Op.free) {
       const pending = this.status & ~this.control & 0x3f;
       if (pending) {
         this.status |= 0x80;
@@ -354,6 +356,10 @@ export class X87State {
           `Pending unmasked x87 exception 0x${pending.toString(16)} delivery unsupported`,
         );
       }
+      if (op === X87Op.wait) return;
+      // FFREE changes only the logical register's tag. It neither pops TOP
+      // nor reads/classifies the stale register bits (which may hold an sNaN).
+      this.tags[this.#physical(a)] = 3;
       return;
     }
     if (op === X87Op.initialize) return this.reset();

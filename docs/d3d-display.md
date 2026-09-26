@@ -68,8 +68,7 @@ still rejects a nonfinite matrix if the application actually consumes it.
 
 Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
-`GetDeviceCaps` and initial `SetTransform`, then stops at unsupported x87
-`FFREE ST(3)` (EXE offset `0x8c3e1`) at 8,857,132 guest instructions;
+`GetDeviceCaps` and initial `SetTransform`, then stops at unsupported `IDirect3DDevice8.GetViewport` (EXE offset `0x55040`) at 8,858,270 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.

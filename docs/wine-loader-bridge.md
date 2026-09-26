@@ -133,11 +133,11 @@ the TEB activation-context stack and Unicode scratch buffer fixes native module
 lookup and filename conversion. Package metadata queries now pass, including
 the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
 It passes D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP
-device, passes capabilities and initial SetTransform, then stops at x87
-`FFREE ST(3)` at 8,857,132 guest instructions;
+device, passes capabilities and initial SetTransform, then stops at
+`IDirect3DDevice8.GetViewport` at 8,858,270 guest instructions;
 Node stops at device creation without WebGPU. See [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is x87 stack management and broader D3D8 resources, with remaining
+unverified. The next work is D3D8 viewports and broader resources, with remaining
 audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 

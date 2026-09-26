@@ -44,6 +44,89 @@ async function machine(code, check) {
   return { cpu, memory, view, bytes: new Uint8Array(memory.buffer) };
 }
 
+test('FFREE addresses ST0..ST7 relative to every TOP without popping or touching stored bits', async () => {
+  for (let st = 0; st < 8; st++) {
+    const { cpu } = await machine([0xdd, 0xc0 + st]);
+    try {
+      for (let top = 0; top < 8; top++) {
+        cpu.x87.reset();
+        cpu.x87.top = top;
+        cpu.x87.control = 0x0300; // All exceptions unmasked; freeing generates none.
+        cpu.x87.tags.set([0, 1, 2, 3, 0, 1, 2, 3]);
+        cpu.x87.values.forEach((v, i) => v.fill(0xa0 + i));
+        const before = cpu.x87.snapshot();
+        cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+        cpu.step(CODE);
+        assert.equal(cpu.x87.top, top);
+        assert.deepEqual(cpu.x87.values, before.values);
+        for (let physical = 0; physical < 8; physical++)
+          assert.equal(
+            cpu.x87.tags[physical],
+            physical === (top + st) % 8 ? 3 : before.tags[physical],
+          );
+        assert.equal(cpu.x87.status & 0xff, 0);
+        assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+      }
+    } finally {
+      cpu.dispose();
+    }
+  }
+});
+
+test('FFREE frees a full-stack push slot, and reading a freed register raises masked stack underflow', async () => {
+  const { cpu } = await machine([0xdd, 0xc7, 0xd9, 0xe8]); // FFREE ST7; FLD1.
+  try {
+    cpu.x87.tags.fill(0);
+    cpu.x87.values.forEach((v) => v.set(Buffer.from('0000000000000080ff3f', 'hex')));
+    cpu.step(CODE);
+    assert.equal(cpu.x87.top, 7);
+    assert.equal(cpu.x87.tags[7], 0);
+    assert.equal(cpu.x87.status & 0x241, 0);
+  } finally {
+    cpu.dispose();
+  }
+  const other = await machine([0xdd, 0xc0, 0xd9, 0xc0, 0xdb, 0x38]); // FFREE ST0; FLD ST0; FSTP [EAX].
+  try {
+    other.cpu.r[0].value = DATA;
+    other.cpu.x87.tags[0] = 0;
+    other.cpu.x87.values[0].set(Buffer.from('0000000000000080ff3f', 'hex'));
+    other.cpu.step(CODE);
+    assert.equal(other.cpu.x87.top, 0);
+    assert.equal(other.cpu.x87.tags[0], 3);
+    assert.equal(other.cpu.x87.status & 0x241, 0x41);
+    assert.equal(
+      Buffer.from(other.bytes.slice(DATA, DATA + 10)).toString('hex'),
+      '00000000000000c0ffff',
+    );
+  } finally {
+    other.cpu.dispose();
+  }
+});
+
+test('FFREE checks pending unmasked exceptions before changing tags and rejects LOCK', async () => {
+  const { cpu } = await machine([0xdd, 0xc3]);
+  try {
+    cpu.x87.top = 6;
+    cpu.x87.tags.fill(0);
+    cpu.x87.control &= ~1;
+    cpu.x87.status = 1;
+    assert.throws(() => cpu.step(CODE), /Pending unmasked x87 exception/);
+    assert.ok(cpu.x87.tags.every((t) => t === 0));
+    assert.equal(cpu.x87.top, 6);
+    cpu.x87.control |= 1;
+    cpu.step(CODE);
+    assert.equal(cpu.x87.tags[1], 3);
+  } finally {
+    cpu.dispose();
+  }
+  const locked = await machine([0xf0, 0xdd, 0xc0]);
+  try {
+    assert.throws(() => locked.cpu.step(CODE), /Unsupported|Invalid/);
+  } finally {
+    locked.cpu.dispose();
+  }
+});
+
 test('FYL2X preserves ext80 low bits regardless of precision control and leaves integer flags unchanged', async () => {
   const { vectors } = JSON.parse(
     await readFile(new URL('./fixtures/x87-log-vectors.json', import.meta.url)),

@@ -144,9 +144,12 @@ D3D10/11 and broader D3D12 support are still required.
       all eight depth comparisons and all three culling modes. Native EXE/ZIP
       cubes query both interfaces; fixed/shader pixel tests pass in canvas/readback.
       Set/GetTransform preserves raw matrix bits; invalid matrices still fail at draw.
-- [ ] Continue Hamsterball through x87 `FFREE ST(3)` at EXE offset `0x8c3e1`.
+- [x] Implement x87 FFREE with logical-stack tag addressing, unchanged TOP/data,
+      reusable push slots and pending-exception checks. Tests cover all registers
+      and TOP values; the original game passes its matrix routine in Chromium.
+- [ ] Continue Hamsterball through `IDirect3DDevice8.GetViewport` at EXE offset `0x55040`.
       Chromium passes capability queries and initial SetTransform after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,857,132 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,858,270 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
