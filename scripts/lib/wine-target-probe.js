@@ -173,6 +173,8 @@ export async function probeWineTarget(
         service?.argc ??
         {
           'user32.dll!SetWindowPos': 7,
+          'user32.dll!CreateWindowExA': 12,
+          'user32.dll!CreateWindowExW': 12,
           'dinput8.dll!DirectInput8Create': 5,
           'IDirect3D8.CreateDevice': 7,
           'IDirect3D9.CreateDevice': 7,

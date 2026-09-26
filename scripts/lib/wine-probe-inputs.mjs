@@ -56,20 +56,22 @@ export async function loadWineProbeInputs(root, { wineDirectory, nlsDirectory })
     sha256: sha256(patched),
   });
   const builtinFiles = new Map([['ntdll.dll', patched]]);
-  const formatterManifest = JSON.parse(
-    await readFile(path.join(root, 'runtime/wine-format/manifest.json'), 'utf8'),
-  );
-  const formatterPath = path.join(root, 'public/runtime/wine-format.dll');
-  const formatter = new Uint8Array(await readFile(formatterPath));
-  assert.equal(sha256(formatter), formatterManifest.dllSha256);
-  assert.equal(formatter.length, formatterManifest.dllBytes);
-  builtinFiles.set('wine-format.dll', formatter);
-  inputs.dlls.push({
-    name: 'wine-format.dll',
-    path: formatterPath,
-    bytes: formatter.length,
-    sha256: sha256(formatter),
-  });
+  // Use the same source-built guest components as ordinary uploads. In this
+  // probe their Kernel32 imports resolve to the real Wine base DLLs below.
+  for (const [name, manifestFile] of [
+    ['wine-format.dll', 'runtime/wine-format/manifest.json'],
+    ['shell32.dll', 'runtime/wine/manifest.json'],
+  ]) {
+    const componentManifest = JSON.parse(await readFile(path.join(root, manifestFile), 'utf8'));
+    const filename = path.join(root, 'public/runtime', name);
+    const bytes = new Uint8Array(await readFile(filename));
+    assert.equal(sha256(bytes), componentManifest.dllSha256);
+    if (componentManifest.dllBytes !== undefined)
+      assert.equal(bytes.length, componentManifest.dllBytes);
+    assert.equal(parsePE(bytes, { allowDll: true }).isDll, true);
+    builtinFiles.set(name, bytes);
+    inputs.dlls.push({ name, path: filename, bytes: bytes.length, sha256: sha256(bytes) });
+  }
   for (const [name, expected] of Object.entries(installedHashes)) {
     const filename = path.join(wineDirectory, name);
     const bytes = new Uint8Array(await readFile(filename));
