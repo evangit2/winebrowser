@@ -82,7 +82,7 @@ function writeInfo(r, p, device, wide, size) {
 // A/W interfaces have different string layouts but one COM identity/lifetime.
 function interfaces(r, name, iids, methodNames, state, methods, onRelease) {
   r.comObjects ??= new ComObjects(r);
-  if (r.comObjects.objects.size > 62) throw Error('COM object limit exceeded');
+  if (r.comObjects.liveObjects > 62) throw Error('COM object limit exceeded');
   const views = [],
     lifetime = { refs: 1 };
   for (const wide of [false, true]) {

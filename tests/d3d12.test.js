@@ -554,8 +554,8 @@ test('payload allocations roll back when COM object creation fails', async () =>
   const out = alloc();
   await f.api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
   const dev = r.read32(out);
-  for (let key = 1; r.comObjects.objects.size < 64; key++)
-    if (!r.comObjects.objects.has(key)) r.comObjects.objects.set(key, {});
+  // Saturate the live-object budget without creating real COM interfaces.
+  r.comObjects.liveObjects = 4096;
 
   const heapDesc = alloc(16);
   r.write32(heapDesc, 2);

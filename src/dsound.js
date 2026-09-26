@@ -274,7 +274,7 @@ const deviceMethods = {
     if (!format) return DS.BADFORMAT;
     if (!primary && (!size || size > 4 * 1024 * 1024)) return size ? DS.OUTOFMEMORY : DS.INVALID;
     const count = primary ? 0 : Math.ceil(size / format.align) * format.align;
-    if (r.comObjects.objects.size >= 64) return DS.OUTOFMEMORY;
+    if (r.comObjects.liveObjects >= 64) return DS.OUTOFMEMORY;
     let storage = null;
     if (!primary) {
       try {
@@ -327,7 +327,7 @@ const deviceMethods = {
     const source = r.comObjects.objects.get(a(1));
     if (!source?.refs || source.state.device !== device) return DS.INVALID;
     if (source.state.primary) return DS.INVALIDCALL;
-    if (r.comObjects.objects.size >= 64) return DS.OUTOFMEMORY;
+    if (r.comObjects.liveObjects >= 64) return DS.OUTOFMEMORY;
     const b = source.state;
     const duplicate = createBuffer(r, device, {
       ...b,

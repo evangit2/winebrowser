@@ -1742,3 +1742,24 @@ for (const version of [8, 9]) {
     await call(factory, 2);
   });
 }
+
+test('released COM objects free live capacity while stale pointers still fail', async () => {
+  const { runtime, call, create } = fixture();
+  const device = await create();
+  const objects = runtime.comObjects;
+  const baseline = objects.liveObjects;
+  // Create and release a texture repeatedly; the live count must return to the
+  // baseline each time even though pointers stay reserved for stale calls.
+  for (let i = 0; i < 100; i++) {
+    const out = runtime.allocate(4);
+    assert.equal((await call(device, 23, 4, 4, 1, 0, 21, 1, out, 0)).result, 0);
+    const texture = runtime.read32(out);
+    assert.equal(objects.liveObjects, baseline + 1);
+    assert.equal((await call(texture, 2)).result, 0);
+    assert.equal(objects.liveObjects, baseline);
+    await assert.rejects(call(texture, 13), /Released COM object/);
+  }
+  // The historical map keeps growing, so capacity must not depend on its size.
+  assert.ok(objects.objects.size > 64);
+  await call(device, 2);
+});

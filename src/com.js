@@ -25,10 +25,16 @@ export function readGuid(runtime, address) {
   );
 }
 
+// Upper bound on simultaneously live COM objects. Released pointers stay
+// reserved in `objects` so stale guest calls keep failing, so capacity is
+// tracked separately from the map size.
+const MAX_LIVE_OBJECTS = 4096;
+
 export class ComObjects {
   constructor(runtime) {
     this.runtime = runtime;
     this.objects = new Map();
+    this.liveObjects = 0;
   }
 
   create({
@@ -41,7 +47,7 @@ export class ComObjects {
     state = {},
     queryInterface,
   }) {
-    if (this.objects.size >= 64) throw Error('COM object limit exceeded');
+    if (this.liveObjects >= MAX_LIVE_OBJECTS) throw Error('COM object limit exceeded');
     if (methodNames.length < 3 || methodNames.length > 128)
       throw Error(`Invalid ${name} vtable size`);
     const runtime = this.runtime;
@@ -59,6 +65,7 @@ export class ComObjects {
       onRelease,
     };
     this.objects.set(pointer, object);
+    this.liveObjects++;
     for (const [slot, methodName] of methodNames.entries()) {
       const address = registerThunk(runtime.thunks, {
         kind: 'com',
@@ -94,7 +101,10 @@ export class ComObjects {
           }
           if (slot === 2) {
             const refs = --object.refs;
-            if (!refs) await object.onRelease?.(object);
+            if (!refs) {
+              this.liveObjects--;
+              await object.onRelease?.(object);
+            }
             return { result: refs, argc: 1 };
           }
           const method = methods[slot];
