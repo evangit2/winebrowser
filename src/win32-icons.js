@@ -84,12 +84,13 @@ export function decodeIconDib(bytes, expected = {}) {
     (expected.height && expected.height !== height)
   )
     throw Error('Icon DIB dimensions do not match group resource');
-  if (![4, 24, 32].includes(bitCount)) throw Error(`Unsupported icon DIB bit depth ${bitCount}`);
-  if ((bitCount === 4 && colorsUsed !== 0 && colorsUsed !== 16) || (bitCount >= 24 && colorsUsed))
+  if (![1, 4, 8, 24, 32].includes(bitCount))
+    throw Error(`Unsupported icon DIB bit depth ${bitCount}`);
+  if ((bitCount <= 8 && colorsUsed > 2 ** bitCount) || (bitCount >= 24 && colorsUsed))
     throw Error('Unsupported icon DIB palette size');
   if (expected.bitCount && expected.bitCount !== bitCount)
     throw Error('Icon DIB depth does not match group resource');
-  const colors = bitCount === 4 ? 16 : 0;
+  const colors = bitCount <= 8 ? colorsUsed || 2 ** bitCount : 0;
   const xorOffset = headerSize + colors * 4;
   const xorStride = rowStride(width, bitCount);
   const maskStride = rowStride(width, 1);
@@ -101,9 +102,11 @@ export function decodeIconDib(bytes, expected = {}) {
     const sourceY = height - 1 - y;
     for (let x = 0; x < width; x++) {
       const out = (y * width + x) * 4;
-      if (bitCount === 4) {
-        const packed = bytes[xorOffset + sourceY * xorStride + (x >> 1)];
-        const index = x & 1 ? packed & 15 : packed >>> 4;
+      if (bitCount <= 8) {
+        const bit = x * bitCount;
+        const packed = bytes[xorOffset + sourceY * xorStride + (bit >> 3)];
+        const index = (packed >>> (8 - bitCount - (bit & 7))) & ((1 << bitCount) - 1);
+        if (index >= colors) throw Error('Invalid icon DIB palette index');
         const palette = headerSize + index * 4;
         pixels[out] = bytes[palette + 2];
         pixels[out + 1] = bytes[palette + 1];
@@ -130,7 +133,11 @@ export function decodeIconDib(bytes, expected = {}) {
       );
       // For 32-bit icons with alpha, Windows uses the alpha channel and ignores
       // the legacy monochrome mask. Alpha-less and indexed icons use the mask.
-      if (bitCount !== 32 || !hasAlpha) pixels[out + 3] = transparent ? 0 : 255;
+      if (bitCount !== 32 || !hasAlpha) {
+        if (expected.cursor && transparent && (pixels[out] || pixels[out + 1] || pixels[out + 2]))
+          throw Error('XOR cursor destination inversion is unsupported');
+        pixels[out + 3] = transparent ? 0 : 255;
+      }
     }
   return Object.freeze({ width, height, pixels });
 }

@@ -1,0 +1,8 @@
+101 CURSOR "mono.cur"
+FOUR CURSOR "four.cur"
+EIGHT CURSOR "eight.cur"
+TRUECOLOR CURSOR "truecolor.cur"
+ALPHA CURSOR "alpha.cur"
+MULTI CURSOR "multi.cur"
+BLANK CURSOR "blank.cur"
+SMALL CURSOR "small.cur"

@@ -1,0 +1,188 @@
+{
+  "passed": true,
+  "desktopImageValidation": true,
+  "browser": "154.0.8037.57",
+  "date": "2026-09-26T12:19:39.880Z",
+  "exeSha256": "e1d3ec296eadcefd4966df9df8faecfa8414664a27083ab0fe70e8955156044d",
+  "dllSha256": "555c1d0e0b3c7124ac4650290cabab300aaa24035866d60509bf71dbeceb68ad",
+  "runs": [
+    {
+      "package": "EXE and DLL",
+      "observed": [
+        {
+          "kind": "mono",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "four",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "eight",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "truecolor",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "alpha",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "four",
+          "hotspot": [
+            5,
+            7
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "blank",
+          "hotspot": [
+            0,
+            0
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "small",
+          "hotspot": [
+            4,
+            6
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "eight",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        }
+      ],
+      "exitCode": 0,
+      "instructions": 3094,
+      "errors": []
+    },
+    {
+      "package": "ZIP",
+      "observed": [
+        {
+          "kind": "mono",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "four",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "eight",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "truecolor",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "alpha",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "four",
+          "hotspot": [
+            5,
+            7
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "blank",
+          "hotspot": [
+            0,
+            0
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "small",
+          "hotspot": [
+            4,
+            6
+          ],
+          "pixels": 1024,
+          "bad": 0
+        },
+        {
+          "kind": "eight",
+          "hotspot": [
+            3,
+            5
+          ],
+          "pixels": 1024,
+          "bad": 0
+        }
+      ],
+      "exitCode": 0,
+      "instructions": 3094,
+      "errors": []
+    }
+  ]
+}

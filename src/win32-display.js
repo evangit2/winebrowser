@@ -1,3 +1,4 @@
+import { CURSOR_SIZE } from './cursors.js';
 // One process-local virtual display with a bounded mode catalogue. It describes the browser desktop
 // coordinate space only; these APIs never inspect or reconfigure a host monitor.
 import { frameForWindow } from './window-frame.js';
@@ -46,6 +47,8 @@ export function virtualSystemMetric(index, runtime) {
   return {
     0: mode.width, // SM_CXSCREEN
     1: mode.height, // SM_CYSCREEN
+    13: CURSOR_SIZE, // SM_CXCURSOR.
+    14: CURSOR_SIZE, // SM_CYCURSOR.
     16: mode.width, // SM_CXFULLSCREEN
     17: mode.height, // SM_CYFULLSCREEN
   }[index];

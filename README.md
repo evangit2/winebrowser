@@ -92,8 +92,9 @@ metadata now passes through Win32 and native NT queries, including Hamsterball's
 initializes two workers, creates the 800×600 Hamsterball window, and passes
 D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP device
 and passes capabilities, viewport setup and a finite projection, then stops at the
-unsupported packaged custom cursor load after about 8.86 million guest instructions;
-no game frame renders yet. Node stops at device creation because it lacks WebGPU. See [graphics scope](docs/d3d-display.md) and [thread scope](docs/thread-runtime.md).
+`shadow.png` texture load after about 8.88 million guest instructions;
+[Custom cursor resources](docs/custom-cursors.md) now pass; the NT file adapter rejects a random-access hint.
+No game frame renders yet. Node stops at device creation because it lacks WebGPU. See [graphics scope](docs/d3d-display.md) and [thread scope](docs/thread-runtime.md).
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the
 [audio fixture and limits](tests/fixtures/dsound/README.md).

@@ -17,8 +17,8 @@ N selects a null cursor, and R restores the class hand cursor. Moving the mouse
 keeps the native WM_SETCURSOR override until R clears it.
 
 Cursor shapes use the browser's system theme, rather than Windows bitmap pixels;
-IDC_UPARROW uses the directional n-resize cursor. Packaged custom cursor images,
-named system resources, deprecated SIZE/ICON cursors and newer PIN/PERSON assets
+IDC_UPARROW uses the directional n-resize cursor. [Packaged custom cursor images](../../../docs/custom-cursors.md) now use a separate
+resource fixture. Named system resources, deprecated SIZE/ICON cursors and newer PIN/PERSON assets
 remain unsupported. Client mouse input sends WM_SETCURSOR synchronously when
 retrieved, unless mouse capture is active; ordinary PostMessage does not simulate
 hardware movement. Browser window frames retain their own drag/resize cursors.

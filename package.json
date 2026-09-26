@@ -107,7 +107,9 @@
     "test:lighting-backend": "node scripts/test-d3d-lighting-backend.mjs",
     "build:blending": "sh scripts/build-blending-fixture.sh",
     "test:blending": "node scripts/test-blending-browser.mjs",
-    "test:blending-backend": "node scripts/test-d3d-blending-backend.mjs"
+    "test:blending-backend": "node scripts/test-d3d-blending-backend.mjs",
+    "build:custom-cursors": "sh scripts/build-custom-cursors-fixture.sh",
+    "test:custom-cursors": "node scripts/test-custom-cursors-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

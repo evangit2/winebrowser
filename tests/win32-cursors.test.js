@@ -54,7 +54,8 @@ test('failed resource/handle operations preserve cursor and display state; runti
     assert.equal(call(other, 'GetCursor').result, 32512);
     assert.equal(call(r, 'LoadCursorA', [0, 12345]).result, 0);
     assert.equal(r.lastError, 1814);
-    assert.throws(() => call(r, 'LoadCursorA', [0x400000, 123]), /custom cursor resources/);
+    assert.equal(call(r, 'LoadCursorA', [0x400000, 123]).result, 0);
+    assert.equal(r.lastError, 1814);
     assert.throws(() => call(r, 'LoadCursorW', [0, 0x3000000]), /Named system cursor/);
     assert.equal(call(r, 'SetCursor', [12345]).result, 0);
     assert.equal(r.lastError, 1402);

@@ -1,5 +1,5 @@
 import './desktop.css';
-import { CURSOR_STYLES } from './cursors.js';
+import { CURSOR_STYLES, CURSOR_SIZE } from './cursors.js';
 import { compareWindowOrder, windowFrame } from './window-frame.js';
 
 const MIN_CLIENT_WIDTH = 64;
@@ -38,6 +38,7 @@ export class VirtualDesktop {
     this.activeWindowId = null;
     this.nextZIndex = 1;
     this.drag = null;
+    this.cursorImages = new Map();
 
     container.classList.add('virtual-desktop');
     if (!container.hasAttribute('tabindex')) container.tabIndex = 0;
@@ -60,7 +61,42 @@ export class VirtualDesktop {
   onKeyDown = (event) => this.#sendKey(event, 'keydown');
   onKeyUp = (event) => this.#sendKey(event, 'keyup');
 
-  setCursor(css) {
+  setCursor(css, handle) {
+    if (typeof css === 'object' && css !== null) {
+      const { width, height, hotX, hotY, pixels } = css;
+      if (
+        width !== CURSOR_SIZE ||
+        height !== CURSOR_SIZE ||
+        !Number.isInteger(hotX) ||
+        !Number.isInteger(hotY) ||
+        hotX < 0 ||
+        hotY < 0 ||
+        hotX >= width ||
+        hotY >= height ||
+        !(pixels instanceof Uint8Array) ||
+        pixels.length !== width * height * 4 ||
+        !Number.isInteger(handle) ||
+        handle < 0x63000000 ||
+        handle > 0x630003fc ||
+        handle % 4
+      )
+        throw Error('Invalid desktop cursor image');
+      if (!this.cursorImages.has(handle)) {
+        const canvas = this.container.ownerDocument.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d'),
+          data = context.createImageData(width, height);
+        data.data.set(pixels);
+        context.putImageData(data, 0, 0);
+        this.cursorImages.set(
+          handle,
+          `url("${canvas.toDataURL('image/png')}") ${hotX} ${hotY}, default`,
+        );
+      }
+      this.container.style.setProperty('--guest-cursor', this.cursorImages.get(handle));
+      return;
+    }
     if (css !== 'none' && ![...CURSOR_STYLES.values()].includes(css))
       throw Error('Unsupported desktop cursor');
     this.container.style.setProperty('--guest-cursor', css);
@@ -662,6 +698,7 @@ export class VirtualDesktop {
 
   reset() {
     this.container.style.removeProperty('--guest-cursor');
+    this.cursorImages.clear();
     this.windows.clear();
     this.activeWindowId = null;
     this.drag = null;

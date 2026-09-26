@@ -84,7 +84,7 @@ sRGB filtering, multiple active stages and shader texture bindings remain missin
   texture budget exhaustion. Existing color/depth/shader/DX12 browser gates pass.
 
 Original Hamsterball passes its initial D3D8 MIPMAPLODBIAS state and now stops
-at packaged custom LoadCursorA, user32 DLL offset `0x1040`, after 8,861,615
+at the `shadow.png` texture-load error (NtCreateFile random-access hint), after 8,884,954
 guest instructions. This is the separate real-Wine loader diagnostic; no game
 frame is presented yet. The normal upload fixtures establish the implemented
 texture path, not independent-game compatibility or instant arbitrary startup.

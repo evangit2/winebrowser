@@ -169,10 +169,15 @@ D3D10/11 and broader D3D12 support are still required.
       every pixel. See `docs/d3d-blending.md` for the bounded scope and copy cost.
 - [x] Preserve native disabled alpha-test/fog/stencil configuration and queries.
       Enabling these effects still fails explicitly; no rendering support is claimed.
-- [ ] Continue Hamsterball through packaged custom `LoadCursorA` resources.
-      Current stop is the native user32 bridge at DLL offset `0x1040`.
+- [x] Load named/numeric custom cursors from native EXEs/DLLs, preserving hotspots,
+      shared handles and visibility/class overrides. Browser EXE/DLL and ZIP tests
+      verify all pixels for five bitmap depths, blank/multiple-size/scaled images.
+      See `docs/custom-cursors.md`. Resource-only DLLs now map with empty relocation
+      tables when IMAGE_FILE_RELOCS_STRIPPED is clear.
+- [ ] Continue Hamsterball through texture-file startup (`shadow.png`).
+      NtCreateFile rejects FILE_RANDOM_ACCESS (options 0x860), causing the game's error dialog.
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,861,615 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,884,954 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

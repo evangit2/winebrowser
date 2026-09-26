@@ -156,7 +156,7 @@ test('unsupported icon payload encodings fail explicitly', () => {
   const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, ...new Array(36).fill(0)]);
   assert.throws(() => decodeIconDib(png), /PNG icon resources are unsupported/);
   const palette = iconDib();
-  put32(new DataView(palette.buffer), 32, 2);
+  put32(new DataView(palette.buffer), 32, 17);
   assert.throws(() => decodeIconDib(palette), /palette size/);
 });
 

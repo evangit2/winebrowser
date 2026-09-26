@@ -1,3 +1,4 @@
+export const CURSOR_SIZE = 32;
 // Predefined Win32 cursor IDs rendered using the browser's system cursor theme.
 export const CURSOR_STYLES = new Map([
   [32512, 'default'],
