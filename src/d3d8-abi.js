@@ -2,6 +2,8 @@
 // Like DirectWebGPU's D3D8 frontend, this adapts calls to shared D3D9 state
 // and rendering. Shader handles and resource descriptors have different ABIs;
 // they must be translated explicitly as those paths are implemented.
+import { copyRectsMethod } from './d3d9.js';
+
 export const D3D8_METHODS =
   `QueryInterface AddRef Release RegisterSoftwareDevice GetAdapterCount GetAdapterIdentifier GetAdapterModeCount EnumAdapterModes GetAdapterDisplayMode CheckDeviceType CheckDeviceFormat CheckDeviceMultiSampleType CheckDepthStencilMatch GetDeviceCaps GetAdapterMonitor CreateDevice`.split(
     ' ',
@@ -49,6 +51,8 @@ export function device8Methods(methods9, names9) {
     'GetIndices',
   ])
     methods[DEVICE8_METHODS.indexOf(name)] = methods9[names9.indexOf(name)];
+  // D3D8-only device methods that have no D3D9 vtable slot.
+  methods[DEVICE8_METHODS.indexOf('CopyRects')] = copyRectsMethod;
   // In D3D8, a vertex shader value can be an FVF instead of a shader handle.
   // The shared SetFVF validator rejects unsupported layouts/handles.
   methods[76] = methods9[89];

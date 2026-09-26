@@ -9,6 +9,7 @@ import {
 } from './d3d-lighting.js';
 import {
   initTextures,
+  copyRects,
   createTextureMethod,
   bindTexture,
   getTexture,
@@ -706,6 +707,13 @@ function createFactory(runtime, argument, version) {
   });
   return { result: object.pointer, argc: 1 };
 }
+
+// D3D8-only device methods that have no D3D9 equivalent.
+export const copyRectsMethod = {
+  // CopyRects(src, srcRects, rectCount, dst, dstPoints)
+  argc: 6,
+  invoke: (r, a, d) => copyRects(r, d, a(1) >>> 0, a(2) >>> 0, a(3) >>> 0, a(4) >>> 0, a(5) >>> 0),
+};
 
 export const d3d9Apis = {
   'd3d9.dll!Direct3DCreate9': (runtime, argument) => createFactory(runtime, argument, 9),

@@ -422,6 +422,86 @@ export function createTextureMethod(version) {
     },
   };
 }
+// A device-level surface is either a texture level view or a standalone image
+// surface; both publish the same level-shaped state used by CopyRects.
+const number = (value) => value >>> 0;
+export function surfaceLevel(r, pointer, device) {
+  const object = r.comObjects?.objects.get(number(pointer));
+  if (
+    !object ||
+    !object.refs ||
+    (object.name !== 'IDirect3DSurface8' && object.name !== 'IDirect3DSurface9') ||
+    object.state.device !== device
+  )
+    return null;
+  return object.state.level;
+}
+
+// CopyRects(src, srcRects, rectCount, dst, dstPoints): copy `rectCount`
+// rectangles from src to dst, or the whole surface when srcRects is NULL.
+export function copyRects(
+  r,
+  device,
+  srcPointer,
+  srcRectsPointer,
+  rectCount,
+  dstPointer,
+  dstPointsPointer,
+) {
+  const src = surfaceLevel(r, srcPointer, device),
+    dst = surfaceLevel(r, dstPointer, device);
+  if (!src || !dst || !rectCount || rectCount > 1024) return INVALID;
+  const srcTexture = r.comObjects.objects.get(number(srcPointer)).state.texture;
+  const dstTexture = r.comObjects.objects.get(number(dstPointer)).state.texture;
+  if (src.locked || dst.locked) return INVALID;
+  if (srcTexture.state.bpp !== dstTexture.state.bpp) return INVALID;
+  const bpp = srcTexture.state.bpp;
+  const source = new DataView(r.data.buffer, r.data.byteOffset, r.data.byteLength);
+  const first = srcTexture.state.base + src.offset,
+    second = dstTexture.state.base + dst.offset;
+  const copy = (sx, sy, dx, dy, width, height) => {
+    const rowBytes = width * bpp;
+    for (let row = 0; row < height; row++) {
+      const from = first + (sy + row) * src.pitch + sx * bpp;
+      const to = second + (dy + row) * dst.pitch + dx * bpp;
+      r.data.copyWithin(to, from, from + rowBytes);
+    }
+  };
+  if (!srcRectsPointer) {
+    if (dstPointsPointer) {
+      const dx = r.read32(dstPointsPointer) | 0,
+        dy = r.read32(dstPointsPointer + 4) | 0;
+      if (dx < 0 || dy < 0 || dx + src.width > dst.width || dy + src.height > dst.height)
+        return INVALID;
+      copy(0, 0, dx, dy, src.width, src.height);
+    } else copy(0, 0, 0, 0, Math.min(src.width, dst.width), Math.min(src.height, dst.height));
+  } else {
+    r.check(srcRectsPointer, rectCount * 16);
+    if (dstPointsPointer) r.check(dstPointsPointer, rectCount * 8);
+    for (let i = 0; i < rectCount; i++) {
+      const rectPointer = srcRectsPointer + i * 16;
+      const [left, top, right, bottom] = [0, 4, 8, 12].map((o) => r.read32(rectPointer + o) | 0);
+      const width = right - left,
+        height = bottom - top;
+      if (
+        left < 0 ||
+        top < 0 ||
+        width <= 0 ||
+        height <= 0 ||
+        right > src.width ||
+        bottom > src.height
+      )
+        return INVALID;
+      const dx = dstPointsPointer ? r.read32(dstPointsPointer + i * 8) | 0 : left;
+      const dy = dstPointsPointer ? r.read32(dstPointsPointer + i * 8 + 4) | 0 : top;
+      if (dx < 0 || dy < 0 || dx + width > dst.width || dy + height > dst.height) return INVALID;
+      copy(left, top, dx, dy, width, height);
+    }
+  }
+  invalidate(dstTexture);
+  return 0;
+}
+
 export function textureSnapshot(r, object) {
   const s = object.state;
   if (s.levels.some((l) => l.locked)) throw Error('D3D draw uses a locked texture');

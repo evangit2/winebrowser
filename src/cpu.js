@@ -283,9 +283,10 @@ export class CPU {
       string: (kind, bytes, repeat, sourceBase, at, next) => {
         if (![1, 2, 4].includes(bytes))
           throw Error('Unsupported string instruction width or operation');
-        if (![0, 1, 2, 3].includes(kind) || ![0, 1, 2, 3].includes(repeat))
+        if (![0, 1, 2, 3, 4].includes(kind) || ![0, 1, 2, 3].includes(repeat))
           throw Error('Invalid string operation or repeat mode');
         const compare = kind === 2 || kind === 3;
+        const load = kind === 4;
         if (compare && repeat) {
           this.stringRestart ??= { at, flags: { ...this.f }, af: this.af };
         } else this.stringRestart = null;
@@ -298,6 +299,16 @@ export class CPU {
           for (; completed < count; completed++) {
             const source = (this.r[6].value + sourceBase) >>> 0;
             const destination = this.r[7].value >>> 0;
+            if (load) {
+              // LODS reads [ESI] into EAX/AX/AL and advances only the source.
+              this.checkMemory(source, bytes, false);
+              const value = this.host.load(source, bytes);
+              const mask = bytes === 1 ? 0xff : bytes === 2 ? 0xffff : 0xffffffff;
+              this.r[0].value = (this.r[0].value & ~mask) | (value & mask) | 0;
+              this.r[6].value = (this.r[6].value + delta) | 0;
+              if (repeat) this.r[1].value = ((this.r[1].value >>> 0) - 1) | 0;
+              continue;
+            }
             if (kind === 0 || kind === 3) this.checkMemory(source, bytes, false);
             if (compare) {
               this.checkMemory(destination, bytes, false);
@@ -748,8 +759,9 @@ export class CPU {
           ].includes(i.code);
           const stringStos = [M.Stosb, M.Stosw, M.Stosd].includes(m);
           const stringScas = [M.Scasb, M.Scasw, M.Scasd].includes(m);
+          const stringLods = [M.Lodsb, M.Lodsw, M.Lodsd].includes(m);
           const stringCompare = stringScas || stringCmps;
-          const stringOp = stringMov || stringStos || stringCompare;
+          const stringOp = stringMov || stringStos || stringCompare || stringLods;
           const legacyBitScan = i.hasRepPrefix && (m === M.Bsf || m === M.Bsr);
           if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp && !legacyBitScan)
             throw Error('Repeat prefix unsupported');
@@ -765,6 +777,8 @@ export class CPU {
               throw Error('Unexpected MOVS source operand');
             if (stringStos && i.opKind(1) !== K.Register)
               throw Error('Unexpected STOS accumulator operand');
+            if (stringLods && (i.opKind(0) !== K.Register || i.opKind(1) !== K.MemorySegESI))
+              throw Error('Unexpected LODS operands');
             if (stringScas && (i.opKind(0) !== K.Register || i.opKind(1) !== K.MemoryESEDI))
               throw Error('Unexpected SCAS operands');
             if (stringCmps && (i.opKind(0) !== K.MemorySegESI || i.opKind(1) !== K.MemoryESEDI))
@@ -782,7 +796,8 @@ export class CPU {
               throw Error('FS string source requires guest TEB');
             const bytes = MemorySizeExt.size(i.memorySize);
             if (![1, 2, 4].includes(bytes)) throw Error('Unsupported string operand width');
-            const sourceUsesFS = (stringMov || stringCmps) && i.segmentPrefix === R.FS;
+            const sourceUsesFS =
+              (stringMov || stringCmps || stringLods) && i.segmentPrefix === R.FS;
             if (sourceUsesFS) usesFS = true;
             const repeat = stringCompare
               ? i.hasRepnePrefix
@@ -794,7 +809,7 @@ export class CPU {
                 ? 1
                 : 0;
             code.push(
-              ...constant(stringMov ? 0 : stringStos ? 1 : stringScas ? 2 : 3),
+              ...constant(stringMov ? 0 : stringStos ? 1 : stringScas ? 2 : stringCmps ? 3 : 4),
               ...constant(bytes),
               ...constant(repeat),
               ...(sourceUsesFS ? get(FS_BASE_GLOBAL) : constant(0)),
