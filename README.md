@@ -71,7 +71,7 @@ has been recovered byte-for-byte from retained PE sections and is now an actual
 translation target. Its packed native BASS DLL now loads dependencies through the
 experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
 native ACM/UCRT and OLE32 exports, executes x87 logarithms, trigonometry and
-classification, and reaches the CRT's unsupported scalar SSE `MOVSD`;
+classification, and reaches the CRT's unsupported scalar SSE `SUBSD`;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11
 frontends and broader D3D12 resources/shaders.
@@ -85,7 +85,7 @@ frontends and broader D3D12 resources/shaders.
 - Static PE TLS for one guest thread: initialized templates, zero-fill, aligned per-module storage, and process callbacks, including dynamic DLL loading.
 - Selected x87 loads/stores, integer conversions, stack operations, arithmetic, comparisons, round-to-integer, classification and control/status instructions using an independently rebuildable SoftFloat ext80 Wasm library. `FYL2X`, `FSIN`, `FCOS` and `FSINCOS` use bounded extended-precision integer intervals, verified against independent Decimal vectors in native browser fixtures. Other transcendental instructions, environment save/restore and general floating-point exception delivery remain unsupported; see [numerical scope](docs/x87-transcendentals.md).
 - Conservative CPUID identification and RDTSC using the same monotonic virtual nanosecond counter as Wine performance queries; no host CPU features are exposed.
-- Selected SSE data moves, integer lane unpack/shuffle/XOR, LOCK XADD, ROL/ROR and bit scans (including legacy F3 encodings consistent with the virtual CPUID profile). Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.
+- Selected SSE data moves, including scalar `MOVSD`/`MOVSS` with native upper-lane behavior, exact signed-int32 `CVTSI2SD`, integer lane unpack/shuffle/XOR, LOCK XADD, ROL/ROR and bit scans (including legacy F3 encodings consistent with the virtual CPUID profile). SSE floating-point arithmetic and MXCSR remain unfinished. Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.
 - Bootstrap API provider: standard output, synchronous file reads/writes, owned/unowned `MessageBoxA/W(MB_OK)` with standard icons, `Beep`, and process/time helpers, a reusable heap, dynamic module lookup, and UTF-16 services. The Wine parser supplies CommandLineToArgvW as guest code. See `API_NAMES` in `src/win32.js` for the exact list.
 - D3D9 COM device creation, fixed-function XYZ/diffuse triangle lists, world/view/projection transforms, D16 depth and WebGPU presentation. The [browser test](evidence/d3d9-browser-results.json) verifies real PE execution, animation, uploaded EXE/hosted ZIP and clean device/window release.
 - D3D12 upload vertex/index buffers, R16/R32 indexed draws, signed vertex offsets, D16 depth, DXGI backbuffers, command lists and fences; guest DXBC shaders compile through libvkd3d-shader and Naga inside the browser. Programmable D3D9 triangle lists also use this browser compiler, with vertex declarations and float constants; licensed VS 1.1/PS 2.0 shader fixtures pass actual WebGPU pixel checks.

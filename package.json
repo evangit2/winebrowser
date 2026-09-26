@@ -16,6 +16,8 @@
     "test:com": "node scripts/test-com-browser.mjs",
     "test:x87-log": "node scripts/test-x87-log-browser.mjs",
     "test:x87-trig": "node scripts/test-x87-trig-browser.mjs",
+    "test:scalar-sse": "node scripts/test-scalar-sse-browser.mjs",
+    "build:scalar-sse": "sh scripts/build-scalar-sse-fixture.sh",
     "build:x87-trig": "sh scripts/build-x87-trig-fixture.sh",
     "build:x87-log": "sh scripts/build-x87-log-fixture.sh",
     "build:com": "sh scripts/build-com-fixtures.sh",

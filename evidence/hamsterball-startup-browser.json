@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T01:18:12.900Z",
+  "date": "2026-09-26T01:34:18.099Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -4153,7 +4153,7 @@
   ],
   "firstFailure": {
     "phase": "guest DLL attach",
-    "message": "x86 block 0x17e9207: Unexpected string destination operand",
+    "message": "x86 block 0x17e9207: Unsupported instruction subsd xmm0,qword ptr [esp+38h] at 0x17e9282",
     "ip": {
       "address": "0x17e9207",
       "module": "msvcrt.dll",

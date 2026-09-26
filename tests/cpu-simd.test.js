@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import iced from 'iced-x86';
 import { CPU } from '../src/cpu.js';
+import { readFile } from 'node:fs/promises';
+import { probeScalarSse } from '../scripts/lib/scalar-sse-probe.js';
 
 const CODE = 0x1000;
 const DATA = 0x2000;
@@ -40,6 +42,119 @@ function machine(code, { check } = {}) {
 }
 
 const lanes = (cpu, xmm = 0) => Array.from(cpu.simd.registers[xmm]);
+
+test('native scalar SSE fixture executes register/memory moves and signed conversions', async () => {
+  const bytes = new Uint8Array(
+    await readFile(new URL('./fixtures/sse/scalar.exe', import.meta.url)),
+  );
+  const result = await probeScalarSse(iced, { files: new Map([['scalar.exe', bytes]]) });
+  assert.equal(result.status, 'passed', result.failure);
+});
+
+test('legacy scalar SSE register moves preserve upper lanes for both opcode directions', () => {
+  for (const prefix of [0xf2, 0xf3])
+    for (const opcode of [0x10, 0x11]) {
+      const { cpu } = machine([prefix, 0x0f, opcode, opcode === 0x10 ? 0xc1 : 0xc8]); // xmm0 <- xmm1
+      cpu.simd.registers[0].set([1, 2, 3, 4]);
+      cpu.simd.registers[1].set([0x12345678, 0x7ff80000, 7, 8]);
+      cpu.f = { cf: 1, zf: 0, sf: 1, of: 0, pf: 1 };
+      cpu.step(CODE);
+      assert.deepEqual(lanes(cpu), [0x12345678, prefix === 0xf2 ? 0x7ff80000 : 2, 3, 4]);
+      assert.deepEqual(lanes(cpu, 1), [0x12345678, 0x7ff80000, 7, 8]);
+      assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 0, pf: 1 });
+    }
+});
+
+test('scalar SSE memory loads zero upper lanes; unaligned stores write only the scalar width', () => {
+  for (const prefix of [0xf2, 0xf3]) {
+    const { cpu, view, memory } = machine([prefix, 0x0f, 0x10, 0x00, prefix, 0x0f, 0x11, 0x01]);
+    const bytes = new Uint8Array(memory.buffer),
+      width = prefix === 0xf2 ? 8 : 4;
+    cpu.r[0].value = DATA + 1;
+    cpu.r[1].value = DATA + 17;
+    view.setUint32(DATA + 1, 0xabcdef01, true);
+    view.setUint32(DATA + 5, 0xfff00000, true);
+    bytes.fill(0x5a, DATA + 16, DATA + 32);
+    cpu.simd.registers[0].set([1, 2, 3, 4]);
+    cpu.step(CODE);
+    assert.deepEqual(lanes(cpu), [0xabcdef01, prefix === 0xf2 ? 0xfff00000 : 0, 0, 0]);
+    assert.deepEqual(
+      bytes.slice(DATA + 17, DATA + 17 + width),
+      bytes.slice(DATA + 1, DATA + 1 + width),
+    );
+    assert.equal(bytes[DATA + 16], 0x5a);
+    assert.ok(bytes.slice(DATA + 17 + width, DATA + 32).every((byte) => byte === 0x5a));
+  }
+});
+
+test('scalar SSE move memory faults preserve the complete destination', () => {
+  for (const prefix of [0xf2, 0xf3])
+    for (const opcode of [0x10, 0x11]) {
+      const width = prefix === 0xf2 ? 8 : 4;
+      const { cpu, memory } = machine([prefix, 0x0f, opcode, 0x00], {
+        check: (address, size) => {
+          assert.equal(address, DATA);
+          assert.equal(size, width);
+          throw Error('range violation');
+        },
+      });
+      cpu.r[0].value = DATA;
+      cpu.simd.registers[0].set([1, 2, 3, 4]);
+      const bytes = new Uint8Array(memory.buffer);
+      bytes.fill(0x5a, DATA, DATA + 16);
+      assert.throws(() => cpu.step(CODE), /range violation/);
+      assert.deepEqual(lanes(cpu), [1, 2, 3, 4]);
+      assert.ok(bytes.slice(DATA, DATA + 16).every((byte) => byte === 0x5a));
+    }
+});
+
+test('scalar MOVSD and REP MOVSD string copy retain their distinct behavior in one translated block', () => {
+  const { cpu, view } = machine([0xf2, 0x0f, 0x10, 0x00, 0xf3, 0xa5]);
+  cpu.r[0].value = DATA;
+  cpu.r[6].value = DATA;
+  cpu.r[7].value = DATA + 16;
+  cpu.r[1].value = 2;
+  view.setUint32(DATA, 0x12345678, true);
+  view.setUint32(DATA + 4, 0x87654321, true);
+  cpu.step(CODE);
+  assert.deepEqual(lanes(cpu), [0x12345678, 0x87654321, 0, 0]);
+  assert.equal(view.getUint32(DATA + 16, true), 0x12345678);
+  assert.equal(view.getUint32(DATA + 20, true), 0x87654321);
+  assert.equal(cpu.r[1].value, 0);
+  assert.equal(cpu.r[6].value, DATA + 8);
+  assert.equal(cpu.r[7].value, DATA + 24);
+});
+
+test('CVTSI2SD converts signed 32-bit register and memory inputs exactly while preserving high lanes', () => {
+  for (const memoryOperand of [false, true])
+    for (const integer of [0, 1, -1, 0x7fffffff, -0x80000000, 0x1000001]) {
+      const { cpu, view } = machine([0xf2, 0x0f, 0x2a, memoryOperand ? 0x00 : 0xc0]);
+      if (memoryOperand) {
+        cpu.r[0].value = DATA + 1;
+        view.setInt32(DATA + 1, integer, true);
+      } else cpu.r[0].value = integer;
+      cpu.simd.registers[0].set([1, 2, 0xdeadbeef, 0xcafefeed]);
+      cpu.f = { cf: 1, zf: 1, sf: 0, of: 1, pf: 0 };
+      cpu.step(CODE);
+      const actual = new DataView(cpu.simd.registers[0].buffer);
+      assert.equal(actual.getFloat64(0, true), integer);
+      assert.deepEqual(lanes(cpu).slice(2), [0xdeadbeef, 0xcafefeed]);
+      assert.deepEqual(cpu.f, { cf: 1, zf: 1, sf: 0, of: 1, pf: 0 });
+    }
+});
+
+test('CVTSI2SD validates its full memory operand before changing XMM state', () => {
+  const { cpu } = machine([0xf2, 0x0f, 0x2a, 0x00], {
+    check: (address, size, write) => {
+      assert.deepEqual([address, size, write], [DATA, 4, false]);
+      throw Error('integer read denied');
+    },
+  });
+  cpu.r[0].value = DATA;
+  cpu.simd.registers[0].set([1, 2, 3, 4]);
+  assert.throws(() => cpu.step(CODE), /integer read denied/);
+  assert.deepEqual(lanes(cpu), [1, 2, 3, 4]);
+});
 
 test('MOVD transfers GPR values both ways and clears the high XMM lanes on load', () => {
   const { cpu } = machine([

@@ -23,6 +23,10 @@ export const SIMD_OP = Object.freeze({
   PEXTRW_GPR_XMM: 21,
   PADDW_XMM_XMM: 22,
   PADDW_XMM_MEM: 23,
+  MOVSS_XMM_XMM: 24,
+  MOVSD_XMM_XMM: 25,
+  CVTSI2SD_XMM_GPR: 26,
+  CVTSI2SD_XMM_MEM: 27,
 });
 
 const ALIGNED_MOVES = new Set(['Movdqa', 'Movaps']);
@@ -74,6 +78,44 @@ export function classifySse(instruction, iced) {
   };
 
   switch (instruction.code) {
+    case C.Cvtsi2sd_xmm_rm32: {
+      const dst = xmm(0),
+        src = gpr(1);
+      if (dst === null) return null;
+      if (src !== null) return { op: SIMD_OP.CVTSI2SD_XMM_GPR, dst, src, addressOperand: -1 };
+      if (mem32(1)) return { op: SIMD_OP.CVTSI2SD_XMM_MEM, dst, src: 0, addressOperand: 1 };
+      return null;
+    }
+    case C.Movss_xmm_xmmm32:
+    case C.Movss_xmmm32_xmm:
+    case C.Movsd_xmm_xmmm64:
+    case C.Movsd_xmmm64_xmm: {
+      const double = instruction.mnemonic === iced.Mnemonic.Movsd;
+      const width = double ? mem64 : mem32;
+      const dst = destination(0, width),
+        src = source(1, width);
+      if (!dst || !src || (dst.memory && src.memory)) return null;
+      if (dst.memory)
+        return {
+          op: double ? SIMD_OP.MOVQ_MEM_XMM : SIMD_OP.MOVD_MEM_XMM,
+          dst: 0,
+          src: src.reg,
+          addressOperand: 0,
+        };
+      if (src.memory)
+        return {
+          op: double ? SIMD_OP.MOVQ_XMM_MEM : SIMD_OP.MOVD_XMM_MEM,
+          dst: dst.reg,
+          src: 0,
+          addressOperand: 1,
+        };
+      return {
+        op: double ? SIMD_OP.MOVSD_XMM_XMM : SIMD_OP.MOVSS_XMM_XMM,
+        dst: dst.reg,
+        src: src.reg,
+        addressOperand: -1,
+      };
+    }
     case C.Movd_xmm_rm32: {
       const dst = xmm(0);
       if (dst === null) return null;
@@ -211,6 +253,7 @@ export class SIMDState {
     this.read = read;
     this.write = write;
     this.check = check;
+    this.scalar64 = new DataView(new ArrayBuffer(8));
   }
 
   snapshot() {
@@ -254,6 +297,24 @@ export class SIMDState {
     const load = (size) => this.readMemory(address, size);
     const store = (values, size) => this.writeMemory(address, values, size);
     switch (op) {
+      case SIMD_OP.CVTSI2SD_XMM_GPR:
+      case SIMD_OP.CVTSI2SD_XMM_MEM: {
+        // Every signed 32-bit integer is exactly representable in binary64:
+        // this conversion is independent of MXCSR rounding/exception state.
+        const integer =
+          op === SIMD_OP.CVTSI2SD_XMM_MEM ? load(4)[0] | 0 : this.generalRegisters[src].value | 0;
+        this.scalar64.setFloat64(0, integer, true);
+        d[0] = this.scalar64.getUint32(0, true);
+        d[1] = this.scalar64.getUint32(4, true);
+        return;
+      }
+      case SIMD_OP.MOVSS_XMM_XMM:
+        d[0] = s[0];
+        return;
+      case SIMD_OP.MOVSD_XMM_XMM:
+        d[0] = s[0];
+        d[1] = s[1];
+        return;
       case SIMD_OP.MOVD_XMM_GPR:
         d.set([this.generalRegisters[src].value >>> 0, 0, 0, 0]);
         return;

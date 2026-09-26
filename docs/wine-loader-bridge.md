@@ -107,8 +107,10 @@ Both Node and the Chromium worker pass source bootstrap, callback installation
 and packed BASS translation. WinMM mixer and multimedia time exports resolve,
 as do the native ACM/UCRT exports and virtual foreground-window queries. The
 OLE32 exports now resolve, including `CoCreateInstance`. Extended-precision
-logarithms, trigonometry and `FXAM` now execute. The current stop is scalar SSE
-`MOVSD` in Wine's CRT, misclassified as a string instruction. The game has not reached
+logarithms, trigonometry and `FXAM` now execute, followed by scalar SSE moves and
+signed-int32-to-double conversion. The current stop is scalar SSE `SUBSD` in
+Wine's CRT. Floating-point SSE arithmetic and MXCSR state remain unfinished.
+The game has not reached
 its EXE entry or rendered a frame. Native ACM conversion and BASS playback have
 not been verified. The next work is x87 execution and the remaining native
 audio/Win32 services, followed by

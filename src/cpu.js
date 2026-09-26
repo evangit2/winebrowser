@@ -616,7 +616,13 @@ export class CPU {
             if (!(memoryDestination && lockable) && !memoryXchg)
               throw Error('LOCK prefix requires a supported memory-destination RMW instruction');
           }
-          const stringMov = [M.Movsb, M.Movsw, M.Movsd].includes(m);
+          // MOVSD also names a scalar SSE move; select the string encoding,
+          // not the shared mnemonic, before dispatching to the SIMD path.
+          const stringMov = [
+            this.iced.Code.Movsb_m8_m8,
+            this.iced.Code.Movsw_m16_m16,
+            this.iced.Code.Movsd_m32_m32,
+          ].includes(i.code);
           const stringStos = [M.Stosb, M.Stosw, M.Stosd].includes(m);
           const stringScas = [M.Scasb, M.Scasw, M.Scasd].includes(m);
           const stringOp = stringMov || stringStos || stringScas;

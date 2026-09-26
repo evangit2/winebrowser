@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
 
 const probes = {
+  scalarSse: { script: 'scalar-sse-probe.js', entry: 'probeScalarSse' },
   x87trig: { script: 'x87-trig-probe.js', entry: 'probeX87Trig' },
   x87log: { script: 'x87-log-probe.js', entry: 'probeX87Log' },
   com: { script: 'com-probe.js', entry: 'probeCom' },
@@ -128,3 +129,4 @@ export const probeWinmmInBrowser = (root, input) => probeInBrowser(root, 'winmm'
 export const probeComInBrowser = (root, input) => probeInBrowser(root, 'com', input);
 export const probeX87LogInBrowser = (root, input) => probeInBrowser(root, 'x87log', input);
 export const probeX87TrigInBrowser = (root, input) => probeInBrowser(root, 'x87trig', input);
+export const probeScalarSseInBrowser = (root, input) => probeInBrowser(root, 'scalarSse', input);

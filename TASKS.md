@@ -46,8 +46,13 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Execute `FSIN`, `FCOS` and `FSINCOS` with ext80 rounding and range/stack
       behavior; all 224 independent sine/cosine vector cases pass in a native
       browser fixture. Implement non-destructive `FXAM` classification.
-- [ ] Continue BASS startup through the Wine CRT's scalar SSE path, starting
-      with `MOVSD`, currently misclassified as a string instruction.
+- [x] Distinguish scalar SSE `MOVSD` from the string-copy encoding, implement
+      scalar `MOVSD`/`MOVSS` register/memory semantics and exact signed-int32
+      `CVTSI2SD`. A native fixture passes in Node and Chromium; memory-fault
+      tests verify destination preservation.
+- [ ] Continue BASS startup through the Wine CRT's scalar SSE arithmetic path,
+      starting with `SUBSD`. Add arithmetic with MXCSR rounding/exception state;
+      the existing SoftFloat source provides a reusable binary64 implementation.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
