@@ -690,13 +690,12 @@ test('pointer, window-from-point and enable state round-trip through the virtual
   assert.equal((await call(r, 'user32.dll!ScreenToClient', [0xdead, point])).result, 0);
   assert.equal(r.lastError, 1400);
 
-  // WindowFromPoint finds the window containing a screen point.
-  r.write32(point, clientX + 1);
-  r.write32(point + 4, clientY + 1);
-  assert.equal((await call(r, 'user32.dll!WindowFromPoint', [point])).result, hwnd);
-  r.write32(point, 0x7fff);
-  r.write32(point + 4, 0x7fff);
-  assert.equal((await call(r, 'user32.dll!WindowFromPoint', [point])).result, 0);
+  // WindowFromPoint takes its POINT by value, as two packed stack arguments.
+  assert.equal(
+    (await call(r, 'user32.dll!WindowFromPoint', [clientX + 1, clientY + 1])).result,
+    hwnd,
+  );
+  assert.equal((await call(r, 'user32.dll!WindowFromPoint', [0x7fff, 0x7fff])).result, 0);
 
   // EnableWindow reports the previous state and IsWindowEnabled reflects it.
   assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 1);
@@ -707,4 +706,49 @@ test('pointer, window-from-point and enable state round-trip through the virtual
   assert.equal((await call(r, 'user32.dll!EnableWindow', [0xdead, 1])).result, 0);
   assert.equal(r.lastError, 1400);
   await call(r, 'user32.dll!DestroyWindow', [hwnd]);
+});
+
+test('window properties and registered messages round-trip through the window manager', async (t) => {
+  const { runtime: r } = await makeRuntime(t);
+  const proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const hwnd = (await createWindow(r, atom)).result;
+  const other = (await createWindow(r, atom)).result;
+
+  // SetProp stores a value under a per-window guest string key.
+  const name = r.allocString('ProbeProp');
+  assert.equal((await call(r, 'user32.dll!GetPropA', [hwnd, name])).result, 0);
+  assert.equal((await call(r, 'user32.dll!SetPropA', [hwnd, name, 0x1234])).result, 1);
+  assert.equal((await call(r, 'user32.dll!GetPropA', [hwnd, name])).result, 0x1234);
+  // Property names are window-scoped.
+  assert.equal((await call(r, 'user32.dll!GetPropA', [other, name])).result, 0);
+  // RemoveProp returns the previous value and clears the entry.
+  assert.equal((await call(r, 'user32.dll!RemovePropA', [hwnd, name])).result, 0x1234);
+  assert.equal((await call(r, 'user32.dll!GetPropA', [hwnd, name])).result, 0);
+  // Unknown windows and null names fail without a substitute value.
+  assert.equal((await call(r, 'user32.dll!SetPropA', [0xdead, name, 1])).result, 0);
+  assert.equal((await call(r, 'user32.dll!GetPropA', [hwnd, 0])).result, 0);
+
+  // Wide property names round-trip through the same table.
+  const wideName = r.allocString('WideProp', true);
+  assert.equal((await call(r, 'user32.dll!SetPropW', [hwnd, wideName, 0x55])).result, 1);
+  assert.equal((await call(r, 'user32.dll!GetPropW', [hwnd, wideName])).result, 0x55);
+
+  // RegisterWindowMessage returns a stable, process-global id per name.
+  const messageName = r.allocString('WineBrowser.Probe');
+  const wideMessageName = r.allocString('WineBrowser.Probe', true);
+  const first = (await call(r, 'user32.dll!RegisterWindowMessageA', [messageName])).result;
+  assert.ok(first >= 0xc000, 'registered messages start above the WM_ range');
+  assert.equal((await call(r, 'user32.dll!RegisterWindowMessageA', [messageName])).result, first);
+  assert.equal(
+    (await call(r, 'user32.dll!RegisterWindowMessageW', [wideMessageName])).result,
+    first,
+  );
+  const secondName = r.allocString('WineBrowser.Other');
+  const second = (await call(r, 'user32.dll!RegisterWindowMessageA', [secondName])).result;
+  assert.notEqual(second, first);
+  assert.equal((await call(r, 'user32.dll!RegisterWindowMessageA', [0])).result, 0);
+
+  await call(r, 'user32.dll!DestroyWindow', [hwnd]);
+  await call(r, 'user32.dll!DestroyWindow', [other]);
 });

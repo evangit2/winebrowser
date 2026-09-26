@@ -24,6 +24,32 @@ import { inputState } from './dinput-device.js';
 const BORDER = 1,
   TITLE = 28;
 const result = (value = 0, argc = 0) => ({ result: value >>> 0, argc });
+// Property names are guest strings keyed per window. Message registration is
+// process-global and returns a stable id for the application's lifetime.
+function propName(runtime, pointer, wide) {
+  return wide ? runtime.wideString(pointer) : runtime.string(pointer);
+}
+function getProp(runtime, hwnd, name, wide) {
+  if (!runtime.windows.windows.has(hwnd) || !name) return 0;
+  return runtime.windows.props(hwnd).get(propName(runtime, name, wide)) ?? 0;
+}
+function setProp(runtime, hwnd, name, value, wide) {
+  if (!runtime.windows.windows.has(hwnd) || !name) return 0;
+  runtime.windows.props(hwnd).set(propName(runtime, name, wide), value >>> 0);
+  return 1;
+}
+function removeProp(runtime, hwnd, name, wide) {
+  if (!runtime.windows.windows.has(hwnd) || !name) return 0;
+  const props = runtime.windows.props(hwnd),
+    key = propName(runtime, name, wide),
+    previous = props.get(key) ?? 0;
+  props.delete(key);
+  return previous;
+}
+function registerWindowMessage(runtime, name, wide = false) {
+  if (!name) return 0;
+  return runtime.windows.registerWindowMessage(propName(runtime, name, wide));
+}
 const pair = (x, y) => ((x & 0xffff) | ((y & 0xffff) << 16)) >>> 0;
 const text = (r, p, wide) => (wide ? r.wideString(p) : r.string(p));
 
@@ -315,6 +341,16 @@ export class WindowManager {
       .filter((w) => this.isVisible(w.id) && inside(w))
       .sort((a, b) => (b.parentId ? 1 : 0) - (a.parentId ? 1 : 0));
     return candidates[0]?.id ?? 0;
+  }
+  // Process-global RegisterWindowMessage table. Ids start at 0xC000, above the
+  // fixed WM_* range, and stay stable for the lifetime of the process.
+  registerWindowMessage(name) {
+    this.registeredMessages ??= new Map();
+    if (this.registeredMessages.has(name)) return this.registeredMessages.get(name);
+    if (this.registeredMessages.size >= 0x3fff) throw Error('Window message table full');
+    const id = 0xc000 + this.registeredMessages.size;
+    this.registeredMessages.set(name, id);
+    return id;
   }
   // Window-message properties (GetProp/SetProp), keyed by handle then string.
   props(hwnd) {
@@ -845,11 +881,19 @@ Object.assign(windowApis, {
     r.write32(point + 4, ((r.read32(point + 4) | 0) - y) | 0);
     return result(1, 2);
   },
-  'user32.dll!WindowFromPoint': (r, a) => {
-    const x = r.read32(a(0)) | 0,
-      y = r.read32(a(0) + 4) | 0;
-    return result(r.windows.windowFromPoint(x, y), 1);
-  },
+  // POINT is passed by value: two dword stack arguments, not a pointer.
+  'user32.dll!WindowFromPoint': (r, a) => ({
+    result: r.windows.windowFromPoint(a(0) | 0, a(1) | 0) >>> 0,
+    argc: 2,
+  }),
+  'user32.dll!GetPropA': (r, a) => result(getProp(r, a(0), a(1), false), 2),
+  'user32.dll!GetPropW': (r, a) => result(getProp(r, a(0), a(1), true), 2),
+  'user32.dll!SetPropA': (r, a) => result(setProp(r, a(0), a(1), a(2), false), 3),
+  'user32.dll!SetPropW': (r, a) => result(setProp(r, a(0), a(1), a(2), true), 3),
+  'user32.dll!RemovePropA': (r, a) => result(removeProp(r, a(0), a(1), false), 2),
+  'user32.dll!RemovePropW': (r, a) => result(removeProp(r, a(0), a(1), true), 2),
+  'user32.dll!RegisterWindowMessageA': (r, a) => result(registerWindowMessage(r, a(0)), 1),
+  'user32.dll!RegisterWindowMessageW': (r, a) => result(registerWindowMessage(r, a(0), true), 1),
   'user32.dll!EnableWindow': (r, a) => {
     const window = r.windows.windows.get(a(0));
     if (!window) return r.windows.fail(1400, 2);
