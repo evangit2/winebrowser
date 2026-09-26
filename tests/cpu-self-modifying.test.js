@@ -160,3 +160,23 @@ test('the block cache gives a second chance to recently referenced blocks', () =
     `unexpected recompilation: ${cpu.compilations} for ${limit + rounds} blocks`,
   );
 });
+
+test('writable code keeps a block across memory reads but stops at a memory write', () => {
+  const { cpu, guest } = machine();
+  // mov eax,[0x9000] ; add eax,1 ; mov [0x9004],eax ; mov ebx,7
+  // A read cannot alter following code, so the block may include it; the store
+  // can, so the block must end there and the following instruction is decoded
+  // after the store completes.
+  guest.data.set(
+    [0x8b, 0x05, 0x00, 0x90, 0x00, 0x00, 0x83, 0xc0, 0x01, 0xa3, 0x04, 0x90, 0x00, 0x00, 0xbb],
+    0x1300,
+  );
+  guest.data.set([0xbb, 7, 0, 0, 0, 0xeb, 0], 0x130e);
+  // The block starting at 0x1300 must stop at the store, not run past it.
+  const next = cpu.step(0x1300);
+  assert.equal(next, 0x130e, 'block ends at the memory write');
+  assert.equal(cpu.r[0].value, 1);
+  assert.equal(cpu.r[3].value, 0, 'following instruction is not part of the block');
+  assert.equal(cpu.step(0x130e), 0x1315);
+  assert.equal(cpu.r[3].value, 7);
+});

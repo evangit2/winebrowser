@@ -632,7 +632,11 @@ export class CPU {
       OpKind: K,
       Mnemonic: M,
       MemorySizeExt,
+      InstructionInfoFactory,
     } = this.iced;
+    // Lazily built shared factory: operand access distinguishes a memory read
+    // from a write, so writable-code blocks can continue past pure reads.
+    this.infoFactory ??= InstructionInfoFactory ? new InstructionInfoFactory() : null;
     const range = this.ranges.find(([a, b]) => ip >= a && ip < b);
     if (!range) throw Error(`Execute outside code at 0x${ip.toString(16)}`);
     const bytes = new Uint8Array(this.memory.buffer, ip, Math.min(1024, range[1] - ip));
@@ -1292,7 +1296,7 @@ export class CPU {
           // Read-only code keeps the ordinary multi-instruction fast path.
           if (
             range[2] &&
-            (Array.from({ length: i.opCount }, (_, n) => i.opKind(n)).includes(K.Memory) ||
+            (this.instructionWritesMemory(i) ||
               [M.Push, M.Pushf, M.Pushfd, M.Pusha, M.Pushad].includes(m))
           )
             break;
@@ -1326,6 +1330,41 @@ export class CPU {
       throw Error(`x86 block 0x${ip.toString(16)}: ${error.message}`);
     } finally {
       d.free();
+    }
+  }
+  // A writable code page can only be changed by a memory write (including an
+  // implicit stack write such as push). A memory read cannot alter the
+  // instructions that follow, so it does not need to end the block. When the
+  // decoder binding cannot report access, fall back to the conservative
+  // "any memory operand ends the block" rule.
+  instructionWritesMemory(i) {
+    const K = this.iced.OpKind;
+    let sawMemory = false;
+    for (let n = 0; n < i.opCount; n++)
+      if (i.opKind(n) === K.Memory) {
+        sawMemory = true;
+        break;
+      }
+    if (!sawMemory) return false;
+    const factory = this.infoFactory;
+    if (!factory) return true;
+    let info;
+    try {
+      info = factory.info(i);
+      const A = this.iced.OpAccess;
+      for (const memory of info.usedMemory())
+        if (
+          memory.access === A.Write ||
+          memory.access === A.ReadWrite ||
+          memory.access === A.CondWrite ||
+          memory.access === A.ReadCondWrite
+        )
+          return true;
+      return false;
+    } catch {
+      return true;
+    } finally {
+      info?.free?.();
     }
   }
   step(ip) {
