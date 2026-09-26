@@ -6,3 +6,4 @@ evidence/*.png
 .cache/
 __pycache__/
 runtime/shaders/naga/target/
+.scratch/
