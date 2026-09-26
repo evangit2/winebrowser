@@ -106,6 +106,7 @@ export class Runtime {
     this.nextHandle = 256;
     this.lastError = 0;
     this.exitCode = null;
+    this.shutdownState = 'idle';
     this.dirty = new Set();
     this.calls = 0;
     this.apiTrace = [];
@@ -251,7 +252,10 @@ export class Runtime {
     if (ntdll) await initializeWineProcess(this, ntdll);
     await this.wineLoader?.sync();
     for (const module of this.graph.initializationOrder()) {
-      if (module.initialized || module.initializing) continue;
+      if (module.initialized || module.initializing || module.detaching || module.detached)
+        continue;
+      if (this.shutdownState !== 'idle')
+        throw Error('Loading new DLLs during process shutdown is unsupported');
       module.initializing = true;
       try {
         await this.tls.attach(module);
@@ -358,6 +362,9 @@ export class Runtime {
     return module.base;
   }
   async freeLibrary(base) {
+    // Wine's LdrUnloadDll ignores unload requests during process detach.
+    // The single shutdown pass owns the remaining TLS/DllMain notifications.
+    if (this.shutdownState === 'running' || this.shutdownState === 'complete') return true;
     const module = [...this.graph.modules.values()].find((candidate) => candidate.base === base);
     if (!module || module.refs <= 0) {
       this.lastError = 6; // ERROR_INVALID_HANDLE
@@ -457,21 +464,47 @@ export class Runtime {
       this.cpu.dispose();
     }
   }
+  async shutdownProcess() {
+    if (this.shutdownState === 'failed') throw this.shutdownError;
+    if (this.shutdownState !== 'idle' || this.nativeProcessTerminated) return;
+    this.shutdownState = 'running';
+    const originalExit = this.exitCode;
+    this.exitCode = null;
+    try {
+      // One owner for host ExitProcess and the native LdrShutdownProcess bridge.
+      // Recursive shutdown from DllMain returns to the current detach pass.
+      for (const module of this.graph.initializationOrder().reverse()) {
+        if (!module.initialized) continue;
+        module.detaching = true;
+        try {
+          await this.tls.detach(module);
+          if (this.exitCode === null && module.pe.entryPoint)
+            await this.callGuest(module.pe.entryPoint, [module.base, 0, 1]);
+          module.initialized = false;
+          module.detached = true;
+        } finally {
+          module.detaching = false;
+        }
+        if (this.exitCode !== null) break;
+      }
+      if (this.exitCode === null) await this.wineLoader?.sync();
+      this.shutdownState = 'complete';
+    } catch (error) {
+      this.shutdownState = 'failed';
+      this.shutdownError = error;
+      throw error;
+    } finally {
+      this.exitCode ??= originalExit;
+    }
+  }
   async #runProcess() {
     const started = performance.now();
     await this.initializeModules();
     await this.tls.attach(this.graph.main);
     const entryResult = await this.callGuest(this.pe.entryPoint);
     if (this.exitCode === null) this.exitCode = entryResult;
-    const processExit = this.exitCode;
     // Wine's process shutdown notifies DLL TLS, not the main EXE's TLS callbacks.
-    for (const module of this.graph.initializationOrder().reverse())
-      if (module.initialized) {
-        this.exitCode = null;
-        await this.tls.detach(module);
-        if (module.pe.entryPoint) await this.callGuest(module.pe.entryPoint, [module.base, 0, 1]);
-      }
-    this.exitCode = processExit;
+    await this.shutdownProcess();
     flushGdi(this);
     return {
       exitCode: this.exitCode,

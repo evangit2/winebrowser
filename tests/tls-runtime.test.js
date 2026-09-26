@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { parsePE } from '../src/pe.js';
+import { ntServices } from '../src/wine-nt.js';
 
 const fixtureDir = new URL('./fixtures/tls/', import.meta.url);
 const TLS_VECTOR_TEB_OFFSET = 0x2e0002c;
@@ -97,7 +98,8 @@ test('native PE TLS templates, callback order, FS vector access, and per-module 
     'TLS events:12349678\r\n',
     'native Wine process-detach callback ordering is observable through guest stdout',
   );
-  assert.equal(dll.initialized, true, 'DLL DllMain accepted TLS callback order');
+  assert.equal(dll.initialized, false, 'DLL is no longer attached after process shutdown');
+  assert.equal(dll.detached, true);
 
   const appTls = tlsPointer(runtime, app);
   const dllTls = tlsPointer(runtime, dll);
@@ -225,4 +227,62 @@ test('failed DllMain attach detaches TLS callbacks and rolls back the module and
     initialHeapAllocations,
     'TLS heap allocations were released',
   );
+});
+
+test('process shutdown is idempotent and recursive detach callbacks do not reattach or duplicate DLL notifications', async () => {
+  const runtime = await tlsAppRuntime(),
+    output = [];
+  runtime.emit = (e) => {
+    if (e.type === 'stdout') output.push(e.text);
+  };
+  const stdout = runtime.apiProvider.get('kernel32.dll!GetStdHandle');
+  runtime.apiProvider.set('kernel32.dll!GetStdHandle', async (r, a) => {
+    await r.shutdownProcess(); // Recursion while the DLL's detach entry is running.
+    const module = r.graph.modules.get('tls.dll'),
+      refs = module.refs;
+    assert.equal(await r.freeLibrary(module.base), true);
+    assert.equal(module.refs, refs);
+    return stdout(r, a);
+  });
+  const result = await runtime.run();
+  assert.equal(result.exitCode, 0);
+  assert.equal(output.join(''), 'TLS events:12349678\r\n');
+  assert.equal(runtime.shutdownState, 'complete');
+  await runtime.shutdownProcess();
+  await runtime.initializeModules();
+  await runtime.shutdownProcess();
+  assert.equal(output.join(''), 'TLS events:12349678\r\n');
+  assert.equal(runtime.graph.modules.get('tls.dll').initialized, false);
+  runtime.cpu.dispose();
+});
+
+test('NtTerminateProcess ends the guest without starting DLL detach callbacks', async () => {
+  const runtime = await tlsAppRuntime(),
+    output = [];
+  runtime.emit = (e) => {
+    if (e.type === 'stdout') output.push(e.text);
+  };
+  runtime.apiProvider.set('kernel32.dll!ExitProcess', (r, a) => ({
+    result: ntServices.NtTerminateProcess.call(r, (i) => (i === 0 ? 0xffffffff : a(0))),
+    argc: 1,
+  }));
+  const result = await runtime.run();
+  assert.equal(result.exitCode, 0);
+  assert.equal(runtime.nativeProcessTerminated, true);
+  assert.deepEqual(output, []);
+  assert.equal(runtime.graph.modules.get('tls.dll').initialized, true);
+});
+
+test('a failed detach propagates and is not retried as a partial second shutdown', async () => {
+  const runtime = await tlsAppRuntime();
+  let writes = 0;
+  runtime.apiProvider.set('kernel32.dll!WriteFile', () => {
+    writes++;
+    throw Error('shutdown output denied');
+  });
+  await assert.rejects(runtime.run(), /shutdown output denied/);
+  assert.equal(runtime.shutdownState, 'failed');
+  assert.equal(writes, 1);
+  await assert.rejects(runtime.shutdownProcess(), /shutdown output denied/);
+  assert.equal(writes, 1);
 });

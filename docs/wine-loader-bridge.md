@@ -23,13 +23,13 @@ Wine owns **dynamic** `TlsAlloc` state in this gate. The bootstrap requires `PEB
 
 Before a callback is configured, the original ownership guards remain: only basename lookup with `UNCHANGED_REFCOUNT` is allowed; loading, procedure lookup, refcount changes and unloading return `STATUS_NOT_SUPPORTED`. The existing bootstrap tests still verify this mode.
 
-The source-built ntdll also exports private `WineBrowserLoaderConfigure(version, callback)` and `WineBrowserLoaderSync(base, ntPath, flags, refs)`. Configure accepts version 1 once, after bootstrap. Its stdcall callback takes six 32-bit arguments: an operation plus five arguments. Operations 1–5 delegate `LdrLoadDll`, `LdrGetProcedureAddress`, `LdrGetDllHandleEx`, `LdrAddRefDll` and `LdrUnloadDll`, respectively, to `src/wine-loader.js`. The callback validates counted strings and output buffers before changing references; named/ordinal exports, forwarded exports, full package paths, same-basename DLLs, pinning and refcounts use the same browser graph as host Win32 calls. Load flags other than zero and encoded native search policies remain unsupported. Ordinary native search-path lists are confined to package directories; builtin/host fallback follows the graph policy.
+The source-built ntdll also exports private `WineBrowserLoaderConfigure(version, callback)` and `WineBrowserLoaderSync(base, ntPath, flags, refs)`. Configure accepts version 1 once, after bootstrap. Its stdcall callback takes six 32-bit arguments: an operation plus five arguments. Operations 1–5 delegate `LdrLoadDll`, `LdrGetProcedureAddress`, `LdrGetDllHandleEx`, `LdrAddRefDll` and `LdrUnloadDll`, respectively, to `src/wine-loader.js`. Operation 6 delegates `LdrShutdownProcess` to the runtime's shared process-detach pass and requires five zero arguments. The callback validates counted strings and output buffers before changing references; named/ordinal exports, forwarded exports, full package paths, same-basename DLLs, pinning and refcounts use the same browser graph as host Win32 calls. Load flags other than zero and encoded native search policies remain unsupported. Ordinary native search-path lists are confined to package directories; builtin/host fallback follows the graph policy.
 
 Sync creates or updates Wine metadata without mapping or calling guest entry points. `ntPath == NULL` removes only metadata; flag 4 records completed process attach, and `refs` is a bounded count or -1 for a resident/pinned module. The host synchronizes newly mapped DLLs before DllMain, records successful attaches, removes failed/unloaded modules from Wine before erasing their mappings, and restores retained records after graph rollback. Host and Wine module names use the same package paths, including `@host` and `@runtime` directories. Static TLS in the complete Wine bridge remains unsupported.
 
 Normal browser-provided DLLs now have real relocatable PE32 headers, sorted export-name tables, sparse explicit ordinals, and read-only executable stubs. An export stub tail-calls its host thunk while preserving the caller's arguments, registers and flags. IAT and GetProcAddress pointers equal the PE export address. These generic images let native import resolvers inspect modules without pretending an opaque high address is a PE. Only configured APIs appear; diagnostic trap imports still stop with their exact name when called.
 
-Wine's internal `load_dll` remains guarded because all public loader operations now delegate to the browser. `loader_init`, `LdrShutdownProcess`, and `LdrShutdownThread` still raise `STATUS_NOT_SUPPORTED` before changing lifecycle state. These callbacks do not establish general exception handling, thread lifecycle or process shutdown support. The full Wine callback path is opt-in in the diagnostic; the normal harness uses mapped host DLL images but does not bundle the full Wine base closure.
+Wine's internal `load_dll` remains guarded because all public loader operations now delegate to the browser. `loader_init` and `LdrShutdownThread` still raise `STATUS_NOT_SUPPORTED` before changing lifecycle state. `LdrShutdownProcess` also rejects calls before callback configuration. Once configured, it sets Wine's process-detaching flag and delegates once to operation 6. The host owns reverse-order TLS/DllMain detach; recursive or repeated shutdown cannot repeat callbacks, and unload requests during detach leave that pass in control. `NtTerminateProcess(NULL, status)` lets the sole guest thread continue into cleanup; the current-process pseudo-handle terminates execution without additional notifications. These callbacks do not establish general exception handling or guest thread support. The full Wine callback path is opt-in in the diagnostic; the normal harness uses mapped host DLL images but does not bundle the full Wine base closure.
 
 First gate: build the patched ntdll separately; keep the stock ntdll path unchanged. In a diagnostic runtime with the pre-existing guest heap, process parameters, NLS, registry, and token identity, pass the main EXE, ntdll, and one mapped DLL in one batch. Verify a second batch fails, `RtlGetVersion` returns Wine's initialized version, `LdrGetDllHandleEx(UNCHANGED_REFCOUNT, basename)` returns each original base, and a requested load/unload/ref mutation returns `STATUS_NOT_SUPPORTED` without changing maps or attach counts. `version_init()` itself queries `SystemWineVersionInformation` and reads registry version settings, so those NT operations must return real statuses. Do not enable the bridge in normal package loading until failure rollback and the ownership assertions pass against the pinned binary.
 
@@ -47,11 +47,11 @@ The script verifies the 53,844,515-byte source archive against SHA-256 `18aaee15
 
 The optional NLS directory supplies the existing hash-pinned Wine data. The Chromium mode uses the same probe assertions in a module worker, with a real browser Wasm decoder and translator. Verified artifacts are served only through intercepted local test requests. The browser makes no external requests. The ordinary installed-Wine probe retains its separate original-DLL hash check.
 
-The [Node evidence](../evidence/wine-loader-results.json) and [Chromium worker evidence](../evidence/wine-loader-browser-results.json) pass fourteen cases against the current patch, including a main PE without `NX_COMPAT`: invalid/duplicate batches, explicit allocation-failure rollback, retry and second-bootstrap rejection, real `RtlGetVersion` (Wine's default Windows 10 build 19045), case-insensitive module lookup, rejected ownership changes, native NT page protection, and process/thread lifecycle guards. The allocation failure is diagnostic injection at the fourth `RtlAllocateHeap` call; it tests cleanup after the first module has entered Wine's indexes. The original bootstrap phase preserves the process heap and graph without additional DLL entry calls. The callback phase then verifies real host PE export calls, native named/ordinal/forwarded lookups, full paths, same-basename DLL isolation, pinning, unloading, two rejected-DllMain retries, malformed arguments, and failures at all three native metadata allocations followed by successful retry. It independently walks Wine’s PEB loader list to verify removal and rollback. The evidence records the exact patch and rebuilt DLL hashes for this revision.
+The [Node evidence](../evidence/wine-loader-results.json) and [Chromium worker evidence](../evidence/wine-loader-browser-results.json) pass fifteen cases against the current patch, including a main PE without `NX_COMPAT`: invalid/duplicate batches, explicit allocation-failure rollback, retry and second-bootstrap rejection, real `RtlGetVersion` (Wine's default Windows 10 build 19045), case-insensitive module lookup, rejected ownership changes, native NT page protection, and pre-configuration process/thread lifecycle guards. The allocation failure is diagnostic injection at the fourth `RtlAllocateHeap` call; it tests cleanup after the first module has entered Wine's indexes. The original bootstrap phase preserves the process heap and graph without additional DLL entry calls. The callback phase then verifies real host PE export calls, native named/ordinal/forwarded lookups, full paths, same-basename DLL isolation, pinning, unloading, two rejected-DllMain retries, malformed arguments, and failures at all three native metadata allocations followed by successful retry. It independently walks Wine’s PEB loader list to verify removal and rollback. A final native shutdown case verifies the process-detaching flag, DLL detach order, repeated-call suppression and `RtlExitUserProcess` termination. The evidence records the exact patch and rebuilt DLL hashes for this revision.
 
 `SystemWineVersionInformation` describes Wine's Unix host, which this runtime does not have. The NT provider returns `STATUS_INVALID_INFO_CLASS` without fabricating host metadata. Wine's unchanged `version_init()` handles that absence and selects its own Windows version defaults. These checks establish loader metadata and bounded dynamic module operations. They do not establish general CRT startup, static TLS, exceptions, graphics, or application compatibility.
 
-The lifecycle guard test deliberately stops at the exported `RtlRaiseStatus` boundary and verifies `STATUS_NOT_SUPPORTED` for process shutdown, thread shutdown and a second process/thread loader entry. This verifies the guards without claiming structured-exception dispatch works.
+Before callback configuration, the lifecycle guard test deliberately stops at the exported `RtlRaiseStatus` boundary and verifies `STATUS_NOT_SUPPORTED` for process shutdown, thread shutdown and a second process/thread loader entry. This verifies the guards without claiming structured-exception dispatch works.
 
 ## CRT diagnostic and NT services
 
@@ -88,7 +88,7 @@ count and recent API calls.
 For diagnosis only, unresolved imports in selected host boundary DLLs receive
 explicit trap thunks. Calling one stops execution with its DLL/export name;
 none returns fabricated success. The normal upload harness still rejects
-unresolved imports before execution. Loader transactions, shutdown, broader
+unresolved imports before execution. Broader
 Win32 services and graphics must work before this target can become a public
 passing example. Local inputs stay behind intercepted loopback test routes;
 installed Wine DLLs, NLS data and upstream assets are not published by this probe.
@@ -110,11 +110,12 @@ OLE32 exports now resolve, including `CoCreateInstance`. Extended-precision
 logarithms, trigonometry and `FXAM` now execute, followed by scalar SSE moves and
 signed-int32-to-double conversion. Scalar SSE arithmetic, square roots,
 conversions, comparisons and MXCSR now execute, as do 16/32-bit `SHLD`/`SHRD`
-and x87 `FISTTP` conversions. Both probes execute 8,688,990 guest instructions
-before the unresolved `user32.dll!CharLowerW` call during DLL attachment.
+and x87 `FISTTP` conversions. User32 character calls now execute native Wine
+KernelBase/NLS code, and legacy registry create/open aliases share the existing
+key store. Both probes execute 8,692,700 guest instructions before the unresolved
+`winmm.dll!OpenDriver` call during DLL attachment.
 The game has not reached its EXE entry or rendered a frame. Native ACM conversion
-and BASS playback have not been verified. The next work is character conversion
-through Wine's locale services and the remaining native
+and BASS playback have not been verified. The next work is native audio driver loading and the remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
@@ -126,3 +127,10 @@ a repository-owned PE32 fixture in an isolated Chromium worker and verifies exac
 scaled and muted samples, ANSI/Unicode structure layouts and clock queries. It
 does not test physical speakers or implement capture, mixer notifications,
 multimedia callback timers, or a general waveOut/DirectSound driver.
+
+The separate native character fixture verifies all eight case APIs, including
+CP1252, surrogate pairs and counted UTF-16 buffers, then exits through real Wine
+`ExitProcess`, the shared shutdown callback and `NtTerminateProcess`. Both
+`evidence/characters-startup.json` and `evidence/characters-startup-browser.json`
+record exit code zero. These conversions require the supplied Wine/NLS closure;
+the normal upload harness does not yet bundle it.

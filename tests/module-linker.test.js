@@ -41,8 +41,10 @@ test('loads guest DLL imports, ordinals, forwarders, relocations, and callback',
   assert.notEqual(mapped.get('math.dll').base, mapped.get('forward.dll').base);
   assert.notEqual(mapped.get('math.dll').base, 0x10000000);
   assert.notEqual(mapped.get('forward.dll').base, 0x10000000);
-  assert.equal(mapped.get('math.dll').initialized, true);
-  assert.equal(mapped.get('forward.dll').initialized, true);
+  assert.equal(mapped.get('math.dll').initialized, false);
+  assert.equal(math.detached, true);
+  assert.equal(mapped.get('forward.dll').initialized, false);
+  assert.equal(forward.detached, true);
 });
 
 async function dynamicRuntime(mathBytes) {

@@ -71,8 +71,10 @@ has been recovered byte-for-byte from retained PE sections and is now an actual
 translation target. Its packed native BASS DLL now loads dependencies through the
 experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
 native ACM/UCRT and OLE32 exports, executes x87 logarithms, trigonometry and
-classification, scalar SSE arithmetic, double-width integer shifts and `FISTTP`,
-and reaches the unresolved `user32.dll!CharLowerW` API;
+classification, scalar SSE arithmetic, double-width integer shifts and `FISTTP`.
+Native Wine character conversion and legacy registry calls now pass; startup
+reaches the unresolved `winmm.dll!OpenDriver` API. Native process shutdown also
+passes a separate character-conversion fixture with the supplied Wine/NLS closure;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11
 frontends and broader D3D12 resources/shaders.

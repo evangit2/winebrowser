@@ -169,6 +169,10 @@ export class WineLoader {
         }
         case 5:
           return (await r.freeLibrary(a(1))) ? 0 : DLL_NOT_FOUND;
+        case 6:
+          if ([1, 2, 3, 4, 5].some((index) => a(index))) return INVALID_PARAMETER;
+          await r.shutdownProcess();
+          return 0;
         default:
           return NOT_SUPPORTED;
       }

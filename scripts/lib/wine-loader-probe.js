@@ -451,6 +451,45 @@ export async function probeWineLoader(iced, { files, dll, nlsFiles }) {
     equal(await invoke('LdrGetDllHandleEx', [3, 0, 0, unicode('math.dll'), output]), 0xc000000d);
     equal(math.refs, refsBefore);
     report.cases.push({ name: phase, passed: true });
+    phase = 'native process shutdown uses host DLL ownership exactly once';
+    const expectedDetach = runtime.graph
+      .initializationOrder()
+      .reverse()
+      .filter((module) => module.initialized)
+      .map((module) => module.name);
+    const detached = [];
+    const originalDetach = runtime.tls.detach.bind(runtime.tls);
+    runtime.tls.detach = async (module) => {
+      detached.push(module.name);
+      return originalDetach(module);
+    };
+    let shutdownCallbacks = 0;
+    const originalCallback = runtime.wineLoader.call.bind(runtime.wineLoader);
+    runtime.wineLoader.call = async (argument) => {
+      if (argument(0) === 6) shutdownCallbacks++;
+      return originalCallback(argument);
+    };
+    equal(await originalCallback((i) => [6, 1, 0, 0, 0, 0][i]), 0xc000000d);
+    equal(runtime.shutdownState, 'idle');
+    equal(await invoke('RtlDllShutdownInProgress', []), 0);
+    await invoke('LdrShutdownProcess', []);
+    equal(runtime.shutdownState, 'complete');
+    equal(await invoke('RtlDllShutdownInProgress', []), 1);
+    same(detached, expectedDetach, 'DLL cleanup order');
+    await invoke('LdrShutdownProcess', []);
+    same(detached, expectedDetach, 'no duplicate DLL cleanup');
+    equal(shutdownCallbacks, 1);
+    await invoke('RtlExitUserProcess', [0]);
+    equal(runtime.exitCode, 0);
+    equal(runtime.nativeProcessTerminated, true);
+    same(detached, expectedDetach, 'native ExitProcess does not repeat cleanup');
+    report.cases.push({
+      name: phase,
+      detached,
+      shutdownCallbacks,
+      exitCode: runtime.exitCode,
+      passed: true,
+    });
     report.status = 'passed-experimental-loader-bootstrap';
   } catch (error) {
     report.failure ??= { phase, message: error.message, stack: error.stack };

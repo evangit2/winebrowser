@@ -87,6 +87,7 @@ test('Wine NT clock services dispatch through the guest dispatcher and preserve 
       'NtQueryPerformanceCounter',
       'NtQuerySystemTime',
       'NtSetInformationProcess',
+      'NtTerminateProcess',
     ],
   );
 
@@ -378,4 +379,21 @@ test('Wine NT FS:C0 wrappers reject an already occupied TEB dispatcher slot', as
     'rejected TEB registration rolls back mappings',
   );
   assert.equal(runtime.read32(runtime.cpu.fsBase + 0xc0), 0x12345678, 'foreign slot is preserved');
+});
+
+test('native NtTerminateProcess distinguishes other-thread shutdown from terminating the guest', async () => {
+  const { runtime, module } = await runtimeWithWineNt();
+  const entry = exportAddress(runtime, module, 'NtTerminateProcess');
+  const stack = runtime.cpu.r[4].value;
+  assert.equal(await runtime.callGuest(entry, [0, 123]), 0);
+  assert.equal(runtime.exitCode, null);
+  assert.ok(!runtime.nativeProcessTerminated);
+  assert.equal(runtime.cpu.r[4].value, stack);
+  assert.equal(await runtime.callGuest(entry, [123, 456]), 0xc0000008);
+  assert.equal(runtime.exitCode, null);
+  await runtime.callGuest(entry, [0xffffffff, 0xc0000005]);
+  assert.equal(runtime.exitCode, 0xc0000005);
+  assert.equal(runtime.nativeProcessTerminated, true);
+  assert.equal(runtime.cpu.r[4].value, stack);
+  runtime.cpu.dispose();
 });

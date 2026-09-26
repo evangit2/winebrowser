@@ -40,6 +40,7 @@ _wine_syscall_trampoline:
 	NT_STUB _NtAllocateVirtualMemory, 0x18, 24
 	NT_STUB _NtFreeVirtualMemory, 0x1e, 16
 	NT_STUB _NtClose, 0x0f, 4
+	NT_TEB_STUB _NtTerminateProcess, 0x29, 8
 
 	.data
 	.p2align 2

@@ -134,6 +134,20 @@ export const ntServices = {
   ...threadNtServices,
   ...processorFeatureNtServices,
   ...fileNtServices,
+  NtTerminateProcess: {
+    argc: 2,
+    call: (r, a) => {
+      const handle = a(0) >>> 0;
+      // Wine's first shutdown call uses NULL to terminate every *other*
+      // thread. This runtime has one thread, so the caller continues into
+      // LdrShutdownProcess. The pseudo-handle call actually ends execution.
+      if (handle === 0) return 0;
+      if (handle !== CURRENT_PROCESS) return 0xc0000008;
+      r.nativeProcessTerminated = true;
+      r.exitCode = a(1) >>> 0;
+      return 0;
+    },
+  },
   NtClose: {
     argc: 1,
     call: (r, a) => {

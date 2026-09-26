@@ -315,17 +315,24 @@ function regOpenKeyExA(runtime, argument) {
   return regOpenKeyEx(runtime, argument, true);
 }
 
-function regOpenKeyA(runtime, argument) {
+function regOpenKey(runtime, argument, ansi) {
   const resultAddress = argument(2);
   if (!checkedOutput(runtime, resultAddress)) return response(ERROR_INVALID_PARAMETER, 3);
   const subkeyAddress = argument(1);
-  if (!subkeyAddress || guestString(runtime, subkeyAddress, true) === '') {
+  if (!subkeyAddress || guestString(runtime, subkeyAddress, ansi) === '') {
     writeOutput(runtime, resultAddress, argument(0));
     return response(ERROR_SUCCESS, 3);
   }
   const args = [argument(0), subkeyAddress, 0, SUPPORTED_ACCESS, resultAddress];
-  const result = regOpenKeyExA(runtime, (index) => args[index]);
+  const result = regOpenKeyEx(runtime, (index) => args[index], ansi);
   return response(result.result, 3);
+}
+
+function regCreateKey(runtime, argument, ansi) {
+  // Legacy RegCreateKey requests MAXIMUM_ALLOWED. The process-local registry
+  // has no ACLs; grant every access right implemented by this provider.
+  const args = [argument(0), argument(1), 0, 0, 0, SUPPORTED_ACCESS, 0, argument(2), 0];
+  return response(regCreateKeyEx(runtime, (index) => args[index], ansi).result, 3);
 }
 
 function ansiValueData(type, bytes) {
@@ -530,7 +537,10 @@ function regCloseKey(runtime, argument) {
 export const registryApis = {
   'advapi32.dll!RegCreateKeyExA': regCreateKeyExA,
   'advapi32.dll!RegCreateKeyExW': regCreateKeyExW,
-  'advapi32.dll!RegOpenKeyA': regOpenKeyA,
+  'advapi32.dll!RegCreateKeyA': (r, a) => regCreateKey(r, a, true),
+  'advapi32.dll!RegCreateKeyW': (r, a) => regCreateKey(r, a, false),
+  'advapi32.dll!RegOpenKeyA': (r, a) => regOpenKey(r, a, true),
+  'advapi32.dll!RegOpenKeyW': (r, a) => regOpenKey(r, a, false),
   'advapi32.dll!RegOpenKeyExA': regOpenKeyExA,
   'advapi32.dll!RegOpenKeyExW': regOpenKeyExW,
   'advapi32.dll!RegQueryValueExA': regQueryValueExA,

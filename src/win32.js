@@ -12,6 +12,7 @@ import { displayApis } from './win32-display.js';
 import { iconApis } from './win32-icons.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileShareConflict } from './wine-file.js';
+import { nativeForwarderApis } from './win32-native-forwarders.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
@@ -44,6 +45,7 @@ for (const key of [
   ...Object.keys(displayApis),
   ...Object.keys(iconApis),
   ...Object.keys(formatApis),
+  ...Object.keys(nativeForwarderApis),
   ...Object.keys(registryApis),
   ...Object.keys(comApis),
   ...Object.keys(d3d9Apis),
@@ -258,6 +260,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(displayApis),
     ...Object.entries(iconApis),
     ...Object.entries(formatApis),
+    ...Object.entries(nativeForwarderApis),
     ...Object.entries(registryApis),
     ...Object.entries(comApis),
     ...Object.entries(d3d9Apis),

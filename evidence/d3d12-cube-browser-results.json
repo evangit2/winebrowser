@@ -1,7 +1,7 @@
 {
   "demo": "d3d12-cube",
   "scope": "Rotating 3D cube with upload vertex buffers and D16 depth. Native PE32 D3D12 fixture with SM5 shaders, empty root signature, RTV descriptors, command lists, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
-  "date": "2026-09-26T02:14:02.152Z",
+  "date": "2026-09-26T02:43:52.045Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.57",
   "exeSha256": "172155247cbed000cb046289acab47ea6ac0783d96edbab1447e3cf16d957553",
@@ -20,7 +20,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 1276,
+      "firstFourFramesMs": 438,
       "first": {
         "width": 640,
         "height": 480,
@@ -39,9 +39,9 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 27,
+        "frames": 25,
         "green": 0,
-        "colored": 65003,
+        "colored": 64391,
         "colors": 3,
         "corner": [
           9,
@@ -49,16 +49,16 @@
           36,
           255
         ],
-        "hash": "e1c68974ebb3f6f49e75321adbfc0b1c6e97014a02e5ae1c38cfbe54a2b3be60"
+        "hash": "49cc7d2b3b6dc9e3cc0d8c32b0bc5e4ee204f799c5703abdd56ee88e1768fff7"
       },
       "exitCode": 0,
       "compiledBlocks": 184,
-      "instructions": 58785,
-      "apiCalls": 936
+      "instructions": 52729,
+      "apiCalls": 840
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 377,
+      "firstFourFramesMs": 296,
       "first": {
         "width": 640,
         "height": 480,
@@ -77,9 +77,9 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 27,
+        "frames": 26,
         "green": 0,
-        "colored": 65003,
+        "colored": 63766,
         "colors": 3,
         "corner": [
           9,
@@ -87,12 +87,12 @@
           36,
           255
         ],
-        "hash": "e1c68974ebb3f6f49e75321adbfc0b1c6e97014a02e5ae1c38cfbe54a2b3be60"
+        "hash": "2d4b974a930a5ca80c2e7de2a83c6265b7addc2376bc8fa7f45e3d1532370d71"
       },
       "exitCode": 0,
       "compiledBlocks": 184,
-      "instructions": 57271,
-      "apiCalls": 912
+      "instructions": 52729,
+      "apiCalls": 840
     }
   ],
   "errors": []

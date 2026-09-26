@@ -8,3 +8,4 @@ EXPORTS
   NtSetInformationProcess=NtSetInformationProcess
   NtQueryPerformanceCounter=NtQueryPerformanceCounter
   NtClose=NtClose
+  NtTerminateProcess=NtTerminateProcess

@@ -4,6 +4,9 @@ import { registryApis } from '../src/win32-registry.js';
 import { encodeAnsi } from '../src/encoding.js';
 
 const registryApiSignatures = {
+  RegCreateKeyW: 3,
+  RegCreateKeyA: 3,
+  RegOpenKeyW: 3,
   RegCreateKeyExW: 9,
   RegCreateKeyExA: 9,
   RegOpenKeyExW: 5,
@@ -569,4 +572,37 @@ test('registry values and open handles have explicit process-local resource boun
   assert.equal(openKey(runtime, 'Software\\Limits').status, ERROR_NOT_ENOUGH_MEMORY);
   for (const value of handles) assert.equal(call(runtime, 'RegCloseKey', [value]), ERROR_SUCCESS);
   assert.equal(call(runtime, 'RegCloseKey', [handle]), ERROR_SUCCESS);
+});
+
+test('legacy A/W create/open aliases share keys, grant supported rights and return their three-argument ABI', () => {
+  for (const suffix of ['A', 'W']) {
+    const r = fakeRuntime(),
+      out = 0x2200,
+      pointer = suffix === 'A' ? r.ansi('Software\\Café') : r.wide('Software\\Café');
+    assert.equal(call(r, `RegCreateKey${suffix}`, [HKCU, pointer, out]), 0);
+    const created = r.read32(out);
+    assert.equal(setValue(r, created, 'value', REG_DWORD, Uint8Array.of(1, 2, 3, 4)), 0);
+    assert.equal(call(r, `RegCreateKey${suffix}`, [HKCU, pointer, out]), 0);
+    const reopened = r.read32(out);
+    assert.notEqual(reopened, created);
+    assert.equal(call(r, `RegOpenKey${suffix}`, [HKCU, pointer, out]), 0);
+    const opened = r.read32(out),
+      name = r.wide('value'),
+      size = 0x2210,
+      data = 0x2220;
+    r.write32(size, 4);
+    assert.equal(call(r, 'RegQueryValueExW', [opened, name, 0, 0, data, size]), 0);
+    assert.deepEqual([...r.data.slice(data, data + 4)], [1, 2, 3, 4]);
+    assert.equal(call(r, `RegOpenKey${suffix}`, [created, 0, out]), 0);
+    assert.equal(r.read32(out), created);
+    assert.equal(call(r, `RegCreateKey${suffix}`, [HKCU, pointer, 0]), ERROR_INVALID_PARAMETER);
+    r.write32(out, 0x12345678);
+    assert.equal(
+      call(r, `RegCreateKey${suffix}`, [0xdeadbeef, pointer, out]),
+      ERROR_INVALID_HANDLE,
+    );
+    assert.equal(r.read32(out), 0x12345678);
+    for (const handle of [created, reopened, opened])
+      assert.equal(call(r, 'RegCloseKey', [handle]), 0);
+  }
 });

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T02:12:18.887Z",
+  "date": "2026-09-26T02:39:05.273Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2417,9 +2417,9 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21/build/dlls/ntdll/i386-windows/ntdll.dll",
         "bytes": 3797467,
-        "sha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94"
+        "sha256": "857d6368024b2b37dae567aa4625e05dd80eb57532e431fe110d9032311fe26a"
       },
       {
         "name": "wine-format.dll",
@@ -2504,7 +2504,7 @@
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097"
+    "patchSha256": "ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21"
   },
   "status": "blocked-guest",
   "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
@@ -2722,14 +2722,10 @@
     "ws2_32.dll!#11",
     "ws2_32.dll!#12",
     "ws2_32.dll!#115",
-    "advapi32.dll!RegCreateKeyA",
     "ole32.dll!CLSIDFromString",
-    "advapi32.dll!RegCreateKeyW",
     "advapi32.dll!RegEnumKeyExW",
     "advapi32.dll!RegEnumValueW",
-    "advapi32.dll!RegOpenKeyW",
     "advapi32.dll!RegQueryInfoKeyW",
-    "user32.dll!CharLowerW",
     "user32.dll!DialogBoxIndirectParamW",
     "user32.dll!DialogBoxParamW",
     "user32.dll!EndDialog",
@@ -2743,46 +2739,6 @@
     "winmm.dll!SendDriverMessage"
   ],
   "apiCalls": [
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16777216,
-        67104406,
-        0
-      ],
-      "result": "0x0"
-    },
     {
       "name": "WineBrowserLoaderCallback",
       "args": [
@@ -3394,7 +3350,47 @@
         134,
         16895679
       ],
-      "error": "Unimplemented import user32.dll!CharLowerW"
+      "result": "0x255056e"
+    },
+    {
+      "name": "advapi32.dll!RegCreateKeyW",
+      "args": [
+        2147483650,
+        39126272,
+        67099788,
+        16998176
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "advapi32.dll!RegQueryValueExA",
+      "args": [
+        1358954503,
+        24653078,
+        0,
+        67099792
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "advapi32.dll!RegCloseKey",
+      "args": [
+        1358954503,
+        0,
+        0,
+        67099792
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "winmm.dll!OpenDriver",
+      "args": [
+        39126208,
+        0,
+        67097432,
+        10
+      ],
+      "error": "Unimplemented import winmm.dll!OpenDriver"
     }
   ],
   "output": [],
@@ -4169,86 +4165,62 @@
   ],
   "firstFailure": {
     "phase": "guest DLL attach",
-    "message": "Unimplemented import user32.dll!CharLowerW",
+    "message": "Unimplemented import winmm.dll!OpenDriver",
     "ip": {
-      "address": "0x13d12e8",
-      "module": "user32.dll",
-      "offset": "0x12e8"
+      "address": "0x17610b8",
+      "module": "winmm.dll",
+      "offset": "0x10b8"
     },
     "registers": [
-      "0x18",
       "0x25504c0",
-      "0x0",
-      "0x255056e",
-      "0x3ffdc3c",
-      "0x3ffdc5c",
-      "0x2550488",
-      "0x2550500"
+      "0x202001c",
+      "0x3ffd358",
+      "0x2550500",
+      "0x3ffd330",
+      "0x3ffd498",
+      "0x3ffd4bc",
+      "0x2550488"
     ],
     "compiledBlocks": 4096,
-    "instructions": 8688990,
+    "instructions": 8692700,
     "recentBlocks": [
       {
-        "address": "0x1773400",
-        "module": "msacm32.dll",
-        "offset": "0x3400",
+        "address": "0x14f989b",
+        "module": "kernelbase.dll",
+        "offset": "0x3989b",
         "registers": [
-          "0x6c",
-          "0x2570100",
-          "0x65",
-          "0x6e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1773400",
-        "module": "msacm32.dll",
-        "offset": "0x3400",
-        "registers": [
-          "0x6e",
-          "0x2570100",
-          "0x5c",
-          "0x6e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1773413",
-        "module": "msacm32.dll",
-        "offset": "0x3413",
-        "registers": [
-          "0x70",
-          "0x2570100",
+          "0x1573b00",
+          "0x2570020",
           "0x0",
-          "0x6e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x2550500",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14f9900",
+        "module": "kernelbase.dll",
+        "offset": "0x39900",
+        "registers": [
+          "0x1573b00",
+          "0x2570020",
+          "0x0",
+          "0x2550500",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
           "zf": 1,
@@ -4261,93 +4233,117 @@
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14f9910",
+        "module": "kernelbase.dll",
+        "offset": "0x39910",
         "registers": [
-          "0x2",
-          "0x25504c0",
-          "0x6d",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x0",
+          "0x2570020",
+          "0x0",
+          "0x2550500",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
-          "pf": 0,
+          "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14f991a",
+        "module": "kernelbase.dll",
+        "offset": "0x3991a",
         "registers": [
-          "0x4",
-          "0x25504c0",
-          "0x73",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x0",
+          "0x2570020",
+          "0x0",
+          "0x2550500",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
-          "pf": 0,
+          "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14f9ee0",
+        "module": "kernelbase.dll",
+        "offset": "0x39ee0",
         "registers": [
-          "0x6",
-          "0x25504c0",
-          "0x61",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x0",
+          "0x2570020",
+          "0x0",
+          "0x0",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
-          "pf": 0,
+          "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14f9eee",
+        "module": "kernelbase.dll",
+        "offset": "0x39eee",
         "registers": [
-          "0x8",
-          "0x25504c0",
-          "0x63",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x0",
+          "0x2570020",
+          "0xa",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
           "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14fa277",
+        "module": "kernelbase.dll",
+        "offset": "0x3a277",
+        "registers": [
+          "0x0",
+          "0x202001c",
+          "0xa",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4357,45 +4353,21 @@
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14f9f09",
+        "module": "kernelbase.dll",
+        "offset": "0x39f09",
         "registers": [
           "0xa",
-          "0x25504c0",
-          "0x6d",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x202001c",
+          "0xa",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
-        "registers": [
-          "0xc",
-          "0x25504c0",
-          "0x33",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4405,45 +4377,141 @@
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14fa355",
+        "module": "kernelbase.dll",
+        "offset": "0x3a355",
         "registers": [
-          "0xe",
-          "0x25504c0",
-          "0x32",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0xa",
+          "0x202001c",
+          "0xa",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
           "zf": 0,
-          "sf": 0,
+          "sf": 1,
           "pf": 0,
-          "cf": 0,
+          "cf": 1,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       },
       {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
+        "address": "0x14fa02e",
+        "module": "kernelbase.dll",
+        "offset": "0x3a02e",
         "registers": [
-          "0x10",
-          "0x25504c0",
-          "0x2e",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x178231e",
+          "0x202001c",
+          "0x2550520",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
         ],
         "flags": {
           "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14fa040",
+        "module": "kernelbase.dll",
+        "offset": "0x3a040",
+        "registers": [
+          "0x1782328",
+          "0x202001c",
+          "0x2550534",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14fa083",
+        "module": "kernelbase.dll",
+        "offset": "0x3a083",
+        "registers": [
+          "0x1782328",
+          "0x202001c",
+          "0x2550534",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x1573b00",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14f9770",
+        "module": "kernelbase.dll",
+        "offset": "0x39770",
+        "registers": [
+          "0x0",
+          "0x202001c",
+          "0x2550534",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x32",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14f983f",
+        "module": "kernelbase.dll",
+        "offset": "0x3983f",
+        "registers": [
+          "0x0",
+          "0x202001c",
+          "0x2550534",
+          "0xa",
+          "0x3ffd2bc",
+          "0x3ffd32c",
+          "0x32",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4453,119 +4521,47 @@
         }
       },
       {
-        "address": "0x1773420",
+        "address": "0x1777ac6",
         "module": "msacm32.dll",
-        "offset": "0x3420",
+        "offset": "0x7ac6",
         "registers": [
-          "0x12",
+          "0xa",
+          "0x202001c",
+          "0x2550534",
+          "0x2550500",
+          "0x3ffd34c",
+          "0x3ffd498",
+          "0x3ffd4bc",
+          "0x2550488"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x17610b8",
+        "module": "winmm.dll",
+        "offset": "0x10b8",
+        "registers": [
           "0x25504c0",
-          "0x64",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
+          "0x202001c",
+          "0x3ffd358",
+          "0x2550500",
+          "0x3ffd330",
+          "0x3ffd498",
+          "0x3ffd4bc",
+          "0x2550488"
         ],
         "flags": {
           "zf": 0,
           "sf": 0,
           "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
-        "registers": [
-          "0x14",
-          "0x25504c0",
-          "0x6c",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1773420",
-        "module": "msacm32.dll",
-        "offset": "0x3420",
-        "registers": [
-          "0x16",
-          "0x25504c0",
-          "0x6c",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1773430",
-        "module": "msacm32.dll",
-        "offset": "0x3430",
-        "registers": [
-          "0x18",
-          "0x25504c0",
-          "0x0",
-          "0x255056e",
-          "0x3ffdc40",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x13d12e8",
-        "module": "user32.dll",
-        "offset": "0x12e8",
-        "registers": [
-          "0x18",
-          "0x25504c0",
-          "0x0",
-          "0x255056e",
-          "0x3ffdc3c",
-          "0x3ffdc5c",
-          "0x2550488",
-          "0x2550500"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
           "cf": 0,
           "of": 0,
           "af": 0,

@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-25T22:07:56.111Z",
+  "date": "2026-09-26T02:43:38.154Z",
   "scope": "Experimental source-built Wine loader metadata and version bootstrap. No application entry point or graphics execution; normal package loading is unchanged.",
   "build": {
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097",
-    "dllSha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94",
+    "patchSha256": "ea1f905337d17417100e2e4a2291c965b855dda985f4614e6703cc1d97ab1c21",
+    "dllSha256": "857d6368024b2b37dae567aa4625e05dd80eb57532e431fe110d9032311fe26a",
     "dllBytes": 3797467,
     "compilers": {
       "native": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
@@ -124,9 +124,20 @@
     {
       "name": "native loader rejects malformed descriptors before changing references",
       "passed": true
+    },
+    {
+      "name": "native process shutdown uses host DLL ownership exactly once",
+      "detached": [
+        "math.dll",
+        "math.dll",
+        "ntdll.dll"
+      ],
+      "shutdownCallbacks": 1,
+      "exitCode": 0,
+      "passed": true
     }
   ],
-  "blocks": 25983,
+  "blocks": 26784,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
@@ -180,7 +191,10 @@
     "WineBrowserLoaderCallback",
     "WineBrowserLoaderCallback",
     "WineBrowserLoaderCallback",
-    "WineBrowserLoaderCallback"
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "ntdll.dll!NtTerminateProcess",
+    "ntdll.dll!NtTerminateProcess"
   ],
   "modules": [
     {
@@ -208,7 +222,7 @@
       "base": 16842752,
       "preferredBase": 2076180480,
       "refs": 1,
-      "initialized": true
+      "initialized": false
     },
     {
       "name": "math.dll",
@@ -217,7 +231,7 @@
       "base": 20381696,
       "preferredBase": 268435456,
       "refs": 1,
-      "initialized": true
+      "initialized": false
     },
     {
       "name": "math.dll",
@@ -226,7 +240,7 @@
       "base": 20512768,
       "preferredBase": 268435456,
       "refs": 0,
-      "initialized": true
+      "initialized": false
     }
   ]
 }

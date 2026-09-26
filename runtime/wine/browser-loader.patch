@@ -345,15 +345,24 @@
      if (flags & ~LDR_ADDREF_DLL_PIN) FIXME( "%p flags %lx not implemented\n", module, flags );
  
      RtlEnterCriticalSection( &loader_section );
-@@ -3891,6 +4185,7 @@
+@@ -3891,6 +4185,16 @@
  {
      BOOL detaching = process_detaching;
  
-+    if (browser_bridge_mode) RtlRaiseStatus( STATUS_NOT_SUPPORTED );
++    if (browser_bridge_mode)
++    {
++        NTSTATUS status;
++        if (detaching) return;
++        if (!browser_callback) RtlRaiseStatus( STATUS_NOT_SUPPORTED );
++        process_detaching = TRUE;
++        status = browser_callback( 6, 0, 0, 0, 0, 0 );
++        if (status) RtlRaiseStatus( status );
++        return;
++    }
      TRACE("()\n");
  
      process_detaching = TRUE;
-@@ -3925,6 +4220,7 @@
+@@ -3925,6 +4229,7 @@
      UINT i;
      void **pointers;
  
@@ -361,7 +370,7 @@
      TRACE("()\n");
  
      /* don't do any detach calls if process is exiting */
-@@ -4100,6 +4396,8 @@
+@@ -4100,6 +4405,8 @@
      WINE_MODREF *wm;
      NTSTATUS retv = STATUS_SUCCESS;
  
@@ -370,7 +379,7 @@
      if (process_detaching) return retv;
  
      TRACE("(%p)\n", hModule);
-@@ -4414,6 +4712,7 @@
+@@ -4414,6 +4721,7 @@
      ULONG_PTR cookie, port = 0;
      WINE_MODREF *wm;
  

@@ -24,7 +24,7 @@ D3D10/11 and broader D3D12 support are still required.
       and bounded block-cache eviction; committed zero-filled PE page padding.
 - [x] Connect the experimental source-built Wine loader to the runtime graph:
       native load/lookup/forwarders/refcounts/pinning/unload now use host transactions.
-      Node and Chromium pass 14 loader cases, including same-name DLLs, rejected
+      Node and Chromium pass 15 loader cases, including same-name DLLs, rejected
       DllMain rollback, three injected metadata allocation failures and retry.
 - [x] Give host-backed OS modules real mapped PE headers and executable export
       tables in the normal runtime; mirror mapped modules in Wine's loader indexes
@@ -61,9 +61,15 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Execute x87 `FISTTP` for int16/int32/int64 with truncation independent of
       control-word rounding, preserved ext80 low bits, pop/C1 behavior and
       checked stores. Narrow integer overflow takes priority over precision.
-- [ ] Continue BASS startup through `user32.dll!CharLowerW`. Node and Chromium
-      reach this call after 8,688,990 guest instructions during DLL attachment.
-      Reuse native Wine locale/case services where possible.
+- [x] Forward all eight User32 character-case APIs to real guest KernelBase/NLS.
+      Native fixtures pass ANSI, BMP/surrogate, counted-buffer and sentinel checks
+      in Node and Chromium with the optional Wine closure. Add legacy A/W registry
+      create/open aliases backed by the same process-local and NT key storage.
+- [x] Delegate native Wine process shutdown to the runtime's single detach pass;
+      verify reverse TLS/DllMain order, recursion, repeated shutdown and termination.
+      Native ExitProcess completes in Node and Chromium without duplicate cleanup.
+- [ ] Continue BASS startup through `winmm.dll!OpenDriver`. Node and Chromium
+      reach this call after 8,692,700 guest instructions during DLL attachment.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
@@ -126,8 +132,8 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## Remaining, in suggested order
 
-- [ ] **Wine application startup:** finish application initialization after the passing optional [CRT service probe](evidence/wine-loader-crt-browser-results.json), including loader callbacks and process shutdown; native synchronous file creation now passes the separate CRT probe. The source-built application diagnostic now enters the unchanged Humus EXE after Wine DLL attach; its first runtime failure is retained in [startup evidence](evidence/wine-target-startup.json). The application does not yet render. Both engines now pass those heap instructions, icon loading, timing calibration, window creation and `Direct3DCreate9(31)`, then stop at `IDirect3D9.GetDeviceCaps`. Implement truthful capabilities alongside the resources and rendering paths the application requires; do not turn missing methods into success stubs. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
-- [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native Wine thread/process lifecycle, static TLS through the full Wine closure and shutdown remain unfinished; the bridge is still optional.
+- [ ] **Wine application startup:** finish application initialization after the passing optional [CRT service probe](evidence/wine-loader-crt-browser-results.json), beyond the verified loader callbacks, process shutdown and native synchronous file creation. The source-built application diagnostic now enters the unchanged Humus EXE after Wine DLL attach; its first runtime failure is retained in [startup evidence](evidence/wine-target-startup.json). The application does not yet render. Both engines now pass those heap instructions, icon loading, timing calibration, window creation and `Direct3DCreate9(31)`, then stop at `IDirect3D9.GetDeviceCaps`. Implement truthful capabilities alongside the resources and rendering paths the application requires; do not turn missing methods into success stubs. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
+- [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
 - [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, environment save/restore, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.
