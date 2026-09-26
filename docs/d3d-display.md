@@ -1,41 +1,65 @@
-# D3D8/9 display queries
+# D3D8/9 display and presentation
 
-Both factories use `src/d3d-display.js` for adapter mode queries. Adapter zero
-reports USER32's existing fixed virtual display: 1024×768, 60 Hz, X8R8G8B8.
-D3D8 enumerates the single mode without a format argument; D3D9 filters by
-X8R8G8B8. No host monitor properties are read or changed. Creating a differently
-sized window/backbuffer does not change the desktop query result.
+The virtual adapter offers 1024×768, 800×600 and 640×480 at 60 Hz, each in
+X8R8G8B8 or R5G6B5. USER32 and D3D share this catalogue and process-local current
+mode; the default remains 1024×768 X8R8G8B8. D3D8 enumerates all six modes, while
+D3D9 filters by format. Windowed backbuffer sizes do not change the desktop.
+No host monitor properties are read or changed.
 
 Invalid adapters, mode indices and output buffers return D3DERR_INVALIDCALL.
-The complete 16-byte D3DDISPLAYMODE buffer is validated before writing, so failed
-queries leave guest memory unchanged. Invalid adapter/format mode counts are zero.
+The complete 16-byte D3DDISPLAYMODE buffer is validated before writing. Invalid
+adapter/format mode counts are zero. `CheckDepthStencilMatch` accepts the current
+HAL renderer's X8R8G8B8/R5G6B5 adapter formats, A8R8G8B8/X8R8G8B8/R5G6B5 color
+targets and D16 depth. Other combinations return D3DERR_NOTAVAILABLE. Other
+factory capability queries remain explicitly unsupported.
 
-`CheckDepthStencilMatch` accepts the shared renderer's actual HAL/X8R8G8B8 adapter,
-A8R8G8B8 or X8R8G8B8 color target, and D16 depth attachment. Other combinations
-return D3DERR_NOTAVAILABLE; an invalid adapter returns D3DERR_INVALIDCALL.
-D24S8 stencil, multisampling, fullscreen/flip presentation and additional display
-modes are not implemented by this change. Other factory capability queries remain
-explicitly unsupported.
+Device creation accepts one backbuffer, DISCARD/FLIP/COPY, software or hardware
+vertex processing, optional D16 depth and interval DEFAULT/ONE/IMMEDIATE.
+Fullscreen creation requires an enumerated mode and exclusive ownership of this
+runtime's virtual display. It positions a borderless topmost guest window at the
+virtual origin through the normal window-position callback path. On device
+release, the prior mode, window rectangle, style and topmost state are restored.
+Display-change messages are queued. This does not enter browser fullscreen or
+change the physical monitor. Device Reset, focus-loss/device-lost behavior, mixed
+vertex processing, multiple backbuffers, stencil and multisampling remain unfinished.
 
-The D3D8 and D3D9 cube sources now call these methods through their actual PE32
-COM vtables before device creation. They verify the display against GetSystemMetrics,
-check invalid cases, and test both D16 acceptance and D24S8 rejection. Browser
-EXE/ZIP tests require those calls, actual animated color/depth rendering and clean
-exit. Unit tests additionally check ABI argument counts, sentinel memory around
-outputs, invalid pointers and color/depth/device combinations.
+The WebGPU renderer uses persistent color textures. FLIP rotates two textures,
+including preserved front-buffer contents; COPY retains its single backing
+texture. The canvas is a presentation destination rather than the sole storage
+for guest pixels. Normal hardware presentation copies GPU-to-GPU. The existing
+fallback/diagnostic readback path uses the same color-buffer rotation.
 
-Original Hamsterball proceeds through these queries to CreateDevice. Its next
-request is an 800×600 R5G6B5 fullscreen backbuffer, FLIP swap effect and presentation
-interval ONE. It retries hardware, mixed and software vertex processing. Those
-settings exceed the current windowed X8R8G8B8/A8R8G8B8, DISCARD-only renderer, and
-its selected depth format is zero. The diagnostic records all creation arguments
-and presentation fields in `evidence/hamsterball-startup{,-browser}.json`.
-The game reports `Graphics::Initialize D3DERR_INVALIDCALL`; no game frames render.
+WebGPU has no RGB565 render attachment. `src/d3d-presentation.js` converts each
+presented image on the GPU to 5/6/5 channel precision and stores expanded UNORM8
+values back into the current color buffer. This preserves quantized pixels across
+subsequent flips. The current supported draws have no blending or render-target
+feedback. Those future paths need per-operation RGB565 conversion semantics;
+this presentation pass alone will not establish them. Hardware dithering is not
+emulated. Interval DEFAULT/ONE limits delivery to the virtual 60 Hz refresh;
+physical vblank synchronization remains owned by the browser compositor.
 
-ABI/reference sources: pinned Wine 11.0 `dlls/d3d8/directx.c`,
-`dlls/d3d9/directx.c`, the MinGW D3D8/9 headers, and Microsoft's
-[GetAdapterDisplayMode](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3d9-getadapterdisplaymode),
-[EnumAdapterModes](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3d9-enumadaptermodes)
-and [CheckDepthStencilMatch](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3d9-checkdepthstencilmatch)
-contracts. The existing DirectWebGPU capability profile is broader than this
-renderer; its unsupported features are not copied into the reported support.
+`EnumDisplaySettingsA`, `GetSystemMetrics` and D3D queries reflect the active
+virtual mode. `ChangeDisplaySettingsA` accepts catalogue modes, keeps CDS_TEST
+read-only and restores the default on a null mode. Registry/default queries remain
+unchanged by temporary mode switches. Competing USER32 mode changes while a D3D
+fullscreen owner exists are rejected.
+
+The native D3D8/9 cubes verify display queries and D16/D24S8 results before actual
+rendering. The [fullscreen fixture](../tests/fixtures/presentation/README.md)
+verifies an 800×600 RGB565 FLIP device, displayed geometry/animation, Escape and
+native assertions for restoration. Backend pixel tests independently check retained
+FLIP/COPY contents, RGB565 values, pacing and both canvas/readback paths.
+
+Original Hamsterball now creates its hardware-vertex-processing fullscreen D3D8
+device with RGB565, FLIP, interval ONE and D16 depth. Chromium reaches
+`IDirect3D8.GetDeviceCaps` at 8,855,625 guest instructions after a successful
+`Clear` call; **no game frame is presented yet**. The Node-only probe now stops
+at actual device creation because Node has no WebGPU adapter. See
+`evidence/hamsterball-startup{,-browser}.json` for arguments and exact boundaries.
+
+Sources: pinned Wine 11.0 `dlls/d3d8/directx.c`, `dlls/d3d9/directx.c`, MinGW
+D3D8/9 headers, the local DirectWebGPU/Hamsterball presentation implementations,
+and Microsoft's [presentation parameters](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dpresent-parameters)
+and [swap effects](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dswapeffect)
+contracts. The reference renderer's broader capabilities are not copied into
+this runtime's reported support until implemented.

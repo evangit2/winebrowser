@@ -99,7 +99,7 @@ test('ClientToScreen converts top-level and child client origins and rejects mis
   assert.equal(r.view.getInt32(point, true), 12);
 });
 
-test('EnumDisplaySettingsA exposes one bounded virtual mode for index/current/default queries', () => {
+test('EnumDisplaySettingsA exposes bounded virtual modes for index/current/default queries', () => {
   const r = runtime();
   const address = initializeDevmode(r);
   for (const mode of [0, ENUM_CURRENT_SETTINGS, ENUM_REGISTRY_SETTINGS]) {
@@ -120,7 +120,7 @@ test('EnumDisplaySettingsA exposes one bounded virtual mode for index/current/de
     );
     assert.ok(r.data.subarray(address + 124, address + 156).every((byte) => byte === 0xcc));
   }
-  assert.equal(call(r, 'EnumDisplaySettingsA', [0, 1, address]).result, 0);
+  assert.equal(call(r, 'EnumDisplaySettingsA', [0, 6, address]).result, 0);
   assert.equal(call(r, 'EnumDisplaySettingsA', [0x300, 0, address]).result, 0);
   r.view.setUint16(address + 36, 40, true);
   assert.equal(call(r, 'EnumDisplaySettingsA', [0, 0, address]).result, 0);
@@ -154,4 +154,24 @@ test('display APIs register automatically and screen metrics use the same virtua
   assert.equal(metric(null, () => 1).result, VIRTUAL_DISPLAY_MODE.height);
   assert.equal(metric(null, () => 16).result, VIRTUAL_DISPLAY_MODE.width);
   assert.equal(metric(null, () => 17).result, VIRTUAL_DISPLAY_MODE.height);
+});
+
+test('virtual mode selection shares current metrics and preserves registry default and CDS_TEST state', () => {
+  const r = runtime(),
+    address = initializeDevmode(r);
+  assert.equal(call(r, 'EnumDisplaySettingsA', [0, 3, address]).result, 1);
+  assert.deepEqual(
+    [104, 108, 112].map((o) => r.view.getUint32(address + o, true)),
+    [16, 800, 600],
+  );
+  assert.equal(call(r, 'ChangeDisplaySettingsA', [address, 2]).result, 0);
+  assert.equal(windowApis['user32.dll!GetSystemMetrics'](r, () => 0).result, 1024);
+  assert.equal(call(r, 'ChangeDisplaySettingsA', [address, 0]).result, 0);
+  assert.equal(windowApis['user32.dll!GetSystemMetrics'](r, () => 0).result, 800);
+  assert.equal(call(r, 'EnumDisplaySettingsA', [0, ENUM_CURRENT_SETTINGS, address]).result, 1);
+  assert.equal(r.view.getUint32(address + 104, true), 16);
+  assert.equal(call(r, 'EnumDisplaySettingsA', [0, ENUM_REGISTRY_SETTINGS, address]).result, 1);
+  assert.equal(r.view.getUint32(address + 104, true), 32);
+  assert.equal(call(r, 'ChangeDisplaySettingsA', [0, 0]).result, 0);
+  assert.equal(windowApis['user32.dll!GetSystemMetrics'](r, () => 0).result, 1024);
 });

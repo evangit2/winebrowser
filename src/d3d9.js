@@ -1,5 +1,7 @@
 import { ComObjects } from './com.js';
-import { displayMethods } from './d3d-display.js';
+import { displayMethods, displayFormat } from './d3d-display.js';
+import { VIRTUAL_DISPLAY_MODES, currentDisplayMode } from './win32-display.js';
+import { enterFullscreen, leaveFullscreen } from './d3d-fullscreen.js';
 import { D3D8_METHODS, DEVICE8_METHODS, device8Methods } from './d3d8-abi.js';
 import {
   bindObject,
@@ -316,6 +318,11 @@ function createDevice(runtime, argument, version) {
   const height = read(4) || window?.height;
   const format = read(8);
   const depth = !!read(36);
+  const windowed = !!read(32);
+  const fullscreenMode = VIRTUAL_DISPLAY_MODES.find(
+    (mode) => mode.width === width && mode.height === height && displayFormat(mode) === format,
+  );
+  const processing = behavior & 0xe0;
   if (
     adapter !== 0 ||
     deviceType !== 1 ||
@@ -324,22 +331,33 @@ function createDevice(runtime, argument, version) {
     !height ||
     width > 2048 ||
     height > 2048 ||
-    behavior & ~0x22 ||
-    !(behavior & 0x20) ||
-    ![0, 21, 22].includes(format) ||
+    behavior & ~0x62 ||
+    ![0x20, 0x40].includes(processing) ||
+    ![0, 21, 22, 23].includes(format) ||
     read(12) > 1 ||
     read(16) ||
     read(20) ||
-    read(24) !== 1 ||
-    read(32) !== 1 ||
+    ![1, 2, 3].includes(read(24)) ||
+    read(32) > 1 ||
+    (!windowed &&
+      (!read(0) || !read(4) || !fullscreenMode || runtime.d3dFullscreen || window?.parentId)) ||
     // The first backend gate has a depth buffer but no stencil attachment.
     (depth ? read(40) !== 80 : read(40) !== 0) ||
     read(44) ||
-    read(48) ||
-    ![0, 0x80000000].includes(read(52))
+    (windowed ? read(48) !== 0 : ![0, 60].includes(read(48))) ||
+    ![0, 1, 0x80000000].includes(read(52))
   )
     return D3DERR_INVALIDCALL;
-  return { windowId, width, height, depth };
+  return {
+    windowId,
+    width,
+    height,
+    depth,
+    windowed,
+    colorFormat: format || displayFormat(currentDisplayMode(runtime)),
+    swapEffect: read(24),
+    interval: read(52),
+  };
 }
 
 function factoryMethods(version = 9) {
@@ -386,14 +404,23 @@ function factoryMethods(version = 9) {
               if (bound) bound.state.internalRefs--;
               state[field] = null;
             }
-            await requireGraphics(runtime).destroyDevice({ id: state.id });
-            await releaseComReference(factory);
+            try {
+              await leaveFullscreen(runtime, state);
+            } finally {
+              try {
+                await requireGraphics(runtime).destroyDevice({ id: state.id });
+              } finally {
+                await releaseComReference(factory);
+              }
+            }
           },
         });
         state.id = object.pointer;
         try {
           await requireGraphics(runtime).createDevice({ id: state.id, ...options });
+          if (!options.windowed) await enterFullscreen(runtime, state, options);
         } catch (error) {
+          await requireGraphics(runtime).destroyDevice({ id: state.id });
           object.refs = 0;
           throw error;
         }

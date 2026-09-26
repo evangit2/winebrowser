@@ -1,0 +1,75 @@
+{
+  "date": "2026-09-26T08:58:57.042Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "589e6fbe8675162af482800ec8256e9b78596f3d6736952c81c89c1a1cd0b5bd",
+  "scope": "Native D3D8 EXE/ZIP: 800x600 RGB565 fullscreen/FLIP/interval ONE, real GPU animation, Escape, and native assertions that desktop mode/window geometry/style restore on release.",
+  "runs": [
+    {
+      "name": "fullscreen.exe",
+      "pixels": {
+        "hash": "71472fd95919eb906913186e90c1b58cd11a2dcb81258bc781b4a89dfde2074d",
+        "width": 800,
+        "height": 600,
+        "frames": 6,
+        "bad": 0,
+        "colored": 119716,
+        "colors": [
+          "25,28,49",
+          "239,206,90"
+        ]
+      },
+      "animated": {
+        "hash": "7af2d8419bc6afea178044f70ef6af35bad083551abe87c4c4125ec5314a36b3",
+        "width": 800,
+        "height": 600,
+        "frames": 26,
+        "bad": 0,
+        "colored": 116844,
+        "colors": [
+          "25,28,49",
+          "189,142,230",
+          "230,101,82",
+          "123,215,115",
+          "239,158,82"
+        ]
+      },
+      "exitCode": 0,
+      "instructions": 4012,
+      "errors": []
+    },
+    {
+      "name": "fullscreen.zip",
+      "pixels": {
+        "hash": "3c93af169e08f3fd9d9217d299e25bee188687087ad06165832d8e9e2c3f31be",
+        "width": 800,
+        "height": 600,
+        "frames": 6,
+        "bad": 0,
+        "colored": 119716,
+        "colors": [
+          "25,28,49",
+          "123,215,115"
+        ]
+      },
+      "animated": {
+        "hash": "969dc246c8e1087e43a1fb7de3f5c76d1160491e41d54cc7ab5f9ff7f4b38564",
+        "width": 800,
+        "height": 600,
+        "frames": 26,
+        "bad": 0,
+        "colored": 116844,
+        "colors": [
+          "25,28,49",
+          "189,142,230",
+          "90,198,239",
+          "239,206,90",
+          "239,158,82"
+        ]
+      },
+      "exitCode": 0,
+      "instructions": 4150,
+      "errors": []
+    }
+  ]
+}

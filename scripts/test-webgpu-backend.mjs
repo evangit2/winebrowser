@@ -145,12 +145,65 @@ try {
         if (!rejected) throw Error('Invalid graphics command was accepted');
         cases.push('invalid command rejected');
       }
+      const initialFrames = frames.splice(0);
+      const submittedFrames = renderer.frames,
+        draws = renderer.draws;
+      renderer.destroyDevice({ id: 1 });
+      const colorClear = (value) => ({ ...clear, color: value, clearDepth: false });
+      await renderer.createDevice({
+        id: 2,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: false,
+        colorFormat: 23,
+        swapEffect: 2,
+        interval: 1,
+      });
+      const times = [];
+      for (const commands of [[colorClear(0xff7f3f1f)], [colorClear(0xff123456)], [], []]) {
+        await renderer.present({ id: 2, commands });
+        times.push(performance.now());
+      }
+      const flipped = frames.splice(0);
+      renderer.destroyDevice({ id: 2 });
+      await renderer.createDevice({
+        id: 3,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: false,
+        colorFormat: 22,
+        swapEffect: 3,
+      });
+      await renderer.present({ id: 3, commands: [colorClear(0xff123456)] });
+      await renderer.present({ id: 3, commands: [] });
+      const copied = frames.splice(0);
+      renderer.destroyDevice({ id: 3 });
+      await renderer.createDevice({
+        id: 4,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: false,
+        colorFormat: 23,
+        swapEffect: 3,
+      });
+      await renderer.present({
+        id: 4,
+        commands: [colorClear(0xff000000), draw(0.5, 0xff7f3f1f, false)],
+      });
+      const quantizedDraw = frames.splice(0);
       return {
         scope:
           'WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance',
-        frames,
-        submittedFrames: renderer.frames,
-        draws: renderer.draws,
+        frames: initialFrames,
+        submittedFrames,
+        draws,
+        flipped,
+        copied,
+        quantizedDraw,
+        pacedIntervals: times.slice(1).map((time, i) => time - times[i]),
         presentationMode: renderer.presentationMode,
         fallbackAdapter: renderer.fallbackAdapter,
         logs,
@@ -180,6 +233,27 @@ try {
   );
   assert.equal(report.submittedFrames, 5);
   assert.equal(report.draws, 7);
+  assert.deepEqual(
+    report.flipped.map((f) => f.corner),
+    [
+      [123, 65, 33, 255],
+      [16, 53, 82, 255],
+      [123, 65, 33, 255],
+      [16, 53, 82, 255],
+    ],
+  );
+  assert.deepEqual(
+    report.copied.map((f) => f.corner),
+    [
+      [18, 52, 86, 255],
+      [18, 52, 86, 255],
+    ],
+  );
+  assert.deepEqual(report.quantizedDraw[0].center, [123, 65, 33, 255]);
+  assert.ok(
+    report.pacedIntervals.every((ms) => ms >= 14),
+    'interval ONE paces the virtual display',
+  );
   assert.deepEqual(errors, []);
   await writeFile(
     forceReadback

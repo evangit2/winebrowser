@@ -137,10 +137,13 @@ D3D10/11 and broader D3D12 support are still required.
       EXE/ZIP tests and separate static TLS/DLL callback tests.
 - [x] Implement shared D3D8/9 virtual-display queries and D16 depth matching.
       Native EXE/ZIP cubes verify both COM ABIs, invalid queries and real rendering.
-- [ ] Continue Hamsterball through `IDirect3D8.CreateDevice`. Two guest workers
-      initialize and its 800×600 window is created. Display/depth queries pass;
-      its fullscreen/FLIP/R5G6B5 request currently returns `D3DERR_INVALIDCALL`.
-      See `docs/d3d-display.md` for captured settings and presentation work.
+- [x] Add virtual fullscreen mode switching/restoration, persistent FLIP/COPY
+      buffers, RGB565 GPU conversion and virtual 60 Hz presentation pacing.
+      Native EXE/ZIP and canvas/readback pixel tests pass.
+- [ ] Continue Hamsterball through `IDirect3D8.GetDeviceCaps`. Chromium creates
+      its 800×600 RGB565/FLIP hardware device with D16 and calls Clear, reaching
+      8,855,625 guest instructions. Node has reached its WebGPU availability
+      boundary at device creation. See `docs/d3d-display.md`.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

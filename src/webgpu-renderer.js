@@ -1,4 +1,5 @@
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
+import { D3DPresentation } from './d3d-presentation.js';
 
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
@@ -40,6 +41,7 @@ export class WebGPURenderer {
     this.surfaces = new Map();
     this.pipelines = new Map();
     this.programmable = new D3D9ProgrammableRenderer(this);
+    this.presentation = new D3DPresentation(this);
     this.frames = 0;
     this.draws = 0;
   }
@@ -74,7 +76,16 @@ export class WebGPURenderer {
     });
   }
 
-  async createDevice({ id, windowId, width, height, depth }) {
+  async createDevice({
+    id,
+    windowId,
+    width,
+    height,
+    depth,
+    colorFormat = 22,
+    swapEffect = 1,
+    interval = 0x80000000,
+  }) {
     if (
       !integer(id, 1, 0xffffffff) ||
       this.surfaces.has(id) ||
@@ -82,27 +93,45 @@ export class WebGPURenderer {
       !integer(windowId, 1, 0xffffffff) ||
       !integer(width, 1, MAX_DIMENSION) ||
       !integer(height, 1, MAX_DIMENSION) ||
-      typeof depth !== 'boolean'
+      typeof depth !== 'boolean' ||
+      ![21, 22, 23].includes(colorFormat) ||
+      ![1, 2, 3].includes(swapEffect) ||
+      ![0, 1, 0x80000000].includes(interval)
     )
       throw Error('Invalid or oversized graphics surface');
     await this.initialize();
     const canvas = new OffscreenCanvas(width, height);
     let context = null,
       context2d = null,
-      renderTexture = null,
+      colors = [],
+      quantized = null,
       readback = null,
       depthTexture = null,
       bytesPerRow = 0;
     try {
-      if (this.presentationMode === 'readback') {
-        context2d = canvas.getContext('2d');
-        if (!context2d) throw Error('2D OffscreenCanvas is unavailable for WebGPU readback');
-        renderTexture = this.device.createTexture({
-          label: 'guest color buffer for readback',
+      for (let i = 0; i < (swapEffect === 2 ? 2 : 1); i++)
+        colors.push(
+          this.device.createTexture({
+            label: `guest persistent color buffer ${i}`,
+            size: [width, height],
+            format: this.format,
+            usage:
+              GPUTextureUsage.RENDER_ATTACHMENT |
+              GPUTextureUsage.COPY_SRC |
+              GPUTextureUsage.COPY_DST |
+              GPUTextureUsage.TEXTURE_BINDING,
+          }),
+        );
+      if (colorFormat === 23)
+        quantized = this.device.createTexture({
+          label: 'guest RGB565 conversion buffer',
           size: [width, height],
           format: this.format,
           usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
         });
+      if (this.presentationMode === 'readback') {
+        context2d = canvas.getContext('2d');
+        if (!context2d) throw Error('2D OffscreenCanvas is unavailable for WebGPU readback');
         bytesPerRow = Math.ceil((width * 4) / 256) * 256;
         readback = this.device.createBuffer({
           label: 'guest frame readback',
@@ -112,7 +141,12 @@ export class WebGPURenderer {
       } else {
         context = canvas.getContext('webgpu');
         if (!context) throw Error('WebGPU OffscreenCanvas is unavailable');
-        context.configure({ device: this.device, format: this.format, alphaMode: 'opaque' });
+        context.configure({
+          device: this.device,
+          format: this.format,
+          alphaMode: 'opaque',
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST,
+        });
       }
       depthTexture = depth
         ? this.device.createTexture({
@@ -125,7 +159,8 @@ export class WebGPURenderer {
     } catch (error) {
       depthTexture?.destroy();
       readback?.destroy();
-      renderTexture?.destroy();
+      for (const texture of colors) texture.destroy();
+      quantized?.destroy();
       context?.unconfigure();
       throw error;
     }
@@ -137,7 +172,13 @@ export class WebGPURenderer {
       canvas,
       context,
       context2d,
-      renderTexture,
+      colors,
+      colorIndex: 0,
+      colorFormat,
+      swapEffect,
+      interval,
+      quantized,
+      lastPresented: 0,
       readback,
       bytesPerRow,
       depthTexture,
@@ -294,7 +335,8 @@ export class WebGPURenderer {
     this.device.pushErrorScope('validation');
     let error;
     try {
-      const target = (surface.renderTexture ?? surface.context.getCurrentTexture()).createView();
+      const texture = surface.colors[surface.colorIndex];
+      const target = texture.createView();
       const depthView = surface.depthTexture?.createView();
       const encoder = this.device.createCommandEncoder();
       let pass = null,
@@ -342,14 +384,21 @@ export class WebGPURenderer {
       }
       if (!pass) begin();
       pass.end();
+      this.presentation.quantize(encoder, surface, texture);
       if (surface.readback)
         encoder.copyTextureToBuffer(
-          { texture: surface.renderTexture },
+          { texture },
           {
             buffer: surface.readback,
             bytesPerRow: surface.bytesPerRow,
             rowsPerImage: surface.height,
           },
+          [surface.width, surface.height],
+        );
+      else
+        encoder.copyTextureToTexture(
+          { texture },
+          { texture: surface.context.getCurrentTexture() },
           [surface.width, surface.height],
         );
       this.device.queue.submit([encoder.finish()]);
@@ -360,6 +409,12 @@ export class WebGPURenderer {
     const validation = await this.device.popErrorScope();
     if (error || validation)
       throw error ?? Error('WebGPU validation failed: ' + validation.message);
+    // The virtual display refreshes at 60 Hz. This bounds virtual presentation;
+    // the browser still owns physical compositor/vblank timing.
+    if (surface.interval !== 0x80000000 && surface.lastPresented) {
+      const delay = 1000 / 60 - (performance.now() - surface.lastPresented);
+      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, Math.ceil(delay)));
+    }
     if (surface.readback) {
       await surface.readback.mapAsync(GPUMapMode.READ);
       try {
@@ -380,6 +435,8 @@ export class WebGPURenderer {
       }
     }
     const bitmap = surface.canvas.transferToImageBitmap();
+    surface.lastPresented = performance.now();
+    if (surface.swapEffect === 2) surface.colorIndex = 1 - surface.colorIndex;
     this.draws += drawCount + programmable.length;
     this.frames++;
     this.emit({
@@ -404,7 +461,8 @@ export class WebGPURenderer {
     this.programmable.destroySurface(surface);
     surface.depthTexture?.destroy();
     surface.readback?.destroy();
-    surface.renderTexture?.destroy();
+    for (const texture of surface.colors) texture.destroy();
+    surface.quantized?.destroy();
     surface.context?.unconfigure();
     this.surfaces.delete(id);
   }

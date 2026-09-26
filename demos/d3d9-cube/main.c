@@ -10,8 +10,10 @@
 #define D3D_VERSION_TEXT "9"
 #endif
 
+#ifndef WIDTH
 #define WIDTH 640
 #define HEIGHT 480
+#endif
 #define ONE 0x3f800000u
 
 struct vertex { float x, y, z; D3DCOLOR color; };
@@ -62,6 +64,7 @@ static volatile int running = 1;
 
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
+    if (message == WM_KEYDOWN && wparam == VK_ESCAPE) { running = 0; return 0; }
     if (message == WM_CLOSE) { running = 0; return 0; }
     return DefWindowProcA(window, message, wparam, lparam);
 }
@@ -90,14 +93,15 @@ static int run(void)
             desktop.Width != (UINT)GetSystemMetrics(SM_CXSCREEN) ||
             desktop.Height != (UINT)GetSystemMetrics(SM_CYSCREEN) ||
             desktop.RefreshRate != 60 || desktop.Format != D3DFMT_X8R8G8B8) return 30;
-    if (IDirect3D9_GetAdapterModeCount(d3d, 0, desktop.Format) != 1 ||
+    UINT mode_count = IDirect3D9_GetAdapterModeCount(d3d, 0, desktop.Format);
+    if (!mode_count ||
             IDirect3D9_GetAdapterModeCount(d3d, 1, desktop.Format) != 0 ||
             FAILED(IDirect3D9_EnumAdapterModes(d3d, 0, desktop.Format, 0, &enumerated)) ||
             enumerated.Width != desktop.Width || enumerated.Height != desktop.Height ||
             enumerated.Format != desktop.Format || enumerated.RefreshRate != desktop.RefreshRate)
         return 31;
     enumerated.Width = 123;
-    if (IDirect3D9_EnumAdapterModes(d3d, 0, desktop.Format, 1, &enumerated) != D3DERR_INVALIDCALL ||
+    if (IDirect3D9_EnumAdapterModes(d3d, 0, desktop.Format, mode_count, &enumerated) != D3DERR_INVALIDCALL ||
             enumerated.Width != 123 ||
             IDirect3D9_GetAdapterDisplayMode(d3d, 1, &enumerated) != D3DERR_INVALIDCALL ||
             enumerated.Width != 123) return 32;
@@ -117,11 +121,29 @@ static int run(void)
     params.EnableAutoDepthStencil = TRUE;
     params.AutoDepthStencilFormat = D3DFMT_D16;
     params.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+#ifdef WINEBROWSER_FULLSCREEN
+    params.BackBufferFormat = D3DFMT_R5G6B5;
+    params.Windowed = FALSE;
+    params.SwapEffect = D3DSWAPEFFECT_FLIP;
+    params.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+    RECT original;
+    GetWindowRect(window, &original);
+    LONG original_style = GetWindowLongA(window, GWL_STYLE);
+#endif
 
     IDirect3DDevice9 *device = 0;
     HRESULT status = IDirect3D9_CreateDevice(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
             window, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &params, &device);
     if (FAILED(status) || !device) return 5;
+#ifdef WINEBROWSER_FULLSCREEN
+    D3DDISPLAYMODE active;
+    RECT fullscreen;
+    GetWindowRect(window, &fullscreen);
+    if (GetSystemMetrics(SM_CXSCREEN) != WIDTH || GetSystemMetrics(SM_CYSCREEN) != HEIGHT ||
+        FAILED(IDirect3D9_GetAdapterDisplayMode(d3d, 0, &active)) || active.Format != D3DFMT_R5G6B5 ||
+        fullscreen.left || fullscreen.top || fullscreen.right != WIDTH || fullscreen.bottom != HEIGHT)
+        return 34;
+#endif
     if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_LIGHTING, FALSE))) return 6;
     if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_CULLMODE, D3DCULL_NONE))) return 7;
     if (FAILED(IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, D3DZB_TRUE))) return 8;
@@ -155,6 +177,15 @@ static int run(void)
     }
 
     IDirect3DDevice9_Release(device);
+#ifdef WINEBROWSER_FULLSCREEN
+    RECT restored;
+    GetWindowRect(window, &restored);
+    if (GetSystemMetrics(SM_CXSCREEN) != (int)desktop.Width ||
+        GetSystemMetrics(SM_CYSCREEN) != (int)desktop.Height ||
+        GetWindowLongA(window, GWL_STYLE) != original_style ||
+        restored.left != original.left || restored.top != original.top ||
+        restored.right != original.right || restored.bottom != original.bottom) return 35;
+#endif
     IDirect3D9_Release(d3d);
     DestroyWindow(window);
     return 0;

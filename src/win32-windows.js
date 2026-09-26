@@ -888,7 +888,7 @@ Object.assign(windowApis, {
   },
   'user32.dll!GetSystemMetrics': (r, a) => {
     const values = { 4: TITLE, 5: BORDER, 6: BORDER };
-    const displayValue = virtualSystemMetric(a(0));
+    const displayValue = virtualSystemMetric(a(0), r);
     if (displayValue !== undefined) return result(displayValue, 1);
     if (!(a(0) in values)) throw Error(`Unsupported system metric ${a(0)}`);
     return result(values[a(0)], 1);

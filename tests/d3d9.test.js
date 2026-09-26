@@ -411,9 +411,9 @@ for (const version of [8, 9]) {
     );
     assert.equal(runtime.read32(output), 0xa5a5a5a5);
     assert.equal(runtime.read32(output + 20), 0xa5a5a5a5);
-    assert.equal((await call(factory, 6, 0, 22)).result, 1);
+    assert.equal((await call(factory, 6, 0, 22)).result, version === 8 ? 6 : 3);
     assert.equal((await call(factory, 6, 1, 22)).result, 0);
-    if (version === 9) assert.equal((await call(factory, 6, 0, 23)).result, 0);
+    if (version === 9) assert.equal((await call(factory, 6, 0, 23)).result, 3);
     const enumArgs = (adapter, mode, ptr) =>
       version === 8 ? [adapter, mode, ptr] : [adapter, 22, mode, ptr];
     assert.deepEqual(await call(factory, 7, ...enumArgs(0, 0, pointer)), {
@@ -426,10 +426,10 @@ for (const version of [8, 9]) {
       [8, [0, 0]],
       [8, [0, runtime.data.length - 12]],
       [7, enumArgs(1, 0, pointer)],
-      [7, enumArgs(0, 1, pointer)],
+      [7, enumArgs(0, version === 8 ? 6 : 3, pointer)],
       [7, enumArgs(0, 0, 0)],
       [7, enumArgs(0, 0, runtime.data.length - 12)],
-      ...(version === 9 ? [[7, [0, 23, 0, pointer]]] : []),
+      ...(version === 9 ? [[7, [0, 21, 0, pointer]]] : []),
     ])
       assert.equal((await call(factory, slot, ...args)).result, 0x8876086c);
     assert.deepEqual(runtime.data.slice(output, output + 24), snapshot);
@@ -449,8 +449,8 @@ for (const version of [8, 9]) {
       assert.deepEqual(await call(factory, 12, 0, 1, 22, color, 80), { result: 0, argc: 6 });
     for (const depth of [0, 70, 75, 77, 79])
       assert.equal((await call(factory, 12, 0, 1, 22, 22, depth)).result, 0x8876086a);
-    assert.equal((await call(factory, 12, 0, 1, 23, 22, 80)).result, 0x8876086a);
-    assert.equal((await call(factory, 12, 0, 1, 22, 23, 80)).result, 0x8876086a);
+    assert.equal((await call(factory, 12, 0, 1, 23, 22, 80)).result, 0);
+    assert.equal((await call(factory, 12, 0, 1, 22, 23, 80)).result, 0);
     assert.equal((await call(factory, 12, 0, 2, 22, 22, 80)).result, 0x8876086a);
     assert.equal((await call(factory, 12, 1, 1, 22, 22, 80)).result, 0x8876086c);
   });

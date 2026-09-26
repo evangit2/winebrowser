@@ -74,6 +74,115 @@
   ],
   "submittedFrames": 5,
   "draws": 7,
+  "flipped": [
+    {
+      "center": [
+        123,
+        65,
+        33,
+        255
+      ],
+      "corner": [
+        123,
+        65,
+        33,
+        255
+      ]
+    },
+    {
+      "center": [
+        16,
+        53,
+        82,
+        255
+      ],
+      "corner": [
+        16,
+        53,
+        82,
+        255
+      ]
+    },
+    {
+      "center": [
+        123,
+        65,
+        33,
+        255
+      ],
+      "corner": [
+        123,
+        65,
+        33,
+        255
+      ]
+    },
+    {
+      "center": [
+        16,
+        53,
+        82,
+        255
+      ],
+      "corner": [
+        16,
+        53,
+        82,
+        255
+      ]
+    }
+  ],
+  "copied": [
+    {
+      "center": [
+        18,
+        52,
+        86,
+        255
+      ],
+      "corner": [
+        18,
+        52,
+        86,
+        255
+      ]
+    },
+    {
+      "center": [
+        18,
+        52,
+        86,
+        255
+      ],
+      "corner": [
+        18,
+        52,
+        86,
+        255
+      ]
+    }
+  ],
+  "quantizedDraw": [
+    {
+      "center": [
+        123,
+        65,
+        33,
+        255
+      ],
+      "corner": [
+        0,
+        0,
+        0,
+        255
+      ]
+    }
+  ],
+  "pacedIntervals": [
+    19.575000047683716,
+    17.194999933242798,
+    18.644999980926514
+  ],
   "presentationMode": "readback",
   "fallbackAdapter": false,
   "logs": [
@@ -84,7 +193,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-09-19T01:55:50.325Z",
-  "browser": "153.0.8010.48",
+  "date": "2026-09-26T08:52:07.617Z",
+  "browser": "154.0.8037.57",
   "passed": true
 }

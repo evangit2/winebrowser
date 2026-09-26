@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T08:42:18.347Z",
+  "date": "2026-09-26T08:54:51.537Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.57",
   "nativeGame": "d3d9-cube",
@@ -8,12 +8,29 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "08001aabde0733acf932be18a0c845d619e50cc4adaa83f79f3b0edd3b92b3c4",
+      "exeSha256": "4b96daa7498eafb1a2391e842d73516d34c844429423a81a0aff4f6cf2a75e66",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 5,
-        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
+        "frames": 6,
+        "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 74972,
+        "colors": [
+          "121,216,117",
+          "93,197,239"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 19,
+        "hash": "60a119531d0a6dcc5eba31188ab53f3374570d24f89f85243ffb41220beeaa58",
         "corner": [
           23,
           29,
@@ -23,38 +40,21 @@
         "coloredPixels": 74972,
         "colors": [
           "93,197,239",
-          "121,216,117"
-        ]
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "frames": 17,
-        "hash": "c27a891999c438545f9322e087f48fc9d8b2eb5fa1d4afb823c4ca694aab08cf",
-        "corner": [
-          23,
-          29,
-          49,
-          255
-        ],
-        "coloredPixels": 77812,
-        "colors": [
-          "93,197,239",
           "242,207,91"
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 106,
-      "instructions": 2982,
-      "apiCalls": 269
+      "compiledBlocks": 108,
+      "instructions": 3111,
+      "apiCalls": 278
     },
     {
       "mode": "hosted-zip",
-      "exeSha256": "08001aabde0733acf932be18a0c845d619e50cc4adaa83f79f3b0edd3b92b3c4",
+      "exeSha256": "4b96daa7498eafb1a2391e842d73516d34c844429423a81a0aff4f6cf2a75e66",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 5,
+        "frames": 4,
         "hash": "85fb11369dc72836436c7ae42b02791fe5cf7eef99c1b3595183ef338bf427af",
         "corner": [
           23,
@@ -71,7 +71,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 17,
+        "frames": 16,
         "hash": "9f940b40c2ed9ec399cb14a5083a2ef98bb3ab1908d8bc604686ce33189c500c",
         "corner": [
           23,
@@ -86,9 +86,9 @@
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 106,
-      "instructions": 2886,
-      "apiCalls": 260
+      "compiledBlocks": 108,
+      "instructions": 2823,
+      "apiCalls": 251
     }
   ],
   "errors": []

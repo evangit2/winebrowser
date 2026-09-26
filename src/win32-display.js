@@ -1,4 +1,4 @@
-// One fixed process-local virtual display. It describes the browser desktop
+// One process-local virtual display with a bounded mode catalogue. It describes the browser desktop
 // coordinate space only; these APIs never inspect or reconfigure a host monitor.
 import { frameForWindow } from './window-frame.js';
 export const VIRTUAL_DISPLAY_MODE = Object.freeze({
@@ -8,6 +8,18 @@ export const VIRTUAL_DISPLAY_MODE = Object.freeze({
   frequency: 60,
   displayFlags: 0,
 });
+export const VIRTUAL_DISPLAY_MODES = Object.freeze(
+  [
+    [1024, 768],
+    [800, 600],
+    [640, 480],
+  ].flatMap(([width, height]) =>
+    [32, 16].map((bitsPerPixel) =>
+      Object.freeze({ ...VIRTUAL_DISPLAY_MODE, width, height, bitsPerPixel }),
+    ),
+  ),
+);
+export const currentDisplayMode = (runtime) => runtime?.displayMode ?? VIRTUAL_DISPLAY_MODE;
 
 const ERROR_INVALID_WINDOW_HANDLE = 1400;
 const ENUM_CURRENT_SETTINGS = 0xffffffff;
@@ -29,12 +41,13 @@ const DISPLAY_FIELDS =
 
 const response = (value, argc) => ({ result: value | 0, argc });
 
-export function virtualSystemMetric(index) {
+export function virtualSystemMetric(index, runtime) {
+  const mode = currentDisplayMode(runtime);
   return {
-    0: VIRTUAL_DISPLAY_MODE.width, // SM_CXSCREEN
-    1: VIRTUAL_DISPLAY_MODE.height, // SM_CYSCREEN
-    16: VIRTUAL_DISPLAY_MODE.width, // SM_CXFULLSCREEN
-    17: VIRTUAL_DISPLAY_MODE.height, // SM_CYFULLSCREEN
+    0: mode.width, // SM_CXSCREEN
+    1: mode.height, // SM_CYSCREEN
+    16: mode.width, // SM_CXFULLSCREEN
+    17: mode.height, // SM_CYFULLSCREEN
   }[index];
 }
 
@@ -58,12 +71,13 @@ function enumDisplaySettingsA(runtime, argument) {
   const modeIndex = argument(1) >>> 0;
   const devmode = argument(2) >>> 0;
   if (device || !devmode) return response(0, 3);
-  if (
-    modeIndex !== 0 &&
-    modeIndex !== ENUM_CURRENT_SETTINGS &&
-    modeIndex !== ENUM_REGISTRY_SETTINGS
-  )
-    return response(0, 3);
+  const mode =
+    modeIndex === ENUM_CURRENT_SETTINGS
+      ? currentDisplayMode(runtime)
+      : modeIndex === ENUM_REGISTRY_SETTINGS
+        ? VIRTUAL_DISPLAY_MODE
+        : VIRTUAL_DISPLAY_MODES[modeIndex];
+  if (!mode) return response(0, 3);
 
   runtime.check(devmode, 40, true);
   const suppliedSize = runtime.data[devmode + 36] | (runtime.data[devmode + 37] << 8);
@@ -78,19 +92,33 @@ function enumDisplaySettingsA(runtime, argument) {
   view.setUint16(devmode + 36, DEVMODEA_DISPLAY_SIZE, true);
   view.setUint16(devmode + 38, 0, true);
   view.setUint32(devmode + 40, DISPLAY_FIELDS, true);
-  view.setUint32(devmode + 104, VIRTUAL_DISPLAY_MODE.bitsPerPixel, true);
-  view.setUint32(devmode + 108, VIRTUAL_DISPLAY_MODE.width, true);
-  view.setUint32(devmode + 112, VIRTUAL_DISPLAY_MODE.height, true);
-  view.setUint32(devmode + 116, VIRTUAL_DISPLAY_MODE.displayFlags, true);
-  view.setUint32(devmode + 120, VIRTUAL_DISPLAY_MODE.frequency, true);
+  view.setUint32(devmode + 104, mode.bitsPerPixel, true);
+  view.setUint32(devmode + 108, mode.width, true);
+  view.setUint32(devmode + 112, mode.height, true);
+  view.setUint32(devmode + 116, mode.displayFlags, true);
+  view.setUint32(devmode + 120, mode.frequency, true);
   return response(1, 3);
+}
+
+function notifyDisplayChange(runtime) {
+  const mode = currentDisplayMode(runtime);
+  for (const w of runtime.windows?.windows?.values() ?? [])
+    if (!w.parentId)
+      runtime.windows.post?.(w.id, 0x7e, mode.bitsPerPixel, mode.width | (mode.height << 16));
 }
 
 function changeDisplaySettingsA(runtime, argument) {
   const devmode = argument(0) >>> 0;
   const flags = argument(1) >>> 0;
   if (flags & ~(CDS_TEST | CDS_FULLSCREEN)) return response(DISP_CHANGE_BADFLAGS, 2);
-  if (!devmode) return response(DISP_CHANGE_SUCCESSFUL, 2);
+  if (!devmode) {
+    if (runtime.d3dFullscreen) return response(DISP_CHANGE_BADMODE, 2);
+    if (!(flags & CDS_TEST)) {
+      runtime.displayMode = undefined;
+      notifyDisplayChange(runtime);
+    }
+    return response(DISP_CHANGE_SUCCESSFUL, 2);
+  }
 
   runtime.check(devmode, 40);
   const view = new DataView(runtime.data.buffer, runtime.data.byteOffset);
@@ -100,18 +128,26 @@ function changeDisplaySettingsA(runtime, argument) {
   runtime.check(devmode, DEVMODEA_DISPLAY_SIZE);
   const fields = view.getUint32(devmode + 40, true);
   if (!fields || fields & ~DISPLAY_FIELDS) return response(DISP_CHANGE_BADMODE, 2);
-  const matches =
-    (!(fields & DM_BITSPERPEL) ||
-      view.getUint32(devmode + 104, true) === VIRTUAL_DISPLAY_MODE.bitsPerPixel) &&
-    (!(fields & DM_PELSWIDTH) ||
-      view.getUint32(devmode + 108, true) === VIRTUAL_DISPLAY_MODE.width) &&
-    (!(fields & DM_PELSHEIGHT) ||
-      view.getUint32(devmode + 112, true) === VIRTUAL_DISPLAY_MODE.height) &&
-    (!(fields & DM_DISPLAYFLAGS) ||
-      view.getUint32(devmode + 116, true) === VIRTUAL_DISPLAY_MODE.displayFlags) &&
-    (!(fields & DM_DISPLAYFREQUENCY) ||
-      view.getUint32(devmode + 120, true) === VIRTUAL_DISPLAY_MODE.frequency);
-  return response(matches ? DISP_CHANGE_SUCCESSFUL : DISP_CHANGE_BADMODE, 2);
+  const current = currentDisplayMode(runtime);
+  const wanted = {
+    bitsPerPixel:
+      fields & DM_BITSPERPEL ? view.getUint32(devmode + 104, true) : current.bitsPerPixel,
+    width: fields & DM_PELSWIDTH ? view.getUint32(devmode + 108, true) : current.width,
+    height: fields & DM_PELSHEIGHT ? view.getUint32(devmode + 112, true) : current.height,
+    displayFlags:
+      fields & DM_DISPLAYFLAGS ? view.getUint32(devmode + 116, true) : current.displayFlags,
+    frequency:
+      fields & DM_DISPLAYFREQUENCY ? view.getUint32(devmode + 120, true) || 60 : current.frequency,
+  };
+  const selected = VIRTUAL_DISPLAY_MODES.find((mode) =>
+    Object.entries(wanted).every(([key, value]) => mode[key] === value),
+  );
+  if (!selected || runtime.d3dFullscreen) return response(DISP_CHANGE_BADMODE, 2);
+  if (!(flags & CDS_TEST)) {
+    runtime.displayMode = selected;
+    notifyDisplayChange(runtime);
+  }
+  return response(DISP_CHANGE_SUCCESSFUL, 2);
 }
 
 export const displayApis = {
