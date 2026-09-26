@@ -6,6 +6,8 @@ export class GuestMemory {
     this.view = new DataView(memory.buffer);
     this.data = new Uint8Array(memory.buffer);
     this.onCodeWrite = onCodeWrite;
+    // Index-validated region cache for the locality fast path.
+    this.cachedRegion = undefined;
     this.readOnlyViews = readOnlyViews.map((mapping) => {
       const { start, bytes, ranges = [[0, bytes?.length]] } = mapping;
       if (
@@ -60,46 +62,79 @@ export class GuestMemory {
 
   // Raw linear-buffer consumers must use this check, never accept an external
   // address and then silently index an unrelated/empty TypedArray slice.
+  //
+  // Guest access is locality-heavy, so the region that satisfied the previous
+  // check is cached. The cache is validated by identity against the shared
+  // regions array on every use, so a protection change, split, unmap or reload
+  // (all of which replace or remove region objects) makes the entry stale and
+  // the exact scan below runs instead. No invalidation hook is required.
   checkLinear(address, size, write = false) {
     address >>>= 0;
-    const permitted = (region) =>
-      region.read !== false && (!write || (region.write && (!region.exec || this.onCodeWrite)));
-    let cursor = address;
     const end = address + size;
-    if (Number.isSafeInteger(size) && size > 0 && end <= this.data.length) {
+    const regions = this.regions;
+    const validSize = Number.isSafeInteger(size) && size >= 0;
+    const cached = this.cachedRegion;
+    if (
+      cached !== undefined &&
+      regions[cached.index] === cached.region &&
+      validSize &&
+      size > 0 &&
+      address >= cached.region.start &&
+      address < cached.region.end &&
+      end <= cached.region.end &&
+      cached.region.read !== false &&
+      (!write || (cached.region.write && (!cached.region.exec || this.onCodeWrite)))
+    ) {
+      if (write && cached.region.exec) this.onCodeWrite(address, size);
+      return address;
+    }
+    let cursor = address;
+    if (validSize && size > 0 && end <= this.data.length) {
       while (cursor < end) {
         let covered = cursor;
-        for (const region of this.regions)
-          if (permitted(region) && cursor >= region.start && cursor < region.end)
+        for (let i = 0; i < regions.length; i++) {
+          const region = regions[i];
+          if (
+            region.read !== false &&
+            (!write || (region.write && (!region.exec || this.onCodeWrite))) &&
+            cursor >= region.start &&
+            cursor < region.end
+          )
             covered = Math.max(covered, Math.min(end, region.end));
+        }
         if (covered === cursor) break;
         cursor = covered;
       }
     }
+    let coverIndex = -1;
+    for (let i = 0; i < regions.length; i++) {
+      const region = regions[i];
+      if (region.read === false || (write && !(region.write && (!region.exec || this.onCodeWrite))))
+        continue;
+      if (
+        (size > 0 && address >= region.start && address < region.end && end <= region.end) ||
+        (size === 0 && address >= region.start && address <= region.end)
+      ) {
+        coverIndex = i;
+        break;
+      }
+    }
     if (
-      !Number.isSafeInteger(size) ||
+      !validSize ||
       size < 0 ||
-      address + size > this.data.length ||
-      (size > 0
-        ? cursor !== end
-        : !this.regions.some(
-            (region) => permitted(region) && address >= region.start && address <= region.end,
-          ))
+      end > this.data.length ||
+      (size > 0 ? cursor !== end : coverIndex < 0)
     ) {
       throw Error(
         `Guest ${write ? 'write' : 'read'} violation at 0x${address.toString(16)} (${size} bytes)`,
       );
     }
-    if (
-      write &&
-      size &&
-      this.onCodeWrite &&
-      this.regions.some((r) => r.exec && address < r.end && end > r.start)
-    )
+    if (size > 0 && coverIndex >= 0)
+      this.cachedRegion = { index: coverIndex, region: regions[coverIndex] };
+    if (write && size && this.onCodeWrite && regions[coverIndex]?.exec)
       this.onCodeWrite(address, size);
     return address;
   }
-
   read(address, width = 4) {
     address >>>= 0;
     if (![1, 2, 4].includes(width)) throw Error('Unsupported guest read width');
