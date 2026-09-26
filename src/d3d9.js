@@ -1,3 +1,4 @@
+import { blendDefaults, setBlendState } from './d3d-blending.js';
 import { fvfLayout } from './d3d-fvf.js';
 import {
   initLighting,
@@ -191,6 +192,8 @@ function deviceMethods(version = 9) {
         const value = argument(2) >>> 0;
         // The current fixed-function path already uses perspective Gouraud
         // interpolation; other shade modes need their own interpolation path.
+        if (state in object.state.blendState)
+          return setBlendState(object.state, state, value, version);
         if (state in object.state.lightState) return setLightingState(object.state, state, value);
         if (state === 9 && value === 2) object.state.shadeMode = value;
         else if (state === 8 && value === 3) object.state.fillMode = value;
@@ -222,6 +225,7 @@ function deviceMethods(version = 9) {
           23: DEPTH_COMPARE.indexOf(s.depthCompare),
           26: Number(s.dither),
           ...s.lightState,
+          ...s.blendState,
           136: Number(s.clipping),
         }[a(1)];
         if (value === undefined) throw Error(`Unsupported IDirect3DDevice9.GetRenderState ${a(1)}`);
@@ -294,6 +298,7 @@ function deviceMethods(version = 9) {
             depthWrite: state.depthWrite,
             depthCompare: state.depthCompare,
             dither: state.dither,
+            blend: { ...state.blendState },
             cullMode: state.cullMode,
           },
           size,
@@ -488,6 +493,7 @@ function factoryMethods(version = 9) {
           fvf: 0,
           ...initTextures(),
           ...initLighting(),
+          blendState: blendDefaults(version),
           shadeMode: 2,
           fillMode: 3,
           clipping: true,

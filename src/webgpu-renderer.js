@@ -1,3 +1,5 @@
+import { blendKey, blendConstant, colorTarget, needsBlendFeedback } from './d3d-blending.js';
+import { D3DBlendRenderer } from './d3d-blend-renderer.js';
 import { fvfLayout } from './d3d-fvf.js';
 import { validLighting, lightingUniforms } from './d3d-lighting.js';
 import { D3DTextureRenderer, fixedShader, validateTexturing } from './d3d-texture-renderer.js';
@@ -29,6 +31,7 @@ export class WebGPURenderer {
     this.pipelines = new Map();
     this.programmable = new D3D9ProgrammableRenderer(this);
     this.clears = new D3DClearRenderer(this);
+    this.blending = new D3DBlendRenderer(this);
     this.textures = new D3DTextureRenderer(this);
     this.frames = 0;
     this.draws = 0;
@@ -245,6 +248,7 @@ export class WebGPURenderer {
   pipeline(surface, command) {
     const key = [
       command.stride,
+      blendKey(command),
       !!surface.depthTexture,
       command.depthTest,
       command.depthWrite,
@@ -263,6 +267,8 @@ export class WebGPURenderer {
     ].join(':');
     if (!this.pipelines.has(key)) {
       if (command.texturing) this.textures.initialize();
+      const feedback = needsBlendFeedback(surface, command);
+      if (feedback) this.blending.initialize();
       const code = fixedShader(command);
       const shader =
         command.texturing ||
@@ -273,7 +279,7 @@ export class WebGPURenderer {
           ? this.device.createShaderModule({
               code:
                 surface.colorFormat === 23
-                  ? rgb565Shader(code, 'fragmentMain', command.dither)
+                  ? rgb565Shader(code, 'fragmentMain', command.dither, feedback ? command : null)
                   : code,
             })
           : this.shader;
@@ -281,7 +287,17 @@ export class WebGPURenderer {
         key,
         this.device.createRenderPipeline({
           label: 'XYZ diffuse triangle pipeline',
-          layout: command.texturing ? this.textures.pipelineLayout : this.pipelineLayout,
+          layout: feedback
+            ? this.device.createPipelineLayout({
+                bindGroupLayouts: [
+                  this.bindLayout,
+                  command.texturing ? this.textures.layout : this.blending.emptyLayout,
+                  this.blending.layout,
+                ],
+              })
+            : command.texturing
+              ? this.textures.pipelineLayout
+              : this.pipelineLayout,
           vertex: {
             module: shader,
             entryPoint: 'vertexMain',
@@ -295,7 +311,7 @@ export class WebGPURenderer {
           fragment: {
             module: shader,
             entryPoint: 'fragmentMain',
-            targets: [{ format: this.format }],
+            targets: [colorTarget(surface, command, this.format)],
           },
           primitive: primitiveState(command.cullMode),
           ...(surface.depthTexture
@@ -376,6 +392,7 @@ export class WebGPURenderer {
       slot.vertex?.destroy();
       slot.uniform.destroy();
       slot.textureUniform?.destroy();
+      slot.blendUniform?.destroy();
     }
     this.device.pushErrorScope('validation');
     let error;
@@ -430,22 +447,46 @@ export class WebGPURenderer {
           }
           continue;
         }
-        if (!pass) begin();
         const v = command.viewport ?? defaultViewport(surface.width, surface.height);
-        // A zero-area viewport has no fragments; consume prepared draw slots
-        // normally so later draws retain their own uploaded data.
-        pass.setViewport(v.x, v.y, v.width, v.height, v.minZ, v.maxZ);
-        pass.setScissorRect(0, 0, surface.width, surface.height);
-        if (command.type === 'draw-programmable') {
-          this.programmable.draw(pass, programmable[programmableIndex++]);
-        } else {
-          const slot = this.upload(surface, drawIndex++, command);
-          pass.setPipeline(this.pipeline(surface, command));
-          pass.setBindGroup(0, slot.bindGroup);
-          if (command.texturing) pass.setBindGroup(1, slot.textureBindGroup);
-          pass.setVertexBuffer(0, slot.vertex);
-          pass.draw(command.vertexCount);
-        }
+        const feedback = needsBlendFeedback(surface, command);
+        const prepared =
+          command.type === 'draw-programmable' ? programmable[programmableIndex++] : null;
+        const slot = prepared ? null : this.upload(surface, drawIndex++, command);
+        const pipeline = prepared?.pipeline ?? this.pipeline(surface, command);
+        const feedbackGroup =
+          prepared?.feedbackGroup ??
+          (feedback ? this.blending.prepare(surface, slot, command) : null);
+        const draw = (first, count) => {
+          if (!pass) begin();
+          pass.setViewport(v.x, v.y, v.width, v.height, v.minZ, v.maxZ);
+          pass.setScissorRect(0, 0, surface.width, surface.height);
+          pass.setBlendConstant(blendConstant(command));
+          if (feedback) pass.setBindGroup(2, feedbackGroup);
+          if (prepared) this.programmable.draw(pass, prepared, first, count);
+          else {
+            pass.setPipeline(pipeline);
+            pass.setBindGroup(0, slot.bindGroup);
+            if (command.texturing) pass.setBindGroup(1, slot.textureBindGroup);
+            else if (feedback) pass.setBindGroup(1, this.blending.emptyGroup);
+            pass.setVertexBuffer(0, slot.vertex);
+            pass.draw(count, 1, first);
+          }
+        };
+        if (!v.width || !v.height) continue;
+        if (feedback) {
+          // Resolve after EACH primitive, including overlapping triangles in
+          // one DrawPrimitiveUP. Depth/discard still run in the guest pipeline.
+          for (let first = 0; first < command.vertexCount; first += 3) {
+            pass?.end();
+            pass = null;
+            encoder.copyTextureToTexture(
+              { texture, origin: [v.x, v.y] },
+              { texture: surface.blendFeedback, origin: [v.x, v.y] },
+              [v.width, v.height],
+            );
+            draw(first, 3);
+          }
+        } else draw(0, command.vertexCount);
       }
       if (!pass) begin();
       pass.end();
@@ -524,10 +565,12 @@ export class WebGPURenderer {
       slot.vertex?.destroy();
       slot.uniform.destroy();
       slot.textureUniform?.destroy();
+      slot.blendUniform?.destroy();
     }
     this.programmable.destroySurface(surface);
     this.textures.trim(surface);
     this.clears.trim(surface, 0);
+    surface.blendFeedback?.destroy();
     surface.depthTexture?.destroy();
     surface.readback?.destroy();
     for (const texture of surface.colors) texture.destroy();
@@ -543,6 +586,7 @@ export class WebGPURenderer {
     this.pipelines.clear();
     this.programmable.dispose();
     this.clears.dispose();
+    this.blending.dispose();
     this.textures.dispose();
   }
 }

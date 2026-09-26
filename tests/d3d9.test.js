@@ -481,8 +481,11 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(output), 0xcccccccc);
     assert.equal(runtime.read32(p + size), 0xcccccccc);
     assert.equal(runtime.read32(p), 1);
-    assert.equal(runtime.read32(p + 8 * 4), 0x72);
+    assert.equal(runtime.read32(p + 8 * 4), version === 9 ? 0x208f2 : 0x8f2);
     assert.equal(runtime.read32(p + 10 * 4), 0xff);
+    assert.equal(runtime.read32(p + 11 * 4), version === 9 ? 0x3fff : 0x1fff);
+    assert.equal(runtime.read32(p + 12 * 4), version === 9 ? 0x27ff : 0x7ff);
+    assert.equal(runtime.read32(p + 14 * 4), 0x4208);
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
     for (const index of [17, 18, 34, 47, 49, 51]) assert.equal(runtime.read32(p + index * 4), 0);
@@ -1044,6 +1047,105 @@ for (const version of [8, 9]) {
     assert.equal(commands[0].lighting.states[143], 1);
     assert.equal(commands[1].lighting.states[143], 0);
     assert.equal(commands[0].lighting.states[146], 0);
+    await call(d, 2);
+  });
+}
+
+for (const version of [8, 9]) {
+  test(`D3D${version} blend states validate, round-trip and stay immutable in queued draws`, async () => {
+    const { runtime: r, call, create, output, events } = fixture(version),
+      d = await create();
+    const set = version === 8 ? 50 : 57,
+      get = version === 8 ? 51 : 58;
+    const defaults = {
+      19: 2,
+      20: 1,
+      27: 0,
+      168: 15,
+      171: 1,
+      ...(version === 9 ? { 193: 0xffffffff, 206: 0, 207: 2, 208: 1, 209: 1 } : {}),
+    };
+    for (const [state, value] of Object.entries(defaults)) {
+      assert.equal((await call(d, get, +state, output)).result, 0);
+      assert.equal(r.read32(output), value);
+    }
+    for (const [state, value] of [
+      [19, 0],
+      [19, 16],
+      [20, 12],
+      [20, 13],
+      [27, 2],
+      [168, 16],
+      [171, 0],
+      [171, 6],
+      ...(version === 8
+        ? [
+            [19, 14],
+            [20, 15],
+          ]
+        : [
+            [206, 2],
+            [207, 12],
+            [208, 13],
+            [209, 6],
+          ]),
+    ]) {
+      assert.equal((await call(d, set, state, value)).result, 0x8876086c);
+      await call(d, get, state, output);
+      assert.equal(r.read32(output), defaults[state]);
+    }
+    if (version === 8)
+      for (const state of [193, 206, 207, 208, 209])
+        await assert.rejects(() => call(d, set, state, 0), /Unsupported/);
+    for (const factor of [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      ...(version === 9 ? [14, 15] : []),
+    ]) {
+      assert.equal((await call(d, set, 19, factor)).result, 0);
+      await call(d, get, 19, output);
+      assert.equal(r.read32(output), factor);
+    }
+    const vertices = r.allocate(48);
+    await call(d, set, 137, 0);
+    await call(d, version === 8 ? 76 : 89, 0x42);
+    await call(d, version === 8 ? 34 : 41);
+    for (const [state, value] of [
+      [19, 5],
+      [20, 6],
+      [27, 1],
+      [168, 3],
+      [171, 3],
+    ])
+      await call(d, set, state, value);
+    assert.equal((await call(d, version === 8 ? 72 : 83, 4, 1, vertices, 16)).result, 0);
+    for (const [state, value] of [
+      [19, 2],
+      [27, 0],
+      [168, 15],
+      [171, 1],
+    ])
+      await call(d, set, state, value);
+    await call(d, version === 8 ? 72 : 83, 4, 1, vertices, 16);
+    await call(d, version === 8 ? 35 : 42);
+    await call(d, version === 8 ? 15 : 17, 0, 0, 0, 0);
+    const [a, b] = events.at(-1).commands;
+    assert.deepEqual(
+      [a.blend[19], a.blend[20], a.blend[27], a.blend[168], a.blend[171]],
+      [5, 6, 1, 3, 3],
+    );
+    assert.deepEqual([b.blend[19], b.blend[27], b.blend[168], b.blend[171]], [2, 0, 15, 1]);
     await call(d, 2);
   });
 }

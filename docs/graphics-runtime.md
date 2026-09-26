@@ -39,7 +39,10 @@ and read, but fails if consumed by a draw. The bounded programmable shader path
 is described below. [Managed/dynamic 2D textures](d3d-textures.md), native locks,
 one fixed-function stage, mipmapping and point/linear filtering now pass native
 EXE/ZIP and GPU tests. [GPU vertex lighting](d3d-lighting.md) adds material sources,
-normal transforms, eight directional/point/spot lights and post-texture specular. Other texture types, shader sampling, other FVF layouts,
+normal transforms, eight directional/point/spot lights and post-texture specular.
+[Framebuffer blending](d3d-blending.md) supports factors, operations, masks and
+D3D9 separate alpha/constants, including correct per-primitive RGB565 rounding.
+Other texture types, shader sampling, other FVF layouts,
 reset, stencil and the rest of D3D8/9 remain unfinished.
 
 `src/webgpu-renderer.js` owns the browser backend inside the runtime worker.

@@ -1,3 +1,4 @@
+import { feedbackShader } from './d3d-blending.js';
 // RGB565 storage uses expanded UNORM8 values because WebGPU has no RGB565
 // attachment. Convert each write, preserving earlier pixels across draws/flips.
 export function clearColor(argb, format) {
@@ -30,7 +31,7 @@ function structBody(wgsl, type) {
 // Wrap Naga's canonical WGSL entry point, leaving all original shader logic
 // (including discard and depth output) intact. WebGPU validates the result.
 // This applies only to the supported single RGBA color output.
-export function rgb565Shader(wgsl, entryPoint, dither = false) {
+export function rgb565Shader(wgsl, entryPoint, dither = false, blendCommand = null) {
   const match = new RegExp(`@fragment\\s+fn\\s+${entryPoint}\\s*\\(`).exec(wgsl);
   if (!match) throw Error('RGB565 shader has no fragment entry point');
   let close = match.index + match[0].length,
@@ -84,9 +85,10 @@ export function rgb565Shader(wgsl, entryPoint, dither = false) {
     wgsl.slice(body);
   return (
     original +
+    (blendCommand ? feedbackShader(blendCommand, prefix) : '') +
     `
 fn ${prefix}convert(color: vec4<f32>, position: vec2<f32>) -> vec4<f32> {
-  let rgb = clamp(color.rgb, vec3(0.0), vec3(1.0));
+  let rgb = clamp(${blendCommand ? `${prefix}blend(color, position).rgb` : 'color.rgb'}, vec3(0.0), vec3(1.0));
   let levels = vec3(31.0, 63.0, 31.0);
   ${
     dither

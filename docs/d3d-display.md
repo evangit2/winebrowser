@@ -97,7 +97,7 @@ clears and color targets without a depth attachment.
 
 Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
-`GetDeviceCaps`, viewport setup, finite projection `SetTransform` and mip-bias setup, then stops at unsupported `SetRenderState(SRCBLEND, SRCALPHA)` (EXE offset `0x547c3`) at 8,861,257 guest instructions;
+`GetDeviceCaps`, viewport setup, finite projection `SetTransform` and mip-bias setup, then stops at unsupported `SetRenderState(FOGENABLE, FALSE)` (EXE offset `0x53970`) at 8,861,382 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.

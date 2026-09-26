@@ -46,7 +46,8 @@ re-enabling a light cannot change earlier draws. Dynamic material/light values
 are uniforms and do not trigger new pipelines. Pipeline variants include only
 the lighting mode/source selections. The ordinary texture resource caches remain
 shared with the unlit path. Device caps advertise the implemented lighting modes,
-eight active lights and Gouraud specular support, without claiming blending,
+eight active lights and Gouraud specular support. [Framebuffer blending](d3d-blending.md)
+is implemented separately; caps do not claim
 stencil, skinning, fog or general shader-model conformance.
 
 The bounded light validator rejects negative range/attenuation for point/spot
@@ -82,7 +83,7 @@ shader and native DirectX 12 cube regressions remain passing.
 The earlier report mislabeled render state 146 as NORMALIZENORMALS; its actual
 name is SPECULARMATERIALSOURCE. The numeric trace was correct. Both D3D8/9 headers
 identify NORMALIZENORMALS as 143. Original Hamsterball now passes state 146 and
-stops at SRCBLEND=SRCALPHA (EXE offset `0x547c3`, 8,861,257 guest instructions).
+stops at FOGENABLE=FALSE (EXE offset `0x53970`, 8,861,382 guest instructions).
 No game frame has been presented; arbitrary-program compatibility is not established.
 
 Semantics were checked against the pinned Wine headers and fixed-function state

@@ -391,6 +391,7 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
     depthWrite: state.depthWrite,
     depthCompare: state.depthCompare,
     dither: state.dither,
+    blend: { ...state.blendState },
     viewport: { ...state.viewport },
     cullMode: state.cullMode,
     payloadBytes:

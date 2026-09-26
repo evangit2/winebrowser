@@ -104,7 +104,10 @@
     "test:textures-backend": "node scripts/test-d3d-textures-backend.mjs",
     "build:lighting": "sh scripts/build-lighting-fixture.sh",
     "test:lighting": "node scripts/test-lighting-browser.mjs",
-    "test:lighting-backend": "node scripts/test-d3d-lighting-backend.mjs"
+    "test:lighting-backend": "node scripts/test-d3d-lighting-backend.mjs",
+    "build:blending": "sh scripts/build-blending-fixture.sh",
+    "test:blending": "node scripts/test-blending-browser.mjs",
+    "test:blending-backend": "node scripts/test-d3d-blending-backend.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

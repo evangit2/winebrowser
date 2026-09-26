@@ -1,3 +1,4 @@
+import { blendKey, colorTarget, needsBlendFeedback, usesBlendConstant } from './d3d-blending.js';
 import { rgb565Shader } from './d3d-presentation.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { ShaderCompiler } from './shader-compiler.js';
@@ -52,6 +53,7 @@ export class D3D9ProgrammableRenderer {
       .map((attribute) => `${attribute.shaderLocation}:${attribute.offset}:${attribute.format}`)
       .join(',');
     const key = [
+      blendKey(command),
       command.vertexShaderId,
       command.pixelShaderId,
       attributes,
@@ -101,11 +103,16 @@ export class D3D9ProgrammableRenderer {
           module: this.owner.device.createShaderModule({
             code:
               surface.colorFormat === 23
-                ? rgb565Shader(translated.pixel.wgsl, 'main', command.dither)
+                ? rgb565Shader(
+                    translated.pixel.wgsl,
+                    'main',
+                    command.dither,
+                    needsBlendFeedback(surface, command) ? command : null,
+                  )
                 : translated.pixel.wgsl,
           }),
           entryPoint: 'main',
-          targets: [{ format: this.owner.format }],
+          targets: [colorTarget(surface, command, this.owner.format)],
         },
         primitive: primitiveState(command.cullMode),
         ...(surface.depthTexture
@@ -164,14 +171,37 @@ export class D3D9ProgrammableRenderer {
         }),
       ]);
     }
-    return { command, pipeline: compiled.pipeline, vertex, groups };
+    const feedback = needsBlendFeedback(surface, command);
+    if (feedback) {
+      // Automatic layouts have empty intervening groups when a guest shader
+      // omits constants. Bind those groups as required by the group-2 layout.
+      for (let i = 0; i < 2; i++)
+        if (!groups.some(([n]) => n === i))
+          groups.push([
+            i,
+            this.owner.device.createBindGroup({
+              layout: compiled.pipeline.getBindGroupLayout(i),
+              entries: [],
+            }),
+          ]);
+    }
+    const feedbackGroup = feedback
+      ? this.owner.blending.prepare(
+          surface,
+          slot,
+          command,
+          compiled.pipeline.getBindGroupLayout(2),
+          usesBlendConstant(command),
+        )
+      : null;
+    return { command, pipeline: compiled.pipeline, vertex, groups, feedbackGroup };
   }
 
-  draw(pass, prepared) {
+  draw(pass, prepared, first = 0, count = prepared.command.vertexCount) {
     pass.setPipeline(prepared.pipeline);
     for (const [group, bindGroup] of prepared.groups) pass.setBindGroup(group, bindGroup);
     pass.setVertexBuffer(0, prepared.vertex);
-    pass.draw(prepared.command.vertexCount);
+    pass.draw(count, 1, first);
   }
 
   trim(surface, count) {

@@ -1,3 +1,4 @@
+import { validBlending } from './d3d-blending.js';
 export const DEPTH_COMPARE = Object.freeze([
   null,
   'never',
@@ -19,6 +20,7 @@ export function primitiveState(mode) {
 }
 export function validRasterState(command) {
   return (
+    validBlending(command.blend) &&
     CULL_MODE.includes(command.cullMode) &&
     command.cullMode !== null &&
     (command.dither === undefined || typeof command.dither === 'boolean') &&

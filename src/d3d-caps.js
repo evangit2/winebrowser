@@ -6,10 +6,12 @@ export function deviceCaps(version) {
   caps[3] = 0x20000000; // DYNAMICTEXTURES.
   caps[5] = 0x80000001; // Virtual ONE and IMMEDIATE presentation.
   caps[7] = 0x00080800; // HWRASTERIZATION | CANRENDERAFTERFLIP.
-  caps[8] = 0x72; // MASKZ | CULLNONE | CULLCW | CULLCCW.
+  caps[8] = 0x8f2 | (version === 9 ? 0x20000 : 0); // MASKZ, culling, color mask, blend ops, separate alpha (9).
+  caps[11] = version === 9 ? 0x3fff : 0x1fff; // Source blend factors, including BOTH; constants (9).
+  caps[12] = version === 9 ? 0x27ff : 0x7ff; // Destination factors (no source-only BOTH).
   caps[9] = 0x00400011; // COLORPERSPECTIVE | ZTEST | DITHER.
   caps[10] = 0xff; // All eight D3DCMPFUNC depth comparisons.
-  caps[14] = 0x208; // COLORGOURAUDRGB | SPECULARGOURAUDRGB.
+  caps[14] = 0x4208; // COLORGOURAUDRGB | SPECULARGOURAUDRGB | ALPHAGOURAUDBLEND.
   caps[15] = 0x4005; // PERSPECTIVE | ALPHA | MIPMAP; NPOT 2D supported.
   caps[16] = 0x03030300; // MIN/MAG/MIP POINT and LINEAR.
   caps[19] = 0x17; // WRAP | MIRROR | CLAMP | INDEPENDENTUV.
