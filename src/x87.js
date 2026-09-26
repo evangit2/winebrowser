@@ -1,6 +1,7 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
 import { fyl2x, sincos } from './x87-transcendentals.js';
+import { roundedMagnitudeUp } from './x87-rounding.js';
 export const X87Op = Object.freeze({
   loadFloat: 0,
   loadInt: 1,
@@ -32,7 +33,8 @@ const POP = 1,
   EFLAGS = 8,
   UNORDERED = 16,
   ZERO = 32,
-  TRUNCATE = 64;
+  TRUNCATE = 64,
+  INTEGER = 128;
 
 const stIndex = (register, R) => (register >= R.ST0 && register <= R.ST7 ? register - R.ST0 : -1);
 
@@ -66,6 +68,12 @@ export function classifyX87(i, iced) {
   if (constants.has(m)) return result(X87Op.constant, constants.get(m));
 
   const arithmetic = new Map([
+    [M.Fiadd, 0],
+    [M.Fisub, 1],
+    [M.Fisubr, 1],
+    [M.Fimul, 2],
+    [M.Fidiv, 3],
+    [M.Fidivr, 3],
     [M.Fadd, 0],
     [M.Faddp, 0],
     [M.Fsub, 1],
@@ -81,21 +89,22 @@ export function classifyX87(i, iced) {
   ]);
   if (arithmetic.has(m)) {
     const pop = [M.Faddp, M.Fsubp, M.Fsubrp, M.Fmulp, M.Fdivp, M.Fdivrp].includes(m);
-    const reverse = [M.Fsubr, M.Fsubrp, M.Fdivr, M.Fdivrp].includes(m);
+    const reverse = [M.Fsubr, M.Fsubrp, M.Fdivr, M.Fdivrp, M.Fisubr, M.Fidivr].includes(m);
+    const integer = [M.Fiadd, M.Fisub, M.Fisubr, M.Fimul, M.Fidiv, M.Fidivr].includes(m);
     const dst = mem ? 0 : Math.max(0, reg(0));
     const src = mem ? -1 : i.opCount > 1 ? reg(1) : reg(0);
     return result(
       X87Op.arithmetic,
       arithmetic.get(m),
       (dst << 8) | (src & 0xff),
-      (pop ? POP : 0) | (mem ? MEMORY : 0) | (reverse ? REVERSE : 0),
+      (pop ? POP : 0) | (mem ? MEMORY : 0) | (reverse ? REVERSE : 0) | (integer ? INTEGER : 0),
     );
   }
 
-  const compares = [M.Fcom, M.Fcomp, M.Fcompp, M.Fucom, M.Fucomp, M.Fucompp];
+  const compares = [M.Fcom, M.Fcomp, M.Fcompp, M.Fucom, M.Fucomp, M.Fucompp, M.Ficom, M.Ficomp];
   const eflagCompares = [M.Fcomi, M.Fcomip, M.Fucomi, M.Fucomip];
   if (compares.includes(m) || eflagCompares.includes(m)) {
-    const pop = [M.Fcomp, M.Fcompp, M.Fucomp, M.Fucompp, M.Fcomip, M.Fucomip].includes(m);
+    const pop = [M.Fcomp, M.Fcompp, M.Fucomp, M.Fucompp, M.Fcomip, M.Fucomip, M.Ficomp].includes(m);
     const popCount = [M.Fcompp, M.Fucompp].includes(m) ? 2 : pop ? 1 : 0;
     const source = mem ? -1 : i.opCount > 1 ? reg(1) : i.opCount ? reg(0) : 1;
     return result(
@@ -103,6 +112,7 @@ export function classifyX87(i, iced) {
       source,
       popCount,
       (mem ? MEMORY : 0) |
+        ([M.Ficom, M.Ficomp].includes(m) ? INTEGER : 0) |
         (eflagCompares.includes(m) ? EFLAGS : 0) |
         ([M.Fucom, M.Fucomp, M.Fucompp, M.Fucomi, M.Fucomip].includes(m) ? UNORDERED : 0),
     );
@@ -298,6 +308,15 @@ export class X87State {
     return this.#operation(() => this.sf[fn](this.p, 4, this.p + 24, 10, this.p + 4, bytes.length));
   }
 
+  #integerOperand(address, width) {
+    let bytes = this.#read(address, width);
+    if (width === 2) {
+      const sign = bytes[1] & 0x80 ? 0xff : 0;
+      bytes = Uint8Array.of(bytes[0], bytes[1], sign, sign);
+    }
+    return this.#convertFrom(bytes, width === 8 ? 'i64' : 'i32');
+  }
+
   #convertTo(value, kind, width, roundingOverride) {
     const fn =
       kind === 'f32'
@@ -382,12 +401,7 @@ export class X87State {
     }
     if (op === X87Op.loadInt) {
       if (![2, 4, 8].includes(width)) throw Error(`Unsupported FILD width ${width}`);
-      let bytes = this.#read(address, width);
-      if (width === 2) {
-        const sign = bytes[1] & 0x80 ? 0xff : 0;
-        bytes = Uint8Array.of(bytes[0], bytes[1], sign, sign);
-      }
-      return this.#push(this.#convertFrom(bytes, width === 8 ? 'i64' : 'i32'));
+      return this.#push(this.#integerOperand(address, width));
     }
     if (op === X87Op.storeStack) {
       this.#set(a, this.#value(0));
@@ -436,16 +450,27 @@ export class X87State {
         src = b & 255;
       let right;
       if (options & MEMORY) {
-        if (![4, 8].includes(width)) throw Error(`Unsupported x87 arithmetic width ${width}`);
-        right = this.#convertFrom(this.#read(address, width), width === 4 ? 'f32' : 'f64');
+        if (!(options & INTEGER ? [2, 4] : [4, 8]).includes(width))
+          throw Error(`Unsupported x87 arithmetic width ${width}`);
+        right =
+          options & INTEGER
+            ? this.#integerOperand(address, width)
+            : this.#convertFrom(this.#read(address, width), width === 4 ? 'f32' : 'f64');
       } else right = this.#value(src);
       let left = this.#value(dst);
+      if (options & INTEGER) this.status &= ~0x200;
       if (options & REVERSE) [left, right] = [right, left];
       this.#put(left, 4);
       this.#put(right, 14);
       const value = this.#operation(() =>
         this.sf._wb_sf_binary(this.p, 4, a, this.p + 24, 10, this.p + 4, 10, this.p + 14, 10),
       );
+      if (
+        options & INTEGER &&
+        this.sf.HEAPU8[this.p + 3] & 1 &&
+        roundedMagnitudeUp(left, right, value, a)
+      )
+        this.status |= 0x200;
       this.#set(dst, value);
       if (options & POP) this.#pop();
       return;
@@ -500,9 +525,14 @@ export class X87State {
       let right;
       if (options & ZERO) right = CONSTANTS[0];
       else if (options & MEMORY) {
-        if (![4, 8].includes(width)) throw Error(`Unsupported x87 compare width ${width}`);
-        right = this.#convertFrom(this.#read(address, width), width === 4 ? 'f32' : 'f64');
+        if (!(options & INTEGER ? [2, 4] : [4, 8]).includes(width))
+          throw Error(`Unsupported x87 compare width ${width}`);
+        right =
+          options & INTEGER
+            ? this.#integerOperand(address, width)
+            : this.#convertFrom(this.#read(address, width), width === 4 ? 'f32' : 'f64');
       } else right = this.#value(a);
+      if (options & INTEGER) this.status &= ~0x200;
       const left = this.#value(0);
       const leftClass = this.sf._wb_sf_classify(this.#put(left), 10);
       const rightClass = this.sf._wb_sf_classify(this.#put(right), 10);

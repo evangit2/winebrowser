@@ -69,7 +69,9 @@
     "build:shared-data": "sh scripts/build-shared-data-fixture.sh",
     "test:shared-data": "node scripts/test-shared-data-browser.mjs",
     "build:cursors": "sh scripts/build-cursor-fixture.sh",
-    "test:cursors": "node scripts/test-cursors-browser.mjs"
+    "test:cursors": "node scripts/test-cursors-browser.mjs",
+    "build:x87-integer": "sh scripts/build-x87-integer-fixture.sh",
+    "test:x87-integer": "node scripts/test-x87-integer-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

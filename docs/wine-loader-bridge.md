@@ -116,11 +116,11 @@ key store. WinMM now loads native DriverProc exports and manages real instances,
 messages and hidden descriptor sessions; ACM discovery and packed BASS attachment
 complete. The game reaches its original EXE entry. The fixed-address shared-user-data
 clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
-pass predefined cursor loading, including IDC_HAND. Both engines next fail on
-x87 `FIDIV dword ptr [esp+8]` at EXE offset `+0x6c9b6`, after 8,773,065
-guest instructions.
+pass predefined cursor loading, including IDC_HAND, and x87 integer-operand
+arithmetic/comparisons. Both probes next stop at `ole32.dll!CLSIDFromString`,
+after 8,776,204 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is x87 integer-operand arithmetic and remaining
+unverified. The next work is COM identifier conversion and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.

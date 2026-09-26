@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
 
 const probes = {
+  x87integer: { script: 'x87-integer-probe.js', entry: 'probeX87Integer' },
   sharedData: { script: 'shared-data-probe.js', entry: 'probeSharedData' },
   scalarSse: { script: 'scalar-sse-probe.js', entry: 'probeScalarSse' },
   x87trig: { script: 'x87-trig-probe.js', entry: 'probeX87Trig' },
@@ -135,3 +136,5 @@ export const probeX87TrigInBrowser = (root, input) => probeInBrowser(root, 'x87t
 export const probeScalarSseInBrowser = (root, input) => probeInBrowser(root, 'scalarSse', input);
 
 export const probeSharedDataInBrowser = (root, input) => probeInBrowser(root, 'sharedData', input);
+
+export const probeX87IntegerInBrowser = (root, input) => probeInBrowser(root, 'x87integer', input);

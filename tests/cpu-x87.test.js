@@ -687,3 +687,218 @@ test('FISTP int16 range failure takes priority over an unmasked inexact intermed
   assert.equal(cpu.x87.top, 0);
   cpu.dispose();
 });
+
+function integerExt80(value) {
+  const negative = value < 0n;
+  const n = negative ? -value : value;
+  if (!n) return ext80(0n, 0);
+  const bits = n.toString(2).length;
+  return ext80(n << BigInt(64 - bits), (negative ? 0x8000 : 0) | (16382 + bits));
+}
+async function integerOperation(width, selector, left, operand, control = 0x037f, check) {
+  const result = await machine([width === 2 ? 0xde : 0xda, (selector << 3) | 1], check);
+  const { cpu, view } = result;
+  cpu.r[1].value = DATA;
+  if (width === 2) view.setInt16(DATA, operand, true);
+  else view.setInt32(DATA, operand, true);
+  cpu.x87.top = 0;
+  cpu.x87.tags[0] = 0;
+  cpu.x87.values[0].set(left);
+  cpu.x87.control = control;
+  return result;
+}
+
+test('FIADD/FIMUL/FISUB/FISUBR/FIDIV/FIDIVR decode both signed integer widths and preserve integer flags', async () => {
+  for (const width of [2, 4]) {
+    for (const [selector, expected] of [
+      [0, integerExt80(9n)],
+      [1, integerExt80(-36n)],
+      [4, integerExt80(15n)],
+      [5, integerExt80(-15n)],
+      [6, integerExt80(-4n)],
+      [7, ext80(0x8000000000000000n, 0xbffd)],
+    ]) {
+      const { cpu } = await integerOperation(width, selector, integerExt80(12n), -3);
+      try {
+        cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+        cpu.af = 1;
+        cpu.x87.status = 0x200;
+        cpu.step(CODE);
+        assert.deepEqual(cpu.x87.values[0], expected, `${width}-byte selector ${selector}`);
+        assert.equal(cpu.x87.top, 0);
+        assert.equal(cpu.x87.status & 0x23f, 0);
+        assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+        assert.equal(cpu.af, 1);
+      } finally {
+        cpu.dispose();
+      }
+    }
+    const min = width === 2 ? -32768 : -2147483648;
+    const { cpu } = await integerOperation(width, 0, integerExt80(-BigInt(min)), min);
+    cpu.step(CODE);
+    assert.deepEqual(cpu.x87.values[0], integerExt80(0n));
+    cpu.dispose();
+  }
+});
+
+test('integer operands convert exactly before arithmetic/comparison regardless of x87 precision control', async () => {
+  for (const pc of [0, 2, 3])
+    for (const selector of [4, 2]) {
+      const { cpu } = await integerOperation(
+        4,
+        selector,
+        integerExt80(2147483647n),
+        2147483647,
+        0x7f | (pc << 8),
+      );
+      cpu.step(CODE);
+      if (selector === 4) assert.deepEqual(cpu.x87.values[0], integerExt80(0n));
+      else assert.equal(cpu.x87.status & 0x4500, 0x4000);
+      assert.equal(cpu.x87.status & 0x3f, 0);
+      cpu.dispose();
+    }
+  const { cpu } = await integerOperation(4, 0, ext80(0x8000000000000001n, 0x3fff), -1);
+  cpu.step(CODE);
+  assert.deepEqual(cpu.x87.values[0], ext80(0x8000000000000000n, 0x3fc0));
+  cpu.dispose();
+});
+
+test('FIDIV rounds a rational at every precision/rounding mode and reports inexact and C1 for either sign', async () => {
+  for (const [pc, precision] of [
+    [0, 24],
+    [2, 53],
+    [3, 64],
+  ])
+    for (const rc of [0, 1, 2, 3])
+      for (const negative of [false, true]) {
+        const scaled = 1n << BigInt(precision + 1),
+          q = scaled / 3n,
+          remainder = scaled % 3n;
+        const increment =
+          rc === 0 ? remainder * 2n > 3n : rc === 1 ? negative : rc === 2 ? !negative : false;
+        const expected = ext80(
+          (q + BigInt(increment)) << BigInt(64 - precision),
+          (negative ? 0x8000 : 0) | 0x3ffd,
+        );
+        const { cpu } = await integerOperation(
+          4,
+          6,
+          integerExt80(negative ? -1n : 1n),
+          3,
+          0x7f | (pc << 8) | (rc << 10),
+        );
+        try {
+          cpu.step(CODE);
+          assert.deepEqual(
+            cpu.x87.values[0],
+            expected,
+            `PC=${precision}, RC=${rc}, negative=${negative}`,
+          );
+          assert.equal(cpu.x87.status & 0x23f, 0x20 | (increment ? 0x200 : 0));
+        } finally {
+          cpu.dispose();
+        }
+      }
+});
+
+test('FICOM/FICOMP compare signed integers, clear C1 and pop only after successful or masked comparisons', async () => {
+  for (const width of [2, 4])
+    for (const selector of [2, 3])
+      for (const [left, bits] of [
+        [-8n, 0x100],
+        [-7n, 0x4000],
+        [-6n, 0],
+      ]) {
+        const { cpu } = await integerOperation(width, selector, integerExt80(left), -7);
+        cpu.x87.status = 0x200;
+        cpu.step(CODE);
+        assert.equal(cpu.x87.status & 0x4700, bits);
+        assert.equal(cpu.x87.top, selector === 3 ? 1 : 0);
+        cpu.dispose();
+      }
+  for (const masked of [true, false]) {
+    const { cpu } = await integerOperation(
+      4,
+      3,
+      ext80(0xc000000000000001n, 0x7fff),
+      0,
+      masked ? 0x37f : 0x37e,
+    );
+    if (masked) {
+      cpu.step(CODE);
+      assert.equal(cpu.x87.status & 0x4501, 0x4501);
+      assert.equal(cpu.x87.top, 1);
+    } else {
+      assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x1/);
+      assert.equal(cpu.x87.top, 0);
+      assert.equal(cpu.x87.tags[0], 0);
+    }
+    cpu.dispose();
+  }
+});
+
+test('integer memory faults leave the complete x87 state unchanged; unmasked divide-by-zero preserves ST0', async () => {
+  for (const width of [2, 4])
+    for (const selector of [0, 1, 2, 3, 4, 5, 6, 7]) {
+      const { cpu } = await integerOperation(
+        width,
+        selector,
+        integerExt80(7n),
+        1,
+        0x37f,
+        (address, size) => {
+          if (address === DATA) throw Error('operand read denied');
+          return address;
+        },
+      );
+      cpu.x87.status = 0x200;
+      const before = cpu.x87.snapshot();
+      assert.throws(() => cpu.step(CODE), /operand read denied/);
+      assert.deepEqual(cpu.x87.snapshot(), before);
+      cpu.dispose();
+    }
+  const { cpu } = await integerOperation(4, 6, integerExt80(7n), 0, 0x37b);
+  assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x4/);
+  assert.deepEqual(cpu.x87.values[0], integerExt80(7n));
+  assert.equal(cpu.x87.top, 0);
+  assert.equal(cpu.x87.status & 0x84, 0x84);
+  cpu.dispose();
+});
+
+test('inexact integer add/subtract/reverse/multiply share C1 magnitude rounding and overflow handling', async () => {
+  const plusUlp = ext80(0x8000000000000001n, 0x3fff);
+  for (const [selector, integer, exponent, base, negative] of [
+    [0, 1, 0x4000, 0x8000000000000000n, false], // 2 + 2^-63, halfway between ext80 numbers.
+    [4, -1, 0x4000, 0x8000000000000000n, false],
+    [5, -1, 0x4000, 0x8000000000000000n, true],
+    [1, 3, 0x4000, 0xc000000000000001n, false], // 3 + 3*2^-63, half-ULP above base.
+  ])
+    for (const rc of [1, 2, 3]) {
+      const up = rc === 1 ? negative : rc === 2 ? !negative : false;
+      const { cpu } = await integerOperation(4, selector, plusUlp, integer, 0x37f | (rc << 10));
+      try {
+        cpu.step(CODE);
+        assert.deepEqual(
+          cpu.x87.values[0],
+          ext80(base + BigInt(up), exponent | (negative ? 0x8000 : 0)),
+        );
+        assert.equal(cpu.x87.status & 0x23f, 0x20 | (up ? 0x200 : 0));
+      } finally {
+        cpu.dispose();
+      }
+    }
+  const { cpu } = await integerOperation(4, 1, ext80(0xffffffffffffffffn, 0x7ffe), 2);
+  cpu.step(CODE);
+  assert.deepEqual(cpu.x87.values[0], ext80(0x8000000000000000n, 0x7fff));
+  assert.equal(cpu.x87.status & 0x23f, 0x228);
+  cpu.dispose();
+});
+
+test('freestanding native integer-x87 fixture passes the ordinary PE runtime', async () => {
+  const { probeX87Integer } = await import('../scripts/lib/x87-integer-probe.js');
+  const bytes = new Uint8Array(
+    await readFile(new URL('./fixtures/x87-integer/x87-integer.exe', import.meta.url)),
+  );
+  const report = await probeX87Integer(iced, { files: new Map([['x87-integer.exe', bytes]]) });
+  assert.equal(report.status, 'passed', report.failure);
+});

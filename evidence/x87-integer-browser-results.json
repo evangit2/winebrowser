@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-26T03:51:59.935Z",
+  "sha256": {
+    "x87-integer.exe": "896f85bce2afa4d14de05175828fc545945bb3652cea1edaa2dabd053dd98894"
+  },
+  "status": "passed",
+  "exitCode": 0,
+  "instructions": 323,
+  "linearMemoryBytes": 67108864,
+  "scope": "Native FIADD/FIMUL/FISUB/FISUBR/FIDIV/FIDIVR/FICOM/FICOMP with signed int16/int32 memory, result and stack checks, four rounding modes and C1; no pretranslated application code.",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}

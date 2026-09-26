@@ -79,9 +79,13 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Load predefined system cursors, including IDC_HAND, and render their browser
       equivalents. Native fixture and UI checks verify Set/GetCursor, nested
       ShowCursor counts, class cursors, parent overrides and mouse capture.
-- [ ] Continue Hamsterball EXE startup through x87 `FIDIV` with an integer memory
-      operand, at EXE offset `+0x6c9b6`, after 8,773,065 guest instructions in Node and Chromium.
-      OLE32 exports now resolve; foreground queries reflect the virtual window
+- [x] Execute signed int16/int32 x87 FIADD/FIMUL/FISUB/FISUBR/FIDIV/FIDIVR and
+      FICOM/FICOMP. Tests cover exact conversion, ext80 low bits, all precision/
+      rounding modes, C1, compare/pop behavior and faults; native fixtures pass
+      in Node and Chromium.
+- [ ] Continue Hamsterball EXE startup through `ole32.dll!CLSIDFromString`, after
+      8,776,204 guest instructions in both Node and Chromium.
+      Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
