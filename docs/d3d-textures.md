@@ -84,7 +84,7 @@ sRGB filtering, multiple active stages and shader texture bindings remain missin
   texture budget exhaustion. Existing color/depth/shader/DX12 browser gates pass.
 
 Original Hamsterball passes its initial D3D8 MIPMAPLODBIAS state and now stops
-at the `IDirect3DDevice8.GetDirect3D`, after mapping `shadow.png`, with 9,415,616
+at the `IDirect3DDevice8.GetDisplayMode`, after mapping `shadow.png`, with 9,414,665
 guest instructions. This is the separate real-Wine loader diagnostic; no game
 frame is presented yet. The normal upload fixtures establish the implemented
 texture path, not independent-game compatibility or instant arbitrary startup.

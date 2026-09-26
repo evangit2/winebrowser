@@ -120,6 +120,7 @@ try {
       `IDirect3D${version}.GetDeviceCaps`,
       `IDirect3D${version}.CreateDevice`,
       `IDirect3DDevice${version}.GetDeviceCaps`,
+      `IDirect3DDevice${version}.GetDirect3D`,
       `IDirect3DDevice${version}.GetViewport`,
       `IDirect3DDevice${version}.SetViewport`,
       `IDirect3DDevice${version}.DrawPrimitiveUP`,

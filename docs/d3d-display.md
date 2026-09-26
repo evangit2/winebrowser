@@ -23,6 +23,13 @@ Display-change messages are queued. This does not enter browser fullscreen or
 change the physical monitor. Device Reset, focus-loss/device-lost behavior, mixed
 vertex processing, multiple backbuffers, stencil and multisampling remain unfinished.
 
+`GetDirect3D` returns the original D3D8/9 factory and adds a caller-owned reference.
+The device retains its factory during asynchronous GPU creation and until device
+destruction; failed creation releases that reference. Invalid output pointers and
+reference-count exhaustion cannot add references. Native cube fixtures release
+their original factory pointer, retrieve it through the device, and still query
+it after releasing the device. This follows the [GetDirect3D contract](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3ddevice9-getdirect3d).
+
 The WebGPU renderer uses persistent color textures. FLIP rotates two textures,
 including preserved front-buffer contents; COPY retains its single backing
 texture. The canvas is a presentation destination rather than the sole storage
@@ -99,8 +106,8 @@ Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
 `GetDeviceCaps`, viewport setup, finite projection `SetTransform`, mip-bias, blend
 and disabled fog/stencil setup and custom cursor loading, then stops at the
-unsupported `IDirect3DDevice8.GetDirect3D`, after mapping `shadow.png`
-at 9,415,616 guest instructions;
+unsupported `IDirect3DDevice8.GetDisplayMode`, after mapping `shadow.png`
+at 9,414,665 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.

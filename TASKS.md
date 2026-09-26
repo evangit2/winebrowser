@@ -180,11 +180,13 @@ D3D10/11 and broader D3D12 support are still required.
       across guest contexts; byte-pair exhaustive tests and native EXE/ZIP pass.
 - [x] Implement byte/word implicit-register MUL/IMUL/DIV/IDIV, preserving upper
       registers and state on divide faults. Native EXE/ZIP and unit vectors pass.
-- [ ] Implement D3D8/9 device GetDirect3D with parent COM ownership. Hamsterball
-      maps `shadow.png` and passes image-reading instructions, then stops at
-      `IDirect3DDevice8.GetDirect3D` (caller `0x488084`).
+- [x] Implement D3D8/9 GetDirect3D with parent COM ownership, including pending
+      GPU creation, rollback and independent returned references. Native cubes pass.
+- [ ] Implement D3D8/9 device GetDisplayMode. Hamsterball maps `shadow.png`,
+      passes image-reading instructions and parent/capability queries, then stops
+      at `IDirect3DDevice8.GetDisplayMode` (caller `0x48809b`).
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 9,415,616 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 9,414,665 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

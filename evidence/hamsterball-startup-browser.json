@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T13:30:31.329Z",
+  "date": "2026-09-26T13:34:42.885Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2745,6 +2745,50 @@
   ],
   "apiCalls": [
     {
+      "name": "IDirect3DDevice8.SetRenderState",
+      "args": [
+        52454336,
+        55,
+        3,
+        39333648
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.GetViewport",
+      "args": [
+        52454336,
+        39334172,
+        39333648,
+        39334104
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.SetTextureStageState",
+      "args": [
+        52454336,
+        0,
+        13,
+        1
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.SetTextureStageState",
+      "args": [
+        52454336,
+        0,
+        14,
+        1
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
       "name": "IDirect3DDevice8.SetTransform",
       "args": [
         52454336,
@@ -2887,46 +2931,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x5105"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x5105"
+      "result": "0x5451"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3062,7 +3067,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x5213"
+      "result": "0x5515"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3101,7 +3106,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x5213"
+      "result": "0x5515"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3140,7 +3145,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x5290"
+      "result": "0x5595"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3179,7 +3184,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x52ff"
+      "result": "0x55ee"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3218,7 +3223,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x535c"
+      "result": "0x5665"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3257,7 +3262,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x53bd"
+      "result": "0x56b5"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3296,7 +3301,7 @@
         38998112
       ],
       "threadId": 2,
-      "result": "0x541a"
+      "result": "0x5725"
     },
     {
       "name": "NtWaitForSingleObject",
@@ -3309,24 +3314,42 @@
       "result": "0x102"
     },
     {
+      "name": "NtQueryPerformanceCounter",
+      "args": [
+        51392908,
+        0
+      ],
+      "threadId": 2,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryPerformanceCounter",
+      "args": [
+        51392900,
+        0
+      ],
+      "threadId": 2,
+      "result": "0x0"
+    },
+    {
       "name": "winmm.dll!timeGetTime",
       "args": [
+        33589400,
+        24781920,
         0,
-        33590488,
-        38998400,
-        51396608
+        38998112
       ],
-      "threadId": 3,
-      "result": "0x5459"
+      "threadId": 2,
+      "result": "0x577f"
     },
     {
       "name": "NtWaitForSingleObject",
       "args": [
         1375731712,
-        1,
-        52453680
+        0,
+        51392880
       ],
-      "threadId": 3,
+      "threadId": 2,
       "threadExit": true
     },
     {
@@ -3374,45 +3397,6 @@
       "result": "0xc000007a"
     },
     {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x54c9"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "threadExit": true
-    },
-    {
       "name": "WineBrowserLoaderCallback",
       "args": [
         3,
@@ -3432,7 +3416,29 @@
         0
       ],
       "threadId": 1,
-      "error": "Unsupported COM method IDirect3DDevice8.GetDirect3D"
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.GetDeviceCaps",
+      "args": [
+        52454336,
+        67100320,
+        52454336,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDirect3DDevice8.GetDisplayMode",
+      "args": [
+        52454336,
+        67100532,
+        52454336,
+        0
+      ],
+      "threadId": 1,
+      "error": "Unsupported COM method IDirect3DDevice8.GetDisplayMode"
     }
   ],
   "output": [],
@@ -4206,15 +4212,15 @@
   "firstFailure": {
     "phase": "native EXE entry point",
     "threadId": 1,
-    "message": "Unsupported COM method IDirect3DDevice8.GetDirect3D",
+    "message": "Unsupported COM method IDirect3DDevice8.GetDisplayMode",
     "ip": {
-      "address": "0x488084",
+      "address": "0x48809b",
       "module": "hamsterball.exe",
-      "offset": "0x88084"
+      "offset": "0x8809b"
     },
     "registers": [
       "0x3206230",
-      "0x3ffdf84",
+      "0x3ffdf74",
       "0x0",
       "0x3ffe5a0",
       "0x3ffde88",
@@ -4222,59 +4228,9 @@
       "0x32063c0",
       "0x32063c0"
     ],
-    "compiledBlocks": 138,
-    "instructions": 9415616,
+    "compiledBlocks": 88,
+    "instructions": 9414665,
     "recentBlocks": [
-      {
-        "threadId": 1,
-        "address": "0x109e540",
-        "module": "ntdll.dll",
-        "offset": "0x2e540",
-        "registers": [
-          "0x3d",
-          "0xc0000135",
-          "0x7b",
-          "0x3f",
-          "0x3ffde04",
-          "0x3ffde24",
-          "0x3c",
-          "0xc0000201"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x109e547",
-        "module": "ntdll.dll",
-        "offset": "0x2e547",
-        "registers": [
-          "0x3d",
-          "0xc0000135",
-          "0x7b",
-          "0x3c",
-          "0x3ffde04",
-          "0x3ffde24",
-          "0x3c",
-          "0xc0000201"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
       {
         "threadId": 1,
         "address": "0x109e56e",
@@ -4608,6 +4564,56 @@
         "registers": [
           "0x0",
           "0x1",
+          "0x0",
+          "0x3ffe5a0",
+          "0x3ffde94",
+          "0x3ffdf88",
+          "0x32063c0",
+          "0x32063c0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x48808e",
+        "module": "hamsterball.exe",
+        "offset": "0x8808e",
+        "registers": [
+          "0x0",
+          "0x3ffdf84",
+          "0x0",
+          "0x3ffe5a0",
+          "0x3ffde94",
+          "0x3ffdf88",
+          "0x32063c0",
+          "0x32063c0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x48809b",
+        "module": "hamsterball.exe",
+        "offset": "0x8809b",
+        "registers": [
+          "0x0",
+          "0x3ffdea0",
           "0x0",
           "0x3ffe5a0",
           "0x3ffde94",

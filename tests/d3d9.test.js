@@ -1194,3 +1194,84 @@ for (const version of [8, 9]) {
     await call(d, 2);
   });
 }
+
+for (const version of [8, 9]) {
+  test(`D3D${version} GetDirect3D returns its original factory with independent ownership`, async () => {
+    const { runtime, events, call, factory, create } = fixture(version),
+      device = await create();
+    const parent = runtime.comObjects.objects.get(factory),
+      out = runtime.allocate(4);
+    assert.equal(parent.refs, 2);
+    assert.equal(
+      (await call(factory, 2)).result,
+      1,
+      'device keeps its parent alive after the caller releases it',
+    );
+    assert.deepEqual(await call(device, 6, out), { result: 0, argc: 2 });
+    assert.equal(runtime.read32(out), factory);
+    assert.equal(parent.refs, 2);
+    const second = runtime.allocate(4);
+    assert.equal((await call(device, 6, second)).result, 0);
+    assert.equal(runtime.read32(second), factory);
+    assert.equal(parent.refs, 3);
+    assert.equal((await call(factory, 2)).result, 2, 'release one returned reference');
+    assert.equal((await call(device, 2)).result, 0);
+    assert.equal(events.at(-1).type, 'destroy');
+    assert.equal(parent.refs, 1, 'a returned factory reference survives device destruction');
+    assert.equal((await call(factory, 4)).result, 1);
+    assert.equal((await call(factory, 2)).result, 0);
+    await assert.rejects(call(factory, 4), /Released COM object/);
+    await assert.rejects(call(device, 6, out), /Released COM object/);
+  });
+  test(`D3D${version} parent queries validate outputs and reference limits before mutation`, async () => {
+    const { runtime, call, factory, create, events } = fixture(version),
+      device = await create();
+    const parent = runtime.comObjects.objects.get(factory),
+      out = runtime.allocate(4);
+    runtime.write32(out, 0xaabbccdd);
+    assert.equal((await call(device, 6, 0)).result, 0x8876086c);
+    await assert.rejects(call(device, 6, 0xffffffff), /memory violation/);
+    assert.equal(parent.refs, 2);
+    parent.refs = 0x7fffffff;
+    await assert.rejects(call(device, 6, out), /reference count limit/);
+    assert.equal(parent.refs, 0x7fffffff);
+    assert.equal(runtime.read32(out), 0xaabbccdd);
+    const count = runtime.comObjects.objects.size;
+    await assert.rejects(create(), /reference count limit/);
+    assert.equal(runtime.comObjects.objects.size, count);
+    assert.equal(events.length, 1);
+    parent.refs = 2;
+    await call(device, 2);
+    await call(factory, 2);
+  });
+}
+
+for (const fail of [false, true]) {
+  test(`pending GPU device creation retains its factory and ${fail ? 'rolls back on failure' : 'transfers ownership on success'}`, async () => {
+    const { runtime, call, factory, create, output } = fixture(),
+      parent = runtime.comObjects.objects.get(factory);
+    let finish;
+    runtime.graphics.createDevice = () =>
+      new Promise((resolve, reject) => {
+        finish = fail ? () => reject(Error('GPU failure')) : resolve;
+      });
+    const pending = create();
+    assert.equal(parent.refs, 2);
+    assert.equal((await call(factory, 2)).result, 1);
+    finish();
+    if (fail) {
+      await assert.rejects(pending, /GPU failure/);
+      assert.equal(runtime.read32(output), 0);
+      assert.equal(parent.refs, 0);
+    } else {
+      const device = await pending,
+        out = runtime.allocate(4);
+      assert.equal((await call(device, 6, out)).result, 0);
+      assert.equal(runtime.read32(out), factory);
+      await call(device, 2);
+      assert.equal(parent.refs, 1);
+      await call(factory, 2);
+    }
+    assert.equal(parent.refs, 0);
+  });
+}

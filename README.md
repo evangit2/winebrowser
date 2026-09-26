@@ -92,7 +92,7 @@ metadata now passes through Win32 and native NT queries, including Hamsterball's
 initializes two workers, creates the 800×600 Hamsterball window, and passes
 D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP device
 and passes capabilities, viewport setup and a finite projection, then stops at the
-unsupported `IDirect3DDevice8.GetDirect3D`, after mapping `shadow.png`, executing its image-reading code, and about 9.42 million guest instructions;
+unsupported `IDirect3DDevice8.GetDisplayMode`, after mapping `shadow.png`, executing its image-reading code, and about 9.41 million guest instructions;
 [Custom cursor resources](docs/custom-cursors.md) and random-access file opens now pass.
 No game frame renders yet. Node stops at device creation because it lacks WebGPU. See [graphics scope](docs/d3d-display.md) and [thread scope](docs/thread-runtime.md).
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,

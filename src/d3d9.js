@@ -88,6 +88,20 @@ function matrix(runtime, pointer) {
 function deviceMethods(version = 9) {
   const methods = {
     ...lightingMethods,
+    6: {
+      argc: 2,
+      invoke(runtime, argument, object) {
+        const output = argument(1) >>> 0;
+        if (!output) return D3DERR_INVALIDCALL;
+        runtime.check(output, 4, true);
+        const factory = object.state.factory;
+        if (!factory.refs) throw Error('Released D3D factory');
+        if (factory.refs >= 0x7fffffff) throw Error('D3D factory reference count limit exceeded');
+        factory.refs++;
+        runtime.write32(output, factory.pointer);
+        return D3D_OK;
+      },
+    },
     23: createTextureMethod(version),
     64: { argc: 3, invoke: (r, a, d) => getTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
     65: { argc: 3, invoke: (r, a, d) => bindTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
@@ -489,7 +503,9 @@ function factoryMethods(version = 9) {
       async invoke(runtime, argument, factory) {
         const options = createDevice(runtime, argument, version);
         if (typeof options === 'number') return options;
+        if (factory.refs >= 0x7fffffff) throw Error('D3D factory reference count limit exceeded');
         const state = {
+          factory,
           id: 0,
           commands: [],
           frameBytes: 0,
@@ -551,15 +567,19 @@ function factoryMethods(version = 9) {
           },
         });
         state.id = object.pointer;
+        factory.refs++;
         try {
           await requireGraphics(runtime).createDevice({ id: state.id, ...options });
           if (!options.windowed) await enterFullscreen(runtime, state, options);
         } catch (error) {
-          await requireGraphics(runtime).destroyDevice({ id: state.id });
           object.refs = 0;
+          try {
+            await requireGraphics(runtime).destroyDevice({ id: state.id });
+          } finally {
+            await releaseComReference(factory);
+          }
           throw error;
         }
-        factory.refs++;
         runtime.write32(argument(6) >>> 0, object.pointer);
         return D3D_OK;
       },

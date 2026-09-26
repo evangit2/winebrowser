@@ -143,6 +143,10 @@ static int run(void)
     HRESULT status = IDirect3D9_CreateDevice(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
             window, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &params, &device);
     if (FAILED(status) || !device) return 5;
+    IDirect3D9 *original_d3d = d3d;
+    IDirect3D9_Release(d3d);
+    d3d = 0;
+    if (FAILED(IDirect3DDevice9_GetDirect3D(device, &d3d)) || d3d != original_d3d) return 42;
     if (FAILED(IDirect3DDevice9_GetDeviceCaps(device, &device_caps))) return 37;
     for (UINT i = 0; i < sizeof(caps) / sizeof(DWORD); i++)
         if (((DWORD *)&caps)[i] != ((DWORD *)&device_caps)[i]) return 38;
@@ -202,6 +206,7 @@ static int run(void)
     }
 
     IDirect3DDevice9_Release(device);
+    if (IDirect3D9_GetAdapterCount(d3d) != 1) return 43;
 #ifdef WINEBROWSER_FULLSCREEN
     RECT restored;
     GetWindowRect(window, &restored);

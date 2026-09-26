@@ -14,6 +14,7 @@ export const DEVICE8_METHODS =
 export function device8Methods(methods9, names9) {
   const methods = {};
   for (const name of [
+    'GetDirect3D',
     'GetDeviceCaps',
     'SetMaterial',
     'GetMaterial',
