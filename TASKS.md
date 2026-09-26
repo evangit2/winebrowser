@@ -195,13 +195,20 @@ D3D10/11 and broader D3D12 support are still required.
       after import resolution so newly discovered providers are covered.
       Original Hamsterball now passes GetSurfaceLevel and CopyRects
       (caller `0x476ecb`, 10,407,907 guest instructions), plus LODSB/LODSD in
-      bass.dll and `LOCK CMPXCHG8B` in the Wine ntdll. Startup now reaches its
-      message/timer loop with three live guest threads and runs to the bounded
-      diagnostic deadline (17.7M guest instructions) without an unsupported
-      operation. It completes D3D8 device creation (adapter modes, depth/
-      stencil matching, CreateDevice) with three live guest threads; the main
-      thread then spends its budget in a bass.dll timing loop. No game frame
-      renders yet. See
+      bass.dll and `LOCK CMPXCHG8B` in the Wine ntdll. It completes D3D8
+      device creation (adapter modes, depth/stencil matching, CreateDevice),
+      DirectInput acquisition, DirectSound creation, texture creation,
+      surface copies and render-state setup, then reaches its window/timer
+      loop with three live guest threads. No game frame renders yet.
+      Two general throughput defects were found and fixed along the way: the
+      dispatch loop yielded with a timer `setTimeout(0)` that browsers clamp
+      to several milliseconds, and the translated-block cache evicted in
+      insertion order so a working set beyond its 4096-entry cap recompiled
+      its own hot blocks (measured 29555 compilations for 4096 entries).
+      With an unclamped yield and LRU eviction at a 16384-entry limit, the
+      same startup advances from 16.9M instructions in 45s to 42.6M in 60s
+      (~710K instructions/s, roughly double), and the main thread still
+      spends most of its budget in the packed BASS DLL. See
       `evidence/hamsterball-startup-browser.json`.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
