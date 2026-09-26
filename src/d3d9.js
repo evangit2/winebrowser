@@ -1,3 +1,4 @@
+import { INACTIVE_EFFECT_DEFAULTS, setInactiveEffect } from './d3d-inactive-effects.js';
 import { blendDefaults, setBlendState } from './d3d-blending.js';
 import { fvfLayout } from './d3d-fvf.js';
 import {
@@ -192,6 +193,8 @@ function deviceMethods(version = 9) {
         const value = argument(2) >>> 0;
         // The current fixed-function path already uses perspective Gouraud
         // interpolation; other shade modes need their own interpolation path.
+        if (state in object.state.inactiveEffects)
+          return setInactiveEffect(object.state, state, value, version);
         if (state in object.state.blendState)
           return setBlendState(object.state, state, value, version);
         if (state in object.state.lightState) return setLightingState(object.state, state, value);
@@ -224,6 +227,7 @@ function deviceMethods(version = 9) {
           22: CULL_MODE.indexOf(s.cullMode),
           23: DEPTH_COMPARE.indexOf(s.depthCompare),
           26: Number(s.dither),
+          ...s.inactiveEffects,
           ...s.lightState,
           ...s.blendState,
           136: Number(s.clipping),
@@ -494,6 +498,7 @@ function factoryMethods(version = 9) {
           ...initTextures(),
           ...initLighting(),
           blendState: blendDefaults(version),
+          inactiveEffects: { ...INACTIVE_EFFECT_DEFAULTS },
           shadeMode: 2,
           fillMode: 3,
           clipping: true,

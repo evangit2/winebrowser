@@ -167,9 +167,12 @@ D3D10/11 and broader D3D12 support are still required.
       separate alpha/constants, including per-primitive post-blend RGB565 rounding.
       192 full-image cases pass in canvas/readback and native EXE/ZIP tests check
       every pixel. See `docs/d3d-blending.md` for the bounded scope and copy cost.
-- [ ] Continue Hamsterball through `SetRenderState(FOGENABLE, FALSE)` at EXE offset `0x53970`.
+- [x] Preserve native disabled alpha-test/fog/stencil configuration and queries.
+      Enabling these effects still fails explicitly; no rendering support is claimed.
+- [ ] Continue Hamsterball through packaged custom `LoadCursorA` resources.
+      Current stop is the native user32 bridge at DLL offset `0x1040`.
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,861,382 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,861,615 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

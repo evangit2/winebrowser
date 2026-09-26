@@ -24,6 +24,14 @@ no game-specific precompiled payload is used.
   blending, MRT, multisampling, sRGB writes, alpha testing and fog remain separate
   work. This increment does not establish general D3D8/9 or DirectX 12 conformance.
 
+The separate `d3d-inactive-effects.js` state handler accepts disabled alpha-test,
+fog and stencil selection and preserves their native configuration defaults and
+queries. This includes raw DWORD alpha references, fog color/float bits, and
+stencil operations/comparisons/masks. Invalid enumerants fail before mutation.
+Enabling alpha testing, fog or stencil still fails explicitly before drawing;
+those features remain unadvertised. Configuring an inactive effect does not add
+any rendering behavior or pipeline variants.
+
 ## Precision and performance
 
 32-bit targets use WebGPU's hardware blend unit. WebGPU has no RGB565 render
@@ -62,10 +70,10 @@ renders overlapping primitives into RGB565 with alpha/additive blending, dither,
 write masks, state queries and COPY presentation.
 [Native evidence](../evidence/blending-browser-results.json).
 
-518 unit tests pass, along with the lighting GPU, native programmable D3D9 and
+520 unit tests pass, along with the lighting GPU, native programmable D3D9 and
 DirectX 12 cube regressions and the production build. Original Hamsterball now
-passes SRCBLEND/DESTBLEND setup and stops at `SetRenderState(FOGENABLE, FALSE)`
-(block IP `0x453970`, EXE offset `0x53970`, 8,861,382 guest instructions).
+passes SRCBLEND/DESTBLEND and disabled fog/stencil setup. It now stops at
+packaged custom `LoadCursorA` (user32 DLL offset `0x1040`, 8,861,615 guest instructions).
 It still presents zero frames. The probe uses the unchanged original EXE and
 local Wine DLL/NLS closure; those assets are not distributed.
 

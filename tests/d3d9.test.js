@@ -1149,3 +1149,48 @@ for (const version of [8, 9]) {
     await call(d, 2);
   });
 }
+
+for (const version of [8, 9]) {
+  test(`D3D${version} disabled effects are queryable without claiming enabled rendering`, async () => {
+    const { runtime: r, call, create, output } = fixture(version),
+      d = await create();
+    const set = version === 8 ? 50 : 57,
+      get = version === 8 ? 51 : 58;
+    for (const state of [15, 28, 52]) {
+      await call(d, get, state, output);
+      assert.equal(r.read32(output), 0);
+      assert.equal((await call(d, set, state, 0)).result, 0);
+      await assert.rejects(() => call(d, set, state, 1), new RegExp(`Unsupported.*${state}=1`));
+      await call(d, get, state, output);
+      assert.equal(r.read32(output), 0);
+    }
+    for (const [state, value] of [
+      [24, 0x123456ab],
+      [25, 5],
+      [34, 0x10203040],
+      [35, 3],
+      [36, 0x7fc01234],
+      [37, 0x3f000000],
+      [38, 0x3e800000],
+      [48, 1],
+      [140, 2],
+      [53, 3],
+      [54, 4],
+      [55, 8],
+      [56, 7],
+      [57, 0x12345678],
+      [58, 0xffffff00],
+      [59, 0xff00ffff],
+    ]) {
+      assert.equal((await call(d, set, state, value)).result, 0);
+      await call(d, get, state, output);
+      assert.equal(r.read32(output), value);
+      if ([25, 53, 54, 55, 56].includes(state)) {
+        assert.equal((await call(d, set, state, 9)).result, 0x8876086c);
+        await call(d, get, state, output);
+        assert.equal(r.read32(output), value);
+      }
+    }
+    await call(d, 2);
+  });
+}

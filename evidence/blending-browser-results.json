@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "date": "2026-09-26T11:44:01.129Z",
+  "date": "2026-09-26T11:50:39.035Z",
   "browser": "154.0.8037.57",
   "scope": "Native D3D8 and D3D9 PE32 EXE/ZIP uploads: material/light roundtrips, material-source state, XYZ/normal/UV blending, rectangular texture uploads, two light and texture revisions in one frame, all 32,768 displayed pixels, and Escape shutdown.",
   "runs": [
@@ -10,21 +10,7 @@
       "pixels": {
         "width": 256,
         "height": 128,
-        "frames": 4,
-        "bad": 0,
-        "verifiedPixels": 32768
-      },
-      "exitCode": 0,
-      "instructions": 4271,
-      "errors": []
-    },
-    {
-      "name": "d3d8.zip",
-      "exeSha256": "9d1847e8c5751ec44ebbb8fbe985f89f21e72a7f9b2589c9acdee0e4ce8f26ec",
-      "pixels": {
-        "width": 256,
-        "height": 128,
-        "frames": 5,
+        "frames": 7,
         "bad": 0,
         "verifiedPixels": 32768
       },
@@ -33,12 +19,26 @@
       "errors": []
     },
     {
+      "name": "d3d8.zip",
+      "exeSha256": "9d1847e8c5751ec44ebbb8fbe985f89f21e72a7f9b2589c9acdee0e4ce8f26ec",
+      "pixels": {
+        "width": 256,
+        "height": 128,
+        "frames": 8,
+        "bad": 0,
+        "verifiedPixels": 32768
+      },
+      "exitCode": 0,
+      "instructions": 5983,
+      "errors": []
+    },
+    {
       "name": "d3d9.exe",
       "exeSha256": "d3eeb26ca012b0e7a35b8399e042b0b3b6b432efb007284f2ba24fd91ae83879",
       "pixels": {
         "width": 256,
         "height": 128,
-        "frames": 4,
+        "frames": 5,
         "bad": 0,
         "verifiedPixels": 32768
       },
@@ -52,12 +52,12 @@
       "pixels": {
         "width": 256,
         "height": 128,
-        "frames": 4,
+        "frames": 5,
         "bad": 0,
         "verifiedPixels": 32768
       },
       "exitCode": 0,
-      "instructions": 3844,
+      "instructions": 4272,
       "errors": []
     }
   ]
