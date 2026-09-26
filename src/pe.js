@@ -466,7 +466,9 @@ export function mapPE(pe, bytes, memory, base = pe?.imageBase) {
   )
     fail('parsed image does not match supplied bytes');
   const delta = base - fresh.imageBase;
-  if (delta && !fresh.directories[5]?.rva) fail('image has no base relocation directory');
+  // An empty relocation table is valid for position-independent/resource-only
+  // images. IMAGE_FILE_RELOCS_STRIPPED, not table absence, forbids rebasing.
+  if (delta && fresh.characteristics & 1) fail('image base relocations are stripped');
   target.fill(0, base, end);
   target.set(bytes.subarray(0, fresh.headersSize), base);
   for (const section of fresh.sections) {

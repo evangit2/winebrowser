@@ -119,16 +119,26 @@ test('bounds export directories and rejects malformed relocation blocks and targ
   assert.throws(() => parsePE(badTarget, { allowDll: true }), /relocation target/);
 });
 
-test('rejects alternate mapping without relocation metadata and unsupported relocation types', () => {
+test('allows empty relocation tables but rejects stripped rebasing and unsupported types', () => {
   const noRelocs = makeDll();
   const v1 = new DataView(noRelocs.buffer);
   v1.setUint32(0x98 + 96 + 5 * 8, 0, true);
   v1.setUint32(0x98 + 100 + 5 * 8, 0, true);
   const pe = parsePE(noRelocs, { allowDll: true });
-  assert.throws(
-    () => mapPE(pe, noRelocs, new WebAssembly.Memory({ initial: 1024 }), 0x100000),
-    /no base relocation/,
-  );
+  const memory = new WebAssembly.Memory({ initial: 1024 });
+  const mapped = mapPE(pe, noRelocs, memory, 0x100000);
+  assert.equal(mapped.imageBase, 0x100000);
+  assert.equal(mapped.preferredImageBase, 0x400000);
+  assert.deepEqual(new Uint8Array(memory.buffer, 0x101000, 0x800), noRelocs.subarray(0x200));
+  for (const bytes of [noRelocs, makeDll()]) {
+    const v = new DataView(bytes.buffer);
+    v.setUint16(0x96, v.getUint16(0x96, true) | 1, true);
+    const fixed = parsePE(bytes, { allowDll: true });
+    new Uint8Array(memory.buffer, 0x200000, 0x3000).fill(0xcc);
+    assert.throws(() => mapPE(fixed, bytes, memory, 0x200000), /relocations are stripped/);
+    assert.ok(new Uint8Array(memory.buffer, 0x200000, 0x3000).every((v) => v === 0xcc));
+    assert.equal(mapPE(fixed, bytes, memory).imageBase, 0x400000);
+  }
 
   const unsupported = makeDll();
   new DataView(unsupported.buffer).setUint16(0x200 + 0x1308 - 0x1000, 0x2010, true);
