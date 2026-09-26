@@ -205,10 +205,15 @@ D3D10/11 and broader D3D12 support are still required.
       to several milliseconds, and the translated-block cache evicted in
       insertion order so a working set beyond its 4096-entry cap recompiled
       its own hot blocks (measured 29555 compilations for 4096 entries).
-      With an unclamped yield and LRU eviction at a 16384-entry limit, the
-      same startup advances from 16.9M instructions in 45s to 42.6M in 60s
-      (~710K instructions/s, roughly double), and the main thread still
-      spends most of its budget in the packed BASS DLL. See
+      Cache locality was also fixed in three stages: clock (second-chance)
+      block eviction, an index-validated region cache in the guest memory
+      check (82 ns to 9.5 ns per access on a 31-region process), and a
+      dispatch path that skips the thunk lookup off the host address range
+      and resolves each block once. Together these raise the same 60-second
+      startup from 16.9M instructions to 119.1M (~7x), and louder: the main
+      thread still spends almost all of it inside the packed BASS DLL's LZMA
+      decoder, which the browser probe has not yet observed to finish, so no
+      game frame renders yet. See
       `evidence/hamsterball-startup-browser.json`.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
