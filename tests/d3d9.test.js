@@ -1819,3 +1819,25 @@ test('D3D8 device GetInfo fills a bounded zeroed structure and rejects bad buffe
   }
   await call(device, 2);
 });
+
+test('D3D9 buffer Lock accepts discard and no-sys-lock hints on any pool', async () => {
+  const { runtime, call, create } = fixture();
+  const device = await create();
+  const vbOut = runtime.allocate(4);
+  // A default-pool (not dynamic) vertex buffer.
+  assert.equal((await call(device, 26, 64, 0, 0x42, 0, vbOut, 0)).result, 0);
+  const vb = runtime.read32(vbOut);
+  const locked = runtime.allocate(8);
+  // DISCARD (0x2000) | NOSYSLOCK (0x800) is accepted as a driver hint even
+  // though the buffer is not dynamic and the range is not the whole buffer.
+  assert.equal((await call(vb, 11, 0, 16, locked, 0x2800)).result, 0);
+  assert.equal((await call(vb, 12)).result, 0);
+  // An unknown flag bit is still rejected explicitly.
+  await assert.rejects(call(vb, 11, 0, 16, locked, 0x4), /Lock flags/);
+  // A second lock while locked fails.
+  assert.equal((await call(vb, 11, 0, 16, locked, 0)).result, 0);
+  assert.equal((await call(vb, 11, 0, 16, locked, 0)).result, 0x8876086c);
+  assert.equal((await call(vb, 12)).result, 0);
+  await call(vb, 2);
+  await call(device, 2);
+});

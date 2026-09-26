@@ -289,6 +289,10 @@ export async function probeWineTarget(
           'IDirect3D9.CheckDepthStencilMatch': 6,
           'IDirect3DDevice8.DrawPrimitiveUP': 5,
           'IDirect3D9.DrawPrimitiveUP': 5,
+          'IDirect3DVertexBuffer8.Lock': 5,
+          'IDirect3DVertexBuffer9.Lock': 5,
+          'IDirect3DIndexBuffer8.Lock': 5,
+          'IDirect3DIndexBuffer9.Lock': 5,
         }[name] ??
         4;
       for (let i = 0; i < count; i++) {

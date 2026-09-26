@@ -77,13 +77,12 @@ function lockMethod() {
       const size = requestedSize || state.size - offset;
       if (size > state.size - offset) return D3DERR_INVALIDCALL;
       const allowed = D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK | D3DLOCK_NOOVERWRITE | D3DLOCK_DISCARD;
-      if (
-        flags & ~allowed ||
-        (flags & D3DLOCK_READONLY && state.usage & D3DUSAGE_WRITEONLY) ||
-        (flags & (D3DLOCK_NOOVERWRITE | D3DLOCK_DISCARD) && !(state.usage & D3DUSAGE_DYNAMIC)) ||
-        (flags & D3DLOCK_NOOVERWRITE && flags & D3DLOCK_DISCARD) ||
-        (flags & D3DLOCK_DISCARD && (offset || size !== state.size))
-      )
+      // D3DLOCK_NOOVERWRITE and D3DLOCK_DISCARD are driver hints that the
+      // application will overwrite the region or ignore its prior contents.
+      // Real applications (and Wine) pass them on default-pool buffers too, so
+      // they never fail here; only unknown bits and a write-only read conflict
+      // are rejected. D3DLOCK_NOSYSLOCK is likewise a no-op hint.
+      if (flags & ~allowed || (flags & D3DLOCK_READONLY && state.usage & D3DUSAGE_WRITEONLY))
         throw Error(`Unsupported ${object.name}.Lock flags or range`);
       state.locked = { offset, size, flags };
       runtime.write32(output, state.address + offset);
