@@ -1,4 +1,5 @@
 import { Runtime, API_NAMES } from '../../src/runtime.js';
+import { canonicalHostSymbol } from '../../src/host-export-ordinals.js';
 import { parsePE } from '../../src/pe.js';
 import { installWineNtBridge } from '../../src/wine-nt.js';
 import { initializeWineProcess } from '../../src/wine-process.js';
@@ -50,7 +51,11 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     for (const imported of imports) {
       const dll = imported.dll.toLowerCase(),
         name = imported.name ?? `#${imported.ordinal}`;
-      if (nativeNames.has(dll) || API_NAMES[dll]?.includes(name)) continue;
+      if (
+        nativeNames.has(dll) ||
+        API_NAMES[dll]?.includes(canonicalHostSymbol(dll, name, API_NAMES[dll]))
+      )
+        continue;
       if (!restore.has(dll)) restore.set(dll, API_NAMES[dll]);
       API_NAMES[dll] = [...(API_NAMES[dll] ?? []), name];
       report.trappedImports.push(`${dll}!${name}`);

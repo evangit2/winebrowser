@@ -2,19 +2,28 @@
 // loaders may inspect its headers and exports just like any mapped DLL. Each
 // export tail-calls a host thunk without disturbing the caller's registers,
 // flags, return address, or arguments. There is no guest-specific code here.
+import { HOST_EXPORT_ORDINALS, canonicalHostSymbol } from './host-export-ordinals.js';
+
 export function hostModuleImage(name, symbols, thunkAddress) {
   const align = (value, boundary) => Math.ceil(value / boundary) * boundary;
   const ascii = (value) => {
     if (!value || /[^\x01-\x7f]/.test(value)) throw Error('Invalid host export name');
     return new TextEncoder().encode(value + '\0');
   };
-  const entries = [...new Set(symbols)].map((symbol) => ({ symbol }));
+  const entries = [...new Set(symbols.map((s) => canonicalHostSymbol(name, s, symbols)))].map(
+    (symbol) => ({ symbol }),
+  );
   const occupied = new Set();
   for (const entry of entries) {
-    if (!entry.symbol.startsWith('#')) continue;
-    const ordinal = Number(entry.symbol.slice(1));
+    const named = !entry.symbol.startsWith('#');
+    if (named) entry.nameBytes = ascii(entry.symbol);
+    const ordinal = named
+      ? HOST_EXPORT_ORDINALS[name.toLowerCase()]?.[entry.symbol]
+      : Number(entry.symbol.slice(1));
+    if (ordinal === undefined) continue;
     if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > 65535)
       throw Error('Invalid host export ordinal');
+    if (occupied.has(ordinal)) throw Error('Conflicting host export ordinal');
     entry.ordinal = ordinal;
     occupied.add(ordinal);
   }
@@ -123,6 +132,8 @@ export function hostModuleImage(name, symbols, thunkAddress) {
     bytes.set(entry.nameBytes, exportRaw + strings);
     strings += entry.nameBytes.length;
   });
+  for (const symbol of symbols)
+    rvas.set(symbol, rvas.get(canonicalHostSymbol(name, symbol, symbols)));
   // ABSOLUTE relocation padding: all internal references are RVAs and host
   // thunk addresses are absolute outside guest image space.
   u32(relocRaw, textRva);

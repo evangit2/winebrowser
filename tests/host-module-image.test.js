@@ -5,6 +5,46 @@ import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { hostModuleImage } from '../src/host-module-image.js';
 import { parsePE, mapPE } from '../src/pe.js';
+import { canonicalHostSymbol } from '../src/host-export-ordinals.js';
+import { ModuleGraph } from '../src/modules.js';
+
+test('Windows named exports retain published ordinals and aliases share executable addresses', () => {
+  const symbols = ['DirectSoundCreate8', 'DirectSoundEnumerateW', 'DirectSoundCreate', '#1'],
+    calls = [];
+  const { bytes, rvas } = hostModuleImage('dsound.dll', symbols, (symbol) => {
+    calls.push(symbol);
+    return 0x80000010;
+  });
+  const pe = parsePE(bytes, { allowDll: true });
+  assert.deepEqual(
+    pe.exports.map(({ name, ordinal }) => [name, ordinal]),
+    [
+      ['DirectSoundCreate', 1],
+      ['DirectSoundEnumerateW', 3],
+      ['DirectSoundCreate8', 11],
+    ],
+  );
+  assert.equal(rvas.get('#1'), rvas.get('DirectSoundCreate'));
+  assert.equal(calls.length, 3);
+  assert.equal(calls.includes('#1'), false);
+  assert.equal(canonicalHostSymbol('dsound.dll', '#1', symbols), 'DirectSoundCreate');
+  assert.equal(
+    canonicalHostSymbol('dsound.dll', 2, symbols),
+    2,
+    'metadata does not expose missing services',
+  );
+});
+
+test('ordinal resolution works during inspection without mapped DLL headers', async () => {
+  const bytes = new Uint8Array(await readFile('public/demos/console/console.exe'));
+  const graph = new ModuleGraph(new Map([['console.exe', bytes]]), 'console.exe', {
+    'dsound.dll': ['DirectSoundCreate'],
+  });
+  const dll = graph.load('dsound.dll');
+  assert.equal(graph.resolve(dll, 1).symbol, 'DirectSoundCreate');
+  assert.equal(graph.resolve(dll, '#1').symbol, 'DirectSoundCreate');
+  assert.throws(() => graph.resolve(dll, 11), /Unsupported import/);
+});
 
 test('host DLL image contains sorted names, sparse ordinals and relocatable executable exports', () => {
   const { bytes, rvas } = hostModuleImage(

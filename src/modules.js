@@ -3,6 +3,7 @@ import { resolveGuestPath } from './guest-paths.js';
 import { importKey } from './win32.js';
 import { registerThunk } from './thunk-addresses.js';
 import { hostModuleImage } from './host-module-image.js';
+import { canonicalHostSymbol } from './host-export-ordinals.js';
 
 const dllName = (name) => {
   if (typeof name !== 'string' || !name || name.includes('\0')) throw Error('Invalid DLL name');
@@ -162,6 +163,7 @@ export class ModuleGraph {
     if (seen.has(key) || seen.size > 32) throw Error(`Export forwarder cycle: ${key}`);
     seen.add(key);
     if (module.host) {
+      symbol = canonicalHostSymbol(module.name, symbol, this.apiNames[module.name]);
       // Ordinals may be provided explicitly as "#N" by a host export table.
       // Diagnostics use this only to install a fail-on-call trap.
       if (typeof symbol === 'number')

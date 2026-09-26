@@ -20,6 +20,7 @@ import { GuestMemory } from './memory.js';
 import { API_NAMES, createWin32ApiProvider, importKey } from './win32.js';
 import { GuestPerformanceClock } from './guest-clock.js';
 import { createSharedUserData } from './shared-user-data.js';
+import { canonicalHostSymbol } from './host-export-ordinals.js';
 
 export { API_NAMES };
 
@@ -31,7 +32,12 @@ export function inspect(bytes, files, exe, builtinFiles) {
     unsupported = graph.unresolved.map((u) => u.error);
   } else
     unsupported = pe.imports
-      .filter((i) => !API_NAMES[i.dll.toLowerCase()]?.includes(i.name))
+      .filter((i) => {
+        const dll = i.dll.toLowerCase();
+        return !API_NAMES[dll]?.includes(
+          canonicalHostSymbol(dll, i.name ?? i.ordinal, API_NAMES[dll]),
+        );
+      })
       .map((i) => importKey(i.dll, i.name ?? `#${i.ordinal}`));
   return { ...pe, unsupported };
 }
