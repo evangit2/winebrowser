@@ -96,7 +96,43 @@ test('the bounded block cache evicts old translations and can recompile them', (
   assert.equal(cpu.cachePages.size, 0);
 });
 
-test('the block cache evicts least-recently-used blocks, not the first inserted', () => {
+test('a repeatedly used block is never recompiled by cache churn', () => {
+  const { cpu, guest } = machine(false, { pages: 8, codeEnd: 0x78000 });
+  const limit = cpu.cacheLimit;
+  const address = (i) => 0x1000 + i * 4;
+  const put = (i) => {
+    guest.data.set([0xb0, i & 255, 0xeb, 0], address(i));
+    cpu.step(address(i));
+  };
+  // Two hot blocks alternate with heavy churn. Second-chance eviction must
+  // keep the referenced hot blocks resident while clearing the reference bit
+  // of everything else, so their compilation count stays at exactly one.
+  put(0);
+  put(1);
+  const hotCompilations = () => {
+    // Recompile counters are global; compare against a baseline captured after
+    // the hot blocks were first compiled.
+    return cpu.compilations;
+  };
+  const baseline = hotCompilations();
+  for (let round = 0; round < limit * 3; round++) {
+    cpu.step(address(round % 2));
+    put(2 + round);
+  }
+  assert.equal(cpu.cache.has(address(0)), true, 'first hot block survives');
+  assert.equal(cpu.cache.has(address(1)), true, 'second hot block survives');
+  // Hot hits never compile, so the churn compiles about one block per round.
+  // At most one extra compile can come from a page-boundary invalidation; any
+  // more would mean eviction pressure is recompiling resident hot blocks.
+  const churnCompilations = cpu.compilations - baseline;
+  assert.ok(
+    churnCompilations >= limit * 3 && churnCompilations <= limit * 3 + 2,
+    `hot blocks recompiled by eviction: ${churnCompilations} compilations`,
+  );
+  assert.equal(cpu.cache.size, limit);
+});
+
+test('the block cache gives a second chance to recently referenced blocks', () => {
   const { cpu, guest } = machine(false, { pages: 8, codeEnd: 0x78000 });
   const limit = cpu.cacheLimit;
   const address = (i) => 0x1000 + i * 4;
@@ -105,8 +141,8 @@ test('the block cache evicts least-recently-used blocks, not the first inserted'
     cpu.step(address(i));
   };
   // Fill the cache, then keep re-touching block 0 so it stays hot while the
-  // remaining capacity churns. A FIFO cache would evict it; an LRU cache must
-  // retain it because it is refreshed on every access.
+  // remaining capacity churns. A FIFO cache would evict it; second-chance
+  // eviction must retain it because its reference bit is refreshed on access.
   for (let i = 0; i < limit; i++) put(i);
   const rounds = limit * 2;
   for (let round = 0; round < rounds; round++) {

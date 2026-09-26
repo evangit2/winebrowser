@@ -71,7 +71,6 @@ export class CPU {
     this.cache = new Map();
     this.cachePages = new Map();
     this.cacheLimit = MAX_TRANSLATED_BLOCKS;
-    this.cacheTail = undefined;
     this.x87Blocks = new Set();
     this.compiledBytes = 0;
     // Total blocks compiled over the run; compared with cache.size it reveals
@@ -1308,7 +1307,7 @@ export class CPU {
       if (this.cache.size >= this.cacheLimit) this.evictLeastRecent();
       this.compiledBytes += binary.length;
       this.compilations++;
-      const block = { run, count, bytes: binary.length, end, usesFS };
+      const block = { run, count, bytes: binary.length, end, usesFS, referenced: true };
       this.cache.set(ip, block);
       for (let page = ip >>> 12; page <= (end - 1) >>> 12; page++) {
         if (!this.cachePages.has(page)) this.cachePages.set(page, new Set());
@@ -1326,25 +1325,27 @@ export class CPU {
     if (this.stringRestart && this.stringRestart.at !== ip) this.stringRestart = null;
     let block = this.cache.get(ip);
     if (!block) block = this.compile(ip);
-    else if (this.cacheTail !== ip) this.promote(ip, block);
+    else if (!block.referenced) block.referenced = true;
     if (block.usesFS && !this.fsBase) throw Error('FS requires guest TEB');
     this.instructions += block.count;
     return block.run() >>> 0;
   }
-  // A Map iterates in insertion order, so re-inserting a block moves it to the
-  // most-recently-used end. Without this the cache evicts in FIFO order and a
-  // working set larger than the limit recompiles its own hot blocks forever.
-  promote(ip, block) {
-    this.cache.delete(ip);
-    this.cache.set(ip, block);
-    this.cacheTail = ip;
-  }
+  // Clock (second-chance) eviction. Marking a hit is a single property write,
+  // so the per-dispatch cost stays O(1); a Map delete/insert on every hit would
+  // dominate execution where blocks average about one instruction each. When
+  // the cache is over its limit, walk from the front clearing reference bits
+  // and requeueing referenced blocks until an unreferenced victim is found.
   evictLeastRecent() {
-    const iterator = this.cache.keys();
-    const oldest = iterator.next().value;
-    if (oldest === undefined) return;
-    this.removeBlock(oldest);
-    if (this.cacheTail === oldest) this.cacheTail = undefined;
+    for (const [candidate, block] of this.cache) {
+      if (block.referenced) {
+        block.referenced = false;
+        this.cache.delete(candidate);
+        this.cache.set(candidate, block);
+        continue;
+      }
+      this.removeBlock(candidate);
+      return;
+    }
   }
   prepare(ip) {
     if (!this.cache.has(ip)) this.compile(ip);
@@ -1354,7 +1355,6 @@ export class CPU {
     this.cache.clear();
     this.cachePages.clear();
     this.x87Blocks.clear();
-    this.cacheTail = undefined;
   }
   removeBlock(ip) {
     const block = this.cache.get(ip);
