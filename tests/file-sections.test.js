@@ -243,7 +243,16 @@ test('section and view resource exhaustion fails without leaking handles or mapp
   for (let i = 0; i < 256; i++) assert.equal(sections.create({ file: 256 }).status, 0);
   assert.equal(sections.create({ file: 256 }).status, S.MEMORY);
   const section = [...r.handles].find(([, v]) => v.kind === 'file-section')[0];
-  r.virtualMemory.allocate(0, VM.arenaEnd - VM.arenaStart, VM.MEM_RESERVE, 1);
+  // Reserve the arena in granular chunks until no free reservation remains, so
+  // the exhausted-address-space path is exercised regardless of arena size.
+  let reserved = 0;
+  for (;;) {
+    const request = VM.allocationGranularity;
+    const result = r.virtualMemory.allocate(0, request, VM.MEM_RESERVE, 1);
+    if (result.status) break;
+    reserved++;
+    if (reserved > 100000) throw Error('arena reservation did not terminate');
+  }
   assert.equal(sections.map(section).status, S.MEMORY);
   assert.equal(r.sectionViews.views.size, 0);
   for (const [handle, value] of [...r.handles])

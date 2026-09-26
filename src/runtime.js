@@ -84,7 +84,11 @@ export class Runtime {
     this.systemNow = systemNow;
     this.packageFileTime = systemFileTime(systemNow());
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles, { hostModuleImages });
-    this.memory = new WebAssembly.Memory({ initial: 1024, maximum: 1024 });
+    // 256 MiB of guest address space. Real Windows programs and self-unpacking
+    // libraries reserve far more than the original 64 MiB budget, and a PE32
+    // process has room for it; the TEB/heap/stack keep their fixed low layout
+    // and the virtual-memory arena grows into the space above them.
+    this.memory = new WebAssembly.Memory({ initial: 4096, maximum: 4096 });
     this.regions = [{ start: 0x2e00000, end: 0x4000000, write: true, exec: false }];
     this.graph.map(this.memory, this.regions);
     this.pe = this.graph.main.pe;

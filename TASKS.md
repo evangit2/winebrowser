@@ -205,6 +205,16 @@ D3D10/11 and broader D3D12 support are still required.
       to several milliseconds, and the translated-block cache evicted in
       insertion order so a working set beyond its 4096-entry cap recompiled
       its own hot blocks (measured 29555 compilations for 4096 entries).
+      The guest address space was raised from 64 MiB to 256 MiB and the
+      virtual-memory arena from 14 MiB to ~208 MiB, keeping the fixed
+      TEB/PEB/heap/stack layout. This removed a real capacity failure: the
+      unpacker exhausted the arena and NtAllocateVirtualMemory returned
+      STATUS_NO_MEMORY (0xc0000017), which then produced a guest write fault
+      at 0x0. With the larger arena Hamsterball now runs 767M guest
+      instructions inside a five-minute budget with no allocator failure,
+      and execution has moved out of the packed BASS DLL into the game's own
+      image. See `evidence/hamsterball-startup-browser.json`.
+
       Performance work continued: clock (second-chance) block eviction, an
       index-validated region cache in the guest memory check (82 ns to 9.5 ns
       per access on a 31-region process), a dispatch path that skips the thunk

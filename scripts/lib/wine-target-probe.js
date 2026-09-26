@@ -476,6 +476,13 @@ export async function probeWineTarget(
     await Promise.allSettled(report.pendingSamples);
     delete report.pendingSamples;
     delete report.memorySampleKeys;
+    if (runtime?.virtualMemory?.stats) {
+      try {
+        report.virtualMemory = runtime.virtualMemory.stats();
+      } catch (error) {
+        report.virtualMemory = { error: error.message };
+      }
+    }
     // Dump live kernel-sync objects and their handles. A thread parked on a
     // never-signaled object is a real hang, not a slow path.
     if (runtime?.syncObjects) {

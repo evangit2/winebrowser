@@ -2,7 +2,10 @@
 const PAGE_SIZE = 0x1000;
 const ALLOCATION_GRANULARITY = 0x10000;
 const ARENA_START = 0x02000000;
-const ARENA_END = 0x02e00000;
+// The allocator scans from ARENA_START and skips anything already described by
+// a region (mapped images, the TEB/heap/stack block), so the arena may extend
+// well past those fixed addresses into the rest of the 256 MiB address space.
+const ARENA_END = 0x0f000000;
 
 export const VirtualMemoryConstants = Object.freeze({
   pageSize: PAGE_SIZE,
@@ -111,16 +114,31 @@ export class VirtualMemory {
     let start, end;
     if (base === 0) {
       start = this.findFreeReservation(size);
-      if (start === null) return { status: NTSTATUS.NO_MEMORY, base, size };
+      if (start === null) {
+        this.lastFailure = { reason: 'arena-full', base, size };
+        return { status: NTSTATUS.NO_MEMORY, base, size };
+      }
       end = start + alignUp(size, PAGE_SIZE);
     } else {
       start = alignDown(base, ALLOCATION_GRANULARITY);
       end = alignUp(base + size, PAGE_SIZE);
     }
-    if (start < ARENA_START || end > ARENA_END || end <= start)
+    if (start < ARENA_START || end > ARENA_END || end <= start) {
+      this.lastFailure = {
+        reason: 'outside-arena',
+        base,
+        size,
+        start,
+        end,
+        arenaStart: ARENA_START,
+        arenaEnd: ARENA_END,
+      };
       return { status: NTSTATUS.NO_MEMORY, base, size };
-    if (!this.rangeIsFree(start, end))
+    }
+    if (!this.rangeIsFree(start, end)) {
+      this.lastFailure = { reason: 'conflict', base, size, start, end };
       return { status: NTSTATUS.CONFLICTING_ADDRESSES, base, size };
+    }
 
     const reservation = { base: start, end, pages: new Map() };
     for (let page = start; page < end; page += PAGE_SIZE) {
@@ -171,6 +189,24 @@ export class VirtualMemory {
     return { ...ok(start, end - start), oldProtect };
   }
 
+  // Bounded diagnostic summary of the allocator's live extent.
+  stats() {
+    let reserved = 0,
+      committed = 0;
+    for (const reservation of this.reservations.values()) {
+      reserved += reservation.end - reservation.base;
+      for (const page of reservation.pages.values()) if (page !== null) committed += PAGE_SIZE;
+    }
+    return {
+      arenaStart: ARENA_START,
+      arenaEnd: ARENA_END,
+      arenaBytes: ARENA_END - ARENA_START,
+      reservations: this.reservations.size,
+      reservedBytes: reserved,
+      committedBytes: committed,
+      lastFailure: this.lastFailure ?? null,
+    };
+  }
   findFreeReservation(size) {
     const roundedSize = alignUp(size, PAGE_SIZE);
     for (let base = ARENA_START; base + roundedSize <= ARENA_END; base += ALLOCATION_GRANULARITY) {
