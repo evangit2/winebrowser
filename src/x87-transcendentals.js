@@ -4,6 +4,7 @@
 const J = 1n << 63n;
 const Q = 1n << 62n;
 const ln2Cache = new Map();
+const piCache = new Map();
 const ceil = (n, d) => (n + d - 1n) / d; // nonnegative operands only
 
 function unpack(bytes) {
@@ -175,4 +176,165 @@ export function fyl2x(xBytes, yBytes, rounding) {
     if (sameResult(lower, upper)) return lower;
   }
   throw Error('x87 logarithm rounding could not be resolved within the precision bound');
+}
+
+// Machin's identity: pi = 16 atan(1/5) - 4 atan(1/239). Exact rational
+// denominators and the alternating-series remainder give outward bounds.
+function atanReciprocal(q, precision) {
+  const scale = 1n << BigInt(precision),
+    square = q * q;
+  let denominator = q,
+    lo = 0n,
+    hi = 0n;
+  for (let k = 0n; k < BigInt(precision); k++) {
+    const divisor = denominator * (2n * k + 1n);
+    const lower = scale / divisor,
+      upper = ceil(scale, divisor);
+    if (k & 1n) {
+      lo -= upper;
+      hi -= lower;
+    } else {
+      lo += lower;
+      hi += upper;
+    }
+    denominator *= square;
+    const tail = ceil(scale, denominator * (2n * k + 3n));
+    if (tail <= 1n) return [lo - tail, hi + tail];
+  }
+  throw Error('x87 pi series bound exceeded');
+}
+
+function piInterval(precision) {
+  let pi = piCache.get(precision);
+  if (!pi) {
+    const a = atanReciprocal(5n, precision),
+      b = atanReciprocal(239n, precision);
+    pi = [16n * a[0] - 4n * b[1], 16n * a[1] - 4n * b[0]];
+    piCache.set(precision, pi);
+  }
+  return pi;
+}
+
+const negateInterval = ([lo, hi]) => [-hi, -lo];
+
+// Sine/cosine at an exact fixed-point argument of magnitude <= pi/4.
+// Terms decrease; outward-rounded recurrence plus the next term bounds the
+// alternating remainder. Return values are scaled by 2^precision.
+function trigSeries(argument, precision, cosine) {
+  const negative = argument < 0n,
+    x = negative ? -argument : argument;
+  const scale = 1n << BigInt(precision),
+    square = x * x,
+    scaleSquared = scale * scale;
+  let powerLo = cosine ? scale : x,
+    powerHi = powerLo;
+  let lo = powerLo,
+    hi = powerHi,
+    index = cosine ? 0n : 1n;
+  for (let k = 1; k < precision; k++) {
+    const divisor = scaleSquared * (index + 1n) * (index + 2n);
+    powerLo = (powerLo * square) / divisor;
+    powerHi = ceil(powerHi * square, divisor);
+    if (powerHi <= 1n) {
+      const result = [lo - powerHi, hi + powerHi];
+      return negative && !cosine ? negateInterval(result) : result;
+    }
+    if (k & 1) {
+      lo -= powerHi;
+      hi -= powerLo;
+    } else {
+      lo += powerLo;
+      hi += powerHi;
+    }
+    index += 2n;
+  }
+  throw Error('x87 trigonometric series bound exceeded');
+}
+
+function trigInterval(x, precision) {
+  const pi = piInterval(precision),
+    halfLo = pi[0] / 2n,
+    halfHi = ceil(pi[1], 2n);
+  // The tiny-argument path handles exponents below -64, so this shift is exact.
+  const input = x.sig << BigInt(x.shift + precision);
+  const quadrant = (2n * input + halfHi) / (2n * halfHi);
+  if (quadrant !== (2n * input + halfLo) / (2n * halfLo)) return null;
+  const lo = input - quadrant * halfHi,
+    hi = input - quadrant * halfLo;
+  let sine = [trigSeries(lo, precision, false)[0], trigSeries(hi, precision, false)[1]];
+  const absLo = lo < 0n ? -lo : lo,
+    absHi = hi < 0n ? -hi : hi;
+  const near = lo <= 0n && hi >= 0n ? 0n : absLo < absHi ? absLo : absHi;
+  const far = absLo > absHi ? absLo : absHi;
+  let cosine = [trigSeries(far, precision, true)[0], trigSeries(near, precision, true)[1]];
+  switch (Number(quadrant & 3n)) {
+    case 1:
+      [sine, cosine] = [cosine, negateInterval(sine)];
+      break;
+    case 2:
+      [sine, cosine] = [negateInterval(sine), negateInterval(cosine)];
+      break;
+    case 3:
+      [sine, cosine] = [negateInterval(cosine), sine];
+      break;
+  }
+  if (x.negative) sine = negateInterval(sine);
+  return { sine, cosine };
+}
+
+function tinyTrig(x, rounding) {
+  // For |x| < 2^-64, |sin(x)| is immediately below |x| and cos(x) is
+  // immediately below 1, by less than half an ext80 ulp. Directed rounding
+  // still matters, even for the smallest subnormal.
+  let exponent = x.exponent || (x.sig & J ? 1 : 0),
+    sig = x.sig;
+  const away = rounding === 0 || (rounding === 1 && x.negative) || (rounding === 2 && !x.negative);
+  if (!away) {
+    if (sig === J && exponent > 1) {
+      exponent--;
+      sig = 2n * J - 1n;
+    } else {
+      sig--;
+      if (sig < J) exponent = 0;
+    }
+  }
+  const denormal = x.denormal ? 2 : 0;
+  const sine = answer(
+    pack(sig, exponent, x.negative),
+    0x20 | denormal | (!exponent ? 0x10 : 0),
+    away,
+  );
+  const cosUp = rounding === 0 || rounding === 2;
+  const cosine = answer(
+    pack(cosUp ? J : 2n * J - 1n, cosUp ? 16383 : 16382, false),
+    0x20 | denormal,
+    cosUp,
+  );
+  return { sine, cosine };
+}
+
+export function sincos(xBytes, rounding) {
+  const x = unpack(xBytes),
+    nan = specialNaN(x);
+  if (nan || x.infinity) {
+    const result = nan ?? invalid();
+    return { sine: result, cosine: result };
+  }
+  if (x.exponent >= 16383 + 63) return { outOfRange: true };
+  if (x.zero) return { sine: zero(x.negative), cosine: answer(pack(J, 16383, false)) };
+  if (x.exponent < 16383 - 64) return tinyTrig(x, rounding);
+  for (let precision = 192; precision <= 6144; precision *= 2) {
+    const bounds = trigInterval(x, precision);
+    if (!bounds) continue;
+    const result = {};
+    for (const name of ['sine', 'cosine']) {
+      const lo = roundDyadic(bounds[name][0], -precision, rounding);
+      const hi = roundDyadic(bounds[name][1], -precision, rounding);
+      lo.flags |= 0x20;
+      hi.flags |= 0x20;
+      if (sameResult(lo, hi)) result[name] = lo;
+    }
+    if (result.sine && result.cosine) return result;
+  }
+  throw Error('x87 trigonometric rounding could not be resolved within the precision bound');
 }

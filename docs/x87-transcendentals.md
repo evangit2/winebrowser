@@ -1,4 +1,4 @@
-# Extended-precision logarithm execution
+# Extended-precision transcendental execution
 
 `FYL2X` computes `ST(1) * log2(ST(0))`, writes ST(1), then pops the x87 stack.
 The runtime performs this operation directly on the guest's 80-bit encodings.
@@ -27,8 +27,31 @@ the destination is replaced or popped, consistent with the runtime's existing
 explicit exception boundary. Delivery to a Windows guest SEH handler remains
 unimplemented. This is not a claim of bit-for-bit agreement with every physical
 x87 implementation's transcendental approximation or NaN-payload selection.
-Other transcendental instructions, including the current BASS startup stop at
-`FSIN`, remain unfinished.
+The implementation does not yet cover the remaining x87 transcendental,
+environment-save/restore or exception-delivery instructions.
+
+## Sine, cosine and classification
+
+`FSIN`, `FCOS` and `FSINCOS` share a bounded integer implementation. Machin's
+identity supplies pi intervals; reduction to a quadrant and alternating Taylor
+series supply sine/cosine intervals. Bounds are refined until result bytes,
+exception bits and rounding direction agree. Tiny arguments use analytic
+bounds that preserve directed rounding even for the smallest ext80 subnormal.
+Both signs of zero are preserved. Finite inputs with magnitude at least 2^63
+set C2 and leave the operand and stack unchanged. Infinities, unsupported
+formats, NaNs, denormals and FSINCOS stack-capacity checks are handled separately.
+FSINCOS leaves cosine at ST(0) and sine at ST(1).
+
+These results target mathematical sine and cosine. They do not reproduce the
+finite-pi argument-reduction errors of a particular Intel processor, which can
+be substantial for large arguments, as Intel explains in its
+[x87 comparison](https://www.intel.com/content/www/us/en/developer/articles/technical/the-difference-between-x87-instructions-and-mathematical-functions.html).
+Programs depending on those exact hardware approximation errors are not verified.
+
+`FXAM` reads the raw ST(0) value and tag to set the normal, zero, denormal,
+infinity, NaN, unsupported or empty classification, plus the sign in C1. It
+does not modify the operand or raise a floating-point exception, including when
+the slot is empty or contains a signaling NaN.
 
 ## Verification
 
@@ -46,6 +69,16 @@ top. `npm run build:x87-log` rebuilds the fixture with normalized PE headers;
 `npm run test:x87-log` runs it in an isolated Chromium worker and writes
 `evidence/x87-log-browser-results.json`. `npm test` runs it through the Node
 runtime as well. These are correctness checks, not application benchmarks.
+
+`scripts/generate-x87-trig-vectors.py` independently uses Decimal arithmetic
+and Chudnovsky pi to generate 224 sine/cosine cases across all rounding modes.
+It increases precision for tiny inputs and includes nearby ext80 encodings of
+pi multiples, large in-range arguments and deterministic random values. The
+native `trigonometry.exe` fixture executes all three opcodes and checks exact
+bytes, C1/C2, exceptions and stack order. Rebuild with `npm run build:x87-trig`
+and run the isolated Chromium check with `npm run test:x87-trig`; its result is
+in `evidence/x87-trig-browser-results.json`. Unit tests add range rejection,
+precision-control independence, special values, stack faults and FXAM classes.
 
 Instruction and exception semantics follow Intel's
 [Software Developer's Manual](https://cdrdv2-public.intel.com/868137/325462-089-sdm-vol-1-2abcd-3abcd-4.pdf#page=1111),

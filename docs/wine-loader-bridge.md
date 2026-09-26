@@ -106,9 +106,9 @@ messages can execute. Installed DLLs remain local diagnostic inputs.
 Both Node and the Chromium worker pass source bootstrap, callback installation
 and packed BASS translation. WinMM mixer and multimedia time exports resolve,
 as do the native ACM/UCRT exports and virtual foreground-window queries. The
-OLE32 exports now resolve, including `CoCreateInstance`; the current stop is the
-unimplemented x87 `FSIN` instruction during BASS attach, after the now-supported
-extended-precision `FYL2X`. The game has not reached
+OLE32 exports now resolve, including `CoCreateInstance`. Extended-precision
+logarithms, trigonometry and `FXAM` now execute. The current stop is scalar SSE
+`MOVSD` in Wine's CRT, misclassified as a string instruction. The game has not reached
 its EXE entry or rendered a frame. Native ACM conversion and BASS playback have
 not been verified. The next work is x87 execution and the remaining native
 audio/Win32 services, followed by

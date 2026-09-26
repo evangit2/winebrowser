@@ -1,6 +1,6 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
-import { fyl2x } from './x87-transcendentals.js';
+import { fyl2x, sincos } from './x87-transcendentals.js';
 export const X87Op = Object.freeze({
   loadFloat: 0,
   loadInt: 1,
@@ -22,6 +22,8 @@ export const X87Op = Object.freeze({
   sign: 17,
   wait: 18,
   logarithm: 19,
+  trigonometric: 20,
+  examine: 21,
 });
 
 const POP = 1,
@@ -106,6 +108,9 @@ export function classifyX87(i, iced) {
   if (m === M.Fsqrt) return result(X87Op.sqrt);
   if (m === M.Frndint) return result(X87Op.round);
   if (m === M.Fyl2x) return result(X87Op.logarithm);
+  if (m === M.Fsin || m === M.Fcos || m === M.Fsincos)
+    return result(X87Op.trigonometric, m === M.Fsin ? 0 : m === M.Fcos ? 1 : 2);
+  if (m === M.Fxam) return result(X87Op.examine);
   if (m === M.Fabs || m === M.Fchs) return result(X87Op.sign, m === M.Fchs ? 1 : 0);
   if (m === M.Ftst) return result(X87Op.compare, 0, 0, ZERO);
   if (m === M.Fldcw) return result(X87Op.loadControl);
@@ -330,6 +335,21 @@ export class X87State {
       else this.#write(address, Uint8Array.of(status & 255, status >>> 8));
       return;
     }
+    if (op === X87Op.examine) {
+      // Do not use #value: examining an empty register must not raise #IS.
+      const value = this.values[this.top];
+      const view = new DataView(value.buffer, value.byteOffset, 10);
+      const significand = view.getBigUint64(0, true),
+        exponent = view.getUint16(8, true) & 0x7fff;
+      let condition;
+      if (this.tags[this.top] === 3) condition = 0x4100;
+      else if (exponent && !(significand & (1n << 63n))) condition = 0;
+      else if (exponent === 0x7fff) condition = significand === 1n << 63n ? 0x500 : 0x100;
+      else if (exponent === 0) condition = significand ? 0x4400 : 0x4000;
+      else condition = 0x400;
+      this.status = (this.status & ~0x4700) | condition | (value[9] & 0x80 ? 0x200 : 0);
+      return;
+    }
     if (op === X87Op.constant) {
       if (a >= 2 && ((this.control >>> 10) & 3) !== 0)
         throw Error('Directed rounding of x87 transcendental constants is unsupported');
@@ -434,6 +454,29 @@ export class X87State {
       if (result.roundedUp) this.status |= 0x200;
       this.#set(1, result.bytes);
       this.#pop();
+      return;
+    }
+    if (op === X87Op.trigonometric) {
+      const result = sincos(this.#value(0), (this.control >>> 10) & 3);
+      if (result.outOfRange) {
+        this.status |= 0x400;
+        return;
+      }
+      this.status &= ~0x600;
+      if (a === 2 && this.tags[(this.top - 1) & 7] !== 3) {
+        this.#exception(0x241, true);
+        this.#set(0, INDEFINITE);
+        this.#push(INDEFINITE);
+        return;
+      }
+      const selected = a === 0 ? result.sine : result.cosine;
+      const flags = a === 2 ? result.sine.flags | result.cosine.flags : selected.flags;
+      if (flags) this.#exception(flags, false);
+      if (selected.roundedUp) this.status |= 0x200;
+      if (a === 2) {
+        this.#set(0, result.sine.bytes);
+        this.#push(result.cosine.bytes);
+      } else this.#set(0, selected.bytes);
       return;
     }
     if (op === X87Op.compare) {

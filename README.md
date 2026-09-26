@@ -70,8 +70,8 @@ first D3D8 path, not full Hamsterball compatibility. The original Hamsterball EX
 has been recovered byte-for-byte from retained PE sections and is now an actual
 translation target. Its packed native BASS DLL now loads dependencies through the
 experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
-native ACM/UCRT and OLE32 exports, executes x87 `FYL2X`, and reaches the
-unimplemented `FSIN` instruction;
+native ACM/UCRT and OLE32 exports, executes x87 logarithms, trigonometry and
+classification, and reaches the CRT's unsupported scalar SSE `MOVSD`;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11
 frontends and broader D3D12 resources/shaders.
@@ -83,7 +83,7 @@ frontends and broader D3D12 resources/shaders.
 - Single-thread COM initialization and native in-process class activation from the package's registry. Real guest `DllGetClassObject`, class factories and objects execute through browser translation; native fixture tests cover reference counts, failure HRESULTs, server locks and unload/reload. Cross-apartment and external COM servers remain unsupported.
 - Writable PE sections invalidate overlapping translated blocks; memory operations end writable-code blocks before following instructions are decoded. A 4,096-block cache evicts old translations instead of ending large programs. Executable private allocations and changing code-page protections remain separate unfinished work.
 - Static PE TLS for one guest thread: initialized templates, zero-fill, aligned per-module storage, and process callbacks, including dynamic DLL loading.
-- Selected x87 loads/stores, integer conversions, stack operations, arithmetic, comparisons, round-to-integer and control/status instructions using an independently rebuildable SoftFloat ext80 Wasm library. `FYL2X` uses bounded extended-precision integer intervals, verified against 204 independent Decimal vectors in a native browser fixture. Other transcendental instructions, environment save/restore and general floating-point exception delivery remain unsupported; see [logarithm scope](docs/x87-transcendentals.md).
+- Selected x87 loads/stores, integer conversions, stack operations, arithmetic, comparisons, round-to-integer, classification and control/status instructions using an independently rebuildable SoftFloat ext80 Wasm library. `FYL2X`, `FSIN`, `FCOS` and `FSINCOS` use bounded extended-precision integer intervals, verified against independent Decimal vectors in native browser fixtures. Other transcendental instructions, environment save/restore and general floating-point exception delivery remain unsupported; see [numerical scope](docs/x87-transcendentals.md).
 - Conservative CPUID identification and RDTSC using the same monotonic virtual nanosecond counter as Wine performance queries; no host CPU features are exposed.
 - Selected SSE data moves, integer lane unpack/shuffle/XOR, LOCK XADD, ROL/ROR and bit scans (including legacy F3 encodings consistent with the virtual CPUID profile). Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.
 - Bootstrap API provider: standard output, synchronous file reads/writes, owned/unowned `MessageBoxA/W(MB_OK)` with standard icons, `Beep`, and process/time helpers, a reusable heap, dynamic module lookup, and UTF-16 services. The Wine parser supplies CommandLineToArgvW as guest code. See `API_NAMES` in `src/win32.js` for the exact list.

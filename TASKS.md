@@ -43,7 +43,11 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Execute `FYL2X` without narrowing ext80 operands. A native fixture passes
       204 independent high-precision vectors in Node and Chromium, including
       directed rounding, subnormals, overflow, status flags and stack behavior.
-- [ ] Continue BASS startup past its current unimplemented x87 `FSIN` instruction.
+- [x] Execute `FSIN`, `FCOS` and `FSINCOS` with ext80 rounding and range/stack
+      behavior; all 224 independent sine/cosine vector cases pass in a native
+      browser fixture. Implement non-destructive `FXAM` classification.
+- [ ] Continue BASS startup through the Wine CRT's scalar SSE path, starting
+      with `MOVSD`, currently misclassified as a string instruction.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

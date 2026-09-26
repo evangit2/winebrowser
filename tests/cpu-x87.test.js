@@ -92,6 +92,110 @@ test('FYL2X unmasked exceptions stop before modifying operands or popping; maske
   );
 });
 
+test('trig range rejection preserves both operands and stack even for FSINCOS, and valid operations clear C2', async () => {
+  for (const opcode of [0xfe, 0xff, 0xfb]) {
+    const { cpu, bytes } = await machine([0xdb, 0x28, 0xd9, opcode]);
+    cpu.r[0].value = DATA;
+    bytes.set(Buffer.from('00000000000000803e40', 'hex'), DATA); // +2^63
+    cpu.step(CODE);
+    assert.equal(cpu.x87.top, 7);
+    assert.equal(cpu.x87.status & 0x400, 0x400);
+    assert.equal(Buffer.from(cpu.x87.values[7]).toString('hex'), '00000000000000803e40');
+    cpu.x87.values[7].set(Buffer.from('00000000000000000080', 'hex')); // -0
+    cpu.x87.tags[7] = 1;
+    cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+    cpu.step(CODE + 2);
+    assert.equal(cpu.x87.status & 0x400, 0);
+    assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+    assert.equal(cpu.x87.top, opcode === 0xfb ? 6 : 7);
+    assert.equal(
+      Buffer.from(cpu.x87.values[cpu.x87.top]).toString('hex'),
+      opcode === 0xfe ? '00000000000000000080' : '0000000000000080ff3f',
+    );
+    if (opcode === 0xfb)
+      assert.equal(Buffer.from(cpu.x87.values[7]).toString('hex'), '00000000000000000080');
+  }
+});
+
+test('FSINCOS checks stack capacity and unmasked exceptions before replacing the original value', async () => {
+  const { cpu } = await machine([0xd9, 0xfb]);
+  const one = Buffer.from('0000000000000080ff3f', 'hex');
+  cpu.x87.values.forEach((value) => value.set(one));
+  cpu.x87.tags.fill(0);
+  cpu.x87.control &= ~1;
+  assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x1/);
+  assert.equal(cpu.x87.top, 0);
+  assert.equal(cpu.x87.status & 0x241, 0x241);
+  assert.equal(Buffer.from(cpu.x87.values[0]).toString('hex'), one.toString('hex'));
+  cpu.x87.control |= 1;
+  cpu.step(CODE);
+  assert.equal(cpu.x87.top, 7);
+  for (const index of [0, 7])
+    assert.equal(Buffer.from(cpu.x87.values[index]).toString('hex'), '00000000000000c0ffff');
+  cpu.x87.reset();
+  cpu.x87.tags[0] = 2;
+  cpu.x87.values[0].set(Buffer.from('0000000000000080ff7f', 'hex'));
+  cpu.x87.control &= ~1;
+  assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x1/);
+  assert.equal(cpu.x87.top, 0);
+  assert.equal(cpu.x87.tags[7], 3);
+  assert.equal(Buffer.from(cpu.x87.values[0]).toString('hex'), '0000000000000080ff7f');
+});
+
+test('trig results retain ext80 precision under all precision-control settings', async () => {
+  const { vectors } = JSON.parse(
+    await readFile(new URL('./fixtures/x87-trig-vectors.json', import.meta.url)),
+  );
+  const cases = vectors.filter((v) => v.name === 'one');
+  const { cpu, bytes } = await machine([0xdb, 0x28, 0xd9, 0xfb, 0xdb, 0x3a, 0xdb, 0x39]);
+  cpu.r[0].value = DATA;
+  cpu.r[1].value = DATA + 16; // sine
+  cpu.r[2].value = DATA + 32; // cosine
+  for (const pc of [0, 2, 3])
+    for (const v of cases) {
+      cpu.x87.reset();
+      cpu.x87.control = 0x7f | (pc << 8) | (v.mode << 10);
+      bytes.set(Buffer.from(v.x, 'hex'), DATA);
+      cpu.step(CODE);
+      assert.equal(Buffer.from(bytes.slice(DATA + 16, DATA + 26)).toString('hex'), v.sine.output);
+      assert.equal(Buffer.from(bytes.slice(DATA + 32, DATA + 42)).toString('hex'), v.cosine.output);
+      assert.equal(cpu.x87.top, 0);
+    }
+});
+
+test('FXAM classifies every value class and sign, including empty and signaling NaN, without exceptions', async () => {
+  const { cpu } = await machine([0xd9, 0xe5]);
+  const cases = [
+    ['0000000000000080ff3f', 0, 0x400], // normal
+    ['0000000000000080ff7f', 2, 0x500], // infinity
+    ['00000000000000000000', 1, 0x4000], // zero
+    ['01000000000000000000', 2, 0x4400], // denormal
+    ['01000000000000c0ff7f', 2, 0x100], // quiet NaN
+    ['0100000000000080ff7f', 2, 0x100], // signaling NaN
+    ['0100000000000000ff3f', 2, 0], // unsupported unnormal
+    ['0000000000000080ff3f', 3, 0x4100], // stale normal in an empty slot
+    ['00000000000000000000', 3, 0x4100], // empty takes precedence over zero
+  ];
+  for (const [hex, tag, expected] of cases)
+    for (const sign of [0, 1]) {
+      cpu.x87.reset();
+      cpu.x87.top = 5;
+      cpu.x87.control = 0x0300; // All exceptions unmasked; FXAM raises none.
+      cpu.x87.values[5].set(Buffer.from(hex, 'hex'));
+      cpu.x87.values[5][9] |= sign << 7;
+      cpu.x87.tags[5] = tag;
+      cpu.x87.status = 0x477f; // Preserve prior exception flags.
+      const before = cpu.x87.values[5].slice();
+      cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+      cpu.step(CODE);
+      assert.equal(cpu.x87.status, 0x7f | expected | (sign << 9));
+      assert.equal(cpu.x87.top, 5);
+      assert.equal(cpu.x87.tags[5], tag);
+      assert.deepEqual(cpu.x87.values[5], before);
+      assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+    }
+});
+
 test('x87 loads mixed binary formats, performs ext80 arithmetic, and stores rounded f64', async () => {
   const { cpu, view } = await machine([
     0xd9,
