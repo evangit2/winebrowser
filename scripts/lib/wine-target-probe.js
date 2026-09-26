@@ -238,16 +238,19 @@ export async function probeWineTarget(
         report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
         // Snapshot the runtime bytes of very hot blocks. Packed images
         // self-modify, so static disassembly of those regions is unusable.
+        const HOT_SAMPLE_THRESHOLD = 20000;
+        const sampled = report.blockHistogram[hotKey];
         if (
           hot.module &&
-          report.blockHistogram[hotKey] === 200000 &&
+          sampled >= HOT_SAMPLE_THRESHOLD &&
+          !report.memorySamples.some((entry) => entry.key.startsWith(hotKey + '@')) &&
           report.memorySamples.length < 16
         ) {
           try {
             const module = guestModules().find((m) => m.name === hot.module);
             const address = module.base + Number(BigInt(hot.offset));
             report.memorySamples.push({
-              key: `${hotKey}@200k`,
+              key: `${hotKey}@${sampled}`,
               bytes: [...runtime.data.slice(address, address + 64)].map((b) =>
                 b.toString(16).padStart(2, '0'),
               ),
