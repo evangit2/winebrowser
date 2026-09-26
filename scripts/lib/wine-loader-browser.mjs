@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
 
 const probes = {
+  winmm: { script: 'winmm-probe.js', entry: 'probeWinmm' },
   loader: { script: 'wine-loader-probe.js', entry: 'probeWineLoader' },
   crt: { script: 'wine-crt-probe.js', entry: 'probeWineCrt' },
   target: { script: 'wine-target-probe.js', entry: 'probeWineTarget' },
@@ -120,3 +121,4 @@ async function probeInBrowser(root, kind, input) {
 export const probeWineLoaderInBrowser = (root, input) => probeInBrowser(root, 'loader', input);
 export const probeWineCrtInBrowser = (root, input) => probeInBrowser(root, 'crt', input);
 export const probeWineTargetInBrowser = (root, input) => probeInBrowser(root, 'target', input);
+export const probeWinmmInBrowser = (root, input) => probeInBrowser(root, 'winmm', input);

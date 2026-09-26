@@ -12,6 +12,35 @@ export async function savePackage(id, bytes) {
   await stream.write(bytes);
   await stream.close();
 }
+
+export async function packageFilesId(files) {
+  const entries = [];
+  for (const [path, bytes] of [...files].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    entries.push([path, bytes.length, await packageId(bytes)]);
+  return packageId(new TextEncoder().encode(JSON.stringify(entries)));
+}
+
+export async function savePackageFiles(id, files) {
+  const root = await navigator.storage.getDirectory();
+  const base = await root.getDirectoryHandle('winebrowser-file-packages', { create: true });
+  const dir = await base.getDirectoryHandle(id, { create: true });
+  const entries = [];
+  // Stable names make repeated saves of the same content-addressed package
+  // safe even when selection order changes or a prior worker was terminated.
+  for (const [path, bytes] of [...files].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    const name = String(entries.length);
+    const file = await dir.getFileHandle(name, { create: true });
+    const stream = await file.createWritable();
+    await stream.write(bytes);
+    await stream.close();
+    entries.push({ path, file: name, bytes: bytes.length });
+  }
+  // Publish the index last, after all file writes finish.
+  const index = await dir.getFileHandle('manifest.json', { create: true });
+  const stream = await index.createWritable();
+  await stream.write(JSON.stringify({ version: 1, entries }));
+  await stream.close();
+}
 export async function saveOutputs(id, outputs) {
   const root = await navigator.storage.getDirectory();
   const base = await root.getDirectoryHandle('winebrowser-output', { create: true });

@@ -52,6 +52,7 @@ export class Runtime {
       graphics,
       graphics12,
       performanceNow,
+      hostModuleImages = true,
     },
   ) {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
@@ -69,12 +70,14 @@ export class Runtime {
     this.graphics = graphics;
     this.graphics12 = graphics12;
     this.performanceClock = new GuestPerformanceClock(performanceNow);
-    this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles);
+    this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles, { hostModuleImages });
     this.memory = new WebAssembly.Memory({ initial: 1024, maximum: 1024 });
     this.regions = [{ start: 0x2e00000, end: 0x4000000, write: true, exec: false }];
     this.graph.map(this.memory, this.regions);
     this.pe = this.graph.main.pe;
-    this.guestMemory = new GuestMemory(this.memory, this.regions);
+    this.guestMemory = new GuestMemory(this.memory, this.regions, {
+      onCodeWrite: (address, size) => this.cpu?.invalidateRange(address, size),
+    });
     this.virtualMemory = new VirtualMemory(this.memory, this.regions);
     this.sectionViews = new SectionViews(this.memory, this.regions, this.virtualMemory);
     this.nls = createNlsState(this.files, this.cwd, nlsFiles);
@@ -133,7 +136,7 @@ export class Runtime {
     const argument = (index) => this.read32(stackPointer + 4 + index * 4);
     let response;
     if (entry.kind === 'wine-nt') response = await dispatchWineNt(this, entry);
-    else if (entry.kind === 'com') {
+    else if (entry.kind === 'com' || entry.kind === 'wine-loader') {
       this.calls++;
       if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);
       response = await entry.invoke(this, argument);
@@ -155,7 +158,7 @@ export class Runtime {
   }
 
   refreshCodeRanges() {
-    this.cpu.ranges = this.regions.filter((r) => r.exec).map((r) => [r.start, r.end]);
+    this.cpu.ranges = this.regions.filter((r) => r.exec).map((r) => [r.start, r.end, !!r.write]);
   }
   allocate(size, zero = true) {
     return this.heap.allocate(size, zero);
@@ -213,6 +216,7 @@ export class Runtime {
       flags = { ...this.cpu.f },
       auxiliaryCarry = this.cpu.af,
       direction = this.cpu.df,
+      controlFlags = this.cpu.controlFlags,
       simd = this.cpu.simd.snapshot(),
       // Host-driven callbacks are an isolation boundary: as with GPR/SIMD
       // state, their x87 stack is restored after return. Direct guest CALLs
@@ -234,6 +238,7 @@ export class Runtime {
       this.cpu.f = flags;
       this.cpu.af = auxiliaryCarry;
       this.cpu.df = direction;
+      this.cpu.controlFlags = controlFlags;
       this.cpu.simd.restore(simd);
       this.cpu.x87.restore(x87);
       this.callDepth--;
@@ -244,6 +249,7 @@ export class Runtime {
     for (const module of this.graph.modules.values()) installWineNtBridge(this, module);
     const ntdll = this.graph.modules.get('ntdll.dll');
     if (ntdll) await initializeWineProcess(this, ntdll);
+    await this.wineLoader?.sync();
     for (const module of this.graph.initializationOrder()) {
       if (module.initialized || module.initializing) continue;
       module.initializing = true;
@@ -260,6 +266,7 @@ export class Runtime {
           throw error;
         }
         module.initialized = true;
+        await this.wineLoader?.sync();
         if (this.exitCode !== null) return;
       } finally {
         module.initializing = false;
@@ -303,7 +310,7 @@ export class Runtime {
         }
         if (
           module.initialized &&
-          !checkpoint.modules.get(module.name)?.state.initialized &&
+          !checkpoint.modules.get(module.key)?.state.initialized &&
           module.pe.entryPoint
         ) {
           try {
@@ -314,12 +321,15 @@ export class Runtime {
         }
       }
       this.tls.restore(tlsCheckpoint);
+      await this.wineLoader?.forget(
+        [...this.graph.modules.values()].filter((module) => !checkpoint.modules.has(module.key)),
+      );
       for (const module of this.graph.modules.values()) {
-        if (module.ntBridge?.tebSlot && !checkpoint.modules.get(module.name)?.state.ntBridge)
+        if (module.ntBridge?.tebSlot && !checkpoint.modules.get(module.key)?.state.ntBridge)
           this.write32(module.ntBridge.tebSlot, 0);
-        if (module.mapped && !checkpoint.modules.get(module.name)?.state.mapped)
+        if (module.mapped && !checkpoint.modules.get(module.key)?.state.mapped)
           this.data.fill(0, module.base, module.base + module.pe.imageSize);
-        else if (module.ntBridge && !checkpoint.modules.get(module.name)?.state.ntBridge)
+        else if (module.ntBridge && !checkpoint.modules.get(module.key)?.state.ntBridge)
           this.write32(module.ntBridge.slot, 0);
       }
       if (this.wineProcess && this.wineProcess !== wineProcess) {
@@ -328,6 +338,7 @@ export class Runtime {
         if (ntdllBeforeBootstrap) this.data.set(ntdllBeforeBootstrap, existingNtdll.base);
       }
       this.graph.restore(checkpoint);
+      await this.wineLoader?.sync();
       this.wineProcess = wineProcess;
       restoreWineProcessPointers(this, processPointers);
       // DLL callbacks may have changed process virtual allocations. Remove
@@ -338,12 +349,12 @@ export class Runtime {
       this.regions.splice(0, this.regions.length, ...retained);
       this.refreshCodeRanges();
       this.cpu.clearCache(); // Compiled code may refer to unloaded guest addresses.
-      if (!guestStarted) error.win32Error = missingError;
+      if (!guestStarted) error.win32Error ??= missingError;
       throw error;
     }
   }
-  async loadLibrary(name) {
-    const module = await this.withModuleLoad(() => this.graph.load(name, true));
+  async loadLibrary(name, options = {}) {
+    const module = await this.withModuleLoad(() => this.graph.load(name, true, options));
     return module.base;
   }
   async freeLibrary(base) {
@@ -365,13 +376,24 @@ export class Runtime {
       };
     for (const root of this.graph.startupModules) visit(root);
     for (const candidate of this.graph.modules.values())
-      if (candidate.host || candidate.refs > 0 || candidate === this.wineProcess?.module)
+      if (
+        candidate.host ||
+        candidate.pinned ||
+        candidate.refs > 0 ||
+        candidate === this.wineProcess?.module
+      )
         visit(candidate);
     const removed = new Set(
       [...this.graph.modules.values()].filter((candidate) => !live.has(candidate)),
     );
-    if (!removed.size) return true;
-    const removedNames = new Set([...removed].map((candidate) => candidate.name));
+    if (!removed.size) {
+      await this.wineLoader?.sync();
+      return true;
+    }
+    const removedNames = new Set(
+      [...removed].filter((candidate) => candidate.host).map((candidate) => candidate.name),
+    );
+    const removedKeys = new Set([...removed].map((candidate) => candidate.key));
 
     const order = this.graph
       .initializationOrder()
@@ -395,6 +417,7 @@ export class Runtime {
       this.write32(0x2e0002c, 0);
     }
 
+    await this.wineLoader?.forget(removed);
     for (const candidate of removed) {
       if (
         candidate.ntBridge?.tebSlot &&
@@ -408,17 +431,18 @@ export class Runtime {
         candidate.mapped = false;
         candidate.base = 0;
       }
-      this.graph.modules.delete(candidate.name);
+      this.graph.modules.delete(candidate.key);
     }
     for (const [address, thunk] of this.graph.thunks)
       if (removedNames.has(thunk.dll)) this.graph.thunks.delete(address);
     this.regions.splice(
       0,
       this.regions.length,
-      ...this.regions.filter((region) => !removedNames.has(region.module)),
+      ...this.regions.filter((region) => !removedKeys.has(region.module)),
     );
     this.refreshCodeRanges();
     this.cpu.clearCache();
+    await this.wineLoader?.sync();
     return true;
   }
   async resolveExport(module, symbol) {

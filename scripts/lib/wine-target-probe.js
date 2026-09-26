@@ -2,6 +2,8 @@ import { Runtime, API_NAMES } from '../../src/runtime.js';
 import { parsePE } from '../../src/pe.js';
 import { installWineNtBridge } from '../../src/wine-nt.js';
 import { initializeWineProcess } from '../../src/wine-process.js';
+import { WebGPURenderer } from '../../src/webgpu-renderer.js';
+import { WineLoader, wineModulePath } from '../../src/wine-loader.js';
 
 const hex = (value) => `0x${(value >>> 0).toString(16)}`;
 
@@ -16,13 +18,18 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     trappedImports: [],
     apiCalls: [],
     output: [],
+    requests: [],
+    frames: 0,
+    nativeLoaderCalls: [],
     firstFailure: null,
   };
   const restore = new Map();
+  const recentBlocks = [];
   let runtime,
+    graphics,
     phase = 'map guest closure',
     lastIP;
-  const guestModules = () => [...runtime.graph.modules.values()].filter((m) => !m.host);
+  const guestModules = () => [...runtime.graph.modules.values()].filter((m) => m.mapped);
   const locate = (address) => {
     const module =
       runtime && guestModules().find((m) => address >= m.base && address < m.base + m.pe.imageSize);
@@ -33,27 +40,40 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     };
   };
   try {
-    const hostBoundary = new Set([
-      'user32.dll',
-      'gdi32.dll',
-      'advapi32.dll',
-      'shell32.dll',
-      'd3d9.dll',
-    ]);
-    for (const imported of parsePE(files.get(exe)).imports) {
+    const nativeNames = new Set(
+      [...files.keys(), ...builtinFiles.keys()].map((path) => path.split('/').at(-1).toLowerCase()),
+    );
+    const imports = [];
+    for (const [name, bytes] of [...files, ...builtinFiles])
+      if (name === exe || name.endsWith('.dll'))
+        imports.push(...parsePE(bytes, { allowDll: name !== exe }).imports);
+    for (const imported of imports) {
       const dll = imported.dll.toLowerCase(),
-        name = imported.name;
-      if (!hostBoundary.has(dll) || API_NAMES[dll]?.includes(name)) continue;
-      if (!name) throw Error(`Unsupported diagnostic ordinal import ${dll}!#${imported.ordinal}`);
+        name = imported.name ?? `#${imported.ordinal}`;
+      if (nativeNames.has(dll) || API_NAMES[dll]?.includes(name)) continue;
       if (!restore.has(dll)) restore.set(dll, API_NAMES[dll]);
       API_NAMES[dll] = [...(API_NAMES[dll] ?? []), name];
       report.trappedImports.push(`${dll}!${name}`);
     }
+    graphics = new WebGPURenderer({
+      emit: (message) => {
+        if (message.type === 'frame') report.frames++;
+        message.bitmap?.close();
+      },
+    });
     runtime = new Runtime(iced, {
       files,
       exe,
       builtinFiles,
       nlsFiles,
+      hostModuleImages: true,
+      graphics,
+      request: async (kind, detail) => {
+        report.requests.push({ kind, ...detail });
+        throw Error(
+          `Application requested ${kind}: ${detail.title ?? ''} ${detail.text ?? ''}`.trim(),
+        );
+      },
       // Startup may include native timing calibration loops. Keep a bounded
       // diagnostic budget large enough to observe their eventual API calls.
       maxBlocks: 10_000_000,
@@ -75,8 +95,52 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       },
     });
     const prepare = runtime.cpu.prepare.bind(runtime.cpu);
+    const loaderEntries = new Map();
+    for (const module of guestModules())
+      for (const entry of module.pe.exports)
+        if (!entry.forwarder && ['LdrLoadDll', 'LdrGetProcedureAddress'].includes(entry.name))
+          loaderEntries.set(module.base + entry.rva, entry.name);
+    const pendingLoaderCalls = [];
     runtime.cpu.prepare = (ip) => {
       lastIP = ip;
+      const stack = runtime.cpu.r[4].value >>> 0;
+      for (let i = pendingLoaderCalls.length - 1; i >= 0; i--)
+        if (
+          pendingLoaderCalls[i].returnAddress === ip &&
+          pendingLoaderCalls[i].returnStack === stack
+        ) {
+          pendingLoaderCalls[i].record.status = hex(runtime.cpu.r[0].value);
+          pendingLoaderCalls.splice(i, 1);
+        }
+      const loader = loaderEntries.get(ip);
+      if (loader) {
+        const record = { name: loader };
+        try {
+          const args = Array.from({ length: 4 }, (_, i) => runtime.read32(stack + 4 + i * 4));
+          record.args = args;
+          if (loader === 'LdrLoadDll') record.dll = runtime.wideString(runtime.read32(args[2] + 4));
+          else {
+            record.dll = [...runtime.graph.modules.values()].find((m) => m.base === args[0])?.name;
+            record.symbol = args[1] ? runtime.string(runtime.read32(args[1] + 4)) : args[2];
+          }
+          pendingLoaderCalls.push({
+            record,
+            returnAddress: runtime.read32(stack),
+            returnStack: stack + 20,
+          });
+          if (pendingLoaderCalls.length > 64) pendingLoaderCalls.shift();
+        } catch (error) {
+          record.traceError = error.message;
+        }
+        report.nativeLoaderCalls.push(record);
+        if (report.nativeLoaderCalls.length > 64) report.nativeLoaderCalls.shift();
+      }
+      recentBlocks.push({
+        ...locate(ip),
+        registers: runtime.cpu.r.map((r) => hex(r.value)),
+        flags: { ...runtime.cpu.f, af: runtime.cpu.af, df: runtime.cpu.df },
+      });
+      if (recentBlocks.length > 16) recentBlocks.shift();
       return prepare(ip);
     };
     const api = runtime.api.bind(runtime);
@@ -117,6 +181,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
           registers: runtime.cpu.r.map((r) => hex(r.value)),
           compiledBlocks: runtime.cpu.cache.size,
           instructions: runtime.cpu.instructions,
+          recentBlocks: recentBlocks.slice(),
         };
         throw error;
       }
@@ -136,16 +201,14 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       const table = runtime.allocate(modules.length * 16);
       allocated.push(table);
       modules.forEach((module, i) => {
-        const name = runtime.allocString(
-          `\\??\\C:\\winebrowser\\${(module.path.startsWith('@runtime/') ? module.name : module.path).replaceAll('/', '\\')}`,
-          true,
-        );
+        const name = runtime.allocString(wineModulePath(module), true);
         allocated.push(name);
         [
           16,
           module.base,
           name,
-          module === runtime.graph.main ? 1 : module === ntdll ? 2 : 0,
+          (module === runtime.graph.main ? 1 : module === ntdll ? 2 : 0) |
+            (module.initialized ? 4 : 0),
         ].forEach((value, n) => runtime.write32(table + i * 16 + n * 4, value));
       });
       const batch = runtime.allocate(16);
@@ -156,6 +219,9 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     } finally {
       for (const pointer of allocated) runtime.free(pointer);
     }
+    report.phases.push({ name: phase, passed: true });
+    phase = 'source loader callbacks';
+    await new WineLoader(runtime, ntdll).enable();
     report.phases.push({ name: phase, passed: true });
     phase = 'guest DLL attach';
     await runtime.initializeModules();
@@ -186,6 +252,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     }
     runtime?.windows.dispose();
     runtime?.cpu.dispose();
+    graphics?.dispose();
   }
   return report;
 }

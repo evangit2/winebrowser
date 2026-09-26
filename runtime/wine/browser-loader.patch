@@ -1,22 +1,26 @@
 --- a/dlls/ntdll/loader.c
 +++ b/dlls/ntdll/loader.c
-@@ -90,6 +90,7 @@
+@@ -90,6 +90,9 @@
  
  static BOOL is_prefix_bootstrap;  /* are we bootstrapping the prefix? */
  static BOOL imports_fixup_done = FALSE;  /* set once the imports have been fixed up, before attaching them */
++typedef NTSTATUS (WINAPI *browser_loader_callback)( ULONG, ULONG_PTR, ULONG_PTR, ULONG_PTR, ULONG_PTR, ULONG_PTR );
++static browser_loader_callback browser_callback;
 +static BOOL browser_bridge_mode;  /* opt-in, source-built browser loader bridge */
  static BOOL process_detaching = FALSE;  /* set on process detach to avoid deadlocks with thread detach */
  static int free_lib_count;   /* recursion depth of LdrUnloadDll calls */
  static LONG path_safe_mode;  /* path mode set by RtlSetSearchPathMode */
-@@ -2071,6 +2072,7 @@
+@@ -2071,6 +2074,9 @@
      DWORD exp_size;
      NTSTATUS ret = STATUS_PROCEDURE_NOT_FOUND;
  
-+    if (browser_bridge_mode) return STATUS_NOT_SUPPORTED; /* forwarders can load or change refs */
++    if (browser_bridge_mode)
++        return browser_callback ? browser_callback( 2, (ULONG_PTR)module, (ULONG_PTR)name, ord,
++                                                      (ULONG_PTR)address, 0 ) : STATUS_NOT_SUPPORTED;
      RtlEnterCriticalSection( &loader_section );
  
      /* check if the module itself is invalid to return the proper error */
-@@ -3330,6 +3332,7 @@
+@@ -3330,6 +3336,7 @@
      BOOL redirected;
      void *prev;
  
@@ -24,7 +28,7 @@
      TRACE( "looking for %s in %s\n", debugstr_w(libname), debugstr_w(load_path) );
  
      if (system && system_dll_path.Buffer)
-@@ -3437,6 +3440,185 @@
+@@ -3437,6 +3444,264 @@
      return WINE_UNIX_CALL( unix_wine_server_handle_to_fd, &params );
  }
  
@@ -207,22 +211,103 @@
 +#endif
 +}
 +
++
++/* The browser remains the only mapping/refcount/attach owner. Native callers
++ * enter a versioned callback; these helpers update Wine metadata only. */
++NTSTATUS WINAPI WineBrowserLoaderConfigure( ULONG version, browser_loader_callback callback )
++{
++    if (!browser_bridge_mode || browser_callback) return STATUS_INVALID_DEVICE_STATE;
++    if (version != 1 || !callback) return STATUS_INVALID_PARAMETER;
++    browser_callback = callback;
++    return STATUS_SUCCESS;
++}
++
++NTSTATUS WINAPI WineBrowserLoaderSync( HMODULE base, const WCHAR *path, ULONG flags, LONG refs )
++{
++    WINE_MODREF *wm;
++    NTSTATUS status = STATUS_SUCCESS;
++    const IMAGE_NT_HEADERS *nt;
++    UNICODE_STRING name;
++
++    if (!browser_bridge_mode || !browser_callback) return STATUS_INVALID_DEVICE_STATE;
++    if (!base || (flags & ~BROWSER_MODULE_ATTACHED) || refs < -1 || refs > 32767)
++        return STATUS_INVALID_PARAMETER;
++    if (path)
++    {
++        if (wcsnlen( path, MAX_PATH ) == MAX_PATH || wcsncmp( path, L"\\??\\", 4 ))
++            return STATUS_INVALID_PARAMETER;
++        if (!(nt = RtlImageNtHeader( base ))) return STATUS_INVALID_IMAGE_FORMAT;
++        if (nt->FileHeader.Machine != IMAGE_FILE_MACHINE_I386 ||
++            nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
++            (nt->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_TLS &&
++             nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress))
++            return STATUS_NOT_SUPPORTED;
++    }
++    RtlEnterCriticalSection( &loader_section );
++    wm = get_modref( base );
++    if (!path)
++    {
++        if (!wm) status = STATUS_DLL_NOT_FOUND;
++        else if (wm->ldr.DdagNode == node_ntdll || base == NtCurrentTeb()->Peb->ImageBaseAddress)
++            status = STATUS_INVALID_PARAMETER;
++        else browser_forget_module( wm );
++        goto done;
++    }
++    if (!wm)
++    {
++        if (!(nt->FileHeader.Characteristics & IMAGE_FILE_DLL))
++        {
++            status = STATUS_INVALID_IMAGE_FORMAT;
++            goto done;
++        }
++        RtlInitUnicodeString( &name, path );
++        if (!(wm = alloc_module( base, &name, FALSE )))
++        {
++            status = STATUS_NO_MEMORY;
++            goto done;
++        }
++        wm->ldr.Flags &= ~LDR_DONT_RESOLVE_REFS;
++    }
++    else if (wcsicmp( wm->ldr.FullDllName.Buffer, path + 4 ))
++    {
++        status = STATUS_OBJECT_NAME_COLLISION;
++        goto done;
++    }
++    wm->ldr.LoadCount = refs;
++    if ((flags & BROWSER_MODULE_ATTACHED) && !(wm->ldr.Flags & LDR_PROCESS_ATTACHED))
++    {
++        InsertTailList( &ldr.InInitializationOrderModuleList, &wm->ldr.InInitializationOrderLinks );
++        wm->ldr.Flags |= LDR_PROCESS_ATTACHED;
++    }
++    else if (!(flags & BROWSER_MODULE_ATTACHED) && (wm->ldr.Flags & LDR_PROCESS_ATTACHED))
++    {
++        RemoveEntryList( &wm->ldr.InInitializationOrderLinks );
++        wm->ldr.InInitializationOrderLinks.Flink = wm->ldr.InInitializationOrderLinks.Blink = NULL;
++        wm->ldr.Flags &= ~LDR_PROCESS_ATTACHED;
++    }
++done:
++    RtlLeaveCriticalSection( &loader_section );
++    return status;
++}
++
  /******************************************************************
   *		LdrLoadDll (NTDLL.@)
   */
-@@ -3445,7 +3627,10 @@
+@@ -3445,7 +3710,12 @@
  {
      WINE_MODREF *wm;
      NTSTATUS nts;
 -    WCHAR *dllname = append_dll_ext( libname->Buffer );
 +    WCHAR *dllname;
 +
-+    if (browser_bridge_mode) return STATUS_NOT_SUPPORTED; /* browser owns the module graph */
++    if (browser_bridge_mode)
++        return browser_callback ? browser_callback( 1, (ULONG_PTR)path_name, flags, (ULONG_PTR)libname,
++                                                      (ULONG_PTR)hModule, 0 ) : STATUS_NOT_SUPPORTED;
 +    dllname = append_dll_ext( libname->Buffer );
  
      RtlEnterCriticalSection( &loader_section );
  
-@@ -3516,6 +3701,25 @@
+@@ -3516,6 +3786,28 @@
      TRACE( "flags %#lx, load_path %p, dll_characteristics %p, name %p, base %p.\n",
              flags, load_path, dll_characteristics, name, base );
  
@@ -230,6 +315,9 @@
 +    {
 +        WCHAR basename[MAX_PATH];
 +        ULONG length;
++        if (browser_callback)
++            return browser_callback( 3, flags, (ULONG_PTR)load_path, (ULONG_PTR)dll_characteristics,
++                                     (ULONG_PTR)name, (ULONG_PTR)base );
 +        if (flags != LDR_GET_DLL_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT || load_path || dll_characteristics)
 +            return STATUS_NOT_SUPPORTED;
 +        if (!name || !name->Buffer || !base || (name->Length & 1) ||
@@ -248,15 +336,16 @@
      if (flags & ~valid_flags) return STATUS_INVALID_PARAMETER;
  
      if ((flags & (LDR_GET_DLL_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | LDR_GET_DLL_HANDLE_EX_FLAG_PIN))
-@@ -3572,6 +3776,7 @@
+@@ -3572,6 +3864,8 @@
      NTSTATUS ret = STATUS_SUCCESS;
      WINE_MODREF *wm;
  
-+    if (browser_bridge_mode) return STATUS_NOT_SUPPORTED;
++    if (browser_bridge_mode)
++        return browser_callback ? browser_callback( 4, flags, (ULONG_PTR)module, 0, 0, 0 ) : STATUS_NOT_SUPPORTED;
      if (flags & ~LDR_ADDREF_DLL_PIN) FIXME( "%p flags %lx not implemented\n", module, flags );
  
      RtlEnterCriticalSection( &loader_section );
-@@ -3891,6 +4096,7 @@
+@@ -3891,6 +4185,7 @@
  {
      BOOL detaching = process_detaching;
  
@@ -264,7 +353,7 @@
      TRACE("()\n");
  
      process_detaching = TRUE;
-@@ -3925,6 +4131,7 @@
+@@ -3925,6 +4220,7 @@
      UINT i;
      void **pointers;
  
@@ -272,15 +361,16 @@
      TRACE("()\n");
  
      /* don't do any detach calls if process is exiting */
-@@ -4100,6 +4307,7 @@
+@@ -4100,6 +4396,8 @@
      WINE_MODREF *wm;
      NTSTATUS retv = STATUS_SUCCESS;
  
-+    if (browser_bridge_mode) return STATUS_NOT_SUPPORTED;
++    if (browser_bridge_mode)
++        return browser_callback ? browser_callback( 5, (ULONG_PTR)hModule, 0, 0, 0, 0 ) : STATUS_NOT_SUPPORTED;
      if (process_detaching) return retv;
  
      TRACE("(%p)\n", hModule);
-@@ -4414,6 +4622,7 @@
+@@ -4414,6 +4712,7 @@
      ULONG_PTR cookie, port = 0;
      WINE_MODREF *wm;
  
@@ -290,11 +380,13 @@
      if (NtCurrentTeb()->SkipLoaderInit) return;
 --- a/dlls/ntdll/ntdll.spec
 +++ b/dlls/ntdll/ntdll.spec
-@@ -118,6 +118,7 @@
+@@ -118,6 +118,9 @@
  @ extern LdrSystemDllInitBlock
  @ stub LdrUnloadAlternateResourceModule
  @ stdcall LdrUnloadDll(ptr)
 +@ stdcall -private -arch=i386 WineBrowserLoaderBootstrap(ptr)
++@ stdcall -private -arch=i386 WineBrowserLoaderConfigure(long ptr)
++@ stdcall -private -arch=i386 WineBrowserLoaderSync(ptr ptr long long)
  @ stdcall LdrUnlockLoaderLock(long long)
  @ stdcall LdrUnregisterDllNotification(ptr)
  @ stub LdrVerifyImageMatchesChecksum

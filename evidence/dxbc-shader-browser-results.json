@@ -1,6 +1,6 @@
 {
   "scope": "Browser-worker DXBC SM5 and licensed Wine VS1.1/PS2.0 token streams -> SPIR-V -> WGSL; WebGPU draw covers SM5 and is separate from Windows EXE acceptance",
-  "browser": "153.0.8010.48",
+  "browser": "154.0.8037.57",
   "sourceHashes": [
     "15514bd251d50567365499ff9e8bb7b8516538e8440d9ede3fd1b63b875cd73a",
     "c94dd3ed71e1f0e8a7f103940d2999b0cccb03f789eb2b4d741a31923f106768",
@@ -8,7 +8,7 @@
     "2a3343269640171fd70fdfe41b052822e086028451cfd1777456d45463f20c53"
   ],
   "type": "shader-result",
-  "compilationMs": 56.69499999284744,
+  "compilationMs": 80.89499998092651,
   "drawOffsetPreserved": true,
   "rootSignatures": [
     {

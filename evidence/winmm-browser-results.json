@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-26T00:29:25.511Z",
+  "exeSha256": "b6067064c456d9d9565fa4f07fd41b521ea4c554cb24f06a5fdefab428bfa53a",
+  "status": "passed",
+  "pcm": [
+    {
+      "sampleRate": 8000,
+      "frames": 2,
+      "samples": [
+        [
+          -0.5000076293945312,
+          0.49999237060546875
+        ],
+        [
+          0.2500038146972656,
+          -0.1250019073486328
+        ]
+      ]
+    },
+    {
+      "sampleRate": 8000,
+      "frames": 2,
+      "samples": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "exitCode": 0,
+  "instructions": 256,
+  "scope": "Native PE32 WinMM ABI and exact samples at the browser PCM driver boundary; no claim about physical speaker output.",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}

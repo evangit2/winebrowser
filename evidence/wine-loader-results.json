@@ -1,17 +1,18 @@
 {
-  "date": "2026-09-19T01:33:22.739Z",
+  "date": "2026-09-25T22:07:56.111Z",
   "scope": "Experimental source-built Wine loader metadata and version bootstrap. No application entry point or graphics execution; normal package loading is unchanged.",
   "build": {
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4",
-    "dllSha256": "dced01257a23d2d7693d13149d2a40a70d6e9a26ab2132d2670e33aee9c62bd1",
-    "dllBytes": 3780616,
+    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097",
+    "dllSha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94",
+    "dllBytes": 3797467,
     "compilers": {
       "native": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
       "i386": "i686-w64-mingw32-gcc (GCC) 16.1.0"
     }
   },
+  "legacyNonNxMain": true,
   "nls": [
     {
       "name": "c_1252.nls",
@@ -63,11 +64,11 @@
         },
         {
           "name": "ntdll.dll",
-          "base": 16777216
+          "base": 16842752
         },
         {
           "name": "math.dll",
-          "base": 20316160
+          "base": 20381696
         }
       ],
       "passed": true
@@ -92,13 +93,46 @@
         3221225659,
         3221225659
       ]
+    },
+    {
+      "name": "native loader callbacks and real host export tables",
+      "realPeExports": true,
+      "unchangedFailureOutput": true,
+      "passed": true
+    },
+    {
+      "name": "native DLL refcounts, pinning and metadata removal",
+      "independentSameNameDll": true,
+      "guestLoaderListChecked": true,
+      "passed": true
+    },
+    {
+      "name": "native load attach failure rolls back both module graphs",
+      "retries": 2,
+      "passed": true
+    },
+    {
+      "name": "native forwarder lookup uses the browser dependency graph",
+      "passed": true
+    },
+    {
+      "name": "native registration allocation failures roll back before attach",
+      "allocationFailurePoints": 3,
+      "retrySucceeded": true,
+      "passed": true
+    },
+    {
+      "name": "native loader rejects malformed descriptors before changing references",
+      "passed": true
     }
   ],
-  "blocks": 12052,
+  "blocks": 25983,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",
+    "ntdll.dll!NtSetInformationProcess",
+    "ntdll.dll!NtSetInformationProcess",
     "ntdll.dll!NtQuerySystemInformation",
     "ntdll.dll!NtQueryInformationToken",
     "ntdll.dll!NtCreateKey",
@@ -112,11 +146,46 @@
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtProtectVirtualMemory",
     "ntdll.dll!NtProtectVirtualMemory",
-    "ntdll.dll!NtFreeVirtualMemory"
+    "ntdll.dll!NtFreeVirtualMemory",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "kernel32.dll!GetLastError",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback",
+    "WineBrowserLoaderCallback"
   ],
   "modules": [
     {
       "name": "console.exe",
+      "path": "console.exe",
       "host": false,
       "base": 4194304,
       "preferredBase": 4194304,
@@ -125,25 +194,38 @@
     },
     {
       "name": "kernel32.dll",
+      "path": "@host/kernel32.dll",
       "host": true,
-      "base": 1879048192,
+      "base": 16777216,
+      "preferredBase": 268435456,
       "refs": 0,
       "initialized": true
     },
     {
       "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
       "host": false,
-      "base": 16777216,
+      "base": 16842752,
       "preferredBase": 2076180480,
       "refs": 1,
       "initialized": true
     },
     {
       "name": "math.dll",
+      "path": "math.dll",
       "host": false,
-      "base": 20316160,
+      "base": 20381696,
       "preferredBase": 268435456,
       "refs": 1,
+      "initialized": true
+    },
+    {
+      "name": "math.dll",
+      "path": "plugins/math.dll",
+      "host": false,
+      "base": 20512768,
+      "preferredBase": 268435456,
+      "refs": 0,
       "initialized": true
     }
   ]

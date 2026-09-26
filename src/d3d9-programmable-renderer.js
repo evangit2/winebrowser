@@ -6,7 +6,9 @@ const CONSTANT_BYTES = { vertex: 256 * 16, pixel: 224 * 16 };
 export class D3D9ProgrammableRenderer {
   constructor(owner) {
     this.owner = owner;
-    this.compiler = new ShaderCompiler();
+    // Factory/capability probes do not need browser shader assets. Resolve
+    // those URLs only when the first programmable draw actually needs them.
+    this.compiler = null;
     this.pipelines = new Map();
   }
 
@@ -58,6 +60,7 @@ export class D3D9ProgrammableRenderer {
     ].join('|');
     let cached = this.pipelines.get(key);
     if (cached) return cached;
+    this.compiler ??= new ShaderCompiler();
     const translated = await this.compiler.compileLegacyPair(
       command.vertexShader,
       command.pixelShader,

@@ -1,8 +1,101 @@
 {
-  "date": "2026-09-19T02:17:24.067Z",
+  "date": "2026-09-25T22:19:52.289Z",
   "targetId": "humus-dynamic-branching-d3d9-x86",
+  "exe": "dynamicbranching/dynamicbranching.exe",
   "exeSha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
   "archiveSha256": "8063039867fb69e4c58c6bad90f4aad80e43d0eb5c33818e1ba5a9c2be57077a",
+  "packageFiles": [
+    {
+      "name": "dynamicbranching/depthambient.shd",
+      "bytes": 435,
+      "sha256": "b5f89e989b1fb9e367b71fa57500340be28771654941b5bbf82b484f0a087e2e"
+    },
+    {
+      "name": "dynamicbranching/dynamicbranching.dsp",
+      "bytes": 7163,
+      "sha256": "3c086ee7a6b8e32c2c0719e2510fb05d431a8dc96955bf2da574c625d52a2677"
+    },
+    {
+      "name": "dynamicbranching/dynamicbranching.dsw",
+      "bytes": 555,
+      "sha256": "1a9c43ec3187ada28cd6cd25101b6b9b7fd44b31f7e6c5fdcc7a9d5c396c786d"
+    },
+    {
+      "name": "dynamicbranching/dynamicbranching.exe",
+      "bytes": 925696,
+      "sha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5"
+    },
+    {
+      "name": "dynamicbranching/if.shd",
+      "bytes": 411,
+      "sha256": "481045950c8b579040a85208e755abb2251650d68ac0808708b7c9275dd44d1d"
+    },
+    {
+      "name": "dynamicbranching/lighting.shd",
+      "bytes": 1585,
+      "sha256": "865b3f054522da77a1cbd884044ec99ed3d8afdf53340825039c3c8200d8e6e8"
+    },
+    {
+      "name": "dynamicbranching/main.cpp",
+      "bytes": 8514,
+      "sha256": "88d32ac76ce4227fa8924572a3641877129819b5abe3d40667fc379431e680ef"
+    },
+    {
+      "name": "models/pillarroom/map.hmdl",
+      "bytes": 57028,
+      "sha256": "bd881f835d4e52b93351194c992f59cbd7187ef8850c4c2f7d9ad72225c492d5"
+    },
+    {
+      "name": "readme.txt",
+      "bytes": 1101,
+      "sha256": "56dd528b14422b1bb9e1cfe27197aeb2330647f2181118bd864f8d436438204d"
+    },
+    {
+      "name": "textures/brick01.dds",
+      "bytes": 174904,
+      "sha256": "0c94736d677faa0d962f9e7f6c7688076652faee93130167813e59cb125a27e4"
+    },
+    {
+      "name": "textures/brick01bump.png",
+      "bytes": 74397,
+      "sha256": "3e8ea48fdb25da97f55d3f4c939b8c0a8572e2ad6bbb6f1105d6fd340889c823"
+    },
+    {
+      "name": "textures/fonts/future.dds",
+      "bytes": 349680,
+      "sha256": "9b7f4ea36194f5ab48e38b33dc8039a8aab0ce905d541aa6dee1ed5f30de2022"
+    },
+    {
+      "name": "textures/fonts/future.font",
+      "bytes": 5124,
+      "sha256": "878c2b3e5fa5961d0f3eacb564901e0e91dc185c834e48e01e4803f8cda1a2e3"
+    },
+    {
+      "name": "textures/laying_rock7.dds",
+      "bytes": 174904,
+      "sha256": "e8ea9d650264bba9b6267470db2cd0c603b08ca1112e719c4974358806188235"
+    },
+    {
+      "name": "textures/laying_rock7bump.png",
+      "bytes": 87309,
+      "sha256": "ecaa27e2311541d0882bd5c1b53a5e4818dc808a29a6081a53a540b318aeebf5"
+    },
+    {
+      "name": "textures/parqfloor2.dds",
+      "bytes": 174904,
+      "sha256": "b120f827ed239af7919a6ae298463eb70adea325acf330bc69a181698adfb292"
+    },
+    {
+      "name": "textures/parqfloor2bump.png",
+      "bytes": 8263,
+      "sha256": "7a4762e961cfc7ccff1cbe6d4793374319257237d7463f49090c30e812102795"
+    },
+    {
+      "name": "textures/particle.png",
+      "bytes": 613,
+      "sha256": "3987c11a7d2798dc189cd9309910ddfeecfb0551decfd1238c7a59b2d186e24d"
+    }
+  ],
   "inputs": {
     "manifest": ".cache/wine-loader/manifest.json",
     "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
@@ -10,9 +103,15 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4/build/dlls/ntdll/i386-windows/ntdll.dll",
-        "bytes": 3780616,
-        "sha256": "dced01257a23d2d7693d13149d2a40a70d6e9a26ab2132d2670e33aee9c62bd1"
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797467,
+        "sha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94"
+      },
+      {
+        "name": "wine-format.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "bytes": 10752,
+        "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
       },
       {
         "name": "msvcrt.dll",
@@ -79,7 +178,7 @@
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4"
+    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097"
   },
   "status": "blocked-guest",
   "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
@@ -90,6 +189,7 @@
       "modules": [
         {
           "name": "dynamicbranching.exe",
+          "path": "dynamicbranching/dynamicbranching.exe",
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
@@ -98,6 +198,7 @@
         },
         {
           "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
           "host": false,
           "base": 16777216,
           "preferredBase": 2071986176,
@@ -106,6 +207,7 @@
         },
         {
           "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
           "host": false,
           "base": 17235968,
           "preferredBase": 2076180480,
@@ -114,43 +216,54 @@
         },
         {
           "name": "user32.dll",
+          "path": "@host/user32.dll",
           "host": true,
-          "base": 1879048192,
+          "base": 20774912,
+          "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
         },
         {
           "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
           "host": true,
-          "base": 1879113728,
+          "base": 20840448,
+          "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
         },
         {
           "name": "shell32.dll",
+          "path": "@host/shell32.dll",
           "host": true,
-          "base": 1879179264,
+          "base": 20905984,
+          "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
         },
         {
           "name": "d3d9.dll",
+          "path": "@host/d3d9.dll",
           "host": true,
-          "base": 1879244800,
+          "base": 20971520,
+          "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
         },
         {
           "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
           "host": true,
-          "base": 1879310336,
+          "base": 21037056,
+          "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
         },
         {
           "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
           "host": false,
-          "base": 20774912,
+          "base": 21102592,
           "preferredBase": 2063597568,
           "refs": 0,
           "initialized": false
@@ -166,8 +279,25 @@
       "passed": true
     },
     {
+      "name": "source loader callbacks",
+      "passed": true
+    },
+    {
       "name": "guest DLL attach",
       "passed": true
+    },
+    {
+      "name": "window created",
+      "window": {
+        "id": 131072,
+        "title": "Title",
+        "width": 798,
+        "height": 570,
+        "icon": {
+          "width": 32,
+          "height": 32
+        }
+      }
     }
   ],
   "trappedImports": [
@@ -230,7 +360,7 @@
       "name": "NtQuerySystemInformation",
       "args": [
         1000,
-        17880736,
+        17884832,
         256,
         0
       ],
@@ -352,7 +482,7 @@
       "name": "NtInitializeNlsFiles",
       "args": [
         67103856,
-        17876712,
+        17880808,
         67104272
       ],
       "result": "0x0"
@@ -372,7 +502,7 @@
       "name": "NtQueryDefaultLocale",
       "args": [
         1,
-        21510820
+        21838500
       ],
       "result": "0x0"
     },
@@ -382,7 +512,7 @@
         12,
         1,
         0,
-        21505116,
+        21832796,
         67103932
       ],
       "result": "0x0"
@@ -403,7 +533,7 @@
     {
       "name": "NtCreateKey",
       "args": [
-        21510812,
+        21838492,
         983103,
         67103744,
         0,
@@ -416,7 +546,7 @@
     {
       "name": "NtCreateKey",
       "args": [
-        21510808,
+        21838488,
         983103,
         67103744,
         0,
@@ -453,7 +583,7 @@
     {
       "name": "NtCreateKey",
       "args": [
-        21510816,
+        21838496,
         983103,
         67103744,
         0,
@@ -759,32 +889,511 @@
         0
       ],
       "result": "0x0"
+    },
+    {
+      "name": "user32.dll!CreateWindowExA",
+      "args": [
+        0,
+        5056752,
+        5056716,
+        114229248
+      ],
+      "result": "0x20000"
+    },
+    {
+      "name": "user32.dll!DefWindowProcA",
+      "args": [
+        131072,
+        129,
+        0,
+        50331648
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "user32.dll!DefWindowProcA",
+      "args": [
+        131072,
+        131,
+        0,
+        50331696
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!ShowWindow",
+      "args": [
+        131072,
+        5,
+        800,
+        1
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!DefWindowProcA",
+      "args": [
+        131072,
+        24,
+        1,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!SetWindowTextA",
+      "args": [
+        131072,
+        67104096,
+        2016950583,
+        3159861
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "user32.dll!DefWindowProcA",
+      "args": [
+        131072,
+        12,
+        0,
+        67104096
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "d3d9.dll!Direct3DCreate9",
+      "args": [
+        31,
+        600,
+        800,
+        8
+      ],
+      "result": "0x3000050"
+    },
+    {
+      "name": "IDirect3D9.GetDeviceCaps",
+      "args": [
+        50331728,
+        0,
+        1,
+        39064840
+      ],
+      "error": "Unsupported COM method IDirect3D9.GetDeviceCaps"
     }
   ],
   "output": [],
+  "requests": [],
+  "frames": 0,
+  "nativeLoaderCalls": [],
   "firstFailure": {
     "phase": "native EXE entry point",
-    "message": "x86 block 0x10893b0: LOCK prefix requires a supported memory-destination RMW instruction",
+    "message": "Unsupported COM method IDirect3D9.GetDeviceCaps",
     "ip": {
-      "address": "0x10893b0",
-      "module": "ntdll.dll",
-      "offset": "0x193b0"
+      "address": "0x402c01",
+      "module": "dynamicbranching.exe",
+      "offset": "0x2c01"
     },
     "registers": [
-      "0x2e00000",
-      "0x40",
-      "0x8",
-      "0x30",
-      "0x3ffedd0",
-      "0x3ffee2c",
-      "0x0",
-      "0x1003"
+      "0x3000050",
+      "0x2541508",
+      "0x3000000",
+      "0x6cf0000",
+      "0x3ffeea0",
+      "0x3ffeefc",
+      "0x2530020",
+      "0x1"
     ],
-    "compiledBlocks": 2734,
-    "instructions": 6324113
+    "compiledBlocks": 2881,
+    "instructions": 6403056,
+    "recentBlocks": [
+      {
+        "address": "0x409b18",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9b18",
+        "registers": [
+          "0x1",
+          "0x3ffed28",
+          "0x3ffed66",
+          "0x6cf0000",
+          "0x3ffee68",
+          "0x3ffee80",
+          "0x4be6e0",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x409ca6",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9ca6",
+        "registers": [
+          "0x1",
+          "0x20000",
+          "0x3ffed66",
+          "0x6cf0000",
+          "0x3ffee6c",
+          "0x3ffee80",
+          "0x4be6e0",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x409b92",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9b92",
+        "registers": [
+          "0x0",
+          "0x1",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeea4",
+          "0x3ffeeb8",
+          "0x20000",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 1,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x409ca6",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9ca6",
+        "registers": [
+          "0x2530020",
+          "0x1",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeea4",
+          "0x3ffeeb8",
+          "0x20000",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 1,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x409e71",
+        "module": "dynamicbranching.exe",
+        "offset": "0x9e71",
+        "registers": [
+          "0x20000",
+          "0x3ffef00",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffef04",
+          "0x3ffef6c",
+          "0x320",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x402bb0",
+        "module": "dynamicbranching.exe",
+        "offset": "0x2bb0",
+        "registers": [
+          "0x4be6e0",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffef00",
+          "0x3ffef6c",
+          "0x320",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x40a44c",
+        "module": "dynamicbranching.exe",
+        "offset": "0xa44c",
+        "registers": [
+          "0x4bd4ae",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeefc",
+          "0x3ffef6c",
+          "0x320",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x402bba",
+        "module": "dynamicbranching.exe",
+        "offset": "0x2bba",
+        "registers": [
+          "0x402bba",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeef0",
+          "0x3ffeefc",
+          "0x320",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x40156a",
+        "module": "dynamicbranching.exe",
+        "offset": "0x156a",
+        "registers": [
+          "0x3ffeec0",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb0",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x402bca",
+        "module": "dynamicbranching.exe",
+        "offset": "0x2bca",
+        "registers": [
+          "0x3ffeec0",
+          "0x8",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb8",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x406b7d",
+        "module": "dynamicbranching.exe",
+        "offset": "0x6b7d",
+        "registers": [
+          "0x4be6e0",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb0",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x402bd5",
+        "module": "dynamicbranching.exe",
+        "offset": "0x2bd5",
+        "registers": [
+          "0x3ffeec0",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb8",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x413890",
+        "module": "dynamicbranching.exe",
+        "offset": "0x13890",
+        "registers": [
+          "0x3ffeec0",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb0",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1401000",
+        "module": "d3d9.dll",
+        "offset": "0x1000",
+        "registers": [
+          "0x3ffeec0",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb0",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x402be0",
+        "module": "dynamicbranching.exe",
+        "offset": "0x2be0",
+        "registers": [
+          "0x3000050",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb8",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x402c01",
+        "module": "dynamicbranching.exe",
+        "offset": "0x2c01",
+        "registers": [
+          "0x3000050",
+          "0x2530020",
+          "0x0",
+          "0x6cf0000",
+          "0x3ffeeb8",
+          "0x3ffeefc",
+          "0x2530020",
+          "0x258"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      }
+    ]
   },
   "worker": true,
   "crossOriginIsolated": true,
-  "browser": "153.0.8010.48",
+  "browser": "154.0.8037.57",
   "outboundRequests": []
 }

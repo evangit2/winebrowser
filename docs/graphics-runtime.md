@@ -8,6 +8,16 @@ guest process.
 
 ## Current D3D9 boundary
 
+The same bounded color/depth renderer now accepts D3D8 calls. `d3d8-abi.js`
+preserves its distinct COM slots, 52-byte presentation structure, interface IIDs,
+SDK 120/220 and FVF-valued `SetVertexShader`. The native D3D8 cube is compiled
+against MinGW's actual D3D8 header/import library and passes the EXE/ZIP Chrome
+pixel, animation and clean-exit checks in `evidence/d3d8-browser-results.json`.
+This follows the existing Hamsterball/DirectWebGPU frontend design; its broader
+textures, state blocks, shader handles and resources still require adaptation.
+No precompiled application Wasm is used. DirectX 10/11/12 remain in the overall
+acceptance scope, with the existing D3D12 browser tests retained as regression gates.
+
 `src/d3d9.js` owns the initial D3D9 import and COM behavior. `Direct3DCreate9`
 returns a guest pointer to an `IDirect3D9` vtable; `CreateDevice` returns an
 `IDirect3DDevice9` vtable. `src/com.js` dispatches guest indirect stdcall

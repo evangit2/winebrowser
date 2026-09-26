@@ -17,6 +17,9 @@ function runtime() {
     files: new Map([['console.exe', executable]]),
     exe: 'console.exe',
     builtinFiles: new Map([['ntdll.dll', ntdll]]),
+    // Exercise raw thunk allocation/deletion independently of eager PE export
+    // stubs. The normal runtime exposes mapped host DLL images.
+    hostModuleImages: false,
   });
 }
 

@@ -1,0 +1,4504 @@
+{
+  "date": "2026-09-26T00:27:29.729Z",
+  "targetId": ".cache/hamsterball-original",
+  "exe": "hamsterball.exe",
+  "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+  "packageFiles": [
+    {
+      "name": "data/hs.cfg",
+      "bytes": 1300,
+      "sha256": "3cc3e674ba8ed5c4c0fcf2fd207a501afa0a74ca6e15b33ef64e164162750311"
+    },
+    {
+      "name": "data/tournament.sav",
+      "bytes": 151,
+      "sha256": "4fb4d94d8df888f92de52518878c709b4646a79640ec42b9de11cfd06b8b82c1"
+    },
+    {
+      "name": "fonts/arialnarrow12bold/data0.png",
+      "bytes": 8360,
+      "sha256": "4040ab7efe9c5ec0a014f0a38545c8175de531acb1961fdfcee607caaffb1ade"
+    },
+    {
+      "name": "fonts/arialnarrow12bold/font.description",
+      "bytes": 3143,
+      "sha256": "345ea5a3afd7589b5f6ddc6886d0339cc44c0ba4a2365cd0550b80b781fbe29b"
+    },
+    {
+      "name": "fonts/showcardgothic14/data0.png",
+      "bytes": 8216,
+      "sha256": "4b473f7447028101a13e6686a536f2d854ea72e057d9f9a3e3e6c66e136dbf04"
+    },
+    {
+      "name": "fonts/showcardgothic14/font.description",
+      "bytes": 3671,
+      "sha256": "61bdc996e4d8812630a0917f5accacd55fca83f535c4100ff794d79cda6a080e"
+    },
+    {
+      "name": "fonts/showcardgothic16/data0.png",
+      "bytes": 9525,
+      "sha256": "03530c61f3f839ed0642aa20877977b5be05581a995e7fdd55b2a7f9443f9199"
+    },
+    {
+      "name": "fonts/showcardgothic16/font.description",
+      "bytes": 3671,
+      "sha256": "36e5edd4c57174215c80ac922a607f2a6032e1027b7a3bca03ef15df94a100fb"
+    },
+    {
+      "name": "fonts/showcardgothic28/data0.png",
+      "bytes": 11785,
+      "sha256": "b4de7d2a787cc037cc0fc83f701e886df17ce0646d7732c4885eef421ed7724e"
+    },
+    {
+      "name": "fonts/showcardgothic28/data1.png",
+      "bytes": 10728,
+      "sha256": "1c53e447505eda3dc671b2abd3430d22b6ddae30b35610b148ff106c4bf6f0f3"
+    },
+    {
+      "name": "fonts/showcardgothic28/font.description",
+      "bytes": 3671,
+      "sha256": "1553f91ca8e7b995b0b2f8996d0226a933cc2c997e7805c3dd1a8786531d8c22"
+    },
+    {
+      "name": "fonts/showcardgothic72/data0.png",
+      "bytes": 10011,
+      "sha256": "be68c9c1fab0b0ddc3398f3c0bb8cdd90a3d223b4814cfcef09c9d4677cd4d40"
+    },
+    {
+      "name": "fonts/showcardgothic72/data1.png",
+      "bytes": 849,
+      "sha256": "aad8ee8ba9325b53333f4a43e42826dfa56530499798bc86566008928b667bfb"
+    },
+    {
+      "name": "fonts/showcardgothic72/font.description",
+      "bytes": 371,
+      "sha256": "f72a34ef1af4b47b75ecbb472ed03c868de69079724ea62936eef6f4b7b90f01"
+    },
+    {
+      "name": "hamsterball.exe",
+      "bytes": 1404928,
+      "sha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d"
+    },
+    {
+      "name": "jukebox.xml",
+      "bytes": 3087,
+      "sha256": "c8875f43b372d8549744128c384d73298b7d4a5307f44652eef066646ef56a49"
+    },
+    {
+      "name": "levels/arena-beginner.meshworld",
+      "bytes": 151700,
+      "sha256": "64ca0ad73eaceb08823f7caed543009be8600d205ccf8b6583b26c0b32e2c71b"
+    },
+    {
+      "name": "levels/arena-dizzy.meshworld",
+      "bytes": 36652,
+      "sha256": "305ef1a5fb6e0b525801390b8996ea967b927627e5654572f7a257da28103f5c"
+    },
+    {
+      "name": "levels/arena-expert.meshworld",
+      "bytes": 41471,
+      "sha256": "bed283aa7b0e4ccd3139bb21056104dc08ab770ab01c652505c274d4323d008e"
+    },
+    {
+      "name": "levels/arena-glass.meshworld",
+      "bytes": 101135,
+      "sha256": "c1e09f74209d843dd82c18957d57e37c23842ab882e0d3a2b06f37dc50688b0a"
+    },
+    {
+      "name": "levels/arena-impossible.meshworld",
+      "bytes": 32895,
+      "sha256": "41e12cc796f91fbac3e4a1ddb0701f7a18f0ce5019c73cc64e8ec05ded944539"
+    },
+    {
+      "name": "levels/arena-intermediate.meshworld",
+      "bytes": 20491,
+      "sha256": "dea02d0795a080a29c8e37f9a7fe3859fedc6d5cc4a5b273e6b7f292e0a5d3cd"
+    },
+    {
+      "name": "levels/arena-master.meshworld",
+      "bytes": 93696,
+      "sha256": "8e48450c5ded32e7e010b4fe8ec6a6dfd6ac3ade50280fd00bb9854e0ec4e3d7"
+    },
+    {
+      "name": "levels/arena-neon.meshworld",
+      "bytes": 42706,
+      "sha256": "23619b54db92d3707d1964687f0756874774181929711c800d41c82514b1048d"
+    },
+    {
+      "name": "levels/arena-odd.meshworld",
+      "bytes": 117899,
+      "sha256": "1cb384963b9762f03134f7048c593a59fed1109567888d50a410b32b3c19bee2"
+    },
+    {
+      "name": "levels/arena-sky.meshworld",
+      "bytes": 25742,
+      "sha256": "261af38998cf5e9a16d11d5c9fae5c3646364f28dda21b6887f44fdfc6ee291b"
+    },
+    {
+      "name": "levels/arena-spawnplatform.meshworld",
+      "bytes": 1476,
+      "sha256": "350592313f419d174601a6283928703a2a7e67d27d929d5374c50ebbec1ef2a1"
+    },
+    {
+      "name": "levels/arena-stands.meshworld",
+      "bytes": 8786,
+      "sha256": "f50e7c5556dfb7c6f7f34ddf49d07246790ec37fb7bf05722c84b52882367d5f"
+    },
+    {
+      "name": "levels/arena-toob.meshworld",
+      "bytes": 297989,
+      "sha256": "243a08a23bfa887ff1d3375f49a74f58b1c0351a11f9ec059dbeda49d24ffafc"
+    },
+    {
+      "name": "levels/arena-tower.meshworld",
+      "bytes": 61061,
+      "sha256": "9f0e024e1f78f026e03f3169bc94b552392ef031295a0ccc2c0a6998445a085d"
+    },
+    {
+      "name": "levels/arena-up.meshworld",
+      "bytes": 63519,
+      "sha256": "c995d03576f5e80fb92be5fad73ad9b0105b2871dbe1265e6a6e5712c3bde2b6"
+    },
+    {
+      "name": "levels/arena-warmup.meshworld",
+      "bytes": 83254,
+      "sha256": "9a4e911798597181c6338d4f6f48b833dba49db7a658a16ed38b562b6a05937f"
+    },
+    {
+      "name": "levels/arena-wobbly.meshworld",
+      "bytes": 3157,
+      "sha256": "11a8dbce13112c0c311cdc53c94daeac62abdba4768bf5efe358c9c168e3b8c8"
+    },
+    {
+      "name": "levels/level1.meshworld",
+      "bytes": 332746,
+      "sha256": "6bad846a7782e85239f79305135812bbab3bb0f6f01e020e0dc629dd3f660823"
+    },
+    {
+      "name": "levels/level10-2pbridge.meshworld",
+      "bytes": 1517,
+      "sha256": "e05ab44a9b35d0c3d5bbafb63380fefa050a3f462a37287632cec8aae9777c70"
+    },
+    {
+      "name": "levels/level10-bridge1.meshworld",
+      "bytes": 5277,
+      "sha256": "e7d8ca6aa27b2891f94bdfc628469c3ecf031d50f22a30503074c1de8294c6e5"
+    },
+    {
+      "name": "levels/level10-bridge2.meshworld",
+      "bytes": 6368,
+      "sha256": "f52abd67e2a74c7daa809fbf115dd86a5cab3695726adefe2de217d352e728ee"
+    },
+    {
+      "name": "levels/level10.meshworld",
+      "bytes": 963586,
+      "sha256": "e53f01dd3c2195d126de8bc6cf2f763693fbc31d52d2999ad591d7e2c3e2517f"
+    },
+    {
+      "name": "levels/level2-bridge.meshworld",
+      "bytes": 36687,
+      "sha256": "906c30c391a3b2e46697aa39dd2e1e7a8f74a6d4adc6a4d1424b908556457a43"
+    },
+    {
+      "name": "levels/level2.meshworld",
+      "bytes": 788217,
+      "sha256": "5d8085450956f9708e50698c7ed5ccfae1a75e549b636aadda6f1d57d94880f6"
+    },
+    {
+      "name": "levels/level3-gluebie.meshworld",
+      "bytes": 4413,
+      "sha256": "905179813036c67c079c4b90459f37f1052bb17c649811963cd90e72415b694a"
+    },
+    {
+      "name": "levels/level3-swirl.meshworld",
+      "bytes": 9889,
+      "sha256": "2751985389a629a67950dcfa525db64bc07a609d3f0c71a2a1651a29d8b9f896"
+    },
+    {
+      "name": "levels/level3-tipper.meshworld",
+      "bytes": 2562,
+      "sha256": "4f12ebc4ca5e376d0aeee8da8f6568b40c5e580497de87920bf7f3e75288658b"
+    },
+    {
+      "name": "levels/level3-waterwheel.meshworld",
+      "bytes": 71544,
+      "sha256": "9a0fc3189bd5672944eb5bad3afaed5b80c26951e7489a9637519854554583da"
+    },
+    {
+      "name": "levels/level3.meshworld",
+      "bytes": 1026112,
+      "sha256": "d74bd4297e5a62f97ae91b40d22fb25aa7a7cdc66831bf1f606aa429168dd1b7"
+    },
+    {
+      "name": "levels/level4-catapult.meshworld",
+      "bytes": 14370,
+      "sha256": "2fdc67dee321afeca4d689cd329a96cc88fe5a23fada9d1f8cf08c101679e21c"
+    },
+    {
+      "name": "levels/level4-drawbridge.meshworld",
+      "bytes": 4355,
+      "sha256": "fc55647a059d8b8d7202fbc5c4922ace99dabb12b11277af560eea852428b9e6"
+    },
+    {
+      "name": "levels/level4-mace.meshworld",
+      "bytes": 48831,
+      "sha256": "b29de551a0b04b05717d01c6350d4bef3aaa95fde7f2da1f557e9face8f4b795"
+    },
+    {
+      "name": "levels/level4-trapdoor1.meshworld",
+      "bytes": 1869,
+      "sha256": "4fa8693c5e4cb92643dc54cb447f0307ef2675b7f3758c0a70ad3e6fac0efd2b"
+    },
+    {
+      "name": "levels/level4-trapdoor1.cached",
+      "bytes": 1220,
+      "sha256": "366401911682807576314b91ff136afddab1834e93dda24fce3cc96c98fe21f8"
+    },
+    {
+      "name": "levels/level4-trapdoor2.meshworld",
+      "bytes": 1869,
+      "sha256": "818030a501ddce5abee67f863a38db360beda2a8ab731786ada11c657917a23d"
+    },
+    {
+      "name": "levels/level4-trapdoor2.cached",
+      "bytes": 1220,
+      "sha256": "fc3f7b5ffee6a234eb5ab7f7b59df87732a96aa6647afd2ca3375c0b66b0118c"
+    },
+    {
+      "name": "levels/level4-turret.meshworld",
+      "bytes": 13433,
+      "sha256": "1981ce09532fa49f9f23dbfad90b6ea88dce54826be3c33d4dff7c81f289463e"
+    },
+    {
+      "name": "levels/level4-windmill.meshworld",
+      "bytes": 17867,
+      "sha256": "4d76208d1e178b22e45536d2cc3bd4d7d7485bd786db0094f84d98e69b1cdc6f"
+    },
+    {
+      "name": "levels/level4.meshworld",
+      "bytes": 852481,
+      "sha256": "3ee609fb5556ef7fb4b129be5614d86fc5b9d78c9688383c44ed61d460d9379c"
+    },
+    {
+      "name": "levels/level5-bonk.meshworld",
+      "bytes": 34349,
+      "sha256": "f1b963818b9cc6e7fb9f71e6d76086cb3c8e24ef8a8cbf34e1ace3feeccdcb6e"
+    },
+    {
+      "name": "levels/level5-bridge.meshworld",
+      "bytes": 1424,
+      "sha256": "bf293145474f7ccf157ec86b975f5c5f2750cf439e1bd2fd400fa1b30c310c43"
+    },
+    {
+      "name": "levels/level5.meshworld",
+      "bytes": 950125,
+      "sha256": "291b8ab236e5f462e5ebc9ef0f9a41283e192fbf74a18fe6b0ae02302edf797b"
+    },
+    {
+      "name": "levels/level6-lifter.meshworld",
+      "bytes": 8244,
+      "sha256": "aaf8d2a511d1e68b3f9b595795122eabe0d960808bc92caa2af7ce7f3d190406"
+    },
+    {
+      "name": "levels/level6-lifter.cached",
+      "bytes": 5936,
+      "sha256": "982621089f3e1c12a9b8fff7287199c9a5e37d88396f63f96cde1e5ecbdc16bf"
+    },
+    {
+      "name": "levels/level6.meshworld",
+      "bytes": 729619,
+      "sha256": "3c0f0c7cd75c299a0a42d9c97b948e32a0014e5b73c28c1c4f4148467afea624"
+    },
+    {
+      "name": "levels/level7-wavy1.meshworld",
+      "bytes": 11830,
+      "sha256": "ed417789ef3022f05ee9c762f7cbc1c5ce16a55a97eec226d0c9723c384f2fc7"
+    },
+    {
+      "name": "levels/level7-wobbly1.meshworld",
+      "bytes": 3259,
+      "sha256": "3f57089801b4ed2f652fc6995630e1231fc8640b9fc2bcea866b37eadc02d9de"
+    },
+    {
+      "name": "levels/level7-wobbly2.meshworld",
+      "bytes": 5898,
+      "sha256": "e42c5f8296c4055d38a29ed2e99dbac5e702502632cd7516c582ee09a0d4420a"
+    },
+    {
+      "name": "levels/level7-wobbly3.meshworld",
+      "bytes": 10797,
+      "sha256": "28b621694a721a7081a6958027c7b570af121a68f2be1142ab3f9776ae8d28a1"
+    },
+    {
+      "name": "levels/level7-wobbly4.meshworld",
+      "bytes": 2956,
+      "sha256": "03420c25c90a783426e6d3506c98a517db1cbbeb2c21c996a5b2a8b7e44c1650"
+    },
+    {
+      "name": "levels/level7-wobbly5.meshworld",
+      "bytes": 2956,
+      "sha256": "98089d9e8e2be3a123a34a4f14c413086e65211000ce11b149070d31afc800e5"
+    },
+    {
+      "name": "levels/level7-wobbly6.meshworld",
+      "bytes": 31698,
+      "sha256": "d5d57ff90c18e907e7eed417c21453ca5e01fe190c8cebe30340241e463171cd"
+    },
+    {
+      "name": "levels/level7-wobbly7.meshworld",
+      "bytes": 31332,
+      "sha256": "c5331a5bf1716856a8fd7374bd1125763c0d01f43f74aa0611a28179a33f4fe6"
+    },
+    {
+      "name": "levels/level7-wobbly8.meshworld",
+      "bytes": 64880,
+      "sha256": "200f83d971dcad87fe3f6b743c8f7325107e3bd0d5f88eb6e9068808d1b21470"
+    },
+    {
+      "name": "levels/level7.meshworld",
+      "bytes": 768534,
+      "sha256": "14f1d3974ac3bf369e89b95313e543886f167ecd76164117d681d6773d84f00a"
+    },
+    {
+      "name": "levels/level8-blockdawg1.meshworld",
+      "bytes": 2237,
+      "sha256": "66c473a1186718ce833e47ccb1ceddf1200d0611c7571c0ac137a59f1c83867f"
+    },
+    {
+      "name": "levels/level8-blockdawg2.meshworld",
+      "bytes": 3082,
+      "sha256": "5b1b20e27b4d9f2caf43ba83c33be07f9fac8338013a9e373a7ab5e3fcce5a79"
+    },
+    {
+      "name": "levels/level8-fallout.meshworld",
+      "bytes": 4790,
+      "sha256": "899fb2c3c6e117cb4a183123f5917cc0fbefb8d0ae87ec8a2c8104131e61a9c1"
+    },
+    {
+      "name": "levels/level8-saw.meshworld",
+      "bytes": 14387,
+      "sha256": "59d6e3b3a3208ce22e87f7c6d4c621288a4b10010798c818a1b8c206c5d429f2"
+    },
+    {
+      "name": "levels/level8-spinny.meshworld",
+      "bytes": 78810,
+      "sha256": "8e8fff82fa6847f5a9d2162461dca9a138c091fcf304d43d2177b0e9444723c2"
+    },
+    {
+      "name": "levels/level8.meshworld",
+      "bytes": 1027479,
+      "sha256": "0117769e60938c8bb55ddb6efbf10563a7a537140b675d7a316bac0c8af521e1"
+    },
+    {
+      "name": "levels/level9-popcylinder1.meshworld",
+      "bytes": 3829,
+      "sha256": "e08dfff8afa49dc4c262be84377e23805ccb6e5d293eb2fe9d4f143af7ebec36"
+    },
+    {
+      "name": "levels/level9-popcylinder2.meshworld",
+      "bytes": 3829,
+      "sha256": "1b20de3d4abd5e3063fdc607c1d05ddfd08d40230b1c34215fc0b2122163d56a"
+    },
+    {
+      "name": "levels/level9-trapdoor.meshworld",
+      "bytes": 1509,
+      "sha256": "c6a86eec1b0bcf0d84b59498a7d7aa84e05b3f6546c68277c72e078130ad8437"
+    },
+    {
+      "name": "levels/level9.meshworld",
+      "bytes": 362791,
+      "sha256": "85e2e76e743fd854b291b0bf204ad478f6f0778aa9c3cf6f537482603acddf88"
+    },
+    {
+      "name": "levels/levelcascade.meshworld",
+      "bytes": 238816,
+      "sha256": "701de8a8ae913833232a535cbf0bcfec3050d7a6ade28f1e64f28ce138737271"
+    },
+    {
+      "name": "levels/leveldark-dfloor1.meshworld",
+      "bytes": 1677,
+      "sha256": "5860300a1fe5983f37719f5f025205387b9f27d7ecb02ae7d792184ead423599"
+    },
+    {
+      "name": "levels/leveldark-dfloor2.meshworld",
+      "bytes": 1405,
+      "sha256": "a67948efeb12da2c363c93d55a86b4917f48cdfb30881e0c3ba840d9569b6223"
+    },
+    {
+      "name": "levels/leveldark-dfloor3.meshworld",
+      "bytes": 12834,
+      "sha256": "83fbc552d91c8b622b39d450501f36802dc11e7b7f40067e5bf4bfb855d3617e"
+    },
+    {
+      "name": "levels/leveldark-dfloor4.meshworld",
+      "bytes": 55354,
+      "sha256": "bfb608ef49edd29f137963404e77f81400c7d9b4d8d86fdf5836c45eb129dff7"
+    },
+    {
+      "name": "levels/leveldark-flickring.meshworld",
+      "bytes": 20108,
+      "sha256": "81f350cdc13b5fe4912b7c18d4096703226624ba300a816ee9ccd11f7a9609ee"
+    },
+    {
+      "name": "levels/leveldark-neonplatform.meshworld",
+      "bytes": 3299,
+      "sha256": "0c759c488446ff7168706d36b3c8d56e7854cf5e442bc0bebfa302bf2bf42685"
+    },
+    {
+      "name": "levels/leveldark-trode.meshworld",
+      "bytes": 2229,
+      "sha256": "7e86b7f18af8a5608717080c439e0804d6893edf6c03b5f7b8ddd7b28bc842cb"
+    },
+    {
+      "name": "levels/leveldark.meshworld",
+      "bytes": 1151231,
+      "sha256": "6ef4b3a2936a1fbe0e28f629416beb8051673f8cfa351ac617de4bdfc0aad34c"
+    },
+    {
+      "name": "levels/levelglass.meshworld",
+      "bytes": 665674,
+      "sha256": "aa19f05a3eeb7a4984e26b0bec3c67e845dfca9274276d030713c13da2014a6d"
+    },
+    {
+      "name": "levels/levelimpossible-biggear.meshworld",
+      "bytes": 20024,
+      "sha256": "6a5cd106d217a0d5e3fa4e5b5f34aa4e7dc95a3861ffe2eb1c1020f5078dc2df"
+    },
+    {
+      "name": "levels/levelimpossible-gear.meshworld",
+      "bytes": 19660,
+      "sha256": "5f283c2c59c12ef10dad3f8f21f7c460bcbc10924e0490416c19de328500cc55"
+    },
+    {
+      "name": "levels/levelimpossible-looper.meshworld",
+      "bytes": 19132,
+      "sha256": "6d37181b8cb2d57ef0a7ddfa890f93ce0a74c35bff05a63b0cc60581354dc85c"
+    },
+    {
+      "name": "levels/levelimpossible-pendulum.meshworld",
+      "bytes": 6005,
+      "sha256": "a24d19b8fc28a64a2ea25fd75bd29b07620b6fa7a4a88e26c738c419d64c5687"
+    },
+    {
+      "name": "levels/levelimpossible-rotator.meshworld",
+      "bytes": 14909,
+      "sha256": "6e8abc77272ec62106bfd7608422b793b297e133c2f97dc7e6f179fff64ee863"
+    },
+    {
+      "name": "levels/levelimpossible.meshworld",
+      "bytes": 947232,
+      "sha256": "0f6514cfedecc2e82f237d3cc66cc40290a355a71e3dd21c2b0c9e85db31f15f"
+    },
+    {
+      "name": "levels/levelup-button.meshworld",
+      "bytes": 9468,
+      "sha256": "6ee9bee68e85e8f4cc23e238927608401af388fb0a290db05caee15caf1dbbd1"
+    },
+    {
+      "name": "levels/levelup-lifter.meshworld",
+      "bytes": 8232,
+      "sha256": "b17d6a29a10059f2dd34aa53fc0207a94d8b18ce00f51b4f6998b64379bbf7ca"
+    },
+    {
+      "name": "levels/levelup-speedcylinder.meshworld",
+      "bytes": 5962,
+      "sha256": "05575066419709171ffb1bdacd73763410ee5674d8f44fcbd215e545f633c97a"
+    },
+    {
+      "name": "levels/levelup.meshworld",
+      "bytes": 526673,
+      "sha256": "22d4d416d8d7f615ade27e0045525fcddbe84d78126a1f5af1b05f4635cde7e7"
+    },
+    {
+      "name": "levels/meshdetacher.ms",
+      "bytes": 1068,
+      "sha256": "89099f50d2c495a208c3a8c5901dc8ce57efb6023601cef35bef3b7c7cef69d7"
+    },
+    {
+      "name": "levels/mousetrap.meshworld",
+      "bytes": 18093,
+      "sha256": "507d46e3af81a0c1fe2e87ecc4e5d80733ef0674aba8787bf1540d68208461ea"
+    },
+    {
+      "name": "levels/mousetrap.cached",
+      "bytes": 10964,
+      "sha256": "1bc221d4d5c65745304c3a0abba2c56f8f4fc311b9fcd604a0859d667e8b6650"
+    },
+    {
+      "name": "levels/popupsign.meshworld",
+      "bytes": 7618,
+      "sha256": "e275bcc39045324774a1c709e827bf4f51d171ea98465e7000566d702e28b24e"
+    },
+    {
+      "name": "levels/popupsign.cached",
+      "bytes": 4936,
+      "sha256": "5eb2799a84e32becf548cf5599c7f3bb9dca3bf6c98d0c5da288547e518e7721"
+    },
+    {
+      "name": "levels/secret-unlock.meshworld",
+      "bytes": 4272,
+      "sha256": "45ef49b8b76945080cb8531e23ed8e548bac8fc6f71e84f77e56cd1d682e73d1"
+    },
+    {
+      "name": "levels/secret-unlock.cached",
+      "bytes": 2404,
+      "sha256": "e64bc4ca448ff12286482e6d66e87ee61e5604a3957297a8d989622e68c04675"
+    },
+    {
+      "name": "levels/secret.meshworld",
+      "bytes": 1964,
+      "sha256": "fe6b48bf140aac7abd79c1ec676bd50288b362128c1712e5f70fe9f125997dc0"
+    },
+    {
+      "name": "levels/secret.cached",
+      "bytes": 904,
+      "sha256": "20c9208346c3e07db0c809b07ba7e01ccd282f91ed3e7f984a9443cad21144f3"
+    },
+    {
+      "name": "meshes/8ball.mesh",
+      "bytes": 7675,
+      "sha256": "379c4042d06062d13357e68bdc8177eb0659d394f1152415215c70ffff31e737"
+    },
+    {
+      "name": "meshes/8ball.cached",
+      "bytes": 4260,
+      "sha256": "8dcb1220f2d9c3f011453fdde5e0d7133c282191d5c4ca2f4bf7133b38e00817"
+    },
+    {
+      "name": "meshes/bell.mesh",
+      "bytes": 9834,
+      "sha256": "e1bf4dc341a549e9af0ff85a1afead5d8f1037803f364b152cfcb59cfe411a3c"
+    },
+    {
+      "name": "meshes/bell.cached",
+      "bytes": 7680,
+      "sha256": "982f84790c40ccb892d100086a2a271e5da533384fb676f8084866081c2c0e43"
+    },
+    {
+      "name": "meshes/chomper.mesh",
+      "bytes": 27547,
+      "sha256": "ec3049a3ddc7ceabe5a494c0d1a605dc809d077f9dd704483e122934f182d5b1"
+    },
+    {
+      "name": "meshes/dawgshadow.mesh",
+      "bytes": 264,
+      "sha256": "18a544e3f1169cf25789fa2b567054138a19eec8f33ca798ee72777de634fe98"
+    },
+    {
+      "name": "meshes/dawgshoe.mesh",
+      "bytes": 10701,
+      "sha256": "a126b6ebdb86f4cbecc4ad9a73c248f832768ae631fc90190dc1110c323c66b6"
+    },
+    {
+      "name": "meshes/dawgshoe2.mesh",
+      "bytes": 11097,
+      "sha256": "fd7f81dc99504dd9579e6096c158c3526a34d4e125665c4e5cb4e35d6fe38b7f"
+    },
+    {
+      "name": "meshes/dizzy.mesh",
+      "bytes": 280,
+      "sha256": "ec83083e2b678fde5bd9506d0fb5cc2486abe7ab8013b31e9b594ee180d1c635"
+    },
+    {
+      "name": "meshes/dizzy.cached",
+      "bytes": 164,
+      "sha256": "66a71a5c864e5266bc88c607b8d55c49c5c35e5dedb66b15d0312827fc995f20"
+    },
+    {
+      "name": "meshes/eye.mesh",
+      "bytes": 9495,
+      "sha256": "73df00b421c74e3f0cead8184b1bc0ef680adfcec2fa28394b5916786de4f8d3"
+    },
+    {
+      "name": "meshes/fanbody.mesh",
+      "bytes": 31584,
+      "sha256": "984e5528691c71a80f75fa9f2661d06dc65663ca25ea5045dcf08453575b587b"
+    },
+    {
+      "name": "meshes/fanblades.mesh",
+      "bytes": 3864,
+      "sha256": "444f0fc2b82b09d019236a4444879bb097c067dbe4a495c144b8c28b6d815c5f"
+    },
+    {
+      "name": "meshes/funball.mesh",
+      "bytes": 7677,
+      "sha256": "976eb47fae58197c1b91e13f975544ae20f10a9392c97b2eae0ddb428e9bce16"
+    },
+    {
+      "name": "meshes/funball.cached",
+      "bytes": 4260,
+      "sha256": "8dcb1220f2d9c3f011453fdde5e0d7133c282191d5c4ca2f4bf7133b38e00817"
+    },
+    {
+      "name": "meshes/glassbonus-smashed.mesh",
+      "bytes": 7162,
+      "sha256": "2d5c0a89bbe38d33e94d7fc96f6e0654867f1490d9e888d1d7089849fd676acc"
+    },
+    {
+      "name": "meshes/glassbonus-smashed.cached",
+      "bytes": 6600,
+      "sha256": "ffa52c17f1efc95c1a95a45dc35b883b8fb6840ebc16c65dcd02687858925586"
+    },
+    {
+      "name": "meshes/glassbonus.mesh",
+      "bytes": 1186,
+      "sha256": "e39b4f992c3d6834731568aa83168b0b4075fe8b79d9ca527ef8f8d59d4bd0f2"
+    },
+    {
+      "name": "meshes/glassbonus.cached",
+      "bytes": 756,
+      "sha256": "e682fc92f354cfec6e1aba8e086a0bb339196bf9fcae89e13550a767ea951b6b"
+    },
+    {
+      "name": "meshes/hammyjudge.mesh",
+      "bytes": 33296,
+      "sha256": "20e721ecd0fdc192c6dc0f2292f93186b515c9c8fe2e93f23a7cc9921431cb31"
+    },
+    {
+      "name": "meshes/hamster-trot1.mesh",
+      "bytes": 18492,
+      "sha256": "48e5651435ac855e4f68521748d12247c4aeba9a46988a3d9f5bb8ffa1a9f512"
+    },
+    {
+      "name": "meshes/hamster-trot2.mesh",
+      "bytes": 17812,
+      "sha256": "a29fcd7bddebbcd4f107dcab25d8e52da946d356a956e435b6c029a5e48a3dcb"
+    },
+    {
+      "name": "meshes/hamster-trot3.mesh",
+      "bytes": 18152,
+      "sha256": "b3d94cad9c0c4a3759a1ce2d0f72a8132a5d89c3f5e0151234c66c4c5a3f6f3e"
+    },
+    {
+      "name": "meshes/hamster-waiting.mesh",
+      "bytes": 18492,
+      "sha256": "42ed79e6fba2f70ed5c6c305cc3aec1379113daa2d2290cb975901cf77a98661"
+    },
+    {
+      "name": "meshes/hamster-waiting.cached",
+      "bytes": 12116,
+      "sha256": "f7b464634bc416d17a1585c621ba35e41a6308cb316417a26a8d6463c28f42bf"
+    },
+    {
+      "name": "meshes/hamster-trot1.cached",
+      "bytes": 12148,
+      "sha256": "f6ef9eaa7b4a8a478dfd9b76a947b1c66a483d89893c95b0414afdea859437f2"
+    },
+    {
+      "name": "meshes/hamster-trot2.cached",
+      "bytes": 12020,
+      "sha256": "04847b701bfbf00c1dae927b9e7e4e5bbaf2c1407112a094521b4fd326e52d48"
+    },
+    {
+      "name": "meshes/hamster-trot3.cached",
+      "bytes": 12116,
+      "sha256": "860df5f81b1c6856d94ba63e97ef923be6f7776f34fbf10f7828c1417d0aab8d"
+    },
+    {
+      "name": "meshes/hamster.mesh",
+      "bytes": 18288,
+      "sha256": "ac7e2cb1de3cac2f819670695f3dfbe77667796d184a01fdd54e5494ae7ab2eb"
+    },
+    {
+      "name": "meshes/magnifyingglass.mesh",
+      "bytes": 34329,
+      "sha256": "cddb29e12a10866e77cd1664984ed471ff4d271b53d1d8a77813b088118d8eaf"
+    },
+    {
+      "name": "meshes/mouse.mesh",
+      "bytes": 33755,
+      "sha256": "acf0b8be6afdc3c2093689e418e17af99feb13ad9ec93870628ebf3b002aa096"
+    },
+    {
+      "name": "meshes/mousetrapshadow.mesh",
+      "bytes": 337,
+      "sha256": "3350be7fd4cf631ddaf77390874d2e6a71d2743d2645766cece4f4d34fb42e4c"
+    },
+    {
+      "name": "meshes/rbglare.mesh",
+      "bytes": 3645,
+      "sha256": "510f3ddb7e518ef513e9eb7e9b83d41e6d870de0c38d48b968de446e419dfb2d"
+    },
+    {
+      "name": "meshes/rbglare.cached",
+      "bytes": 2070,
+      "sha256": "39c72af894e7c432e61ae7700e5cc7fe7e4c562098ef8c813d339f56d09d70af"
+    },
+    {
+      "name": "meshes/sawface.mesh",
+      "bytes": 280,
+      "sha256": "8de8953cfbbe85041635b81493bb89b0428427cf32d3ed164df6cd860dfdc3f3"
+    },
+    {
+      "name": "meshes/sawface2.mesh",
+      "bytes": 281,
+      "sha256": "5671715a2839a60e68b47536042cdfdb2e52d06cdcca62469f9cdc156e97ea23"
+    },
+    {
+      "name": "meshes/sawblade.mesh",
+      "bytes": 6723,
+      "sha256": "1828f83106d65bdc958ca2f78d68bd62db07a7cdf550933346701ea076793dc7"
+    },
+    {
+      "name": "meshes/skypillar.mesh",
+      "bytes": 7215,
+      "sha256": "464e198796a87708643685391e2c249938412feca52d56515a624657cbc5ebed"
+    },
+    {
+      "name": "meshes/sphere+tar.mesh",
+      "bytes": 3555,
+      "sha256": "eb6a6a6cdad29ce00526f1000eacd48538c4ac127e7b5c7617a6e78050b6c8f6"
+    },
+    {
+      "name": "meshes/sphere+tar.cached",
+      "bytes": 2052,
+      "sha256": "485c7d79fce76b4eb41ee697436c9f533aa9d1e5bb324b28dff51ef8e0ccebf4"
+    },
+    {
+      "name": "meshes/sphere.mesh",
+      "bytes": 10181,
+      "sha256": "d6e9ab616b4267070129f6c4585e9c851cd9a10e9f8e3f3748504c1a3231f216"
+    },
+    {
+      "name": "meshes/sphere.cached",
+      "bytes": 5672,
+      "sha256": "a31ecc67e69c449169cefd8e6b7b347e8aea9f9bf9cf6cb138411bee8c80be21"
+    },
+    {
+      "name": "meshes/spherebreak1.mesh",
+      "bytes": 5137,
+      "sha256": "008ee4d1a161d483f92237f893580e9053a1ef27691dcde23769ed90112023fa"
+    },
+    {
+      "name": "meshes/spherebreak1.cached",
+      "bytes": 3518,
+      "sha256": "6f5a81d77a0e4e0123879b30ff018210307bb8bdcb212a6c7e63790ae24c5d2e"
+    },
+    {
+      "name": "meshes/spherebreak2.mesh",
+      "bytes": 3937,
+      "sha256": "54c857fcd42ec1438fc5f83e93671b6917f4b82ca2eff83b7d87bfec6b5bfb2a"
+    },
+    {
+      "name": "meshes/spherebreak2.cached",
+      "bytes": 2246,
+      "sha256": "daef3ef600cd9034fc9d5f11ff926f1bc141ccf697f1c495216b3ba52a8bb0ad"
+    },
+    {
+      "name": "meshes/tarbubble.mesh",
+      "bytes": 3713,
+      "sha256": "5332eb7c4cbe510e73076881a670b01823c72ce8ab7c139731cb65870bf79843"
+    },
+    {
+      "name": "meshes/yellowlink.mesh",
+      "bytes": 283,
+      "sha256": "1089f9bafb74c7514b5af3e438143c3516dac6b052f7172983ea39da1e627757"
+    },
+    {
+      "name": "meshes/dawgshadow.cached",
+      "bytes": 164,
+      "sha256": "805ebd46ffcdf8386e7c171ac94fb63a6d73ae4c4ece5467da76f07b00b6ccc8"
+    },
+    {
+      "name": "meshes/dawgshoe.cached",
+      "bytes": 6072,
+      "sha256": "2123b387a920e75ad63d275dab9e2da9daef2616338a2a6d38ab9698f5598cbc"
+    },
+    {
+      "name": "meshes/dawgshoe2.cached",
+      "bytes": 6228,
+      "sha256": "d059f75431e091c09beda83971847ba988801c22c9202a90b0cf648057d5b377"
+    },
+    {
+      "name": "meshes/fanblades.cached",
+      "bytes": 3488,
+      "sha256": "d9781c2b80f0d06647e06bb191fc8b61bce72b00ac3a20bc53b39efc06c5db4b"
+    },
+    {
+      "name": "meshes/fanbody.cached",
+      "bytes": 21396,
+      "sha256": "ba9802bf74d1c67dd09234f11cb8e4e486d096a9c5d0abd6f5a74c3715c27fb9"
+    },
+    {
+      "name": "meshes/mousetrapshadow.cached",
+      "bytes": 164,
+      "sha256": "40ca3618b66a103eab413728f578419bd53684363fc1c4f24d195bd490cc53a4"
+    },
+    {
+      "name": "meshes/sawblade.cached",
+      "bytes": 5852,
+      "sha256": "9a0e7c5c6d08a649bccdac13b7ec0469e422513e5c18c76c1952cbe1d55f0111"
+    },
+    {
+      "name": "meshes/sawface.cached",
+      "bytes": 164,
+      "sha256": "343f14b40ebce2aaa00d157d7f3f60de33ec4bf19f800d11728e46865bba29fd"
+    },
+    {
+      "name": "meshes/sawface2.cached",
+      "bytes": 164,
+      "sha256": "343f14b40ebce2aaa00d157d7f3f60de33ec4bf19f800d11728e46865bba29fd"
+    },
+    {
+      "name": "meshes/tarbubble.cached",
+      "bytes": 2006,
+      "sha256": "63cc1558445466f8f6c5f3c1d9ff8aa937443c48c112cd20caea0cf974227666"
+    },
+    {
+      "name": "music/music.mo3",
+      "bytes": 264082,
+      "sha256": "b55ebd0522d04c116123a95d1342f11ab3e0a84defe1fd3be31a650f58393827"
+    },
+    {
+      "name": "racedata.xml",
+      "bytes": 2691,
+      "sha256": "ee26d3e63b523b03f26d977b980bb920723902910439fad0bb78d910fc43fd2a"
+    },
+    {
+      "name": "sounds/ballbreak.ogg",
+      "bytes": 14253,
+      "sha256": "e7503d132f46dc7ed28483a1ec29ba45c77b97bc9ef637b1cb07575727cc3ef3"
+    },
+    {
+      "name": "sounds/ballbreaksmall.ogg",
+      "bytes": 11074,
+      "sha256": "cf834fe8d2bf666d938ec47245af46cb4c752072415c77153fc0597793364c4d"
+    },
+    {
+      "name": "sounds/bell.ogg",
+      "bytes": 17388,
+      "sha256": "9fad3e24662f64d271ff19dccaed1534dbe92eea72605a4611196c9cfe9a0886"
+    },
+    {
+      "name": "sounds/billiard.ogg",
+      "bytes": 5736,
+      "sha256": "8205337677e76e8ed49d1f9f94f6610289352f40b99b70632d50f22667580e55"
+    },
+    {
+      "name": "sounds/bing.ogg",
+      "bytes": 6128,
+      "sha256": "e3e1d23c719e82312964e6ca646ab29be727d8280129a266283738410829a735"
+    },
+    {
+      "name": "sounds/bonuspop.ogg",
+      "bytes": 7859,
+      "sha256": "c661975cdb35cd4047963e2d9dcf1343c2735d18e36ba438aa778d4cf13a3c59"
+    },
+    {
+      "name": "sounds/breakbridge.ogg",
+      "bytes": 11644,
+      "sha256": "8ed828051973f2f46f0d26a4469461a319c9d846af33b953043dfa0bbb42c3a6"
+    },
+    {
+      "name": "sounds/bridgeslam.ogg",
+      "bytes": 8540,
+      "sha256": "d7b383b5d2888664c7f681c7e42484d09c44e701e9c63561fa1340ac306fcfca"
+    },
+    {
+      "name": "sounds/bumper.ogg",
+      "bytes": 7375,
+      "sha256": "13036cc26092965b206ec70c38fd1c652039adbf0bef420c10c269b9f2868a5b"
+    },
+    {
+      "name": "sounds/catapult.ogg",
+      "bytes": 13355,
+      "sha256": "cf32963a07df1d6e75fa400f395db6ef75497a55468b8dfe1002ca5e2e634154"
+    },
+    {
+      "name": "sounds/chomp.ogg",
+      "bytes": 6531,
+      "sha256": "e66aa512dd459c19b21318ea397c7443cd5089b046b4ecb5ecafdf897394ed59"
+    },
+    {
+      "name": "sounds/clink.ogg",
+      "bytes": 5782,
+      "sha256": "1126697e9ae9444282c58ae0ed6d05c44ed24d87717bb7356b71bfd8f2407cf6"
+    },
+    {
+      "name": "sounds/collide.ogg",
+      "bytes": 4407,
+      "sha256": "177ceb62b3cf734e801d7f29eb0cb8070f4dad5abb2fba475ebd57b09e7b0296"
+    },
+    {
+      "name": "sounds/crack.ogg",
+      "bytes": 11653,
+      "sha256": "0f46da740c32dd5ac0c50be140fd91db21e77b7f386ee8a90ec2cb6b8592fe09"
+    },
+    {
+      "name": "sounds/creakyplatform.ogg",
+      "bytes": 18984,
+      "sha256": "8f311106d11c0f231ad87c606066f11b0856b2d610eced2ee5440ad078f65c5f"
+    },
+    {
+      "name": "sounds/crumble.ogg",
+      "bytes": 8695,
+      "sha256": "fac5d629ef7b899cd5e6c5ec5ddc5c4e07cccad535c5153e76dd2e65c7fd99a5"
+    },
+    {
+      "name": "sounds/dawgsmash.ogg",
+      "bytes": 7256,
+      "sha256": "8588732b98eba5257d214f1ba60f4ba20237a8df3c24007c0e9bab08f44d2cb8"
+    },
+    {
+      "name": "sounds/dawgstep1.ogg",
+      "bytes": 4395,
+      "sha256": "f9c2a243c24a71b96a3bb95ff67535d5de0c396005956325c37ca041c1fd58fd"
+    },
+    {
+      "name": "sounds/dawgstep2.ogg",
+      "bytes": 4512,
+      "sha256": "c7d008b151cb18b5c29825061bda443727eeba1a159e4fe0000d562746a0f09e"
+    },
+    {
+      "name": "sounds/dropin.ogg",
+      "bytes": 8902,
+      "sha256": "a41f629efd86c807bdbcbe3950cc78daf44aff4da220f5a610f704cc29631fa9"
+    },
+    {
+      "name": "sounds/dropinshort.ogg",
+      "bytes": 6955,
+      "sha256": "0bea187fe9f9665bf51b668ebc8a8676400b0e96b7fb2cdfad33fb79a82d2f2b"
+    },
+    {
+      "name": "sounds/fwing.ogg",
+      "bytes": 9008,
+      "sha256": "84044f2ca612ae95521fcb98eccc6b28b27f2ee5309329d4992d8c52e59caa0e"
+    },
+    {
+      "name": "sounds/gearclank.ogg",
+      "bytes": 5941,
+      "sha256": "5687791f2629b347550777694a31237ba7060f3e5d327db61b4ff32cd3ae54ed"
+    },
+    {
+      "name": "sounds/glassbonus.ogg",
+      "bytes": 15910,
+      "sha256": "0f0bab42e8ffbe377bb07304f721af0391b66a20f9727e55a6fe3e7a3a314f5e"
+    },
+    {
+      "name": "sounds/gluestuck.ogg",
+      "bytes": 6873,
+      "sha256": "0e6537fa585071820d382ce48deaf7779b3f55a18eb25155156967d13763a696"
+    },
+    {
+      "name": "sounds/grow.ogg",
+      "bytes": 15464,
+      "sha256": "e842d9d70bc853821cb73f324b3ec8530c4b31cff5d08ddf0b88af25673fb7d7"
+    },
+    {
+      "name": "sounds/neonflicker.ogg",
+      "bytes": 9786,
+      "sha256": "b6eef3109ddcac57897f42498a11c16e547bbe98bfd21b4876ed056fddf29941"
+    },
+    {
+      "name": "sounds/neonride.ogg",
+      "bytes": 8476,
+      "sha256": "68f40ab89bdc65fa82bc758f72bb26a0568b3036aea7ae3b3e4037dc1417f56f"
+    },
+    {
+      "name": "sounds/pipebump1.ogg",
+      "bytes": 7742,
+      "sha256": "6d67f05b136a0c12bb8b78ac1790ea74838fbc347ec3583e0e3955ddad02ff81"
+    },
+    {
+      "name": "sounds/pipebump2.ogg",
+      "bytes": 9273,
+      "sha256": "0c0c55dcf0465513c2467e91a5f1129cf3bdcbc83b5fadb2a0d1c6b2001fea7e"
+    },
+    {
+      "name": "sounds/pipebump3.ogg",
+      "bytes": 7086,
+      "sha256": "b6d2e2066f6630622a0b1a244e3682ae6c045752bbc4e98bdf8ad5aa07bef68a"
+    },
+    {
+      "name": "sounds/platformtick.ogg",
+      "bytes": 4916,
+      "sha256": "5a6aea8227532f128b329f16ea1ca3a7232c2ddfb85e623a191473532b453316"
+    },
+    {
+      "name": "sounds/popout.ogg",
+      "bytes": 5220,
+      "sha256": "7babb986372dfc327c782524adad68031c1bfc41e1f6f545593a0eb99bdb741d"
+    },
+    {
+      "name": "sounds/roll.ogg",
+      "bytes": 60747,
+      "sha256": "53044390711941ae7bad0bb234315b4a0a40602886cb46414b5406641ff63618"
+    },
+    {
+      "name": "sounds/sawcut.ogg",
+      "bytes": 23441,
+      "sha256": "76c9a32b63ef777a5f63a68f16aca3dc86debaf86a5db7267bc89eb2418a9fad"
+    },
+    {
+      "name": "sounds/sawstartup.ogg",
+      "bytes": 38759,
+      "sha256": "c92f18c8567419c5c65ebfd6f4242c8aadd2f81e7b7dc0470ffe8d3e521ea9f6"
+    },
+    {
+      "name": "sounds/shrink.ogg",
+      "bytes": 15489,
+      "sha256": "c1fa58445a2adc13a52d097011a73be595965d0e8e5bc3e0bd9ace82ddabbb5f"
+    },
+    {
+      "name": "sounds/snap.ogg",
+      "bytes": 5758,
+      "sha256": "ea2041f8f56d792ed7bf3a241fafa0066a47860b82833ea42cf109e939d810d6"
+    },
+    {
+      "name": "sounds/speedcylinder.ogg",
+      "bytes": 34803,
+      "sha256": "489958fe0b5befbfffc2c01891e5b548de40e82aaa195d68a1b17e6e09a6ccf8"
+    },
+    {
+      "name": "sounds/thwomp.ogg",
+      "bytes": 6000,
+      "sha256": "30835ec92a07fbc1d38f23b9e17c24a1dec396073aa5bd62ade5d2b50de66f2e"
+    },
+    {
+      "name": "sounds/trapdoor.ogg",
+      "bytes": 12318,
+      "sha256": "567b5b467aa8c51a13ad1e69ced7f7a02ebd505fa969a7ec4987e55ebbd78314"
+    },
+    {
+      "name": "sounds/unlock.ogg",
+      "bytes": 8025,
+      "sha256": "9d56d552f4ec99cf911ebb21b6276d13273b590b5f98a88e8ca2c7bdbfa7ec99"
+    },
+    {
+      "name": "sounds/vac-o-sux.ogg",
+      "bytes": 29703,
+      "sha256": "001a22455be586e2480a56edc9e0644ff99cacf939fb35f8aad75daf98d9e588"
+    },
+    {
+      "name": "sounds/wheelcreak.ogg",
+      "bytes": 22108,
+      "sha256": "a80f31398f275ce1e81c46694248b249677cb88ec8fba5ee04e13df58f36f6d1"
+    },
+    {
+      "name": "sounds/whistle.ogg",
+      "bytes": 10951,
+      "sha256": "8c4f5ab905e22dedbedd0fd27277e9f1112258736efe60c6d0533dab105cc1e0"
+    },
+    {
+      "name": "sounds/whoosh.ogg",
+      "bytes": 7841,
+      "sha256": "ed875a0e13251fdaa291bb8b80824df4840eae5b6e03966b9361d14732091b5f"
+    },
+    {
+      "name": "sounds/wubba.ogg",
+      "bytes": 6361,
+      "sha256": "2a8b69a1c39cb3cd29ab035622cbd30c831bb93997ffc02360efd20966f5fd79"
+    },
+    {
+      "name": "sounds/zip.ogg",
+      "bytes": 13350,
+      "sha256": "3ab4145e6ad9185c994ec917eaa96db56907f1da55fa2c40ffb456f358091f9d"
+    },
+    {
+      "name": "sounds/zoopdown.ogg",
+      "bytes": 10012,
+      "sha256": "92db978fc808530239cd87497a1220bcbedd40b3b49f48cc70d2e35a38915e0f"
+    },
+    {
+      "name": "sounds/bubble1.ogg",
+      "bytes": 5643,
+      "sha256": "afd3f4ae6bc3cb1bba80afb6f8d446a0bf8e99402b4a310d046bf956d2ac6566"
+    },
+    {
+      "name": "sounds/bubble2.ogg",
+      "bytes": 5748,
+      "sha256": "07243a1285c039ca0db75b22a5958ce3e405dce8906a1fb88a1adc85bc8d87db"
+    },
+    {
+      "name": "sounds/buzzbonus.ogg",
+      "bytes": 12637,
+      "sha256": "25ebfe990a050ea233f7e7424e048c3d76c83e1d2d511bd985d0f12b4363816f"
+    },
+    {
+      "name": "sounds/explode.ogg",
+      "bytes": 12094,
+      "sha256": "e84fc37bfcacf65a2f250b508cae41fbbf22438358ab8d13051a6522058f57e5"
+    },
+    {
+      "name": "sounds/fan-blow.ogg",
+      "bytes": 11853,
+      "sha256": "c22897a320b8e124821d324d4a12851c52e7d51b41a35613f7c3a8c3663e2ca4"
+    },
+    {
+      "name": "sounds/fan-start.ogg",
+      "bytes": 34170,
+      "sha256": "ae65a1029f195f392ccc7e3b16f530dac3c6fcc3f8adbb36427b544a62717e70"
+    },
+    {
+      "name": "sounds/lightsoff.ogg",
+      "bytes": 14999,
+      "sha256": "7c22ed9c08365c8d31a122d4878fc6b7e6981774b98b0a36621640c6555473e6"
+    },
+    {
+      "name": "sounds/minipop.ogg",
+      "bytes": 4841,
+      "sha256": "ee21ec33747f5c33ca0b13cddd5a54ef53fe9030908cb6e5127fed06fe0988a3"
+    },
+    {
+      "name": "sounds/popup.ogg",
+      "bytes": 5235,
+      "sha256": "44d9a06ef23231bff981a6109c5228954e6ee571d6bdda0ace146ac049bcc31b"
+    },
+    {
+      "name": "sounds/saw.ogg",
+      "bytes": 17728,
+      "sha256": "17c7b0b3e71f5e2cefbe10704d813cad52f4b27fd96311111da8586a711003b4"
+    },
+    {
+      "name": "sounds/sawspeedy.ogg",
+      "bytes": 10799,
+      "sha256": "63ce13b3fd5495d8b293d0a06e7e9fc2d742e04796eead27a5eb73122da67316"
+    },
+    {
+      "name": "sounds/sizzle.ogg",
+      "bytes": 13923,
+      "sha256": "c821215ff919aad6451ded19383bd53b53daa59b07e93cf44517c5239b07d661"
+    },
+    {
+      "name": "sounds/ting.ogg",
+      "bytes": 12574,
+      "sha256": "7d59887056e510410d0d58e87b016e98bc495c0c522737dd4a452893cb2641db"
+    },
+    {
+      "name": "sounds/tweet.ogg",
+      "bytes": 22197,
+      "sha256": "8e4ac80d492ee505d27fff3631b9e028db74251387354cab3850334ff6e9597f"
+    },
+    {
+      "name": "textures/8ball-mip1.png",
+      "bytes": 490,
+      "sha256": "60823da9395dd53f44d549b6899dcc5d7f0aca73f18eff24308836269bfed68a"
+    },
+    {
+      "name": "textures/8ball.png",
+      "bytes": 750,
+      "sha256": "bd796ea84677b69978477d3a386ca1521409a73e933af30cb52a7c14051492d2"
+    },
+    {
+      "name": "textures/arrow1-mirrored.png",
+      "bytes": 12379,
+      "sha256": "7822aecc423c4e70f75648c82311ab399b7081ed2ff459b81aa1ba517185ba11"
+    },
+    {
+      "name": "textures/arrow1.png",
+      "bytes": 12783,
+      "sha256": "1df0debbd77af6c9466f64f0bd739577d027e4c36c7b07c6a32a677675e835be"
+    },
+    {
+      "name": "textures/arrow2-mip1.png",
+      "bytes": 3785,
+      "sha256": "9f6ed4524838ccd744f2824cfa29b948de48601d64512a378a6d1ef21010d97f"
+    },
+    {
+      "name": "textures/arrow2-mip2.png",
+      "bytes": 1634,
+      "sha256": "caa24f27241f551eb9b646b946a1b0b19e3d2e205f8273b3b239fa229db2db53"
+    },
+    {
+      "name": "textures/arrow2-mip3.png",
+      "bytes": 842,
+      "sha256": "eaba3cc40f96564d9c8b4c08a77d7fd0ca8c8b1562843e58e764e54f68cae21c"
+    },
+    {
+      "name": "textures/arrow2-mip4.png",
+      "bytes": 457,
+      "sha256": "db6d791c91fb858956f5a7c3a19b0b2b346b48d504872879f56efc37b2777c35"
+    },
+    {
+      "name": "textures/arrow2.png",
+      "bytes": 8567,
+      "sha256": "f201b0fec96785aa93ba99b1afdc86e780902ec35c61b99e5a150731b2b09bbd"
+    },
+    {
+      "name": "textures/arrow3-mip1.png",
+      "bytes": 2521,
+      "sha256": "384439b6dc88232b7afa80698a888d2a68fa1a9b78ea309c8db629601b3f4fd0"
+    },
+    {
+      "name": "textures/arrow3-mip2.png",
+      "bytes": 1288,
+      "sha256": "33577219fd88c5b32684f511173356dc5b8f8263ecd944c377a4c71504e1053c"
+    },
+    {
+      "name": "textures/arrow3-mip3.png",
+      "bytes": 649,
+      "sha256": "01c6b3af75c374d6fdc78fde2005f20100503481ed90b3c1916bfd8503c292f3"
+    },
+    {
+      "name": "textures/arrow3.png",
+      "bytes": 5634,
+      "sha256": "85eca4c8fa59b122ccabec30722b9b486d32799051664a3acf1bffb775d09e78"
+    },
+    {
+      "name": "textures/arrowcurve1-mip1.png",
+      "bytes": 3278,
+      "sha256": "4feb15524e62e50e6c53556c2dcebb481a99a4b94573eec3a7e798b4a4e6a96f"
+    },
+    {
+      "name": "textures/arrowcurve1-mip2.png",
+      "bytes": 1506,
+      "sha256": "e28368a76fd45fa5ae29b703ff26cf2b4b0b4a92559c2c99ac33dd87bedfaf3d"
+    },
+    {
+      "name": "textures/arrowcurve1-mip3.png",
+      "bytes": 846,
+      "sha256": "0f2ca6a910258852f6f21043fa1eb2f2e9090f62f8f61975e9f1e9448128319a"
+    },
+    {
+      "name": "textures/arrowcurve1-mip4.png",
+      "bytes": 514,
+      "sha256": "176db968f5d639d4ba816ff6c3e48422ed96a8d457b014283d51301706f26e45"
+    },
+    {
+      "name": "textures/arrowcurve1.png",
+      "bytes": 5553,
+      "sha256": "b3a4e2cbeab01f65496e6cf46dd302299b8b4cd560d46fa312fead5d06fa5d91"
+    },
+    {
+      "name": "textures/arrowcurve2.png",
+      "bytes": 4677,
+      "sha256": "d23126038b7e1739344b97063bd406d910efcb7c392e1604bae05571a8bfef48"
+    },
+    {
+      "name": "textures/ballborder.png",
+      "bytes": 1621,
+      "sha256": "70e5219cf817c32394f67a5486a36e1f4229bebfa528437845b144a9064e6313"
+    },
+    {
+      "name": "textures/ballburner.png",
+      "bytes": 731,
+      "sha256": "741953bac9bb5941c2a81a43cac0089b9efd2a1fd14f9c91fd81e29f2ac80bde"
+    },
+    {
+      "name": "textures/blackchecker.png",
+      "bytes": 178,
+      "sha256": "5b8ce8f02aa9a831a920e40f4fda294372c8d45e80dda4c222472cfe0d2d03ab"
+    },
+    {
+      "name": "textures/blackcheckerflag.png",
+      "bytes": 291,
+      "sha256": "bbd7d4af6cff3dcda3690fc2aa1ea6b34594168d39baa1c627c4cd7934a9e717"
+    },
+    {
+      "name": "textures/blueblot.png",
+      "bytes": 6739,
+      "sha256": "e797a7ccd1079592e82f4fa202af8ae447dc76cbb5f11d24878daf368a5000c6"
+    },
+    {
+      "name": "textures/blueblot2.png",
+      "bytes": 6418,
+      "sha256": "9d1a8de25e2ab71f6d0da9bfc6626fe85f7ff4500919c53dace8985bb2699943"
+    },
+    {
+      "name": "textures/bluechecker.bmp",
+      "bytes": 70,
+      "sha256": "26e27f15bd9d5f95610899ac405ff58aebacf6f1dcf8daa70d40b4c1e832f3d8"
+    },
+    {
+      "name": "textures/bluecheckerflag-mip1.png",
+      "bytes": 379,
+      "sha256": "354561ee09f847f678f739a43888a51021ba47ca6f9317ba951185b8a61f98f3"
+    },
+    {
+      "name": "textures/bluecheckerflag-mip2.png",
+      "bytes": 353,
+      "sha256": "d20f86c831787ca28d30560d0ea3f4e4a55bf44aed5aa5ba7b7dff04e15d54f6"
+    },
+    {
+      "name": "textures/bluecheckerflag.png",
+      "bytes": 421,
+      "sha256": "b7b0d1f42961c315b1c4c48fde024ba8b0b9541c4d20bbbc0c4fa09aba7f2e64"
+    },
+    {
+      "name": "textures/bluecircle.png",
+      "bytes": 3826,
+      "sha256": "d6b2593ad8930ddc7aebd30b9347f43b9c1da994b228dcff89df0966701a8ec2"
+    },
+    {
+      "name": "textures/bonk.png",
+      "bytes": 25196,
+      "sha256": "5e8a6b4bcd4c416013674ae2bfb3d88ad77be892755b507c435ccc62ea6269de"
+    },
+    {
+      "name": "textures/brightgreenchecker.bmp",
+      "bytes": 70,
+      "sha256": "81ae7b79afbe13c441e154f8e42d0a68a1e72e2dca5e6ada377a114b16a3c665"
+    },
+    {
+      "name": "textures/brightgreencheckerflag.png",
+      "bytes": 376,
+      "sha256": "95e9dc36a8896e3a4bfb25646ad509c988b3645574e9abad4ca1c7fb03a95dcf"
+    },
+    {
+      "name": "textures/bronze-small.png",
+      "bytes": 10684,
+      "sha256": "2ab91b916b5698ff3496f3a91720bab472c20d4af12b7bdf1d177ec28f15117f"
+    },
+    {
+      "name": "textures/bullseye.png",
+      "bytes": 6095,
+      "sha256": "376d6dfaa7786c06de2a10ad9d83719b7ff15f9eb82ceebc1dd69f480c74593c"
+    },
+    {
+      "name": "textures/burst.png",
+      "bytes": 4402,
+      "sha256": "f69eb106c38debd3dc274286b9f69fb1ed8bd2d88be3839ae7ccb3217ea9f163"
+    },
+    {
+      "name": "textures/chrome-mip1.png",
+      "bytes": 933,
+      "sha256": "03182450b1d5e41031dcf5763ebe5fe4002d607d2718d1f75018c03adb913433"
+    },
+    {
+      "name": "textures/chrome-mip2.png",
+      "bytes": 427,
+      "sha256": "a685b029ab445dd12760055ec1604f5637326f8f9bfff4c8b2712ba2730f2092"
+    },
+    {
+      "name": "textures/chrome.png",
+      "bytes": 4994,
+      "sha256": "738d191f371009c9ff09c9674300c35d004fa025dc85818caef757192cb67523"
+    },
+    {
+      "name": "textures/chromeshadow.png",
+      "bytes": 3168,
+      "sha256": "aab73e87339c6f56e1a05b6731f84621eb3215900babd3efa2d69045fca24cd6"
+    },
+    {
+      "name": "textures/clouds.png",
+      "bytes": 51269,
+      "sha256": "3d2b0f32373ca7e976bd4edbe1ba1c8e9128f69d19174e2a5e94cebf314a1ee6"
+    },
+    {
+      "name": "textures/decal-start.png",
+      "bytes": 11095,
+      "sha256": "ba3709e0dc296acbbfc9d23386ad36f32765538dd8561d544d35cd8e4de037fa"
+    },
+    {
+      "name": "textures/decal-warning.png",
+      "bytes": 14667,
+      "sha256": "0bc140fc1401cf74cd5702659766ae4bc04aa07cd1241ba338f4dd38096a4261"
+    },
+    {
+      "name": "textures/demo.png",
+      "bytes": 12783,
+      "sha256": "2621dc808809dc548d4a872f263415ccfe61956edb6438216252e2bd5bf27634"
+    },
+    {
+      "name": "textures/dizzies.png",
+      "bytes": 4314,
+      "sha256": "646e9d6acf0a282c259d6507829444e4fbae76c12c9dd0a633309f53c856e1ed"
+    },
+    {
+      "name": "textures/dust-mip1.png",
+      "bytes": 2140,
+      "sha256": "40b6450283d994cbc09c9fc45626628eafc7ca95bd670aa838269258d61b72bd"
+    },
+    {
+      "name": "textures/dust-mip2.png",
+      "bytes": 841,
+      "sha256": "f47782065d79725c093c37bc1cbda2542dfc896c65a333fd2c0b848f080e990f"
+    },
+    {
+      "name": "textures/dust.png",
+      "bytes": 5188,
+      "sha256": "0d0f039dcc8cbd791bd57102da97b975c07fb844b256c53c5e94d624dfcebcc2"
+    },
+    {
+      "name": "textures/fivebonus.png",
+      "bytes": 1701,
+      "sha256": "bc1692d72564d4a01fe432ca3b1132eed0f3c1056108775b83966d9bbd09e7d2"
+    },
+    {
+      "name": "textures/funball-mip1.png",
+      "bytes": 407,
+      "sha256": "fa6ec1db86a71abc21fa63725f1ff98886be4f444905b45dbbb8c1f18965beb5"
+    },
+    {
+      "name": "textures/funball.png",
+      "bytes": 630,
+      "sha256": "ba72dff18e564436db10cfecfaac4047bc4e6c12cd6ea8e5adca681f6c6b5f19"
+    },
+    {
+      "name": "textures/gearswirl.png",
+      "bytes": 14991,
+      "sha256": "fe488c1cec261cf326a4f5ca05a41a1d2767e9e7d460fa0b121ef5a163da9856"
+    },
+    {
+      "name": "textures/glare.png",
+      "bytes": 2232,
+      "sha256": "7a6e4f4f5b893067f859d91f829b7b062ccd014891e75ed98cc71e0f59ac36e4"
+    },
+    {
+      "name": "textures/glass.png",
+      "bytes": 5490,
+      "sha256": "b8b378ece4aaa8fcb46d9674089cf7ad4776294dff5c930dd06367d1267873b1"
+    },
+    {
+      "name": "textures/glasscheckerflag.png",
+      "bytes": 309,
+      "sha256": "22cf3fe1f0d789600b0d33a78af4b3c9ef08e1943727dd6f8b78294d3d73e722"
+    },
+    {
+      "name": "textures/gotext.png",
+      "bytes": 28387,
+      "sha256": "f99771e22b33bce1837ad3081e1d2bc8503135ec1915c41186adfa7df6ddbfba"
+    },
+    {
+      "name": "textures/gold-small.png",
+      "bytes": 10675,
+      "sha256": "0b351e94381d758102a7810e3932b06ee319070da2bf6ed00f1a8608a313a08b"
+    },
+    {
+      "name": "textures/goldcheckerflag.png",
+      "bytes": 384,
+      "sha256": "e2113038a14237e81f235db32fd586774c5634003d2ed2607c0ee497b580d528"
+    },
+    {
+      "name": "textures/goldenweasel-icon.png",
+      "bytes": 2658,
+      "sha256": "06ca3f78f6c97ae2d8494c6fdd735e9e5367803da7960d7988043ea0f997596b"
+    },
+    {
+      "name": "textures/goldenweasel.png",
+      "bytes": 28782,
+      "sha256": "005fefea3563189c48b44e6e9df83c2261b684be11243f0097d77d632c524c74"
+    },
+    {
+      "name": "textures/greenarrowcurve.png",
+      "bytes": 7782,
+      "sha256": "25a3d084a161f9ec49715c5796fda44dc8cb9ad4dba4dd92238f4bc40ab5f982"
+    },
+    {
+      "name": "textures/greenchecker.bmp",
+      "bytes": 70,
+      "sha256": "c1f771d931453be3cd0692590ef74f350a89b9309918a0a908c436369cb98543"
+    },
+    {
+      "name": "textures/greencheckerflag.png",
+      "bytes": 379,
+      "sha256": "d6af368f5936d4513bb0705673b20459af09cd8bd1eb0109059ac5da358e6afc"
+    },
+    {
+      "name": "textures/greyoutlinechecker.png",
+      "bytes": 135,
+      "sha256": "50b782d1da2001e03af734a77269ae5d969e65b5cf99a15092554bdd32f8803d"
+    },
+    {
+      "name": "textures/hammy1.png",
+      "bytes": 36934,
+      "sha256": "920d7fc83bdb9b5b761313a6b0de5f2bab41d0aa65b94293b9579700e282acb9"
+    },
+    {
+      "name": "textures/hammy2.png",
+      "bytes": 39127,
+      "sha256": "3e69bb4af2e6f3fbe0acaf27813376fcd2113847107701912b681a8d3720117d"
+    },
+    {
+      "name": "textures/hammy3.png",
+      "bytes": 38711,
+      "sha256": "cca869a79619794f5aa3006144fda430b57cf6ec9bd19c3265a6d08db0d91622"
+    },
+    {
+      "name": "textures/hamster-mip1.jpg",
+      "bytes": 1047,
+      "sha256": "dec4563510477518d7c292382838f450095f9051f0ba523df3b6410a7b5f4770"
+    },
+    {
+      "name": "textures/hamster-mip2.jpg",
+      "bytes": 756,
+      "sha256": "7107d36d50853ea95d134ff886e4b57eeeecc26f5d74f5a31dde6b9945f84889"
+    },
+    {
+      "name": "textures/hamster-mip3.jpg",
+      "bytes": 689,
+      "sha256": "f319d6ec51f3c19fb5c32d8840dd4c19c7ff89bf1f475f42b535cc2a1e6d5406"
+    },
+    {
+      "name": "textures/hamster.jpg",
+      "bytes": 1895,
+      "sha256": "d29d20d77305eaa1d99dd59128a5be77133409945a79c13daaa3c590533d9a8e"
+    },
+    {
+      "name": "textures/hamsterball-mip1.png",
+      "bytes": 1746,
+      "sha256": "53f7d76f76e98e89f98cc25fccd466cf073f5fb2d7bb0543d3bb78a4d1349146"
+    },
+    {
+      "name": "textures/hamsterball-mip2.png",
+      "bytes": 767,
+      "sha256": "8e8bc2ded2a69e44cb980f06bc84ade2cf5ed520a4bb23d6ce9e4de7ed7dcbc9"
+    },
+    {
+      "name": "textures/hamsterball-mip3.png",
+      "bytes": 409,
+      "sha256": "65ffc48ce0f2613cf23fd2a63d8a829cbfdc61f13da5a4b94e995b0f91a9a1ed"
+    },
+    {
+      "name": "textures/hamsterball.png",
+      "bytes": 4215,
+      "sha256": "bb0b4d45049c505f231e790341244c88061b0a7ee5f82033ca809124336648f1"
+    },
+    {
+      "name": "textures/loader(grey).png",
+      "bytes": 9976,
+      "sha256": "3bce9c03cc2f6dae07f6c7fb9c035a86ff94fe1b4f3444940c83cc551f3879d6"
+    },
+    {
+      "name": "textures/loader.png",
+      "bytes": 20005,
+      "sha256": "341dd895030786f5996bcb689a754d0de9c84f4f83d18d0ce9abc182004d86a6"
+    },
+    {
+      "name": "textures/loaderbkg.png",
+      "bytes": 32924,
+      "sha256": "ac691ec86ef4a706b3cc69abe855cd3c3326b98c32c076d9254a1aaecfedad39"
+    },
+    {
+      "name": "textures/loadingswirl.png",
+      "bytes": 6253,
+      "sha256": "33ac3d07093c96d1dcc54d126c50ce35eda0e6608f21b8f0a9985839f29f4a6e"
+    },
+    {
+      "name": "textures/lock.png",
+      "bytes": 729,
+      "sha256": "50fd36bc42fb63510d26856b0cc682b07d6931812fc2d2ccf3fc17679a7eabed"
+    },
+    {
+      "name": "textures/locktile.png",
+      "bytes": 1390,
+      "sha256": "d8e8a8c82e3984db537c582cf7cd95ddb748295346aa8a11009eb436b230413a"
+    },
+    {
+      "name": "textures/locktile2.png",
+      "bytes": 1323,
+      "sha256": "b0b8904424f089be4eb96e9bf8d5d0368f5124c310a203c88785cb875054011d"
+    },
+    {
+      "name": "textures/lost.png",
+      "bytes": 13601,
+      "sha256": "acffffaccb315ee0c48cfad618f5932b0dbc205d2e257de10ddecce717e850b7"
+    },
+    {
+      "name": "textures/minicliplogo.png",
+      "bytes": 12265,
+      "sha256": "dfe22687a076647378e363aeba5774400ea5c81095198373b080883775d05a3b"
+    },
+    {
+      "name": "textures/mirror.png",
+      "bytes": 5486,
+      "sha256": "2e818e84a0055acf019d867a8713c7e9841209b99d8800427e4976b34f0d0e24"
+    },
+    {
+      "name": "textures/neonarrow.png",
+      "bytes": 2118,
+      "sha256": "4868df7185ebda3b132a8f9fb80600bd12c279c243b684970235b17140a15272"
+    },
+    {
+      "name": "textures/oddarrow.png",
+      "bytes": 1810,
+      "sha256": "6eea685ec19469c8545629d918e5a725c58081609f0f1eeceb56ce9e4c33ce84"
+    },
+    {
+      "name": "textures/orangechecker.bmp",
+      "bytes": 70,
+      "sha256": "45c155b279db13118029d3ae0cb9fc69260dae5562f08a2fada42ac5f0d3488c"
+    },
+    {
+      "name": "textures/orangecheckerflag-mip1.png",
+      "bytes": 376,
+      "sha256": "8b7bd1e91234e91e5038d58d4a11eb34c2caabac6906dc3257efd0296c81c01c"
+    },
+    {
+      "name": "textures/orangecheckerflag-mip2.png",
+      "bytes": 340,
+      "sha256": "2e8a5cac09e4417d2ef378f2280b8cac78071485d264a9b7918c815dc5a2e032"
+    },
+    {
+      "name": "textures/orangecheckerflag-mip3.png",
+      "bytes": 270,
+      "sha256": "bdb076b2fc6a1340846709ec7241ba6a3f931050ee416b2549387210ebed2dfb"
+    },
+    {
+      "name": "textures/orangecheckerflag.png",
+      "bytes": 392,
+      "sha256": "ad5baf42be2aeecc34d426cbefe2a1663ea911aed1f04157fb419e632ed69e00"
+    },
+    {
+      "name": "textures/partyrace.png",
+      "bytes": 25688,
+      "sha256": "2914ea234a52a6a9cadd74cceedf982ea70337226028d22a8d774b1a39eaf2d5"
+    },
+    {
+      "name": "textures/pinkchecker.bmp",
+      "bytes": 70,
+      "sha256": "07130614c6a92727be9bb43771d717b607cb33ead48e4b0e1bdeb74540b08074"
+    },
+    {
+      "name": "textures/polechecker.png",
+      "bytes": 3110,
+      "sha256": "1d4c07dfffc6bc7efd840a7e16fd4be14cce0c623231038469f60769800ea2cf"
+    },
+    {
+      "name": "textures/practice-cascade.png",
+      "bytes": 2272,
+      "sha256": "a8864f9bcc88cb0c2fcb5e0e03afb5828f30d289cc23f99936e486e5f58d5880"
+    },
+    {
+      "name": "textures/practice-glass.png",
+      "bytes": 1239,
+      "sha256": "41d307cb9fd19e83dbfe315eb53693561169694c86856be5e3aa39cf1734690b"
+    },
+    {
+      "name": "textures/practice-impossible.png",
+      "bytes": 1625,
+      "sha256": "bd83db6aca2acb0c1e0ffa0ef811d5f5c96a68406efbac3df45056ae7182d04c"
+    },
+    {
+      "name": "textures/practice-level1.png",
+      "bytes": 2822,
+      "sha256": "ddfda7436e37701f94085575928d833e3fb86c6a3a261bfb756999ad3b7d1314"
+    },
+    {
+      "name": "textures/practice-level10.png",
+      "bytes": 1741,
+      "sha256": "ee5b9d7d1ffe7723a1a3f8829a2062e111cb9406b81f56a93e4566cfba973fcf"
+    },
+    {
+      "name": "textures/practice-level2.png",
+      "bytes": 2836,
+      "sha256": "ecfac03e221d4d2afc360c716ade8a6122fdda083eef33b81722e93e1df9b8a6"
+    },
+    {
+      "name": "textures/practice-level3.png",
+      "bytes": 2814,
+      "sha256": "2ee3591b4caa9debc3867a2f36522c101b509773d1bdcd9834a03d1081fd2b74"
+    },
+    {
+      "name": "textures/practice-level4.png",
+      "bytes": 2303,
+      "sha256": "2c660e6aaa4c838fedb6cb1e4cb5fee196ffdffaee1e7a8927fdc40daff9c0fc"
+    },
+    {
+      "name": "textures/practice-level5.png",
+      "bytes": 1783,
+      "sha256": "1f7f8a43b9cf83f0eaed9c88fba252fe328a3d04e04f8b67f7c7a065d6f94d3e"
+    },
+    {
+      "name": "textures/practice-level6.png",
+      "bytes": 2475,
+      "sha256": "4f812001c7f84f86778d047bf1157994f02fb4d6dc77ee73b8e245e7597d6d07"
+    },
+    {
+      "name": "textures/practice-level7.png",
+      "bytes": 2427,
+      "sha256": "e835ba56e91bb6f10e20e59518efe61f49603e6bd61b4cc4c939f9764a0fd5b4"
+    },
+    {
+      "name": "textures/practice-level8.png",
+      "bytes": 2678,
+      "sha256": "8296eaa00103ec8fd846d1899919468589f99f6d9e88c9ecc3383e3580723533"
+    },
+    {
+      "name": "textures/practice-level9.png",
+      "bytes": 2379,
+      "sha256": "4cd4556651dc438b0a6191da5bf60516d98ca2ad1a6cbe0be21cbac6b526b916"
+    },
+    {
+      "name": "textures/practice-neon.png",
+      "bytes": 1705,
+      "sha256": "535df8c0c588c1f088d530d998863e23fa07cfc69f3b1901814139360a2cef3e"
+    },
+    {
+      "name": "textures/practice-up.png",
+      "bytes": 2097,
+      "sha256": "673d024eeb86cfd6fdbf07867591523eb9770f29afc0f211e5ec6e62d6b74b5e"
+    },
+    {
+      "name": "textures/purplechecker.bmp",
+      "bytes": 70,
+      "sha256": "dbce9869a71d4477dbe33b23f8befd07eada00cff10b03b047ce0009ec76c2c1"
+    },
+    {
+      "name": "textures/ranks/1.jpg",
+      "bytes": 18091,
+      "sha256": "89d91f942ec9ae579921d52538c08bf21660e9edddec039bae84fe5c21412287"
+    },
+    {
+      "name": "textures/ranks/10.jpg",
+      "bytes": 40652,
+      "sha256": "4cc5bc18bd8f2b414df60fe579f9a57f81d782bbffc639da08ec4a171724de1f"
+    },
+    {
+      "name": "textures/ranks/11.jpg",
+      "bytes": 40448,
+      "sha256": "5922e684a0764954a75d47e84a03a38757f3bbb1af31a3b7432e274031742961"
+    },
+    {
+      "name": "textures/ranks/12.jpg",
+      "bytes": 36292,
+      "sha256": "9a4372e5e1dfd05fbeaef1f6f82336094bd8df88aa427ff3a4c76d122d729f50"
+    },
+    {
+      "name": "textures/ranks/13.jpg",
+      "bytes": 37124,
+      "sha256": "761abf3a2becf5d21e197e547bb7eb9bcd184ab8621b7db07c860666e36a74f0"
+    },
+    {
+      "name": "textures/ranks/14.jpg",
+      "bytes": 36014,
+      "sha256": "4977cfd93d59ce158c134c9232be93349283843bd7a60dc9e983cc0652545cf1"
+    },
+    {
+      "name": "textures/ranks/15.jpg",
+      "bytes": 35203,
+      "sha256": "17bfb04b8e4ebb77f8113436de9730fec38fa93d852c4122d920fd5111f87e1c"
+    },
+    {
+      "name": "textures/ranks/16.jpg",
+      "bytes": 41543,
+      "sha256": "a4ca35ef304ab907331f41494af281e8fcca6533de1702536a1766f872b1d742"
+    },
+    {
+      "name": "textures/ranks/2.jpg",
+      "bytes": 18533,
+      "sha256": "25c6fd107cffa041ad99682d878757ba0cfaef7b4b6b94ee813629f8f43bb71e"
+    },
+    {
+      "name": "textures/ranks/3.jpg",
+      "bytes": 24507,
+      "sha256": "6dd5b48d03f4ef02ea558ecedeae8718de53168d92fee3879263177234213955"
+    },
+    {
+      "name": "textures/ranks/4.jpg",
+      "bytes": 34197,
+      "sha256": "0a62bb4006768b697ebaca7f74c517f86f217d1ac4ecd9c04651049df8a13d26"
+    },
+    {
+      "name": "textures/ranks/5.jpg",
+      "bytes": 32902,
+      "sha256": "995bd3b3d612d0ad024f222e14217c5bd7189e2196d8e03dc41dc681ead77a70"
+    },
+    {
+      "name": "textures/ranks/6.jpg",
+      "bytes": 37325,
+      "sha256": "606ed6fdce151a9d64440c8d7f9154c2b73a4d2e81947dd946207f8ac63ea357"
+    },
+    {
+      "name": "textures/ranks/7.jpg",
+      "bytes": 22069,
+      "sha256": "5da91de77f891a40977353ad113b81e8458dc295535c107be1523432aedd6b01"
+    },
+    {
+      "name": "textures/ranks/8.jpg",
+      "bytes": 18414,
+      "sha256": "3b0ac2c8129cbfc3dd81e6d70a63165530566d20329837e5eb442e0233df47a0"
+    },
+    {
+      "name": "textures/ranks/9.jpg",
+      "bytes": 20915,
+      "sha256": "556ca14cdce3a38aa4c701df2042064658773e803f6865f417fc21234e509378"
+    },
+    {
+      "name": "textures/ranks/weasel.png",
+      "bytes": 49992,
+      "sha256": "7ab8c18273dba4946b31a4d16745e20a9f09c85333a46e3a511bb7bede44e7a9"
+    },
+    {
+      "name": "textures/raptisoftlogo.png",
+      "bytes": 11284,
+      "sha256": "8b610c65d061148a2fe789e2153f04162a331a53dd2f204d2cf98b3d3440db74"
+    },
+    {
+      "name": "textures/readytext.png",
+      "bytes": 31199,
+      "sha256": "4b7ccd3d25a1420aaed56e5367c6169d631b7280fe50cb4193cc747c505ea2e9"
+    },
+    {
+      "name": "textures/redchecker.bmp",
+      "bytes": 70,
+      "sha256": "27b0e082bf23c4d4f09608469d5adc9cbaddcd893c365aec819e268a95dc23c3"
+    },
+    {
+      "name": "textures/redcheckerflag.png",
+      "bytes": 452,
+      "sha256": "3dde116b642203f5adfe2c149dc843907f5086be6c719d769e8a5f1504dce944"
+    },
+    {
+      "name": "textures/rodentrumble.png",
+      "bytes": 14422,
+      "sha256": "5d7e016c0492e12359178660157f68aa1bf740a9fe283dab480631d079ae3661"
+    },
+    {
+      "name": "textures/safecircle.png",
+      "bytes": 8616,
+      "sha256": "dfc83e067561b7c16b4cafde4ab0be5a210abf33fdb53ab0c601a4eff2ce8372"
+    },
+    {
+      "name": "textures/saw.png",
+      "bytes": 21423,
+      "sha256": "3a25ed3adb990d5980c79c7aab3ffe08b9e8578b00ce938d33db2e9aaf3eb9d9"
+    },
+    {
+      "name": "textures/scoreball.png",
+      "bytes": 27074,
+      "sha256": "589a3168dea4a35386ce8b0fe453176816c74cdde83340bf2ea4c14f240cabdb"
+    },
+    {
+      "name": "textures/scrollmore.png",
+      "bytes": 1094,
+      "sha256": "94028d609c2890ed5ce12c1f4055ddfac95bf20c2e4d5c38d2b9c3eff8b93e3f"
+    },
+    {
+      "name": "textures/settext.png",
+      "bytes": 26925,
+      "sha256": "cf5eeedc50f37362744deec06a14dc5101968280c12d35bf7d903d522215e82c"
+    },
+    {
+      "name": "textures/shadow-mip1.png",
+      "bytes": 651,
+      "sha256": "b00c154e87d1cd0fca5530f93863e08c79c103f99ec96408bd1e6c941bb81346"
+    },
+    {
+      "name": "textures/shadow-mip2.png",
+      "bytes": 342,
+      "sha256": "8e897e4075f8b9f407a35be4a8291fc8c104e1f2f18db198946dca94e4a48716"
+    },
+    {
+      "name": "textures/shadow-mip3.png",
+      "bytes": 197,
+      "sha256": "adcb196b60d91876afcb1a60648a07240a2b0d824d523200c13f915d26eebd0e"
+    },
+    {
+      "name": "textures/shadow.png",
+      "bytes": 1329,
+      "sha256": "fe93798d0fd3b5742443d9e567e3e802b5c5c923ad500b4ae66eaaf6221d1bca"
+    },
+    {
+      "name": "textures/sign-bewarethetar-mip1.png",
+      "bytes": 3184,
+      "sha256": "ff2cccd843394a8f60c46828ef03563c5128584acd2e5d7eee7e4eb2fc1ff373"
+    },
+    {
+      "name": "textures/sign-bewarethetar-mip2.png",
+      "bytes": 1368,
+      "sha256": "b67ff3576abfaa98b152b6b58319638b8f51a1259f5e05fb601a041259c3d17c"
+    },
+    {
+      "name": "textures/sign-bewarethetar-mirrored-mip1.png",
+      "bytes": 3184,
+      "sha256": "c816d5c5dfc0d2abae23b42b29c4e68c31faaf274aac15c946942fce6d70ce4e"
+    },
+    {
+      "name": "textures/sign-bewarethetar-mirrored-mip2.png",
+      "bytes": 1382,
+      "sha256": "73ee72134754c777e4282c2f473fa95e2674bc7dd60c58ffa33963a8bb10207d"
+    },
+    {
+      "name": "textures/sign-bewarethetar-mirrored.png",
+      "bytes": 7746,
+      "sha256": "cac1187815fa4708188a4fd64c619f868b7164e6916f0111067724235eddd268"
+    },
+    {
+      "name": "textures/sign-bewarethetar.png",
+      "bytes": 7710,
+      "sha256": "ae5859a3d8b243b1ebc736291801972becde7b0323f14e7253d85f25c4427043"
+    },
+    {
+      "name": "textures/silver-small.png",
+      "bytes": 9630,
+      "sha256": "34b3a35e4e16b235d78a28e880f914046badaecb25115aedf503fd0f30a52fbe"
+    },
+    {
+      "name": "textures/skychecker.png",
+      "bytes": 190,
+      "sha256": "2c2b21ffc8d8d5fc3c8ab0353c0c4b208839c17ff28e110b82afc4bb5ee0e974"
+    },
+    {
+      "name": "textures/skycheckerflag.png",
+      "bytes": 323,
+      "sha256": "247c32d5e66e51edcf66a27b382dc48c61fd17bd97b0f0d86690de7319674f54"
+    },
+    {
+      "name": "textures/smashglass.png",
+      "bytes": 8421,
+      "sha256": "21f721cffedc3df4baca22a0b9853d46c0d5bbf7427d93b123c8883d1a63bf95"
+    },
+    {
+      "name": "textures/speedcylinder.png",
+      "bytes": 3771,
+      "sha256": "2970d9e5a83a2ed3ac2e2a1fc2eea352dd16cf5f5b7b06e93e09a9ae7b6e01df"
+    },
+    {
+      "name": "textures/star.png",
+      "bytes": 864,
+      "sha256": "d0562322b7ade897b703d0243c75925ca85b18bc684c50c2b31c9d0bcc799706"
+    },
+    {
+      "name": "textures/stumpyarrow.png",
+      "bytes": 1716,
+      "sha256": "ca49d5f55a9e24a7cafd0bbe8a96857ca9cc33553a666d1f183f19a6eb2a238d"
+    },
+    {
+      "name": "textures/sweat.png",
+      "bytes": 1779,
+      "sha256": "5b8148833c7fb1ccac3665209f60a6fff2357eaebd92d89db6e48dbfd70f16f0"
+    },
+    {
+      "name": "textures/tar-mip1.png",
+      "bytes": 1970,
+      "sha256": "8581bd68f24cfe13e32180fa4b03062084d45011d649ab7554e479300cf644a5"
+    },
+    {
+      "name": "textures/tar-mip2.png",
+      "bytes": 734,
+      "sha256": "9c778e504f4cd8ba0f387f7c2599501459a311c8e20e9a8b3cae3adcc35155df"
+    },
+    {
+      "name": "textures/tar-mip3.png",
+      "bytes": 346,
+      "sha256": "ad16ebd15cb3c387f4866df01f1525a9630e09c6b8061535fb8e24487e997087"
+    },
+    {
+      "name": "textures/tar.png",
+      "bytes": 5328,
+      "sha256": "a721a51449e40f19100927d2d95483c6935c72bd726cd5f1277d80de3b96cd4e"
+    },
+    {
+      "name": "textures/tarblot-mip1.png",
+      "bytes": 460,
+      "sha256": "9873e27763a0df63e17b5d32f3dab743e3df93fb3e499a55e875de6b96dfd140"
+    },
+    {
+      "name": "textures/tarblot-mip2.png",
+      "bytes": 282,
+      "sha256": "b66a6e83ff699124baa28b798060edf69598cc1a5686c94970d9e7c1f2f3494d"
+    },
+    {
+      "name": "textures/tarblot-mip3.png",
+      "bytes": 247,
+      "sha256": "23c12683ee04b216736f6b4468b034d9fbaf0f6abe7d2efd99436e9f7334481e"
+    },
+    {
+      "name": "textures/tarblot-mip4.png",
+      "bytes": 215,
+      "sha256": "4f97360d540177f041efb0d9224dac117559d478eb226dcc0e08a5ad825cbb01"
+    },
+    {
+      "name": "textures/tarblot.png",
+      "bytes": 954,
+      "sha256": "1fab6a1e85dd07f633ffbe76601828de5db7e1681a271bfcaa3c9da714e25cd4"
+    },
+    {
+      "name": "textures/tarsplotch-mip1.png",
+      "bytes": 816,
+      "sha256": "22c68d599b5382f39c1889f23d568ee127bd0446e6265e6b3a12c660cfde5d4c"
+    },
+    {
+      "name": "textures/tarsplotch-mip2.png",
+      "bytes": 423,
+      "sha256": "c64ea41d13c6db6d0f4abd16d9f2dc772d3a8d672a8578377fee3023ba73a496"
+    },
+    {
+      "name": "textures/tarsplotch.png",
+      "bytes": 1570,
+      "sha256": "56cd88c90512529ecd14013a74dbbae8a745cb620475a9ee540fa4bbb1b8132e"
+    },
+    {
+      "name": "textures/tenbonus.png",
+      "bytes": 1644,
+      "sha256": "ea86fa4752d0974458cadfcbe872f8beb79c8d0447e0313993046fa7869bf663"
+    },
+    {
+      "name": "textures/timetrials.png",
+      "bytes": 23552,
+      "sha256": "378241cb68d7330e17a7b427de96cbd9f9702a0714d08dc2b8d60a1aea380bbd"
+    },
+    {
+      "name": "textures/timerblot.png",
+      "bytes": 5308,
+      "sha256": "416c9faede76fcf613c9d50ad90268faa2d91f51e8de8f6eb186157864c9b9b0"
+    },
+    {
+      "name": "textures/title1.png",
+      "bytes": 73947,
+      "sha256": "c4392eec500ac661ad9710a075635ea62a40a3496ce8318ec873d1b2d8d98b4f"
+    },
+    {
+      "name": "textures/titletext-left.png",
+      "bytes": 37978,
+      "sha256": "27c8b77931194c7c7051a8473e1f5bc2ab05b8cab2720c979c51a13761258bb0"
+    },
+    {
+      "name": "textures/titletext-right.png",
+      "bytes": 32927,
+      "sha256": "607edbac11690b8693ba4a42b77b0628359fa57d72b8f9be13f45c6c7017ce01"
+    },
+    {
+      "name": "textures/toobchecker.png",
+      "bytes": 190,
+      "sha256": "a06507716dbafd8c8fe999d341b5dc6cd72e78902e9a09420d359df8d74d2860"
+    },
+    {
+      "name": "textures/toobcheckerflag.png",
+      "bytes": 400,
+      "sha256": "a52cf15516d1657388c523fbda830b520639fccbc5425828f16528bc80e26849"
+    },
+    {
+      "name": "textures/toobcurvedarrow.png",
+      "bytes": 14358,
+      "sha256": "b1bd2c5ff4dc386c75976a5d4b6553af746881f695ae5c77d7d0a213c89b265b"
+    },
+    {
+      "name": "textures/tournament.png",
+      "bytes": 11958,
+      "sha256": "24bcf24281d2841129e98e06124807f720e8fb10917e5044b4805528911c1d0e"
+    },
+    {
+      "name": "textures/tourney-beginner.png",
+      "bytes": 18579,
+      "sha256": "30f2000dcadcab2bcebcc5ecca54c4173927710072e52d6a4ea4d8e3fb88b597"
+    },
+    {
+      "name": "textures/tourney-cascade.png",
+      "bytes": 23242,
+      "sha256": "b53f225b1d274f59dde44bc09fc10c5d5a2b2bbf58cb7e4cc2545ad838215268"
+    },
+    {
+      "name": "textures/tourney-expert.png",
+      "bytes": 21811,
+      "sha256": "926659c5d9a2f3344b1ec9c661f82fc6dd1d8d1dd89f7867fe2c89a2ac2a9b20"
+    },
+    {
+      "name": "textures/tourney-glass.png",
+      "bytes": 10699,
+      "sha256": "b0deb86faac5dee68a7e04685a95d0dd5a4a5fb62a54d422ed0c92aba6d394d0"
+    },
+    {
+      "name": "textures/tourney-impossible.png",
+      "bytes": 14805,
+      "sha256": "ed958b61ab1daeac9410d2b03a7c36ef3130c08cdb2ce1c53c657043aeaabcf6"
+    },
+    {
+      "name": "textures/tourney-intermediate.png",
+      "bytes": 21844,
+      "sha256": "06ebe67c33feb7c7eda917cb7d5841de968918226532565f5146610be48321bb"
+    },
+    {
+      "name": "textures/tourney-master.png",
+      "bytes": 14736,
+      "sha256": "547b21e8b75b70cdec90626ac8381f619a75b706bc888f8e9fec8f259d18f623"
+    },
+    {
+      "name": "textures/tourney-neon.png",
+      "bytes": 10410,
+      "sha256": "29d87bd0f2acbae991f41a33f089f8664326375de78edc14f521e633401fdf2e"
+    },
+    {
+      "name": "textures/tourney-odd.png",
+      "bytes": 24849,
+      "sha256": "3736e975ecda196277bbd861b8759895dace87c08bbb6500f714c0e761f4559e"
+    },
+    {
+      "name": "textures/tourney-sky.png",
+      "bytes": 23845,
+      "sha256": "d310bc6cbfc73c6e2a17a8e45bdfed0501e5dd4064e7017fdc3c6310a9065d6e"
+    },
+    {
+      "name": "textures/tourney-toob.png",
+      "bytes": 22020,
+      "sha256": "bffd064977a7309dc1f20f4e8a3fa9680b6e668e310c26afa82163554274e3cb"
+    },
+    {
+      "name": "textures/tourney-up.png",
+      "bytes": 22612,
+      "sha256": "30050a5e2f13e564183e8ba79eb60dcc6cfab9f1a68a22e3132afe151c8c481c"
+    },
+    {
+      "name": "textures/tourney-wobbly.png",
+      "bytes": 18136,
+      "sha256": "e8ae11fff20b1337b82067c860d6b0dd4ee16a17e368f0243963878b9402ebe7"
+    },
+    {
+      "name": "textures/trapbottom.jpg",
+      "bytes": 3447,
+      "sha256": "6538c3e2c79aa09c25a4bb78c9eaf7801bc4b143392e720fb7d2236b5513ee4e"
+    },
+    {
+      "name": "textures/trapmetal.jpg",
+      "bytes": 1272,
+      "sha256": "261062941daa830afb6045ea124c7871b06d953f536f34142ddb706765ffecd8"
+    },
+    {
+      "name": "textures/trapside.jpg",
+      "bytes": 1249,
+      "sha256": "24057a043bb7b548a55c05818089815a7eb435b164a3786aed2661155718c2f5"
+    },
+    {
+      "name": "textures/trapspring.jpg",
+      "bytes": 1514,
+      "sha256": "13205742158da39a22bb406294fd3614ee54afad55046e16945b3684d2a4d0d5"
+    },
+    {
+      "name": "textures/traptop-mip1.jpg",
+      "bytes": 2302,
+      "sha256": "c02f746b740b6e384f8c34c9b072ff57cd827b90253d1939921609d7b2bd4a59"
+    },
+    {
+      "name": "textures/traptop-mip2.jpg",
+      "bytes": 1099,
+      "sha256": "fccdd3b6cf4a0ebcf8e593994a93b7d22c82e2b2ab3cf06abf2088463043c082"
+    },
+    {
+      "name": "textures/traptop.jpg",
+      "bytes": 5918,
+      "sha256": "8a46a4bfbaf0965429ba730f3ac5daa84a45184b0bb6a62a8893ab5bafa4e402"
+    },
+    {
+      "name": "textures/unlock.png",
+      "bytes": 8493,
+      "sha256": "a3f9d61d9c5f8a9f16c6ff010024bf4b69c44a3ba96d6c5f745f6f9cd0d1741c"
+    },
+    {
+      "name": "textures/verybluechecker.bmp",
+      "bytes": 12342,
+      "sha256": "85a9527e081b26c970543c0ba8d1382034daf8a98abf9d070b39b35de500c31e"
+    },
+    {
+      "name": "textures/weaselbox.png",
+      "bytes": 5578,
+      "sha256": "cc7ed3d2cf6fe9710d10b374090174c4c09444fbc3d6850aa8f1ff118ef3bcd6"
+    },
+    {
+      "name": "textures/whitecheckerflag.png",
+      "bytes": 347,
+      "sha256": "2f350415424c43e155dc5cf2d60d9cf00fd15770236719aff6015481bf03d5f2"
+    },
+    {
+      "name": "textures/winner.png",
+      "bytes": 22417,
+      "sha256": "9d35f1b1bf9d37735c5f7af77f97394d24fea333ede77da4a0c2449459a9d856"
+    },
+    {
+      "name": "textures/yelllowchecker.png",
+      "bytes": 190,
+      "sha256": "88fd735f9cd2c12b603b8e4372d09a76af9725e6cfe46ca4f0e16434730c74f6"
+    },
+    {
+      "name": "textures/yellowarrow.png",
+      "bytes": 9058,
+      "sha256": "58a7e6339f150d0ce0f3266050bd37377dfc27a119737859175fe098aa667584"
+    },
+    {
+      "name": "textures/yellowcheckerflag-mip1.png",
+      "bytes": 232,
+      "sha256": "87cd9e4cd793c5ce005dc82a4887fbacd3266ac6460ac651c9c7772cca5a676f"
+    },
+    {
+      "name": "textures/yellowcheckerflag-mip2.png",
+      "bytes": 216,
+      "sha256": "5894dfa80328d87bb527f7c85043b9abf43ef00e5c316d06ca882ba6806b808c"
+    },
+    {
+      "name": "textures/yellowcheckerflag-mip3.png",
+      "bytes": 209,
+      "sha256": "0249fd2a84c005056656cc0b155b22440a6b4de52232c401aad13d5f6edbf287"
+    },
+    {
+      "name": "textures/yellowcheckerflag.png",
+      "bytes": 288,
+      "sha256": "efa9026824e7b579bbafc24767a37ec63c725293cfe45903140f5649e42c73de"
+    },
+    {
+      "name": "textures/yellowring-mip1.png",
+      "bytes": 1617,
+      "sha256": "7ed4df7a8cd7225b38407774a8cb82a0a6888f8d7b92f8242ad80bc0c70f7ccc"
+    },
+    {
+      "name": "textures/yellowring-mip2.png",
+      "bytes": 662,
+      "sha256": "16793b86b86b9847d6a30035d0deaf04163c371f5103fd3a8d1232e7d7aceee6"
+    },
+    {
+      "name": "textures/yellowring-mip3.png",
+      "bytes": 301,
+      "sha256": "1e87184b2208fb3eaeb0e5755d6abe3de66dd07cbfdf27837ae33f19b2c276fe"
+    },
+    {
+      "name": "textures/yellowring.png",
+      "bytes": 4046,
+      "sha256": "ad27942bb16c8713a3f6aa50a9568a55ab75c4b4d1f6ba1b08a6c912f7bdab3b"
+    },
+    {
+      "name": "textures/zigzagarrow.png",
+      "bytes": 22113,
+      "sha256": "9a81ea9b715c69af683180f932be7e9bb10b7ada6aee7cc074ad05263ab05a65"
+    },
+    {
+      "name": "textures/bluebrick.png",
+      "bytes": 194,
+      "sha256": "a619783ad8b8a9ad15c75c333050140e26a15bd92332835046b2c22bdee01231"
+    },
+    {
+      "name": "textures/brightgreenbrick.png",
+      "bytes": 195,
+      "sha256": "25d3445230199ea45b1b76cb485f8aecf52dbc164f3c30436e5f5053de1d34b1"
+    },
+    {
+      "name": "textures/bronze-icon.png",
+      "bytes": 2654,
+      "sha256": "8e45e75243f6df769cd10951bfab2b8205df5c84367ec6162868cbf439642482"
+    },
+    {
+      "name": "textures/brownbrick.png",
+      "bytes": 194,
+      "sha256": "5234c21889050910098cc019f123557b12076e722b9e8413c2152cfd9a714261"
+    },
+    {
+      "name": "textures/dawggie.png",
+      "bytes": 2528,
+      "sha256": "7680372bc92a4090921589f29de702f2ca2a7fbc4f96e456a61512a81acb8db7"
+    },
+    {
+      "name": "textures/goal-lit-mirrored.png",
+      "bytes": 6731,
+      "sha256": "c358976f4727907d531e3ca2739eeed49d2f22c74d0f32b0c834ddc2ebda27e2"
+    },
+    {
+      "name": "textures/goal-lit.png",
+      "bytes": 6669,
+      "sha256": "981eb752c91be882f17ef6c75756fa027ada88c7a4cc32dba41ba02f346bc571"
+    },
+    {
+      "name": "textures/goal-mirrored.png",
+      "bytes": 6574,
+      "sha256": "b63492d05fcb14b36ad50e47229ace9c01d1998e985a9d5249b83a0f632f97f4"
+    },
+    {
+      "name": "textures/goal-round-lit-mirrored.png",
+      "bytes": 12813,
+      "sha256": "78de044ac3a897cc4889c0c2ebdbf28f99c85ea2bad2196a52ecf2ebd4d65ec8"
+    },
+    {
+      "name": "textures/goal-round-lit.png",
+      "bytes": 12797,
+      "sha256": "86c7bbe9ffc9635ed8ba0aa27b20b92067100a034bdf9ea8be48f48faf123dea"
+    },
+    {
+      "name": "textures/goal-round-mirrored.png",
+      "bytes": 11501,
+      "sha256": "ff087ed6c25e6379462434e536877da7b07f96a32b9a415e0a663c0f6d2a4db5"
+    },
+    {
+      "name": "textures/goal-round.png",
+      "bytes": 11505,
+      "sha256": "d84a3fddca90832eeb237795d47a50595e4fd134c48080b0c2879d9ca48548ab"
+    },
+    {
+      "name": "textures/goal.png",
+      "bytes": 6498,
+      "sha256": "c31b642306336de2e622163d02c51ba5990f13eb688a7216a127fd06a844bd0c"
+    },
+    {
+      "name": "textures/gold-icon.png",
+      "bytes": 2705,
+      "sha256": "c3e9f58633f64327aaf14c1941e863118faf3c90886e9b9a9afb7564608f0783"
+    },
+    {
+      "name": "textures/greenbrick.png",
+      "bytes": 195,
+      "sha256": "e5290d7cbe637471c55c8e015bfde5eaf438dc16685b8bcd7e313feaf90edacc"
+    },
+    {
+      "name": "textures/orangebrick.png",
+      "bytes": 191,
+      "sha256": "f38c32cb0c8b8fa9738a11e4ed205c521e584c5b6356cdb34d06925b91720bd5"
+    },
+    {
+      "name": "textures/purplebrick.png",
+      "bytes": 194,
+      "sha256": "26c0d609545a7f22fa624b997bc5413109679160555863ec4f27f83abf2f01db"
+    },
+    {
+      "name": "textures/redbrick.png",
+      "bytes": 192,
+      "sha256": "a59370ddfe78c3a06e005ea70b0488fe17147005590c8d984b425c7e370885f7"
+    },
+    {
+      "name": "textures/sawblade-mip1.png",
+      "bytes": 5915,
+      "sha256": "060074957b83ef87b69ccccaadca62ad2a03efda7b2cf85ec39dd0f398fbc9fe"
+    },
+    {
+      "name": "textures/sawblade-mip2.png",
+      "bytes": 1913,
+      "sha256": "c56a0352060b8e122c361a032c64663cf1cef1c8a1e7da514d1b5ab2e7bc829a"
+    },
+    {
+      "name": "textures/sawblade.png",
+      "bytes": 20087,
+      "sha256": "500fe701c7f48f68e9118ffc05ae2431c6c755a4705d48485498d3ef131e36da"
+    },
+    {
+      "name": "textures/sawface.png",
+      "bytes": 21240,
+      "sha256": "1060d7e54420ca2beb3c9822755560ebd3fcc526c33f8972231036b799121545"
+    },
+    {
+      "name": "textures/sawface2.png",
+      "bytes": 33140,
+      "sha256": "bf2efaa7f081956a70f29839e0c50c125ab31be98854d7fe6b1f2fad4cb20cb8"
+    },
+    {
+      "name": "textures/silver-icon.png",
+      "bytes": 2493,
+      "sha256": "2e91859a9a9e70dcc7780af8c06e76ecb593739a313f18c8fa7a72de1f3bee76"
+    },
+    {
+      "name": "textures/title2.png",
+      "bytes": 52842,
+      "sha256": "780f0a47750672d6294a57c96ba81e63e30a51ee0fdb1f208d05923ecfdb9304"
+    },
+    {
+      "name": "textures/title3.png",
+      "bytes": 71108,
+      "sha256": "ca62f211e5a8ae24d21358549764cb4fd067a85d8bdac9653b0af05275c4221d"
+    },
+    {
+      "name": "textures/title4.png",
+      "bytes": 59991,
+      "sha256": "c2242be83553ee40e1a63fec0898663e383ee462f3837375aeea4133bf22d095"
+    },
+    {
+      "name": "textures/toobbrick.png",
+      "bytes": 191,
+      "sha256": "58245a9f899c3c725ee93e42690aa475c13f7fef2b2b165601c1be8510d49f66"
+    },
+    {
+      "name": "textures/tourney-dizzy.png",
+      "bytes": 23110,
+      "sha256": "a45796198cc1bbb0c1d304c942991c095f9950cfe22ed9580ec30cdf6043be43"
+    },
+    {
+      "name": "textures/tourney-tower.png",
+      "bytes": 16910,
+      "sha256": "3f70ddc10855bab62059e321f458b57f87c109846df868b6f3711440055896f0"
+    },
+    {
+      "name": "textures/winner2p.png",
+      "bytes": 6160,
+      "sha256": "e3fd87735b3188fb5a9f459c7f515350f7de069f6ed0afa94834a4f62890de42"
+    },
+    {
+      "name": "bass.dll",
+      "bytes": 97336,
+      "sha256": "11075ca0a1a3064bd971a3faa38565952441f90ed198aa624ec2ce0aab7d4b62"
+    },
+    {
+      "name": "readme.html",
+      "bytes": 10829,
+      "sha256": "541a9e2712c60044023d437015fe7eb6a67b51be408822bfef350457bf1b91ce"
+    },
+    {
+      "name": "shadow.png",
+      "bytes": 1329,
+      "sha256": "fe93798d0fd3b5742443d9e567e3e802b5c5c923ad500b4ae66eaaf6221d1bca"
+    }
+  ],
+  "inputs": {
+    "manifest": ".cache/wine-loader/manifest.json",
+    "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+    "nlsDirectory": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls",
+    "dlls": [
+      {
+        "name": "ntdll.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797467,
+        "sha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94"
+      },
+      {
+        "name": "wine-format.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "bytes": 10752,
+        "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+      },
+      {
+        "name": "msvcrt.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msvcrt.dll",
+        "bytes": 679950,
+        "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernel32.dll",
+        "bytes": 397326,
+        "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernelbase.dll",
+        "bytes": 2703374,
+        "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+      },
+      {
+        "name": "msacm32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msacm32.dll",
+        "bytes": 126990,
+        "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+      },
+      {
+        "name": "ucrtbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/ucrtbase.dll",
+        "bytes": 892942,
+        "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+      }
+    ],
+    "nls": [
+      {
+        "name": "locale.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/locale.nls",
+        "bytes": 794914,
+        "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+      },
+      {
+        "name": "sortdefault.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/sortdefault.nls",
+        "bytes": 3380468,
+        "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+      },
+      {
+        "name": "l_intl.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/l_intl.nls",
+        "bytes": 5564,
+        "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+      },
+      {
+        "name": "normnfc.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/normnfc.nls",
+        "bytes": 60194,
+        "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+      },
+      {
+        "name": "c_1252.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_1252.nls",
+        "bytes": 66082,
+        "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+      },
+      {
+        "name": "c_437.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_437.nls",
+        "bytes": 66594,
+        "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+      },
+      {
+        "name": "c_20127.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_20127.nls",
+        "bytes": 66082,
+        "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
+      }
+    ],
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097"
+  },
+  "status": "blocked-guest",
+  "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
+  "phases": [
+    {
+      "name": "map guest closure",
+      "passed": true,
+      "modules": [
+        {
+          "name": "hamsterball.exe",
+          "path": "hamsterball.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 17235968,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 20774912,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@host/shell32.dll",
+          "host": true,
+          "base": 20840448,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "d3d8.dll",
+          "path": "@host/d3d8.dll",
+          "host": true,
+          "base": 20905984,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "dsound.dll",
+          "path": "@host/dsound.dll",
+          "host": true,
+          "base": 20971520,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "bass.dll",
+          "path": "bass.dll",
+          "host": false,
+          "base": 21037056,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "dinput8.dll",
+          "path": "@host/dinput8.dll",
+          "host": true,
+          "base": 21430272,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "ws2_32.dll",
+          "path": "@host/ws2_32.dll",
+          "host": true,
+          "base": 21495808,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "host": true,
+          "base": 21561344,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 21626880,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "host": true,
+          "base": 21692416,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 21757952,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "winmm.dll",
+          "path": "@host/winmm.dll",
+          "host": true,
+          "base": 24510464,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msacm32.dll",
+          "path": "@runtime/msacm32.dll",
+          "host": false,
+          "base": 24576000,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 24707072,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "@runtime/ucrtbase.dll",
+          "host": false,
+          "base": 25427968,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        }
+      ]
+    },
+    {
+      "name": "Wine process bootstrap",
+      "passed": true
+    },
+    {
+      "name": "source loader registration",
+      "passed": true
+    },
+    {
+      "name": "source loader callbacks",
+      "passed": true
+    }
+  ],
+  "trappedImports": [
+    "user32.dll!MessageBeep",
+    "user32.dll!CloseClipboard",
+    "user32.dll!GetClipboardData",
+    "user32.dll!FindWindowA",
+    "user32.dll!SetWindowPos",
+    "user32.dll!SetWindowLongA",
+    "user32.dll!WindowFromPoint",
+    "user32.dll!GetCursorPos",
+    "user32.dll!SetCursor",
+    "user32.dll!SetCursorPos",
+    "user32.dll!EnableWindow",
+    "user32.dll!DrawTextA",
+    "user32.dll!OpenClipboard",
+    "user32.dll!GetWindowLongA",
+    "shell32.dll!ShellExecuteA",
+    "dsound.dll!#1",
+    "dinput8.dll!DirectInput8Create",
+    "ws2_32.dll!#16",
+    "ws2_32.dll!#111",
+    "ws2_32.dll!#108",
+    "ws2_32.dll!#3",
+    "ws2_32.dll!#103",
+    "ws2_32.dll!#116",
+    "ws2_32.dll!#19",
+    "ws2_32.dll!#10",
+    "ws2_32.dll!#4",
+    "ws2_32.dll!#23",
+    "ws2_32.dll!#9",
+    "ws2_32.dll!#11",
+    "ws2_32.dll!#12",
+    "ws2_32.dll!#115",
+    "advapi32.dll!RegCreateKeyA",
+    "ole32.dll!CoInitialize",
+    "ole32.dll!CoUninitialize",
+    "ole32.dll!CLSIDFromString",
+    "advapi32.dll!RegCreateKeyW",
+    "advapi32.dll!RegEnumKeyExW",
+    "advapi32.dll!RegEnumValueW",
+    "advapi32.dll!RegOpenKeyW",
+    "advapi32.dll!RegQueryInfoKeyW",
+    "user32.dll!CharLowerW",
+    "user32.dll!DialogBoxIndirectParamW",
+    "user32.dll!DialogBoxParamW",
+    "user32.dll!EndDialog",
+    "user32.dll!GetPropW",
+    "user32.dll!RegisterWindowMessageW",
+    "user32.dll!SendDlgItemMessageW",
+    "user32.dll!SetPropW",
+    "winmm.dll!CloseDriver",
+    "winmm.dll!DefDriverProc",
+    "winmm.dll!OpenDriver",
+    "winmm.dll!SendDriverMessage"
+  ],
+  "apiCalls": [
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104170,
+        0,
+        67104222,
+        4096,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104418,
+        67104422,
+        4,
+        21402200
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104442,
+        67104446,
+        2,
+        21402200
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtFreeVirtualMemory",
+      "args": [
+        4294967295,
+        67104334,
+        67104338,
+        32768
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        1,
+        33585856,
+        0,
+        67104422
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24510464,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        1,
+        33585856,
+        0,
+        67104422
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24576000,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24576000,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24576000,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24576000,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24576000,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        24576000,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        1,
+        33585896,
+        0,
+        67104422
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        16777216,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        1,
+        33585856,
+        0,
+        67104422
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        20774912,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        20774912,
+        67104406,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        1,
+        33585856,
+        0,
+        67104422
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        21692416,
+        67104406,
+        0
+      ],
+      "result": "0xc000007a"
+    },
+    {
+      "name": "user32.dll!wsprintfA",
+      "args": [
+        21180416,
+        21183374,
+        21179326,
+        21039150
+      ],
+      "result": "0x35"
+    },
+    {
+      "name": "user32.dll!MessageBoxA",
+      "args": [
+        0,
+        21180416,
+        21401646,
+        16
+      ],
+      "error": "Application requested messagebox: ERROR! Unable to load function: CoCreateInstance (ole32.dll)"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        0
+      ],
+      "error": "Unsupported Wine NT service NtClose for handle 0x0"
+    }
+  ],
+  "output": [],
+  "requests": [
+    {
+      "kind": "messagebox",
+      "owner": 0,
+      "icon": "error",
+      "text": "Unable to load function: CoCreateInstance (ole32.dll)",
+      "title": "ERROR!"
+    }
+  ],
+  "frames": 0,
+  "nativeLoaderCalls": [
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        17235968,
+        67104620,
+        0,
+        67104616
+      ],
+      "dll": "ntdll.dll",
+      "symbol": "__wine_dbg_header"
+    },
+    {
+      "name": "LdrLoadDll",
+      "args": [
+        33585856,
+        0,
+        67104422,
+        67104386
+      ],
+      "dll": "WINMM.dll",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerGetLineControlsA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerGetControlDetailsA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerGetDevCapsA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerGetLineInfoA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerOpen",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "timeGetTime",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerGetNumDevs",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "timeBeginPeriod",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerClose",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "mixerSetControlDetails",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24510464,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "winmm.dll",
+      "symbol": "timeEndPeriod",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrLoadDll",
+      "args": [
+        33585856,
+        0,
+        67104422,
+        67104386
+      ],
+      "dll": "MSACM32.dll",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24576000,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "msacm32.dll",
+      "symbol": "acmStreamConvert",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24576000,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "msacm32.dll",
+      "symbol": "acmStreamSize",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24576000,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "msacm32.dll",
+      "symbol": "acmStreamPrepareHeader",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24576000,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "msacm32.dll",
+      "symbol": "acmStreamOpen",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24576000,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "msacm32.dll",
+      "symbol": "acmStreamUnprepareHeader",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        24576000,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "msacm32.dll",
+      "symbol": "acmStreamClose",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrLoadDll",
+      "args": [
+        33585896,
+        0,
+        67104422,
+        67104386
+      ],
+      "dll": "KERNEL32.dll",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "GetModuleHandleA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "WaitForSingleObjectEx",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "DeviceIoControl",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "QueryPerformanceCounter",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "TlsAlloc",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "QueryPerformanceFrequency",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "TlsFree",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "GetCurrentThread",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "WideCharToMultiByte",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "GetVersionExA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "CreateEventA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "QueueUserAPC",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "Sleep",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "ResumeThread",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "LoadLibraryA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "GetProcAddress",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "InitializeCriticalSection",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "CreateFileW",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "GetCurrentThreadId",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "TlsSetValue",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "SetThreadPriority",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "EnterCriticalSection",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "LeaveCriticalSection",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "TlsGetValue",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "CreateFileA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "GetFileSize",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "SetFilePointer",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "ReadFile",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "DeleteCriticalSection",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "WaitForSingleObject",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "SetEvent",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        16777216,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "kernel32.dll",
+      "symbol": "CloseHandle",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrLoadDll",
+      "args": [
+        33585856,
+        0,
+        67104422,
+        67104386
+      ],
+      "dll": "USER32.dll",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        20774912,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "user32.dll",
+      "symbol": "GetForegroundWindow",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        20774912,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "user32.dll",
+      "symbol": "PostMessageA",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrLoadDll",
+      "args": [
+        33585856,
+        0,
+        67104422,
+        67104386
+      ],
+      "dll": "ole32.dll",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        21692416,
+        67104406,
+        0,
+        67104402
+      ],
+      "dll": "ole32.dll",
+      "symbol": "CoCreateInstance",
+      "status": "0xc000007a"
+    }
+  ],
+  "firstFailure": {
+    "phase": "guest DLL attach",
+    "message": "Application requested messagebox: ERROR! Unable to load function: CoCreateInstance (ole32.dll)",
+    "ip": {
+      "address": "0x13d1000",
+      "module": "user32.dll",
+      "offset": "0x1000"
+    },
+    "registers": [
+      "0x146902e",
+      "0x1432bbe",
+      "0x1433000",
+      "0x1410780",
+      "0x3ffeef8",
+      "0x1410000",
+      "0x143214c",
+      "0x1433000"
+    ],
+    "compiledBlocks": 352,
+    "instructions": 5395962,
+    "recentBlocks": [
+      {
+        "address": "0x1921439",
+        "module": "wine-format.dll",
+        "offset": "0x1439",
+        "registers": [
+          "0x9",
+          "0x6c",
+          "0x1433034",
+          "0x1433bad",
+          "0x3ffee58",
+          "0x1433034",
+          "0x9",
+          "0x3cc"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1921444",
+        "module": "wine-format.dll",
+        "offset": "0x1444",
+        "registers": [
+          "0x29",
+          "0x6c",
+          "0x1433034",
+          "0x1433bad",
+          "0x3ffee58",
+          "0x1433034",
+          "0x9",
+          "0x3cc"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x192144d",
+        "module": "wine-format.dll",
+        "offset": "0x144d",
+        "registers": [
+          "0x29",
+          "0x6c",
+          "0x1433034",
+          "0x1433bad",
+          "0x3ffee58",
+          "0x1433034",
+          "0x9",
+          "0x3cc"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x192142d",
+        "module": "wine-format.dll",
+        "offset": "0x142d",
+        "registers": [
+          "0x29",
+          "0x6c",
+          "0x1433034",
+          "0x1433bad",
+          "0x3ffee58",
+          "0x1433034",
+          "0x9",
+          "0x3cc"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1921a3e",
+        "module": "wine-format.dll",
+        "offset": "0x1a3e",
+        "registers": [
+          "0x0",
+          "0x6c",
+          "0x1433034",
+          "0x1433bae",
+          "0x3ffee58",
+          "0x1433035",
+          "0x9",
+          "0x3cb"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1921a4f",
+        "module": "wine-format.dll",
+        "offset": "0x1a4f",
+        "registers": [
+          "0x0",
+          "0x6c",
+          "0x1433034",
+          "0x1433000",
+          "0x3ffee58",
+          "0x1433035",
+          "0x143214c",
+          "0x3cb"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1922372",
+        "module": "wine-format.dll",
+        "offset": "0x2372",
+        "registers": [
+          "0x35",
+          "0x6c",
+          "0x1433034",
+          "0x1469000",
+          "0x3ffeee4",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1433b82",
+        "module": "bass.dll",
+        "offset": "0x23b82",
+        "registers": [
+          "0x35",
+          "0x1432bbe",
+          "0x1433b52",
+          "0x1469000",
+          "0x3ffeefc",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1433a28",
+        "module": "bass.dll",
+        "offset": "0x23a28",
+        "registers": [
+          "0x1469000",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1469000",
+          "0x3ffef0c",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1469019",
+        "module": "bass.dll",
+        "offset": "0x59019",
+        "registers": [
+          "0x1469000",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1469000",
+          "0x3ffef0c",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x146901b",
+        "module": "bass.dll",
+        "offset": "0x5901b",
+        "registers": [
+          "0x1469000",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1469000",
+          "0x3ffef08",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1469022",
+        "module": "bass.dll",
+        "offset": "0x59022",
+        "registers": [
+          "0x146902e",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1469000",
+          "0x3ffef04",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1469023",
+        "module": "bass.dll",
+        "offset": "0x59023",
+        "registers": [
+          "0x146902e",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1469000",
+          "0x3ffef00",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1469025",
+        "module": "bass.dll",
+        "offset": "0x59025",
+        "registers": [
+          "0x146902e",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1469000",
+          "0x3ffeefc",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1469027",
+        "module": "bass.dll",
+        "offset": "0x59027",
+        "registers": [
+          "0x146902e",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1410780",
+          "0x3ffeefc",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x13d1000",
+        "module": "user32.dll",
+        "offset": "0x1000",
+        "registers": [
+          "0x146902e",
+          "0x1432bbe",
+          "0x1433000",
+          "0x1410780",
+          "0x3ffeef8",
+          "0x1410000",
+          "0x143214c",
+          "0x1433000"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      }
+    ]
+  },
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}

@@ -327,6 +327,43 @@ export async function probeWineCrt(iced, { executable, builtinFiles, nlsFiles })
     await crt('free', [memory]);
     for (const pointer of [text, format, lineAddress]) runtime.free(pointer);
     report.phases.push({ name: phase, passed: true, formatted: expected, stdout: output.join('') });
+    phase = 'guest CRT file create, write, seek, read and close';
+    const filename = runtime.allocString('crt-roundtrip.bin');
+    const payload = Uint8Array.from([0, 0x0a, 0x0d, 0x1a, 0x80, 0xff, 0x41]);
+    const payloadAddress = runtime.allocate(payload.length);
+    runtime.data.set(payload, payloadAddress);
+    const descriptor = await crt('_open', [filename, 0x8302, 0x180]); // binary, create, truncate, read/write
+    assert.ok(descriptor !== 0xffffffff, 'Wine CRT _open failed');
+    assert.equal(await crt('_write', [descriptor, payloadAddress, payload.length]), payload.length);
+    assert.equal(await crt('_filelength', [descriptor]), payload.length);
+    assert.equal(await crt('_lseek', [descriptor, 0, 0]), 0);
+    runtime.data.fill(0, payloadAddress, payloadAddress + payload.length);
+    assert.equal(await crt('_read', [descriptor, payloadAddress, payload.length]), payload.length);
+    assert.deepEqual(
+      [...runtime.data.slice(payloadAddress, payloadAddress + payload.length)],
+      [...payload],
+    );
+    assert.equal(await crt('_read', [descriptor, payloadAddress, 1]), 0);
+    assert.equal(await crt('_close', [descriptor]), 0);
+    assert.deepEqual([...runtime.files.get('crt-roundtrip.bin')], [...payload]);
+    assert.ok(runtime.dirty.has('crt-roundtrip.bin'));
+    const reopened = await crt('_open', [filename, 0x8000]); // existing, binary, read-only
+    assert.ok(reopened !== 0xffffffff, 'Wine CRT reopen failed');
+    assert.equal(await crt('_lseek', [reopened, 0xfffffffe, 2]), payload.length - 2);
+    assert.equal(await crt('_read', [reopened, payloadAddress, payload.length]), 2);
+    assert.deepEqual(
+      [...runtime.data.slice(payloadAddress, payloadAddress + 2)],
+      [...payload.slice(-2)],
+    );
+    assert.equal(await crt('_close', [reopened]), 0);
+    assert.equal(runtime.handles.size, 0);
+    for (const pointer of [filename, payloadAddress]) runtime.free(pointer);
+    report.phases.push({
+      name: phase,
+      passed: true,
+      file: 'crt-roundtrip.bin',
+      bytes: [...payload],
+    });
     report.status = 'verified-crt-services';
   } catch (error) {
     recordFailure(error);

@@ -1,4 +1,5 @@
 import { ComObjects } from './com.js';
+import { D3D8_METHODS, DEVICE8_METHODS, device8Methods } from './d3d8-abi.js';
 import {
   bindObject,
   createDeclarationObject,
@@ -59,8 +60,8 @@ function matrix(runtime, pointer) {
   return value;
 }
 
-function deviceMethods() {
-  return {
+function deviceMethods(version = 9) {
+  const methods = {
     17: {
       argc: 5,
       async invoke(runtime, argument, object) {
@@ -290,9 +291,10 @@ function deviceMethods() {
       invoke: (r, a, d) => getFloatConstants(r, d.state.pixelConstants, a(1), a(2), a(3), 224),
     },
   };
+  return version === 8 ? device8Methods(methods, DEVICE_METHODS) : methods;
 }
 
-function createDevice(runtime, argument) {
+function createDevice(runtime, argument, version) {
   const adapter = argument(1) >>> 0;
   const deviceType = argument(2) >>> 0;
   const focus = argument(3) >>> 0;
@@ -301,8 +303,12 @@ function createDevice(runtime, argument) {
   const output = argument(6) >>> 0;
   runtime.check(output, 4, true);
   runtime.write32(output, 0);
-  runtime.check(params, 56);
-  const read = (offset) => runtime.read32(params + offset);
+  runtime.check(params, version === 8 ? 52 : 56);
+  // D3D8 omits MultiSampleQuality; subsequent fields move back one DWORD.
+  const read = (offset) =>
+    version === 8 && offset === 20
+      ? 0
+      : runtime.read32(params + offset - (version === 8 && offset >= 24 ? 4 : 0));
   const windowId = read(28) || focus;
   const window = runtime.windows?.windows?.get(windowId);
   const width = read(0) || window?.width;
@@ -335,13 +341,13 @@ function createDevice(runtime, argument) {
   return { windowId, width, height, depth };
 }
 
-function factoryMethods() {
+function factoryMethods(version = 9) {
   return {
     4: { argc: 1, invoke: () => 1 },
-    16: {
+    [version === 8 ? 15 : 16]: {
       argc: 7,
       async invoke(runtime, argument, factory) {
-        const options = createDevice(runtime, argument);
+        const options = createDevice(runtime, argument, version);
         if (typeof options === 'number') return options;
         const state = {
           id: 0,
@@ -364,10 +370,13 @@ function factoryMethods() {
           pixelConstants: new Float32Array(224 * 4),
         };
         const object = runtime.comObjects.create({
-          name: 'IDirect3DDevice9',
-          iid: 'd0223b96-bf7a-43fd-92bd-a43b0d82b9eb',
-          methodNames: DEVICE_METHODS,
-          methods: deviceMethods(),
+          name: `IDirect3DDevice${version}`,
+          iid:
+            version === 8
+              ? '7385e5df-8fe8-41d5-86b6-d7b48547b6cf'
+              : 'd0223b96-bf7a-43fd-92bd-a43b0d82b9eb',
+          methodNames: version === 8 ? DEVICE8_METHODS : DEVICE_METHODS,
+          methods: deviceMethods(version),
           state,
           onRelease: async () => {
             for (const field of ['vertexDeclaration', 'vertexShader', 'pixelShader']) {
@@ -394,17 +403,25 @@ function factoryMethods() {
   };
 }
 
+function createFactory(runtime, argument, version) {
+  // SDK 31 (older D3D9 applications) uses the same IDirect3D9/device ABI.
+  if (!(version === 8 ? [120, 220] : [31, 32]).includes(argument(0) >>> 0))
+    return { result: 0, argc: 1 };
+  requireGraphics(runtime);
+  runtime.comObjects ??= new ComObjects(runtime);
+  const object = runtime.comObjects.create({
+    name: `IDirect3D${version}`,
+    iid:
+      version === 8
+        ? '1dd9e8da-1c77-4d40-b0cf-98fefdff9512'
+        : '81bdcbca-64d4-426d-ae8d-ad0147f4275c',
+    methodNames: version === 8 ? D3D8_METHODS : D3D9_METHODS,
+    methods: factoryMethods(version),
+  });
+  return { result: object.pointer, argc: 1 };
+}
+
 export const d3d9Apis = {
-  'd3d9.dll!Direct3DCreate9': (runtime, argument) => {
-    if (argument(0) >>> 0 !== 32) return { result: 0, argc: 1 };
-    requireGraphics(runtime);
-    runtime.comObjects ??= new ComObjects(runtime);
-    const object = runtime.comObjects.create({
-      name: 'IDirect3D9',
-      iid: '81bdcbca-64d4-426d-ae8d-ad0147f4275c',
-      methodNames: D3D9_METHODS,
-      methods: factoryMethods(),
-    });
-    return { result: object.pointer, argc: 1 };
-  },
+  'd3d9.dll!Direct3DCreate9': (runtime, argument) => createFactory(runtime, argument, 9),
+  'd3d8.dll!Direct3DCreate8': (runtime, argument) => createFactory(runtime, argument, 8),
 };

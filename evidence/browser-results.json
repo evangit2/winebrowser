@@ -1,6 +1,6 @@
 {
-  "date": "2026-09-19T02:03:10.495Z",
-  "browser": "153.0.8010.48",
+  "date": "2026-09-25T22:18:52.636Z",
+  "browser": "154.0.8037.57",
   "crossOriginIsolated": true,
   "externalRequests": [],
   "errors": [],
@@ -10,7 +10,32 @@
     "rawExeUpload": true,
     "opfsContent": true,
     "manualDialog": true,
-    "stop": true
+    "stop": true,
+    "combinedImports": [
+      {
+        "name": "EXE + asset ZIP + loose file",
+        "readyMs": 28.972332999999708,
+        "completedMs": 149.19699999999966,
+        "compiledBlocks": 30,
+        "passed": true
+      },
+      {
+        "name": "Folder picker with nested assets",
+        "readyMs": 28.14737500000001,
+        "completedMs": 147.43733299999985,
+        "compiledBlocks": 30,
+        "passed": true
+      },
+      {
+        "name": "Multiple files dropped together",
+        "readyMs": 62.93970900000022,
+        "completedMs": 181.83341700000028,
+        "compiledBlocks": 30,
+        "passed": true
+      }
+    ],
+    "importCollisionsRejected": true,
+    "replaceActiveProgram": true
   },
   "suite": [
     {

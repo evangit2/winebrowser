@@ -48,6 +48,7 @@ assert.equal(legacyView.getUint16(dllCharacteristics, true) & 0x0100, 0);
 const files = new Map([
   ['console.exe', legacyMain],
   ['math.dll', await fixture('tests/fixtures/modules/math.dll')],
+  ['forward.dll', await fixture('tests/fixtures/modules/forward.dll')],
 ]);
 const nlsFiles = new Map();
 if (args[1]) {

@@ -1,7 +1,7 @@
 {
-  "date": "2026-09-19T02:18:57.702Z",
+  "date": "2026-09-25T20:20:36.839Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
-  "browser": "153.0.8010.48",
+  "browser": "154.0.8037.57",
   "nativeGame": "d3d9-shader-cube",
   "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
   "browserCompilation": true,

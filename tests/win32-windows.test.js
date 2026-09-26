@@ -89,6 +89,30 @@ function dword(value) {
   return [value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff];
 }
 
+test('foreground queries track visible top-level windows independently of keyboard focus', async (t) => {
+  const { runtime } = await makeRuntime(t);
+  const proc = installGuestWindowProc(runtime);
+  const { atom } = await registerClass(runtime, proc.address);
+  const first = (await createWindow(runtime, atom)).result;
+  const second = (await createWindow(runtime, atom)).result;
+  const foreground = async () => (await call(runtime, 'user32.dll!GetForegroundWindow', [])).result;
+  assert.equal(await foreground(), 0);
+  await call(runtime, 'user32.dll!ShowWindow', [first, 5]);
+  assert.equal(await foreground(), first);
+  await call(runtime, 'user32.dll!ShowWindow', [second, 8]);
+  assert.equal(await foreground(), first, 'SW_SHOWNA does not activate');
+  runtime.windows.input({ type: 'focus', windowId: second });
+  assert.equal(await foreground(), second);
+  await call(runtime, 'user32.dll!SetFocus', [0]);
+  assert.equal(await foreground(), second, 'clearing keyboard focus retains the active window');
+  assert.equal((await call(runtime, 'user32.dll!GetActiveWindow', [])).result, second);
+  await call(runtime, 'user32.dll!DestroyWindow', [second]);
+  assert.equal(await foreground(), 0);
+  await call(runtime, 'user32.dll!ShowWindow', [first, 5]);
+  await call(runtime, 'user32.dll!ShowWindow', [first, 0]);
+  assert.equal(await foreground(), 0);
+});
+
 async function registerClass(
   runtime,
   proc,

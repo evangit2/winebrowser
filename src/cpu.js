@@ -59,11 +59,13 @@ export class CPU {
       wasmUrl: x87WasmUrl,
     });
     this.cache = new Map();
+    this.cachePages = new Map();
     this.x87Blocks = new Set();
     this.compiledBytes = 0;
     this.instructions = 0;
     this.f = { cf: 0, zf: 0, sf: 0, of: 0, pf: 0 };
     this.af = 0;
+    this.controlFlags = 0; // NT, AC and ID; CPL3/IOPL0, IF enabled, no VM/RF.
     const localClock = performanceCounter ? null : new GuestPerformanceClock();
     this.performanceCounter = performanceCounter ?? (() => localClock.read());
     if (typeof this.performanceCounter !== 'function')
@@ -87,6 +89,48 @@ export class CPU {
               })(),
       push: (v) => this.push(v),
       pop: () => this.pop(),
+      stackFlags: (pop, width) => {
+        const stack = this.r[4].value >>> 0;
+        if (pop) {
+          const value = this.host.load(stack, width);
+          // Single stepping needs a guest exception dispatcher. Never silently
+          // ignore an enabled TF or consume the stack before reporting it.
+          if (value & 0x100) throw Error('POPF single-step mode is unsupported');
+          this.host.flagByte(value, 1);
+          this.df = (value >>> 10) & 1;
+          this.f.of = (value >>> 11) & 1;
+          const mask = width === 4 ? 0x244000 : 0x4000;
+          this.controlFlags = (this.controlFlags & ~mask) | (value & mask);
+          this.r[4].value = stack + width;
+        } else {
+          const value =
+            this.host.flagByte(0, 0) |
+            0x200 |
+            (this.df << 10) |
+            (this.f.of << 11) |
+            this.controlFlags;
+          this.host.store((stack - width) >>> 0, value, width);
+          this.r[4].value = stack - width;
+        }
+      },
+      stackRegisters: (pop, width) => {
+        const stack = this.r[4].value >>> 0;
+        const values = [];
+        if (pop) {
+          for (let i = 0; i < 8; i++)
+            if (i !== 3) values[i] = this.host.load((stack + i * width) >>> 0, width);
+          for (let i = 0; i < 8; i++)
+            if (i !== 3)
+              this.r[7 - i].value =
+                width === 4 ? values[i] : (this.r[7 - i].value & ~0xffff) | values[i];
+          this.r[4].value = stack + width * 8;
+        } else {
+          this.checkMemory((stack - width * 8) >>> 0, width * 8, true);
+          for (let i = 0; i < 8; i++)
+            this.host.store((stack - (i + 1) * width) >>> 0, this.r[i].value, width);
+          this.r[4].value = stack - width * 8;
+        }
+      },
       popStore: (address, width) => {
         const stack = this.r[4].value >>> 0;
         const value = this.host.load(stack, width);
@@ -96,10 +140,10 @@ export class CPU {
       },
       flags: (a, b, r, k, width) => this.flags(a, b, r, k, width),
       shift: (value, count, kind, width) => this.shift(value, count, kind, width),
-      rotateCarry: (value, count, kind, width) => this.rotateCarry(value, count, kind, width),
-      rotateCarryStore: (address, value, count, kind, width) => {
+      rotate: (value, count, kind, width) => this.rotate(value, count, kind, width),
+      rotateStore: (address, value, count, kind, width) => {
         this.checkMemory(address >>> 0, width >>> 3, true);
-        this.host.store(address >>> 0, this.rotateCarry(value, count, kind, width), width >>> 3);
+        this.host.store(address >>> 0, this.rotate(value, count, kind, width), width >>> 3);
       },
       wideMath: (operand, kind, width) => this.wideMath(operand, kind, width),
       condition: (c) => this.condition(c),
@@ -170,6 +214,52 @@ export class CPU {
           this.r[0].value = (wholeAccumulator & ~fieldMask) | oldValue | 0;
         }
         this.flags(accValue, oldValue, (accValue - oldValue) & mask, 1, bits);
+      },
+      xadd: (
+        oldDestination,
+        oldSource,
+        bits,
+        destinationRegister,
+        destinationShift,
+        sourceRegister,
+        sourceShift,
+        address,
+      ) => {
+        const bytes = bits >>> 3;
+        if (![1, 2, 4].includes(bytes)) throw Error('XADD requires an 8/16/32-bit operand');
+        const mask = bits === 32 ? 0xffffffff : (1 << bits) - 1;
+        const destination = (oldDestination & mask) >>> 0;
+        const source = (oldSource & mask) >>> 0;
+        const sum = (destination + source) & mask;
+        const replaceField = (whole, shift, value) => {
+          const fieldMask = (mask << shift) >>> 0;
+          return ((whole & ~fieldMask) | ((value << shift) & fieldMask)) >>> 0;
+        };
+
+        if (destinationRegister < 0) {
+          // LOCK does not need host atomics because shared Wasm memory is
+          // rejected by the CPU constructor. Still preflight the complete RMW
+          // before changing the source register or flags.
+          this.checkMemory(address >>> 0, bytes, true);
+          this.host.store(address >>> 0, sum, bytes);
+          const whole = this.r[sourceRegister].value >>> 0;
+          this.r[sourceRegister].value = replaceField(whole, sourceShift, destination) | 0;
+        } else if (destinationRegister === sourceRegister && destinationShift === sourceShift) {
+          const whole = this.r[destinationRegister].value >>> 0;
+          this.r[destinationRegister].value = replaceField(whole, destinationShift, sum) | 0;
+        } else if (destinationRegister === sourceRegister) {
+          let whole = this.r[destinationRegister].value >>> 0;
+          whole = replaceField(whole, sourceShift, destination);
+          whole = replaceField(whole, destinationShift, sum);
+          this.r[destinationRegister].value = whole | 0;
+        } else {
+          const sourceWhole = this.r[sourceRegister].value >>> 0;
+          const destinationWhole = this.r[destinationRegister].value >>> 0;
+          this.r[sourceRegister].value = replaceField(sourceWhole, sourceShift, destination) | 0;
+          this.r[destinationRegister].value =
+            replaceField(destinationWhole, destinationShift, sum) | 0;
+        }
+        this.flags(destination, source, sum, 0, bits);
       },
       direction: (value) => {
         this.df = value ? 1 : 0;
@@ -294,14 +384,28 @@ export class CPU {
       this.f.of = kind === 0 ? this.f.sf ^ carry : kind === 1 ? (v >>> (width - 1)) & 1 : 0;
     return result & mask;
   }
-  rotateCarry(value, count, kind, width) {
-    if (![8, 16, 32].includes(width) || ![0, 1].includes(kind))
-      throw Error('Invalid rotate-through-carry operation');
+  rotate(value, count, kind, width) {
+    if (![8, 16, 32].includes(width) || ![0, 1, 2, 3].includes(kind))
+      throw Error('Invalid rotate operation');
     count &= 31;
-    if (width < 32) count %= width + 1;
+    const maskedCount = count;
+    if (kind < 2 && width < 32) count %= width + 1;
     const mask = width === 32 ? 0xffffffff : (1 << width) - 1;
     const operand = (value & mask) >>> 0;
     if (!count) return operand;
+    if (kind >= 2) {
+      const rotation = count % width;
+      const result =
+        (kind === 2
+          ? (operand << rotation) | (operand >>> (width - rotation))
+          : (operand >>> rotation) | (operand << (width - rotation))) & mask;
+      this.f.cf = kind === 2 ? result & 1 : (result >>> (width - 1)) & 1;
+      if (maskedCount === 1) {
+        const msb = (result >>> (width - 1)) & 1;
+        this.f.of = kind === 2 ? msb ^ this.f.cf : msb ^ ((result >>> (width - 2)) & 1);
+      }
+      return result >>> 0;
+    }
     const bits = BigInt(width + 1);
     const combinedMask = (1n << bits) - 1n;
     let combined = (BigInt(operand) << 1n) | BigInt(this.f.cf);
@@ -312,7 +416,7 @@ export class CPU {
         : ((combined >> rotation) | (combined << (bits - rotation))) & combinedMask;
     const result = Number((combined >> 1n) & BigInt(mask)) >>> 0;
     this.f.cf = Number(combined & 1n);
-    if (count === 1) {
+    if (maskedCount === 1) {
       const msb = (result >>> (width - 1)) & 1;
       this.f.of = kind === 0 ? msb ^ this.f.cf : msb ^ ((result >>> (width - 2)) & 1);
     }
@@ -378,7 +482,10 @@ export class CPU {
     const range = this.ranges.find(([a, b]) => ip >= a && ip < b);
     if (!range) throw Error(`Execute outside code at 0x${ip.toString(16)}`);
     const bytes = new Uint8Array(this.memory.buffer, ip, Math.min(1024, range[1] - ip));
-    const d = new Decoder(32, bytes, DecoderOptions.None);
+    // Our CPUID profile has neither BMI1 nor LZCNT. Intel specifies that the
+    // F3-prefixed encodings execute as BSF/BSR on such processors (including
+    // their zero-input ZF behavior). Wine builds use REP BSF for __builtin_ctz.
+    const d = new Decoder(32, bytes, DecoderOptions.NoMPFX_0FBC | DecoderOptions.NoMPFX_0FBD);
     d.ip = BigInt(ip);
     let code = [],
       count = 0,
@@ -500,6 +607,7 @@ export class CPU {
               M.Neg,
               M.Not,
               M.Cmpxchg,
+              M.Xadd,
             ].includes(m);
             const memoryDestination = i.opCount > 0 && i.opKind(0) === K.Memory;
             const memoryXchg =
@@ -512,7 +620,8 @@ export class CPU {
           const stringStos = [M.Stosb, M.Stosw, M.Stosd].includes(m);
           const stringScas = [M.Scasb, M.Scasw, M.Scasd].includes(m);
           const stringOp = stringMov || stringStos || stringScas;
-          if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp)
+          const legacyBitScan = i.hasRepPrefix && (m === M.Bsf || m === M.Bsr);
+          if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp && !legacyBitScan)
             throw Error('Repeat prefix unsupported');
           if (stringOp) {
             if (i.hasRepnePrefix && !stringScas)
@@ -653,15 +762,16 @@ export class CPU {
                 ...call(Host.shift),
               ]),
             );
-          } else if ([M.Rcl, M.Rcr].includes(m)) {
+          } else if ([M.Rcl, M.Rcr, M.Rol, M.Ror].includes(m)) {
             const bits = width(i, 0);
-            if (![8, 16, 32].includes(bits)) throw Error('RCL/RCR require an 8/16/32-bit operand');
+            const kind = [M.Rcl, M.Rcr, M.Rol, M.Ror].indexOf(m);
+            if (![8, 16, 32].includes(bits)) throw Error('Rotate requires an 8/16/32-bit operand');
             const rotated = [
               ...operand(i, 0),
               ...operand(i, 1),
-              ...constant(m === M.Rcl ? 0 : 1),
+              ...constant(kind),
               ...constant(bits),
-              ...call(Host.rotateCarry),
+              ...call(Host.rotate),
             ];
             if (i.opKind(0) === K.Memory) {
               code.push(
@@ -671,9 +781,9 @@ export class CPU {
                 ...local(2),
                 ...operand(i, 0),
                 ...operand(i, 1),
-                ...constant(m === M.Rcl ? 0 : 1),
+                ...constant(kind),
                 ...constant(bits),
-                ...call(Host.rotateCarryStore),
+                ...call(Host.rotateStore),
               );
             } else code.push(...write(i, 0, rotated));
           } else if (m === M.Imul && i.opCount >= 2) {
@@ -815,8 +925,48 @@ export class CPU {
               ...(destination ? constant(0) : addr(i)),
               ...call(Host.cmpxchg),
             );
+          } else if (m === M.Xadd) {
+            if (
+              i.opCount !== 2 ||
+              ![K.Register, K.Memory].includes(i.opKind(0)) ||
+              i.opKind(1) !== K.Register
+            )
+              throw Error('XADD requires a register or memory destination and register source');
+            const bits = width(i, 0);
+            if (![8, 16, 32].includes(bits) || width(i, 1) !== bits)
+              throw Error('XADD operands must have matching 8/16/32-bit widths');
+            const destination = i.opKind(0) === K.Register ? regInfo(i.opRegister(0)) : null;
+            const source = regInfo(i.opRegister(1));
+            code.push(
+              ...operand(i, 0),
+              ...operand(i, 1),
+              ...constant(bits),
+              ...constant(destination?.index ?? -1),
+              ...constant(destination?.shift ?? 0),
+              ...constant(source.index),
+              ...constant(source.shift),
+              ...(destination ? constant(0) : addr(i)),
+              ...call(Host.xadd),
+            );
           } else if (m === M.Lea) code.push(...write(i, 0, addr(i, false)));
-          else if (m === M.Push) {
+          else if ([M.Pushf, M.Pushfd, M.Popf, M.Popfd].includes(m)) {
+            const increment = i.stackPointerIncrement;
+            if (![2, 4].includes(Math.abs(increment))) throw Error('Unsupported flags stack width');
+            code.push(
+              ...constant(increment > 0 ? 1 : 0),
+              ...constant(Math.abs(increment)),
+              ...call(Host.stackFlags),
+            );
+          } else if ([M.Pusha, M.Pushad, M.Popa, M.Popad].includes(m)) {
+            const increment = i.stackPointerIncrement;
+            if (![16, 32].includes(Math.abs(increment)))
+              throw Error('Unsupported register stack width');
+            code.push(
+              ...constant(increment > 0 ? 1 : 0),
+              ...constant(Math.abs(increment) / 8),
+              ...call(Host.stackRegisters),
+            );
+          } else if (m === M.Push) {
             if (i.stackPointerIncrement !== -4) throw Error('16-bit PUSH unsupported');
             code.push(...operand(i, 0), ...call(2));
           } else if (m === M.Pop) {
@@ -929,6 +1079,16 @@ export class CPU {
             code.push(...get(5), ...set(4), ...call(3), ...set(5));
           } else if (m !== M.Nop && m !== M.Pause)
             throw Error(`Unsupported instruction ${i.toString()} at 0x${at.toString(16)}`);
+          // A writable code page can replace instructions which follow the
+          // current store. End at memory operations and implicit stack writes
+          // so the next instruction is decoded after that write completes.
+          // Read-only code keeps the ordinary multi-instruction fast path.
+          if (
+            range[2] &&
+            (Array.from({ length: i.opCount }, (_, n) => i.opKind(n)).includes(K.Memory) ||
+              [M.Push, M.Pushf, M.Pushfd, M.Pusha, M.Pushad].includes(m))
+          )
+            break;
         } finally {
           i.free();
         }
@@ -937,10 +1097,14 @@ export class CPU {
       const binary = moduleBytes(code);
       const run = new WebAssembly.Instance(new WebAssembly.Module(binary), { h: this.host }).exports
         .run;
-      if (this.cache.size >= 4096) throw Error('Compiled block cache limit exceeded');
+      if (this.cache.size >= 4096) this.removeBlock(this.cache.keys().next().value);
       this.compiledBytes += binary.length;
-      const block = { run, count, bytes: binary.length };
+      const block = { run, count, bytes: binary.length, end };
       this.cache.set(ip, block);
+      for (let page = ip >>> 12; page <= (end - 1) >>> 12; page++) {
+        if (!this.cachePages.has(page)) this.cachePages.set(page, new Set());
+        this.cachePages.get(page).add(ip);
+      }
       if (usesX87) this.x87Blocks.add(ip);
       return block;
     } catch (error) {
@@ -960,7 +1124,27 @@ export class CPU {
   }
   clearCache() {
     this.cache.clear();
+    this.cachePages.clear();
     this.x87Blocks.clear();
+  }
+  removeBlock(ip) {
+    const block = this.cache.get(ip);
+    if (!block) return;
+    this.cache.delete(ip);
+    this.x87Blocks.delete(ip);
+    for (let page = ip >>> 12; page <= (block.end - 1) >>> 12; page++) {
+      const entries = this.cachePages.get(page);
+      entries?.delete(ip);
+      if (!entries?.size) this.cachePages.delete(page);
+    }
+  }
+  invalidateRange(address, size) {
+    const end = address + size;
+    for (let page = address >>> 12; page <= (end - 1) >>> 12; page++)
+      for (const ip of this.cachePages.get(page) ?? []) {
+        const block = this.cache.get(ip);
+        if (ip < end && block.end > address) this.removeBlock(ip);
+      }
   }
   dispose() {
     this.x87.dispose();

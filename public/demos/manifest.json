@@ -114,6 +114,15 @@
       "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms during execution. Complete source and rebuild materials included.",
       "exeSha256": "172155247cbed000cb046289acab47ea6ac0783d96edbab1447e3cf16d957553",
       "zipSha256": "23e570f0e5324416bd31231d7be249d85f7d9d935f404b4b9460f0120d183d38"
+    },
+    {
+      "name": "d3d8-cube",
+      "description": "Native Windows Direct3D 8 cube: browser x86-to-Wasm compilation, WebGPU transforms and depth. Close the window to exit.",
+      "exe": "d3d8-cube/d3d8-cube.exe",
+      "zip": "d3d8-cube.zip",
+      "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D8 bootstrap subset, not WineD3D.",
+      "exeSha256": "38cc1f9b23d22e5984791d9e51b618a6612b8e8f80fbffd3ffab457981045605",
+      "zipSha256": "12324c943927cf2df67d1759a17a5bab95bf7ed565bec84fa3b0cbe8398ff8f9"
     }
   ]
 }

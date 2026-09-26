@@ -5,6 +5,8 @@ import { chromium } from '@playwright/test';
 import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 
 const url = process.env.WINEBROWSER_TEST_URL || 'http://127.0.0.1:4193/winebrowser/';
+const version = process.argv.includes('--d3d8') ? 8 : 9;
+const name = `d3d${version}-cube`;
 const browser = await chromium.launch(webgpuBrowserOptions);
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
@@ -15,8 +17,8 @@ try {
     () => document.getElementById('platform')?.textContent === 'ISOLATED / WASM READY',
   );
   const manifest = await (await page.request.get(new URL('demos/manifest.json', url).href)).json();
-  const fixture = manifest.interactive.find((entry) => entry.name === 'd3d9-cube');
-  assert.ok(fixture, 'D3D9 fixture is listed in the published harness');
+  const fixture = manifest.interactive.find((entry) => entry.name === name);
+  assert.ok(fixture, `D3D${version} fixture is listed in the published harness`);
   const exe = await readFile('public/demos/' + fixture.exe);
   assert.equal(createHash('sha256').update(exe).digest('hex'), fixture.exeSha256);
   const zip = await page.request.get(new URL('demos/' + fixture.zip, url).href);
@@ -35,11 +37,11 @@ try {
     else {
       let resume;
       const download = new Promise((resolve) => (resume = resolve));
-      await page.route('**/demos/d3d9-cube.zip', async (route) => {
+      await page.route(`**/demos/${name}.zip`, async (route) => {
         await download;
         await route.continue();
       });
-      await page.locator('[data-demo="d3d9-cube"]').click();
+      await page.locator(`[data-demo="${name}"]`).click();
       assert.equal(
         await page.locator('#run').isDisabled(),
         true,
@@ -100,7 +102,7 @@ try {
     assert.ok(second.frames > first.frames, 'Guest continues presenting');
     assert.notEqual(second.hash, first.hash, 'Guest transform animates the geometry');
     await mkdir('evidence', { recursive: true });
-    await page.locator('#desktop').screenshot({ path: 'evidence/d3d9-browser.png' });
+    await page.locator('#desktop').screenshot({ path: `evidence/d3d${version}-browser.png` });
     await page.locator('.virtual-desktop-close').click();
     await page.waitForFunction(() => window.__lastRun !== null);
     const result = await page.evaluate(() => window.__lastRun);
@@ -110,11 +112,11 @@ try {
       'PE executes through browser Wasm translation',
     );
     for (const call of [
-      'd3d9.dll!Direct3DCreate9',
-      'IDirect3D9.CreateDevice',
-      'IDirect3DDevice9.DrawPrimitiveUP',
-      'IDirect3DDevice9.Present',
-      'IDirect3DDevice9.Release',
+      `d3d${version}.dll!Direct3DCreate${version}`,
+      `IDirect3D${version}.CreateDevice`,
+      `IDirect3DDevice${version}.DrawPrimitiveUP`,
+      `IDirect3DDevice${version}.Present`,
+      `IDirect3DDevice${version}.Release`,
     ])
       assert.ok(result.apiTrace.includes(call), `Guest called ${call}`);
     assert.equal(await page.locator('.virtual-desktop-window').count(), 0);
@@ -134,13 +136,16 @@ try {
     date: new Date().toISOString(),
     url,
     browser: browser.version(),
-    nativeGame: 'd3d9-cube',
+    nativeGame: name,
     browserCompilation: true,
     workerWebGPU: true,
     runs,
     errors,
   };
-  await writeFile('evidence/d3d9-browser-results.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(
+    `evidence/d3d${version}-browser-results.json`,
+    JSON.stringify(report, null, 2) + '\n',
+  );
   console.log(JSON.stringify(report, null, 2));
 } finally {
   await browser.close();

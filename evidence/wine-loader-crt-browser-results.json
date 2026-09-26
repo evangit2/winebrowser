@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-19T01:34:10.791Z",
+  "date": "2026-09-25T22:03:40.725Z",
   "status": "verified-crt-services",
   "scope": "Optional diagnostic of a source-built Wine loader bridge with pinned installed CRT DLLs, followed by real guest CRT allocation, formatting and output calls. No EXE entry point runs. After-attach loader metadata synchronization is not implemented; no general application support is claimed.",
   "operation": "map full msvcrt closure; process bootstrap; source loader registration; kernelbase dynamic TLS; normal DLL attach; real CRT services",
@@ -7,13 +7,19 @@
   "inputs": {
     "manifest": ".cache/wine-loader/manifest.json",
     "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
-    "nlsDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls",
+    "nlsDirectory": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls",
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4/build/dlls/ntdll/i386-windows/ntdll.dll",
-        "bytes": 3780616,
-        "sha256": "dced01257a23d2d7693d13149d2a40a70d6e9a26ab2132d2670e33aee9c62bd1"
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797467,
+        "sha256": "eacf9d4800ffd53d8a1d4fc0657644c22addc368c7d7df71d94d8ef02b16ff94"
+      },
+      {
+        "name": "wine-format.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
+        "bytes": 10752,
+        "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
       },
       {
         "name": "msvcrt.dll",
@@ -37,50 +43,50 @@
     "nls": [
       {
         "name": "locale.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/locale.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/locale.nls",
         "bytes": 794914,
         "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
       },
       {
         "name": "sortdefault.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/sortdefault.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/sortdefault.nls",
         "bytes": 3380468,
         "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
       },
       {
         "name": "l_intl.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/l_intl.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/l_intl.nls",
         "bytes": 5564,
         "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
       },
       {
         "name": "normnfc.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/normnfc.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/normnfc.nls",
         "bytes": 60194,
         "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
       },
       {
         "name": "c_1252.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_1252.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_1252.nls",
         "bytes": 66082,
         "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
       },
       {
         "name": "c_437.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_437.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_437.nls",
         "bytes": 66594,
         "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
       },
       {
         "name": "c_20127.nls",
-        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/share/wine/nls/c_20127.nls",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_20127.nls",
         "bytes": 66082,
         "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
       }
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "02a48d7352d53765727966bc79a4b98c95bd90b49b01ad06d9d8a0622ad30bf4",
+    "patchSha256": "e70ad55c8d34551a3c8833eaef35a5184d928f321fec0ceefc187e8116ac6097",
     "executable": {
       "name": "console.exe",
       "sha256": "9b7849f5321c97af70c9fda2c1f531e7968592dd8f8999dff534020bfceaf6d9",
@@ -97,6 +103,7 @@
       "modules": [
         {
           "name": "console.exe",
+          "path": "console.exe",
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
@@ -105,6 +112,7 @@
         },
         {
           "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
           "host": false,
           "base": 16777216,
           "preferredBase": 2071986176,
@@ -113,6 +121,7 @@
         },
         {
           "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
           "host": false,
           "base": 17235968,
           "preferredBase": 2063597568,
@@ -121,6 +130,7 @@
         },
         {
           "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
           "host": false,
           "base": 19988480,
           "preferredBase": 2076180480,
@@ -129,6 +139,7 @@
         },
         {
           "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
           "host": false,
           "base": 23527424,
           "preferredBase": 268435456,
@@ -162,6 +173,7 @@
       "modules": [
         {
           "name": "console.exe",
+          "path": "console.exe",
           "host": false,
           "base": 4194304,
           "preferredBase": 4194304,
@@ -170,6 +182,7 @@
         },
         {
           "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
           "host": false,
           "base": 16777216,
           "preferredBase": 2071986176,
@@ -178,6 +191,7 @@
         },
         {
           "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
           "host": false,
           "base": 17235968,
           "preferredBase": 2063597568,
@@ -186,6 +200,7 @@
         },
         {
           "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
           "host": false,
           "base": 19988480,
           "preferredBase": 2076180480,
@@ -194,6 +209,7 @@
         },
         {
           "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
           "host": false,
           "base": 23527424,
           "preferredBase": 268435456,
@@ -208,6 +224,20 @@
       "passed": true,
       "formatted": "Wine CRT: 1234 feedcafe",
       "stdout": "Wine CRT stdout through NtWriteFile\r\n"
+    },
+    {
+      "name": "guest CRT file create, write, seek, read and close",
+      "passed": true,
+      "file": "crt-roundtrip.bin",
+      "bytes": [
+        0,
+        10,
+        13,
+        26,
+        128,
+        255,
+        65
+      ]
     }
   ],
   "firstFailure": null,
@@ -216,7 +246,7 @@
       "name": "NtInitializeNlsFiles",
       "arguments": [
         67103856,
-        20629224,
+        20633320,
         67104272
       ],
       "result": "0x0"
@@ -257,248 +287,192 @@
   ],
   "recentNtCalls": [
     {
-      "name": "NtSetValueKey",
-      "arguments": [
-        1358954502,
-        67103840,
-        0,
-        1,
-        67104100,
-        8
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtSetValueKey",
-      "arguments": [
-        1358954502,
-        67103840,
-        0,
-        1,
-        67104100,
-        12
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtClose",
-      "arguments": [
-        1358954502
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtQuerySystemInformation",
-      "arguments": [
-        0,
-        17043648,
-        44,
-        0
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtProtectVirtualMemory",
-      "arguments": [
-        4294967295,
-        67104640,
-        67104644,
-        4,
-        67104712
-      ],
-      "result": "0x0",
-      "protection": {
-        "basePointer": "0x3ffef80",
-        "base": "0x1042668",
-        "sizePointer": "0x3ffef84",
-        "size": 4,
-        "newProtection": "0x4",
-        "oldProtectionPointer": "0x3ffefc8",
-        "mappedModule": {
-          "name": "kernel32.dll",
-          "offset": "0x42668"
-        },
-        "mappedSection": {
-          "name": ".edata",
-          "rva": "0x42668",
-          "characteristics": "0x40000040"
-        },
-        "regions": [
-          {
-            "start": "0x1000000",
-            "end": "0x1062000",
-            "kind": "image-reservation",
-            "module": "kernel32.dll",
-            "read": false,
-            "write": false,
-            "exec": false
-          },
-          {
-            "start": "0x1042000",
-            "end": "0x104e000",
-            "kind": null,
-            "module": "kernel32.dll",
-            "read": true,
-            "write": false,
-            "exec": false
-          }
-        ]
-      }
-    },
-    {
-      "name": "NtProtectVirtualMemory",
-      "arguments": [
-        4294967295,
-        67104640,
-        67104644,
-        2,
-        67104712
-      ],
-      "result": "0x0",
-      "protection": {
-        "basePointer": "0x3ffef80",
-        "base": "0x1042668",
-        "sizePointer": "0x3ffef84",
-        "size": 4,
-        "newProtection": "0x2",
-        "oldProtectionPointer": "0x3ffefc8",
-        "mappedModule": {
-          "name": "kernel32.dll",
-          "offset": "0x42668"
-        },
-        "mappedSection": {
-          "name": ".edata",
-          "rva": "0x42668",
-          "characteristics": "0x40000040"
-        },
-        "regions": [
-          {
-            "start": "0x1000000",
-            "end": "0x1062000",
-            "kind": "image-reservation",
-            "module": "kernel32.dll",
-            "read": false,
-            "write": false,
-            "exec": false
-          },
-          {
-            "start": "0x1042000",
-            "end": "0x1043000",
-            "kind": null,
-            "module": "kernel32.dll",
-            "read": true,
-            "write": true,
-            "exec": false
-          }
-        ]
-      }
-    },
-    {
-      "name": "NtAllocateVirtualMemory",
-      "arguments": [
-        4294967295,
-        67104504,
-        0,
-        67104656,
-        8192,
-        4
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtAllocateVirtualMemory",
-      "arguments": [
-        4294967295,
-        67104504,
-        0,
-        67104660,
-        4096,
-        4
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtAllocateVirtualMemory",
-      "arguments": [
-        4294967295,
-        38863968,
-        0,
-        67104624,
-        4096,
-        4
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtGetNlsSectionPtr",
-      "arguments": [
-        11,
-        20127,
-        0,
-        67102204,
-        67102208
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtWow64IsProcessorFeaturePresent",
-      "arguments": [
-        10
-      ],
-      "result": "0x0"
-    },
-    {
       "name": "NtQueryVolumeInformationFile",
       "arguments": [
-        0,
-        67104544,
-        67104536,
+        256,
+        67104528,
+        67104520,
         8,
         4
-      ],
-      "result": "0xc0000008"
-    },
-    {
-      "name": "NtQueryVolumeInformationFile",
-      "arguments": [
-        1,
-        67104544,
-        67104536,
-        8,
-        4
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryVolumeInformationFile",
-      "arguments": [
-        2,
-        67104544,
-        67104536,
-        8,
-        4
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "NtQuerySystemTime",
-      "arguments": [
-        67104672
       ],
       "result": "0x0"
     },
     {
       "name": "NtWriteFile",
       "arguments": [
-        1,
+        256,
         0,
         0,
         0,
         67100544,
-        67100640,
-        37,
+        50332112,
+        7,
         0,
         0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationFile",
+      "arguments": [
+        256,
+        67104512,
+        67104504,
+        8,
+        14
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetInformationFile",
+      "arguments": [
+        256,
+        67104512,
+        67104504,
+        8,
+        14
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationFile",
+      "arguments": [
+        256,
+        67104512,
+        67104520,
+        24,
+        5
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetInformationFile",
+      "arguments": [
+        256,
+        67104512,
+        67104504,
+        8,
+        14
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetInformationFile",
+      "arguments": [
+        256,
+        67104520,
+        67104512,
+        8,
+        14
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "arguments": [
+        256,
+        0,
+        0,
+        0,
+        67104624,
+        50332112,
+        7,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "arguments": [
+        256,
+        0,
+        0,
+        0,
+        67104624,
+        50332112,
+        1,
+        0,
+        0
+      ],
+      "result": "0xc0000011"
+    },
+    {
+      "name": "NtClose",
+      "arguments": [
+        256
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateFile",
+      "arguments": [
+        67104464,
+        2148532352,
+        67104496,
+        67104476,
+        0,
+        1,
+        3,
+        1,
+        96,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryVolumeInformationFile",
+      "arguments": [
+        257,
+        67104536,
+        67104528,
+        8,
+        4
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationFile",
+      "arguments": [
+        257,
+        67104520,
+        67104528,
+        24,
+        5
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetInformationFile",
+      "arguments": [
+        257,
+        67104520,
+        67104512,
+        8,
+        14
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtReadFile",
+      "arguments": [
+        257,
+        0,
+        0,
+        0,
+        67104624,
+        50332112,
+        7,
+        0,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "arguments": [
+        257
       ],
       "result": "0x0"
     }
@@ -506,19 +480,19 @@
   "msvcrtAttach": {
     "result": "0x1",
     "recentInstructionPointers": [
-      "0x133c510",
-      "0x133c505",
+      "0x133c6d0",
+      "0x133c6c5",
       "0x10cc15e",
       "0x16bc6fb",
       "0x167aca0",
-      "0x1322260",
-      "0x1322380",
-      "0x13222d6",
+      "0x13222a0",
+      "0x1322320",
+      "0x1322312",
       "0x167acb4",
       "0x16bb880",
-      "0x131d604",
-      "0x131e0e4",
-      "0x131d610",
+      "0x131d644",
+      "0x131e124",
+      "0x131d650",
       "0x16bb89d",
       "0x167acbc",
       "0x167ab3e"
@@ -540,7 +514,7 @@
         "name": "NtInitializeNlsFiles",
         "arguments": [
           67103856,
-          20629224,
+          20633320,
           67104272
         ],
         "result": "0x0"
@@ -953,6 +927,7 @@
     "modulesAfterFailure": [
       {
         "name": "console.exe",
+        "path": "console.exe",
         "host": false,
         "base": 4194304,
         "preferredBase": 4194304,
@@ -961,6 +936,7 @@
       },
       {
         "name": "kernel32.dll",
+        "path": "@runtime/kernel32.dll",
         "host": false,
         "base": 16777216,
         "preferredBase": 2071986176,
@@ -969,6 +945,7 @@
       },
       {
         "name": "kernelbase.dll",
+        "path": "@runtime/kernelbase.dll",
         "host": false,
         "base": 17235968,
         "preferredBase": 2063597568,
@@ -977,6 +954,7 @@
       },
       {
         "name": "ntdll.dll",
+        "path": "@runtime/ntdll.dll",
         "host": false,
         "base": 19988480,
         "preferredBase": 2076180480,
@@ -985,6 +963,7 @@
       },
       {
         "name": "msvcrt.dll",
+        "path": "@runtime/msvcrt.dll",
         "host": false,
         "base": 23527424,
         "preferredBase": 268435456,
@@ -1105,13 +1084,30 @@
       "ntdll.dll!NtQueryVolumeInformationFile",
       "ntdll.dll!NtQueryVolumeInformationFile",
       "ntdll.dll!NtQuerySystemTime",
-      "ntdll.dll!NtWriteFile"
+      "ntdll.dll!NtWriteFile",
+      "ntdll.dll!NtCreateFile",
+      "ntdll.dll!NtQueryVolumeInformationFile",
+      "ntdll.dll!NtWriteFile",
+      "ntdll.dll!NtQueryInformationFile",
+      "ntdll.dll!NtSetInformationFile",
+      "ntdll.dll!NtQueryInformationFile",
+      "ntdll.dll!NtSetInformationFile",
+      "ntdll.dll!NtSetInformationFile",
+      "ntdll.dll!NtReadFile",
+      "ntdll.dll!NtReadFile",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtCreateFile",
+      "ntdll.dll!NtQueryVolumeInformationFile",
+      "ntdll.dll!NtQueryInformationFile",
+      "ntdll.dll!NtSetInformationFile",
+      "ntdll.dll!NtReadFile",
+      "ntdll.dll!NtClose"
     ],
-    "blocks": 72554
+    "blocks": 76712
   },
   "processExitCode": 0,
   "worker": true,
   "crossOriginIsolated": true,
-  "browser": "153.0.8010.48",
+  "browser": "154.0.8037.57",
   "outboundRequests": []
 }

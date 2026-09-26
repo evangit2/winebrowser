@@ -94,7 +94,23 @@ try {
   assert.equal(runtime.read32(parameters + 8), 1, 'normalized process parameters');
   assert.equal(runtime.read32(parameters + 0x1c), 1, 'stdout matches the browser console');
   assert.equal(runtime.read32(parameters + 0x20), 2, 'stderr matches the browser console');
-  assert.equal(runtime.wideString(runtime.read32(parameters + 0x3c)), exe);
+  assert.equal(
+    runtime.wideString(runtime.read32(parameters + 0x3c)),
+    'C:\\winebrowser\\console.exe',
+  );
+  assert.equal(runtime.wideString(runtime.read32(parameters + 0x28)), 'C:\\winebrowser\\');
+  const relativePath = runtime.allocString('assets\\sample.dat', true);
+  const fullPath = runtime.allocate(520);
+  const filePart = runtime.allocate(4);
+  const resolvePath = await runtime.resolveExport(module, 'RtlGetFullPathName_U');
+  assert.equal(
+    await runtime.callGuest(resolvePath, [relativePath, 520, fullPath, filePart]),
+    'C:\\winebrowser\\assets\\sample.dat'.length * 2,
+  );
+  assert.equal(runtime.wideString(fullPath), 'C:\\winebrowser\\assets\\sample.dat');
+  assert.equal(runtime.wideString(runtime.read32(filePart)), 'sample.dat');
+  report.cases.push({ export: 'RtlGetFullPathName_U', packageRelativePath: true, passed: true });
+  for (const pointer of [relativePath, fullPath, filePart]) runtime.free(pointer);
   assert.equal(
     runtime.wideString(runtime.read32(parameters + 0x44)),
     'console.exe "argument with spaces" ""',

@@ -2,7 +2,7 @@
 
 [Completed work and remaining task list](TASKS.md). Development resumed on 2026-09-18; the task list records verified capabilities and remaining compatibility work.
 
-An experimental **browser-local Windows PE runtime**. Choose an `.exe` or a ZIP containing executables and assets; the runtime loads the PE image, translates supported x86 basic blocks directly to WebAssembly, and bridges a small Windows API subset to browser services. There is no server compiler and no full PC emulator.
+An experimental **browser-local Windows PE runtime**. Choose one or more EXEs, ZIPs and supporting files, or a complete program folder; the runtime loads the PE image, translates supported x86 basic blocks directly to WebAssembly, and bridges a small Windows API subset to browser services. There is no server compiler and no full PC emulator.
 
 **The test harness runs the unchanged wesmar/Tetris Windows release in a virtual desktop, alongside native D3D9 and D3D12 graphics fixtures rendered with WebGPU, native fixtures and independent winapiexec and pts-tinype executables across console, files, dialogs, PCM audio and GDI drawing. General Windows compatibility remains incomplete.** Wine's unchanged CommandLineToArgvW and wsprintf implementations now run as guest DLLs; additional Wine compatibility modules remain the direction for broad API support.
 
@@ -63,12 +63,27 @@ Set `WINEBROWSER_TEST_URL=https://evangit2.github.io/winebrowser/` to run the sa
 
 ## What works today
 
-- Bounded ZIP extraction, CRC verification, path normalization, executable selection, and PE32 x86 import inspection.
+The local harness now also includes a native **D3D8 cube**. Its 32-bit EXE uses
+the actual D3D8 COM ABI and translates in the browser through the shared graphics
+backend; `npm run test:d3d8` checks EXE/ZIP animation and clean exit. This is the
+first D3D8 path, not full Hamsterball compatibility. The original Hamsterball EXE
+has been recovered byte-for-byte from retained PE sections and is now an actual
+translation target. Its packed native BASS DLL now loads dependencies through the
+experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
+native ACM/UCRT exports, and reaches the missing `ole32!CoCreateInstance` export;
+see [the active gate](TASKS.md#current-original-hamsterball-gate).
+The overall scope remains DirectX through 12, including the unfinished D3D10/11
+frontends and broader D3D12 resources/shaders.
+
+- Multi-file and folder import, bounded ZIP extraction, CRC verification, path normalization, executable selection, and PE32 x86 import inspection. Top-level selected ZIPs expand into the package; ZIPs inside a selected folder remain application assets. Limits are 2,048 files, 64 MiB of selected bytes, 128 MiB expanded, and 64 directory levels. Conflicting paths are rejected. Choose the program and its supporting files together; a new selection replaces the current package.
 - PE DLL imports/exports, ordinal and forwarded exports, HIGHLOW relocations, DllMain attach/detach, guest callbacks, scalar byte/word/dword x86 instructions, calls/returns, condition flags, and direct Wasm block generation in a terminable worker.
+- Relative and sandboxed DOS DLL paths, same-basename plugins, `LoadLibraryExA/W` with flags 0 or `LOAD_WITH_ALTERED_SEARCH_PATH`, and full module filename queries. Other search/datafile flags remain unsupported.
+- Browser-provided DLL handles point to mapped PE32 images with readable headers, sorted export names and executable API stubs. Imported and dynamically resolved addresses match their PE export tables. Unsupported exports still fail explicitly.
+- Writable PE sections invalidate overlapping translated blocks; memory operations end writable-code blocks before following instructions are decoded. A 4,096-block cache evicts old translations instead of ending large programs. Executable private allocations and changing code-page protections remain separate unfinished work.
 - Static PE TLS for one guest thread: initialized templates, zero-fill, aligned per-module storage, and process callbacks, including dynamic DLL loading.
 - Selected x87 loads/stores, integer conversions, stack operations, arithmetic, comparisons, round-to-integer and control/status instructions using an independently rebuildable SoftFloat ext80 Wasm library. Transcendentals, environment save/restore and general floating-point exceptions remain unsupported.
 - Conservative CPUID identification and RDTSC using the same monotonic virtual nanosecond counter as Wine performance queries; no host CPU features are exposed.
-- Selected SSE data moves, integer lane unpack/shuffle/XOR, and bit scans. Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.
+- Selected SSE data moves, integer lane unpack/shuffle/XOR, LOCK XADD, ROL/ROR and bit scans (including legacy F3 encodings consistent with the virtual CPUID profile). Wine process-heap initialization uses the unmodified DLL and NT virtual-memory bridge.
 - Bootstrap API provider: standard output, synchronous file reads/writes, owned/unowned `MessageBoxA/W(MB_OK)` with standard icons, `Beep`, and process/time helpers, a reusable heap, dynamic module lookup, and UTF-16 services. The Wine parser supplies CommandLineToArgvW as guest code. See `API_NAMES` in `src/win32.js` for the exact list.
 - D3D9 COM device creation, fixed-function XYZ/diffuse triangle lists, world/view/projection transforms, D16 depth and WebGPU presentation. The [browser test](evidence/d3d9-browser-results.json) verifies real PE execution, animation, uploaded EXE/hosted ZIP and clean device/window release.
 - D3D12 upload vertex/index buffers, R16/R32 indexed draws, signed vertex offsets, D16 depth, DXGI backbuffers, command lists and fences; guest DXBC shaders compile through libvkd3d-shader and Naga inside the browser. Programmable D3D9 triangle lists also use this browser compiler, with vertex declarations and float constants; licensed VS 1.1/PS 2.0 shader fixtures pass actual WebGPU pixel checks.
@@ -84,6 +99,7 @@ The CPU emitter implements a subset of x86; iced-x86's much broader **decoding**
 
 | Module                                                  | Responsibility                                                     |
 | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| `src/import-files.js`                                   | Multi-file/folder collection, merging and limits                   |
 | `src/package.js`                                        | ZIP validation, bounded expansion, virtual paths                   |
 | `src/pe.js`                                             | PE parsing, imports, image mapping                                 |
 | `src/wasm.js`                                           | Small binary Wasm module encoder                                   |
@@ -149,6 +165,6 @@ The interface is a plain test bench: no landing page, visual branding or product
 
 The optional `npm run probe:wine-crt -- /path/to/Wine-i386-windows /path/to/wine/nls` loads a hash-pinned, unmodified Wine msvcrt/kernel32/kernelbase/ntdll closure with supplied NLS data. It passes PEB lock, process-parameter and environment initialization through Wine exports, then reaches additional NT services required by locale/CRT startup. Broader process initialization remains unfinished. The exact imports and guest failure state are recorded in `evidence/wine-crt-results.json`. This is a blocked startup probe, not a passing CRT/application test. The [graphics handoff](docs/graphics-handoff.md) records current DirectWebGPU/Wine reuse findings and the remaining DirectX work.
 
-An [optional source-built loader experiment](docs/wine-loader-bridge.md) now initializes Wine's private module records and version subsystem through an explicit C interface. Its Node and Chromium-worker probes verify rollback, lookup and ownership guards against the same generic rebuilt DLL. It is separate from normal EXE/ZIP loading; broader module lifecycle remains unfinished. Its separate Node and Chromium-worker CRT probe now attaches real Wine msvcrt and verifies allocation, formatting and output through NT services; it does not run an EXE entry point.
+An [optional source-built loader experiment](docs/wine-loader-bridge.md) now initializes Wine's private module records and version subsystem through an explicit C interface. Its Node and Chromium-worker probes verify rollback, lookup and ownership guards against the same generic rebuilt DLL. It is separate from normal EXE/ZIP loading; broader module lifecycle remains unfinished. Its separate Node and Chromium-worker CRT probe now attaches real Wine msvcrt and verifies allocation, formatting, output and a binary file round trip through NT services. The file check creates, writes, measures, seeks, reads, closes and reopens the file through unchanged Wine CRT exports. It does not run an EXE entry point or enable the full Wine closure for normal uploads.
 
 The [unchanged application startup diagnostic](docs/wine-loader-bridge.md#unchanged-application-startup-diagnostic) now enters Humus Dynamic Branching through real Wine base DLLs and records its next runtime failure. It remains a blocked independent target, separate from the passing public cube examples.

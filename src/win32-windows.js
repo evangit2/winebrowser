@@ -35,6 +35,7 @@ export class WindowManager {
     this.nextWindow = 0x20000;
     this.nextTimer = 1;
     this.focus = 0;
+    this.active = 0;
     this.capture = 0;
   }
   fail(code, argc, value = 0) {
@@ -171,6 +172,7 @@ export class WindowManager {
       }
     this.queue = this.queue.filter((m) => m.hwnd !== hwnd);
     if (this.focus === hwnd) this.focus = 0;
+    if (this.active === hwnd) this.active = 0;
     if (this.capture === hwnd) this.capture = 0;
     destroyWindowSurface(this.runtime, hwnd);
     this.windows.delete(hwnd);
@@ -190,7 +192,7 @@ export class WindowManager {
     this.keys.clear();
     this.keyboardState.clear();
     this.accelerators.clear();
-    this.focus = this.capture = 0;
+    this.focus = this.capture = this.active = 0;
     this.wake?.();
     this.wake = null;
   }
@@ -202,6 +204,11 @@ export class WindowManager {
       window = window.parentId ? this.windows.get(window.parentId) : null;
     }
     return true;
+  }
+  topLevel(hwnd) {
+    let window = this.windows.get(hwnd);
+    while (window?.parentId) window = this.windows.get(window.parentId);
+    return window?.id ?? 0;
   }
   isEnabled(hwnd) {
     let window = this.windows.get(hwnd);
@@ -232,6 +239,7 @@ export class WindowManager {
     if (controlInput(this.runtime, window, event)) return;
     if (event.type === 'close') this.post(hwnd, 0x10);
     else if (event.type === 'focus') {
+      this.active = this.topLevel(hwnd);
       if (this.focus === hwnd) return;
       if (this.focus) this.post(this.focus, 8, hwnd);
       const previous = this.focus;
@@ -484,6 +492,10 @@ async function show(r, a) {
     throw Error('Minimized/maximized windows are not implemented');
   const previous = w.visible;
   w.visible = a(1) !== 0;
+  if (!w.parentId) {
+    if (w.visible && a(1) !== 8) r.windows.active = w.id;
+    else if (!w.visible && r.windows.active === w.id) r.windows.active = 0;
+  }
   r.windows.emit(w);
   await r.windows.send(w.id, 0x18, w.visible ? 1 : 0);
   if (w.visible) {
@@ -683,12 +695,15 @@ Object.assign(windowApis, {
     return result(id >= 0x100 && id <= 0x109 ? 1 : 0, 1);
   },
   'user32.dll!GetFocus': (r) => result(r.windows.focus),
+  'user32.dll!GetForegroundWindow': (r) => result(r.windows.active),
+  'user32.dll!GetActiveWindow': (r) => result(r.windows.active),
   'user32.dll!SetFocus': async (r, a) => {
     const previous = r.windows.focus;
     if (a(0) && !r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
     if (a(0) && !r.windows.isEnabled(a(0))) return r.windows.fail(87, 1);
     if (previous === a(0)) return result(previous, 1);
     r.windows.focus = a(0);
+    if (a(0)) r.windows.active = r.windows.topLevel(a(0));
     r.emit({ type: 'window-focus', windowId: a(0) });
     if (previous) await r.windows.send(previous, 8, a(0));
     if (a(0)) await r.windows.send(a(0), 7, previous);

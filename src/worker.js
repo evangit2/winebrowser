@@ -1,11 +1,17 @@
-import { unpackPackage } from './package.js';
+import { unpackFiles } from './import-files.js';
 import wineLibrary from '../runtime/wine/manifest.json';
 import wineFormat from '../runtime/wine-format/manifest.json';
 import { inspect, Runtime } from './runtime.js';
 import { createCanvasTextRasterizer } from './gdi-text.js';
 import { WebGPURenderer } from './webgpu-renderer.js';
 import { D3D12Renderer } from './d3d12-renderer.js';
-import { packageId, savePackage, saveOutputs } from './storage.js';
+import {
+  packageId,
+  packageFilesId,
+  savePackage,
+  savePackageFiles,
+  saveOutputs,
+} from './storage.js';
 let pkg,
   activeRuntime,
   id,
@@ -35,8 +41,8 @@ onmessage = async ({ data }) => {
   busy = true;
   try {
     if (data.type === 'load') {
-      const bytes = new Uint8Array(data.bytes);
-      pkg = await unpackPackage(bytes, data.name);
+      const started = performance.now();
+      pkg = await unpackFiles(data.inputs);
       if (!builtinFiles.size) {
         const components = new Map();
         for (const [name, manifest] of [
@@ -52,9 +58,10 @@ onmessage = async ({ data }) => {
         }
         builtinFiles = components;
       }
-      id = await packageId(bytes);
+      id = pkg.original ? await packageId(pkg.original) : await packageFilesId(pkg.files);
       try {
-        await savePackage(id, bytes);
+        if (pkg.original) await savePackage(id, pkg.original);
+        else await savePackageFiles(id, pkg.files);
       } catch (e) {
         emit({ type: 'log', text: 'Package cache unavailable: ' + e.message });
       }
@@ -65,7 +72,14 @@ onmessage = async ({ data }) => {
           return { path, error: e.message };
         }
       });
-      emit({ type: 'loaded', id, executables, files: pkg.files.size });
+      delete pkg.original;
+      emit({
+        type: 'loaded',
+        id,
+        executables,
+        files: pkg.files.size,
+        loadMs: performance.now() - started,
+      });
     } else if (data.type === 'run') {
       if (!pkg?.executables.includes(data.exe))
         throw Error('Select an executable from the loaded package');

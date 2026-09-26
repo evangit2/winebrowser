@@ -1,4 +1,5 @@
 // Synchronous PE32 NT file services backed by Runtime's bounded virtual files.
+import { resolveGuestPath } from './guest-paths.js';
 const SUCCESS = 0;
 const ACCESS_VIOLATION = 0xc0000005;
 const INVALID_HANDLE = 0xc0000008;
@@ -13,6 +14,161 @@ const MAX_IO = 4 * 1024 * 1024;
 const MAX_FILE = 16 * 1024 * 1024;
 const MAX_FILESYSTEM = 128 * 1024 * 1024;
 const MAX_OUTPUT = 1024 * 1024;
+const NOT_SUPPORTED = 0xc00000bb;
+const NAME_NOT_FOUND = 0xc0000034;
+const PATH_NOT_FOUND = 0xc000003a;
+
+function objectPath(runtime, pointer) {
+  if (!checked(runtime, pointer, 24)) return { status: ACCESS_VIOLATION };
+  if (runtime.read32(pointer) !== 24) return { status: INVALID_PARAMETER };
+  // Root-directory handles and caller-supplied security are separate services.
+  if (
+    runtime.read32(pointer + 4) ||
+    runtime.read32(pointer + 12) & ~0x42 ||
+    runtime.read32(pointer + 16) ||
+    runtime.read32(pointer + 20)
+  )
+    return { status: NOT_SUPPORTED };
+  const name = runtime.read32(pointer + 8);
+  if (!checked(runtime, name, 8)) return { status: ACCESS_VIOLATION };
+  const length = runtime.view.getUint16(name, true);
+  const capacity = runtime.view.getUint16(name + 2, true);
+  const buffer = runtime.read32(name + 4);
+  if (!length || length & 1 || length > capacity || length > 32766)
+    return { status: INVALID_PARAMETER };
+  if (!checked(runtime, buffer, length)) return { status: ACCESS_VIOLATION };
+  let path = '';
+  for (let i = 0; i < length; i += 2)
+    path += String.fromCharCode(runtime.view.getUint16(buffer + i, true));
+  // NT absolute names have already been normalized by Wine's DOS path routines.
+  if (!path.startsWith('\\??\\')) return { status: PATH_NOT_FOUND };
+  try {
+    return { path: resolveGuestPath(path) };
+  } catch {
+    return { status: PATH_NOT_FOUND };
+  }
+}
+
+function create(runtime, argument) {
+  const complete = iosb(runtime, argument(3));
+  if (!complete || !checked(runtime, argument(0), 4, true)) return ACCESS_VIOLATION;
+  const access = argument(1) >>> 0,
+    share = argument(6) >>> 0;
+  const disposition = argument(7) >>> 0,
+    options = argument(8) >>> 0;
+  if (disposition > 5 || share & ~7) return complete(INVALID_PARAMETER);
+  // Synchronous non-directory files only; never pretend to honor async I/O,
+  // delete-on-close, EAs, reparse points, allocation hints or security policies.
+  if (
+    argument(4) ||
+    argument(9) ||
+    argument(10) ||
+    options & ~0x60 ||
+    !(options & 0x20) ||
+    access & ~0xc012019f ||
+    disposition === 0
+  )
+    return complete(NOT_SUPPORTED);
+  if (!(access & 0x100000)) return complete(INVALID_PARAMETER);
+  const named = objectPath(runtime, argument(2));
+  if (named.status) return complete(named.status);
+  const path = named.path,
+    exists = runtime.files.has(path);
+  // Attributes on an existing FILE_OPEN/FILE_OPEN_IF do not change that file.
+  if (!(exists && [1, 3].includes(disposition)) && argument(5) & ~0xa0)
+    return complete(NOT_SUPPORTED);
+  const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+  if (parent && ![...runtime.files.keys()].some((name) => name.startsWith(parent)))
+    return complete(PATH_NOT_FOUND);
+  if ([...runtime.files.keys()].some((name) => name.startsWith(path + '/')))
+    return complete(0xc00000ba); // directory
+  if (!exists && (disposition === 1 || disposition === 4)) return complete(NAME_NOT_FOUND);
+  if (exists && disposition === 2) return complete(0xc0000035); // collision
+  const readAccess = !!(access & 0x80000001),
+    writeAccess = !!(access & 0x40000006);
+  const truncate = exists && (disposition === 4 || disposition === 5);
+  if (truncate && !(access & 0x40000002)) return complete(ACCESS_DENIED);
+  if (
+    fileShareConflict(
+      runtime,
+      path,
+      (readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0),
+      share,
+    )
+  )
+    return complete(0xc0000043);
+  if (runtime.handles.size >= 4096 || (!exists && runtime.files.size >= 4096))
+    return complete(0xc000009a);
+  const handle = runtime.nextHandle++;
+  if (!exists || truncate) {
+    runtime.files.set(path, new Uint8Array());
+    runtime.dirty.add(path);
+  }
+  runtime.handles.set(handle, {
+    path,
+    position: 0,
+    access: ((readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0)) >>> 0,
+    share,
+    options,
+    inherit: !!(runtime.read32(argument(2) + 12) & 2),
+    appendOnly: !!(access & 4) && !(access & 0x40000002),
+  });
+  runtime.write32(argument(0), handle);
+  return complete(SUCCESS, !exists ? 2 : truncate ? 3 : 1);
+}
+
+function information(runtime, argument, set) {
+  const complete = iosb(runtime, argument(1));
+  if (!complete) return ACCESS_VIOLATION;
+  const opened = regular(runtime, argument(0));
+  if (!opened) return complete(INVALID_HANDLE);
+  const kind = argument(4) >>> 0;
+  const size = kind === 5 && !set ? 24 : kind === 14 || (kind === 20 && set) ? 8 : 0;
+  if (!size) return complete(NOT_SUPPORTED);
+  if (kind === 14 && !(opened.access & 0xc0000000)) return complete(ACCESS_DENIED);
+  if (argument(3) >>> 0 < size) return complete(0xc0000004); // INFO_LENGTH_MISMATCH
+  const buffer = argument(2) >>> 0;
+  if (!checked(runtime, buffer, size, !set)) return complete(ACCESS_VIOLATION);
+  const bytes = runtime.files.get(opened.path);
+  if (set) {
+    const value = runtime.view.getBigInt64(buffer, true);
+    if (value < 0 || value > BigInt(MAX_FILE)) return complete(INVALID_PARAMETER);
+    if (kind === 14) opened.position = Number(value);
+    else {
+      if (!(opened.access & 0x40000000) || opened.appendOnly) return complete(ACCESS_DENIED);
+      const total = [...runtime.files.values()].reduce((sum, file) => sum + file.length, 0);
+      if (total - bytes.length + Number(value) > MAX_FILESYSTEM) return complete(DISK_FULL);
+      const resized = new Uint8Array(Number(value));
+      resized.set(bytes.subarray(0, resized.length));
+      runtime.files.set(opened.path, resized);
+      runtime.dirty.add(opened.path);
+    }
+    return complete(SUCCESS);
+  }
+  runtime.data.fill(0, buffer, buffer + size);
+  if (kind === 14) runtime.view.setBigInt64(buffer, BigInt(opened.position), true);
+  else {
+    runtime.view.setBigInt64(buffer, BigInt(Math.ceil(bytes.length / 4096) * 4096), true);
+    runtime.view.setBigInt64(buffer + 8, BigInt(bytes.length), true);
+    runtime.write32(buffer + 16, 1); // one link; not pending deletion or a directory
+  }
+  return complete(SUCCESS, size);
+}
+
+export function fileShareConflict(runtime, path, access, share) {
+  for (const opened of runtime.handles.values()) {
+    if (opened.path !== path) continue;
+    const previousShare = opened.share ?? 7;
+    if (
+      (access & 0x80000000 && !(previousShare & 1)) ||
+      (access & 0x40000000 && !(previousShare & 2)) ||
+      (opened.access & 0x80000000 && !(share & 1)) ||
+      (opened.access & 0x40000000 && !(share & 2))
+    )
+      return true;
+  }
+  return false;
+}
 
 function checked(runtime, address, size, write = false) {
   try {
@@ -95,6 +251,7 @@ function write(runtime, argument) {
   if (!(opened.access & 0x40000000)) return complete(ACCESS_DENIED);
   const start = offset(runtime, argument(7), opened, true);
   if (start.status) return complete(start.status);
+  if (opened.appendOnly) start.value = runtime.files.get(opened.path).length;
   if (start.value + count > MAX_FILE) return complete(DISK_FULL);
   const previous = runtime.files.get(opened.path);
   const newLength = Math.max(previous.length, start.value + count);
@@ -133,6 +290,36 @@ export function closeFileHandle(runtime, handle) {
 }
 
 export const fileNtServices = {
+  NtCreateFile: { argc: 11, call: create },
+  NtOpenFile: {
+    argc: 6,
+    call: (runtime, argument) =>
+      create(
+        runtime,
+        (index) =>
+          [
+            argument(0),
+            argument(1),
+            argument(2),
+            argument(3),
+            0,
+            0,
+            argument(4),
+            1,
+            argument(5),
+            0,
+            0,
+          ][index],
+      ),
+  },
+  NtQueryInformationFile: {
+    argc: 5,
+    call: (runtime, argument) => information(runtime, argument, false),
+  },
+  NtSetInformationFile: {
+    argc: 5,
+    call: (runtime, argument) => information(runtime, argument, true),
+  },
   NtQueryVolumeInformationFile: { argc: 5, call: queryVolume },
   NtReadFile: { argc: 9, call: read },
   NtWriteFile: { argc: 9, call: write },

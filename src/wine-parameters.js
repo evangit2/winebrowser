@@ -1,5 +1,6 @@
 import { PROCESS_LAYOUT } from './process-layout.js';
 import { processCommandLine } from './command-line.js';
+import { packageDosPath } from './guest-paths.js';
 
 // PE32 offsets from Wine 11's winternl.h. Wine creates and owns the variable
 // length RTL_USER_PROCESS_PARAMETERS allocation; only its PEB pointer is ours.
@@ -48,8 +49,8 @@ export async function initializeWineParameters(runtime, module, heap, heapExport
   };
   try {
     const result = allocate(4);
-    const image = string(runtime.exe.replaceAll('/', '\\'));
-    const currentDirectory = runtime.cwd.replaceAll('/', '\\') || '\\';
+    const image = string(packageDosPath(runtime.exe));
+    const currentDirectory = packageDosPath(runtime.cwd, true);
     if (currentDirectory.length >= 260) throw Error('Wine current directory exceeds MAX_PATH');
     const directory = string(currentDirectory);
     const commandLine = string(processCommandLine(runtime));

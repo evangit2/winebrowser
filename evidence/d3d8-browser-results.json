@@ -1,0 +1,95 @@
+{
+  "date": "2026-09-25T22:18:29.581Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "154.0.8037.57",
+  "nativeGame": "d3d8-cube",
+  "browserCompilation": true,
+  "workerWebGPU": true,
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "exeSha256": "38cc1f9b23d22e5984791d9e51b618a6612b8e8f80fbffd3ffab457981045605",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 74972,
+        "colors": [
+          "93,197,239",
+          "121,216,117"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 18,
+        "hash": "c27a891999c438545f9322e087f48fc9d8b2eb5fa1d4afb823c4ca694aab08cf",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77812,
+        "colors": [
+          "93,197,239",
+          "242,207,91"
+        ]
+      },
+      "exitCode": 0,
+      "compiledBlocks": 76,
+      "instructions": 2824,
+      "apiCalls": 259
+    },
+    {
+      "mode": "hosted-zip",
+      "exeSha256": "38cc1f9b23d22e5984791d9e51b618a6612b8e8f80fbffd3ffab457981045605",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "hash": "7da060142ac992981a56eaaa6b39d48292655c8b074da1de4e33aa8e82f2eee9",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77812,
+        "colors": [
+          "232,101,84",
+          "121,216,117"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 16,
+        "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 74972,
+        "colors": [
+          "121,216,117",
+          "93,197,239"
+        ]
+      },
+      "exitCode": 0,
+      "compiledBlocks": 76,
+      "instructions": 2634,
+      "apiCalls": 241
+    }
+  ],
+  "errors": []
+}

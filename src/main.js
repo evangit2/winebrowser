@@ -2,6 +2,7 @@ import './style.css';
 import { audioQueueNeedsReset } from './audio-scheduling.js';
 import { ensureIsolation } from './isolation.js';
 import { VirtualDesktop } from './desktop.js';
+import { selectedFiles, droppedFiles, validateImportFiles } from './import-files.js';
 
 const $ = (id) => document.getElementById(id);
 const desktop = new VirtualDesktop($('desktop'), (event) =>
@@ -63,13 +64,18 @@ function reply(source, message, value) {
 }
 
 function createWorker() {
+  loadWait?.reject(Error('Package selection superseded'));
+  runWait?.resolve(null);
+  loadWait = runWait = null;
   worker?.terminate();
+  $('messagebox').close();
   desktop.reset();
   $('desktop').hidden = true;
   stopAudio(false);
   worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
   const instance = worker;
   worker.onerror = (event) => {
+    if (worker !== instance) return;
     log(event.message);
     status('Worker failed', 'ERROR');
     loadWait?.reject(Error(event.message));
@@ -88,7 +94,11 @@ function createWorker() {
       $('stop').disabled = true;
       $('exe').replaceChildren(...entries.map((item) => new Option(item.path, item.path)));
       $('selection').hidden = false;
-      status(`${message.files} package files loaded`, 'LOADED');
+      status(
+        `${message.files} package files loaded${entries.length ? '' : ' · No EXE found; select the program with its files'}`,
+        'LOADED',
+      );
+      $('metrics').textContent = `Package opened in ${(message.loadMs / 1000).toFixed(2)} s`;
       select();
       loadWait?.resolve(message);
       loadWait = null;
@@ -234,14 +244,18 @@ function createWorker() {
 }
 
 async function load(file) {
-  exampleRequest++;
+  return loadFiles(selectedFiles([file]));
+}
+
+async function loadFiles(inputs, request = ++exampleRequest) {
+  if (request !== exampleRequest) return;
   downloadingExample = false;
-  if (file.size > 64 * 1024 * 1024) throw Error('Package exceeds 64 MB');
+  validateImportFiles(inputs);
   createWorker();
   entries = [];
   running = true;
   $('run').disabled = true;
-  $('stop').disabled = true;
+  $('stop').disabled = false;
   $('selection').hidden = true;
   $('output').textContent = '';
   $('outputs').replaceChildren();
@@ -256,8 +270,7 @@ async function load(file) {
   const loaded = new Promise((resolve, reject) => {
     loadWait = { resolve, reject };
   });
-  const bytes = await file.arrayBuffer();
-  if (worker) worker.postMessage({ type: 'load', name: file.name, bytes }, [bytes]);
+  worker.postMessage({ type: 'load', inputs });
   return loaded;
 }
 
@@ -281,19 +294,30 @@ async function runCurrent(args = []) {
   return completed;
 }
 
-async function loadSelected(file) {
+async function loadSelected(inputs) {
+  const request = ++exampleRequest;
+  downloadingExample = true;
+  $('stop').disabled = false;
+  select();
   try {
-    await load(file);
+    await loadFiles(await inputs, request);
   } catch (error) {
+    if (request !== exampleRequest) return;
+    downloadingExample = false;
     log(error.message);
     status(error.message, 'ERROR');
     ready();
   }
 }
 $('file').onchange = () => {
-  const file = $('file').files[0];
+  const inputs = selectedFiles($('file').files);
   $('file').value = '';
-  if (file) loadSelected(file);
+  if (inputs.length) loadSelected(inputs);
+};
+$('folder').onchange = () => {
+  const inputs = selectedFiles($('folder').files);
+  $('folder').value = '';
+  if (inputs.length) loadSelected(inputs);
 };
 $('drop').ondragover = (event) => {
   event.preventDefault();
@@ -303,7 +327,7 @@ $('drop').ondragleave = () => $('drop').classList.remove('drag');
 $('drop').ondrop = (event) => {
   event.preventDefault();
   $('drop').classList.remove('drag');
-  if (event.dataTransfer.files[0]) loadSelected(event.dataTransfer.files[0]);
+  loadSelected(droppedFiles(event.dataTransfer));
 };
 $('exe').onchange = select;
 function readArgs() {
@@ -337,6 +361,8 @@ $('run').onclick = async () => {
   }
 };
 $('stop').onclick = () => {
+  exampleRequest++;
+  downloadingExample = false;
   worker?.terminate();
   worker = null;
   desktop.reset();
@@ -544,7 +570,7 @@ async function initialize() {
           if (!packageResponse.ok) throw Error(`Fixture package unavailable: ${fixture.zip}`);
           const bytes = await packageResponse.arrayBuffer();
           if (request !== exampleRequest) return;
-          await loadSelected(new File([bytes], fixture.zip));
+          await loadSelected(selectedFiles([new File([bytes], fixture.zip)]));
         } catch (error) {
           if (request !== exampleRequest) return;
           status(error.message, 'ERROR');

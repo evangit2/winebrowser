@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { d3d9Apis } from '../src/d3d9.js';
 
-function fixture() {
+function fixture(version = 9) {
   const buffer = new ArrayBuffer(1024 * 1024);
   const data = new Uint8Array(buffer);
   const view = new DataView(buffer);
@@ -47,16 +47,22 @@ function fixture() {
     assert.equal(thunk.kind, 'com');
     return thunk.invoke(runtime, (index) => [pointer, ...args][index]);
   };
-  const factory = d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 32).result;
-  const params = runtime.allocate(56);
+  const factory = d3d9Apis[`d3d${version}.dll!Direct3DCreate${version}`](runtime, () =>
+    version === 8 ? 220 : 32,
+  ).result;
+  const params = runtime.allocate(version === 8 ? 52 : 56);
   const output = runtime.allocate(4);
-  runtime.write32(params + 24, 1); // D3DSWAPEFFECT_DISCARD.
-  runtime.write32(params + 28, 0x20000);
-  runtime.write32(params + 32, 1); // Windowed.
-  runtime.write32(params + 36, 1); // AutoDepthStencil.
-  runtime.write32(params + 40, 80); // D3DFMT_D16.
+  const shift = version === 8 ? 4 : 0;
+  runtime.write32(params + 24 - shift, 1); // D3DSWAPEFFECT_DISCARD.
+  runtime.write32(params + 28 - shift, 0x20000);
+  runtime.write32(params + 32 - shift, 1); // Windowed.
+  runtime.write32(params + 36 - shift, 1); // AutoDepthStencil.
+  runtime.write32(params + 40 - shift, 80); // D3DFMT_D16.
   const create = async () => {
-    assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0);
+    assert.equal(
+      (await call(factory, version === 8 ? 15 : 16, 0, 1, 0x20000, 0x20, params, output)).result,
+      0,
+    );
     return runtime.read32(output);
   };
   return { runtime, events, call, factory, params, output, create };
@@ -150,7 +156,7 @@ test('Clear and DrawPrimitiveUP snapshot colored 3D vertices and transformed sta
 
 test('Unsupported D3D9 methods and render modes fail explicitly; failed Present retains commands', async () => {
   const { runtime, events, call, factory, params, output, create } = fixture();
-  assert.equal(d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 31).result, 0);
+  assert.equal(d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 0).result, 0);
   await assert.rejects(
     call(factory, 14, 0, 1, 0),
     /Unsupported COM method IDirect3D9.GetDeviceCaps/,
@@ -181,6 +187,20 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
   runtime.graphics.present = present;
   await call(device, 17, 0, 0, 0, 0);
   assert.equal(events.at(-1).commands.length, 1);
+});
+
+test('legacy SDK 31 uses the same COM factory, identity and device lifetime as SDK 32', async () => {
+  const { runtime, call, params, output, events } = fixture();
+  const factory = d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 31).result;
+  assert.ok(factory);
+  assert.equal((await call(factory, 4)).result, 1);
+  assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0);
+  assert.equal(events.at(-1).type, 'create');
+  const device = runtime.read32(output);
+  assert.equal((await call(factory, 2)).result, 1); // device owns its factory
+  assert.equal((await call(device, 2)).result, 0);
+  assert.equal(runtime.comObjects.objects.get(factory).refs, 0);
+  assert.equal(events.at(-1).type, 'destroy');
 });
 
 test('frontend enforces renderer dimensions, command budget, and D16-only depth', async () => {
@@ -350,4 +370,29 @@ test('programmable DrawPrimitiveUP owns shaders and snapshots declaration, verti
   assert.equal(vertexObject.state.internalRefs, 0);
   assert.equal(pixelObject.state.internalRefs, 0);
   assert.equal(declarationObject.state.internalRefs, 0);
+});
+
+test('D3D8 SDK versions use distinct IIDs, 52-byte presentation parameters and FVF shader values', async () => {
+  const { runtime, events, call, factory, create } = fixture(8);
+  for (const sdk of [120, 220])
+    assert.ok(d3d9Apis['d3d8.dll!Direct3DCreate8'](runtime, () => sdk).result);
+  for (const sdk of [0, 32, 219])
+    assert.equal(d3d9Apis['d3d8.dll!Direct3DCreate8'](runtime, () => sdk).result, 0);
+  const device = await create();
+  assert.equal(events[0].depth, true);
+  assert.equal(events[0].windowId, 0x20000);
+  assert.equal(runtime.comObjects.objects.get(device).iid, '7385e5df-8fe8-41d5-86b6-d7b48547b6cf');
+  assert.equal((await call(device, 76, 0x42)).argc, 2);
+  const out = runtime.allocate(4);
+  assert.equal((await call(device, 77, out)).result, 0);
+  assert.equal(runtime.read32(out), 0x42);
+  await assert.rejects(call(device, 76, 0x10001), /Unsupported.*SetFVF/);
+  assert.equal((await call(device, 36, 0, 0, 3, 0xff123456, 0x3f800000, 0)).argc, 7);
+  assert.equal((await call(device, 34)).result, 0);
+  assert.equal((await call(device, 35)).result, 0);
+  assert.equal((await call(device, 15, 0, 0, 0, 0)).argc, 5);
+  assert.equal(events.at(-1).commands[0].color, 0xff123456);
+  assert.equal((await call(factory, 2)).result, 1);
+  assert.equal((await call(device, 2)).result, 0);
+  await assert.rejects(call(factory, 4), /Released COM object/);
 });

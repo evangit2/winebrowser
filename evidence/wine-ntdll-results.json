@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-18T21:38:30.989Z",
+  "date": "2026-09-25T20:20:53.907Z",
   "dll": {
     "name": "ntdll.dll",
     "sha256": "bac6f2d9434860d09a696dcdcd5f85631e19fd4f9409b3a39828841b7a40c089",
@@ -31,6 +31,11 @@
       "unicodeCaseMapping": true,
       "euroByteConverted": true,
       "immutableTables": true,
+      "passed": true
+    },
+    {
+      "export": "RtlGetFullPathName_U",
+      "packageRelativePath": true,
       "passed": true
     },
     {
@@ -104,9 +109,9 @@
     {
       "export": "NtQuerySystemTime",
       "status": 0,
-      "before": 1789767511173,
-      "after": 1789767511173,
-      "milliseconds": 1789767511173,
+      "before": 1790367654178,
+      "after": 1790367654180,
+      "milliseconds": 1790367654179,
       "invalidPointerStatus": 3221225477,
       "passed": true
     },
@@ -204,9 +209,9 @@
     "reason": "Clock dispatch works; NT handle/object services are not yet implemented."
   },
   "status": "passed-selected-exports",
-  "blocks": 27373,
-  "instructions": 121273,
-  "compiledBlocks": 742,
+  "blocks": 28359,
+  "instructions": 124197,
+  "compiledBlocks": 879,
   "apiTrace": [
     "ntdll.dll!NtAllocateVirtualMemory",
     "ntdll.dll!NtAllocateVirtualMemory",

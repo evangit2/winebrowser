@@ -83,7 +83,7 @@ def verify_pe(path):
     if not objdump:
         raise RuntimeError("i686-w64-mingw32-objdump is required to check bridge exports")
     exports = subprocess.check_output([objdump, "-p", str(path)], text=True)
-    for symbol in ("__wine_syscall_dispatcher", "WineBrowserLoaderBootstrap"):
+    for symbol in ("__wine_syscall_dispatcher", "WineBrowserLoaderBootstrap", "WineBrowserLoaderConfigure", "WineBrowserLoaderSync"):
         if not re.search(rf"\b{re.escape(symbol)}\b", exports):
             raise RuntimeError(f"Patched ntdll is missing {symbol}")
 

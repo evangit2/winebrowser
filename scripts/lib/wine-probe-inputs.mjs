@@ -9,6 +9,8 @@ const installedHashes = {
   'msvcrt.dll': '612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558',
   'kernel32.dll': 'c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418',
   'kernelbase.dll': '4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6',
+  'msacm32.dll': '5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8',
+  'ucrtbase.dll': 'b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4',
 };
 
 // Optional local Wine inputs: verify provenance before handing bytes to Node or
@@ -54,6 +56,20 @@ export async function loadWineProbeInputs(root, { wineDirectory, nlsDirectory })
     sha256: sha256(patched),
   });
   const builtinFiles = new Map([['ntdll.dll', patched]]);
+  const formatterManifest = JSON.parse(
+    await readFile(path.join(root, 'runtime/wine-format/manifest.json'), 'utf8'),
+  );
+  const formatterPath = path.join(root, 'public/runtime/wine-format.dll');
+  const formatter = new Uint8Array(await readFile(formatterPath));
+  assert.equal(sha256(formatter), formatterManifest.dllSha256);
+  assert.equal(formatter.length, formatterManifest.dllBytes);
+  builtinFiles.set('wine-format.dll', formatter);
+  inputs.dlls.push({
+    name: 'wine-format.dll',
+    path: formatterPath,
+    bytes: formatter.length,
+    sha256: sha256(formatter),
+  });
   for (const [name, expected] of Object.entries(installedHashes)) {
     const filename = path.join(wineDirectory, name);
     const bytes = new Uint8Array(await readFile(filename));

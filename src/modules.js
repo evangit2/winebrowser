@@ -1,16 +1,20 @@
 import { parsePE, mapPE } from './pe.js';
-import { normalizePath } from './package.js';
+import { resolveGuestPath } from './guest-paths.js';
 import { importKey } from './win32.js';
 import { registerThunk } from './thunk-addresses.js';
+import { hostModuleImage } from './host-module-image.js';
 
 const dllName = (name) => {
-  const path = normalizePath(name);
-  if (path.includes('/')) throw Error('DLL search accepts basenames only');
-  return path.includes('.') ? path : path + '.dll';
+  if (typeof name !== 'string' || !name || name.includes('\0')) throw Error('Invalid DLL name');
+  name = name.replaceAll('\\', '/');
+  const basename = name.split('/').at(-1);
+  if (!basename || basename === '.' || basename === '..') throw Error('Invalid DLL name');
+  return name.endsWith('.') ? name.slice(0, -1) : basename.includes('.') ? name : name + '.dll';
 };
 /** A PE module graph. Guest exports remain guest addresses, including forwarded exports. */
 export class ModuleGraph {
-  constructor(files, exe, apiNames, builtinFiles = new Map()) {
+  constructor(files, exe, apiNames, builtinFiles = new Map(), { hostModuleImages = false } = {}) {
+    this.hostModuleImages = hostModuleImages;
     this.files = files;
     this.builtinFiles = builtinFiles;
     this.exe = exe;
@@ -26,19 +30,27 @@ export class ModuleGraph {
     // The initial executable/import closure stays resident for process life.
     this.startupModules = new Set(this.modules.values());
   }
-  loadPath(path, dll = true, refs = 0) {
+  loadPath(path, dll = true, refs = 0, options = {}) {
     const name = path.split('/').at(-1).toLowerCase();
-    if (this.modules.has(name)) return this.modules.get(name);
+    const existing = [...this.modules.values()].find((m) => m.path === path);
+    if (existing) return existing;
     if (this.modules.size >= 128) throw Error('Module count limit exceeded');
-    const bytes = path.startsWith('@runtime/')
-      ? this.builtinFiles.get(path.slice(9))
-      : this.files.get(path);
+    const bytes = options.builtin ? this.builtinFiles.get(path.slice(9)) : this.files.get(path);
     if (!bytes) throw Error(`Missing module ${path}`);
-    const pe = parsePE(bytes, { allowDll: dll });
-    if (dll && !pe.isDll) throw Error(`${path} is not a DLL`);
+    let pe;
+    try {
+      pe = parsePE(bytes, { allowDll: dll });
+      if (dll && !pe.isDll) throw Error(`${path} is not a DLL`);
+    } catch (error) {
+      error.win32Error = 193; // ERROR_BAD_EXE_FORMAT
+      throw error;
+    }
+    const key = this.modules.has(name) ? path : name;
     const module = {
+      key,
       name,
       path,
+      searchDirectories: options.searchDirectories,
       bytes,
       pe,
       base: 0,
@@ -49,22 +61,58 @@ export class ModuleGraph {
       mapped: false,
       initialized: false,
     };
-    this.modules.set(name, module); // Break import cycles before visiting dependencies.
+    this.modules.set(key, module); // Break import cycles before visiting dependencies.
     return module;
   }
-  load(name, retain = false) {
+  paths(name, searchDirectories = [this.cwd, '']) {
+    const paths = [];
+    for (const directory of searchDirectories) {
+      try {
+        const path = resolveGuestPath(name, directory);
+        if (!paths.includes(path)) paths.push(path);
+      } catch {
+        // A relative parent path may be valid from the application directory
+        // but escape the volume from another search directory.
+      }
+    }
+    return paths;
+  }
+  findLoaded(name) {
     name = dllName(name);
-    let module = this.modules.get(name);
+    if (!/[/:]/.test(name))
+      return [...this.modules.values()].find((module) => module.name === name.toLowerCase());
+    for (const path of this.paths(name)) {
+      const found = [...this.modules.values()].find((module) => module.path === path);
+      if (found) return found;
+    }
+  }
+  load(name, retain = false, options = {}) {
+    name = dllName(name);
+    const qualified = /[/:]/.test(name);
+    const paths = this.paths(name, options.searchDirectories);
+    const targetPath = paths.find(
+      (path) => this.files.has(path) || [...this.modules.values()].some((m) => m.path === path),
+    );
+    let module = qualified
+      ? targetPath === undefined
+        ? undefined
+        : [...this.modules.values()].find((m) => m.path === targetPath)
+      : [...this.modules.values()].find((m) => m.name === name.toLowerCase());
     if (module) {
       if (retain) module.refs++;
       return module;
     }
-    for (const path of [this.cwd + name, name])
-      if (this.files.has(path)) return this.loadPath(path, true, retain ? 1 : 0);
-    if (this.builtinFiles.has(name)) return this.loadPath('@runtime/' + name, true, retain ? 1 : 0);
+    for (const path of paths)
+      if (this.files.has(path)) return this.loadPath(path, true, retain ? 1 : 0, options);
+    if (qualified) throw Error(`Missing DLL ${name}`);
+    name = name.toLowerCase();
+    if (this.builtinFiles.has(name))
+      return this.loadPath('@runtime/' + name, true, retain ? 1 : 0, { ...options, builtin: true });
     if (this.apiNames[name]) {
+      if (this.modules.size >= 128) throw Error('Module count limit exceeded');
       if (this.nextHostBase >= 0x80000000) throw Error('Host module handle space exhausted');
       module = {
+        key: name,
         name,
         host: true,
         base: this.nextHostBase,
@@ -72,6 +120,19 @@ export class ModuleGraph {
         initialized: true,
       };
       this.nextHostBase += 0x10000;
+      if (this.hostModuleImages) {
+        const image = hostModuleImage(name, this.apiNames[name], (symbol) =>
+          this.hostThunk({ module, symbol }),
+        );
+        Object.assign(module, {
+          path: '@host/' + name,
+          bytes: image.bytes,
+          pe: parsePE(image.bytes, { allowDll: true }),
+          exportRvas: image.rvas,
+          base: 0,
+          dependencies: [],
+        });
+      }
       this.modules.set(name, module);
       return module;
     }
@@ -81,9 +142,13 @@ export class ModuleGraph {
     for (const module of this.modules.values()) {
       if (module.host || module.linked) continue;
       module.linked = true;
+      module.importModules = new Map();
       for (const entry of module.pe.imports) {
         try {
-          const dependency = this.load(entry.dll);
+          const dependency = this.load(entry.dll, false, {
+            searchDirectories: module.searchDirectories,
+          });
+          module.importModules.set(entry.iatRva, dependency);
           module.dependencies.push(dependency);
           this.resolve(dependency, entry.name ?? entry.ordinal);
         } catch (e) {
@@ -93,12 +158,15 @@ export class ModuleGraph {
     }
   }
   resolve(module, symbol, seen = new Set()) {
-    const key = importKey(module.name, symbol);
+    const key = importKey(module.key, symbol);
     if (seen.has(key) || seen.size > 32) throw Error(`Export forwarder cycle: ${key}`);
     seen.add(key);
     if (module.host) {
-      if (typeof symbol !== 'string' || !this.apiNames[module.name]?.includes(symbol))
-        throw Error(`Unsupported import ${key}`);
+      // Ordinals may be provided explicitly as "#N" by a host export table.
+      // Diagnostics use this only to install a fail-on-call trap.
+      if (typeof symbol === 'number')
+        symbol = module.pe?.exports.find((entry) => entry.ordinal === symbol)?.name ?? `#${symbol}`;
+      if (!this.apiNames[module.name]?.includes(symbol)) throw Error(`Unsupported import ${key}`);
       return { host: true, module, symbol };
     }
     const entry = module.pe.exports.find((e) =>
@@ -110,7 +178,7 @@ export class ModuleGraph {
       if (split < 1) throw Error(`Invalid forwarder ${entry.forwarder}`);
       const dll = entry.forwarder.slice(0, split),
         name = entry.forwarder.slice(split + 1);
-      const dependency = this.load(dll);
+      const dependency = this.load(dll, false, { searchDirectories: module.searchDirectories });
       if (!module.dependencies.includes(dependency)) module.dependencies.push(dependency);
       return this.resolve(dependency, name.startsWith('#') ? Number(name.slice(1)) : name, seen);
     }
@@ -121,7 +189,7 @@ export class ModuleGraph {
     if (this.unresolved.length)
       throw Error(this.unresolved.map((u) => `${u.module}: ${u.error}`).join('\n'));
     for (const module of this.modules.values()) {
-      if (module.host || module.mapped) continue;
+      if (!module.pe || module.mapped) continue;
       const preferred = module.pe.imageBase,
         size = module.pe.imageSize;
       const available = (base) =>
@@ -147,30 +215,42 @@ export class ModuleGraph {
         write: false,
         exec: false,
         kind: 'image-reservation',
-        module: module.name,
+        module: module.key,
       });
       regions.push({
         start: base,
-        end: base + module.pe.headersSize,
+        // Windows maps the whole header page, including its zero padding.
+        end:
+          base +
+          Math.min(
+            Math.ceil(module.pe.headersSize / 0x1000) * 0x1000,
+            ...module.pe.sections.map((s) => s.rva),
+          ),
         write: false,
         exec: false,
-        module: module.name,
+        module: module.key,
       });
-      for (const s of module.pe.sections)
+      for (const s of module.pe.sections) {
+        const endRva = s.rva + Math.max(s.rawSize, s.virtualSize);
+        const nextRva = Math.min(
+          module.pe.imageSize,
+          ...module.pe.sections.filter((next) => next.rva > s.rva).map((next) => next.rva),
+        );
         regions.push({
           start: base + s.rva,
-          end: base + s.rva + Math.max(s.rawSize, s.virtualSize),
+          end: base + Math.min(Math.ceil(endRva / 0x1000) * 0x1000, nextRva),
           write: !!(s.characteristics & 0x80000000),
           exec: !!(s.characteristics & 0x20000000),
-          module: module.name,
+          module: module.key,
         });
+      }
     }
     const view = new DataView(memory.buffer);
     for (const module of this.modules.values()) {
       if (module.host || module.importsPatched) continue;
       for (const entry of module.pe.imports) {
         const target = this.resolve(
-          this.modules.get(dllName(entry.dll)),
+          module.importModules.get(entry.iatRva),
           entry.name ?? entry.ordinal,
         );
         view.setUint32(module.base + entry.iatRva, this.address(target), true);
@@ -183,6 +263,15 @@ export class ModuleGraph {
       if (!target.module.mapped) throw Error(`Module is not mapped: ${target.module.name}`);
       return target.module.base + target.rva;
     }
+    if (target.module.exportRvas) {
+      if (!target.module.mapped) throw Error(`Module is not mapped: ${target.module.name}`);
+      const rva = target.module.exportRvas.get(target.symbol);
+      if (rva === undefined) throw Error(`Missing host export ${target.symbol}`);
+      return target.module.base + rva;
+    }
+    return this.hostThunk(target);
+  }
+  hostThunk(target) {
     const key = importKey(target.module.name, target.symbol);
     let thunk = [...this.thunks].find(
       ([, entry]) =>
@@ -211,6 +300,7 @@ export class ModuleGraph {
   describe() {
     return [...this.modules.values()].map((m) => ({
       name: m.name,
+      path: m.path,
       host: !!m.host,
       base: m.base,
       preferredBase: m.pe?.preferredImageBase ?? m.pe?.imageBase,

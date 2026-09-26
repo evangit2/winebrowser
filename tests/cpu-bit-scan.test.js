@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import iced from 'iced-x86';
 import { CPU } from '../src/cpu.js';
+import { guestCpuid } from '../src/processor-features.js';
 
 function machine(code) {
   const memory = new WebAssembly.Memory({ initial: 1 });
@@ -55,5 +56,25 @@ test('bit scans read memory before overwriting a destination used in its address
     cpu.write32(0x2000, 0xffff0800);
     cpu.step(0x1000);
     assert.equal(cpu.r[0].value, narrow ? 11 : 31);
+  }
+});
+
+test('F3 bit scans follow the advertised legacy CPU, including zero-source flags', () => {
+  assert.equal(guestCpuid(7).ebx & (1 << 3), 0); // BMI1
+  assert.equal(guestCpuid(0x80000001).ecx & (1 << 5), 0); // LZCNT
+  for (const reverse of [false, true]) {
+    for (const narrow of [false, true]) {
+      const cpu = machine([0xf3, ...(narrow ? [0x66] : []), 0x0f, reverse ? 0xbd : 0xbc, 0x00]);
+      cpu.r[0].value = 0x2000;
+      cpu.write32(0x2000, 0x80000808);
+      cpu.step(0x1000);
+      assert.equal(cpu.r[0].value, reverse ? (narrow ? 11 : 31) : 3);
+      assert.equal(cpu.f.zf, 0);
+      cpu.r[0].value = 0x2000;
+      cpu.write32(0x2000, narrow ? 0xffff0000 : 0);
+      cpu.step(0x1000);
+      assert.equal(cpu.f.zf, 1); // Not TZCNT/LZCNT's result-based ZF.
+      cpu.dispose();
+    }
   }
 });

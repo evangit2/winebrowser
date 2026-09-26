@@ -1,7 +1,7 @@
 {
   "scope": "Actual DXBC shader compilation, vertex input, R16/R32 indexed draws with signed base vertex and first index, and D16 depth rendering; separate from native EXE acceptance",
-  "date": "2026-09-19T00:58:12.280Z",
-  "browser": "153.0.8010.48",
+  "date": "2026-09-25T20:16:31.309Z",
+  "browser": "154.0.8037.57",
   "passed": true,
   "frames": [
     {

@@ -9,7 +9,8 @@ import { windowApis } from './win32-windows.js';
 import { acceleratorApis } from './win32-accelerators.js';
 import { displayApis } from './win32-display.js';
 import { iconApis } from './win32-icons.js';
-import { normalizePath } from './package.js';
+import { resolveGuestPath } from './guest-paths.js';
+import { fileShareConflict } from './wine-file.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
@@ -157,12 +158,10 @@ function createFile(runtime, argument, wide = false) {
 
   let path;
   try {
-    // Validate the guest path before adding cwd so absolute paths cannot be
-    // accidentally converted into relative paths beneath the package root.
-    const requestedPath = normalizePath(
-      (wide ? runtime.wideString(argument(0)) : runtime.string(argument(0))).replaceAll('\\', '/'),
+    path = resolveGuestPath(
+      wide ? runtime.wideString(argument(0)) : runtime.string(argument(0)),
+      runtime.cwd,
     );
-    path = normalizePath(runtime.cwd + requestedPath);
   } catch {
     runtime.lastError = 123;
     return success(0xffffffff, 7);
@@ -172,6 +171,13 @@ function createFile(runtime, argument, wide = false) {
     runtime.lastError = 2;
     return success(0xffffffff, 7);
   }
+  if (fileShareConflict(runtime, path, access, argument(2))) {
+    runtime.lastError = 32;
+    return success(0xffffffff, 7);
+  }
+  if (runtime.handles.size >= 4096) throw Error('Open handle limit exceeded');
+  if (!runtime.files.has(path) && runtime.files.size >= 4096)
+    throw Error('Virtual file count limit exceeded');
   if (mode === 2) {
     if (!(access & 0x40000000)) {
       runtime.lastError = 5;
@@ -181,10 +187,8 @@ function createFile(runtime, argument, wide = false) {
     runtime.dirty.add(path);
   }
 
-  if (runtime.handles.size >= 4096) throw Error('Open handle limit exceeded');
-  if (runtime.files.size > 4096) throw Error('Virtual file count limit exceeded');
   const handle = runtime.nextHandle++;
-  runtime.handles.set(handle, { path, position: 0, access });
+  runtime.handles.set(handle, { path, position: 0, access, share: argument(2) });
   return success(handle, 7);
 }
 

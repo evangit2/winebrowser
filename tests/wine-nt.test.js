@@ -51,7 +51,10 @@ test('Wine NT clock services dispatch through the guest dispatcher and preserve 
   assert.equal(module.pe.directories[9]?.rva ?? 0, 0, 'fixture DLL has no TLS directory');
   assert.equal(module.pe.directories[9]?.size ?? 0, 0, 'fixture DLL has no TLS directory');
   assert.equal(module.pe.preferredImageBase, 0x10000000);
-  assert.equal(module.base, 0x01000000, 'DLL is relocated into the guest image range');
+  assert.ok(
+    module.base >= 0x1000000 && module.base + module.pe.imageSize < 0x2e00000,
+    'DLL is relocated into the guest image range alongside mapped host DLLs',
+  );
   assert.equal(module.host, undefined, 'ntdll is an executable guest DLL');
   assert.equal(module.initialized, true, 'native DLL entry point accepted process attach');
   assert.ok(module.ntBridge?.address, 'Wine NT dispatcher thunk was installed');

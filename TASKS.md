@@ -1,7 +1,47 @@
 # WineBrowser task list
 
-Development resumed on 2026-09-18. The remaining items below are the working
+Development resumed on 2026-09-25. The remaining items below are the working
 backlog. General Windows application and DirectX compatibility is **not complete**.
+
+The active acceptance goal includes arbitrary EXEs, ZIPs, native third-party
+DLLs, browser-time translation, the original Hamsterball, and DirectX through
+version 12. Existing D3D12 triangle/cube tests must remain regression gates;
+D3D10/11 and broader D3D12 support are still required.
+
+## Current original-Hamsterball gate
+
+- [x] Recover the exact original EXE from the retained Theseus PE sections and
+      original import lookup table; verify SHA-256
+      `3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d`.
+      The local input is `.cache/hamsterball-original/Hamsterball.exe`, with assets
+      and the native BASS DLL from `../hamsterball-browser/assets`. No translated
+      Hamsterball Rust/Wasm is loaded by WineBrowser.
+- [x] Native DLL path identity, relative/full DOS paths, same-basename plugins,
+      `LoadLibraryExA/W` flags 0/8, module path queries, independent unload and rollback.
+- [x] D3D8 COM/presentation/FVF adaptation to the shared D3D9 renderer; original
+      native cube EXE/ZIP pass browser translation, animated pixels and clean exit.
+- [x] PUSHF/POPF, PUSHAD/POPAD and 16-bit variants; writable PE code invalidation
+      and bounded block-cache eviction; committed zero-filled PE page padding.
+- [x] Connect the experimental source-built Wine loader to the runtime graph:
+      native load/lookup/forwarders/refcounts/pinning/unload now use host transactions.
+      Node and Chromium pass 14 loader cases, including same-name DLLs, rejected
+      DllMain rollback, three injected metadata allocation failures and retry.
+- [x] Give host-backed OS modules real mapped PE headers and executable export
+      tables in the normal runtime; mirror mapped modules in Wine's loader indexes
+      when the experimental callback bridge is enabled.
+- [x] Implement a virtual WinMM PCM-output mixer with ANSI/Unicode discovery,
+      real volume/mute sample scaling, and multimedia clock/period queries.
+      A native PE fixture verifies exact PCM samples in Node and Chromium.
+      Capture, mixer callbacks and multimedia callback timers remain unsupported.
+- [x] Supply hash-checked native Wine ACM/UCRT DLLs to the optional application
+      diagnostic; BASS resolves their exports and proceeds to OLE32. This proves
+      import/startup progress, not ACM conversion or BASS playback.
+- [ ] Implement the remaining BASS dependencies, starting with the missing
+      `ole32!CoCreateInstance` export reported by its own error dialog. Foreground
+      queries now reflect the virtual window manager. Node/browser evidence is in
+      `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
+- [ ] Continue from the original game entry through D3D8 resources, textures,
+      input and audio, reusing the Hamsterball/DirectWebGPU implementation semantics.
 
 ## Done and verified
 
@@ -48,10 +88,19 @@ backlog. General Windows application and DirectX compatibility is **not complete
 - [x] Supply a consistent virtual display mode for screen metrics, display enumeration/test/restore, and client-to-screen coordinates.
 - [x] Keep code split by runtime service, with tests and an intentionally plain test harness.
 
+## Verified in the September 25 continuation
+
+- [x] Select or drop multiple EXEs, ZIPs and loose files together, or import a complete folder. Preserve subdirectories, expand only top-level ZIP uploads, drain all browser directory-entry batches, and reject path collisions/traversal and aggregate size limits. Read and unpack file bytes in the worker; Stop cancels loading. Cache combined packages with a content-derived identity.
+- [x] Execute the original file fixture from mixed EXE/asset-ZIP/loose-file inputs and a folder in Chromium, with exact asset reads, generated downloads and OPFS persistence. Timings in `evidence/browser-results.json` are small-fixture observations, not arbitrary-application or game benchmarks.
+- [x] Verify the existing LOCK XADD implementation; add 8/16/32-bit ROL/ROR with count masking, carry/overflow and memory-fault tests. Decode F3 bit scans as BSF/BSR consistently with the guest CPU's absent BMI1/LZCNT features.
+- [x] Implement bounded synchronous NT file create/open, sharing, position/size queries, seek, append-only writes and truncation. Host Win32 and Wine share path resolution and sharing checks; parent paths can reach sibling package assets without escaping the package volume.
+- [x] Execute real Wine CRT `_open`, `_write`, `_filelength`, `_lseek`, `_read`, `_close` and reopen in Node and Chromium, verifying binary bytes and EOF. This remains an optional supplied-Wine probe, separate from ordinary uploads.
+- [x] Accept D3D9 SDK 31 with the existing COM ABI. The unchanged Humus EXE creates its window and reaches `IDirect3D9.GetDeviceCaps` in Node and Chromium; that unsupported graphics method is the current explicit stop, with zero rendered frames.
+
 ## Remaining, in suggested order
 
-- [ ] **Wine application startup:** finish application initialization after the passing optional [CRT service probe](evidence/wine-loader-crt-browser-results.json), including native file creation, loader callbacks and process shutdown. The source-built application diagnostic now enters the unchanged Humus EXE after Wine DLL attach; its first runtime failure is retained in [startup evidence](evidence/wine-target-startup.json). The application does not yet render. Both engines currently stop on `LOCK XADD` in Wine `RtlAllocateHeap`, after icon loading, class registration, timing calibration and display enumeration. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
-- [ ] Unify host and Wine loader transactions for module load/unload, reference counts, attach order and static TLS. The optional one-shot loader bridge only registers an existing graph and supports read-only queries.
+- [ ] **Wine application startup:** finish application initialization after the passing optional [CRT service probe](evidence/wine-loader-crt-browser-results.json), including loader callbacks and process shutdown; native synchronous file creation now passes the separate CRT probe. The source-built application diagnostic now enters the unchanged Humus EXE after Wine DLL attach; its first runtime failure is retained in [startup evidence](evidence/wine-target-startup.json). The application does not yet render. Both engines now pass those heap instructions, icon loading, timing calibration, window creation and `Direct3DCreate9(31)`, then stop at `IDirect3D9.GetDeviceCaps`. Implement truthful capabilities alongside the resources and rendering paths the application requires; do not turn missing methods into success stubs. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
+- [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native Wine thread/process lifecycle, static TLS through the full Wine closure and shutdown remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
 - [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, environment save/restore, additional SIMD, exception handling and guest threads. x64 is a separate architectural task.

@@ -1,16 +1,17 @@
 /** Bounds-checked access to the mapped PE and its guest stack/heap regions. */
 export class GuestMemory {
-  constructor(memory, regions) {
+  constructor(memory, regions, { onCodeWrite } = {}) {
     this.memory = memory;
     this.regions = regions;
     this.view = new DataView(memory.buffer);
     this.data = new Uint8Array(memory.buffer);
+    this.onCodeWrite = onCodeWrite;
   }
 
   check(address, size, write = false) {
     address >>>= 0;
     const permitted = (region) =>
-      region.read !== false && (!write || (region.write && !region.exec));
+      region.read !== false && (!write || (region.write && (!region.exec || this.onCodeWrite)));
     let cursor = address;
     const end = address + size;
     if (Number.isSafeInteger(size) && size > 0 && end <= this.data.length) {
@@ -37,6 +38,13 @@ export class GuestMemory {
         `Guest ${write ? 'write' : 'read'} violation at 0x${address.toString(16)} (${size} bytes)`,
       );
     }
+    if (
+      write &&
+      size &&
+      this.onCodeWrite &&
+      this.regions.some((r) => r.exec && address < r.end && end > r.start)
+    )
+      this.onCodeWrite(address, size);
     return address;
   }
 

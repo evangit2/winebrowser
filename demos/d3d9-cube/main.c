@@ -1,8 +1,14 @@
 /* Native PE32 Direct3D 9 cube. No C runtime or application-specific host API. */
 #define COBJMACROS
 #include <windows.h>
+#ifndef WINEBROWSER_D3D8
 #include <d3d9.h>
+#endif
 #include <stdint.h>
+
+#ifndef D3D_VERSION_TEXT
+#define D3D_VERSION_TEXT "9"
+#endif
 
 #define WIDTH 640
 #define HEIGHT 480
@@ -66,12 +72,12 @@ static int run(void)
     WNDCLASSA cls = {0};
     cls.lpfnWndProc = window_proc;
     cls.hInstance = instance;
-    cls.lpszClassName = "WineBrowserD3D9Cube";
+    cls.lpszClassName = "WineBrowserD3D" D3D_VERSION_TEXT "Cube";
     if (!RegisterClassA(&cls)) return 1;
 
     RECT bounds = {0, 0, WIDTH, HEIGHT};
     if (!AdjustWindowRect(&bounds, WS_OVERLAPPEDWINDOW, FALSE)) return 2;
-    HWND window = CreateWindowExA(0, cls.lpszClassName, "WineBrowser Direct3D 9 cube",
+    HWND window = CreateWindowExA(0, cls.lpszClassName, "WineBrowser Direct3D " D3D_VERSION_TEXT " cube",
             WS_OVERLAPPEDWINDOW, 20, 20, bounds.right - bounds.left,
             bounds.bottom - bounds.top, 0, 0, instance, 0);
     if (!window) return 3;

@@ -75,6 +75,16 @@ test('RCL/RCR mask counts, use width-plus-carry rotation, and preserve undefined
     { zf: multiple.f.zf, sf: multiple.f.sf, pf: multiple.f.pf },
     { zf: 1, sf: 1, pf: 0 },
   );
+  const wrapped = machine([0xc0, 0xd0, 10]).cpu; // rcl al,10 rotates once, OF remains undefined
+  wrapped.r[0].value = 0x40;
+  wrapped.f.cf = wrapped.f.of = 0;
+  wrapped.step(CODE);
+  assert.equal(wrapped.r[0].value, 0x80);
+  assert.equal(
+    wrapped.f.of,
+    0,
+    'Only a masked count of one defines OF, not a count modulo width+1',
+  );
 });
 
 test('RCR supports checked memory operands', () => {
@@ -84,6 +94,69 @@ test('RCR supports checked memory operands', () => {
   cpu.step(CODE);
   assert.equal(view.getUint32(0x2000, true), 0x80000001);
   assert.equal(cpu.f.cf, 0);
+});
+
+test('ROL/ROR match independent bit-by-bit rotation for every CL count at each width', () => {
+  for (const width of [8, 16, 32]) {
+    for (const right of [false, true]) {
+      const cpu = machine([
+        ...(width === 16 ? [0x66] : []),
+        width === 8 ? 0xd2 : 0xd3,
+        right ? 0xcb : 0xc3,
+      ]).cpu;
+      const mask = (1n << BigInt(width)) - 1n;
+      for (let count = 0; count < 256; count++) {
+        for (const value of [0, 1, 0x80000000, 0xaaaa8181, 0xffffffff]) {
+          let expected = BigInt(value) & mask,
+            carry = 1;
+          for (let n = 0; n < (count & 31); n++) {
+            carry = Number(right ? expected & 1n : expected >> BigInt(width - 1));
+            expected = right
+              ? (expected >> 1n) | (BigInt(carry) << BigInt(width - 1))
+              : ((expected << 1n) | BigInt(carry)) & mask;
+          }
+          cpu.r[3].value = value;
+          cpu.r[1].value = count;
+          cpu.f = { cf: 1, of: 1, sf: 1, zf: 1, pf: 0 };
+          cpu.af = 1;
+          cpu.step(CODE);
+          assert.equal(BigInt(cpu.r[3].value >>> 0), (BigInt(value) & ~mask) | expected);
+          assert.equal(cpu.f.cf, carry);
+          const msb = Number(expected >> BigInt(width - 1));
+          assert.equal(
+            cpu.f.of,
+            (count & 31) === 1
+              ? msb ^ (right ? Number((expected >> BigInt(width - 2)) & 1n) : carry)
+              : 1,
+          );
+          assert.deepEqual([cpu.f.zf, cpu.f.sf, cpu.f.pf, cpu.af], [1, 1, 0, 1]);
+        }
+      }
+      cpu.dispose();
+    }
+  }
+});
+
+test('ROL/ROR support immediate memory and aliased byte/CL operands; faults preserve flags', () => {
+  const { cpu, view } = machine([0x66, 0xc1, 0x00, 1]); // rol word [eax],1
+  cpu.r[0].value = 0x2000;
+  view.setUint32(0x2000, 0xabcd8001, true);
+  cpu.step(CODE);
+  assert.equal(view.getUint32(0x2000, true), 0xabcd0003);
+  assert.equal(cpu.f.cf, 1);
+  const alias = machine([0xd2, 0xc9]).cpu; // ror cl,cl
+  alias.r[1].value = 0x12345681;
+  alias.step(CODE);
+  assert.equal(alias.r[1].value >>> 0, 0x123456c0);
+  const fault = machine([0xd1, 0x08], (_address, _size, write) => {
+    if (write) throw Error('read-only rotate');
+  });
+  fault.cpu.r[0].value = 0x2000;
+  fault.view.setUint32(0x2000, 1, true);
+  fault.cpu.f = { cf: 0, of: 0, sf: 0, zf: 1, pf: 1 };
+  assert.throws(() => fault.cpu.step(CODE), /read-only rotate/);
+  assert.equal(fault.view.getUint32(0x2000, true), 1);
+  assert.deepEqual(fault.cpu.f, { cf: 0, of: 0, sf: 0, zf: 1, pf: 1 });
 });
 
 test('a memory write fault leaves rotate flags and storage unchanged', () => {

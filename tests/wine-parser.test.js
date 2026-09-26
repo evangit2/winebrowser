@@ -89,7 +89,7 @@ test('Wine CommandLineToArgvW executes as guest code and follows documented quot
 test('Wine CommandLineToArgvW handles empty input and a null argc pointer', async () => {
   const { runtime, address } = await runtimeWithWineShell32();
   const emptyInput = await parseCommandLine(runtime, address, '');
-  assert.deepEqual(emptyInput, ['console\\console.exe']);
+  assert.deepEqual(emptyInput, ['C:\\winebrowser\\console\\console.exe']);
 
   const commandPointer = runtime.allocString('console.exe --ignored', true);
   runtime.lastError = 0;

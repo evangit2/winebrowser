@@ -5,6 +5,7 @@ import { encodeAnsi, decodeAnsi } from './encoding.js';
 // This file owns no guest instruction execution or PE parsing.
 import { callWineHeap } from './wine-process.js';
 import { normalizePath } from './package.js';
+import { packageDosPath, resolveGuestPath } from './guest-paths.js';
 import { listPEResources } from './pe-resources.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
@@ -22,12 +23,12 @@ function writeString(r, address, value, wide = false) {
 }
 function moduleHandle(r, a, wide) {
   if (!a(0)) return ok(r.pe.imageBase, 1);
-  const name = (wide ? r.wideString(a(0)) : r.string(a(0)))
-    .replaceAll('\\', '/')
-    .split('/')
-    .at(-1)
-    .toLowerCase();
-  const module = r.graph.modules.get(name) || r.graph.modules.get(name + '.dll');
+  let module;
+  try {
+    module = r.graph.findLoaded(wide ? r.wideString(a(0)) : r.string(a(0)));
+  } catch {
+    return fail(r, 126, 1);
+  }
   return module ? ok(module.base, 1) : fail(r, 126, 1);
 }
 async function procAddress(r, a) {
@@ -41,14 +42,32 @@ async function procAddress(r, a) {
     return fail(r, error.win32Error, 2);
   }
 }
-async function loadLibrary(r, a, wide) {
+async function loadLibrary(r, a, wide, extended = false) {
+  const argc = extended ? 3 : 1;
+  if (!a(0)) return fail(r, 87, argc);
   const name = wide ? r.wideString(a(0)) : r.string(a(0));
+  const options = {};
+  if (extended) {
+    // Other flags need distinct resource-only mappings or a configured search
+    // policy. Reject them instead of silently executing a datafile as code.
+    if (a(1) || (a(2) !== 0 && a(2) !== 8)) return fail(r, 87, argc);
+    if (a(2) === 8) {
+      if (!/^(?:[a-z]:[\\/]|[\\/]\?\?[\\/])/i.test(name)) return fail(r, 87, argc);
+      let path;
+      try {
+        path = resolveGuestPath(name);
+      } catch {
+        return fail(r, 126, argc);
+      }
+      options.searchDirectories = [path.slice(0, path.lastIndexOf('/') + 1), ''];
+    }
+  }
   try {
-    return ok(await r.loadLibrary(name), 1);
+    return ok(await r.loadLibrary(name, options), argc);
   } catch (e) {
     if (!e.win32Error) throw e;
     r.emit({ type: 'log', text: e.message });
-    return fail(r, e.win32Error, 1);
+    return fail(r, e.win32Error, argc);
   }
 }
 async function freeLibrary(r, a) {
@@ -84,16 +103,24 @@ function commandLine(r, wide) {
   return ok(r[name]);
 }
 function moduleFilename(r, a, wide) {
-  if (a(0) && a(0) !== r.pe.imageBase) return fail(r, 126, 3);
+  const module = a(0) ? [...r.graph.modules.values()].find((m) => m.base === a(0)) : r.graph.main;
+  if (!module) return fail(r, 126, 3);
   if (!a(2)) return fail(r, 122, 3);
-  const value = r.exe.replaceAll('/', '\\'),
-    length = Math.min(value.length, a(2) - 1);
-  writeString(r, a(1), value.slice(0, length), wide);
-  if (value.length >= a(2)) {
+  const value = packageDosPath(module.path ?? '@runtime/' + module.name),
+    encoded = wide ? null : encodeAnsi(value).bytes,
+    size = wide ? value.length : encoded.length,
+    length = Math.min(size, a(2) - 1);
+  r.check(a(1), (length + 1) * (wide ? 2 : 1), true);
+  if (wide) writeString(r, a(1), value.slice(0, length), true);
+  else {
+    r.data.set(encoded.subarray(0, length), a(1));
+    r.data[a(1) + length] = 0;
+  }
+  if (size >= a(2)) {
     r.lastError = 122;
     return ok(a(2), 3);
   }
-  return ok(value.length, 3);
+  return ok(size, 3);
 }
 function wideToMulti(r, a) {
   const cp = a(0),
@@ -219,6 +246,8 @@ export const processApis = {
   'kernel32.dll!GetProcAddress': procAddress,
   'kernel32.dll!LoadLibraryW': (r, a) => loadLibrary(r, a, true),
   'kernel32.dll!LoadLibraryA': (r, a) => loadLibrary(r, a, false),
+  'kernel32.dll!LoadLibraryExW': (r, a) => loadLibrary(r, a, true, true),
+  'kernel32.dll!LoadLibraryExA': (r, a) => loadLibrary(r, a, false, true),
   'kernel32.dll!FreeLibrary': freeLibrary,
   'kernel32.dll!GetModuleFileNameW': (r, a) => moduleFilename(r, a, true),
   'kernel32.dll!GetModuleFileNameA': (r, a) => moduleFilename(r, a, false),

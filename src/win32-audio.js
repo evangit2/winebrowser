@@ -1,5 +1,7 @@
 import { normalizePath } from './package.js';
 import { decodeWave } from './wave.js';
+import { mixerApis, applyMixerGain } from './winmm-mixer.js';
+import { multimediaTimeApis } from './winmm-time.js';
 
 async function playSound(runtime, argument, wide) {
   const name = argument(0),
@@ -29,10 +31,12 @@ async function playSound(runtime, argument, wide) {
     runtime.emit({ type: 'log', text: error.message });
     return { result: 0, argc: 3 };
   }
-  return { result: (await runtime.request('pcm', wave)) ? 1 : 0, argc: 3 };
+  return { result: (await runtime.request('pcm', applyMixerGain(runtime, wave))) ? 1 : 0, argc: 3 };
 }
 
 export const audioApis = {
+  ...mixerApis,
+  ...multimediaTimeApis,
   'winmm.dll!PlaySoundA': (r, a) => playSound(r, a, false),
   'winmm.dll!PlaySoundW': (r, a) => playSound(r, a, true),
 };

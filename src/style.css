@@ -78,6 +78,10 @@ h2 {
 .drop input {
   max-width: 270px;
 }
+.folder-picker {
+  display: block;
+  margin-bottom: 10px;
+}
 .demos {
   flex-wrap: wrap;
   margin-bottom: 10px;

@@ -1,6 +1,7 @@
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { zipSync } from 'fflate';
 
 const server = spawn(
   process.execPath,
@@ -112,7 +113,107 @@ try {
   if ((await page.locator('#output').textContent()) !== consoleFixture.expected.stdout)
     throw Error('Raw PE upload output differs');
 
+  const importCases = [];
+  const exeBytes = await readFile(`public/demos/${filesFixture.exe}`);
+  const assetBytes = await readFile('public/demos/files/assets/message.txt');
+  const assetZip = Buffer.from(zipSync({ 'assets/message.txt': assetBytes }));
+  const checkImportedProgram = async (name, started) => {
+    await page.waitForFunction(() => !document.getElementById('run').disabled);
+    const readyMs = performance.now() - started;
+    await page.click('#run');
+    await page.waitForFunction(() => window.__lastRun !== null);
+    const result = await page.evaluate(() => window.__lastRun);
+    if (
+      result.exitCode !== 0 ||
+      (await page.locator('#output').textContent()) !== assetBytes.toString()
+    )
+      throw Error(`${name}: executable could not read imported asset`);
+    if ((await page.locator('#outputs a').count()) !== 1) throw Error(`${name}: output missing`);
+    importCases.push({
+      name,
+      readyMs,
+      completedMs: performance.now() - started,
+      compiledBlocks: result.compiledBlocks,
+      passed: true,
+    });
+  };
+  let importStarted = performance.now();
+  await page.locator('#file').setInputFiles([
+    { name: 'files.exe', mimeType: 'application/octet-stream', buffer: exeBytes },
+    { name: 'assets.zip', mimeType: 'application/zip', buffer: assetZip },
+    { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('loose file') },
+  ]);
+  await checkImportedProgram('EXE + asset ZIP + loose file', importStarted);
+  await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const base = await root.getDirectoryHandle('winebrowser-file-packages');
+    for await (const [, dir] of base.entries()) {
+      const manifest = JSON.parse(
+        await (await (await dir.getFileHandle('manifest.json')).getFile()).text(),
+      );
+      const asset = manifest.entries.find((entry) => entry.path === 'assets/message.txt');
+      if (asset) {
+        const stored = await (await dir.getFileHandle(asset.file)).getFile();
+        if (!stored.size) throw Error('Imported asset cache is empty');
+        return;
+      }
+    }
+    throw Error('Imported file package missing from OPFS');
+  });
+
+  importStarted = performance.now();
+  await page.locator('#folder').setInputFiles('public/demos/files');
+  await checkImportedProgram('Folder picker with nested assets', importStarted);
+  if ((await page.locator('#exe').inputValue()) !== 'files/files.exe')
+    throw Error('Folder picker did not preserve the program directory');
+
+  importStarted = performance.now();
+  await page.evaluate(
+    ({ exe, assets }) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([new Uint8Array(exe)], 'files.exe'));
+      transfer.items.add(new File([new Uint8Array(assets)], 'assets.zip'));
+      document
+        .getElementById('drop')
+        .dispatchEvent(
+          new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }),
+        );
+    },
+    { exe: [...exeBytes], assets: [...assetZip] },
+  );
+  await checkImportedProgram('Multiple files dropped together', importStarted);
+
+  await page.locator('#file').setInputFiles([
+    { name: 'files.exe', mimeType: 'application/octet-stream', buffer: exeBytes },
+    {
+      name: 'collision.zip',
+      mimeType: 'application/zip',
+      buffer: Buffer.from(zipSync({ 'FILES.EXE': exeBytes })),
+    },
+  ]);
+  await page.waitForFunction(() => document.getElementById('state').textContent === 'ERROR');
+  if (
+    !(await page.locator('#run').isDisabled()) ||
+    !(await page.locator('#logs').textContent()).includes('case-colliding')
+  )
+    throw Error('Conflicting imports were not rejected');
+
   // Manual runs leave a dialog open until the user answers or stops the program.
+  await page.click(`[data-demo="${dialogFixture.name}"]`);
+  await page.waitForFunction(() => !document.getElementById('run').disabled);
+  await page.click('#run');
+  await page.waitForSelector('#messagebox[open]');
+  // Replacing a suspended program must dismiss its old dialog and settle its
+  // pending run without allowing a stale rejection to overwrite the new load.
+  await page.locator('#file').setInputFiles(`public/demos/${consoleFixture.exe}`);
+  await page.waitForFunction(() => !document.getElementById('run').disabled);
+  if (await page.locator('#messagebox').evaluate((element) => element.open))
+    throw Error('Replacing a package left the old program dialog open');
+  await page.click('#run');
+  await page.waitForFunction(() => window.__lastRun !== null);
+  if ((await page.locator('#output').textContent()) !== consoleFixture.expected.stdout)
+    throw Error('Replacing an active program did not run the new selection');
+
   await page.click(`[data-demo="${dialogFixture.name}"]`);
   await page.waitForFunction(() => !document.getElementById('run').disabled);
   await page.click('#run');
@@ -139,6 +240,9 @@ try {
       opfsContent: true,
       manualDialog: true,
       stop: true,
+      combinedImports: importCases,
+      importCollisionsRejected: true,
+      replaceActiveProgram: true,
     },
     suite: suiteRows,
   };

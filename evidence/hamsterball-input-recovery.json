@@ -1,0 +1,47 @@
+{
+  "originalExeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+  "verifiedExact": true,
+  "restoredImportLookupSlots": 177,
+  "bytes": 1404928,
+  "method": "Copy original PE headers and section raw extents from the retained pretranslation memory snapshots; restore each IAT slot from its original lookup table. Accept only a complete byte-for-byte match to the recorded original SHA-256. No generated Rust or application Wasm is used for execution.",
+  "recordedOriginalEvidence": "../directxbrowser/evidence/hamsterball-pe-inspection.json",
+  "sources": [
+    {
+      "path": "../directwebgpu-wined3d/vendor/theseus/out/hamsterball/data/00400000.raw",
+      "sha256": "aa96c70662816754083265d66fb8c17c3e015ed65b5683bf0b4fceacf3f7c215"
+    },
+    {
+      "path": "../directwebgpu-wined3d/vendor/theseus/out/hamsterball/data/00401000.raw",
+      "sha256": "838d84f6cb5f8f092723474fe57e50309f4c4ee6a20d45190b60260a37adde6f",
+      "rawBytesRestored": 843776
+    },
+    {
+      "path": "../directwebgpu-wined3d/vendor/theseus/out/hamsterball/data/004cf000.raw",
+      "sha256": "998560cc9f5faabbd12f382bf7ccb4ff71952d9f85157bb2ccb2b300110adad9",
+      "rawBytesRestored": 163840
+    },
+    {
+      "path": "../directwebgpu-wined3d/vendor/theseus/out/hamsterball/data/004f7000.raw",
+      "sha256": "e3824398a82305dd40b7b42ff48bd8d85b41e10d334ed311554afabbdfb050cf",
+      "rawBytesRestored": 28672
+    },
+    {
+      "path": "../directwebgpu-wined3d/vendor/theseus/out/hamsterball/data/00537000.raw",
+      "sha256": "7bc5026ff577ff22cc1e5e0ba6e628f41cc2532d06802d3d973fc632d214a69d",
+      "rawBytesRestored": 4096
+    },
+    {
+      "path": "../directwebgpu-wined3d/vendor/theseus/out/hamsterball/data/00538000.raw",
+      "sha256": "5ff632a40790af738543d0ab3e4bf644e8d897bbeea0823dc56bc018d84e4f49",
+      "rawBytesRestored": 360448
+    }
+  ],
+  "localExe": ".cache/hamsterball-original/Hamsterball.exe",
+  "assetsSource": "../hamsterball-browser/assets",
+  "nativeBass": {
+    "path": "../hamsterball-browser/assets/bass.dll",
+    "sha256": "11075ca0a1a3064bd971a3faa38565952441f90ed198aa624ec2ce0aab7d4b62",
+    "bytes": 97336
+  },
+  "scope": "Assets are copied from the prior browser project and are not claimed to reproduce the entire original archive. Inputs remain local in .cache; they are not published as harness assets."
+}
