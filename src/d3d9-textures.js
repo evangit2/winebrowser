@@ -1,3 +1,4 @@
+import { readGuid } from './com.js';
 import { releaseComReference } from './d3d9-programmable.js';
 import {
   defaultSampler,
@@ -11,6 +12,141 @@ const BASE_METHODS =
 const TAIL_METHODS = 'GetLevelDesc GetSurfaceLevel LockRect UnlockRect AddDirtyRect';
 export const textureBytesPerPixel = (format) =>
   ({ 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1 })[format];
+const SURFACE_METHODS_8 =
+  'QueryInterface AddRef Release GetDevice SetPrivateData GetPrivateData FreePrivateData GetContainer GetDesc LockRect UnlockRect'.split(
+    ' ',
+  );
+const SURFACE_METHODS_9 =
+  'QueryInterface AddRef Release GetDevice SetPrivateData GetPrivateData FreePrivateData SetPriority GetPriority PreLoad GetType GetContainer GetDesc LockRect UnlockRect GetDC ReleaseDC'.split(
+    ' ',
+  );
+const SURFACE_IIDS = {
+  8: 'b96eebca-b326-4ea5-882f-2ff5bae021dd',
+  9: '0cfbaf3a-9ff6-429a-99b3-a2796af8b89b',
+};
+// D3DSURFACE_DESC: Format, Type, Usage, Pool, [MultiSampleType for D3D8 sits
+// after a DWORD of padding], MultiSampleQuality (D3D9), Width, Height.
+function writeSurfaceDesc(r, pointer, version, level, state) {
+  r.check(pointer, 32, true);
+  r.data.fill(0, pointer, pointer + 32);
+  r.write32(pointer, state.format);
+  r.write32(pointer + 4, 1); // D3DRTYPE_SURFACE
+  r.write32(pointer + 8, 0); // Texture level surfaces have no extra usage.
+  r.write32(pointer + 12, state.pool);
+  r.write32(pointer + (version === 8 ? 20 : 16), 0); // D3DMULTISAMPLE_NONE
+  r.write32(pointer + 20, 0); // MultiSampleQuality.
+  r.write32(pointer + 24, level.width);
+  r.write32(pointer + 28, level.height);
+}
+
+// A texture level surface is a view onto the texture's own level storage, so
+// LockRect through the surface or the texture mutates the same bytes. The
+// surface exposes GetContainer back to the texture that created it.
+function surfaceMethods(version, texture) {
+  const shift = version === 8 ? 0 : 4;
+  return {
+    3: {
+      argc: 2,
+      invoke(r, a, surface) {
+        r.check(a(1), 4, true);
+        const device = texture.state.device;
+        if (device.refs >= 0x7fffffff) throw Error('D3D device reference limit exceeded');
+        device.refs++;
+        r.write32(a(1), device.pointer);
+        return 0;
+      },
+    },
+    [7 + shift]: {
+      // GetContainer: hand back the texture that owns this level.
+      argc: 3,
+      invoke(r, a, surface) {
+        const out = a(2) >>> 0;
+        r.check(out, 4, true);
+        r.write32(out, 0);
+        if (readGuid(r, a(1)) !== texture.iid) return 0x80004002;
+        if (texture.refs >= 0x7fffffff) throw Error('D3D texture reference limit exceeded');
+        texture.refs++;
+        r.write32(out, texture.pointer);
+        return 0;
+      },
+    },
+    [8 + shift]: {
+      argc: 2,
+      invoke: (r, a, surface) => {
+        writeSurfaceDesc(r, a(1), version, surface.state.level, texture.state);
+        return 0;
+      },
+    },
+    [9 + shift]: {
+      argc: 5,
+      invoke(r, a, surface) {
+        const { state } = texture;
+        const { level } = surface.state;
+        const flags = a(3) >>> 0;
+        if (
+          level.locked ||
+          !a(1) ||
+          (state.pool === 0 && !state.usage) ||
+          flags & ~(0x10 | 0x800 | 0x1000 | 0x2000) ||
+          (flags & 0x2000 && (!state.usage || a(2) || flags & 0x10))
+        )
+          return INVALID;
+        const region = rect(r, a(2), level);
+        if (!region) return INVALID;
+        r.check(a(1), 8, true);
+        r.write32(a(1), level.pitch);
+        r.write32(
+          a(1) + 4,
+          state.base + level.offset + region.top * level.pitch + region.left * state.bpp,
+        );
+        level.locked = { flags };
+        return 0;
+      },
+    },
+    [10 + shift]: {
+      argc: 1,
+      invoke(_r, _a, surface) {
+        const { level } = surface.state;
+        if (!level.locked) return INVALID;
+        if (!(level.locked.flags & 0x10)) invalidate(texture);
+        level.locked = null;
+        return 0;
+      },
+    },
+  };
+}
+
+function surfaceName(version) {
+  return `IDirect3DSurface${version}`;
+}
+
+function createSurface(r, texture, levelIndex) {
+  const version = texture.state.version;
+  const level = texture.state.levels[levelIndex];
+  if (!level) return null;
+  if (texture.refs >= 0x7fffffff) throw Error('D3D texture reference limit exceeded');
+  // A surface keeps its texture alive and, with it, the shared level bytes.
+  texture.refs++;
+  const methodNames = version === 8 ? SURFACE_METHODS_8 : SURFACE_METHODS_9;
+  try {
+    return r.comObjects.create({
+      name: surfaceName(version),
+      iid: SURFACE_IIDS[version],
+      iids:
+        version === 8
+          ? ['1b36bb7b-09b7-410a-b445-7d1430d7b33f']
+          : ['580ca87e-1d3c-4d54-991d-b7d3e3c298ce'],
+      methodNames,
+      methods: surfaceMethods(version, texture),
+      state: { device: texture.state.device, texture, level, internalRefs: 0 },
+      onRelease: async () => releaseComReference(texture),
+    });
+  } catch (error) {
+    texture.refs--;
+    throw error;
+  }
+}
+
 export function initTextures() {
   return {
     textures: Array(8).fill(null),
@@ -176,6 +312,21 @@ export function createTextureMethod(version) {
               return 0;
             },
           },
+          [15 + shift]: {
+            // GetSurfaceLevel returns a view onto one mip level's storage.
+            argc: 3,
+            invoke(r, a, o) {
+              const out = a(2) >>> 0;
+              if (!out) return INVALID;
+              r.check(out, 4, true);
+              r.write32(out, 0);
+              const level = levels[a(1) >>> 0];
+              if (!level) return INVALID;
+              const surface = createSurface(r, o, a(1) >>> 0);
+              r.write32(out, surface.pointer);
+              return 0;
+            },
+          },
           [16 + shift]: {
             argc: 5,
             invoke(r, a, o) {
@@ -248,6 +399,7 @@ export function createTextureMethod(version) {
             bytes,
             bpp,
             levels,
+            version,
             internalRefs: 0,
             priority: 0,
             lod: 0,

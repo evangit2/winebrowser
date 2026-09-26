@@ -185,10 +185,16 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Implement D3D8/9 device GetDisplayMode with the adapter's active display,
       complete output validation and the D3D9 implicit-swapchain index. Native
       cubes and fullscreen presentation tests pass; 552 unit tests pass.
-- [ ] Implement texture surface-level ownership and access. Original Hamsterball
-      now passes GetDisplayMode and stops at `IDirect3DTexture8.GetSurfaceLevel`
-      (caller `0x488f63`, 9,420,850 guest instructions). It maps `shadow.png` and
-      creates its texture; no original game frame renders yet. See
+- [x] Implement texture surface-level ownership and access. A texture level now
+      exposes an `IDirect3DSurface8/9` that shares the level's storage, so
+      surface `LockRect`/`UnlockRect` mutate the same bytes as texture
+      `LockRect`; `GetDesc`, `GetContainer`, reference ownership and release are
+      verified by unit tests. Also generalize module identity so a partial
+      builtin guest DLL (the source-built shell32) delegates unimplemented
+      exports to a host thunk instead of shadowing them, and map image modules
+      after import resolution so newly discovered providers are covered.
+      Original Hamsterball now passes GetSurfaceLevel and CopyRects is its next
+      missing method (caller `0x476ecb`, 10,407,907 guest instructions). See
       `evidence/hamsterball-startup-browser.json`.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.

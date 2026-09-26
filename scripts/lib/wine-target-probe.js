@@ -57,11 +57,27 @@ export async function probeWineTarget(
     for (const [name, bytes] of [...files, ...builtinFiles])
       if (name === exe || name.endsWith('.dll'))
         imports.push(...parsePE(bytes, { allowDll: name !== exe }).imports);
+    // A builtin guest DLL only satisfies imports it actually exports; anything
+    // else still needs a host API (or an explicit trap) like any other module.
+    const guestExports = new Map();
+    for (const [name, bytes] of builtinFiles) {
+      const base = name.split('/').at(-1).toLowerCase();
+      if (!base.endsWith('.dll')) continue;
+      const pe = parsePE(bytes, { allowDll: true });
+      guestExports.set(
+        base,
+        new Map([
+          ...pe.exports.filter((e) => e.name).map((e) => [e.name, true]),
+          ...pe.exports.map((e) => [`#${e.ordinal}`, true]),
+        ]),
+      );
+    }
     for (const imported of imports) {
       const dll = imported.dll.toLowerCase(),
         name = imported.name ?? `#${imported.ordinal}`;
       if (
-        nativeNames.has(resolveApiSet(dll)) ||
+        guestExports.get(resolveApiSet(dll))?.has(name) ||
+        (nativeNames.has(resolveApiSet(dll)) && !guestExports.has(resolveApiSet(dll))) ||
         API_NAMES[dll]?.includes(canonicalHostSymbol(dll, name, API_NAMES[dll]))
       )
         continue;
@@ -310,7 +326,7 @@ export async function probeWineTarget(
     report.phases.push({ name: phase, passed: true });
     phase = 'source loader registration';
     runtime.tls.prepare(runtime.graph.modules.values());
-    const modules = guestModules();
+    const modules = guestModules().filter((module) => !module.proxy);
     const entry = ntdll.pe.exports.find((e) => e.name === 'WineBrowserLoaderBootstrap');
     if (!entry || entry.forwarder) throw Error('Source-built loader export missing');
     const allocated = [];

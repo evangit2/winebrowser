@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T13:41:47.980Z",
+  "date": "2026-09-26T17:19:29.801Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2417,15 +2417,21 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": ".cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
-        "bytes": 3797756,
-        "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/.cache/wine-loader/0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797877,
+        "sha256": "dadbac5ae6697fd2bea95c745b065074a244ac954f9ff6d9c666d45fe83bee14"
       },
       {
         "name": "wine-format.dll",
-        "path": "public/runtime/wine-format.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/wine-format.dll",
         "bytes": 10752,
         "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+      },
+      {
+        "name": "shell32.dll",
+        "path": "/Users/rsks/Documents/ChatGPT/winebrowser/public/runtime/shell32.dll",
+        "bytes": 8386,
+        "sha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea"
       },
       {
         "name": "msvcrt.dll",
@@ -2504,7 +2510,7 @@
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2"
+    "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e"
   },
   "status": "blocked-guest",
   "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
@@ -2551,9 +2557,18 @@
         },
         {
           "name": "shell32.dll",
-          "path": "@host/shell32.dll",
-          "host": true,
+          "path": "@runtime/shell32.dll",
+          "host": false,
           "base": 20840448,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "host": true,
+          "base": 20905984,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2562,7 +2577,7 @@
           "name": "d3d8.dll",
           "path": "@host/d3d8.dll",
           "host": true,
-          "base": 20905984,
+          "base": 20971520,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2571,7 +2586,7 @@
           "name": "dsound.dll",
           "path": "@host/dsound.dll",
           "host": true,
-          "base": 20971520,
+          "base": 21037056,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2580,7 +2595,7 @@
           "name": "bass.dll",
           "path": "bass.dll",
           "host": false,
-          "base": 21037056,
+          "base": 21102592,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": false
@@ -2589,7 +2604,7 @@
           "name": "dinput8.dll",
           "path": "@host/dinput8.dll",
           "host": true,
-          "base": 21430272,
+          "base": 21495808,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2598,7 +2613,7 @@
           "name": "ws2_32.dll",
           "path": "@host/ws2_32.dll",
           "host": true,
-          "base": 21495808,
+          "base": 21561344,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2607,7 +2622,7 @@
           "name": "gdi32.dll",
           "path": "@host/gdi32.dll",
           "host": true,
-          "base": 21561344,
+          "base": 21626880,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2616,7 +2631,7 @@
           "name": "advapi32.dll",
           "path": "@host/advapi32.dll",
           "host": true,
-          "base": 21626880,
+          "base": 21692416,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2625,7 +2640,7 @@
           "name": "ole32.dll",
           "path": "@host/ole32.dll",
           "host": true,
-          "base": 21692416,
+          "base": 21757952,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2634,7 +2649,7 @@
           "name": "kernelbase.dll",
           "path": "@runtime/kernelbase.dll",
           "host": false,
-          "base": 21757952,
+          "base": 21823488,
           "preferredBase": 2063597568,
           "refs": 0,
           "initialized": false
@@ -2643,7 +2658,7 @@
           "name": "winmm.dll",
           "path": "@host/winmm.dll",
           "host": true,
-          "base": 24510464,
+          "base": 24576000,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": true
@@ -2652,7 +2667,7 @@
           "name": "msacm32.dll",
           "path": "@runtime/msacm32.dll",
           "host": false,
-          "base": 24576000,
+          "base": 24641536,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": false
@@ -2661,7 +2676,7 @@
           "name": "msvcrt.dll",
           "path": "@runtime/msvcrt.dll",
           "host": false,
-          "base": 24707072,
+          "base": 24772608,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": false
@@ -2670,7 +2685,7 @@
           "name": "ucrtbase.dll",
           "path": "@runtime/ucrtbase.dll",
           "host": false,
-          "base": 25427968,
+          "base": 25493504,
           "preferredBase": 268435456,
           "refs": 0,
           "initialized": false
@@ -2680,31 +2695,6 @@
     {
       "name": "Wine process bootstrap",
       "passed": true
-    },
-    {
-      "name": "source loader registration",
-      "passed": true
-    },
-    {
-      "name": "source loader callbacks",
-      "passed": true
-    },
-    {
-      "name": "guest DLL attach",
-      "passed": true
-    },
-    {
-      "name": "window created",
-      "window": {
-        "id": 131072,
-        "title": "Hamsterball",
-        "width": 800,
-        "height": 600,
-        "icon": {
-          "width": 32,
-          "height": 32
-        }
-      }
     }
   ],
   "trappedImports": [
@@ -2745,80 +2735,12 @@
   ],
   "apiCalls": [
     {
-      "name": "NtMapViewOfSection",
-      "args": [
-        1409286144,
-        4294967295,
-        67102024,
-        0,
-        0,
-        67101968,
-        67102020,
-        1,
-        0,
-        2
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryInformationFile",
-      "args": [
-        259,
-        67101992,
-        67102000,
-        24,
-        5
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4be4"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
       "name": "NtAllocateVirtualMemory",
       "args": [
         4294967295,
-        67099952,
+        67104600,
         0,
-        67099984,
+        67104752,
         8192,
         4
       ],
@@ -2829,9 +2751,9 @@
       "name": "NtAllocateVirtualMemory",
       "args": [
         4294967295,
-        67099952,
+        67104600,
         0,
-        67100004,
+        67104756,
         4096,
         4
       ],
@@ -2839,1767 +2761,45 @@
       "result": "0x0"
     },
     {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4c52"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4c8e"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4cda"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4d40"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4da7"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4e04"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4e61"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "NtFreeVirtualMemory",
+      "name": "NtAllocateVirtualMemory",
       "args": [
         4294967295,
-        67100064,
-        67100068,
-        32768
+        33555552,
+        0,
+        67104720,
+        4096,
+        4
       ],
       "threadId": 1,
       "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4eda"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "result": "0x102"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        3,
-        1,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        1,
-        33591392,
-        0,
-        67100228
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        20905984,
-        67100244,
-        0
-      ],
-      "threadId": 1,
-      "result": "0xc000007a"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        3,
-        1,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0xc0000135"
-    },
-    {
-      "name": "IDirect3DDevice8.GetDirect3D",
-      "args": [
-        52454336,
-        67100548,
-        52454336,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDirect3DDevice8.GetDeviceCaps",
-      "args": [
-        52454336,
-        67100320,
-        52454336,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDirect3DDevice8.GetDisplayMode",
-      "args": [
-        52454336,
-        67100532,
-        52454336,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDirect3D8.CheckDeviceFormat",
-      "args": [
-        52453920,
-        0,
-        1,
-        23
-      ],
-      "threadId": 1,
-      "result": "0x8876086a"
-    },
-    {
-      "name": "IDirect3D8.CheckDeviceFormat",
-      "args": [
-        52453920,
-        0,
-        1,
-        23
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDirect3D8.Release",
-      "args": [
-        52453920,
-        52454336,
-        0,
-        67102112
-      ],
-      "threadId": 1,
-      "result": "0x2"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        3,
-        1,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392908,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryPerformanceCounter",
-      "args": [
-        51392900,
-        0
-      ],
-      "threadId": 2,
-      "result": "0x0"
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        33589400,
-        24781920,
-        0,
-        38998112
-      ],
-      "threadId": 2,
-      "result": "0x4f4c"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        0,
-        51392880
-      ],
-      "threadId": 2,
-      "threadExit": true
-    },
-    {
-      "name": "winmm.dll!timeGetTime",
-      "args": [
-        0,
-        33590488,
-        38998400,
-        51396608
-      ],
-      "threadId": 3,
-      "result": "0x4f52"
-    },
-    {
-      "name": "NtWaitForSingleObject",
-      "args": [
-        1375731712,
-        1,
-        52453680
-      ],
-      "threadId": 3,
-      "threadExit": true
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        1,
-        33591392,
-        0,
-        67100228
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        20905984,
-        67100244,
-        0
-      ],
-      "threadId": 1,
-      "result": "0xc000007a"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        3,
-        1,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0xc0000135"
-    },
-    {
-      "name": "IDirect3DDevice8.GetDeviceCaps",
-      "args": [
-        52454336,
-        67100592,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDirect3DDevice8.CreateTexture",
-      "args": [
-        52454336,
-        64,
-        64,
-        1
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDirect3DTexture8.GetSurfaceLevel",
-      "args": [
-        52470816,
-        0,
-        67102072,
-        39341616
-      ],
-      "threadId": 1,
-      "error": "Unsupported COM method IDirect3DTexture8.GetSurfaceLevel"
     }
   ],
   "output": [],
   "requests": [],
   "frames": 0,
-  "nativeLoaderCalls": [
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "QueueUserAPC",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "Sleep",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "ResumeThread",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "LoadLibraryA",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "GetProcAddress",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "InitializeCriticalSection",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "CreateFileW",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "GetCurrentThreadId",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "TlsSetValue",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "SetThreadPriority",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "EnterCriticalSection",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "LeaveCriticalSection",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "TlsGetValue",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "CreateFileA",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "GetFileSize",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "SetFilePointer",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "ReadFile",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "DeleteCriticalSection",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "WaitForSingleObject",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "SetEvent",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "CloseHandle",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrLoadDll",
-      "args": [
-        33585856,
-        0,
-        67104422,
-        67104386
-      ],
-      "dll": "USER32.dll",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        20774912,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "user32.dll",
-      "symbol": "GetForegroundWindow",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        20774912,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "user32.dll",
-      "symbol": "PostMessageA",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrLoadDll",
-      "args": [
-        33585856,
-        0,
-        67104422,
-        67104386
-      ],
-      "dll": "ole32.dll",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        21692416,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "ole32.dll",
-      "symbol": "CoCreateInstance",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        21692416,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "ole32.dll",
-      "symbol": "CoInitialize",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        21692416,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "ole32.dll",
-      "symbol": "CoUninitialize",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrLoadDll",
-      "args": [
-        33585856,
-        0,
-        67104422,
-        67104386
-      ],
-      "dll": "MSVCRT.dll",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "memmove",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "memchr",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_adjust_fdiv",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_initterm",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_beginthreadex",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "strtol",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "strstr",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "atoi",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "strrchr",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "strchr",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_beginthread",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_clearfp",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "sprintf",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_stricmp",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_strdup",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_strnicmp",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "malloc",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "free",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "realloc",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_CIpow",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "floor",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_ftol",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "qsort",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "rand",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "ldexp",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_CIexp",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        24707072,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "msvcrt.dll",
-      "symbol": "_control87",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104372,
-        0,
-        67104368
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "InitializeCriticalSectionAndSpinCount",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104436,
-        0,
-        67104432
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "IsProcessorFeaturePresent",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrLoadDll",
-      "args": [
-        33588440,
-        0,
-        67103496,
-        67103460
-      ],
-      "dll": "dsound.dll",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        20971520,
-        67103512,
-        0,
-        67103508
-      ],
-      "dll": "dsound.dll",
-      "symbol": "DirectSoundEnumerateA",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrLoadDll",
-      "args": [
-        33591392,
-        0,
-        67100228,
-        67100192
-      ],
-      "dll": "d3d8.dll",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        20905984,
-        67100244,
-        0,
-        67100240
-      ],
-      "dll": "d3d8.dll",
-      "symbol": "DebugSetMute",
-      "status": "0xc000007a"
-    },
-    {
-      "name": "LdrLoadDll",
-      "args": [
-        33591392,
-        0,
-        67100228,
-        67100192
-      ],
-      "dll": "d3d8.dll",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        20905984,
-        67100244,
-        0,
-        67100240
-      ],
-      "dll": "d3d8.dll",
-      "symbol": "DebugSetMute",
-      "status": "0xc000007a"
-    }
-  ],
+  "nativeLoaderCalls": [],
   "firstFailure": {
-    "phase": "native EXE entry point",
-    "threadId": 1,
-    "message": "Unsupported COM method IDirect3DTexture8.GetSurfaceLevel",
+    "phase": "source loader registration",
+    "message": "WineBrowserLoaderBootstrap returned 0xc0000035",
     "ip": {
-      "address": "0x488f63",
-      "module": "hamsterball.exe",
-      "offset": "0x88f63"
+      "address": "0x10acb75",
+      "module": "ntdll.dll",
+      "offset": "0x3cb75"
     },
     "registers": [
-      "0x320a3d0",
-      "0x3ffe578",
-      "0x3ffe570",
-      "0x320a420",
-      "0x3ffe0a4",
-      "0x3ffe58c",
-      "0x3ffe500",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x3fff000",
+      "0x0",
+      "0x0",
       "0x0"
     ],
-    "compiledBlocks": 151,
-    "instructions": 9420850,
-    "recentBlocks": [
-      {
-        "threadId": 1,
-        "address": "0x488617",
-        "module": "hamsterball.exe",
-        "offset": "0x88617",
-        "registers": [
-          "0x7",
-          "0x7",
-          "0x1",
-          "0x40",
-          "0x3ffdfa4",
-          "0x3ffe08c",
-          "0x7",
-          "0x1"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x48861e",
-        "module": "hamsterball.exe",
-        "offset": "0x8861e",
-        "registers": [
-          "0x3ffe5a0",
-          "0x7",
-          "0x1",
-          "0x40",
-          "0x3ffdfa4",
-          "0x3ffe08c",
-          "0x7",
-          "0x1"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x48862a",
-        "module": "hamsterball.exe",
-        "offset": "0x8862a",
-        "registers": [
-          "0x3ffe5a4",
-          "0x40",
-          "0x1",
-          "0x40",
-          "0x3ffdfa4",
-          "0x3ffe08c",
-          "0x7",
-          "0x1"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488633",
-        "module": "hamsterball.exe",
-        "offset": "0x88633",
-        "registers": [
-          "0x3ffe5a8",
-          "0x40",
-          "0x1",
-          "0x40",
-          "0x3ffdfa4",
-          "0x3ffe08c",
-          "0x7",
-          "0x1"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x48863f",
-        "module": "hamsterball.exe",
-        "offset": "0x8863f",
-        "registers": [
-          "0x3ffe5ac",
-          "0x1",
-          "0x1",
-          "0x40",
-          "0x3ffdfa4",
-          "0x3ffe08c",
-          "0x7",
-          "0x1"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488648",
-        "module": "hamsterball.exe",
-        "offset": "0x88648",
-        "registers": [
-          "0x3ffe5b4",
-          "0x1",
-          "0x1",
-          "0x40",
-          "0x3ffdfa4",
-          "0x3ffe08c",
-          "0x7",
-          "0x1"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488e18",
-        "module": "hamsterball.exe",
-        "offset": "0x88e18",
-        "registers": [
-          "0x0",
-          "0x15",
-          "0x1",
-          "0x0",
-          "0x3ffe094",
-          "0x3ffe58c",
-          "0x0",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488e25",
-        "module": "hamsterball.exe",
-        "offset": "0x88e25",
-        "registers": [
-          "0x0",
-          "0x15",
-          "0x1",
-          "0x0",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x0",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488e73",
-        "module": "hamsterball.exe",
-        "offset": "0x88e73",
-        "registers": [
-          "0x0",
-          "0x15",
-          "0x1",
-          "0x40",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x15",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488e8e",
-        "module": "hamsterball.exe",
-        "offset": "0x88e8e",
-        "registers": [
-          "0x0",
-          "0x3206230",
-          "0x3ffe570",
-          "0x40",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x15",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488e98",
-        "module": "hamsterball.exe",
-        "offset": "0x88e98",
-        "registers": [
-          "0x0",
-          "0x3206230",
-          "0x3ffe570",
-          "0x40",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x15",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488f0a",
-        "module": "hamsterball.exe",
-        "offset": "0x88f0a",
-        "registers": [
-          "0x0",
-          "0x3206230",
-          "0x3ffe570",
-          "0x40",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x15",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488f24",
-        "module": "hamsterball.exe",
-        "offset": "0x88f24",
-        "registers": [
-          "0x0",
-          "0x3206230",
-          "0x3ffe570",
-          "0x320a420",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x3ffe500",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488f32",
-        "module": "hamsterball.exe",
-        "offset": "0x88f32",
-        "registers": [
-          "0x0",
-          "0x3206230",
-          "0x3ffe570",
-          "0x320a420",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x3ffe500",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488f3e",
-        "module": "hamsterball.exe",
-        "offset": "0x88f3e",
-        "registers": [
-          "0x1",
-          "0x3206230",
-          "0x3ffe570",
-          "0x320a420",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x3ffe500",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x488f63",
-        "module": "hamsterball.exe",
-        "offset": "0x88f63",
-        "registers": [
-          "0x0",
-          "0x3206230",
-          "0x3ffe570",
-          "0x320a420",
-          "0x3ffe0b4",
-          "0x3ffe58c",
-          "0x3ffe500",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      }
-    ]
+    "compiledBlocks": 387,
+    "instructions": 19556
   },
+  "frameSamples": [],
   "diagnosticLimits": {
     "maxBlocks": 10000000,
     "maxExecutionMs": 45000
@@ -4610,24 +2810,6 @@
       "teb": "0x2e00000",
       "started": true,
       "attached": false,
-      "suspended": 0,
-      "exited": false,
-      "exitCode": null
-    },
-    {
-      "id": 2,
-      "teb": "0x3001000",
-      "started": true,
-      "attached": true,
-      "suspended": 0,
-      "exited": false,
-      "exitCode": null
-    },
-    {
-      "id": 3,
-      "teb": "0x3104000",
-      "started": true,
-      "attached": true,
       "suspended": 0,
       "exited": false,
       "exitCode": null

@@ -49,6 +49,9 @@ export class WineLoader {
   async sync() {
     const r = this.runtime;
     for (const module of r.graph.modules.values()) {
+      // Thunk-only proxies that supply missing exports of a guest component
+      // are not independent Wine modules; the component owns the load.
+      if (module.proxy) continue;
       if (!module.mapped)
         throw Error(`Wine loader cannot register an unmapped DLL: ${module.name}`);
       const refs =

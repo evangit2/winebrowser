@@ -110,35 +110,60 @@ export class ModuleGraph {
     name = name.toLowerCase();
     if (this.builtinFiles.has(name))
       return this.loadPath('@runtime/' + name, true, retain ? 1 : 0, { ...options, builtin: true });
-    if (this.apiNames[name]) {
-      if (this.modules.size >= 128) throw Error('Module count limit exceeded');
-      if (this.nextHostBase >= 0x80000000) throw Error('Host module handle space exhausted');
-      module = {
-        key: name,
-        name,
-        host: true,
-        base: this.nextHostBase,
-        refs: retain ? 1 : 0,
-        initialized: true,
-      };
-      this.nextHostBase += 0x10000;
-      if (this.hostModuleImages) {
-        const image = hostModuleImage(name, this.apiNames[name], (symbol) =>
-          this.hostThunk({ module, symbol }),
-        );
-        Object.assign(module, {
-          path: '@host/' + name,
-          bytes: image.bytes,
-          pe: parsePE(image.bytes, { allowDll: true }),
-          exportRvas: image.rvas,
-          base: 0,
-          dependencies: [],
-        });
-      }
-      this.modules.set(name, module);
-      return module;
-    }
+    if (this.apiNames[name]) return this.loadHost(name, retain ? 1 : 0);
     throw Error(`Missing DLL ${name}`);
+  }
+  hostProxy(name) {
+    let module = this.modules.get('@proxy/' + name);
+    if (module) return module;
+    if (this.modules.size >= 128) throw Error('Module count limit exceeded');
+    if (this.nextHostBase >= 0x80000000) throw Error('Host module handle space exhausted');
+    module = {
+      key: '@proxy/' + name,
+      name,
+      host: true,
+      proxy: true,
+      base: this.nextHostBase,
+      refs: 0,
+      initialized: true,
+    };
+    this.nextHostBase += 0x10000;
+    this.modules.set(module.key, module);
+    return module;
+  }
+  loadHost(name, refs = 0, { proxyPath } = {}) {
+    if (this.modules.size >= 128) throw Error('Module count limit exceeded');
+    if (this.nextHostBase >= 0x80000000) throw Error('Host module handle space exhausted');
+    const module = {
+      key: name,
+      name,
+      host: true,
+      proxyPath,
+      base: this.nextHostBase,
+      refs,
+      initialized: true,
+    };
+    this.nextHostBase += 0x10000;
+    if (this.hostModuleImages) {
+      const image = hostModuleImage(name, this.apiNames[name], (symbol) =>
+        this.hostThunk({ module, symbol }),
+      );
+      Object.assign(module, {
+        path: proxyPath ?? '@host/' + name,
+        bytes: image.bytes,
+        pe: parsePE(image.bytes, { allowDll: true }),
+        exportRvas: image.rvas,
+        base: 0,
+        dependencies: [],
+      });
+    }
+    // A builtin guest component may share this DLL name; keep both entries so
+    // unimplemented exports can still delegate to the host provider. A proxy
+    // reuses the guest path, so it is not a distinct module to native loaders.
+    if (this.modules.has(name)) module.key = '@host/' + name;
+    else if (proxyPath) module.key = '@host/' + name;
+    this.modules.set(module.key, module);
+    return module;
   }
   linkAll() {
     for (const module of this.modules.values()) {
@@ -175,7 +200,24 @@ export class ModuleGraph {
     const entry = module.pe.exports.find((e) =>
       typeof symbol === 'number' ? e.ordinal === symbol : e.name === symbol,
     );
-    if (!entry) throw Error(`Missing export ${key}`);
+    if (!entry) {
+      // A partial guest component (for example the source-built shell32 with
+      // only CommandLineToArgvW) delegates every other named export to the
+      // host provider registered for the same DLL name. Explicit failures are
+      // preserved when no host implementation exists.
+      if (!module.path?.startsWith('@runtime/')) throw Error(`Missing export ${key}`);
+      const hostName =
+        typeof symbol === 'number'
+          ? undefined
+          : canonicalHostSymbol(module.name, symbol, this.apiNames[module.name] ?? []);
+      if (hostName && this.apiNames[module.name]?.includes(hostName)) {
+        // Thunk-only host provider. It has no PE image, so it is never mapped
+        // or registered with the native Wine loader: the guest component
+        // remains the single module for this DLL name.
+        return { host: true, module: this.hostProxy(module.name), symbol: hostName };
+      }
+      throw Error(`Missing export ${key}`);
+    }
     if (entry.forwarder) {
       const split = entry.forwarder.lastIndexOf('.');
       if (split < 1) throw Error(`Invalid forwarder ${entry.forwarder}`);
@@ -191,6 +233,19 @@ export class ModuleGraph {
     this.linkAll();
     if (this.unresolved.length)
       throw Error(this.unresolved.map((u) => `${u.module}: ${u.error}`).join('\n'));
+    // Resolve every import target before mapping. Resolving can discover a
+    // host provider for an export a partial guest component does not implement,
+    // and that host image has to be mapped before any IAT can reference it.
+    const pending = [];
+    for (const module of this.modules.values()) {
+      if (module.host || module.importsPatched) continue;
+      for (const entry of module.pe.imports)
+        pending.push({
+          module,
+          entry,
+          target: this.resolve(module.importModules.get(entry.iatRva), entry.name ?? entry.ordinal),
+        });
+    }
     for (const module of this.modules.values()) {
       if (!module.pe || module.mapped) continue;
       const preferred = module.pe.imageBase,
@@ -227,39 +282,31 @@ export class ModuleGraph {
           base +
           Math.min(
             Math.ceil(module.pe.headersSize / 0x1000) * 0x1000,
-            ...module.pe.sections.map((s) => s.rva),
+            ...module.pe.sections.map((section) => section.rva),
           ),
         write: false,
         exec: false,
         module: module.key,
       });
-      for (const s of module.pe.sections) {
-        const endRva = s.rva + Math.max(s.rawSize, s.virtualSize);
+      for (const section of module.pe.sections) {
+        const endRva = section.rva + Math.max(section.rawSize, section.virtualSize);
         const nextRva = Math.min(
           module.pe.imageSize,
-          ...module.pe.sections.filter((next) => next.rva > s.rva).map((next) => next.rva),
+          ...module.pe.sections.filter((next) => next.rva > section.rva).map((next) => next.rva),
         );
         regions.push({
-          start: base + s.rva,
+          start: base + section.rva,
           end: base + Math.min(Math.ceil(endRva / 0x1000) * 0x1000, nextRva),
-          write: !!(s.characteristics & 0x80000000),
-          exec: !!(s.characteristics & 0x20000000),
+          write: !!(section.characteristics & 0x80000000),
+          exec: !!(section.characteristics & 0x20000000),
           module: module.key,
         });
       }
     }
     const view = new DataView(memory.buffer);
-    for (const module of this.modules.values()) {
-      if (module.host || module.importsPatched) continue;
-      for (const entry of module.pe.imports) {
-        const target = this.resolve(
-          module.importModules.get(entry.iatRva),
-          entry.name ?? entry.ordinal,
-        );
-        view.setUint32(module.base + entry.iatRva, this.address(target), true);
-      }
-      module.importsPatched = true;
-    }
+    for (const { module, entry, target } of pending)
+      view.setUint32(module.base + entry.iatRva, this.address(target), true);
+    for (const module of this.modules.values()) if (!module.host) module.importsPatched = true;
   }
   address(target) {
     if (!target.host) {

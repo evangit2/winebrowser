@@ -891,6 +891,83 @@ for (const version of [8, 9]) {
   });
 }
 
+test('D3D9 and D3D8 texture levels expose IDirect3DSurface views with shared storage', async () => {
+  for (const version of [8, 9]) {
+    const { runtime: r, call, create, output, freed } = fixture(version);
+    const device = await create();
+    const texOut = r.allocate(4);
+    assert.equal(
+      (await call(device, version === 8 ? 20 : 23, 4, 4, 1, 0, 21, 1, texOut, 0)).result,
+      0,
+    );
+    const texture = r.read32(texOut);
+    const surfaceOut = r.allocate(4);
+    const slot = version === 8 ? 15 : 18;
+    assert.equal((await call(texture, slot, 0, surfaceOut)).result, 0);
+    const surface = r.read32(surfaceOut);
+    assert.ok(surface);
+    assert.equal(
+      r.comObjects.objects.get(surface).name,
+      version === 8 ? 'IDirect3DSurface8' : 'IDirect3DSurface9',
+    );
+    // GetDesc reports the level geometry and texture format.
+    const desc = r.allocate(36);
+    r.data.fill(0xee, desc, desc + 36);
+    assert.equal((await call(surface, version === 8 ? 8 : 12, desc)).result, 0);
+    assert.deepEqual(
+      [0, 4, 8, 12, 24, 28].map((o) => r.read32(desc + o)),
+      [21, 1, 0, 1, 4, 4],
+    );
+    // The out-of-range level and a null output fail explicitly.
+    assert.equal((await call(texture, slot, 1, surfaceOut)).result, 0x8876086c);
+    assert.equal((await call(texture, slot, 0, 0)).result, 0x8876086c);
+    // GetContainer returns the owning texture.
+    const containerOut = r.allocate(4);
+    const containerIid = r.allocate(16);
+    r.data.set(
+      version === 8
+        ? [
+            0x75, 0xd5, 0xcd, 0xe4, 0x66, 0x28, 0x01, 0x4f, 0xb1, 0x2e, 0x7e, 0xec, 0xe1, 0xec,
+            0x93, 0x58,
+          ]
+        : [
+            0x27, 0x12, 0xc3, 0x85, 0xe5, 0x3d, 0x00, 0x4f, 0x9b, 0x3a, 0xf1, 0x1a, 0xc3, 0x8c,
+            0x18, 0xb5,
+          ],
+      containerIid,
+    );
+    assert.equal(
+      (await call(surface, version === 8 ? 7 : 11, containerIid, containerOut)).result,
+      0,
+    );
+    assert.equal(r.read32(containerOut), texture);
+    // Surface LockRect shares the texture's level storage.
+    const locked = r.allocate(8),
+      lockSlot = version === 8 ? 9 : 13;
+    assert.equal((await call(surface, lockSlot, locked, 0, 0)).result, 0);
+    assert.equal(r.read32(locked), 16);
+    assert.equal(r.read32(locked + 4), r.comObjects.objects.get(texture).state.base);
+    const pixel = r.read32(locked + 4);
+    r.write32(pixel, 0x44112233);
+    assert.equal((await call(surface, lockSlot + 1)).result, 0);
+    const { textureSnapshot } = await import('../src/d3d9-textures.js');
+    assert.deepEqual(
+      [...textureSnapshot(r, r.comObjects.objects.get(texture)).levels[0].rgba.slice(0, 4)],
+      [17, 34, 51, 68],
+    );
+    // Releasing the surface drops the reference it held on the texture, and
+    // releasing every remaining application reference frees the level bytes.
+    const before = r.comObjects.objects.get(texture).refs;
+    assert.equal((await call(surface, 2)).result, 0);
+    assert.equal(r.comObjects.objects.get(texture).refs, before - 1);
+    while (r.comObjects?.objects.get(texture)?.refs) await call(texture, 2);
+    assert.equal(r.comObjects.objects.get(texture).refs, 0);
+    assert.equal(r.d3dTextureBytes, 0);
+    assert.ok(freed.length);
+    await call(device, 2);
+  }
+});
+
 for (const version of [8, 9]) {
   const slots =
     version === 8
