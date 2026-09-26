@@ -389,6 +389,50 @@ for (const version of [8, 9]) {
   });
 }
 
+test('pre-transformed XYZRHW draws bypass the transform state and light disable', async () => {
+  const { runtime, events, call, create } = fixture();
+  const device = await create();
+  // Set an object-space world transform and a light; an XYZRHW draw must ignore
+  // both and use a screen->clip transform instead.
+  const matrix = runtime.allocate(64);
+  for (let i = 0; i < 16; i++) runtime.view.setFloat32(matrix + i * 4, i % 5 === 0 ? 1 : 0, true);
+  runtime.view.setFloat32(matrix + 12 * 4, 7, true);
+  await call(device, 44, 256, matrix);
+  await call(device, 57, 137, 1);
+  await call(device, 89, 0x144); // XYZRHW | DIFFUSE | TEX1
+  await call(device, 41);
+  const vertices = runtime.allocate(84);
+  for (let i = 0; i < 3; i++) {
+    const base = vertices + i * 28;
+    runtime.view.setFloat32(base, i * 10, true); // screen x
+    runtime.view.setFloat32(base + 4, i * 10, true); // screen y
+    runtime.view.setFloat32(base + 8, 0.25, true); // z
+    runtime.view.setFloat32(base + 12, 1, true); // rhw
+    runtime.write32(base + 16, 0xff00ff00);
+    runtime.view.setFloat32(base + 20, i, true);
+    runtime.view.setFloat32(base + 24, 0, true);
+  }
+  assert.equal((await call(device, 83, 4, 1, vertices, 28)).result, 0);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const command = events.at(-1).commands[0];
+  assert.equal(command.stride, 28);
+  assert.equal(command.fvf, 0x144);
+  assert.equal(command.lighting, null, 'pre-transformed draws are unlit');
+  // Identity world/view; projection carries the screen->clip transform, so the
+  // first three columns are the viewport scale rather than the object matrix.
+  assert.deepEqual([...command.world], [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  assert.deepEqual([...command.view], [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  assert.equal(command.projection[0], Math.fround(2 / 640));
+  assert.equal(command.projection[5], Math.fround(-2 / 480));
+  // Applying the projection to screen pixel (0,0,z) yields the top-left NDC.
+  const [x, y] = [0, 1].map(
+    (r) => command.projection[r] * 0 + command.projection[4 + r] * 0 + command.projection[12 + r],
+  );
+  assert.equal(x, -1);
+  assert.equal(y, 1);
+});
+
 test('Unsupported D3D9 methods and render modes fail explicitly; failed Present retains commands', async () => {
   const { runtime, events, call, factory, params, output, create } = fixture();
   assert.equal(d3d9Apis['d3d9.dll!Direct3DCreate9'](runtime, () => 0).result, 0);
@@ -405,7 +449,7 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
     /Unsupported COM method IDirect3DDevice9.CreateCubeTexture/,
   );
   await assert.rejects(call(device, 57, 22, 4), /Unsupported IDirect3DDevice9.SetRenderState/);
-  await assert.rejects(call(device, 89, 0x44), /Unsupported IDirect3DDevice9.SetFVF/);
+  await assert.rejects(call(device, 89, 0x44 | 0x200), /Unsupported IDirect3DDevice9.SetFVF/);
   await call(device, 57, 22, 1);
   await call(device, 57, 137, 0);
   await call(device, 89, 0x42);

@@ -19,7 +19,11 @@ test('FVF optional normals, colors and UVs retain the native packed offsets', ()
   assert.equal(fvfLayout(0x1d2).size, 40);
   assert.equal(fvfLayout(0x112).size, 32);
   assert.equal(fvfLayout(2).size, 12);
-  for (const fvf of [0, 4, 0x202, 0x10002, 0x100000002, NaN]) assert.equal(fvfLayout(fvf), null);
+  // XYZRHW (0x4) is supported; invalid combinations and other bits are not.
+  for (const fvf of [0, 6, 0x202, 0x10002, 0x100000002, NaN]) assert.equal(fvfLayout(fvf), null);
+  assert.equal(fvfLayout(4).rhw, true);
+  assert.equal(fvfLayout(4).size, 16);
+  assert.equal(fvfLayout(0x144).size, 28);
 });
 test('normal inverse transpose preserves orthogonality through shear, scale and camera rotation', () => {
   const world = [2, 1, 0, 0, 0, 3, 1, 0, 0.5, 0, 0.5, 0, 7, 8, 9, 1],

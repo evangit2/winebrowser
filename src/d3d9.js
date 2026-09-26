@@ -81,6 +81,30 @@ function requireGraphics(runtime) {
   return runtime.graphics;
 }
 
+// Row-major, row-vector screen->clip matrix for pre-transformed (XYZRHW)
+// vertices: x,y pixels map to NDC within the viewport, y flipped as D3D does.
+function screenToClip(viewport) {
+  const { x, y, width, height, minZ, maxZ } = viewport;
+  return Float32Array.from([
+    2 / width,
+    0,
+    0,
+    0,
+    0,
+    -2 / height,
+    0,
+    0,
+    0,
+    0,
+    maxZ - minZ,
+    0,
+    -1 - (2 * x) / width,
+    1 + (2 * y) / height,
+    minZ,
+    1,
+  ]);
+}
+
 // Shared by DrawPrimitiveUP, buffered and indexed draws. Vertices are always an
 // immutable contiguous snapshot by the time a command reaches the renderer.
 function fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCount) {
@@ -99,6 +123,8 @@ function fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCo
     throw Error('D3D9 frame texture limit exceeded');
   const view = new DataView(vertices.buffer, vertices.byteOffset, vertices.byteLength);
   const floatOffsets = [0, 4, 8];
+  // XYZRHW stores (x, y, z, rhw) in the first 16 bytes.
+  if (layout.rhw) floatOffsets.push(12);
   if (layout.normal !== null)
     floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
   if (layout.uv !== null) floatOffsets.push(layout.uv, layout.uv + 4);
@@ -106,20 +132,31 @@ function fixedFunctionDraw(runtime, state, primitive, vertices, stride, vertexCo
     for (const offset of floatOffsets)
       if (!Number.isFinite(view.getFloat32(i * stride + offset, true)))
         throw Error('Unsupported D3D9 non-finite vertex');
+  // Pre-transformed (XYZRHW) vertices bypass world/view/projection and lighting;
+  // an equivalent screen->clip matrix keeps the shared shader unchanged.
+  const transforms = layout.rhw
+    ? {
+        world: IDENTITY.slice(),
+        view: IDENTITY.slice(),
+        projection: screenToClip(state.viewport),
+      }
+    : {
+        world: state.world.slice(),
+        view: state.view.slice(),
+        projection: state.projection.slice(),
+      };
   queue(
     state,
     {
       type: 'draw',
       fvf: state.fvf,
-      lighting: lightingSnapshot(state),
-      specularEnable: !!state.lightState[29],
+      lighting: layout.rhw ? null : lightingSnapshot(state),
+      specularEnable: !layout.rhw && !!state.lightState[29],
       texturing,
       vertices,
       vertexCount,
       stride,
-      world: state.world.slice(),
-      view: state.view.slice(),
-      projection: state.projection.slice(),
+      ...transforms,
       viewport: { ...state.viewport },
       depthTest: state.depthTest,
       depthWrite: state.depthWrite,

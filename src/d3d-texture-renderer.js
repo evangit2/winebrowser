@@ -81,14 +81,22 @@ ${command.lighting ? lightingCode(command, layout) : ''}
 struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: vec4<f32>,
   @location(2) specular: vec4<f32>,
   ${t ? '@location(1) uv: vec2<f32>,' : ''} }
-@vertex fn vertexMain(@location(0) position: vec3<f32>
+@vertex fn vertexMain(@location(0) position: ${layout.rhw ? 'vec4<f32>' : 'vec3<f32>'}
   ${layout.diffuse !== null ? ', @location(1) bgra: vec4<f32>' : ''}
   ${layout.specular !== null ? ', @location(4) specularBgra: vec4<f32>' : ''}
   ${layout.normal !== null ? ', @location(3) normal: vec3<f32>' : ''}
   ${t && uv ? ', @location(2) uv: vec2<f32>' : ''}) -> VertexOut {
   var output: VertexOut;
   // D3D row-major row-vector storage is transposed when read by WGSL.
-  output.position = transforms.projection * transforms.view * transforms.world * vec4(position, 1.0);
+  ${
+    layout.rhw
+      ? `// XYZRHW is pre-transformed: x,y are screen pixels, z is depth and w is
+  // rhw (1/w). The transform maps pixels to clip space; scaling by rhw lets
+  // the hardware divide reproduce the position with correct perspective.
+  let clip = transforms.projection * vec4(position.xyz, 1.0);
+  output.position = vec4(clip.xyz * position.w, position.w);`
+      : 'output.position = transforms.projection * transforms.view * transforms.world * vec4(position, 1.0);'
+  }
   let color1 = ${layout.diffuse !== null ? 'bgra.bgra' : 'vec4(1.0)'};
   let color2 = ${layout.specular !== null ? 'specularBgra.bgra' : 'vec4(0.0)'};
   ${
