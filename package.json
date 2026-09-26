@@ -67,7 +67,9 @@
     "build:drivers": "sh scripts/build-driver-fixtures.sh",
     "test:drivers": "node scripts/test-drivers-browser.mjs",
     "build:shared-data": "sh scripts/build-shared-data-fixture.sh",
-    "test:shared-data": "node scripts/test-shared-data-browser.mjs"
+    "test:shared-data": "node scripts/test-shared-data-browser.mjs",
+    "build:cursors": "sh scripts/build-cursor-fixture.sh",
+    "test:cursors": "node scripts/test-cursors-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

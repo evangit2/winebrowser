@@ -108,6 +108,7 @@ function createWorker() {
       $('output').textContent = stdout.slice(-64000);
     }
     if (message.type === 'window-focus') desktop.focus(message.windowId);
+    if (message.type === 'cursor') desktop.setCursor(message.css);
     if (message.type === 'window') {
       $('desktop').hidden = false;
       desktop.update(message);

@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-26T03:37:20.529Z",
+  "status": "passed",
+  "exeSha256": "6b30a79a69ae853f263e168e4f38fd7b97e8cce5a37c10ed7709d3ca73fc7741",
+  "browser": "154.0.8037.57",
+  "observed": [
+    "pointer",
+    "wait",
+    "wait",
+    "none",
+    "none",
+    "wait",
+    "none",
+    "pointer"
+  ],
+  "exitCode": 0,
+  "errors": []
+}

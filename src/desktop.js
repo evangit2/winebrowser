@@ -1,4 +1,5 @@
 import './desktop.css';
+import { CURSOR_STYLES } from './cursors.js';
 
 const TITLEBAR_HEIGHT = 28;
 const MIN_CLIENT_WIDTH = 64;
@@ -46,6 +47,12 @@ export class VirtualDesktop {
 
   onKeyDown = (event) => this.#sendKey(event, 'keydown');
   onKeyUp = (event) => this.#sendKey(event, 'keyup');
+
+  setCursor(css) {
+    if (css !== 'none' && ![...CURSOR_STYLES.values()].includes(css))
+      throw Error('Unsupported desktop cursor');
+    this.container.style.setProperty('--guest-cursor', css);
+  }
 
   #sendKey(event, type, windowId = this.activeWindowId, routeGameKeys = true) {
     if (windowId === null || event.isComposing) return;
@@ -284,6 +291,7 @@ export class VirtualDesktop {
       this.#focus(control);
     });
     element.addEventListener('focus', () => this.#focus(control));
+    element.addEventListener('mousemove', (event) => this.#sendMouse(control, 'mousemove', event));
     for (const type of ['keydown', 'keyup'])
       element.addEventListener(type, (event) => {
         event.stopPropagation();
@@ -402,7 +410,7 @@ export class VirtualDesktop {
   }
 
   #sendMouse(window, type, event) {
-    const rect = window.canvas.getBoundingClientRect();
+    const rect = (window.isControl ? window.element : window.canvas).getBoundingClientRect();
     this.#emit(window.id, type, {
       x: Math.round(event.clientX - rect.left),
       y: Math.round(event.clientY - rect.top),
@@ -535,6 +543,7 @@ export class VirtualDesktop {
   }
 
   reset() {
+    this.container.style.removeProperty('--guest-cursor');
     this.windows.clear();
     this.activeWindowId = null;
     this.drag = null;

@@ -75,7 +75,8 @@ classification, scalar SSE arithmetic, double-width integer shifts and `FISTTP`.
 Native Wine character conversion, legacy registry calls and WinMM native-driver
 loading now pass. Hamsterball completes DLL attachment and reaches its original
 EXE entry. Its native clock reads now pass through the read-only Windows shared
-data mapping; startup next stops while loading the predefined `IDC_HAND` cursor.
+data mapping, and predefined cursor loading now passes. Startup next stops at
+x87 `FIDIV` integer-operand arithmetic.
 Native process shutdown also passes a separate character-conversion fixture with the supplied Wine/NLS closure;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11

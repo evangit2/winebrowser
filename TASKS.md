@@ -76,9 +76,11 @@ D3D10/11 and broader D3D12 support are still required.
       high guest addresses without enlarging linear memory. Native Kernel32
       GetTickCount/GetTickCount64 and direct reads pass in Node and Chromium;
       scalar/SIMD/x87/copy reads, rollover and access restrictions are tested.
-- [ ] Continue Hamsterball EXE startup through the predefined `IDC_HAND` cursor
-      (`LoadCursorA(NULL,32649)`), incorrectly labeled a custom cursor by the
-      existing provider. Both probes now reach it after 8,773,043 guest instructions.
+- [x] Load predefined system cursors, including IDC_HAND, and render their browser
+      equivalents. Native fixture and UI checks verify Set/GetCursor, nested
+      ShowCursor counts, class cursors, parent overrides and mouse capture.
+- [ ] Continue Hamsterball EXE startup through x87 `FIDIV` with an integer memory
+      operand, at EXE offset `+0x6c9b6`, after 8,773,065 guest instructions in Node and Chromium.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

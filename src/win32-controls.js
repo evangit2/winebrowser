@@ -7,7 +7,17 @@ const kinds = new Map([
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
-  return kind ? { name: kind, controlType: kind, wide, proc: 0, extra: 0, background: 0 } : null;
+  return kind
+    ? {
+        name: kind,
+        controlType: kind,
+        wide,
+        proc: 0,
+        extra: 0,
+        background: 0,
+        cursor: kind === 'edit' ? 32513 : 32512,
+      }
+    : null;
 }
 export function controlStyle(kind, style, extended) {
   const local = style & 0xffff;

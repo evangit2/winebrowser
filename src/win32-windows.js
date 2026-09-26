@@ -9,6 +9,7 @@ import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
 import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
+import { cursorApis, setCursor } from './win32-cursors.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -295,6 +296,8 @@ export class WindowManager {
       const buttons =
         (event.buttons & 1 ? 1 : 0) | (event.buttons & 2 ? 2 : 0) | (event.buttons & 4 ? 16 : 0);
       this.post(hwnd, message, buttons, pair(event.x, event.y), {
+        hardwareMouse: true,
+        cursorSent: false,
         x: window.x + BORDER + event.x,
         y: window.y + TITLE + BORDER + event.y,
       });
@@ -361,6 +364,16 @@ export class WindowManager {
           this.keyboardState.set(code, message.modifiers[key] ? 0x8000 : 0);
       }
     }
+    if (
+      message.hardwareMouse &&
+      !message.cursorSent &&
+      !this.capture &&
+      this.windows.has(message.hwnd)
+    ) {
+      // WM_SETCURSOR is a synchronous sent message, not an extra queued event.
+      message.cursorSent = true;
+      await this.send(message.hwnd, 0x20, message.hwnd, pair(1, message.message));
+    }
     const fields = [
       message.hwnd,
       message.message,
@@ -397,6 +410,7 @@ function register(r, a, wide, extended) {
     extra,
     instance: r.read32(p + 16),
     icon: (extended && r.read32(p + 40)) || r.read32(p + 20),
+    cursor: r.read32(p + 24),
     background: r.read32(p + 28),
     wide,
   };
@@ -512,6 +526,27 @@ async function defaultProc(r, a, wide) {
   const [hwnd, msg, wp, lp] = [a(0), a(1), a(2), a(3)],
     w = r.windows.windows.get(hwnd);
   if (!w) return result(0, 4);
+  if (msg === 0x20) {
+    const hit = lp & 0xffff;
+    if (w.parentId && !(hit >= 10 && hit <= 17) && (await r.windows.send(w.parentId, msg, wp, lp)))
+      return result(1, 4);
+    const target = r.windows.windows.get(wp);
+    const cursor =
+      hit === 1
+        ? target?.cls.cursor
+        : ({
+            10: 32644,
+            11: 32644,
+            12: 32645,
+            13: 32642,
+            14: 32643,
+            15: 32645,
+            16: 32643,
+            17: 32642,
+          }[hit] ?? 32512);
+    if (cursor) setCursor(r, cursor);
+    return result(0, 4);
+  }
   if (msg === 0x81) return result(1, 4);
   if (msg === 0x83 && !wp) {
     const rect = [0, 4, 8, 12].map((i) => r.read32(lp + i) | 0);
@@ -579,7 +614,7 @@ async function beginPaint(r, a) {
   return result(dc, 2);
 }
 
-export const windowApis = {};
+export const windowApis = { ...cursorApis };
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
   windowApis[`user32.dll!GetWindowText${suffix}`] = async (r, a) =>
@@ -612,11 +647,6 @@ for (const wide of [false, true]) {
       result(await r.callGuest(a(0), [a(1), a(2), a(3), a(4)]), 5),
     [`user32.dll!SetWindowText${suffix}`]: async (r, a) =>
       result(await sendWindowMessage(r, a(0), 0xc, 0, a(1), wide), 2),
-    [`user32.dll!LoadCursor${suffix}`]: (r, a) => {
-      if (a(0) || ![32512, 32513, 32514, 32515, 32516].includes(a(1)))
-        throw Error('Custom cursors are unsupported');
-      return result(a(1), 2);
-    },
   });
 }
 Object.assign(windowApis, {

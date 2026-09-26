@@ -89,7 +89,14 @@
   height: 100%;
   outline: none;
   image-rendering: pixelated;
-  cursor: default;
+  cursor: var(--guest-cursor, default);
+}
+
+.virtual-desktop-control {
+  cursor: var(--guest-cursor, default);
+}
+.virtual-desktop-control-edit {
+  cursor: var(--guest-cursor, text);
 }
 
 .virtual-desktop-resize {

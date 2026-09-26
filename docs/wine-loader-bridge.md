@@ -116,10 +116,11 @@ key store. WinMM now loads native DriverProc exports and manages real instances,
 messages and hidden descriptor sessions; ACM discovery and packed BASS attachment
 complete. The game reaches its original EXE entry. The fixed-address shared-user-data
 clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
-next stop at `LoadCursorA(NULL,32649)` (the predefined hand cursor), after
-8,773,043 guest instructions.
+pass predefined cursor loading, including IDC_HAND. Both engines next fail on
+x87 `FIDIV dword ptr [esp+8]` at EXE offset `+0x6c9b6`, after 8,773,065
+guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is predefined cursor support and remaining
+unverified. The next work is x87 integer-operand arithmetic and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
@@ -152,3 +153,10 @@ same conservative virtual CPU profile. The
 [fixture documentation](../tests/fixtures/shared-data/README.md) identifies the
 supported fields, memory-access boundary and both ordinary/native-Wine browser
 checks; other shared-data fields and raw host-buffer consumers remain unfinished.
+
+Predefined cursors now connect to actual browser cursor styles. Native class
+cursors and parent overrides execute through WM_SETCURSOR; SetCursor, GetCursor
+and signed ShowCursor counts share process-local state. The
+[cursor fixture](../tests/fixtures/cursors/README.md) verifies normal EXE upload,
+real mouse/keyboard routing, visible CSS cursor changes and clean exit. Custom
+cursor resources and additional system cursor assets remain unfinished.
