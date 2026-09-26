@@ -197,8 +197,11 @@ D3D10/11 and broader D3D12 support are still required.
       (caller `0x476ecb`, 10,407,907 guest instructions), plus LODSB/LODSD in
       bass.dll and `LOCK CMPXCHG8B` in the Wine ntdll. Startup now reaches its
       message/timer loop with three live guest threads and runs to the bounded
-      diagnostic deadline (17.6M guest instructions) without an unsupported
-      operation; no game frame renders yet. See
+      diagnostic deadline (17.7M guest instructions) without an unsupported
+      operation. It completes D3D8 device creation (adapter modes, depth/
+      stencil matching, CreateDevice) with three live guest threads; the main
+      thread then spends its budget in a bass.dll timing loop. No game frame
+      renders yet. See
       `evidence/hamsterball-startup-browser.json`.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
