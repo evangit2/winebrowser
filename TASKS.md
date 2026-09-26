@@ -176,11 +176,13 @@ D3D10/11 and broader D3D12 support are still required.
       tables when IMAGE_FILE_RELOCS_STRIPPED is clear.
 - [x] Accept NT random/sequential cache hints for resident package files, with
       read/seek/EOF/access tests. The original texture file now opens successfully.
-- [ ] Implement the next x86 repeat instruction used by original texture loading.
-      Hamsterball maps `shadow.png` through native file sections, then stops at
-      `0x4a6988` with `Repeat prefix unsupported`.
+- [x] Implement CMPSB/W/D, REPE/REPNE, comparison flags and fault restart state
+      across guest contexts; byte-pair exhaustive tests and native EXE/ZIP pass.
+- [ ] Implement byte/word wide integer multiply/divide. Hamsterball maps
+      `shadow.png`, passes its signature comparison, then stops at 8-bit `IMUL`
+      (`0x4ae159`, containing block `0x4ae150`).
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,884,000 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,902,420 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

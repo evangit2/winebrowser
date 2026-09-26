@@ -89,15 +89,17 @@ test('REP SCAS uses bounded chunks and zero count touches neither memory nor fla
   assert.equal(zero.af, 1);
 });
 
-test('a faulting REPNE SCAS iteration preserves completed progress and flags', () => {
+test('a faulting REPNE SCAS iteration preserves completed progress and restores entry flags', () => {
   const { cpu, view } = machine([0xf2, 0xae]);
   view.setUint8(0xfffe, 1);
   view.setUint8(0xffff, 2);
   cpu.r[0].value = 3;
   cpu.r[7].value = 0xfffe;
   cpu.r[1].value = 3;
+  cpu.f = { cf: 1, zf: 1, sf: 1, of: 1, pf: 0 };
+  cpu.af = 1;
   assert.throws(() => cpu.step(CODE), /range violation/);
   assert.deepEqual([cpu.r[7].value >>> 0, cpu.r[1].value >>> 0], [0x10000, 1]);
-  assert.equal(cpu.f.zf, 0);
-  assert.equal(cpu.f.cf, 0, 'flags remain from the last completed comparison (3 - 2)');
+  assert.deepEqual(cpu.f, { cf: 1, zf: 1, sf: 1, of: 1, pf: 0 });
+  assert.equal(cpu.af, 1);
 });

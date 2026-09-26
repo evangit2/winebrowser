@@ -30,6 +30,7 @@ export class CPU {
     this.fsBaseGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
     this.fsBase = fsBase;
     this.df = 0;
+    this.stringRestart = null;
     this.read32 = read32;
     this.write32 = write32;
     this.r = Array.from(
@@ -282,41 +283,60 @@ export class CPU {
       string: (kind, bytes, repeat, sourceBase, at, next) => {
         if (![1, 2, 4].includes(bytes))
           throw Error('Unsupported string instruction width or operation');
-        if (![0, 1, 2].includes(kind) || ![0, 1, 2, 3].includes(repeat))
+        if (![0, 1, 2, 3].includes(kind) || ![0, 1, 2, 3].includes(repeat))
           throw Error('Invalid string operation or repeat mode');
+        const compare = kind === 2 || kind === 3;
+        if (compare && repeat) {
+          this.stringRestart ??= { at, flags: { ...this.f }, af: this.af };
+        } else this.stringRestart = null;
         let remaining = repeat ? this.r[1].value >>> 0 : 1;
         const count = Math.min(remaining, 1024);
         const delta = this.df ? -bytes : bytes;
         let completed = 0,
           terminated = false;
-        for (; completed < count; completed++) {
-          const source = (this.r[6].value + sourceBase) >>> 0;
-          const destination = this.r[7].value >>> 0;
-          if (kind === 0) this.checkMemory(source, bytes, false);
-          if (kind === 2) {
-            this.checkMemory(destination, bytes, false);
-            const bits = bytes * 8;
-            const mask = bits === 32 ? 0xffffffff : (1 << bits) - 1;
-            const accumulator = (this.r[0].value & mask) >>> 0;
-            const value = this.host.load(destination, bytes) >>> 0;
-            this.flags(accumulator, value, (accumulator - value) & mask, 1, bits);
-          } else {
-            const value = kind === 0 ? this.host.load(source, bytes) : this.r[0].value;
-            this.checkMemory(destination, bytes, true);
-            this.host.store(destination, value, bytes);
+        try {
+          for (; completed < count; completed++) {
+            const source = (this.r[6].value + sourceBase) >>> 0;
+            const destination = this.r[7].value >>> 0;
+            if (kind === 0 || kind === 3) this.checkMemory(source, bytes, false);
+            if (compare) {
+              this.checkMemory(destination, bytes, false);
+              const bits = bytes * 8;
+              const mask = bits === 32 ? 0xffffffff : (1 << bits) - 1;
+              const left =
+                kind === 3 ? this.host.load(source, bytes) >>> 0 : (this.r[0].value & mask) >>> 0;
+              const right = this.host.load(destination, bytes) >>> 0;
+              this.flags(left, right, (left - right) & mask, 1, bits);
+            } else {
+              const value = kind === 0 ? this.host.load(source, bytes) : this.r[0].value;
+              this.checkMemory(destination, bytes, true);
+              this.host.store(destination, value, bytes);
+            }
+            if (kind === 0 || kind === 3) this.r[6].value = (this.r[6].value + delta) | 0;
+            this.r[7].value = (this.r[7].value + delta) | 0;
+            if (repeat) this.r[1].value = ((this.r[1].value >>> 0) - 1) | 0;
+            if (compare && ((repeat === 2 && !this.f.zf) || (repeat === 3 && this.f.zf))) {
+              completed++;
+              terminated = true;
+              break;
+            }
           }
-          if (kind === 0) this.r[6].value = (this.r[6].value + delta) | 0;
-          this.r[7].value = (this.r[7].value + delta) | 0;
-          if (repeat) this.r[1].value = ((this.r[1].value >>> 0) - 1) | 0;
-          if (kind === 2 && ((repeat === 2 && !this.f.zf) || (repeat === 3 && this.f.zf))) {
-            completed++;
-            terminated = true;
-            break;
+        } catch (error) {
+          // REP CMPS/SCAS faults retain completed index/count progress but restore
+          // pre-instruction flags, including when a scheduler chunk intervened.
+          if (this.stringRestart) {
+            this.f = { ...this.stringRestart.flags };
+            this.af = this.stringRestart.af;
           }
+          this.stringRestart = null;
+          throw error;
+        } finally {
+          if (completed > 1) this.instructions += completed - 1;
         }
-        if (completed > 1) this.instructions += completed - 1;
         remaining -= completed;
-        return repeat && remaining && !terminated ? at : next;
+        if (repeat && remaining && !terminated) return at;
+        this.stringRestart = null;
+        return next;
       },
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
@@ -343,6 +363,10 @@ export class CPU {
       af: this.af,
       df: this.df,
       controlFlags: this.controlFlags,
+      stringRestart: this.stringRestart && {
+        ...this.stringRestart,
+        flags: { ...this.stringRestart.flags },
+      },
       fsBase: this.fsBase,
       simd: this.simd.snapshot(),
       x87: this.x87.snapshot(),
@@ -354,6 +378,9 @@ export class CPU {
     this.af = context.af;
     this.df = context.df;
     this.controlFlags = context.controlFlags;
+    this.stringRestart = context.stringRestart
+      ? { ...context.stringRestart, flags: { ...context.stringRestart.flags } }
+      : null;
     this.fsBase = context.fsBase;
     this.simd.restore(context.simd);
     this.x87.restore(context.x87);
@@ -699,19 +726,25 @@ export class CPU {
             this.iced.Code.Movsw_m16_m16,
             this.iced.Code.Movsd_m32_m32,
           ].includes(i.code);
+          const stringCmps = [
+            this.iced.Code.Cmpsb_m8_m8,
+            this.iced.Code.Cmpsw_m16_m16,
+            this.iced.Code.Cmpsd_m32_m32,
+          ].includes(i.code);
           const stringStos = [M.Stosb, M.Stosw, M.Stosd].includes(m);
           const stringScas = [M.Scasb, M.Scasw, M.Scasd].includes(m);
-          const stringOp = stringMov || stringStos || stringScas;
+          const stringCompare = stringScas || stringCmps;
+          const stringOp = stringMov || stringStos || stringCompare;
           const legacyBitScan = i.hasRepPrefix && (m === M.Bsf || m === M.Bsr);
           if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp && !legacyBitScan)
             throw Error('Repeat prefix unsupported');
           if (stringOp) {
-            if (i.hasRepnePrefix && !stringScas)
+            if (i.hasRepnePrefix && !stringCompare)
               throw Error('REPNE string operations are unsupported');
             const raw = new Uint8Array(this.memory.buffer, at, next - at);
             if (raw.includes(0x67)) throw Error('16-bit string address mode unsupported');
             if (i.opCount !== 2) throw Error('Unexpected string instruction operands');
-            if (!stringScas && i.opKind(0) !== K.MemoryESEDI)
+            if ((stringMov || stringStos) && i.opKind(0) !== K.MemoryESEDI)
               throw Error('Unexpected string destination operand');
             if (stringMov && i.opKind(1) !== K.MemorySegESI)
               throw Error('Unexpected MOVS source operand');
@@ -719,6 +752,8 @@ export class CPU {
               throw Error('Unexpected STOS accumulator operand');
             if (stringScas && (i.opKind(0) !== K.Register || i.opKind(1) !== K.MemoryESEDI))
               throw Error('Unexpected SCAS operands');
+            if (stringCmps && (i.opKind(0) !== K.MemorySegESI || i.opKind(1) !== K.MemoryESEDI))
+              throw Error('Unexpected CMPS operands');
             if (
               !stringScas &&
               i.segmentPrefix !== R.None &&
@@ -732,9 +767,9 @@ export class CPU {
               throw Error('FS string source requires guest TEB');
             const bytes = MemorySizeExt.size(i.memorySize);
             if (![1, 2, 4].includes(bytes)) throw Error('Unsupported string operand width');
-            const sourceUsesFS = stringMov && i.segmentPrefix === R.FS;
+            const sourceUsesFS = (stringMov || stringCmps) && i.segmentPrefix === R.FS;
             if (sourceUsesFS) usesFS = true;
-            const repeat = stringScas
+            const repeat = stringCompare
               ? i.hasRepnePrefix
                 ? 3
                 : i.hasRepPrefix
@@ -744,7 +779,7 @@ export class CPU {
                 ? 1
                 : 0;
             code.push(
-              ...constant(stringMov ? 0 : stringStos ? 1 : 2),
+              ...constant(stringMov ? 0 : stringStos ? 1 : stringScas ? 2 : 3),
               ...constant(bytes),
               ...constant(repeat),
               ...(sourceUsesFS ? get(FS_BASE_GLOBAL) : constant(0)),
@@ -1222,6 +1257,7 @@ export class CPU {
     }
   }
   step(ip) {
+    if (this.stringRestart && this.stringRestart.at !== ip) this.stringRestart = null;
     const block = this.cache.get(ip) || this.compile(ip);
     if (block.usesFS && !this.fsBase) throw Error('FS requires guest TEB');
     this.instructions += block.count;

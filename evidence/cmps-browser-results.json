@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-26T13:19:16.646Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "d019ca9c173a4facca1b42b317cf8ee21e229bded0e37debe1774d8bf2423d4e",
+  "scope": "Native PE32 EXE/ZIP: CMPSB/W/D, REPE/REPNE in both directions, overflow/borrow flags, zero-count invalid pointers, early stop, and an 8192-element repeat across scheduler chunks.",
+  "results": [
+    {
+      "name": "cmps.exe",
+      "exitCode": 0,
+      "output": "cmps-ok\n",
+      "instructions": 64608,
+      "compiledBlocks": 101,
+      "errors": []
+    },
+    {
+      "name": "cmps.zip",
+      "exitCode": 0,
+      "output": "cmps-ok\n",
+      "instructions": 64608,
+      "compiledBlocks": 101,
+      "errors": []
+    }
+  ]
+}
