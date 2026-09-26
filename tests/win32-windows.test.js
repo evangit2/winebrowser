@@ -649,3 +649,62 @@ test('windows larger than the desktop retain client geometry through native and 
   assert.equal((await createWindow(r, atom, { width: 2051, height: 750 })).result, 0);
   assert.deepEqual([window.width, window.height], [1280, 720]);
 });
+
+test('pointer, window-from-point and enable state round-trip through the virtual desktop', async (t) => {
+  const { runtime: r } = await makeRuntime(t);
+  const proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const hwnd = (await createWindow(r, atom, { width: 160, height: 120 })).result;
+  assert.ok(hwnd);
+  await call(r, 'user32.dll!ShowWindow', [hwnd, 5]);
+  const window = r.windows.windows.get(hwnd);
+  const [clientX, clientY] = r.windows.clientPosition(window);
+
+  // The pointer starts at the origin and is updated by browser mouse input.
+  const point = r.allocate(8);
+  assert.equal((await call(r, 'user32.dll!GetCursorPos', [point])).result, 1);
+  assert.deepEqual(
+    [0, 4].map((o) => r.read32(point + o)),
+    [0, 0],
+  );
+  r.windows.input({ type: 'mousemove', windowId: hwnd, x: 3, y: 5, buttons: 0 });
+  assert.equal((await call(r, 'user32.dll!GetCursorPos', [point])).result, 1);
+  assert.deepEqual(
+    [0, 4].map((o) => r.read32(point + o)),
+    [clientX + 3, clientY + 5],
+  );
+
+  // SetCursorPos moves the virtual pointer; ScreenToClient converts back.
+  assert.equal((await call(r, 'user32.dll!SetCursorPos', [clientX + 10, clientY + 7])).result, 1);
+  assert.equal((await call(r, 'user32.dll!GetCursorPos', [point])).result, 1);
+  assert.deepEqual(
+    [0, 4].map((o) => r.read32(point + o)),
+    [clientX + 10, clientY + 7],
+  );
+  assert.equal((await call(r, 'user32.dll!ScreenToClient', [hwnd, point])).result, 1);
+  assert.deepEqual(
+    [0, 4].map((o) => r.read32(point + o)),
+    [10, 7],
+  );
+  // Rejecting an unknown window preserves the documented failure path.
+  assert.equal((await call(r, 'user32.dll!ScreenToClient', [0xdead, point])).result, 0);
+  assert.equal(r.lastError, 1400);
+
+  // WindowFromPoint finds the window containing a screen point.
+  r.write32(point, clientX + 1);
+  r.write32(point + 4, clientY + 1);
+  assert.equal((await call(r, 'user32.dll!WindowFromPoint', [point])).result, hwnd);
+  r.write32(point, 0x7fff);
+  r.write32(point + 4, 0x7fff);
+  assert.equal((await call(r, 'user32.dll!WindowFromPoint', [point])).result, 0);
+
+  // EnableWindow reports the previous state and IsWindowEnabled reflects it.
+  assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 1);
+  assert.equal((await call(r, 'user32.dll!EnableWindow', [hwnd, 0])).result, 1);
+  assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 0);
+  assert.equal((await call(r, 'user32.dll!EnableWindow', [hwnd, 1])).result, 0);
+  assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 1);
+  assert.equal((await call(r, 'user32.dll!EnableWindow', [0xdead, 1])).result, 0);
+  assert.equal(r.lastError, 1400);
+  await call(r, 'user32.dll!DestroyWindow', [hwnd]);
+});

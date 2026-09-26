@@ -292,6 +292,37 @@ export class WindowManager {
       frame = frameForWindow(window);
     return [x + frame.border, y + frame.border + frame.title];
   }
+  // Virtual-screen pointer position, updated by browser mouse input.
+  pointerPosition() {
+    return this.pointer ?? { x: 0, y: 0 };
+  }
+  setPointerPosition(x, y) {
+    this.pointer = { x: x | 0, y: y | 0 };
+  }
+  // The deepest visible top-level or child window under a screen point.
+  windowFromPoint(x, y) {
+    const inside = (w) => {
+      const [ox, oy] = this.screenPosition(w),
+        frame = frameForWindow(w);
+      return (
+        x >= ox &&
+        y >= oy &&
+        x < ox + w.width + 2 * frame.border &&
+        y < oy + w.height + frame.title + 2 * frame.border
+      );
+    };
+    const candidates = [...this.windows.values()]
+      .filter((w) => this.isVisible(w.id) && inside(w))
+      .sort((a, b) => (b.parentId ? 1 : 0) - (a.parentId ? 1 : 0));
+    return candidates[0]?.id ?? 0;
+  }
+  // Window-message properties (GetProp/SetProp), keyed by handle then string.
+  props(hwnd) {
+    this.propertyMap ??= new Map();
+    let map = this.propertyMap.get(hwnd);
+    if (!map) this.propertyMap.set(hwnd, (map = new Map()));
+    return map;
+  }
   input(event) {
     const directInput = inputState(this.runtime);
     if (event.type === 'app-blur') {
@@ -307,6 +338,12 @@ export class WindowManager {
     const hwnd = this.capture && event.type.startsWith('mouse') ? this.capture : event.windowId;
     const window = this.windows.get(hwnd);
     if (!window || !this.isVisible(hwnd) || !this.isEnabled(hwnd)) return;
+    // Remember the pointer in virtual-screen coordinates before any handler
+    // may consume the event. GetCursorPos and ScreenToClient report this.
+    if (['mousemove', 'mousedown', 'mouseup'].includes(event.type)) {
+      const [originX, originY] = this.clientPosition(window);
+      this.pointer = { x: (originX + event.x) | 0, y: (originY + event.y) | 0 };
+    }
     if (directInput.input(event, window)) return;
     if (controlInput(this.runtime, window, event)) return;
     if (event.type === 'close') this.post(hwnd, 0x10);
@@ -784,6 +821,51 @@ for (const wide of [false, true]) {
   });
 }
 Object.assign(windowApis, {
+  'user32.dll!GetCursorPos': (r, a) => {
+    const point = a(0);
+    if (!point) return result(0, 1);
+    r.check(point, 8, true);
+    const { x, y } = r.windows.pointerPosition();
+    r.write32(point, x | 0);
+    r.write32(point + 4, y | 0);
+    return result(1, 1);
+  },
+  'user32.dll!SetCursorPos': (r, a) => {
+    r.windows.setPointerPosition(a(0) | 0, a(1) | 0);
+    return result(1, 2);
+  },
+  'user32.dll!ScreenToClient': (r, a) => {
+    const window = r.windows.windows.get(a(0));
+    if (!window) return r.windows.fail(1400, 2);
+    const point = a(1);
+    r.check(point, 8, true);
+    // clientPosition() already includes the frame offsets.
+    const [x, y] = r.windows.clientPosition(window);
+    r.write32(point, ((r.read32(point) | 0) - x) | 0);
+    r.write32(point + 4, ((r.read32(point + 4) | 0) - y) | 0);
+    return result(1, 2);
+  },
+  'user32.dll!WindowFromPoint': (r, a) => {
+    const x = r.read32(a(0)) | 0,
+      y = r.read32(a(0) + 4) | 0;
+    return result(r.windows.windowFromPoint(x, y), 1);
+  },
+  'user32.dll!EnableWindow': (r, a) => {
+    const window = r.windows.windows.get(a(0));
+    if (!window) return r.windows.fail(1400, 2);
+    const previous = window.enabled !== false;
+    window.enabled = a(1) !== 0;
+    return result(previous ? 1 : 0, 2);
+  },
+  'user32.dll!IsWindowEnabled': (r, a) => {
+    const window = r.windows.windows.get(a(0));
+    if (!window) return r.windows.fail(1400, 1);
+    return result(window.enabled === false ? 0 : 1, 1);
+  },
+  'user32.dll!MessageBeep': (r, a) => {
+    r.emit?.({ type: 'beep', frequency: 800, durationMs: 120 });
+    return result(1, 1);
+  },
   'user32.dll!SetWindowPos': setWindowPos,
   'user32.dll!AdjustWindowRect': (r, a) => adjustRect(r, a, false),
   'user32.dll!AdjustWindowRectEx': (r, a) => adjustRect(r, a, true),
