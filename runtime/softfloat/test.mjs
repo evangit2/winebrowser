@@ -71,6 +71,44 @@ assert.equal(sf._wb_sf_from_i64(state, 4, out, 10, scalar, 8), 0);
 assert.equal(sf._wb_sf_to_i64(state, 4, scalar, 8, out, 10), 0);
 assert.equal(view().getBigInt64(scalar, true), 0x7fffffffffffffffn);
 
+// IEEE arithmetic rounds directly at the requested width. Halfway increments
+// distinguish nearest-even, directed modes and signed cancellation.
+const ieee = (format, op, left, right = 0n) => {
+  view().setBigUint64(a, BigInt(left), true);
+  view().setBigUint64(b, BigInt(right), true);
+  assert.equal(sf._wb_sf_ieee(state, 4, format, op, out, 8, a, 8, b, 8), 0);
+  return [view().getBigUint64(out, true), sf.HEAPU8[state + 3]];
+};
+for (const [rounding, increment] of [
+  [0, 0n],
+  [1, 0n],
+  [2, 0n],
+  [3, 1n],
+]) {
+  init(rounding);
+  assert.deepEqual(ieee(0, 0, 0x3f800000n, 0x33800000n), [0x3f800000n + increment, 1]);
+  assert.deepEqual(ieee(1, 0, 0x3ff0000000000000n, 0x3ca0000000000000n), [
+    0x3ff0000000000000n + increment,
+    1,
+  ]);
+}
+init(0);
+assert.deepEqual(ieee(0, 1, 0x40c00000n, 0x40000000n), [0x40800000n, 0]);
+assert.deepEqual(ieee(1, 2, 0x4008000000000000n, 0x4000000000000000n), [0x4018000000000000n, 0]);
+assert.deepEqual(ieee(0, 3, 0x3f800000n, 0n), [0x7f800000n, 8]);
+assert.deepEqual(ieee(1, 4, 0x4010000000000000n), [0x4000000000000000n, 0]);
+assert.deepEqual(ieee(0, 5, 0x1000001n), [0x4b800000n, 1]);
+assert.deepEqual(ieee(1, 6, 0x3ff8000000000000n), [2n, 1]);
+assert.deepEqual(ieee(0, 7, 0xbfc00000n), [0xffffffffn, 1]);
+assert.deepEqual(ieee(0, 6, 0x7fc00000n), [0x80000000n, 16]);
+assert.deepEqual(ieee(1, 8, 0x3fc00000n), [0x3ff8000000000000n, 0]);
+assert.deepEqual(ieee(0, 8, 0x3ff8000000000000n), [0x3fc00000n, 0]);
+assert.deepEqual(ieee(0, 9, 0x7fc00000n), [2n, 0]);
+assert.deepEqual(ieee(1, 10, 0x7ff8000000000000n), [2n, 16]);
+assert.equal(sf._wb_sf_ieee(state, 4, 2, 0, out, 8, a, 8, b, 8), -3);
+assert.equal(sf._wb_sf_ieee(state, 4, 0, 11, out, 8, a, 8, b, 8), -3);
+assert.equal(sf._wb_sf_ieee(state, 4, 0, 0, out, 7, a, 8, b, 8), -1);
+
 // Raw IEEE float encodings round-trip without host floating-point arithmetic.
 view().setBigUint64(scalar, 0x400921fb54442d18n, true);
 assert.equal(sf._wb_sf_from_f64(state, 4, out, 10, scalar, 8), 0);

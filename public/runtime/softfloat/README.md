@@ -1,8 +1,8 @@
-# Berkeley SoftFloat ext80 module
+# Berkeley SoftFloat ext80 and IEEE module
 
 This ES module factory wraps the pinned, unmodified Berkeley SoftFloat Release
 3e sources with a small MIT licensed C adapter. It provides deterministic
-x87-style 80-bit arithmetic for future x86 runtime use without including a CPU
+x87-style 80-bit and scalar IEEE arithmetic for the x86 runtime without including a CPU
 or PC emulator. Import `softfloat.js`, call its default export, and allocate
 arguments with `_malloc`. All multi-byte values use little endian byte order.
 
@@ -30,6 +30,16 @@ pointer argument is followed by its byte length.
 
 - `_wb_sf_binary(state,4,op,out,10,a,10,b,10)`: op 0 add, 1 subtract, 2
   multiply, or 3 divide.
+- `_wb_sf_ieee(state,4,format,op,out,8,a,8,b,8)`: direct binary32 (`format=0`)
+  or binary64 (`format=1`), without an ext80 intermediate. Operations are 0 add,
+  1 subtract, 2 multiply, 3 divide, 4 square root, 5 signed int32 to float,
+  6 float to int32 with the state's rounding, 7 float to int32 toward zero,
+  8 convert from the other float format, 9 quiet compare, and 10 signaling
+  compare. Unary operations read `a`; comparisons write int32 -1/0/1/2 for
+  less/equal/greater/unordered. Integer and binary32 results zero the high four
+  bytes. Invalid integer conversions return `INT32_MIN`. All three data buffers
+  must have eight bytes, even for binary32. MXCSR denormal, DAZ, FTZ and mask
+  handling is performed by the runtime; this ABI reports SoftFloat flags.
 - `_wb_sf_sqrt(state,4,out,10,a,10)`.
 - `_wb_sf_round(state,4,out,10,a,10)`: round directly from ext80 to integral
   ext80 using the state's rounding mode. It preserves the full ext80 range and

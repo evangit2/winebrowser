@@ -464,3 +464,271 @@ test('unsupported floating-point/SSE and MMX instructions still fail explicitly'
   const vexPaddw = machine([0xc5, 0xf1, 0xfd, 0xc2]); // vpaddw xmm0, xmm1, xmm2
   assert.throws(() => vexPaddw.cpu.step(CODE), /Unsupported instruction/);
 });
+
+const setScalar = (cpu, xmm, double, bits) => {
+  const view = new DataView(cpu.simd.registers[xmm].buffer);
+  if (double) view.setBigUint64(0, BigInt(bits), true);
+  else view.setUint32(0, Number(bits), true);
+};
+const scalarBits = (cpu, xmm, double) => {
+  const view = new DataView(cpu.simd.registers[xmm].buffer);
+  return double ? view.getBigUint64(0, true) : BigInt(view.getUint32(0, true));
+};
+const floatBits = (value, double) => {
+  const view = new DataView(new ArrayBuffer(8));
+  if (double) {
+    view.setFloat64(0, value, true);
+    return view.getBigUint64(0, true);
+  }
+  view.setFloat32(0, value, true);
+  return BigInt(view.getUint32(0, true));
+};
+
+test('scalar SSE arithmetic decodes register and unaligned memory operands, preserving upper lanes/flags', async () => {
+  for (const double of [false, true])
+    for (const memory of [false, true])
+      for (const [opcode, left, right, expected] of [
+        [0x58, 6, 2, 8],
+        [0x5c, 6, 2, 4],
+        [0x59, 6, 2, 12],
+        [0x5e, 6, 2, 3],
+        [0x51, -1, 4, 2],
+      ]) {
+        const { cpu, view } = machine([double ? 0xf2 : 0xf3, 0x0f, opcode, memory ? 0x00 : 0xc1]);
+        cpu.r[0].value = DATA + 1;
+        cpu.simd.registers[0].set([0, 0xfeedface, 0xdeadbeef, 0xcafefeed]);
+        setScalar(cpu, 0, double, floatBits(left, double));
+        setScalar(cpu, 1, double, floatBits(right, double));
+        if (double) view.setFloat64(DATA + 1, right, true);
+        else view.setFloat32(DATA + 1, right, true);
+        cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+        cpu.af = 1;
+        await cpu.prepare(CODE);
+        cpu.step(CODE);
+        assert.equal(scalarBits(cpu, 0, double), floatBits(expected, double));
+        assert.deepEqual(
+          lanes(cpu).slice(double ? 2 : 1),
+          double ? [0xdeadbeef, 0xcafefeed] : [0xfeedface, 0xdeadbeef, 0xcafefeed],
+        );
+        assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+        assert.equal(cpu.af, 1);
+        assert.equal(cpu.simd.mxcsr, 0x1f80);
+        cpu.dispose();
+      }
+});
+
+test('MXCSR rounding controls arithmetic and conversions independently from x87', async () => {
+  for (const double of [false, true])
+    for (let rounding = 0; rounding < 4; rounding++) {
+      const { cpu } = machine([double ? 0xf2 : 0xf3, 0x0f, 0x58, 0xc1]);
+      cpu.simd.mxcsr = 0x1f80 | (rounding << 13);
+      const one = floatBits(1, double);
+      setScalar(cpu, 0, double, one);
+      setScalar(cpu, 1, double, floatBits(2 ** (double ? -53 : -24), double));
+      await cpu.prepare(CODE);
+      cpu.step(CODE);
+      assert.equal(scalarBits(cpu, 0, double), one + (rounding === 2 ? 1n : 0n));
+      assert.equal(cpu.simd.mxcsr & 63, 32);
+      assert.equal(cpu.x87.control, 0x37f);
+      cpu.dispose();
+    }
+  for (const double of [false, true])
+    for (const memory of [false, true])
+      for (const opcode of [0x2c, 0x2d])
+        for (let rounding = 0; rounding < 4; rounding++) {
+          const { cpu, view } = machine([double ? 0xf2 : 0xf3, 0x0f, opcode, memory ? 0x08 : 0xc8]); // ecx <- xmm0/[eax]
+          cpu.r[0].value = DATA;
+          cpu.simd.mxcsr = 0x1f80 | (rounding << 13);
+          setScalar(cpu, 0, double, floatBits(-1.5, double));
+          if (double) view.setFloat64(DATA, -1.5, true);
+          else view.setFloat32(DATA, -1.5, true);
+          await cpu.prepare(CODE);
+          cpu.step(CODE);
+          assert.equal(cpu.r[1].value, opcode === 0x2c || rounding >= 2 ? -1 : -2);
+          assert.equal(cpu.simd.mxcsr & 63, 32);
+          cpu.dispose();
+        }
+  for (const memory of [false, true]) {
+    const { cpu, view } = machine([0xf3, 0x0f, 0x2a, memory ? 0x00 : 0xc0]);
+    cpu.r[0].value = memory ? DATA : 0x1000001;
+    view.setUint32(DATA, 0x1000001, true);
+    cpu.simd.mxcsr = 0x5f80;
+    await cpu.prepare(CODE);
+    cpu.step(CODE);
+    assert.equal(scalarBits(cpu, 0, false), 0x4b800001n);
+    assert.equal(cpu.simd.mxcsr & 63, 32);
+    cpu.dispose();
+  }
+  for (const double of [false, true])
+    for (const memory of [false, true]) {
+      const { cpu, view } = machine([double ? 0xf3 : 0xf2, 0x0f, 0x5a, memory ? 0x00 : 0xc1]);
+      cpu.r[0].value = DATA;
+      cpu.simd.registers[0].set([0, 0x1234, 0x5678, 0x9abc]);
+      setScalar(cpu, 1, !double, floatBits(1.5, !double));
+      if (double) view.setFloat32(DATA, 1.5, true);
+      else view.setFloat64(DATA, 1.5, true);
+      await cpu.prepare(CODE);
+      cpu.step(CODE);
+      assert.equal(scalarBits(cpu, 0, double), floatBits(1.5, double));
+      assert.deepEqual(
+        lanes(cpu).slice(double ? 2 : 1),
+        double ? [0x5678, 0x9abc] : [0x1234, 0x5678, 0x9abc],
+      );
+      cpu.dispose();
+    }
+});
+
+test('scalar SSE honors DAZ, FTZ, sticky exceptions and pre-computation exception priority', async () => {
+  for (const double of [false, true])
+    for (const [opcode, left, right, control, expected, flags] of [
+      [0x58, 1n, 1n, 0x1f80, 2n, 2],
+      [0x58, 1n, 1n, 0x1fc0, 0n, 0],
+      [0x59, double ? 0x10000000000000n : 0x800000n, floatBits(0.5, double), 0x9f80, 0n, 48],
+      [
+        0x59,
+        double ? 0x8010000000000000n : 0x80800000n,
+        floatBits(0.5, double),
+        0x9f80,
+        double ? 0x8000000000000000n : 0x80000000n,
+        48,
+      ],
+      [0x5e, 1n, 0n, 0x1f80, floatBits(Infinity, double), 4],
+      [
+        0x58,
+        double ? 0x7ff8000000000001n : 0x7fc00001n,
+        1n,
+        0x1f80,
+        double ? 0x7ff8000000000001n : 0x7fc00001n,
+        0,
+      ],
+      [
+        0x58,
+        double ? 0x7ff0000000000001n : 0x7f800001n,
+        1n,
+        0x1f80,
+        double ? 0x7ff8000000000001n : 0x7fc00001n,
+        1,
+      ],
+    ]) {
+      const { cpu } = machine([double ? 0xf2 : 0xf3, 0x0f, opcode, 0xc1]);
+      setScalar(cpu, 0, double, left);
+      setScalar(cpu, 1, double, right);
+      cpu.simd.mxcsr = control;
+      await cpu.prepare(CODE);
+      cpu.step(CODE);
+      assert.equal(scalarBits(cpu, 0, double), expected);
+      assert.equal(cpu.simd.mxcsr & 63, flags);
+      cpu.dispose();
+    }
+  for (const [opcode, left, right, control, flags] of [
+    [0x5e, 1, 0, 0x1d80, 4],
+    [0x51, 0, -1, 0x1f00, 1],
+    [0x58, 1, 2 ** -24, 0x0f80, 32],
+    [0x59, 2 ** -126, 0.5, 0x9780, 16], // FTZ is ignored when UM is clear.
+    [0x5e, 2 ** -149, 3, 0x1e80, 2], // Unmasked DE prevents UE/PE.
+  ]) {
+    const { cpu } = machine([0xf3, 0x0f, opcode, 0xc1]);
+    setScalar(cpu, 0, false, floatBits(left, false));
+    setScalar(cpu, 1, false, floatBits(right, false));
+    const before = lanes(cpu);
+    cpu.simd.mxcsr = control;
+    await cpu.prepare(CODE);
+    assert.throws(() => cpu.step(CODE), /Unmasked SIMD floating-point exception/);
+    assert.deepEqual(lanes(cpu), before);
+    assert.equal(cpu.simd.mxcsr & 63, flags);
+    cpu.dispose();
+  }
+});
+
+test('COMI/UCOMI set integer condition flags and distinguish signaling/quiet NaNs', async () => {
+  for (const double of [false, true])
+    for (const opcode of [0x2e, 0x2f])
+      for (const [left, right, cf, zf, pf] of [
+        [1, 2, 1, 0, 0],
+        [2, 1, 0, 0, 0],
+        [-0, 0, 0, 1, 0],
+        [NaN, 1, 1, 1, 1],
+      ]) {
+        const { cpu } = machine([...(double ? [0x66] : []), 0x0f, opcode, 0xc1]);
+        setScalar(cpu, 0, double, floatBits(left, double));
+        setScalar(cpu, 1, double, floatBits(right, double));
+        cpu.f = { cf: 0, zf: 0, pf: 0, sf: 1, of: 1 };
+        cpu.af = 1;
+        const before = lanes(cpu);
+        await cpu.prepare(CODE);
+        cpu.step(CODE);
+        assert.deepEqual(cpu.f, { cf, zf, pf, sf: 0, of: 0 });
+        assert.equal(cpu.af, 0);
+        assert.deepEqual(lanes(cpu), before);
+        assert.equal(cpu.simd.mxcsr & 63, Number(Number.isNaN(left) && opcode === 0x2f));
+        cpu.dispose();
+      }
+  const { cpu } = machine([0x0f, 0x2f, 0xc1]);
+  setScalar(cpu, 0, false, 0x7fc00000n);
+  cpu.simd.mxcsr = 0x1f00;
+  cpu.f = { cf: 1, zf: 0, pf: 0, sf: 1, of: 1 };
+  cpu.af = 1;
+  await cpu.prepare(CODE);
+  assert.throws(() => cpu.step(CODE), /Unmasked SIMD/);
+  assert.deepEqual(cpu.f, { cf: 1, zf: 0, pf: 0, sf: 1, of: 1 });
+  assert.equal(cpu.af, 1);
+  cpu.dispose();
+});
+
+test('MXCSR loads/stores validate reserved bits and memory faults leave scalar state untouched', async () => {
+  const { cpu, view } = machine([0x0f, 0xae, 0x10, 0x0f, 0xae, 0x19]); // ldmxcsr [eax]; stmxcsr [ecx]
+  cpu.r[0].value = DATA + 1;
+  cpu.r[1].value = DATA + 9;
+  view.setUint32(DATA + 1, 0xffc1, true);
+  cpu.step(CODE);
+  assert.equal(view.getUint32(DATA + 9, true), 0xffc1);
+  view.setUint32(DATA + 1, 0x10000, true);
+  assert.throws(() => cpu.step(CODE), /reserved bits/);
+  assert.equal(cpu.simd.mxcsr, 0xffc1);
+  for (const code of [
+    [0x0f, 0xae, 0x10],
+    [0x0f, 0xae, 0x18],
+    [0xf2, 0x0f, 0x5c, 0x00],
+  ]) {
+    const m = machine(code, {
+      check: () => {
+        throw Error('denied read/write');
+      },
+    });
+    m.cpu.simd.registers[0].set([1, 2, 3, 4]);
+    const before = m.cpu.simd.snapshot();
+    await m.cpu.prepare(CODE);
+    assert.throws(() => m.cpu.step(CODE), /denied read\/write/);
+    assert.deepEqual(m.cpu.simd.snapshot(), before);
+    m.cpu.dispose();
+  }
+});
+
+test('MOVAPD/MOVUPD move all 128 bits with the architectural alignment requirement', () => {
+  const expected = [0x01234567, 0x7ff00000, 0x89abcdef, 0xfff80000];
+  for (const aligned of [false, true]) {
+    const load = aligned ? 0x28 : 0x10,
+      store = aligned ? 0x29 : 0x11;
+    for (const opcode of [load, store]) {
+      const { cpu } = machine([0x66, 0x0f, opcode, opcode === load ? 0xc1 : 0xc8]);
+      cpu.simd.registers[1].set(expected);
+      cpu.step(CODE);
+      assert.deepEqual(lanes(cpu), expected);
+    }
+    const { cpu, view } = machine([0x66, 0x0f, load, 0x00, 0x66, 0x0f, store, 0x01]);
+    const address = DATA + Number(!aligned);
+    cpu.r[0].value = address;
+    cpu.r[1].value = address + 32;
+    expected.forEach((v, n) => view.setUint32(address + n * 4, v, true));
+    cpu.step(CODE);
+    assert.deepEqual(lanes(cpu), expected);
+    assert.deepEqual(
+      expected.map((_, n) => view.getUint32(address + 32 + n * 4, true)),
+      expected,
+    );
+    if (aligned) {
+      cpu.r[0].value = DATA + 1;
+      assert.throws(() => cpu.step(CODE), /16-byte alignment/);
+    }
+  }
+});

@@ -108,11 +108,11 @@ and packed BASS translation. WinMM mixer and multimedia time exports resolve,
 as do the native ACM/UCRT exports and virtual foreground-window queries. The
 OLE32 exports now resolve, including `CoCreateInstance`. Extended-precision
 logarithms, trigonometry and `FXAM` now execute, followed by scalar SSE moves and
-signed-int32-to-double conversion. The current stop is scalar SSE `SUBSD` in
-Wine's CRT. Floating-point SSE arithmetic and MXCSR state remain unfinished.
-The game has not reached
+signed-int32-to-double conversion. Scalar SSE arithmetic, square roots,
+conversions, comparisons and MXCSR now execute; the current stop is `SHRD
+EAX,EDX,CL` in Wine's CRT (`msvcrt.dll+0x5b164`). The game has not reached
 its EXE entry or rendered a frame. Native ACM conversion and BASS playback have
-not been verified. The next work is x87 execution and the remaining native
+not been verified. The next work is double-width integer shifts and the remaining native
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.

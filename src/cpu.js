@@ -45,6 +45,8 @@ export class CPU {
         return address;
       });
     this.simd = new SIMDState(this.r, {
+      getModule: () => this.x87.sf,
+      flags: this,
       read: (address, width) => (read ? read(address, width) : read32(address)),
       write: (address, value, width) =>
         write ? write(address, value, width) : write32(address, value),
@@ -681,6 +683,7 @@ export class CPU {
             if (i.hasRepPrefix || i.hasRepnePrefix) throw Error('Repeat prefix unsupported');
             code.push(...constant(m === M.Std ? 1 : 0), ...call(Host.direction));
           } else if (simd) {
+            if (simd.floating) usesX87 = true;
             code.push(
               ...constant(simd.op | (simd.aligned ? 0x100 : 0)),
               ...constant(simd.dst),
@@ -1153,6 +1156,7 @@ export class CPU {
       }
   }
   dispose() {
+    this.simd.dispose();
     this.x87.dispose();
   }
 }

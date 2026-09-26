@@ -50,9 +50,12 @@ D3D10/11 and broader D3D12 support are still required.
       scalar `MOVSD`/`MOVSS` register/memory semantics and exact signed-int32
       `CVTSI2SD`. A native fixture passes in Node and Chromium; memory-fault
       tests verify destination preservation.
-- [ ] Continue BASS startup through the Wine CRT's scalar SSE arithmetic path,
-      starting with `SUBSD`. Add arithmetic with MXCSR rounding/exception state;
-      the existing SoftFloat source provides a reusable binary64 implementation.
+- [x] Execute scalar SSE add/subtract/multiply/divide/square root directly in
+      SoftFloat binary32/binary64, with int32/float-width conversions, COMI/UCOMI,
+      MXCSR rounding/status/DAZ/FTZ and callback context preservation. Native
+      fixture passes in Node/Chromium. MOVAPD/MOVUPD reuse checked 128-bit moves.
+      Packed float, AVX and guest #XM delivery remain unsupported.
+- [ ] Continue BASS startup through `SHRD EAX,EDX,CL` in Wine's CRT.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

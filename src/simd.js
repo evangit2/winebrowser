@@ -1,4 +1,6 @@
-// Selected SSE data movement and integer-lane operations used by Wine's heap.
+import { SIMDFloat } from './simd-float.js';
+
+// Selected legacy SSE operations. Packed floating arithmetic and AVX remain unsupported.
 export const SIMD_OP = Object.freeze({
   MOVD_XMM_GPR: 1,
   MOVD_XMM_MEM: 2,
@@ -27,9 +29,39 @@ export const SIMD_OP = Object.freeze({
   MOVSD_XMM_XMM: 25,
   CVTSI2SD_XMM_GPR: 26,
   CVTSI2SD_XMM_MEM: 27,
+  FLOAT_SCALAR: 28,
+  LDMXCSR: 29,
+  STMXCSR: 30,
 });
 
-const ALIGNED_MOVES = new Set(['Movdqa', 'Movaps']);
+const floatingCodes = new WeakMap();
+function scalarCodes(C) {
+  if (!floatingCodes.has(C)) {
+    const codes = new Map();
+    for (const [format, suffix, width] of [
+      [0, 'ss', 32],
+      [1, 'sd', 64],
+    ]) {
+      for (const [op, name] of ['Add', 'Sub', 'Mul', 'Div', 'Sqrt'].entries())
+        codes.set(C[`${name}${suffix}_xmm_xmmm${width}`], { op, format });
+      codes.set(C[`Cvtsi2${suffix}_xmm_rm32`], { op: 5, format });
+      codes.set(C[`Cvt${suffix}2si_r32_xmmm${width}`], { op: 6, format });
+      codes.set(C[`Cvtt${suffix}2si_r32_xmmm${width}`], { op: 7, format });
+      codes.set(C[`Cvt${format ? 'ss2sd' : 'sd2ss'}_xmm_xmmm${format ? 32 : 64}`], {
+        op: 8,
+        format,
+      });
+      codes.set(C[`Ucomi${suffix}_xmm_xmmm${width}`], { op: 9, format });
+      codes.set(C[`Comi${suffix}_xmm_xmmm${width}`], { op: 10, format });
+    }
+    // This exact conversion already has a cheap integer-to-binary64 path.
+    codes.delete(C.Cvtsi2sd_xmm_rm32);
+    floatingCodes.set(C, codes);
+  }
+  return floatingCodes.get(C);
+}
+
+const ALIGNED_MOVES = new Set(['Movdqa', 'Movaps', 'Movapd']);
 
 const xmmIndex = (instruction, operand, kind, register) => {
   if (instruction.opKind(operand) !== kind.Register) return null;
@@ -77,7 +109,33 @@ export function classifySse(instruction, iced) {
     return { op: opReg, dst: dst.reg, src: src.reg, addressOperand: -1, aligned: true };
   };
 
+  const floating = scalarCodes(C).get(instruction.code);
+  if (floating) {
+    const { op, format } = floating;
+    const dst = op === 6 || op === 7 ? gpr(0) : xmm(0);
+    const src = op === 5 ? gpr(1) : xmm(1);
+    const width = op === 5 || (op === 8 ? format : !format) ? mem32 : mem64;
+    if (dst === null || (src === null && !width(1))) return null;
+    return {
+      op: SIMD_OP.FLOAT_SCALAR,
+      dst,
+      src: src ?? 0,
+      immediate: op | (format << 4) | (src === null ? 32 : 0),
+      addressOperand: src === null ? 1 : -1,
+      floating: true,
+    };
+  }
+
   switch (instruction.code) {
+    case C.Ldmxcsr_m32:
+    case C.Stmxcsr_m32:
+      if (!mem32(0)) return null;
+      return {
+        op: instruction.code === C.Ldmxcsr_m32 ? SIMD_OP.LDMXCSR : SIMD_OP.STMXCSR,
+        dst: 0,
+        src: 0,
+        addressOperand: 0,
+      };
     case C.Cvtsi2sd_xmm_rm32: {
       const dst = xmm(0),
         src = gpr(1);
@@ -159,6 +217,8 @@ export function classifySse(instruction, iced) {
     case C.Movdqa_xmm_xmmm128:
     case C.Movdqu_xmm_xmmm128:
     case C.Movups_xmm_xmmm128:
+    case C.Movupd_xmm_xmmm128:
+    case C.Movapd_xmm_xmmm128:
     case C.Movaps_xmm_xmmm128: {
       const move = vector(SIMD_OP.MOV128_XMM_XMM, SIMD_OP.MOV128_XMM_MEM);
       if (!move) return null;
@@ -168,6 +228,8 @@ export function classifySse(instruction, iced) {
     case C.Movdqa_xmmm128_xmm:
     case C.Movdqu_xmmm128_xmm:
     case C.Movups_xmmm128_xmm:
+    case C.Movupd_xmmm128_xmm:
+    case C.Movapd_xmmm128_xmm:
     case C.Movaps_xmmm128_xmm: {
       const dst = destination(0, mem128);
       const src = source(1, mem128);
@@ -247,28 +309,47 @@ export function classifySse(instruction, iced) {
 
 /** Mutable eight-register SSE state plus the explicit supported operation set. */
 export class SIMDState {
-  constructor(generalRegisters, { read, write, check }) {
+  constructor(generalRegisters, { read, write, check, getModule, flags }) {
     this.registers = Array.from({ length: 8 }, () => new Uint32Array(4));
     this.generalRegisters = generalRegisters;
     this.read = read;
     this.write = write;
     this.check = check;
     this.scalar64 = new DataView(new ArrayBuffer(8));
+    this.float = new SIMDFloat(getModule);
+    this.flags = flags;
+  }
+
+  get mxcsr() {
+    return this.float.mxcsr;
+  }
+  set mxcsr(value) {
+    this.float.mxcsr = value;
+  }
+  dispose() {
+    this.float.dispose();
   }
 
   snapshot() {
-    return this.registers.map((register) => register.slice());
+    return { registers: this.registers.map((register) => register.slice()), mxcsr: this.mxcsr };
   }
 
   restore(snapshot) {
-    if (!Array.isArray(snapshot) || snapshot.length !== 8)
+    if (
+      !Number.isInteger(snapshot?.mxcsr) ||
+      snapshot.mxcsr < 0 ||
+      snapshot.mxcsr > 0xffff ||
+      !Array.isArray(snapshot.registers) ||
+      snapshot.registers.length !== 8
+    )
       throw Error('Invalid SIMD snapshot: expected eight XMM registers');
-    const restored = snapshot.map((register) => {
+    const restored = snapshot.registers.map((register) => {
       if ((!Array.isArray(register) && !(register instanceof Uint32Array)) || register.length !== 4)
         throw Error('Invalid SIMD snapshot: each XMM register must contain four dwords');
       return Uint32Array.from(register, (value) => value >>> 0);
     });
     this.registers = restored;
+    this.mxcsr = snapshot.mxcsr;
   }
 
   readMemory(address, size) {
@@ -297,6 +378,45 @@ export class SIMDState {
     const load = (size) => this.readMemory(address, size);
     const store = (values, size) => this.writeMemory(address, values, size);
     switch (op) {
+      case SIMD_OP.LDMXCSR: {
+        const value = load(4)[0];
+        if (value & 0xffff0000)
+          throw Error('LDMXCSR reserved bits cause a general-protection fault');
+        this.mxcsr = value;
+        return;
+      }
+      case SIMD_OP.STMXCSR:
+        store([this.mxcsr], 4);
+        return;
+      case SIMD_OP.FLOAT_SCALAR: {
+        const operation = immediate & 15,
+          double = !!(immediate & 16);
+        const sourceDouble = operation === 8 ? !double : double;
+        const value =
+          immediate & 32
+            ? load(operation === 5 || !sourceDouble ? 4 : 8)
+            : operation === 5
+              ? [this.generalRegisters[src].value, 0]
+              : s;
+        const binary = operation <= 3 || operation >= 9;
+        const result = this.float.execute(operation, double, binary ? d : value, value);
+        if (operation === 6 || operation === 7) this.generalRegisters[dst].value = result[0] | 0;
+        else if (operation >= 9) {
+          const comparison = result[0] | 0;
+          Object.assign(this.flags.f, {
+            cf: comparison === -1 || comparison === 2 ? 1 : 0,
+            zf: comparison === 0 || comparison === 2 ? 1 : 0,
+            pf: comparison === 2 ? 1 : 0,
+            sf: 0,
+            of: 0,
+          });
+          this.flags.af = 0;
+        } else {
+          d[0] = result[0];
+          if (double) d[1] = result[1];
+        }
+        return;
+      }
       case SIMD_OP.CVTSI2SD_XMM_GPR:
       case SIMD_OP.CVTSI2SD_XMM_MEM: {
         // Every signed 32-bit integer is exactly representable in binary64:

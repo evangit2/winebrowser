@@ -126,6 +126,56 @@ int wb_sf_binary(wb_state *state, uint32_t state_size, uint32_t operation,
     return finish(state, &saved, WB_OK);
 }
 
+/* Direct IEEE arithmetic avoids rounding through an intermediate ext80 value.
+ * format selects the result width (0=f32, 1=f64); conversion op 8 reads the
+ * other floating format. Every data buffer occupies eight bytes. */
+int wb_sf_ieee(wb_state *state, uint32_t state_size, uint32_t format,
+        uint32_t operation, uint8_t *out, uint32_t out_size,
+        const uint8_t *a, uint32_t a_size, const uint8_t *b, uint32_t b_size)
+{
+    if (state_size < 4 || out_size < 8 || a_size < 8 || b_size < 8 ||
+            !bounded(out, out_size) || !bounded(a, a_size) || !bounded(b, b_size)) return WB_BOUNDS;
+    if (format > 1 || operation > 10) return WB_OPERATION;
+    saved_state saved;
+    int status = begin(state, &saved);
+    if (status) return status;
+    uint64_t result = 0;
+    uint_fast8_t rounding = operation == 7 ? softfloat_round_minMag : state->rounding;
+    if (format == 0) {
+        float32_t av = {read_u32(a)}, bv = {read_u32(b)};
+        if (operation == 0) result = f32_add(av, bv).v;
+        else if (operation == 1) result = f32_sub(av, bv).v;
+        else if (operation == 2) result = f32_mul(av, bv).v;
+        else if (operation == 3) result = f32_div(av, bv).v;
+        else if (operation == 4) result = f32_sqrt(av).v;
+        else if (operation == 5) result = i32_to_f32((int32_t)av.v).v;
+        else if (operation == 6 || operation == 7) result = (uint32_t)f32_to_i32(av, rounding, true);
+        else if (operation == 8) { float64_t input = {read_u64(a)}; result = f64_to_f32(input).v; }
+        else {
+            bool equal = operation == 9 ? f32_eq(av, bv) : f32_eq_signaling(av, bv);
+            bool less = f32_lt_quiet(av, bv), greater = f32_lt_quiet(bv, av);
+            result = (uint32_t)(equal ? 0 : less ? -1 : greater ? 1 : 2);
+        }
+    } else {
+        float64_t av = {read_u64(a)}, bv = {read_u64(b)};
+        if (operation == 0) result = f64_add(av, bv).v;
+        else if (operation == 1) result = f64_sub(av, bv).v;
+        else if (operation == 2) result = f64_mul(av, bv).v;
+        else if (operation == 3) result = f64_div(av, bv).v;
+        else if (operation == 4) result = f64_sqrt(av).v;
+        else if (operation == 5) result = i32_to_f64((int32_t)av.v).v;
+        else if (operation == 6 || operation == 7) result = (uint32_t)f64_to_i32(av, rounding, true);
+        else if (operation == 8) { float32_t input = {(uint32_t)av.v}; result = f32_to_f64(input).v; }
+        else {
+            bool equal = operation == 9 ? f64_eq(av, bv) : f64_eq_signaling(av, bv);
+            bool less = f64_lt_quiet(av, bv), greater = f64_lt_quiet(bv, av);
+            result = (uint32_t)(equal ? 0 : less ? -1 : greater ? 1 : 2);
+        }
+    }
+    write_u64(out, result);
+    return finish(state, &saved, WB_OK);
+}
+
 int wb_sf_sqrt(wb_state *state, uint32_t state_size, uint8_t *out,
         uint32_t out_size, const uint8_t *a, uint32_t a_size)
 {

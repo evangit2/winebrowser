@@ -15,6 +15,18 @@ async function callbackRuntime(fail) {
   // A separate block faults after changing XMM3, exercising exceptional cleanup.
   bytes.set(
     [
+      0x68,
+      0xc0,
+      0xff,
+      0,
+      0, // push 0xffc0
+      0x0f,
+      0xae,
+      0x14,
+      0x24, // ldmxcsr [esp]
+      0x83,
+      0xc4,
+      4, // add esp,4
       0xfd, // STD: callback-local direction flag must be restored too.
       0xb4,
       0x10,
@@ -43,6 +55,7 @@ for (const fail of [false, true]) {
   test(`guest callbacks restore full CPU context after ${fail ? 'a fault' : 'returning'}`, async () => {
     const runtime = await callbackRuntime(fail);
     runtime.cpu.simd.registers.forEach((r, n) => r.set([n + 1, n + 2, n + 3, n + 4]));
+    runtime.cpu.simd.mxcsr = 0x3fa1;
     const vectors = runtime.cpu.simd.snapshot();
     const registers = runtime.cpu.r.map((r) => r.value);
     const flags = { ...runtime.cpu.f };
