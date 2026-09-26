@@ -1,6 +1,6 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
-import { fyl2x, sincos } from './x87-transcendentals.js';
+import { fyl2x, fpatan, sincos } from './x87-transcendentals.js';
 import { roundedMagnitudeUp } from './x87-rounding.js';
 export const X87Op = Object.freeze({
   loadFloat: 0,
@@ -24,6 +24,7 @@ export const X87Op = Object.freeze({
   wait: 18,
   logarithm: 19,
   trigonometric: 20,
+  arctangent: 23,
   examine: 21,
   free: 22,
 });
@@ -121,6 +122,8 @@ export function classifyX87(i, iced) {
   if (m === M.Fsqrt) return result(X87Op.sqrt);
   if (m === M.Frndint) return result(X87Op.round);
   if (m === M.Fyl2x) return result(X87Op.logarithm);
+  // FPATAN: arctan(ST(1)/ST(0)); the density reflects two stack operands.
+  if (m === M.Fpatan) return result(X87Op.arctangent);
   if (m === M.Fsin || m === M.Fcos || m === M.Fsincos)
     return result(X87Op.trigonometric, m === M.Fsin ? 0 : m === M.Fcos ? 1 : 2);
   if (m === M.Fxam) return result(X87Op.examine);
@@ -497,6 +500,16 @@ export class X87State {
     }
     if (op === X87Op.logarithm) {
       const result = fyl2x(this.#value(0), this.#value(1), (this.control >>> 10) & 3);
+      this.status &= ~0x200;
+      if (result.flags) this.#exception(result.flags, false);
+      if (result.roundedUp) this.status |= 0x200;
+      this.#set(1, result.bytes);
+      this.#pop();
+      return;
+    }
+    if (op === X87Op.arctangent) {
+      // Result replaces ST(1); ST(0) is popped, matching FSTP ST(1).
+      const result = fpatan(this.#value(1), this.#value(0), (this.control >>> 10) & 3);
       this.status &= ~0x200;
       if (result.flags) this.#exception(result.flags, false);
       if (result.roundedUp) this.status |= 0x200;

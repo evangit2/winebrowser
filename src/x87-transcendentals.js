@@ -338,3 +338,160 @@ export function sincos(xBytes, rounding) {
   }
   throw Error('x87 trigonometric rounding could not be resolved within the precision bound');
 }
+
+// ---------------------------------------------------------------------------
+// FPATAN: arctan(ST(1)/ST(0)) with two-argument quadrant selection.
+//
+// Values are exact big integers scaled by 2^precision. atan is evaluated over
+// an interval whose endpoints are rounded outward, and the caller's precision
+// loop accepts a result only when both endpoints round to the same ext80 value.
+
+function ceilDiv(n, d) {
+  if (d <= 0n) throw Error('x87 arctangent: non-positive divisor');
+  return n >= 0n ? (n + d - 1n) / d : -(-n / d);
+}
+
+// Floor integer square root.
+function isqrt(n) {
+  if (n < 0n) throw Error('x87 arctangent: negative square');
+  if (n < 2n) return n;
+  let x = 1n << BigInt((n.toString(2).length + 1) >> 1);
+  for (;;) {
+    const next = (x + n / x) >> 1n;
+    if (next >= x) return x;
+    x = next;
+  }
+}
+
+// atan(v) scaled by 2^precision over 0 <= v <= 1/16, rounded outward. The
+// alternating series has decreasing terms, so a fixed-point partial sum plus a
+// one-ulp tail padding bounds the true value in the requested direction.
+function atanSmall(v, precision, upper) {
+  if (v <= 0n) return 0n;
+  const P = BigInt(precision),
+    squareShift = 1n << (2n * P),
+    square = v * v;
+  let power = v,
+    sum = v;
+  // v <= 2^(P-4), so v^(2k+1) < 2^-P once k > P/8; P terms is ample. The
+  // omitted alternating tail is smaller than the last included term.
+  const terms = P + 2n;
+  let tail = 0n;
+  for (let k = 1n; k <= terms; k++) {
+    const scaled = power * square;
+    power = upper ? ceilDiv(scaled, squareShift) : scaled / squareShift;
+    const divisor = 2n * k + 1n;
+    if (k & 1n) sum = upper ? sum - ceilDiv(power, divisor) : sum - power / divisor;
+    else sum = upper ? sum + ceilDiv(power, divisor) : sum + power / divisor;
+    if (power === 0n) return upper ? sum + 1n : sum - 1n;
+    tail = ceilDiv(power, divisor) + 1n;
+  }
+  return upper ? sum + tail : sum - tail;
+}
+
+// atan(r) scaled by 2^precision for an exact r >= 0, rounded outward. Large
+// arguments use atan(r) = pi/2 - atan(1/r); the rest is halved by
+// atan(r) = 2 atan(r / (1 + sqrt(1 + r^2))) until the series is accurate.
+function atanScaled(r, precision, upper) {
+  const P = BigInt(precision),
+    one = 1n << P;
+  if (r <= 0n) return 0n;
+  if (r > one) {
+    const inverseScaled = 1n << (2n * P);
+    const inner = upper ? ceilDiv(inverseScaled, r) : inverseScaled / r;
+    const [piLo, piHi] = piInterval(precision);
+    const halfPi = upper ? piLo / 2n : ceilDiv(piHi, 2n);
+    const innerAtan = atanScaled(inner, precision, !upper);
+    return upper ? halfPi - innerAtan : halfPi - innerAtan;
+  }
+  const limit = one >> 4n;
+  let value = r,
+    halvings = 0n;
+  while (value > limit) {
+    const squared = value * value,
+      inside = squared + (1n << (2n * P));
+    const rootFloor = isqrt(inside);
+    let rootHi = rootFloor;
+    if (rootHi * rootHi < inside) rootHi += 1n;
+    const denominator = upper ? one + rootFloor : one + rootHi;
+    value = upper ? ceilDiv(value * one, denominator) : (value * one) / denominator;
+    if (++halvings > 4096n) throw Error('x87 arctangent reduction exceeded');
+  }
+  return atanSmall(value, precision, upper) << halvings;
+}
+
+// Interval for atan of the nonnegative interval [rLo, rHi] scaled by 2^precision.
+function atanInterval(rLo, rHi, precision) {
+  return [atanScaled(rLo, precision, false), atanScaled(rHi, precision, true)];
+}
+
+export function fpatan(yBytes, xBytes, rounding) {
+  const y = unpack(yBytes),
+    x = unpack(xBytes),
+    nan = specialNaN(x, y);
+  if (nan) return nan;
+  const denormal = x.denormal || y.denormal ? 2 : 0;
+
+  const sameInterval = (lo, hi, precision) => {
+    const lower = roundDyadic(lo, -precision, rounding),
+      upper = roundDyadic(hi, -precision, rounding);
+    lower.flags |= 0x20 | denormal;
+    upper.flags |= 0x20 | denormal;
+    return sameResult(lower, upper) ? lower : null;
+  };
+
+  // Constant multiples of pi, evaluated outward at each precision.
+  const piMultiple = (num, den) => {
+    for (let precision = 192; precision <= 6144; precision *= 2) {
+      const [piLo, piHi] = piInterval(precision);
+      const lo = (piLo * BigInt(num)) / BigInt(den),
+        hi = ceilDiv(piHi * BigInt(num), BigInt(den));
+      const result = sameInterval(lo, hi, precision);
+      if (result) return result;
+    }
+    throw Error('x87 arctangent constant could not be resolved');
+  };
+
+  const yAbs = y.sig,
+    xAbs = x.sig;
+
+  // Zero/infinite divisors have exact results independent of the ratio.
+  if (x.zero && !y.zero) return y.negative ? piMultiple(-1, 2) : piMultiple(1, 2);
+  if (x.zero && y.zero) return zero(x.negative && y.negative);
+  if (y.zero) {
+    if (!x.negative) return zero(y.negative);
+    return y.negative ? piMultiple(-1, 1) : piMultiple(1, 1);
+  }
+  if (y.infinity && x.infinity) {
+    if (!x.negative) return y.negative ? piMultiple(-1, 4) : piMultiple(1, 4);
+    return y.negative ? piMultiple(-3, 4) : piMultiple(3, 4);
+  }
+  if (y.infinity) return y.negative ? piMultiple(-1, 2) : piMultiple(1, 2);
+  if (x.infinity) {
+    if (!x.negative) return zero(y.negative);
+    return y.negative ? piMultiple(-1, 1) : piMultiple(1, 1);
+  }
+  if (y.invalid || x.invalid) return invalid();
+
+  for (let precision = 192; precision <= 6144; precision *= 2) {
+    const shift = BigInt(y.shift - x.shift + precision);
+    const numerator = shift >= 0n ? yAbs << shift : yAbs,
+      denominator = shift >= 0n ? xAbs : xAbs << -shift;
+    if (!denominator) throw Error('x87 arctangent: zero divisor');
+    const rLo = numerator / denominator,
+      rHi = ceilDiv(numerator, denominator);
+    const [phiLo, phiHi] = atanInterval(rLo, rHi, precision);
+    let lo, hi;
+    if (!x.negative) {
+      if (!y.negative) [lo, hi] = [phiLo, phiHi];
+      else [lo, hi] = [-phiHi, -phiLo];
+    } else {
+      const [piLo, piHi] = piInterval(precision);
+      if (!y.negative) [lo, hi] = [piLo - phiHi, piHi - phiLo];
+      else [lo, hi] = [phiLo - piHi, phiHi - piLo];
+    }
+    const result = sameInterval(lo, hi, precision);
+    if (result) return result;
+  }
+  throw Error('x87 arctangent rounding could not be resolved within the precision bound');
+}

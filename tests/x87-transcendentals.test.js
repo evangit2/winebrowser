@@ -60,3 +60,91 @@ test('FYL2X handles signed zeros, infinities, invalid formats and NaNs without n
     assert.equal(result.flags, flags, `${x}, ${y}`);
   }
 });
+
+// Encode a binary64 value as an ext80 (x87 long double) byte sequence. The
+// significand gains the 11 explicit integer/low bits, so exact doubles (and the
+// results of simple arithmetic on them) round-trip without loss.
+function doubleToExt80(value) {
+  const bytes = new Uint8Array(10),
+    view = new DataView(bytes.buffer),
+    scratch = new DataView(new ArrayBuffer(8));
+  if (value === 0) {
+    if (Object.is(value, -0)) view.setUint16(8, 0x8000, true);
+    return bytes;
+  }
+  scratch.setFloat64(0, value, true);
+  // Binary64 is stored little-endian, so the high word (sign and exponent) is
+  // the second 32-bit field.
+  const high = scratch.getUint32(4, true),
+    low = scratch.getUint32(0, true),
+    negative = !!(high & 0x80000000),
+    exponentBits = (high >>> 20) & 0x7ff;
+  if (exponentBits === 0) return bytes;
+  const mantissa = (BigInt(high & 0xfffff) << 32n) | BigInt(low),
+    significand = ((1n << 52n) | mantissa) << 11n,
+    exponent = exponentBits - 1023 + 16383;
+  view.setBigUint64(0, significand, true);
+  view.setUint16(8, (exponent | (negative ? 0x8000 : 0)) & 0xffff, true);
+  return bytes;
+}
+
+function ext80ToNumber(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, 10);
+  const significand = view.getBigUint64(0, true),
+    field = view.getUint16(8, true),
+    exponent = field & 0x7fff || 1;
+  if (significand === 0n) return field & 0x8000 ? -0 : 0;
+  const value = Number(significand) * Math.pow(2, exponent - 16383 - 63);
+  return field & 0x8000 ? -value : value;
+}
+
+test('FPATAN agrees with Math.atan2 across all quadrants and rounding modes', async () => {
+  const { fpatan } = await import('../src/x87-transcendentals.js');
+  const cases = [
+    [1, 1],
+    [1, -1],
+    [-1, -1],
+    [-1, 1],
+    [0.75, 0.5],
+    [36, 7],
+    [7, 36],
+    [1, 0],
+    [-1, 0],
+    [0, -1],
+    [0, 1],
+    [2, -0.25],
+    [-2, -0.25],
+    [0.125, 512],
+    [-3.5, 0.0625],
+  ];
+  for (const [yValue, xValue] of cases) {
+    const y = doubleToExt80(yValue),
+      x = doubleToExt80(xValue),
+      want = Math.atan2(yValue, xValue);
+    for (const mode of [0, 1, 2, 3]) {
+      const got = ext80ToNumber(fpatan(y, x, mode).bytes);
+      assert.ok(
+        Math.abs(got - want) <= Math.abs(want) * 1e-15 + 1e-300,
+        `atan2(${yValue}, ${xValue}) mode ${mode}: got ${got}, want ${want}`,
+      );
+    }
+  }
+  // x87 defines atan2 of two positive zeros as +0.
+  assert.equal(
+    Buffer.from(fpatan(doubleToExt80(0), doubleToExt80(0), 0).bytes).toString('hex'),
+    '00000000000000000000',
+  );
+});
+
+test('FPATAN preserves signed zeros and the pi branches on the axes', async () => {
+  const { fpatan } = await import('../src/x87-transcendentals.js');
+  const hex = (bytes) => Buffer.from(bytes).toString('hex');
+  // atan2(-0, +1) = -0, atan2(-0, -1) = -pi, atan2(+0, -1) = +pi.
+  assert.equal(hex(fpatan(doubleToExt80(-0), doubleToExt80(1), 0).bytes), '00000000000000000080');
+  const negPi = ext80ToNumber(fpatan(doubleToExt80(-0), doubleToExt80(-1), 0).bytes),
+    posPi = ext80ToNumber(fpatan(doubleToExt80(0), doubleToExt80(-1), 0).bytes);
+  assert.ok(Math.abs(negPi + Math.PI) < 1e-15, `got ${negPi}`);
+  assert.ok(Math.abs(posPi - Math.PI) < 1e-15, `got ${posPi}`);
+  // A finite argument sets only the precision (inexact) flag, never invalid.
+  assert.equal(fpatan(doubleToExt80(1), doubleToExt80(1), 0).flags & 0x01, 0);
+});
