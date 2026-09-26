@@ -185,14 +185,17 @@ export async function probeWineTarget(
     let dispatches = 0;
     runtime.cpu.prepare = (ip) => {
       lastIP = ip;
+      const dispatch = ++dispatches;
       // Retain the guest's actual location if it spins, before the browser's
       // outer worker deadline discards the diagnostic state entirely.
       if (
-        !(++dispatches & 255) &&
+        dispatch % 256 === 0 &&
         performance.now() - started > report.diagnosticLimits.maxExecutionMs
       )
         throw Error('Wine target diagnostic execution deadline exceeded');
       const stack = runtime.cpu.r[4].value >>> 0;
+      // Loader-call records must never be missed: a program's dynamic imports
+      // are the evidence for what it needed, even mid-startup.
       for (let i = pendingLoaderCalls.length - 1; i >= 0; i--)
         if (
           pendingLoaderCalls[i].returnAddress === ip &&
@@ -224,38 +227,40 @@ export async function probeWineTarget(
         report.nativeLoaderCalls.push(record);
         if (report.nativeLoaderCalls.length > 64) report.nativeLoaderCalls.shift();
       }
-      // Hot-block histogram: locates a spin/wait loop that saturates the
-      // bounded recent-block window during a long run.
-      const hot = locate(ip);
-      const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
-      report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
-      // Snapshot the runtime bytes of very hot blocks. Packed images
-      // self-modify, so static disassembly of those regions is unusable.
-      if (
-        hot.module &&
-        report.blockHistogram[hotKey] === 200000 &&
-        report.memorySamples.length < 16
-      ) {
-        try {
-          const module = guestModules().find((m) => m.name === hot.module);
-          const address = module.base + Number(BigInt(hot.offset));
-          report.memorySamples.push({
-            key: `${hotKey}@200k`,
-            bytes: [...runtime.data.slice(address, address + 64)].map((b) =>
-              b.toString(16).padStart(2, '0'),
-            ),
-          });
-        } catch {
-          // Ignore samples outside mapped memory.
+      // Sampling the block histograms keeps the probe's own overhead far below
+      // the guest work it measures while still locating hot blocks.
+      if (dispatch % 8 === 0) {
+        const hot = locate(ip);
+        const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
+        report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
+        // Snapshot the runtime bytes of very hot blocks. Packed images
+        // self-modify, so static disassembly of those regions is unusable.
+        if (
+          hot.module &&
+          report.blockHistogram[hotKey] === 200000 &&
+          report.memorySamples.length < 16
+        ) {
+          try {
+            const module = guestModules().find((m) => m.name === hot.module);
+            const address = module.base + Number(BigInt(hot.offset));
+            report.memorySamples.push({
+              key: `${hotKey}@200k`,
+              bytes: [...runtime.data.slice(address, address + 64)].map((b) =>
+                b.toString(16).padStart(2, '0'),
+              ),
+            });
+          } catch {
+            // Ignore samples outside mapped memory.
+          }
         }
+        recentBlocks.push({
+          threadId: runtime.threads.current?.id,
+          ...hot,
+          registers: runtime.cpu.r.map((r) => hex(r.value)),
+          flags: { ...runtime.cpu.f, af: runtime.cpu.af, df: runtime.cpu.df },
+        });
+        if (recentBlocks.length > 16) recentBlocks.shift();
       }
-      recentBlocks.push({
-        threadId: runtime.threads.current?.id,
-        ...locate(ip),
-        registers: runtime.cpu.r.map((r) => hex(r.value)),
-        flags: { ...runtime.cpu.f, af: runtime.cpu.af, df: runtime.cpu.df },
-      });
-      if (recentBlocks.length > 16) recentBlocks.shift();
       return prepare(ip);
     };
     const api = runtime.api.bind(runtime);
