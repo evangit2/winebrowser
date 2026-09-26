@@ -206,11 +206,19 @@ D3D10/11 and broader D3D12 support are still required.
       mixed waits and guest-thread release accounting. Microsoft HelloTriangle
       now passes both semaphore creations and reaches CommandLineToArgvW.
       See `docs/semaphores.md` for independent native EXE/ZIP validation.
-- [ ] Priority: compile, load and render an independently maintained real D3D12
-      demo through the ordinary browser PE/ZIP path. Pin upstream source and
-      binary provenance; verify guest execution, browser shader compilation and
-      actual pixels. Expand missing runtime features without substituting a
-      pretranslated application or treating the bounded native cube as proof.
+- [x] Compile, load and render an independently maintained real D3D12 demo
+      through the browser target path. The unchanged Microsoft HelloTriangle
+      EXE (pinned revision `be8195fc324c97c6550b710ace15e18b560c07c8`, SHA-256
+      `3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899`)
+      now creates an IDXGIFactory4, enumerates the virtual adapter, passes the
+      NULL-output D3D12CreateDevice capability probe, creates a device, queue,
+      flip-model swap chain and window association, compiles its SM5 HLSL via
+      D3DCompileFromFile, builds the pipeline state, records and executes
+      command lists with resource barriers and clears, presents, and runs its
+      fence wait loop. The browser probe captures 22,000+ presented frames with
+      the sampled clear color `(0,51,102)` and rendered triangle pixels; see
+      `evidence/microsoft-d3d12-startup-browser.json`. This remains one
+      independent sample, not general D3D12 game compatibility.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
       input and audio, reusing the Hamsterball/DirectWebGPU implementation semantics.
 

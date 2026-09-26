@@ -142,23 +142,35 @@ export class D3D12Renderer {
     this.resources.set(id, { kind, width, height, texture });
   }
 
-  async createPipeline({ id, vertex, pixel, inputLayout = [], vertexStride = 0, depth = null }) {
+  async createPipeline({
+    id,
+    vertex,
+    pixel,
+    inputLayout = [],
+    vertexStride = 0,
+    depth = null,
+    cullMode = 'none',
+    frontFace = 'cw',
+  }) {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
       throw Error('D3D12 pipeline limit exceeded');
-    if (
-      !Array.isArray(inputLayout) ||
-      !(
-        (inputLayout.length === 0 && vertexStride === 0) ||
-        (inputLayout.length === 2 &&
-          vertexStride === 32 &&
-          inputLayout.every(
-            (attribute, index) =>
-              attribute.shaderLocation === index &&
-              attribute.offset === index * 16 &&
-              attribute.format === 'float32x4',
-          ))
-      )
-    )
+    if (!Array.isArray(inputLayout)) throw Error('Unsupported D3D12 input layout');
+    const widthOf = (format) => (format === 'float32x3' ? 3 : format === 'float32x4' ? 4 : 0);
+    if (!(
+      (inputLayout.length === 0 && vertexStride === 0) ||
+      (inputLayout.length &&
+        Number.isInteger(vertexStride) &&
+        vertexStride >= 4 &&
+        vertexStride % 4 === 0 &&
+        vertexStride <= 256 &&
+        inputLayout.every(
+          (attribute, index) =>
+            Number.isInteger(attribute.offset) &&
+            attribute.offset % 4 === 0 &&
+            attribute.offset + widthOf(attribute.format) * 4 <= vertexStride &&
+            (index === 0 || attribute.offset > inputLayout[index - 1].offset),
+        ))
+    ))
       throw Error('Unsupported D3D12 input layout');
     if (
       depth &&
@@ -170,14 +182,27 @@ export class D3D12Renderer {
     const signature = reflectDXBCInputSignature(vertex).filter((entry) => entry.systemValue === 0);
     if (signature.length !== inputLayout.length)
       throw Error('D3D12 input layout does not cover the vertex shader signature');
-    const attributes = inputLayout.map((attribute, index) => {
-      const semantic = ['POSITION', 'COLOR'][index];
+    const attributes = inputLayout.map((attribute) => {
+      const semantic = (attribute.semantic ?? '').toUpperCase();
       const entry = signature.find(
-        (input) => input.semanticName.toUpperCase() === semantic && input.semanticIndex === 0,
+        (input) =>
+          input.semanticName.toUpperCase() === semantic &&
+          input.semanticIndex === attribute.semanticIndex,
       );
-      if (!entry || entry.mask !== 15 || entry.register > 15)
+      if (!entry || entry.register > 15)
         throw Error('Unsupported D3D12 vertex shader input: ' + semantic);
-      return { ...attribute, shaderLocation: entry.register };
+      // The declared format may supply fewer components than the shader reads:
+      // the D3D input assembler fills the remainder (w=1 for position) and
+      // WebGPU does the same for a smaller buffer format bound to a larger
+      // shader location. Supplying more components than the shader reads is
+      // allowed too, matching D3D's unused-component behavior.
+      if (!widthOf(attribute.format))
+        throw Error('Unsupported D3D12 vertex format: ' + attribute.format);
+      return {
+        shaderLocation: entry.register,
+        format: attribute.format,
+        offset: attribute.offset,
+      };
     });
     await this.initialize();
     const vs = await this.compiler.compile(vertex);
@@ -198,7 +223,7 @@ export class D3D12Renderer {
           entryPoint: 'main',
           targets: [{ format: 'rgba8unorm' }],
         },
-        primitive: { topology: 'triangle-list', cullMode: 'none' },
+        primitive: { topology: 'triangle-list', cullMode, frontFace },
         ...(depth
           ? {
               depthStencil: {
@@ -214,7 +239,7 @@ export class D3D12Renderer {
     }
     const validation = await this.device.popErrorScope();
     if (failure || validation) throw failure ?? Error(validation.message);
-    this.pipelines.set(id, { pipeline, vertexStride, depth });
+    this.pipelines.set(id, { pipeline, vertexStride, depth, cullMode, frontFace });
     this.graphics.emit({
       type: 'log',
       text: 'D3D12 DXBC shaders compiled to WGSL in the browser worker',

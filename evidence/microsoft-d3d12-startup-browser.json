@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T16:52:58.614Z",
+  "date": "2026-09-26T17:10:33.352Z",
   "targetId": ".cache/dx12-microsoft",
   "exe": "hellotriangle.exe",
   "exeSha256": "3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899",
@@ -331,727 +331,713 @@
   ],
   "apiCalls": [
     {
-      "name": "NtSetValueKey",
+      "name": "user32.dll!GetWindowLongW",
       "args": [
-        1358954502,
-        67103840,
+        131072,
+        4294967275,
         0,
-        1,
-        67104100,
-        12
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtClose",
-      "args": [
-        1358954502
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQuerySystemInformation",
-      "args": [
-        0,
-        17240256,
-        44,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtProtectVirtualMemory",
-      "args": [
-        4294967295,
-        67104640,
-        67104644,
-        4,
-        67104712
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtProtectVirtualMemory",
-      "args": [
-        4294967295,
-        67104640,
-        67104644,
-        2,
-        67104712
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtGetNlsSectionPtr",
-      "args": [
-        11,
-        20127,
-        0,
-        67102204,
-        67102208
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtWow64IsProcessorFeaturePresent",
-      "args": [
-        10
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryVolumeInformationFile",
-      "args": [
-        0,
-        67104540,
-        67104532,
-        8,
-        4
-      ],
-      "threadId": 1,
-      "result": "0xc0000008"
-    },
-    {
-      "name": "NtQueryVolumeInformationFile",
-      "args": [
-        1,
-        67104540,
-        67104532,
-        8,
-        4
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryVolumeInformationFile",
-      "args": [
-        2,
-        67104540,
-        67104532,
-        8,
-        4
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQuerySystemTime",
-      "args": [
-        67104672
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        3,
-        1,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16973824,
-        67104604,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16973824,
-        67104604,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16973824,
-        67104604,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "WineBrowserLoaderCallback",
-      "args": [
-        2,
-        16973824,
-        67104604,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtCreateEvent",
-      "args": [
-        67104292,
-        2031619,
-        67104304,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtDuplicateObject",
-      "args": [
-        4294967295,
-        4294967294,
-        4294967295,
-        33573956,
-        0,
-        0,
-        2
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtQueryInformationThread",
-      "args": [
-        1375731716,
-        0,
-        67104404,
-        28,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtCreateSemaphore",
-      "args": [
-        67104204,
-        2031619,
-        67104216,
-        0,
-        2147483647
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "NtCreateSemaphore",
-      "args": [
-        67104204,
-        2031619,
-        67104216,
-        0,
-        2147483647
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!LoadCursorW",
-      "args": [
-        0,
-        32512,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x7f00"
-    },
-    {
-      "name": "user32.dll!RegisterClassExW",
-      "args": [
-        67104180,
-        32512,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0xc000"
-    },
-    {
-      "name": "user32.dll!AdjustWindowRect",
-      "args": [
-        67104136,
-        13565952,
-        0,
-        0
-      ],
-      "threadId": 1,
-      "result": "0x1"
-    },
-    {
-      "name": "user32.dll!CreateWindowExW",
-      "args": [
-        0,
-        4391068,
-        33587384,
-        13565952,
-        2147483648,
-        2147483648,
-        1282,
-        750,
-        0,
-        0,
-        4194304,
         67104352
       ],
       "threadId": 1,
-      "result": "0x20000"
+      "result": "0x3ffee60"
     },
     {
-      "name": "user32.dll!GetWindowLongW",
+      "name": "ID3D12CommandAllocator.Reset",
       "args": [
-        131072,
-        4294967275,
+        50333136,
         1,
-        33587272
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcW",
-      "args": [
-        131072,
-        129,
-        0,
-        50332192
-      ],
-      "threadId": 1,
-      "result": "0x1"
-    },
-    {
-      "name": "user32.dll!GetWindowLongW",
-      "args": [
-        131072,
-        4294967275,
-        1,
-        33587272
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcW",
-      "args": [
-        131072,
-        131,
-        0,
-        50332240
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!GetWindowLongW",
-      "args": [
-        131072,
-        4294967275,
-        1,
-        33587272
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!SetWindowLongW",
-      "args": [
-        131072,
-        4294967275,
-        67104352,
-        33587272
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "dxgi.dll!CreateDXGIFactory2",
-      "args": [
-        0,
-        4405052,
-        67103972,
-        67103956
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDXGIFactory1.EnumAdapters1",
-      "args": [
-        50332304,
-        0,
-        67103560,
-        16056564
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDXGIAdapter1.GetDesc1",
-      "args": [
-        50332368,
-        67103564,
-        67103560,
-        16056564
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "d3d12.dll!D3D12CreateDevice",
-      "args": [
-        50332368,
-        45056,
-        4405020,
+        67103960,
         0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "d3d12.dll!D3D12CreateDevice",
+      "name": "ID3D12GraphicsCommandList.Reset",
       "args": [
-        50332368,
-        45056,
-        4405020,
-        67104464
+        50333568,
+        50333136,
+        50334464,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "IDXGIAdapter1.Release",
+      "name": "ID3D12GraphicsCommandList.SetGraphicsRootSignature",
       "args": [
-        50332368,
-        45056,
-        4405020,
-        67104464
+        50333568,
+        50333312,
+        50334464,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "ID3D12Device.CreateCommandQueue",
+      "name": "ID3D12GraphicsCommandList.RSSetViewports",
       "args": [
-        50332560,
-        67103980,
-        4405100,
-        67104480
+        50333568,
+        1,
+        67104420,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "IDXGIFactory1.CreateSwapChainForHwnd",
+      "name": "ID3D12GraphicsCommandList.RSSetScissorRects",
       "args": [
-        50332304,
-        50332656,
-        131072,
-        67104012
+        50333568,
+        1,
+        67104444,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "IDXGIFactory1.MakeWindowAssociation",
+      "name": "ID3D12GraphicsCommandList.ResourceBarrier",
       "args": [
-        50332304,
-        131072,
-        2,
-        67104012
+        50333568,
+        1,
+        67103960,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
-    },
-    {
-      "name": "IDXGISwapChain.QueryInterface",
-      "args": [
-        50332832,
-        4405084,
-        67104460,
-        67104012
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "IDXGISwapChain.GetCurrentBackBufferIndex",
-      "args": [
-        50332832,
-        4405084,
-        67104460,
-        67104012
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "ID3D12Device.CreateDescriptorHeap",
-      "args": [
-        50332560,
-        67103996,
-        4405148,
-        67104488
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "ID3D12Device.GetDescriptorHandleIncrementSize",
-      "args": [
-        50332560,
-        2,
-        4405148,
-        67104488
-      ],
-      "threadId": 1,
-      "result": "0x4"
     },
     {
       "name": "ID3D12DescriptorHeap.GetCPUDescriptorHandleForHeapStart",
       "args": [
         50333072,
-        67103996,
-        4405148,
-        67104488
+        67103960,
+        67103960,
+        0
       ],
       "threadId": 1,
-      "result": "0x3ffecfc"
+      "result": "0x3ffecd8"
     },
     {
-      "name": "IDXGISwapChain.GetBuffer",
+      "name": "ID3D12GraphicsCommandList.OMSetRenderTargets",
       "args": [
-        50332832,
-        0,
-        4405068,
-        67104468
+        50333568,
+        1,
+        67103940,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "ID3D12Device.CreateRenderTargetView",
+      "name": "ID3D12GraphicsCommandList.ClearRenderTargetView",
       "args": [
-        50332560,
-        50332912,
-        0,
-        50333008
+        50333568,
+        50333012,
+        67103944,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "IDXGISwapChain.GetBuffer",
+      "name": "ID3D12GraphicsCommandList.IASetPrimitiveTopology",
+      "args": [
+        50333568,
+        4,
+        67103944,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.IASetVertexBuffers",
+      "args": [
+        50333568,
+        0,
+        1,
+        67104512
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.DrawInstanced",
+      "args": [
+        50333568,
+        3,
+        1,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.ResourceBarrier",
+      "args": [
+        50333568,
+        1,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.Close",
+      "args": [
+        50333568,
+        1,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12CommandQueue.ExecuteCommandLists",
+      "args": [
+        50332656,
+        1,
+        67104016,
+        50333568
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDXGISwapChain.Present",
       "args": [
         50332832,
         1,
-        4405068,
-        67104472
-      ],
-      "threadId": 1,
-      "result": "0x0"
-    },
-    {
-      "name": "ID3D12Device.CreateRenderTargetView",
-      "args": [
-        50332560,
-        50332992,
         0,
-        50333012
+        50333568
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "ID3D12Device.CreateCommandAllocator",
+      "name": "ID3D12CommandQueue.Signal",
       "args": [
-        50332560,
-        0,
-        4405164,
-        67104476
+        50332656,
+        50333808,
+        22143,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "IDXGISwapChain.Release",
+      "name": "ID3D12Fence.GetCompletedValue",
+      "args": [
+        50333808,
+        50333808,
+        22143,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x567f"
+    },
+    {
+      "name": "IDXGISwapChain.GetCurrentBackBufferIndex",
       "args": [
         50332832,
+        50333808,
+        22143,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!PeekMessageW",
+      "args": [
+        67104152,
         0,
-        4405164,
-        67104476
+        0,
+        0
       ],
       "threadId": 1,
       "result": "0x1"
     },
     {
-      "name": "IDXGIFactory1.Release",
+      "name": "user32.dll!TranslateMessage",
       "args": [
-        50332304,
+        67104152,
         0,
-        4405164,
-        67104476
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!DispatchMessageW",
+      "args": [
+        67104152,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!GetWindowLongW",
+      "args": [
+        131072,
+        4294967275,
+        0,
+        67104352
+      ],
+      "threadId": 1,
+      "result": "0x3ffee60"
+    },
+    {
+      "name": "ID3D12CommandAllocator.Reset",
+      "args": [
+        50333136,
+        1,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.Reset",
+      "args": [
+        50333568,
+        50333136,
+        50334464,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.SetGraphicsRootSignature",
+      "args": [
+        50333568,
+        50333312,
+        50334464,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.RSSetViewports",
+      "args": [
+        50333568,
+        1,
+        67104420,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.RSSetScissorRects",
+      "args": [
+        50333568,
+        1,
+        67104444,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.ResourceBarrier",
+      "args": [
+        50333568,
+        1,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12DescriptorHeap.GetCPUDescriptorHandleForHeapStart",
+      "args": [
+        50333072,
+        67103960,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x3ffecd8"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.OMSetRenderTargets",
+      "args": [
+        50333568,
+        1,
+        67103940,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.ClearRenderTargetView",
+      "args": [
+        50333568,
+        50333008,
+        67103944,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.IASetPrimitiveTopology",
+      "args": [
+        50333568,
+        4,
+        67103944,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.IASetVertexBuffers",
+      "args": [
+        50333568,
+        0,
+        1,
+        67104512
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.DrawInstanced",
+      "args": [
+        50333568,
+        3,
+        1,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.ResourceBarrier",
+      "args": [
+        50333568,
+        1,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.Close",
+      "args": [
+        50333568,
+        1,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12CommandQueue.ExecuteCommandLists",
+      "args": [
+        50332656,
+        1,
+        67104016,
+        50333568
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDXGISwapChain.Present",
+      "args": [
+        50332832,
+        1,
+        0,
+        50333568
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12CommandQueue.Signal",
+      "args": [
+        50332656,
+        50333808,
+        22144,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12Fence.GetCompletedValue",
+      "args": [
+        50333808,
+        50333808,
+        22144,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x5680"
+    },
+    {
+      "name": "IDXGISwapChain.GetCurrentBackBufferIndex",
+      "args": [
+        50332832,
+        50333808,
+        22144,
+        0
       ],
       "threadId": 1,
       "result": "0x1"
     },
     {
-      "name": "d3d12.dll!D3D12SerializeRootSignature",
+      "name": "user32.dll!PeekMessageW",
       "args": [
-        67103484,
+        67104152,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x1"
+    },
+    {
+      "name": "user32.dll!TranslateMessage",
+      "args": [
+        67104152,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "user32.dll!DispatchMessageW",
+      "args": [
+        67104152,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "error": "Wine target diagnostic execution deadline exceeded"
+    },
+    {
+      "name": "user32.dll!GetWindowLongW",
+      "args": [
+        131072,
+        4294967275,
+        0,
+        67104352
+      ],
+      "threadId": 1,
+      "result": "0x3ffee60"
+    },
+    {
+      "name": "ID3D12CommandAllocator.Reset",
+      "args": [
+        50333136,
         1,
-        67103096,
-        67103152
+        67103960,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "ID3DBlob.GetBufferSize",
+      "name": "ID3D12GraphicsCommandList.Reset",
       "args": [
-        50333264,
+        50333568,
+        50333136,
+        50334464,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.SetGraphicsRootSignature",
+      "args": [
+        50333568,
+        50333312,
+        50334464,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.RSSetViewports",
+      "args": [
+        50333568,
         1,
-        67103096,
-        67103152
+        67104420,
+        0
       ],
       "threadId": 1,
-      "result": "0x44"
+      "result": "0x0"
     },
     {
-      "name": "ID3DBlob.GetBufferPointer",
+      "name": "ID3D12GraphicsCommandList.RSSetScissorRects",
       "args": [
-        50333264,
+        50333568,
         1,
-        67103096,
-        67103152
-      ],
-      "threadId": 1,
-      "result": "0x30005e0"
-    },
-    {
-      "name": "ID3D12Device.CreateRootSignature",
-      "args": [
-        50332560,
-        0,
-        50333152,
-        68
+        67104444,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "ID3DBlob.Release",
+      "name": "ID3D12GraphicsCommandList.ResourceBarrier",
       "args": [
-        50333264,
-        0,
-        50333152,
-        68
+        50333568,
+        1,
+        67103960,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "d3dcompiler_47.dll!D3DCompileFromFile",
+      "name": "ID3D12DescriptorHeap.GetCPUDescriptorHandleForHeapStart",
       "args": [
-        33587272,
-        0,
-        0,
-        4391253
+        50333072,
+        67103960,
+        67103960,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x3ffecd8"
+    },
+    {
+      "name": "ID3D12GraphicsCommandList.OMSetRenderTargets",
+      "args": [
+        50333568,
+        1,
+        67103940,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "d3dcompiler_47.dll!D3DCompileFromFile",
+      "name": "ID3D12GraphicsCommandList.ClearRenderTargetView",
       "args": [
-        33587272,
-        0,
-        0,
-        4391267
+        50333568,
+        50333012,
+        67103944,
+        0
       ],
       "threadId": 1,
       "result": "0x0"
     },
     {
-      "name": "ID3DBlob.GetBufferPointer",
+      "name": "ID3D12GraphicsCommandList.IASetPrimitiveTopology",
       "args": [
-        50333184,
-        0,
-        572,
-        4391267
+        50333568,
+        4,
+        67103944,
+        0
       ],
       "threadId": 1,
-      "result": "0x3000690"
+      "result": "0x0"
     },
     {
-      "name": "ID3DBlob.GetBufferSize",
+      "name": "ID3D12GraphicsCommandList.IASetVertexBuffers",
       "args": [
-        50333184,
+        50333568,
         0,
-        572,
-        4391267
+        1,
+        67104512
       ],
       "threadId": 1,
-      "result": "0x240"
+      "result": "0x0"
     },
     {
-      "name": "ID3DBlob.GetBufferPointer",
+      "name": "ID3D12GraphicsCommandList.DrawInstanced",
       "args": [
-        50334400,
-        0,
-        572,
-        4391267
+        50333568,
+        3,
+        1,
+        0
       ],
       "threadId": 1,
-      "result": "0x30008d0"
+      "result": "0x0"
     },
     {
-      "name": "ID3DBlob.GetBufferSize",
+      "name": "ID3D12GraphicsCommandList.ResourceBarrier",
       "args": [
-        50334400,
-        0,
-        572,
-        4391267
+        50333568,
+        1,
+        67103960,
+        0
       ],
       "threadId": 1,
-      "result": "0x1f0"
+      "result": "0x0"
     },
     {
-      "name": "ID3D12Device.CreateGraphicsPipelineState",
+      "name": "ID3D12GraphicsCommandList.Close",
       "args": [
-        50332560,
-        67103484,
-        4405116,
-        67104492
+        50333568,
+        1,
+        67103960,
+        0
       ],
       "threadId": 1,
-      "error": "Unsupported D3D12 blend pipeline"
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12CommandQueue.ExecuteCommandLists",
+      "args": [
+        50332656,
+        1,
+        67104016,
+        50333568
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "IDXGISwapChain.Present",
+      "args": [
+        50332832,
+        1,
+        0,
+        50333568
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "ID3D12CommandQueue.Signal",
+      "args": [
+        50332656,
+        50333808,
+        22145,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
     }
   ],
   "output": [],
   "requests": [],
-  "frames": 0,
+  "frames": 22144,
   "nativeLoaderCalls": [
     {
       "name": "LdrGetProcedureAddress",
@@ -1105,417 +1091,417 @@
   "firstFailure": {
     "phase": "native EXE entry point",
     "threadId": 1,
-    "message": "Unsupported D3D12 blend pipeline",
+    "message": "Wine target diagnostic execution deadline exceeded",
     "ip": {
-      "address": "0x403cbb",
+      "address": "0x4034ff",
       "module": "hellotriangle.exe",
-      "offset": "0x3cbb"
+      "offset": "0x34ff"
     },
     "registers": [
-      "0x80000a40",
-      "0x3ffeaf8",
+      "0x0",
+      "0x3000870",
+      "0x30003a0",
       "0x3ffee60",
-      "0x400000",
-      "0x3ffe8f8",
-      "0x3ffed40",
-      "0x2008048",
-      "0x3ffed54"
+      "0x3ffece4",
+      "0x0",
+      "0x0",
+      "0x5681"
     ],
-    "compiledBlocks": 3778,
-    "instructions": 305730,
+    "compiledBlocks": 3857,
+    "instructions": 6573111,
     "recentBlocks": [
       {
         "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec58",
-          "0x3ffeacc",
-          "0x4",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec5c",
-          "0x3ffead0",
-          "0xf",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec60",
-          "0x3ffead4",
-          "0x0",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec64",
-          "0x3ffead8",
-          "0x0",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec68",
-          "0x3ffeadc",
-          "0x2",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec6c",
-          "0x3ffeae0",
-          "0x1",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec70",
-          "0x3ffeae4",
-          "0x1",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec74",
-          "0x3ffeae8",
-          "0x2",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec78",
-          "0x3ffeaec",
-          "0x1",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec7c",
-          "0x3ffeaf0",
-          "0x1",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x1461400",
-        "module": "ucrtbase.dll",
-        "offset": "0x61400",
-        "registers": [
-          "0x3ffec80",
-          "0x3ffeaf4",
-          "0x4",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x146140f",
-        "module": "ucrtbase.dll",
-        "offset": "0x6140f",
-        "registers": [
-          "0x3ffec84",
-          "0x3ffeaf8",
-          "0x8000000f",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffe9b0",
-          "0x3ffeb3c"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x14614d2",
-        "module": "ucrtbase.dll",
-        "offset": "0x614d2",
-        "registers": [
-          "0x144",
-          "0x3ffeaf8",
-          "0x0",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffeaf8",
-          "0x3ffec84"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x14612d8",
-        "module": "ucrtbase.dll",
-        "offset": "0x612d8",
-        "registers": [
-          "0x144",
-          "0x3ffeaf8",
-          "0x0",
-          "0x3ffec84",
-          "0x3ffe8c0",
-          "0x3ffe8f4",
-          "0x3ffeaf8",
-          "0x3ffec84"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x403c39",
+        "address": "0x40331a",
         "module": "hellotriangle.exe",
-        "offset": "0x3c39",
-        "registers": [
-          "0x3ffeb3c",
-          "0x3ffeaf8",
-          "0x0",
-          "0x400000",
-          "0x3ffe8fc",
-          "0x3ffed40",
-          "0x2008048",
-          "0x3ffed54"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x403cbb",
-        "module": "hellotriangle.exe",
-        "offset": "0x3cbb",
+        "offset": "0x331a",
         "registers": [
           "0x0",
-          "0x3ffeaf8",
+          "0x3000540",
+          "0x800016d0",
           "0x3ffee60",
-          "0x400000",
-          "0x3ffe8fc",
-          "0x3ffed40",
-          "0x2008048",
-          "0x3ffed54"
+          "0x3ffecbc",
+          "0x0",
+          "0x20000",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40333e",
+        "module": "hellotriangle.exe",
+        "offset": "0x333e",
+        "registers": [
+          "0x3ffecd8",
+          "0x3000540",
+          "0x3000560",
+          "0x3ffee60",
+          "0x3ffecb8",
+          "0x1",
+          "0x4",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x403378",
+        "module": "hellotriangle.exe",
+        "offset": "0x3378",
+        "registers": [
+          "0x0",
+          "0x3ffecc4",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecc4",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4033cc",
+        "module": "hellotriangle.exe",
+        "offset": "0x33cc",
+        "registers": [
+          "0x0",
+          "0x3000554",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecc4",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4033e5",
+        "module": "hellotriangle.exe",
+        "offset": "0x33e5",
+        "registers": [
+          "0x0",
+          "0x3000554",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecb8",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x403413",
+        "module": "hellotriangle.exe",
+        "offset": "0x3413",
+        "registers": [
+          "0x0",
+          "0x3ffef00",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecc0",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x403444",
+        "module": "hellotriangle.exe",
+        "offset": "0x3444",
+        "registers": [
+          "0x0",
+          "0x3ffef00",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecc4",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x403499",
+        "module": "hellotriangle.exe",
+        "offset": "0x3499",
+        "registers": [
+          "0x0",
+          "0x3000540",
+          "0x800016d0",
+          "0x3ffee60",
+          "0x3ffecbc",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4034aa",
+        "module": "hellotriangle.exe",
+        "offset": "0x34aa",
+        "registers": [
+          "0x0",
+          "0x3000540",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecb4",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4034b1",
+        "module": "hellotriangle.exe",
+        "offset": "0x34b1",
+        "registers": [
+          "0x0",
+          "0x3000540",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffecb0",
+          "0x1",
+          "0x3000554",
+          "0x3ffecd8"
         ],
         "flags": {
           "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40359b",
+        "module": "hellotriangle.exe",
+        "offset": "0x359b",
+        "registers": [
+          "0x0",
+          "0x3000540",
+          "0x3000690",
+          "0x3ffee60",
+          "0x3ffed04",
+          "0x0",
+          "0x20000",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4035c3",
+        "module": "hellotriangle.exe",
+        "offset": "0x35c3",
+        "registers": [
+          "0x0",
+          "0x3ffed10",
+          "0x30003a0",
+          "0x3ffee60",
+          "0x3ffed10",
+          "0x0",
+          "0x20000",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4035e1",
+        "module": "hellotriangle.exe",
+        "offset": "0x35e1",
+        "registers": [
+          "0x0",
+          "0x3ffed10",
+          "0x3000400",
+          "0x3ffee60",
+          "0x3ffed10",
+          "0x0",
+          "0x20000",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4035e8",
+        "module": "hellotriangle.exe",
+        "offset": "0x35e8",
+        "registers": [
+          "0x0",
+          "0x3ffed10",
+          "0x3000400",
+          "0x3ffee60",
+          "0x3ffed04",
+          "0x0",
+          "0x20000",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4034c0",
+        "module": "hellotriangle.exe",
+        "offset": "0x34c0",
+        "registers": [
+          "0x0",
+          "0x3ffee60",
+          "0x3000400",
+          "0x3ffee60",
+          "0x3ffed00",
+          "0x0",
+          "0x20000",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4034f4",
+        "module": "hellotriangle.exe",
+        "offset": "0x34f4",
+        "registers": [
+          "0x0",
+          "0x3000870",
+          "0x30003a0",
+          "0x3ffee60",
+          "0x3ffecf4",
+          "0x0",
+          "0x0",
+          "0x5681"
+        ],
+        "flags": {
+          "zf": 0,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -1526,6 +1512,86 @@
       }
     ]
   },
+  "frameSamples": [
+    {
+      "windowId": 131072,
+      "width": 1280,
+      "height": 720,
+      "graphicsApi": "d3d12",
+      "graphicsFrames": 1,
+      "graphicsDraws": 1,
+      "corner": [
+        0,
+        51,
+        102,
+        255
+      ],
+      "colors": [
+        "0,51,102",
+        "245,1,9",
+        "246,0,9",
+        "246,1,8",
+        "246,2,7",
+        "246,3,6",
+        "246,3,7",
+        "246,4,5"
+      ],
+      "nonBackground": 921600,
+      "hash": "ae1bc0a9b0623bacab15be1706ffa3e7fc15e33676a66f05c969c1b86a66fea3"
+    },
+    {
+      "windowId": 131072,
+      "width": 1280,
+      "height": 720,
+      "graphicsApi": "d3d12",
+      "graphicsFrames": 2,
+      "graphicsDraws": 2,
+      "corner": [
+        0,
+        51,
+        102,
+        255
+      ],
+      "colors": [
+        "0,51,102",
+        "245,1,9",
+        "246,0,9",
+        "246,1,8",
+        "246,2,7",
+        "246,3,6",
+        "246,3,7",
+        "246,4,5"
+      ],
+      "nonBackground": 921600,
+      "hash": "ae1bc0a9b0623bacab15be1706ffa3e7fc15e33676a66f05c969c1b86a66fea3"
+    },
+    {
+      "windowId": 131072,
+      "width": 1280,
+      "height": 720,
+      "graphicsApi": "d3d12",
+      "graphicsFrames": 3,
+      "graphicsDraws": 3,
+      "corner": [
+        0,
+        51,
+        102,
+        255
+      ],
+      "colors": [
+        "0,51,102",
+        "245,1,9",
+        "246,0,9",
+        "246,1,8",
+        "246,2,7",
+        "246,3,6",
+        "246,3,7",
+        "246,4,5"
+      ],
+      "nonBackground": 921600,
+      "hash": "ae1bc0a9b0623bacab15be1706ffa3e7fc15e33676a66f05c969c1b86a66fea3"
+    }
+  ],
   "diagnosticLimits": {
     "maxBlocks": 10000000,
     "maxExecutionMs": 45000

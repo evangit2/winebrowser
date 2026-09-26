@@ -673,6 +673,8 @@ function deviceMethods() {
             inputLayout: p.inputLayout,
             vertexStride: p.vertexStride,
             depth: p.depth,
+            cullMode: p.cullMode,
+            frontFace: p.frontFace,
           });
         } catch (error) {
           item.refs = 0;

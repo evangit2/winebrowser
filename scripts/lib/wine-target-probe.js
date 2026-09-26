@@ -28,6 +28,8 @@ export async function probeWineTarget(
     frames: 0,
     nativeLoaderCalls: [],
     firstFailure: null,
+    frameSamples: [],
+    pendingSamples: [],
     diagnosticLimits: { maxBlocks: 10_000_000, maxExecutionMs: 45_000 },
   };
   const restore = new Map();
@@ -67,9 +69,51 @@ export async function probeWineTarget(
       API_NAMES[dll] = [...(API_NAMES[dll] ?? []), name];
       report.trappedImports.push(`${dll}!${name}`);
     }
+    // Capture the pixels of the first few presented frames so the report
+    // proves the guest actually rendered content, not just presented.
+    const sampleFrame = async (message) => {
+      if (report.frameSamples.length >= 3) return;
+      const { bitmap } = message;
+      if (!bitmap) return;
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const context = canvas.getContext('2d');
+      context.drawImage(bitmap, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const colors = new Set();
+      let nonBackground = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const key = `${pixels[i]},${pixels[i + 1]},${pixels[i + 2]}`;
+        if (colors.size < 64) colors.add(key);
+        if (pixels[i] || pixels[i + 1] || pixels[i + 2]) nonBackground++;
+      }
+      const digest = new Uint8Array(
+        await crypto.subtle.digest(
+          'SHA-256',
+          pixels.buffer.slice(pixels.byteOffset, pixels.byteOffset + pixels.byteLength),
+        ),
+      );
+      report.frameSamples.push({
+        windowId: message.windowId,
+        width: canvas.width,
+        height: canvas.height,
+        graphicsApi: message.graphicsApi,
+        graphicsFrames: message.graphicsFrames,
+        graphicsDraws: message.graphicsDraws,
+        corner: [...pixels.slice(0, 4)],
+        colors: [...colors].sort().slice(0, 8),
+        nonBackground,
+        hash: [...digest].map((value) => value.toString(16).padStart(2, '0')).join(''),
+      });
+    };
     graphics = new WebGPURenderer({
       emit: (message) => {
-        if (message.type === 'frame') report.frames++;
+        if (message.type === 'frame') {
+          report.frames++;
+          const pending = sampleFrame(message).catch((error) => {
+            report.requests.push({ kind: 'frame-sample-error', text: error.message });
+          });
+          report.pendingSamples.push(pending);
+        }
         message.bitmap?.close();
       },
     });
@@ -362,6 +406,9 @@ export async function probeWineTarget(
       if (previous) API_NAMES[dll] = previous;
       else delete API_NAMES[dll];
     }
+    // Let the bounded frame samplers finish before the graphics backend closes.
+    await Promise.allSettled(report.pendingSamples);
+    delete report.pendingSamples;
     await runtime?.threads.stopOthers();
     runtime?.directSound?.dispose();
     runtime?.syncObjects?.dispose();

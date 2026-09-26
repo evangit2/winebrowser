@@ -290,10 +290,17 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
   r.write32(depthPsoDesc + 544, 55);
   const depthPipeline = await create(dev, 10, [depthPsoDesc], 'pipeline');
   const depthPipelineEvent = events.filter((event) => event.type === 'pipeline').at(-1);
-  assert.deepEqual(depthPipelineEvent.inputLayout, [
-    { shaderLocation: 0, offset: 0, format: 'float32x4' },
-    { shaderLocation: 1, offset: 16, format: 'float32x4' },
-  ]);
+  assert.deepEqual(
+    depthPipelineEvent.inputLayout.map(({ shaderLocation, offset, format }) => ({
+      shaderLocation,
+      offset,
+      format,
+    })),
+    [
+      { shaderLocation: 0, offset: 0, format: 'float32x4' },
+      { shaderLocation: 1, offset: 16, format: 'float32x4' },
+    ],
+  );
   assert.equal(depthPipelineEvent.vertexStride, 32);
   assert.deepEqual(depthPipelineEvent.depth, {
     format: 'depth16unorm',
