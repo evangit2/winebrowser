@@ -103,8 +103,11 @@ D3D10/11 and broader D3D12 support are still required.
       default MOVE/SIZE delivery, client pixel preservation, and sibling/topmost
       ordering. EXE/ZIP browser tests verify geometry, child hit ordering and
       activation without overriding the requested sibling placement.
-- [ ] Continue Hamsterball startup through `DirectInput8Create`, after 8,804,365
-      guest instructions in Node and Chromium.
+- [x] Initialize DirectInput 8, create keyboard/mouse objects and enumerate their
+      capabilities with native A/W callbacks, shared COM identity and lifetime.
+      Node and EXE/ZIP browser fixtures pass.
+- [ ] Continue Hamsterball startup through `IDirectInputDevice8A.SetDataFormat`,
+      after 8,805,186 guest instructions in Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

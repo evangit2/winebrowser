@@ -31,7 +31,16 @@ export class ComObjects {
     this.objects = new Map();
   }
 
-  create({ name, iid, iids = [], methodNames, methods = {}, onRelease, state = {} }) {
+  create({
+    name,
+    iid,
+    iids = [],
+    methodNames,
+    methods = {},
+    onRelease,
+    state = {},
+    queryInterface,
+  }) {
     if (this.objects.size >= 64) throw Error('COM object limit exceeded');
     if (methodNames.length < 3 || methodNames.length > 128)
       throw Error(`Invalid ${name} vtable size`);
@@ -63,13 +72,20 @@ export class ComObjects {
             if (!out) return { result: E_POINTER, argc: 3 };
             runtime.check(out, 4, true);
             const requested = readGuid(runtime, argument(1) >>> 0);
-            if (requested !== IUNKNOWN && !object.iids.has(requested)) {
+            const target = queryInterface
+              ? queryInterface(requested, object)
+              : requested === IUNKNOWN || object.iids.has(requested)
+                ? object
+                : null;
+            if (!target) {
               runtime.write32(out, 0);
               return { result: E_NOINTERFACE, argc: 3 };
             }
-            if (object.refs >= 0x7fffffff) throw Error(`${name} reference count limit exceeded`);
-            object.refs++;
-            runtime.write32(out, pointer);
+            if (this.objects.get(target.pointer) !== target || !target.refs)
+              throw Error(`Invalid ${name} interface target`);
+            if (target.refs >= 0x7fffffff) throw Error(`${name} reference count limit exceeded`);
+            target.refs++;
+            runtime.write32(out, target.pointer);
             return { result: 0, argc: 3 };
           }
           if (slot === 1) {

@@ -79,7 +79,8 @@ data mapping. Predefined cursor loading and x87 integer-operand arithmetic now
 pass, as do COM GUID conversion, window lookup and 24-bit icon decoding.
 Native window metadata now passes, and the original game creates its 800×600
 window and icon. Native window positioning now passes; startup next stops at
-`dinput8.dll!DirectInput8Create`, after 8,804,365 guest instructions in Node and Chromium.
+`IDirectInputDevice8A.SetDataFormat`, after 8,805,186 guest instructions in Node and Chromium.
+DirectInput 8 creation and keyboard/mouse device discovery now pass.
 Native process shutdown also passes a separate character-conversion fixture with the supplied Wine/NLS closure;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11

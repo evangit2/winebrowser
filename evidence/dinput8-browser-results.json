@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-26T05:28:36.764Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "1fca2a74e30a2b45f0b07b96cc2aee8591485e77834b0dab05ba4e8b9920e487",
+  "scope": "Unchanged PE32 through ordinary EXE and ZIP upload; DirectInput 8 A/W identity, shared reference counts, keyboard/mouse enumeration callbacks, filters, device metadata and capability queries.",
+  "results": [
+    {
+      "name": "dinput8.exe",
+      "exitCode": 0,
+      "instructions": 17222,
+      "compiledBlocks": 81,
+      "errors": []
+    },
+    {
+      "name": "dinput8.zip",
+      "exitCode": 0,
+      "instructions": 17222,
+      "compiledBlocks": 81,
+      "errors": []
+    }
+  ]
+}
