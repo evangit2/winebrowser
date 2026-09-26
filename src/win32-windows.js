@@ -12,6 +12,7 @@ import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
 import { windowFindApis } from './win32-window-find.js';
 import { windowFrame, frameForWindow } from './window-frame.js';
+import { windowDataApis } from './win32-window-data.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -490,8 +491,8 @@ async function create(r, a, wide) {
     enabled: !(a(3) & 0x08000000),
     ...control,
     visible: false,
-    style: a(3),
-    exStyle: a(0),
+    style: (a(3) | (child ? 0 : 0x04000000 | (a(3) & 0x80000000 ? 0 : 0x00c00000))) >>> 0,
+    exStyle: (a(0) | (!child && !(a(3) & 0x80000000) && a(3) & 0x00c40000 ? 0x100 : 0)) >>> 0,
     topmost: !child && !!(a(0) & 8),
     instance: a(10),
     userData: 0,
@@ -647,7 +648,7 @@ async function beginPaint(r, a) {
   return result(dc, 2);
 }
 
-export const windowApis = { ...cursorApis, ...windowFindApis };
+export const windowApis = { ...cursorApis, ...windowFindApis, ...windowDataApis };
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
   windowApis[`user32.dll!GetWindowText${suffix}`] = async (r, a) =>

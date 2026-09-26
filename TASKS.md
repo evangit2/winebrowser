@@ -96,8 +96,11 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Honor topmost ordering and popup border/caption geometry in the window
       manager and browser desktop. Native UI checks verify lookup order, stacking
       after focus changes and exact client dimensions; DirectX 8/12 regressions pass.
-- [ ] Continue Hamsterball's native window procedure through `GetWindowLongA`
-      (`GWL_USERDATA`) during `CreateWindowExA`.
+- [x] Read and write native window metadata and per-window extra bytes, including
+      A/W access, byte offsets, control IDs and creation/destruction callbacks.
+      Original Hamsterball creates its 800×600 window with its native icon.
+- [ ] Continue Hamsterball startup through `SetWindowPos`, after 8,800,785 guest
+      instructions in Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

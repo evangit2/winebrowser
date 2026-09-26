@@ -149,7 +149,8 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
       const name = service?.name ?? (entry.dll ? `${entry.dll}!${entry.name}` : entry.name);
       const sp = runtime.cpu.r[4].value >>> 0;
       const args = [];
-      for (let i = 0; i < (service?.argc ?? 4); i++) {
+      const count = service?.argc ?? (name === 'user32.dll!SetWindowPos' ? 7 : 4);
+      for (let i = 0; i < count; i++) {
         try {
           args.push(runtime.read32(sp + (service ? 8 : 4) + i * 4) >>> 0);
         } catch {

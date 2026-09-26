@@ -118,10 +118,11 @@ complete. The game reaches its original EXE entry. The fixed-address shared-user
 clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
 pass predefined cursor loading, including IDC_HAND, and x87 integer-operand
 arithmetic/comparisons, COM GUID conversion, window lookup and 24-bit icon
-decoding. Topmost popup creation now enters the original game window procedure;
-both probes next stop at `GetWindowLongA(GWL_USERDATA)` during `CreateWindowExA`.
+decoding. Native window metadata passes through the original game window
+procedure, and both probes create the 800×600 Hamsterball window with its native
+icon. Both next stop at `SetWindowPos`, after 8,800,785 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is window metadata and remaining
+unverified. The next work is window positioning and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.

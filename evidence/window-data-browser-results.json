@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-26T04:53:37.152Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "4a98eca8e5ebf76ff6c986113fd4daaa8e7afd55b80a9443caac87de67056731",
+  "scope": "Unchanged PE32 through ordinary EXE and ZIP upload, with native A/W userdata, extra bytes, metadata, control identifiers, native creation and destruction callbacks.",
+  "results": [
+    {
+      "name": "window-data.exe",
+      "exitCode": 0,
+      "instructions": 924,
+      "compiledBlocks": 125,
+      "errors": []
+    },
+    {
+      "name": "window-data.zip",
+      "exitCode": 0,
+      "instructions": 924,
+      "compiledBlocks": 125,
+      "errors": []
+    }
+  ]
+}
