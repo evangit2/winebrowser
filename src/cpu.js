@@ -524,32 +524,47 @@ export class CPU {
     return result;
   }
   wideMath(operand, kind, width) {
-    if (width !== 32) throw Error('Wide multiply/divide currently requires 32-bit operands');
-    const a = this.r[0].value >>> 0,
-      d = this.r[2].value >>> 0,
-      b = operand >>> 0;
+    if (![8, 16, 32].includes(width) || ![0, 1, 2, 3].includes(kind))
+      throw Error('Invalid wide integer arithmetic operation');
+    const eax = this.r[0].value >>> 0,
+      edx = this.r[2].value >>> 0;
+    const bits = BigInt(width),
+      mask = (1n << bits) - 1n;
+    const low = BigInt(eax) & mask,
+      operandBits = BigInt(operand >>> 0) & mask;
+    const signed = kind === 1 || kind === 3;
+    const value = (raw) => (signed ? BigInt.asIntN(width, raw) : raw);
+    let resultLow, resultHigh;
     if (kind <= 1) {
-      const signed = kind === 1;
-      const product = (signed ? BigInt(a | 0) : BigInt(a)) * (signed ? BigInt(b | 0) : BigInt(b));
-      const raw = BigInt.asUintN(64, product);
-      this.r[2].value = Number(raw >> 32n) | 0;
+      const product = value(low) * value(operandBits);
+      const raw = BigInt.asUintN(width * 2, product);
+      resultLow = raw & mask;
+      resultHigh = raw >> bits;
       this.f.cf = this.f.of = +(signed
-        ? product !== BigInt.asIntN(32, product)
-        : product > 0xffffffffn);
-      return Number(raw & 0xffffffffn) | 0;
+        ? product !== BigInt.asIntN(width, product)
+        : product > mask);
+    } else {
+      if (!operandBits) throw Error('Guest integer divide by zero');
+      // Byte division consumes AX; wider forms consume DX:AX / EDX:EAX.
+      const raw = width === 8 ? BigInt(eax & 0xffff) : ((BigInt(edx) & mask) << bits) | low;
+      const dividend = signed ? BigInt.asIntN(width * 2, raw) : raw;
+      const divisor = value(operandBits),
+        quotient = dividend / divisor;
+      const min = signed ? -(1n << (bits - 1n)) : 0n;
+      const max = signed ? (1n << (bits - 1n)) - 1n : mask;
+      if (quotient < min || quotient > max) throw Error('Guest integer divide overflow');
+      resultLow = BigInt.asUintN(width, quotient);
+      resultHigh = BigInt.asUintN(width, dividend % divisor);
+      // DIV/IDIV leave arithmetic flags undefined; retain the previous values.
     }
-    if (!b) throw Error('Guest integer divide by zero');
-    const signed = kind === 3;
-    const raw = (BigInt(d) << 32n) | BigInt(a),
-      dividend = signed ? BigInt.asIntN(64, raw) : raw,
-      divisor = signed ? BigInt(b | 0) : BigInt(b);
-    const quotient = dividend / divisor,
-      remainder = dividend % divisor;
-    if (quotient < (signed ? -0x80000000n : 0n) || quotient > (signed ? 0x7fffffffn : 0xffffffffn))
-      throw Error('Guest integer divide overflow');
-    this.r[2].value = Number(BigInt.asIntN(32, remainder));
-    return Number(BigInt.asIntN(32, quotient));
+    // Commit only after division validation. Narrow forms preserve the upper
+    // register halves, and byte forms write AL/AH without touching EDX.
+    if (width === 8) return (eax & 0xffff0000) | Number(resultLow | (resultHigh << 8n)) | 0;
+    const keep = width === 16 ? 0xffff0000 : 0;
+    this.r[2].value = (edx & keep) | Number(resultHigh) | 0;
+    return (eax & keep) | Number(resultLow) | 0;
   }
+
   condition(c) {
     const { cf, zf, sf, of, pf } = this.f;
     return +[

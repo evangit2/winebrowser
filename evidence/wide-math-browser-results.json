@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-26T13:30:09.753Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "442102980cd4ec8824a5cf3fd9c7e57cfe4e67801ce4b024a689600b1160fbb0",
+  "scope": "Native PE32 EXE/ZIP: byte/word/dword MUL, IMUL, DIV and IDIV, preserved upper registers, multiplication carry/overflow, signed quotient/remainder and high-byte operand aliasing.",
+  "results": [
+    {
+      "name": "wide-math.exe",
+      "exitCode": 0,
+      "output": "wide-math-ok\n",
+      "instructions": 649,
+      "compiledBlocks": 38,
+      "errors": []
+    },
+    {
+      "name": "wide-math.zip",
+      "exitCode": 0,
+      "output": "wide-math-ok\n",
+      "instructions": 649,
+      "compiledBlocks": 38,
+      "errors": []
+    }
+  ]
+}

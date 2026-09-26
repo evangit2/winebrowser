@@ -99,8 +99,8 @@ Original Hamsterball creates its hardware-vertex-processing fullscreen D3D8
 device with RGB565, FLIP, interval ONE and D16 depth. Chromium passes `Clear`,
 `GetDeviceCaps`, viewport setup, finite projection `SetTransform`, mip-bias, blend
 and disabled fog/stencil setup and custom cursor loading, then stops at the
-unsupported 8-bit `IMUL` at `0x4ae159`, after mapping `shadow.png`
-at 8,902,420 guest instructions;
+unsupported `IDirect3DDevice8.GetDirect3D`, after mapping `shadow.png`
+at 9,415,616 guest instructions;
 **no game frame is presented yet**. Node stops at actual device creation because
 it has no WebGPU adapter. See `evidence/hamsterball-startup{,-browser}.json` for
 arguments and exact boundaries.

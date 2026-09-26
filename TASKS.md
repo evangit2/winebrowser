@@ -178,11 +178,13 @@ D3D10/11 and broader D3D12 support are still required.
       read/seek/EOF/access tests. The original texture file now opens successfully.
 - [x] Implement CMPSB/W/D, REPE/REPNE, comparison flags and fault restart state
       across guest contexts; byte-pair exhaustive tests and native EXE/ZIP pass.
-- [ ] Implement byte/word wide integer multiply/divide. Hamsterball maps
-      `shadow.png`, passes its signature comparison, then stops at 8-bit `IMUL`
-      (`0x4ae159`, containing block `0x4ae150`).
+- [x] Implement byte/word implicit-register MUL/IMUL/DIV/IDIV, preserving upper
+      registers and state on divide faults. Native EXE/ZIP and unit vectors pass.
+- [ ] Implement D3D8/9 device GetDirect3D with parent COM ownership. Hamsterball
+      maps `shadow.png` and passes image-reading instructions, then stops at
+      `IDirect3DDevice8.GetDirect3D` (caller `0x488084`).
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,902,420 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 9,415,616 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

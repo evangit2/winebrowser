@@ -114,7 +114,9 @@
     "test:sections": "node scripts/test-sections-browser.mjs",
     "test:sections-native": "node scripts/test-sections-native.mjs",
     "build:cmps": "sh scripts/build-cmps-fixture.sh",
-    "test:cmps": "node scripts/test-cmps-browser.mjs"
+    "test:cmps": "node scripts/test-cmps-browser.mjs",
+    "build:wide-math": "sh scripts/build-wide-math-fixture.sh",
+    "test:wide-math": "node scripts/test-wide-math-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
