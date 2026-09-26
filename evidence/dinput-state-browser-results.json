@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-26T05:46:55.602Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "d67e8facf5e21ab25f421dbc1b6d74f6bbae1c9b7a6325db579a33ec65c67696",
+  "scope": "Original native PE through ordinary EXE and ZIP upload; standard keyboard/mouse formats, immediate and buffered physical-key states, exact 24/12 relative movement, right button, wheel -120, focus loss and clean reacquisition.",
+  "results": [
+    {
+      "name": "dinput-state.exe",
+      "exitCode": 0,
+      "instructions": 3387,
+      "compiledBlocks": 165,
+      "stages": [
+        "Input ready",
+        "Keys down",
+        "Keys released",
+        "Mouse down",
+        "Input verified",
+        "Input lost",
+        "Input reacquired"
+      ],
+      "errors": []
+    },
+    {
+      "name": "dinput-state.zip",
+      "exitCode": 0,
+      "instructions": 3401,
+      "compiledBlocks": 166,
+      "stages": [
+        "Input ready",
+        "Keys down",
+        "Keys released",
+        "Mouse down",
+        "Input verified",
+        "Input lost",
+        "Input reacquired"
+      ],
+      "errors": []
+    }
+  ]
+}

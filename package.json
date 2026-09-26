@@ -83,7 +83,9 @@
     "build:window-position": "sh scripts/build-window-position-fixture.sh",
     "test:window-position": "node scripts/test-window-position-browser.mjs",
     "build:dinput8": "sh scripts/build-dinput8-fixture.sh",
-    "test:dinput8": "node scripts/test-dinput8-browser.mjs"
+    "test:dinput8": "node scripts/test-dinput8-browser.mjs",
+    "build:dinput-state": "sh scripts/build-dinput-state-fixture.sh",
+    "test:dinput-state": "node scripts/test-dinput-state-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

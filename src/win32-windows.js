@@ -14,6 +14,7 @@ import { windowFindApis } from './win32-window-find.js';
 import { windowFrame, frameForWindow } from './window-frame.js';
 import { windowDataApis } from './win32-window-data.js';
 import { setWindowPos } from './win32-window-position.js';
+import { inputState } from './dinput-device.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -43,6 +44,13 @@ export class WindowManager {
     this.focus = 0;
     this.active = 0;
     this.capture = 0;
+  }
+  get active() {
+    return this._active ?? 0;
+  }
+  set active(value) {
+    this._active = value;
+    this.runtime.directInput?.foregroundChanged();
   }
   fail(code, argc, value = 0) {
     this.runtime.lastError = code;
@@ -280,9 +288,21 @@ export class WindowManager {
     return [x + frame.border, y + frame.border + frame.title];
   }
   input(event) {
+    const directInput = inputState(this.runtime);
+    if (event.type === 'app-blur') {
+      directInput.blur();
+      this.keys.clear();
+      this.keyboardState.clear();
+      return;
+    }
+    if (event.type === 'app-focus') {
+      directInput.focused = true;
+      return;
+    }
     const hwnd = this.capture && event.type.startsWith('mouse') ? this.capture : event.windowId;
     const window = this.windows.get(hwnd);
     if (!window || !this.isVisible(hwnd) || !this.isEnabled(hwnd)) return;
+    if (directInput.input(event, window)) return;
     if (controlInput(this.runtime, window, event)) return;
     if (event.type === 'close') this.post(hwnd, 0x10);
     else if (event.type === 'focus') {

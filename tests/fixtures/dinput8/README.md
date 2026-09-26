@@ -8,8 +8,8 @@ stdcall enumeration callbacks, filters and early stopping. It creates keyboard
 and mouse objects, checks capabilities and device information, switches A/W
 interfaces and checks shared IUnknown identity and reference counts.
 
-This is initialization support. Device data formats, acquisition, state and
-buffered events remain explicit unsupported-method errors. Aggregation, joystick
+This fixture covers initialization. Device formats, acquisition, immediate and
+buffered input are tested separately by `npm run test:dinput-state`. Aggregation, joystick
 and force-feedback devices, action maps and control panels are unfinished. The
 runtime currently reserves at most 64 COM interface pointers (32 A/W pairs);
 released pointers stay reserved to detect stale calls.

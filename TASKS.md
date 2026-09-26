@@ -106,8 +106,12 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Initialize DirectInput 8, create keyboard/mouse objects and enumerate their
       capabilities with native A/W callbacks, shared COM identity and lifetime.
       Node and EXE/ZIP browser fixtures pass.
-- [ ] Continue Hamsterball startup through `IDirectInputDevice8A.SetDataFormat`,
-      after 8,805,186 guest instructions in Node and Chromium.
+- [x] Read browser keyboard/mouse input through native DirectInput layouts,
+      acquisition and immediate/buffered APIs, including custom offsets, relative
+      axes, button/wheel events, overflow, focus loss and reacquisition. Native
+      EXE/ZIP tests verify actual browser keyboard and mouse actions.
+- [ ] Continue Hamsterball startup through `dsound.dll!#1` (`DirectSoundCreate`),
+      after 8,807,719 guest instructions in Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

@@ -1,14 +1,8 @@
 import { ComObjects, readGuid } from './com.js';
 
-export const DI = {
-  POINTER: 0x80004003,
-  INVALID: 0x80070057,
-  NOINTERFACE: 0x80004002,
-  NOTINITIALIZED: 0x80070015,
-  BETA: 0x80070481,
-  OLD: 0x8007047e,
-  DEVICENOTREG: 0x80040154,
-};
+import { DI } from './dinput-errors.js';
+export { DI } from './dinput-errors.js';
+import { deviceStateMethods, createInputDeviceState, releaseInputDevice } from './dinput-device.js';
 const UNKNOWN = '00000000-0000-0000-c000-000000000046';
 const INPUT_IIDS = ['bf798030-483a-4da2-aa99-5d64ed369700', 'bf798031-483a-4da2-aa99-5d64ed369700'];
 const DEVICE_IIDS = [
@@ -114,6 +108,7 @@ function interfaces(r, name, iids, methodNames, state, methods, onRelease) {
 
 function deviceMethods(wide) {
   return {
+    ...deviceStateMethods,
     3: {
       argc: 2,
       invoke(r, a, object) {
@@ -157,7 +152,7 @@ function inputMethods(wide) {
         if (a(3)) throw Error('DirectInput COM aggregation is unsupported');
         const device = deviceFor(r, a(1));
         if (!device) return DI.DEVICENOTREG;
-        const state = { device, acquired: false, format: null };
+        const state = createInputDeviceState(r, device);
         const views = interfaces(
           r,
           'IDirectInputDevice8',
@@ -166,6 +161,7 @@ function inputMethods(wide) {
           state,
           deviceMethods,
           () => {
+            releaseInputDevice(r, state);
             factory.refs--;
           },
         );

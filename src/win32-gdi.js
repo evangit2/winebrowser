@@ -15,7 +15,7 @@ import {
 
 const WIDTH = 640;
 const HEIGHT = 480;
-const DESKTOP_WINDOW = 0x101;
+export const DESKTOP_WINDOW = 0x101;
 const STOCK_WHITE_BRUSH = 0x11001;
 const STOCK_BLACK_BRUSH = 0x11002;
 const STOCK_NULL_BRUSH = 0x11003;

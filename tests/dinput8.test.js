@@ -167,7 +167,10 @@ test('device registration, capabilities and unknown methods are explicit', async
     [44, 1, 0x212, 3, 5, 0],
   );
   assert.equal(r.read32(caps + 44), 0x12345678);
-  await assert.rejects(method(r, device, 9, 16, caps), /Unsupported COM method .*GetDeviceState/);
+  await assert.rejects(
+    method(r, device, 21, caps),
+    /Unsupported COM method .*GetForceFeedbackState/,
+  );
   await assert.rejects(method(r, a, 6, 0, 0), /Unsupported COM method .*RunControlPanel/);
   assert.equal((await method(r, device, 0, guid(r, IA), out)).result, DI.NOINTERFACE);
   assert.equal(r.read32(out), 0);

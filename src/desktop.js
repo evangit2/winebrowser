@@ -43,6 +43,18 @@ export class VirtualDesktop {
     if (!container.hasAttribute('tabindex')) container.tabIndex = 0;
     container.addEventListener('keydown', this.onKeyDown);
     container.addEventListener('keyup', this.onKeyUp);
+    container.addEventListener('focusin', () => this.onInput({ type: 'app-focus' }));
+    container.addEventListener('focusout', (event) => {
+      if (!container.contains(event.relatedTarget)) this.onInput({ type: 'app-blur' });
+    });
+    const host = container.ownerDocument.defaultView;
+    host.addEventListener('blur', () => this.onInput({ type: 'app-blur' }));
+    host.addEventListener('focus', () => this.onInput({ type: 'app-focus' }));
+    container.ownerDocument.addEventListener('visibilitychange', () =>
+      this.onInput({
+        type: container.ownerDocument.hidden ? 'app-blur' : 'app-focus',
+      }),
+    );
   }
 
   onKeyDown = (event) => this.#sendKey(event, 'keydown');
@@ -299,6 +311,14 @@ export class VirtualDesktop {
     element.addEventListener('pointerdown', () => this.#focus(window));
     canvas.addEventListener('focus', () => this.#focus(window));
     canvas.addEventListener('pointerdown', (event) => canvas.setPointerCapture(event.pointerId));
+    canvas.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        this.#sendMouse(window, 'wheel', event);
+      },
+      { passive: false },
+    );
     canvas.addEventListener('mousemove', (event) => this.#sendMouse(window, 'mousemove', event));
     canvas.addEventListener('mousedown', (event) => {
       this.#focus(window);
@@ -496,6 +516,15 @@ export class VirtualDesktop {
       y: Math.round(event.clientY - rect.top),
       buttons: event.buttons,
       button: event.button,
+      movementX: event.movementX,
+      movementY: event.movementY,
+      wheelDelta:
+        type === 'wheel'
+          ? -Math.round(
+              event.deltaY *
+                (event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? window.height : 1),
+            )
+          : undefined,
     });
   }
 
