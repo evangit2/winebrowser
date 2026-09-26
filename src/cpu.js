@@ -71,7 +71,6 @@ export class CPU {
     this.cache = new Map();
     this.cachePages = new Map();
     this.cacheLimit = MAX_TRANSLATED_BLOCKS;
-    this.x87Blocks = new Set();
     this.compiledBytes = 0;
     // Total blocks compiled over the run; compared with cache.size it reveals
     // translation-cache eviction pressure on large/packed images.
@@ -1307,13 +1306,20 @@ export class CPU {
       if (this.cache.size >= this.cacheLimit) this.evictLeastRecent();
       this.compiledBytes += binary.length;
       this.compilations++;
-      const block = { run, count, bytes: binary.length, end, usesFS, referenced: true };
+      const block = {
+        run,
+        count,
+        bytes: binary.length,
+        end,
+        usesFS,
+        x87: usesX87,
+        referenced: true,
+      };
       this.cache.set(ip, block);
       for (let page = ip >>> 12; page <= (end - 1) >>> 12; page++) {
         if (!this.cachePages.has(page)) this.cachePages.set(page, new Set());
         this.cachePages.get(page).add(ip);
       }
-      if (usesX87) this.x87Blocks.add(ip);
       return block;
     } catch (error) {
       throw Error(`x86 block 0x${ip.toString(16)}: ${error.message}`);
@@ -1348,19 +1354,19 @@ export class CPU {
     }
   }
   prepare(ip) {
-    if (!this.cache.has(ip)) this.compile(ip);
-    return this.x87Blocks.has(ip) ? this.initialize() : null;
+    // Resolve the block once: step() reuses the same lookup, and the x87
+    // requirement lives on the block rather than in a second Set.
+    const block = this.cache.get(ip) ?? this.compile(ip);
+    return block.x87 ? this.initialize() : null;
   }
   clearCache() {
     this.cache.clear();
     this.cachePages.clear();
-    this.x87Blocks.clear();
   }
   removeBlock(ip) {
     const block = this.cache.get(ip);
     if (!block) return;
     this.cache.delete(ip);
-    this.x87Blocks.delete(ip);
     for (let page = ip >>> 12; page <= (block.end - 1) >>> 12; page++) {
       const entries = this.cachePages.get(page);
       entries?.delete(ip);
