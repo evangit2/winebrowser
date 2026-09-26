@@ -37,8 +37,9 @@ Validation:
 
 The real upstream C++ HelloTriangle application is a separate acceptance target;
 compiling its shaders does not establish executable compatibility. Its current
-MinGW build encounters the Wine loader bridge's static-TLS restriction, followed
-by missing UCRT API-set resolution and DXGI factory/adapter coverage. The build
+MinGW build now passes static-TLS initialization and reaches its native EXE entry
+point, then stops at missing UCRT API-set resolution (`__acrt_iob_func`).
+DXGI factory/adapter coverage is also still incomplete. The build
 uses a native cross-compiler; C++ source compilation in the browser is not yet
 implemented. HLSL and x86 machine-code compilation do happen in the browser.
 

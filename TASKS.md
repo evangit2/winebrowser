@@ -193,6 +193,10 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
       See `docs/hlsl-compilation.md`; full upstream C++ execution remains open.
+- [x] Integrate host-owned static TLS with the source-built Wine loader: native
+      EXE/DLL templates, callback order, thread isolation and FLS cleanup pass
+      in Node/Chromium. Real Microsoft HelloTriangle reaches its EXE entry and
+      stops at UCRT `__acrt_iob_func`; API-set redirection is the next gate.
 - [ ] Priority: compile, load and render an independently maintained real D3D12
       demo through the ordinary browser PE/ZIP path. Pin upstream source and
       binary provenance; verify guest execution, browser shader compilation and

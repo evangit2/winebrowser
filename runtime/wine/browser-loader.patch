@@ -28,7 +28,7 @@
      TRACE( "looking for %s in %s\n", debugstr_w(libname), debugstr_w(load_path) );
  
      if (system && system_dll_path.Buffer)
-@@ -3437,6 +3444,289 @@
+@@ -3437,6 +3444,305 @@
      return WINE_UNIX_CALL( unix_wine_server_handle_to_fd, &params );
  }
  
@@ -42,7 +42,8 @@
 +#define BROWSER_MODULE_MAIN 0x1
 +#define BROWSER_MODULE_NTDLL 0x2
 +#define BROWSER_MODULE_ATTACHED 0x4
-+#define BROWSER_MODULE_FLAGS 0x7
++#define BROWSER_MODULE_HOST_TLS 0x8
++#define BROWSER_MODULE_FLAGS 0xf
 +#define BROWSER_MAX_MODULES 64
 +
 +typedef struct browser_loader_module
@@ -60,6 +61,23 @@
 +    ULONG count;
 +    const browser_loader_module *modules;
 +} browser_loader_batch;
++
++/* Host-prepared static TLS remains separate from Wine dynamic TLS slots.
++ * The host validates PE ranges and owns the vector, templates and rollback. */
++static NTSTATUS browser_validate_tls( HMODULE base, ULONG flags )
++{
++    const IMAGE_TLS_DIRECTORY *dir;
++    ULONG size, index;
++    void **vector = NtCurrentTeb()->ThreadLocalStoragePointer;
++
++    dir = RtlImageDirectoryEntryToData( base, TRUE, IMAGE_DIRECTORY_ENTRY_TLS, &size );
++    if (!dir) return flags & BROWSER_MODULE_HOST_TLS ? STATUS_INVALID_PARAMETER : STATUS_SUCCESS;
++    if (!(flags & BROWSER_MODULE_HOST_TLS)) return STATUS_NOT_SUPPORTED;
++    if (size < sizeof(*dir) || !dir->AddressOfIndex || !vector) return STATUS_INVALID_PARAMETER;
++    index = *(const DWORD *)dir->AddressOfIndex;
++    if (index >= 128 || !vector[index]) return STATUS_INVALID_PARAMETER;
++    return STATUS_SUCCESS;
++}
 +
 +/* Undo alloc_module() metadata only. Image mappings remain browser-owned. */
 +static void browser_forget_module( WINE_MODREF *wm )
@@ -125,10 +143,9 @@
 +            (ULONG_PTR)entry->base > (ULONG_PTR)-1 - nt->OptionalHeader.SizeOfImage)
 +            return STATUS_INVALID_IMAGE_FORMAT;
 +        if (nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
-+            nt->FileHeader.Machine != IMAGE_FILE_MACHINE_I386 ||
-+            (nt->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_TLS &&
-+             nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress))
-+            return STATUS_NOT_SUPPORTED; /* static TLS ownership remains outside this bridge */
++            nt->FileHeader.Machine != IMAGE_FILE_MACHINE_I386)
++            return STATUS_NOT_SUPPORTED;
++        if ((status = browser_validate_tls( entry->base, entry->flags ))) return status;
 +        basename = wcsrchr( entry->name, '\\' );
 +        basename = basename ? basename + 1 : entry->name;
 +        if (!*basename) return STATUS_INVALID_PARAMETER;
@@ -177,6 +194,8 @@
 +            break;
 +        }
 +        wm->ldr.Flags &= ~LDR_DONT_RESOLVE_REFS;
++        /* Wine dispatches callbacks; it never allocates/frees these host slots. */
++        if (entry->flags & BROWSER_MODULE_HOST_TLS) wm->ldr.TlsIndex = -1;
 +        if (entry->flags & BROWSER_MODULE_ATTACHED)
 +        {
 +            InsertTailList( &ldr.InInitializationOrderModuleList, &wm->ldr.InInitializationOrderLinks );
@@ -222,27 +241,24 @@
 +    return STATUS_SUCCESS;
 +}
 +
-+/* The host owns scheduling and the stack/TEB. Use Wine's normal per-thread
-+ * storage and DLL notification routines after the process graph is attached.
-+ * Static TLS images remain rejected by the browser module bridge. */
++/* Host scheduling prepares the static TLS vector before Wine FLS and DLL
++ * thread notifications. Wine retains ownership of dynamic TlsAlloc/FLS. */
 +NTSTATUS WINAPI WineBrowserThreadAttach(void)
 +{
 +    NTSTATUS status = STATUS_SUCCESS;
 +    TEB *teb = NtCurrentTeb();
++    WINE_MODREF *wm;
 +    if (!browser_bridge_mode || !browser_callback || process_detaching)
 +        return STATUS_INVALID_DEVICE_STATE;
-+    if (teb->ThreadLocalStoragePointer || teb->FlsSlots) return STATUS_INVALID_PARAMETER;
++    if (teb->FlsSlots) return STATUS_INVALID_PARAMETER;
 +    RtlEnterCriticalSection( &loader_section );
-+    if (!tls_dirs && !(tls_dirs = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY,
-+                                                tls_module_count * sizeof(*tls_dirs) )))
-+        status = STATUS_NO_MEMORY;
-+    else if (!(teb->FlsSlots = fls_alloc_data())) status = STATUS_NO_MEMORY;
-+    else if ((status = alloc_thread_tls()))
++    if (!(teb->FlsSlots = fls_alloc_data())) status = STATUS_NO_MEMORY;
++    else
 +    {
-+        RtlProcessFlsData( teb->FlsSlots, 2 );
-+        teb->FlsSlots = NULL;
++        thread_attach();
++        wm = get_modref( teb->Peb->ImageBaseAddress );
++        if (wm && wm->ldr.TlsIndex == -1) call_tls_callbacks( wm->ldr.DllBase, DLL_THREAD_ATTACH );
 +    }
-+    else thread_attach();
 +    RtlLeaveCriticalSection( &loader_section );
 +    return status;
 +}
@@ -255,7 +271,7 @@
 +    UNICODE_STRING name;
 +
 +    if (!browser_bridge_mode || !browser_callback) return STATUS_INVALID_DEVICE_STATE;
-+    if (!base || (flags & ~BROWSER_MODULE_ATTACHED) || refs < -1 || refs > 32767)
++    if (!base || (flags & ~(BROWSER_MODULE_ATTACHED | BROWSER_MODULE_HOST_TLS)) || refs < -1 || refs > 32767)
 +        return STATUS_INVALID_PARAMETER;
 +    if (path)
 +    {
@@ -263,10 +279,9 @@
 +            return STATUS_INVALID_PARAMETER;
 +        if (!(nt = RtlImageNtHeader( base ))) return STATUS_INVALID_IMAGE_FORMAT;
 +        if (nt->FileHeader.Machine != IMAGE_FILE_MACHINE_I386 ||
-+            nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC ||
-+            (nt->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_TLS &&
-+             nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress))
++            nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC)
 +            return STATUS_NOT_SUPPORTED;
++        if ((status = browser_validate_tls( base, flags ))) return status;
 +    }
 +    RtlEnterCriticalSection( &loader_section );
 +    wm = get_modref( base );
@@ -299,6 +314,7 @@
 +        goto done;
 +    }
 +    wm->ldr.LoadCount = refs;
++    wm->ldr.TlsIndex = flags & BROWSER_MODULE_HOST_TLS ? -1 : 0;
 +    if ((flags & BROWSER_MODULE_ATTACHED) && !(wm->ldr.Flags & LDR_PROCESS_ATTACHED))
 +    {
 +        InsertTailList( &ldr.InInitializationOrderModuleList, &wm->ldr.InInitializationOrderLinks );
@@ -318,7 +334,7 @@
  /******************************************************************
   *		LdrLoadDll (NTDLL.@)
   */
-@@ -3445,7 +3735,12 @@
+@@ -3445,7 +3751,12 @@
  {
      WINE_MODREF *wm;
      NTSTATUS nts;
@@ -332,7 +348,7 @@
  
      RtlEnterCriticalSection( &loader_section );
  
-@@ -3516,6 +3811,28 @@
+@@ -3516,6 +3827,28 @@
      TRACE( "flags %#lx, load_path %p, dll_characteristics %p, name %p, base %p.\n",
              flags, load_path, dll_characteristics, name, base );
  
@@ -361,7 +377,7 @@
      if (flags & ~valid_flags) return STATUS_INVALID_PARAMETER;
  
      if ((flags & (LDR_GET_DLL_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | LDR_GET_DLL_HANDLE_EX_FLAG_PIN))
-@@ -3572,6 +3889,8 @@
+@@ -3572,6 +3905,8 @@
      NTSTATUS ret = STATUS_SUCCESS;
      WINE_MODREF *wm;
  
@@ -370,7 +386,7 @@
      if (flags & ~LDR_ADDREF_DLL_PIN) FIXME( "%p flags %lx not implemented\n", module, flags );
  
      RtlEnterCriticalSection( &loader_section );
-@@ -3891,6 +4210,16 @@
+@@ -3891,6 +4226,16 @@
  {
      BOOL detaching = process_detaching;
  
@@ -387,7 +403,7 @@
      TRACE("()\n");
  
      process_detaching = TRUE;
-@@ -3925,6 +4254,7 @@
+@@ -3925,6 +4270,7 @@
      UINT i;
      void **pointers;
  
@@ -395,7 +411,17 @@
      TRACE("()\n");
  
      /* don't do any detach calls if process is exiting */
-@@ -4100,6 +4430,8 @@
+@@ -3955,7 +4301,8 @@
+     }
+ 
+     RtlAcquirePebLock();
+-    if ((pointers = NtCurrentTeb()->ThreadLocalStoragePointer))
++    /* Browser static TLS uses its own allocator and outlives FLS callbacks. */
++    if (!browser_bridge_mode && (pointers = NtCurrentTeb()->ThreadLocalStoragePointer))
+     {
+         NtCurrentTeb()->ThreadLocalStoragePointer = NULL;
+         for (i = 0; i < tls_module_count; i++) RtlFreeHeap( GetProcessHeap(), 0, pointers[i] );
+@@ -4100,6 +4447,8 @@
      WINE_MODREF *wm;
      NTSTATUS retv = STATUS_SUCCESS;
  
@@ -404,7 +430,7 @@
      if (process_detaching) return retv;
  
      TRACE("(%p)\n", hModule);
-@@ -4414,6 +4746,7 @@
+@@ -4414,6 +4763,7 @@
      ULONG_PTR cookie, port = 0;
      WINE_MODREF *wm;
  

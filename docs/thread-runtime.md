@@ -28,10 +28,14 @@ TEB output attributes, suspend/resume, thread queries, base priority and delay.
 `NtAlertThreadByThreadId` and `NtWaitForAlertByThreadId` support Wine's contended
 lock wait/wake path. `ThreadZeroTlsCell` clears the requested dynamic TLS index
 across every live TEB. The new private `WineBrowserThreadAttach` export calls
-Wine's actual FLS allocation, TLS allocation and DLL thread-attach routines.
+Wine's actual FLS allocation and DLL thread-attach routines after the host clones static TLS templates.
 Returning workers enter actual `RtlExitUserThread` and `LdrShutdownThread`, including
-native FLS callbacks and DLL notifications. The complete Wine bridge still rejects
-static TLS PE images; its dynamic TLS/FLS implementation remains Wine-owned.
+native FLS callbacks and DLL notifications. Static TLS images now work through
+this bridge: Wine dispatches callbacks while the host owns vectors/templates
+and frees them after native cleanup. Dynamic TLS/FLS remains Wine-owned.
+The native static-TLS fixture covers an EXE, a dynamically loaded DLL, two
+waves of workers, callback order, independent values, native FLS cleanup,
+return/ExitThread and invalid bootstrap ownership/vector/index rejection.
 
 Main-thread `ExitThread` keeps the process alive until the last worker exits.
 Process exit from any thread cancels other contexts and unwinds their pending

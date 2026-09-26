@@ -10,7 +10,10 @@ const hex = (value) => `0x${(value >>> 0).toString(16)}`;
 
 // Diagnostic only: missing host APIs get a trap address, never a success stub.
 // The normal package loader continues rejecting unresolved imports up front.
-export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles }) {
+export async function probeWineTarget(
+  iced,
+  { files, exe, builtinFiles, nlsFiles, testStaticTLS = false },
+) {
   const report = {
     status: 'blocked-guest',
     scope:
@@ -255,6 +258,7 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
     await initializeWineProcess(runtime, ntdll);
     report.phases.push({ name: phase, passed: true });
     phase = 'source loader registration';
+    runtime.tls.prepare(runtime.graph.modules.values());
     const modules = guestModules();
     const entry = ntdll.pe.exports.find((e) => e.name === 'WineBrowserLoaderBootstrap');
     if (!entry || entry.forwarder) throw Error('Source-built loader export missing');
@@ -270,12 +274,40 @@ export async function probeWineTarget(iced, { files, exe, builtinFiles, nlsFiles
           module.base,
           name,
           (module === runtime.graph.main ? 1 : module === ntdll ? 2 : 0) |
-            (module.initialized ? 4 : 0),
+            (module.initialized ? 4 : 0) |
+            (runtime.tls.records.has(module) ? 8 : 0),
         ].forEach((value, n) => runtime.write32(table + i * 16 + n * 4, value));
       });
       const batch = runtime.allocate(16);
       allocated.push(batch);
       [16, 1, modules.length, table].forEach((value, n) => runtime.write32(batch + n * 4, value));
+      if (testStaticTLS) {
+        const index = modules.findIndex((m) => runtime.tls.records.has(m));
+        if (index < 0) throw Error('Static TLS validation requires a TLS image');
+        const module = modules[index],
+          flag = table + index * 16 + 12;
+        const value = runtime.read32(flag),
+          vectorAddress = 0x2e0002c;
+        const tlsIndexAddress = module.base + module.pe.tls.indexRva;
+        for (const [label, address, invalid, expected] of [
+          ['missing ownership flag', flag, value & ~8, 0xc00000bb],
+          ['unprepared vector', vectorAddress, 0, 0xc000000d],
+          ['out-of-range static slot', tlsIndexAddress, 128, 0xc000000d],
+        ]) {
+          const saved = runtime.read32(address);
+          try {
+            runtime.write32(address, invalid);
+            const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
+            if (status !== expected) throw Error(`TLS ${label}: unexpected ${hex(status)}`);
+            const peb = runtime.read32(0x2e00030);
+            if (runtime.read32(peb + 0xc) || runtime.read32(peb + 0xa0))
+              throw Error('Invalid TLS batch published Wine loader metadata');
+            report.phases.push({ name: 'static TLS rejects ' + label, passed: true });
+          } finally {
+            runtime.write32(address, saved);
+          }
+        }
+      }
       const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
       if (status) throw Error(`WineBrowserLoaderBootstrap returned ${hex(status)}`);
     } finally {

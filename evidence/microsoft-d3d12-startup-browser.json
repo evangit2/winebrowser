@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T14:20:14.492Z",
+  "date": "2026-09-26T14:30:25.790Z",
   "targetId": ".cache/dx12-microsoft",
   "exe": "hellotriangle.exe",
   "exeSha256": "3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899",
@@ -97,9 +97,9 @@
     "dlls": [
       {
         "name": "ntdll.dll",
-        "path": ".cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
-        "bytes": 3797756,
-        "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
+        "path": ".cache/wine-loader/0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797877,
+        "sha256": "dadbac5ae6697fd2bea95c745b065074a244ac954f9ff6d9c666d45fe83bee14"
       },
       {
         "name": "wine-format.dll",
@@ -184,7 +184,7 @@
     ],
     "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
     "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
-    "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2"
+    "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e"
   },
   "status": "blocked-guest",
   "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
@@ -369,6 +369,18 @@
     {
       "name": "Wine process bootstrap",
       "passed": true
+    },
+    {
+      "name": "source loader registration",
+      "passed": true
+    },
+    {
+      "name": "source loader callbacks",
+      "passed": true
+    },
+    {
+      "name": "guest DLL attach",
+      "passed": true
     }
   ],
   "trappedImports": [
@@ -484,6 +496,416 @@
       ],
       "threadId": 1,
       "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        1000,
+        18081440,
+        256,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000003"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103440,
+        80,
+        67103436
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103668,
+        983103,
+        67103568,
+        0,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103676,
+        983103,
+        67103716
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954496
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103680,
+        983103,
+        67103740
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryValueKey",
+      "args": [
+        1358954497,
+        67103708,
+        2,
+        67103764,
+        63,
+        67103688
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954497
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKey",
+      "args": [
+        67103684,
+        983103,
+        67103740
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQueryInformationProcess",
+      "args": [
+        4294967295,
+        26,
+        67104728,
+        4,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104728,
+        0,
+        67104724,
+        4096,
+        4
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtInitializeNlsFiles",
+      "args": [
+        67103856,
+        18077416,
+        67104272
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        9,
+        0,
+        0,
+        67104100,
+        67104272
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryDefaultLocale",
+      "args": [
+        1,
+        22493860
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtGetNlsSectionPtr",
+      "args": [
+        12,
+        1,
+        0,
+        22488156,
+        67103932
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103744,
+        0,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        22493852,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        22493848,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationToken",
+      "args": [
+        4294967290,
+        1,
+        67103636,
+        80,
+        67103632
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103832,
+        33554432,
+        67103764,
+        0,
+        0,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        22493856,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103364,
+        983359,
+        67102888,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc000000d"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103732,
+        131097,
+        67103344,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        102,
+        67104272,
+        432,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtOpenKeyEx",
+      "args": [
+        67103828,
+        983103,
+        67103440,
+        0
+      ],
+      "threadId": 1,
+      "result": "0xc0000034"
+    },
+    {
+      "name": "NtCreateKey",
+      "args": [
+        67103936,
+        983103,
+        67103744,
+        0,
+        67103840,
+        0,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        10
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        8
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtSetValueKey",
+      "args": [
+        1358954502,
+        67103840,
+        0,
+        1,
+        67104100,
+        12
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtClose",
+      "args": [
+        1358954502
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtQuerySystemInformation",
+      "args": [
+        0,
+        17240256,
+        44,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        4,
+        67104712
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtProtectVirtualMemory",
+      "args": [
+        4294967295,
+        67104640,
+        67104644,
+        2,
+        67104712
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func",
+      "args": [
+        2,
+        1,
+        9,
+        67104688
+      ],
+      "threadId": 1,
+      "error": "Unimplemented import api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func"
     }
   ],
   "output": [],
@@ -491,25 +913,428 @@
   "frames": 0,
   "nativeLoaderCalls": [],
   "firstFailure": {
-    "phase": "source loader registration",
-    "message": "WineBrowserLoaderBootstrap returned 0xc00000bb",
+    "phase": "native EXE entry point",
+    "threadId": 1,
+    "message": "Unimplemented import api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func",
     "ip": {
-      "address": "0x10dcb35",
-      "module": "ntdll.dll",
-      "offset": "0x3cb35"
+      "address": "0x1471000",
+      "module": "api-ms-win-crt-stdio-l1-1-0.dll",
+      "offset": "0x1000"
     },
     "registers": [
       "0x0",
-      "0x0",
-      "0x0",
-      "0x0",
       "0x3fff000",
       "0x0",
+      "0x4000000",
+      "0x3ffef9c",
+      "0x3ffefe8",
       "0x0",
       "0x0"
     ],
-    "compiledBlocks": 334,
-    "instructions": 10056
+    "compiledBlocks": 1738,
+    "instructions": 310092,
+    "recentBlocks": [
+      {
+        "threadId": 1,
+        "address": "0x410b7d",
+        "module": "hellotriangle.exe",
+        "offset": "0x10b7d",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x434068",
+          "0x0",
+          "0x3ffefd8",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x410aa4",
+        "module": "hellotriangle.exe",
+        "offset": "0x10aa4",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x434068",
+          "0x0",
+          "0x3ffefd4",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40ff9c",
+        "module": "hellotriangle.exe",
+        "offset": "0xff9c",
+        "registers": [
+          "0x1",
+          "0x0",
+          "0x434068",
+          "0x0",
+          "0x3ffefe0",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40fed0",
+        "module": "hellotriangle.exe",
+        "offset": "0xfed0",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffeff0",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "cf": 0,
+          "zf": 0,
+          "sf": 0,
+          "of": 0,
+          "pf": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40fedc",
+        "module": "hellotriangle.exe",
+        "offset": "0xfedc",
+        "registers": [
+          "0x1",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffefe4",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x40fee0",
+        "module": "hellotriangle.exe",
+        "offset": "0xfee0",
+        "registers": [
+          "0x1",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffefe4",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4134e0",
+        "module": "hellotriangle.exe",
+        "offset": "0x134e0",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffeff0",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "cf": 0,
+          "zf": 0,
+          "sf": 0,
+          "of": 0,
+          "pf": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x4134ea",
+        "module": "hellotriangle.exe",
+        "offset": "0x134ea",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffefd8",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x401450",
+        "module": "hellotriangle.exe",
+        "offset": "0x1450",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffeffc",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "cf": 0,
+          "zf": 0,
+          "sf": 0,
+          "of": 0,
+          "pf": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x401030",
+        "module": "hellotriangle.exe",
+        "offset": "0x1030",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x0",
+          "0x3ffeffc",
+          "0x0",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "cf": 0,
+          "zf": 0,
+          "sf": 0,
+          "of": 0,
+          "pf": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x401068",
+        "module": "hellotriangle.exe",
+        "offset": "0x1068",
+        "registers": [
+          "0x2e00000",
+          "0x3fff000",
+          "0x0",
+          "0x4000000",
+          "0x3ffefa0",
+          "0x3ffefe8",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x401074",
+        "module": "hellotriangle.exe",
+        "offset": "0x1074",
+        "registers": [
+          "0x0",
+          "0x3fff000",
+          "0x0",
+          "0x4000000",
+          "0x3ffefa0",
+          "0x3ffefe8",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x401088",
+        "module": "hellotriangle.exe",
+        "offset": "0x1088",
+        "registers": [
+          "0x0",
+          "0x3fff000",
+          "0x0",
+          "0x4000000",
+          "0x3ffefa0",
+          "0x3ffefe8",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 1,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x401160",
+        "module": "hellotriangle.exe",
+        "offset": "0x1160",
+        "registers": [
+          "0x0",
+          "0x3fff000",
+          "0x0",
+          "0x4000000",
+          "0x3ffefa0",
+          "0x3ffefe8",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x411e38",
+        "module": "hellotriangle.exe",
+        "offset": "0x11e38",
+        "registers": [
+          "0x0",
+          "0x3fff000",
+          "0x0",
+          "0x4000000",
+          "0x3ffef9c",
+          "0x3ffefe8",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x1471000",
+        "module": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "offset": "0x1000",
+        "registers": [
+          "0x0",
+          "0x3fff000",
+          "0x0",
+          "0x4000000",
+          "0x3ffef9c",
+          "0x3ffefe8",
+          "0x0",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      }
+    ]
   },
   "diagnosticLimits": {
     "maxBlocks": 10000000,

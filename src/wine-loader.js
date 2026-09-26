@@ -58,7 +58,7 @@ export class WineLoader {
         module === r.wineProcess?.module
           ? -1
           : Math.min(module.refs, 32767);
-      const flags = module.initialized ? 4 : 0;
+      const flags = (module.initialized ? 4 : 0) | (r.tls.records.has(module) ? 8 : 0);
       const signature = `${module.base}:${flags}:${refs}`;
       if (this.registered.get(module) === signature) continue;
       const name = r.allocString(wineModulePath(module), true);

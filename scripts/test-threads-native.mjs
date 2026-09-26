@@ -19,6 +19,7 @@ const { builtinFiles, nlsFiles, inputs } = await loadWineProbeInputs(root, {
 const results = [];
 for (const [name, expectedExit] of [
   ['threads-native', 0],
+  ['static-tls', 0],
   ['worker-exit', 77],
   ['main-exit', 77],
   ['thread-fault', null],
@@ -27,7 +28,15 @@ for (const [name, expectedExit] of [
     executable = new Uint8Array(
       await readFile(new URL('../tests/fixtures/threads/' + exe, import.meta.url)),
     );
-  const input = { files: new Map([[exe, executable]]), exe, builtinFiles, nlsFiles };
+  const files = new Map([[exe, executable]]);
+  if (name === 'static-tls')
+    files.set(
+      'thread-tls.dll',
+      new Uint8Array(
+        await readFile(new URL('../tests/fixtures/threads/thread-tls.dll', import.meta.url)),
+      ),
+    );
+  const input = { files, exe, builtinFiles, nlsFiles, testStaticTLS: name === 'static-tls' };
   const result = values.browser
     ? await probeWineTargetInBrowser(root, input)
     : await probeWineTarget(iced, input);
@@ -40,7 +49,9 @@ for (const [name, expectedExit] of [
         !result.firstFailure;
   results.push({
     name,
-    passed: !!passed,
+    passed: !!passed && (name !== 'static-tls' || result.output.join('').includes('static-tls-ok')),
+    output: result.output,
+    staticTLSValidation: result.phases.filter((p) => p.name.startsWith('static TLS rejects')),
     expectedExit,
     exeSha256: createHash('sha256').update(executable).digest('hex'),
     exitCode: result.exitCode,

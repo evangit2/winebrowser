@@ -268,6 +268,7 @@ export class GuestThreads {
       thread.started = true;
       await this.withLoaderLock(async () => {
         if (r.wineLoader) {
+          r.tls.createThread(thread);
           const status = await r.callGuest(r.wineLoader.threadAttachAddress);
           if (status) throw Error(`Wine thread initialization failed: 0x${status.toString(16)}`);
         } else {

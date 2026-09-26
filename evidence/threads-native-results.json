@@ -1,12 +1,12 @@
 {
-  "date": "2026-09-26T08:23:15.520Z",
+  "date": "2026-09-26T14:32:38.740Z",
   "status": "passed",
   "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
-  "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2",
+  "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e",
   "inputDlls": [
     {
       "name": "ntdll.dll",
-      "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
+      "sha256": "dadbac5ae6697fd2bea95c745b065074a244ac954f9ff6d9c666d45fe83bee14"
     },
     {
       "name": "wine-format.dll",
@@ -38,6 +38,8 @@
     {
       "name": "threads-native",
       "passed": true,
+      "output": [],
+      "staticTLSValidation": [],
       "expectedExit": 0,
       "exeSha256": "5051e8b265eeab3a60aa5bff9438bb87673694a74d1f9f7a6ba22816b3b37f05",
       "exitCode": 0,
@@ -49,6 +51,7 @@
             4294967294,
             23
           ],
+          "threadId": 4,
           "threadExit": true
         },
         {
@@ -57,6 +60,7 @@
             1375731712,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -68,6 +72,7 @@
             0,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -85,6 +90,7 @@
             0,
             67104592
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -93,6 +99,7 @@
             1375731744,
             67104556
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -102,6 +109,7 @@
             0,
             67104688
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -110,6 +118,7 @@
             1375731740,
             0
           ],
+          "threadId": 5,
           "result": "0x0"
         },
         {
@@ -119,6 +128,7 @@
             0,
             0
           ],
+          "threadId": 5,
           "threadExit": true
         },
         {
@@ -128,6 +138,7 @@
             0,
             67104688
           ],
+          "threadId": 1,
           "result": "0x102"
         },
         {
@@ -136,6 +147,7 @@
             0,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -146,6 +158,7 @@
             0,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -154,6 +167,162 @@
             4294967295,
             0
           ],
+          "threadId": 1,
+          "result": "0x0"
+        }
+      ]
+    },
+    {
+      "name": "static-tls",
+      "passed": true,
+      "output": [
+        "static-tls-ok\n"
+      ],
+      "staticTLSValidation": [
+        {
+          "name": "static TLS rejects missing ownership flag",
+          "passed": true
+        },
+        {
+          "name": "static TLS rejects unprepared vector",
+          "passed": true
+        },
+        {
+          "name": "static TLS rejects out-of-range static slot",
+          "passed": true
+        }
+      ],
+      "expectedExit": 0,
+      "exeSha256": "56de8f352f6475e0ee4864837df47244088f09edfdf7b289c9cba46a8b17ae92",
+      "exitCode": 0,
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            4294967294,
+            12,
+            54551068,
+            4,
+            0
+          ],
+          "threadId": 5,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateThread",
+          "args": [
+            4294967294,
+            14
+          ],
+          "threadId": 5,
+          "threadExit": true
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            1375731720,
+            0,
+            67104656,
+            28,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731720
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            1375731724,
+            0,
+            67104656,
+            28,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731724
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtSetInformationThread",
+          "args": [
+            4294967294,
+            10,
+            67104692,
+            4
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            5,
+            23527424,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtWriteFile",
+          "args": [
+            1,
+            0,
+            0,
+            0,
+            67104656,
+            4202557,
+            14,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            0
+          ],
+          "threadId": 1,
           "result": "0x0"
         }
       ]
@@ -161,6 +330,8 @@
     {
       "name": "worker-exit",
       "passed": true,
+      "output": [],
+      "staticTLSValidation": [],
       "expectedExit": 77,
       "exeSha256": "9658752c44aeacec0733c5445342c9b41548526b225a6e464d13a5cb3f46ab72",
       "exitCode": 77,
@@ -176,6 +347,7 @@
             67104100,
             12
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -183,6 +355,7 @@
           "args": [
             1358954502
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -193,6 +366,7 @@
             44,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -204,6 +378,7 @@
             4,
             67104712
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -215,6 +390,7 @@
             2,
             67104712
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -232,6 +408,7 @@
             0,
             67104616
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -240,6 +417,7 @@
             1375731712,
             67104580
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -249,6 +427,7 @@
             0,
             0
           ],
+          "threadId": 1,
           "threadExit": true
         },
         {
@@ -257,6 +436,7 @@
             0,
             52441032
           ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -265,6 +445,7 @@
             0,
             77
           ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -275,6 +456,7 @@
             0,
             0
           ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -283,6 +465,7 @@
             4294967295,
             77
           ],
+          "threadId": 2,
           "threadExit": true
         }
       ]
@@ -290,11 +473,36 @@
     {
       "name": "main-exit",
       "passed": true,
+      "output": [],
+      "staticTLSValidation": [],
       "expectedExit": 77,
       "exeSha256": "da1ad4f4683cf7fbae4f1f89a9cda6c0103bf98aece254b280fa1cc98ce5a1e0",
       "exitCode": 77,
       "firstFailure": null,
       "recentNativeCalls": [
+        {
+          "name": "NtQuerySystemInformation",
+          "args": [
+            0,
+            17043648,
+            44,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtProtectVirtualMemory",
+          "args": [
+            4294967295,
+            67104640,
+            67104644,
+            4,
+            67104712
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
         {
           "name": "NtProtectVirtualMemory",
           "args": [
@@ -304,6 +512,7 @@
             2,
             67104712
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -321,6 +530,7 @@
             0,
             67104616
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -329,6 +539,7 @@
             1375731712,
             67104580
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -340,21 +551,16 @@
             4,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
-          "name": "NtWaitForAlertByThreadId",
+          "name": "NtDelayExecution",
           "args": [
             0,
-            52440888
+            52441032
           ],
-          "result": "0x101"
-        },
-        {
-          "name": "NtAlertThreadByThreadId",
-          "args": [
-            2
-          ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -363,15 +569,8 @@
             4294967294,
             33
           ],
+          "threadId": 1,
           "threadExit": true
-        },
-        {
-          "name": "NtDelayExecution",
-          "args": [
-            0,
-            52441032
-          ],
-          "result": "0x0"
         },
         {
           "name": "NtQueryInformationThread",
@@ -382,6 +581,7 @@
             4,
             0
           ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -390,6 +590,7 @@
             0,
             77
           ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -400,6 +601,7 @@
             0,
             0
           ],
+          "threadId": 2,
           "result": "0x0"
         },
         {
@@ -408,6 +610,7 @@
             4294967295,
             77
           ],
+          "threadId": 2,
           "threadExit": true
         }
       ]
@@ -415,10 +618,13 @@
     {
       "name": "thread-fault",
       "passed": true,
+      "output": [],
+      "staticTLSValidation": [],
       "expectedExit": null,
       "exeSha256": "fe764d44ae5ff490a87c64359832083292fdf8ce42caba41b7f908673e7edcdd",
       "firstFailure": {
         "phase": "native EXE entry point",
+        "threadId": 2,
         "message": "x86 block 0x401010: Unsupported instruction ud2 at 0x401013",
         "ip": {
           "address": "0x401010",
@@ -435,117 +641,122 @@
           "0x0",
           "0x0"
         ],
-        "compiledBlocks": 1724,
-        "instructions": 109492,
+        "compiledBlocks": 1713,
+        "instructions": 108140,
         "recentBlocks": [
           {
-            "address": "0x137d9e4",
+            "threadId": 2,
+            "address": "0x134d5c1",
             "module": "ntdll.dll",
-            "offset": "0x6d9e4",
+            "offset": "0x3d5c1",
             "registers": [
-              "0xc0000",
+              "0x20009e8",
+              "0x400000",
+              "0x400000",
               "0x0",
-              "0x3000000",
-              "0x138921c",
-              "0x3202fc4",
-              "0x3202fcc",
-              "0x138921c",
-              "0x0"
-            ],
-            "flags": {
-              "zf": 1,
-              "sf": 0,
-              "pf": 1,
-              "cf": 0,
-              "of": 0,
-              "af": 0,
-              "df": 0
-            }
-          },
-          {
-            "address": "0x134d5a5",
-            "module": "ntdll.dll",
-            "offset": "0x3d5a5",
-            "registers": [
-              "0xc0000",
-              "0x0",
-              "0x3000000",
-              "0x3000000",
-              "0x3202fd4",
+              "0x3202fdc",
               "0x3202fe8",
-              "0x0",
+              "0x3000000",
               "0x0"
             ],
             "flags": {
-              "zf": 1,
+              "zf": 0,
               "sf": 0,
               "pf": 1,
               "cf": 0,
               "of": 0,
-              "af": 0,
+              "af": 1,
               "df": 0
             }
           },
           {
-            "address": "0x134d54a",
+            "threadId": 2,
+            "address": "0x134d5c5",
             "module": "ntdll.dll",
-            "offset": "0x3d54a",
+            "offset": "0x3d5c5",
             "registers": [
-              "0xc0000",
+              "0x20009e8",
+              "0x400000",
+              "0x400000",
               "0x0",
-              "0x3000000",
-              "0x3000000",
-              "0x3202fd4",
+              "0x3202fdc",
               "0x3202fe8",
-              "0x0",
+              "0x3000000",
               "0x0"
             ],
             "flags": {
-              "zf": 1,
+              "zf": 0,
               "sf": 0,
               "pf": 1,
               "cf": 0,
               "of": 0,
-              "af": 0,
+              "af": 1,
               "df": 0
             }
           },
           {
-            "address": "0x133c6c0",
+            "threadId": 2,
+            "address": "0x134d5cc",
             "module": "ntdll.dll",
-            "offset": "0x2c6c0",
+            "offset": "0x3d5cc",
             "registers": [
-              "0xc0000",
+              "0x20009e8",
+              "0x400000",
+              "0x400000",
               "0x0",
-              "0x3000000",
-              "0x3000000",
-              "0x3202fd0",
+              "0x3202fdc",
               "0x3202fe8",
-              "0x0",
+              "0x3000000",
               "0x0"
             ],
             "flags": {
-              "zf": 1,
+              "zf": 0,
               "sf": 0,
-              "pf": 1,
-              "cf": 0,
+              "pf": 0,
+              "cf": 1,
               "of": 0,
-              "af": 0,
+              "af": 1,
               "df": 0
             }
           },
           {
-            "address": "0x133c750",
+            "threadId": 2,
+            "address": "0x133c700",
             "module": "ntdll.dll",
-            "offset": "0x2c750",
+            "offset": "0x2c700",
+            "registers": [
+              "0x20009e8",
+              "0x400000",
+              "0x400000",
+              "0x0",
+              "0x3202fd8",
+              "0x3202fe8",
+              "0x3000000",
+              "0x0"
+            ],
+            "flags": {
+              "zf": 0,
+              "sf": 0,
+              "pf": 0,
+              "cf": 1,
+              "of": 0,
+              "af": 1,
+              "df": 0
+            }
+          },
+          {
+            "threadId": 2,
+            "address": "0x133c790",
+            "module": "ntdll.dll",
+            "offset": "0x2c790",
             "registers": [
               "0x0",
-              "0x0",
+              "0x400000",
               "0x13892e0",
-              "0x3000000",
-              "0x3202fac",
-              "0x3202fcc",
               "0x0",
+              "0x3202fb4",
+              "0x3202fd4",
+              "0x3000000",
               "0x0"
             ],
             "flags": {
@@ -559,17 +770,18 @@
             }
           },
           {
-            "address": "0x133c745",
+            "threadId": 2,
+            "address": "0x133c785",
             "module": "ntdll.dll",
-            "offset": "0x2c745",
+            "offset": "0x2c785",
             "registers": [
               "0x0",
-              "0x0",
+              "0x400000",
               "0x13892e0",
-              "0x3000000",
-              "0x3202fac",
-              "0x3202fcc",
               "0x0",
+              "0x3202fb4",
+              "0x3202fd4",
+              "0x3000000",
               "0x0"
             ],
             "flags": {
@@ -583,17 +795,18 @@
             }
           },
           {
-            "address": "0x134d556",
+            "threadId": 2,
+            "address": "0x134d5d8",
             "module": "ntdll.dll",
-            "offset": "0x3d556",
+            "offset": "0x3d5d8",
             "registers": [
               "0x0",
-              "0x0",
+              "0x400000",
               "0x13892e0",
-              "0x3000000",
-              "0x3202fd8",
-              "0x3202fe8",
               "0x0",
+              "0x3202fe0",
+              "0x3202fe8",
+              "0x3000000",
               "0x0"
             ],
             "flags": {
@@ -607,6 +820,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x401000",
             "module": "thread-fault.exe",
             "offset": "0x1000",
@@ -631,6 +845,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x100f3c0",
             "module": "kernel32.dll",
             "offset": "0xf3c0",
@@ -655,6 +870,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x10d0860",
             "module": "kernelbase.dll",
             "offset": "0x60860",
@@ -679,6 +895,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x10d087e",
             "module": "kernelbase.dll",
             "offset": "0x6087e",
@@ -703,6 +920,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x131d404",
             "module": "ntdll.dll",
             "offset": "0xd404",
@@ -727,6 +945,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x131e144",
             "module": "ntdll.dll",
             "offset": "0xe144",
@@ -751,6 +970,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x131d410",
             "module": "ntdll.dll",
             "offset": "0xd410",
@@ -775,6 +995,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x10d08a1",
             "module": "kernelbase.dll",
             "offset": "0x608a1",
@@ -799,6 +1020,7 @@
             }
           },
           {
+            "threadId": 2,
             "address": "0x401010",
             "module": "thread-fault.exe",
             "offset": "0x1010",
@@ -836,6 +1058,7 @@
             0,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -848,6 +1071,7 @@
             67104100,
             10
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -860,6 +1084,7 @@
             67104100,
             8
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -872,6 +1097,7 @@
             67104100,
             12
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -879,6 +1105,7 @@
           "args": [
             1358954502
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -889,6 +1116,7 @@
             44,
             0
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -900,6 +1128,7 @@
             4,
             67104712
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -911,6 +1140,7 @@
             2,
             67104712
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -928,6 +1158,7 @@
             0,
             67104616
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -936,6 +1167,7 @@
             1375731712,
             67104580
           ],
+          "threadId": 1,
           "result": "0x0"
         },
         {
@@ -945,6 +1177,7 @@
             0,
             0
           ],
+          "threadId": 1,
           "error": "x86 block 0x401010: Unsupported instruction ud2 at 0x401013"
         },
         {
@@ -953,6 +1186,7 @@
             0,
             52441032
           ],
+          "threadId": 2,
           "result": "0x0"
         }
       ]

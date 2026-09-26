@@ -1,4 +1,4 @@
-// PE static TLS for the runtime's single guest thread. Dynamic TlsAlloc slots
+// Host-owned PE static TLS templates and per-thread vectors. Dynamic TlsAlloc slots
 // are a separate Windows facility and are not represented by this vector.
 const TEB_TLS_VECTOR = 0x2e0002c;
 const MAX_MODULES = 128;

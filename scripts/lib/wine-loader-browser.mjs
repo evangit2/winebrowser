@@ -77,7 +77,7 @@ async function probeInBrowser(root, kind, input) {
               if (!response.ok) throw Error('Probe asset unavailable: ' + key);
               return new Uint8Array(await response.arrayBuffer());
             };
-            const input = {};
+            const input = { testStaticTLS: data.testStaticTLS };
             for (const [field, entries] of Object.entries(data.descriptors))
               input[field] = new Map(await Promise.all(entries.map(async ([name,key]) => [name,await fetchBytes(key)])));
             for (const field of data.byteFields) input[field] = await fetchBytes(field);
@@ -113,6 +113,7 @@ async function probeInBrowser(root, kind, input) {
         descriptors,
         byteFields: ['dll', 'executable'].filter((field) => input[field]),
         exe: input.exe,
+        testStaticTLS: input.testStaticTLS,
       },
     );
     if (result.worker !== true || result.crossOriginIsolated !== true)
