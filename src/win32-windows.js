@@ -11,6 +11,7 @@ import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
 import { windowFindApis } from './win32-window-find.js';
+import { windowFrame, frameForWindow } from './window-frame.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -78,6 +79,9 @@ export class WindowManager {
         controlType,
         controlBorder: border,
         enabled,
+        topmost: !!window.topmost,
+        zOrder: window.zOrder,
+        frame: parentId ? undefined : frameForWindow(window),
         font,
         readOnly,
         textAlign,
@@ -215,7 +219,16 @@ export class WindowManager {
   }
   raise(hwnd) {
     const window = this.windows.get(this.topLevel(hwnd));
-    if (window) window.zOrder = this.nextZOrder++;
+    if (window) {
+      window.zOrder = this.nextZOrder++;
+      if (window.presented)
+        this.runtime.emit({
+          type: 'window-stack',
+          windowId: window.id,
+          zOrder: window.zOrder,
+          topmost: window.topmost,
+        });
+    }
   }
   isEnabled(hwnd) {
     let window = this.windows.get(hwnd);
@@ -233,11 +246,17 @@ export class WindowManager {
     while (current.parentId) {
       const parent = this.windows.get(current.parentId);
       if (!parent) break;
-      x += parent.x + (parent.parentId ? (parent.controlBorder ?? 0) : BORDER);
-      y += parent.y + (parent.parentId ? (parent.controlBorder ?? 0) : TITLE + BORDER);
+      const frame = frameForWindow(parent);
+      x += parent.x + frame.border;
+      y += parent.y + frame.title + frame.border;
       current = parent;
     }
     return [x, y];
+  }
+  clientPosition(window) {
+    const [x, y] = this.screenPosition(window),
+      frame = frameForWindow(window);
+    return [x + frame.border, y + frame.border + frame.title];
   }
   input(event) {
     const hwnd = this.capture && event.type.startsWith('mouse') ? this.capture : event.windowId;
@@ -257,7 +276,8 @@ export class WindowManager {
       if (!Number.isFinite(event.x) || !Number.isFinite(event.y)) return;
       window.x = Math.max(-1024, Math.min(4096, Math.round(event.x)));
       window.y = Math.max(0, Math.min(4096, Math.round(event.y)));
-      this.post(hwnd, 3, 0, pair(window.x + BORDER, window.y + TITLE + BORDER));
+      const frame = frameForWindow(window);
+      this.post(hwnd, 3, 0, pair(window.x + frame.border, window.y + frame.title + frame.border));
       this.emit(window);
     } else if (event.type === 'resize') {
       if (!Number.isFinite(event.width) || !Number.isFinite(event.height)) return;
@@ -302,11 +322,12 @@ export class WindowManager {
                 : 0x202;
       const buttons =
         (event.buttons & 1 ? 1 : 0) | (event.buttons & 2 ? 2 : 0) | (event.buttons & 4 ? 16 : 0);
+      const [screenX, screenY] = this.clientPosition(window);
       this.post(hwnd, message, buttons, pair(event.x, event.y), {
         hardwareMouse: true,
         cursorSent: false,
-        x: window.x + BORDER + event.x,
-        y: window.y + TITLE + BORDER + event.y,
+        x: screenX + event.x,
+        y: screenY + event.y,
       });
     }
   }
@@ -442,13 +463,14 @@ async function create(r, a, wide) {
   if (cls.controlType && !child) throw Error('Standard controls require a parent window');
   if (child && !cls.controlType) throw Error('Custom child window rendering is not implemented');
   const control = child ? controlStyle(cls.controlType, a(3), a(0)) : {};
-  if (!child && a(0) & ~0x40000) throw Error('Unsupported extended window style');
+  if (!child && a(0) & ~0x40008) throw Error('Unsupported extended window style');
   const count = [...m.windows.values()].filter((w) => !!w.parentId === child).length;
   if (count >= (child ? 256 : 8)) return m.fail(8, 12);
   const width = a(6) === 0x80000000 ? 480 : a(6) | 0,
     height = a(7) === 0x80000000 ? 320 : a(7) | 0;
-  const border = child ? control.controlBorder : BORDER,
-    titleHeight = child ? 0 : TITLE;
+  const frame = windowFrame(a(3)),
+    border = child ? control.controlBorder : frame.border,
+    titleHeight = child ? 0 : frame.title;
   if (width < 2 * border || height < titleHeight + 2 * border || width > 1026 || height > 798)
     return m.fail(87, 12);
   const w = {
@@ -470,6 +492,7 @@ async function create(r, a, wide) {
     visible: false,
     style: a(3),
     exStyle: a(0),
+    topmost: !child && !!(a(0) & 8),
     instance: a(10),
     userData: 0,
     extra: new DataView(new ArrayBuffer(cls.extra)),
@@ -561,8 +584,7 @@ async function defaultProc(r, a, wide) {
   if (msg === 0x81) return result(1, 4);
   if (msg === 0x83 && !wp) {
     const rect = [0, 4, 8, 12].map((i) => r.read32(lp + i) | 0);
-    const border = w.parentId ? w.controlBorder : BORDER,
-      title = w.parentId ? 0 : TITLE;
+    const { border, title } = frameForWindow(w);
     rectangle(r, lp, [
       rect[0] + border,
       rect[1] + title + border,
@@ -685,13 +707,8 @@ Object.assign(windowApis, {
     const w = r.windows.windows.get(a(0));
     if (!w) return r.windows.fail(1400, 2);
     const [x, y] = r.windows.screenPosition(w),
-      border = w.parentId ? w.controlBorder : BORDER;
-    rectangle(r, a(1), [
-      x,
-      y,
-      x + w.width + 2 * border,
-      y + w.height + (w.parentId ? 0 : TITLE) + 2 * border,
-    ]);
+      { border, title } = frameForWindow(w);
+    rectangle(r, a(1), [x, y, x + w.width + 2 * border, y + w.height + title + 2 * border]);
     return result(1, 2);
   },
   'user32.dll!InvalidateRect': (r, a) => {
@@ -803,15 +820,16 @@ Object.assign(windowApis, {
 });
 
 function adjustRect(r, a, extended) {
-  if (a(2) || (extended && a(3) & ~0x40000))
+  if (a(2) || (extended && a(3) & ~0x40008))
     throw Error('Window menus and these extended styles are unsupported');
   r.check(a(0), 16, true);
   const rect = [0, 4, 8, 12].map((i) => r.read32(a(0) + i) | 0);
+  const { border, title } = windowFrame(a(1));
   rectangle(r, a(0), [
-    rect[0] - BORDER,
-    rect[1] - TITLE - BORDER,
-    rect[2] + BORDER,
-    rect[3] + BORDER,
+    rect[0] - border,
+    rect[1] - title - border,
+    rect[2] + border,
+    rect[3] + border,
   ]);
   return result(1, extended ? 4 : 3);
 }

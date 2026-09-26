@@ -1,5 +1,6 @@
 // One fixed process-local virtual display. It describes the browser desktop
 // coordinate space only; these APIs never inspect or reconfigure a host monitor.
+import { frameForWindow } from './window-frame.js';
 export const VIRTUAL_DISPLAY_MODE = Object.freeze({
   width: 1024,
   height: 768,
@@ -45,11 +46,10 @@ function clientToScreen(runtime, argument) {
   }
   const point = argument(1) >>> 0;
   runtime.check(point, 8, true);
-  const [outerX, outerY] = runtime.windows.screenPosition(window);
-  const border = window.parentId ? (window.controlBorder ?? 0) : 1;
-  const title = window.parentId ? 0 : 28;
-  runtime.write32(point, ((runtime.read32(point) | 0) + outerX + border) | 0);
-  runtime.write32(point + 4, ((runtime.read32(point + 4) | 0) + outerY + title + border) | 0);
+  const [x, y] = runtime.windows.screenPosition(window),
+    { border, title } = frameForWindow(window);
+  runtime.write32(point, ((runtime.read32(point) | 0) + x + border) | 0);
+  runtime.write32(point + 4, ((runtime.read32(point + 4) | 0) + y + border + title) | 0);
   return response(1, 2);
 }
 

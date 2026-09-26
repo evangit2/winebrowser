@@ -290,6 +290,104 @@ test('window lookup tracks native activation and browser focus order, including 
   assert.equal(await top(), second);
 });
 
+test('topmost windows stay above ordinary windows across creation, activation and browser focus', async (t) => {
+  const { runtime: r, events } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const make = async (extended) =>
+    (
+      await call(r, 'user32.dll!CreateWindowExA', [
+        extended,
+        atom,
+        0,
+        0x10000000,
+        10,
+        20,
+        160,
+        120,
+        0,
+        0,
+        r.pe.imageBase,
+        0,
+      ])
+    ).result;
+  const top1 = await make(8),
+    top2 = await make(8),
+    normal = await make(0);
+  const front = async () => (await call(r, 'user32.dll!FindWindowA', [0, 0])).result;
+  assert.ok(top1 && top2 && normal);
+  assert.equal(await front(), top2);
+  await call(r, 'user32.dll!SetFocus', [normal]);
+  assert.equal(await front(), top2);
+  r.windows.input({ type: 'focus', windowId: top1 });
+  assert.equal(await front(), top1);
+  assert.equal((await call(r, 'user32.dll!FindWindowExA', [0, top1, 0, 0])).result, top2);
+  assert.equal((await call(r, 'user32.dll!FindWindowExA', [0, top2, 0, 0])).result, normal);
+  assert.equal(events.findLast((e) => e.type === 'window-stack').topmost, true);
+  await call(r, 'user32.dll!DestroyWindow', [top1]);
+  assert.equal(await front(), top2);
+});
+
+test('popup frame geometry agrees across creation, nonclient layout, rectangles, screen points and mouse messages', async (t) => {
+  const { runtime: r, events } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address),
+    rect = r.allocate(16),
+    point = r.allocate(8);
+  for (const [style, border, title] of [
+    [0x90000000, 0, 0],
+    [0x90800000, 1, 0],
+    [0x90c40000, 1, 28],
+  ]) {
+    const hwnd = (
+      await call(r, 'user32.dll!CreateWindowExA', [
+        8,
+        atom,
+        0,
+        style,
+        10,
+        20,
+        160,
+        120,
+        0,
+        0,
+        r.pe.imageBase,
+        0,
+      ])
+    ).result;
+    assert.ok(hwnd);
+    await call(r, 'user32.dll!GetClientRect', [hwnd, rect]);
+    assert.deepEqual(
+      [0, 4, 8, 12].map((i) => r.read32(rect + i)),
+      [0, 0, 160 - 2 * border, 120 - 2 * border - title],
+    );
+    await call(r, 'user32.dll!GetWindowRect', [hwnd, rect]);
+    assert.deepEqual(
+      [0, 4, 8, 12].map((i) => r.read32(rect + i)),
+      [10, 20, 170, 140],
+    );
+    [10 + border, 20 + border + title, 170 - border, 140 - border].forEach((n, i) =>
+      r.write32(rect + i * 4, n),
+    );
+    assert.equal((await call(r, 'user32.dll!AdjustWindowRectEx', [rect, style, 0, 8])).result, 1);
+    assert.deepEqual(
+      [0, 4, 8, 12].map((i) => r.read32(rect + i)),
+      [10, 20, 170, 140],
+    );
+    r.write32(point, 3);
+    r.write32(point + 4, 5);
+    await call(r, 'user32.dll!ClientToScreen', [hwnd, point]);
+    assert.deepEqual([r.read32(point), r.read32(point + 4)], [13 + border, 25 + border + title]);
+    r.windows.input({ type: 'mousemove', windowId: hwnd, x: 3, y: 5, buttons: 0 });
+    const mouse = r.windows.queue.findLast((m) => m.hwnd === hwnd && m.message === 0x200);
+    assert.deepEqual([mouse.x, mouse.y], [13 + border, 25 + border + title]);
+    const emitted = events.findLast((e) => e.type === 'window' && e.window.id === hwnd).window;
+    assert.equal(emitted.frame.border, border);
+    assert.equal(emitted.frame.title, title);
+    await call(r, 'user32.dll!DestroyWindow', [hwnd]);
+  }
+});
+
 test('registers a class and delivers real guest WM_NCCREATE then WM_CREATE with a valid CREATESTRUCT', async (t) => {
   const { runtime } = await makeRuntime(t);
   const proc = installGuestWindowProc(runtime);

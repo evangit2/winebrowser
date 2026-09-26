@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T04:32:18.292Z",
+  "date": "2026-09-26T04:38:08.623Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2737,16 +2737,6 @@
   ],
   "apiCalls": [
     {
-      "name": "advapi32.dll!RegCloseKey",
-      "args": [
-        1358954505,
-        5232256,
-        4358504,
-        5232256
-      ],
-      "result": "0x0"
-    },
-    {
       "name": "advapi32.dll!RegOpenKeyExA",
       "args": [
         2147483650,
@@ -3374,7 +3364,17 @@
         5061032,
         2415919104
       ],
-      "error": "Unsupported extended window style"
+      "error": "Unimplemented import user32.dll!GetWindowLongA"
+    },
+    {
+      "name": "user32.dll!GetWindowLongA",
+      "args": [
+        131072,
+        4294967275,
+        16831556,
+        5232256
+      ],
+      "error": "Unimplemented import user32.dll!GetWindowLongA"
     }
   ],
   "output": [],
@@ -4149,73 +4149,25 @@
   ],
   "firstFailure": {
     "phase": "native EXE entry point",
-    "message": "Unsupported extended window style",
+    "message": "Unimplemented import user32.dll!GetWindowLongA",
     "ip": {
-      "address": "0x13d10a8",
+      "address": "0x13d1348",
       "module": "user32.dll",
-      "offset": "0x10a8"
+      "offset": "0x1348"
     },
     "registers": [
       "0x4d39a8",
       "0x258",
       "0x320",
       "0x0",
-      "0x3ffee58",
-      "0x3ffeff8",
+      "0x3ffee08",
+      "0x20000",
       "0x4fd680",
       "0x100d444"
     ],
     "compiledBlocks": 4096,
-    "instructions": 8800564,
+    "instructions": 8800575,
     "recentBlocks": [
-      {
-        "address": "0x4284ad",
-        "module": "hamsterball.exe",
-        "offset": "0x284ad",
-        "registers": [
-          "0xffffff00",
-          "0x5100000a",
-          "0x5100000a",
-          "0x0",
-          "0x3ffee9c",
-          "0x3ffeff8",
-          "0x4fd680",
-          "0x100d444"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x472f30",
-        "module": "hamsterball.exe",
-        "offset": "0x72f30",
-        "registers": [
-          "0xffffff00",
-          "0x25809a0",
-          "0x5100000a",
-          "0x0",
-          "0x3ffeea0",
-          "0x3ffeff8",
-          "0x4fd680",
-          "0x100d444"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
       {
         "address": "0x472f3a",
         "module": "hamsterball.exe",
@@ -4544,6 +4496,54 @@
         ],
         "flags": {
           "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x46cbe0",
+        "module": "hamsterball.exe",
+        "offset": "0x6cbe0",
+        "registers": [
+          "0x4d39a8",
+          "0x258",
+          "0x320",
+          "0x0",
+          "0x3ffee44",
+          "0x3ffeff8",
+          "0x4fd680",
+          "0x100d444"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x13d1348",
+        "module": "user32.dll",
+        "offset": "0x1348",
+        "registers": [
+          "0x4d39a8",
+          "0x258",
+          "0x320",
+          "0x0",
+          "0x3ffee08",
+          "0x20000",
+          "0x4fd680",
+          "0x100d444"
+        ],
+        "flags": {
+          "zf": 0,
           "sf": 0,
           "pf": 1,
           "cf": 0,

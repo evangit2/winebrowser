@@ -22,6 +22,15 @@
   display: none;
 }
 
+.virtual-desktop-window.is-borderless {
+  box-shadow: none;
+}
+
+.virtual-desktop-titlebar[hidden],
+.virtual-desktop-resize[hidden] {
+  display: none;
+}
+
 .virtual-desktop-window.is-focused {
   border-color: #111;
 }

@@ -75,7 +75,9 @@
     "build:window-find": "sh scripts/build-window-find-fixture.sh",
     "test:window-find": "node scripts/test-window-find-browser.mjs",
     "build:icon24": "sh scripts/build-icon24-fixture.sh",
-    "test:icon24": "node scripts/test-icon24-browser.mjs"
+    "test:icon24": "node scripts/test-icon24-browser.mjs",
+    "build:popup": "sh scripts/build-popup-fixture.sh",
+    "test:popup": "node scripts/test-popup-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

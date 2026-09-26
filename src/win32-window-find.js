@@ -1,3 +1,4 @@
+import { compareWindowOrder } from './window-frame.js';
 const result = (value, argc) => ({ result: value >>> 0, argc });
 
 // Compare UTF-16 code units without full Unicode expansions (e.g. ß -> SS).
@@ -32,7 +33,7 @@ function find(r, a, wide, extended) {
   if (className === '') return result(0, argc);
   const candidates = [...m.windows.values()]
     .filter((w) => (w.parentId ?? 0) === parent)
-    .sort((x, y) => y.zOrder - x.zOrder);
+    .sort(compareWindowOrder);
   const start = after ? candidates.findIndex((w) => w.id === after) : -1;
   if (after && start < 0) return result(0, argc);
   for (const w of candidates.slice(start + 1)) {

@@ -93,8 +93,11 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Decode 24-bit icon DIBs with BGR ordering, DWORD row padding and separate
       transparency masks. A native PE resource renders correctly in the upload UI;
       all 1,024 browser canvas pixels match independently expected RGBA values.
-- [ ] Continue Hamsterball EXE startup through the topmost window style in
-      `CreateWindowExA`, after 8,800,564 guest instructions in Node and Chromium.
+- [x] Honor topmost ordering and popup border/caption geometry in the window
+      manager and browser desktop. Native UI checks verify lookup order, stacking
+      after focus changes and exact client dimensions; DirectX 8/12 regressions pass.
+- [ ] Continue Hamsterball's native window procedure through `GetWindowLongA`
+      (`GWL_USERDATA`) during `CreateWindowExA`.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

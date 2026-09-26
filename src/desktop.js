@@ -1,7 +1,7 @@
 import './desktop.css';
 import { CURSOR_STYLES } from './cursors.js';
+import { compareWindowOrder, windowFrame } from './window-frame.js';
 
-const TITLEBAR_HEIGHT = 28;
 const MIN_CLIENT_WIDTH = 64;
 const MIN_CLIENT_HEIGHT = 48;
 
@@ -98,16 +98,32 @@ export class VirtualDesktop {
     return false;
   }
 
+  #restack() {
+    const ordered = [...this.windows.values()].filter((w) => !w.isControl).sort(compareWindowOrder);
+    ordered.forEach((w, i) => {
+      w.element.style.zIndex = String(ordered.length - i);
+    });
+  }
+
+  stack(windowId, zOrder, topmost) {
+    const window = this.windows.get(windowId);
+    if (!window || !Number.isFinite(zOrder)) return;
+    window.zOrder = zOrder;
+    window.topmost = !!topmost;
+    this.nextZIndex = Math.max(this.nextZIndex, zOrder);
+    this.#restack();
+  }
+
   #focus(window, { focusElement = false } = {}) {
     const parent = this.#topLevel(window);
     if (!parent || !this.#available(window)) return;
     if (window.isControl) {
       if (focusElement) window.element.focus({ preventScroll: true });
     } else this.container.focus({ preventScroll: true });
-    parent.element.style.zIndex = String(++this.nextZIndex);
+    parent.zOrder = ++this.nextZIndex;
+    this.#restack();
     for (const other of this.windows.values())
       if (!other.isControl) other.element.classList.toggle('is-focused', other === parent);
-    if (this.activeWindowId === window.id) return;
     this.activeWindowId = window.id;
     this.#emit(window.id, 'focus');
   }
@@ -120,10 +136,15 @@ export class VirtualDesktop {
   }
 
   #applyGeometry(window) {
+    const { border, title, resizable } = window.frame ?? windowFrame();
     window.element.style.left = `${window.x}px`;
     window.element.style.top = `${window.y}px`;
-    window.element.style.width = `${window.width + 2}px`;
-    window.element.style.height = `${window.height + TITLEBAR_HEIGHT + 2}px`;
+    window.element.style.width = `${window.width + 2 * border}px`;
+    window.element.style.height = `${window.height + title + 2 * border}px`;
+    window.element.style.borderWidth = `${border}px`;
+    window.element.classList.toggle('is-borderless', !border && !title);
+    window.titlebar.hidden = !title;
+    window.resizeHandle.hidden = !resizable;
     window.viewport.style.width = `${window.width}px`;
     window.viewport.style.height = `${window.height}px`;
   }
@@ -515,6 +536,9 @@ export class VirtualDesktop {
       y: Number.isFinite(state.y) ? state.y : window.y,
       width: Number.isFinite(state.width) ? Math.max(1, state.width) : window.width,
       height: Number.isFinite(state.height) ? Math.max(1, state.height) : window.height,
+      frame: state.frame ?? window.frame,
+      topmost: state.topmost ?? window.topmost ?? false,
+      zOrder: state.zOrder ?? window.zOrder ?? ++this.nextZIndex,
     });
     window.titleElement.textContent = window.titleText;
     this.#applyIcon(window, state.icon);
@@ -537,6 +561,8 @@ export class VirtualDesktop {
     }
     this.#applyGeometry(window);
     this.windows.set(state.id, window);
+    this.nextZIndex = Math.max(this.nextZIndex, window.zOrder);
+    this.#restack();
   }
 
   frame({ windowId, width, height, pixels, bitmap, renderer, graphicsApi, graphicsFrames }) {

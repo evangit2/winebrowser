@@ -13,7 +13,8 @@ and a ZIP containing that EXE and companion files through the ordinary upload UI
 Evidence and the fixture hash go to `evidence/window-find-browser-results.json`.
 
 Lookup covers windows in the current guest process. Message-only windows,
-owned windows, topmost bands and SetWindowPos are not yet implemented. Case
+owned windows and SetWindowPos are not yet implemented. Topmost bands are covered
+by the separate native popup fixture. Case
 comparison uses non-expanding BMP mappings from the browser; exact Windows NLS
 case tables remain unfinished. The no-match FindWindow result preserves last
 error, as documented by Microsoft, rather than the pinned Wine ANSI wrapper's
