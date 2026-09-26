@@ -68,3 +68,7 @@ Node stops at creation without WebGPU.
 See [presentation support](d3d-display.md). No game frame renders yet. The reference Theseus
 `kernel32/thread.rs` uses host `std::thread::spawn`; this browser scheduler instead
 uses the existing guest CPU and Wine's lifecycle routines.
+
+Same-process real and pseudo thread handles can now be duplicated. Aliases
+share completion and identity, and main-thread completion wakes workers waiting
+on a duplicated main handle. See [handle duplication](duplicate-handles.md).

@@ -199,8 +199,11 @@ D3D10/11 and broader D3D12 support are still required.
       initially stopped at UCRT `__acrt_iob_func`.
 - [x] Resolve fifteen UCRT API-set contracts to the actual guest ucrtbase DLL;
       native memory/string/stdio/module-identity checks pass in Node/Chromium.
-- [ ] Implement NtDuplicateObject for the current thread: the real Microsoft
-      executable now passes UCRT imports and stops on this native service.
+- [x] Duplicate same-process thread/event handles with shared signal state,
+      independent rights/lifetimes and current-thread conversion. Native tests
+      join a worker through its alias and wait for the main thread after exit.
+- [ ] Implement native semaphores: Microsoft HelloTriangle now passes TLS,
+      real UCRT imports and thread duplication, then stops at NtCreateSemaphore.
 - [ ] Priority: compile, load and render an independently maintained real D3D12
       demo through the ordinary browser PE/ZIP path. Pin upstream source and
       binary provenance; verify guest execution, browser shader compilation and

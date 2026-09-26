@@ -185,6 +185,15 @@ export class GuestThreads {
     const found = syncObjects(this.r).lookup(handle >>> 0, 'sync-thread', access);
     return found.status ? found : { status: 0, thread: found.object.thread };
   }
+  objectFor(thread) {
+    return (thread.object ??= {
+      kind: 'sync-thread',
+      manual: true,
+      signaled: thread.done,
+      refs: 0,
+      thread,
+    });
+  }
   create({
     start,
     parameter,
@@ -391,6 +400,10 @@ export class GuestThreads {
   }
   async waitForChildren() {
     this.main.done = true;
+    if (this.main.object) {
+      this.main.object.signaled = true;
+      syncObjects(this.r).dispatch();
+    }
     this.main.cleanup = true;
     try {
       while (this.records.size > 1)

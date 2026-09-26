@@ -8,6 +8,7 @@ import { formatApis } from './win32-format.js';
 import { processApis } from './win32-process.js';
 import { syncApis } from './win32-sync.js';
 import { threadApis } from './win32-threads.js';
+import { duplicateApis } from './duplicate-handle.js';
 import { audioApis } from './win32-audio.js';
 import { gdiApis } from './win32-gdi.js';
 import { windowApis } from './win32-windows.js';
@@ -51,6 +52,7 @@ for (const key of [
   ...Object.keys(fileSectionApis),
   ...Object.keys(syncApis),
   ...Object.keys(threadApis),
+  ...Object.keys(duplicateApis),
   ...Object.keys(audioApis),
   ...Object.keys(gdiApis),
   ...Object.keys(windowApis),
@@ -292,6 +294,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(fileSectionApis),
     ...Object.entries(syncApis),
     ...Object.entries(threadApis),
+    ...Object.entries(duplicateApis),
     ...Object.entries(audioApis),
     ...Object.entries(gdiApis),
     ...Object.entries(windowApis),

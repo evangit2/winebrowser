@@ -20,6 +20,8 @@ const results = [];
 for (const [name, expectedExit] of [
   ['threads-native', 0],
   ['static-tls', 0],
+  ['duplicate', 0],
+  ['duplicate-main-exit', 0],
   ['worker-exit', 77],
   ['main-exit', 77],
   ['thread-fault', null],

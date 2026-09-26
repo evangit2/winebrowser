@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T14:32:18.666Z",
+  "date": "2026-09-26T14:43:14.696Z",
   "status": "passed",
   "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
   "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e",
@@ -41,7 +41,7 @@
       "output": [],
       "staticTLSValidation": [],
       "expectedExit": 0,
-      "exeSha256": "5051e8b265eeab3a60aa5bff9438bb87673694a74d1f9f7a6ba22816b3b37f05",
+      "exeSha256": "452d81ee462d4f446dffe0c798235f0e3527e0c77c61a369ab20a3c5f1a0ecaf",
       "exitCode": 0,
       "browser": "154.0.8037.57",
       "worker": true,
@@ -332,6 +332,282 @@
           ],
           "threadId": 1,
           "result": "0x0"
+        }
+      ]
+    },
+    {
+      "name": "duplicate",
+      "passed": true,
+      "output": [],
+      "staticTLSValidation": [],
+      "expectedExit": 0,
+      "exeSha256": "ea279caa0c619336e825ef05c4727a3d09537a0ca5b0173579798cc35e85878e",
+      "exitCode": 0,
+      "browser": "154.0.8037.57",
+      "worker": true,
+      "crossOriginIsolated": true,
+      "outboundRequests": [],
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731724,
+            0,
+            52441024
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            4294967294,
+            12,
+            52441052,
+            4,
+            0
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateThread",
+          "args": [
+            4294967294,
+            67
+          ],
+          "threadId": 2,
+          "threadExit": true
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            1375731732,
+            0,
+            67104668,
+            28,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731732
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731724
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtCreateEvent",
+          "args": [
+            67104556,
+            2031619,
+            67104568,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtDuplicateObject",
+          "args": [
+            4294967295,
+            1375731736,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtSetEvent",
+          "args": [
+            1375731736,
+            0
+          ],
+          "threadId": 1,
+          "result": "0xc0000008"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        }
+      ]
+    },
+    {
+      "name": "duplicate-main-exit",
+      "passed": true,
+      "output": [],
+      "staticTLSValidation": [],
+      "expectedExit": 0,
+      "exeSha256": "faeb423f3ed6881820f30529d60765b2e357eda04e3d871bb569f685472a5462",
+      "exitCode": 0,
+      "browser": "154.0.8037.57",
+      "worker": true,
+      "crossOriginIsolated": true,
+      "outboundRequests": [],
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtResumeThread",
+          "args": [
+            1375731716,
+            67104564
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731716
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            4294967294,
+            12,
+            67104712,
+            4,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateThread",
+          "args": [
+            4294967294,
+            99
+          ],
+          "threadId": 1,
+          "threadExit": true
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            1375731712,
+            0,
+            52441008,
+            28,
+            0
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731712,
+            0,
+            52441016
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            1375731712,
+            0,
+            52441008,
+            28,
+            0
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731712
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtQueryInformationThread",
+          "args": [
+            4294967294,
+            12,
+            52441052,
+            4,
+            0
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            0
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "threadId": 2,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            0
+          ],
+          "threadId": 2,
+          "threadExit": true
         }
       ]
     },

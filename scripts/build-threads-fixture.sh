@@ -1,12 +1,14 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-for mode in threads threads-native worker-exit main-exit thread-fault static-tls; do
+for mode in threads threads-native worker-exit main-exit thread-fault static-tls duplicate duplicate-main-exit; do
   source=threads
   case_flag=""
   case "$mode" in
     threads-native) case_flag="-DNATIVE_TEST" ;;
     static-tls) source=static-tls ;;
+    duplicate) source=duplicate ;;
+    duplicate-main-exit) source=duplicate; case_flag="-DMAIN_EXIT" ;;
     worker-exit) source=lifecycle; case_flag="-DCASE=0" ;;
     main-exit) source=lifecycle; case_flag="-DCASE=1" ;;
     thread-fault) source=lifecycle; case_flag="-DCASE=2" ;;
@@ -20,7 +22,7 @@ for mode in threads threads-native worker-exit main-exit thread-fault static-tls
 done
 python3 - <<'PY'
 from pathlib import Path
-for name in ('threads', 'threads-native', 'worker-exit', 'main-exit', 'thread-fault', 'static-tls'):
+for name in ('threads', 'threads-native', 'worker-exit', 'main-exit', 'thread-fault', 'static-tls', 'duplicate', 'duplicate-main-exit'):
     path = Path(f'tests/fixtures/threads/{name}.exe')
     data = bytearray(path.read_bytes())
     pe = int.from_bytes(data[0x3c:0x40], 'little')

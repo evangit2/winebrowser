@@ -11,6 +11,7 @@ import { closeFileHandle, fileNtServices } from './wine-file.js';
 import { sectionNtServices } from './wine-sections.js';
 import { registerThunk } from './thunk-addresses.js';
 import { syncNtServices } from './wine-sync.js';
+import { duplicateNtServices } from './duplicate-handle.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -130,6 +131,7 @@ function writeLargeInteger(runtime, address, value) {
 
 export const ntServices = {
   ...syncNtServices,
+  ...duplicateNtServices,
   ...nlsServices,
   ...registryNtServices,
   ...tokenNtServices,

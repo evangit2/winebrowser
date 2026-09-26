@@ -28,6 +28,8 @@ try {
     ['threads.zip', 'application/zip', Buffer.from(archive), 0],
     ...(await Promise.all(
       [
+        ['duplicate', 0],
+        ['duplicate-main-exit', 0],
         ['worker-exit', 77],
         ['main-exit', 77],
         ['thread-fault', null],

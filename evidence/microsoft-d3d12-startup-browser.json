@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T14:34:50.774Z",
+  "date": "2026-09-26T14:40:32.378Z",
   "targetId": ".cache/dx12-microsoft",
   "exe": "hellotriangle.exe",
   "exeSha256": "3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899",
@@ -898,7 +898,31 @@
         2
       ],
       "threadId": 1,
-      "error": "Unsupported Wine NT service NtDuplicateObject"
+      "result": "0x0"
+    },
+    {
+      "name": "NtQueryInformationThread",
+      "args": [
+        1375731716,
+        0,
+        67104404,
+        28,
+        0
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtCreateSemaphore",
+      "args": [
+        67104204,
+        2031619,
+        67104216,
+        0,
+        2147483647
+      ],
+      "threadId": 1,
+      "error": "Unsupported Wine NT service NtCreateSemaphore"
     }
   ],
   "output": [],
@@ -957,39 +981,239 @@
   "firstFailure": {
     "phase": "native EXE entry point",
     "threadId": 1,
-    "message": "Unsupported Wine NT service NtDuplicateObject",
+    "message": "Unsupported Wine NT service NtCreateSemaphore",
     "ip": {
       "address": "0x10ae144",
       "module": "ntdll.dll",
       "offset": "0xe144"
     },
     "registers": [
-      "0x3c",
-      "0x3ffeeb8",
+      "0x83",
+      "0x3ffee10",
       "0x10ae144",
-      "0x2004c30",
-      "0x3ffee88",
-      "0x3ffeeb0",
-      "0xffffffff",
-      "0xfffffffe"
+      "0x0",
+      "0x3ffedac",
+      "0x3ffee00",
+      "0x7fffffff",
+      "0x1f0003"
     ],
-    "compiledBlocks": 3203,
-    "instructions": 280941,
+    "compiledBlocks": 3253,
+    "instructions": 283153,
     "recentBlocks": [
       {
         "threadId": 1,
-        "address": "0x10ce4c8",
+        "address": "0x10b9735",
         "module": "ntdll.dll",
-        "offset": "0x2e4c8",
+        "offset": "0x19735",
+        "registers": [
+          "0x8000",
+          "0x20100e0",
+          "0x0",
+          "0x2000078",
+          "0x3ffedb8",
+          "0x3ffee14",
+          "0x0",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x10b93c6",
+        "module": "ntdll.dll",
+        "offset": "0x193c6",
+        "registers": [
+          "0x8000",
+          "0x20100e0",
+          "0x0",
+          "0x2000078",
+          "0x3ffedb8",
+          "0x3ffee14",
+          "0x0",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x10b91b4",
+        "module": "ntdll.dll",
+        "offset": "0x191b4",
+        "registers": [
+          "0x8000",
+          "0x20100e0",
+          "0x0",
+          "0x2004da0",
+          "0x3ffedb8",
+          "0x3ffee14",
+          "0x0",
+          "0xa"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x1463356",
+        "module": "ucrtbase.dll",
+        "offset": "0x63356",
+        "registers": [
+          "0x2004da0",
+          "0x20100e0",
+          "0x0",
+          "0x2004d8c",
+          "0x3ffee28",
+          "0x3ffee28",
+          "0x2004d78",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x416af8",
+        "module": "hellotriangle.exe",
+        "offset": "0x16af8",
+        "registers": [
+          "0x2004da0",
+          "0x20100e0",
+          "0x0",
+          "0x2004d8c",
+          "0x3ffee30",
+          "0x3ffefe8",
+          "0x2004d78",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x416b02",
+        "module": "hellotriangle.exe",
+        "offset": "0x16b02",
+        "registers": [
+          "0x2004da0",
+          "0x20100e0",
+          "0x0",
+          "0x2004da0",
+          "0x3ffee30",
+          "0x3ffefe8",
+          "0x2004d78",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x10437f0",
+        "module": "kernel32.dll",
+        "offset": "0x137f0",
+        "registers": [
+          "0x2004da0",
+          "0x20100e0",
+          "0x0",
+          "0x2004da0",
+          "0x3ffee2c",
+          "0x3ffefe8",
+          "0x10437f0",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x1043840",
+        "module": "kernel32.dll",
+        "offset": "0x13840",
         "registers": [
           "0x0",
-          "0x1",
-          "0x2e00000",
-          "0x2004c30",
-          "0x3ffedf4",
-          "0x3ffedf4",
-          "0x2004500",
-          "0x2004504"
+          "0x20100e0",
+          "0x0",
+          "0x2004da0",
+          "0x3ffee0c",
+          "0x3ffee28",
+          "0x10437f0",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x1043910",
+        "module": "kernel32.dll",
+        "offset": "0x13910",
+        "registers": [
+          "0x0",
+          "0x1f0003",
+          "0x0",
+          "0x2004da0",
+          "0x3ffebd0",
+          "0x3ffee08",
+          "0x0",
+          "0x7fffffff"
         ],
         "flags": {
           "zf": 1,
@@ -1003,18 +1227,68 @@
       },
       {
         "threadId": 1,
-        "address": "0x151085e",
-        "module": "kernelbase.dll",
-        "offset": "0x1085e",
+        "address": "0x103fbd8",
+        "module": "kernel32.dll",
+        "offset": "0xfbd8",
         "registers": [
           "0x0",
-          "0x1",
-          "0x2e00000",
-          "0x2004c30",
+          "0x1f0003",
+          "0x0",
+          "0x2004da0",
+          "0x3ffee0c",
+          "0x3ffee28",
+          "0x10437f0",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x15151c0",
+        "module": "kernelbase.dll",
+        "offset": "0x151c0",
+        "registers": [
+          "0x0",
+          "0x1f0003",
+          "0x0",
+          "0x2004da0",
+          "0x3ffee0c",
+          "0x3ffee28",
+          "0x10437f0",
+          "0x2004d90"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x15152c0",
+        "module": "kernelbase.dll",
+        "offset": "0x152c0",
+        "registers": [
+          "0x0",
+          "0x3ffee10",
+          "0x0",
+          "0x0",
+          "0x3ffedb4",
           "0x3ffee00",
-          "0x3ffeea8",
-          "0x2004500",
-          "0x2004504"
+          "0x7fffffff",
+          "0x1f0003"
         ],
         "flags": {
           "zf": 1,
@@ -1022,324 +1296,24 @@
           "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x4133f8",
-        "module": "hellotriangle.exe",
-        "offset": "0x133f8",
-        "registers": [
-          "0x52000000",
-          "0x3ffeeb8",
-          "0x0",
-          "0x2004c30",
-          "0x3ffeec8",
-          "0x3ffefe8",
-          "0x2004500",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
           "af": 1,
           "df": 0
         }
       },
       {
         "threadId": 1,
-        "address": "0x416890",
-        "module": "hellotriangle.exe",
-        "offset": "0x16890",
-        "registers": [
-          "0x2004c68",
-          "0x3ffeeb8",
-          "0x0",
-          "0x2004c30",
-          "0x3ffeeb4",
-          "0x3ffefe8",
-          "0x2004500",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x413410",
-        "module": "hellotriangle.exe",
-        "offset": "0x13410",
-        "registers": [
-          "0x0",
-          "0x3ffeeb8",
-          "0x0",
-          "0x2004c30",
-          "0x3ffeeb8",
-          "0x3ffefe8",
-          "0x2004500",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x413419",
-        "module": "hellotriangle.exe",
-        "offset": "0x13419",
-        "registers": [
-          "0x0",
-          "0x3ffeeb8",
-          "0x0",
-          "0x2004c30",
-          "0x3ffeeb8",
-          "0x3ffefe8",
-          "0x2004500",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x104d240",
-        "module": "kernel32.dll",
-        "offset": "0x1d240",
-        "registers": [
-          "0x0",
-          "0x3ffeeb8",
-          "0x104d240",
-          "0x2004c30",
-          "0x3ffeeb4",
-          "0x3ffefe8",
-          "0x2004500",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x41343a",
-        "module": "hellotriangle.exe",
-        "offset": "0x1343a",
-        "registers": [
-          "0xffffffff",
-          "0x3ffeeb8",
-          "0x104d240",
-          "0x2004c30",
-          "0x3ffeeb8",
-          "0x3ffefe8",
-          "0x2004500",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x104d260",
-        "module": "kernel32.dll",
-        "offset": "0x1d260",
-        "registers": [
-          "0xffffffff",
-          "0x3ffeeb8",
-          "0x104d240",
-          "0x2004c30",
-          "0x3ffeeb4",
-          "0x3ffefe8",
-          "0xffffffff",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x413442",
-        "module": "hellotriangle.exe",
-        "offset": "0x13442",
-        "registers": [
-          "0xfffffffe",
-          "0x3ffeeb8",
-          "0x104d240",
-          "0x2004c30",
-          "0x3ffeeb8",
-          "0x3ffefe8",
-          "0xffffffff",
-          "0x2004504"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x104d240",
-        "module": "kernel32.dll",
-        "offset": "0x1d240",
-        "registers": [
-          "0xfffffffe",
-          "0x3ffeeb8",
-          "0x104d240",
-          "0x2004c30",
-          "0x3ffeeb4",
-          "0x3ffefe8",
-          "0xffffffff",
-          "0xfffffffe"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x413448",
-        "module": "hellotriangle.exe",
-        "offset": "0x13448",
-        "registers": [
-          "0xffffffff",
-          "0x3ffeeb8",
-          "0x104d240",
-          "0x2004c30",
-          "0x3ffeeb8",
-          "0x3ffefe8",
-          "0xffffffff",
-          "0xfffffffe"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x103c5d0",
-        "module": "kernel32.dll",
-        "offset": "0xc5d0",
-        "registers": [
-          "0xffffffff",
-          "0x3ffeeb8",
-          "0x2004c44",
-          "0x2004c30",
-          "0x3ffeeb4",
-          "0x3ffefe8",
-          "0xffffffff",
-          "0xfffffffe"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x15176f0",
+        "address": "0x1515221",
         "module": "kernelbase.dll",
-        "offset": "0x176f0",
+        "offset": "0x15221",
         "registers": [
-          "0xffffffff",
-          "0x3ffeeb8",
-          "0x2004c44",
-          "0x2004c30",
-          "0x3ffeeb4",
-          "0x3ffefe8",
-          "0xffffffff",
-          "0xfffffffe"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 1,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "threadId": 1,
-        "address": "0x10ad484",
-        "module": "ntdll.dll",
-        "offset": "0xd484",
-        "registers": [
-          "0xffffffff",
-          "0x3ffeeb8",
           "0x0",
-          "0x2004c30",
-          "0x3ffee8c",
-          "0x3ffeeb0",
-          "0xffffffff",
-          "0xfffffffe"
+          "0x3ffee10",
+          "0x0",
+          "0x0",
+          "0x3ffedb4",
+          "0x3ffee00",
+          "0x7fffffff",
+          "0x1f0003"
         ],
         "flags": {
           "zf": 1,
@@ -1347,7 +1321,57 @@
           "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x1515256",
+        "module": "kernelbase.dll",
+        "offset": "0x15256",
+        "registers": [
+          "0x0",
+          "0x3ffee10",
+          "0x0",
+          "0x0",
+          "0x3ffedb4",
+          "0x3ffee00",
+          "0x7fffffff",
+          "0x1f0003"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "threadId": 1,
+        "address": "0x10ad8f4",
+        "module": "ntdll.dll",
+        "offset": "0xd8f4",
+        "registers": [
+          "0x3ffedcc",
+          "0x3ffee10",
+          "0x0",
+          "0x0",
+          "0x3ffedb0",
+          "0x3ffee00",
+          "0x7fffffff",
+          "0x1f0003"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 1,
           "df": 0
         }
       },
@@ -1357,14 +1381,14 @@
         "module": "ntdll.dll",
         "offset": "0xe144",
         "registers": [
-          "0x3c",
-          "0x3ffeeb8",
+          "0x83",
+          "0x3ffee10",
           "0x10ae144",
-          "0x2004c30",
-          "0x3ffee88",
-          "0x3ffeeb0",
-          "0xffffffff",
-          "0xfffffffe"
+          "0x0",
+          "0x3ffedac",
+          "0x3ffee00",
+          "0x7fffffff",
+          "0x1f0003"
         ],
         "flags": {
           "zf": 1,
@@ -1372,7 +1396,7 @@
           "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 0,
+          "af": 1,
           "df": 0
         }
       }
