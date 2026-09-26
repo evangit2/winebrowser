@@ -22,6 +22,7 @@ import { GuestPerformanceClock } from './guest-clock.js';
 import { createSharedUserData, systemFileTime } from './shared-user-data.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
 import { GuestThreads } from './guest-threads.js';
+import { yieldToHost, yieldToTimer } from './host-yield.js';
 
 export { API_NAMES };
 
@@ -235,7 +236,12 @@ export class Runtime {
             apiCalls: this.calls,
           });
         }
-        await new Promise((r) => setTimeout(r, 0));
+        // A MessageChannel macrotask yields to the host without the multi-
+        // millisecond clamp browsers apply to nested timers. A timer yield is
+        // still interleaved periodically so timer-driven host work (stop
+        // requests, input, deadlines) is observed promptly.
+        if (this.blocks % (2048 * 16) === 0) await yieldToTimer();
+        else await yieldToHost();
         await this.threads.yield();
       }
     }

@@ -8,6 +8,8 @@ import { D3D12Renderer } from '../../src/d3d12-renderer.js';
 import { WineLoader, wineModulePath } from '../../src/wine-loader.js';
 import { resolveApiSet } from '../../src/api-sets.js';
 
+const silentIterator = (iterable) =>
+  iterable && typeof iterable[Symbol.iterator] === 'function' ? iterable : [];
 const hex = (value) => `0x${(value >>> 0).toString(16)}`;
 
 // Diagnostic only: missing host APIs get a trap address, never a success stub.
@@ -461,6 +463,30 @@ export async function probeWineTarget(
     await Promise.allSettled(report.pendingSamples);
     delete report.pendingSamples;
     delete report.memorySampleKeys;
+    // Dump live kernel-sync objects and their handles. A thread parked on a
+    // never-signaled object is a real hang, not a slow path.
+    if (runtime?.syncObjects) {
+      const sync = runtime.syncObjects;
+      report.syncObjects = [...silentIterator(sync.handles)].map((handle) => {
+        const entry = runtime.handles?.get(handle);
+        return {
+          handle: hex(handle),
+          kind: entry?.kind ?? null,
+          name: entry?.object?.name ?? null,
+          manual: entry?.object?.manual ?? null,
+          signaled: entry?.object?.signaled ?? null,
+          count: entry?.object?.count ?? null,
+          refs: entry?.object?.refs ?? null,
+          waiters: [...silentIterator(sync.waiters)].filter((w) => w.handles.includes(handle))
+            .length,
+        };
+      });
+      report.parkedThreads = [...silentIterator(runtime.threads.records.values())].map((t) => ({
+        id: t.id,
+        parked: !!t.resume,
+        waitingOn: t.cancel ? 'blocked' : 'running',
+      }));
+    }
     await runtime?.threads.stopOthers();
     runtime?.directSound?.dispose();
     runtime?.syncObjects?.dispose();
