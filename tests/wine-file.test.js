@@ -292,3 +292,49 @@ test('NtWriteFile enforces permissions and NtClose closes only regular file hand
   assert.ok(!r.handles.has(0x100));
   assert.throws(() => call(r, 'NtClose', [1]), /Unsupported Wine NT service NtClose/);
 });
+
+test('NT random/sequential cache hints retain real synchronous file reads and arbitrary seeks', () => {
+  const { r } = fixture();
+  r.handles.clear();
+  try {
+    const status = io(r),
+      out = r.allocate(4),
+      buffer = r.allocate(8),
+      offset = r.allocate(8),
+      attrs = fileAttributes(r, '\\??\\C:\\winebrowser\\data.bin');
+    for (const hint of [0x4, 0x800, 0x804])
+      for (const open of [false, true]) {
+        const options = 0x60 | hint;
+        assert.equal(
+          open
+            ? call(r, 'NtOpenFile', [out, 0x80100080, attrs, status, 1, options])
+            : call(r, 'NtCreateFile', [out, 0x80100080, attrs, status, 0, 0, 1, 1, options, 0, 0]),
+          0,
+        );
+        const h = r.read32(out);
+        assert.equal(r.read32(status + 4), 1);
+        r.view.setBigInt64(offset, 4n, true);
+        assert.equal(call(r, 'NtReadFile', [h, 0, 0, 0, status, buffer, 4, offset, 0]), 0);
+        assert.deepEqual([...r.data.slice(buffer, buffer + 2)], [0x45, 0x46]);
+        assert.equal(r.read32(status + 4), 2);
+        assert.equal(call(r, 'NtReadFile', [h, 0, 0, 0, status, buffer, 1, 0, 0]), 0xc0000011);
+        r.view.setBigInt64(offset, 1n, true);
+        assert.equal(call(r, 'NtSetInformationFile', [h, status, offset, 8, 14]), 0);
+        assert.equal(call(r, 'NtReadFile', [h, 0, 0, 0, status, buffer, 2, 0, 0]), 0);
+        assert.deepEqual([...r.data.slice(buffer, buffer + 2)], [0x42, 0x43]);
+        assert.equal(call(r, 'NtWriteFile', [h, 0, 0, 0, status, buffer, 1, 0, 0]), 0xc0000022);
+        assert.equal(call(r, 'NtClose', [h]), 0);
+      }
+    for (const options of [0x840, 0x868, 0x1860]) {
+      assert.equal(
+        call(r, 'NtCreateFile', [out, 0x80100080, attrs, status, 0, 0, 1, 1, options, 0, 0]),
+        0xc00000bb,
+      );
+      assert.equal(r.handles.size, 0);
+    }
+    assert.deepEqual([...r.files.get('data.bin')], [0x41, 0x42, 0x43, 0x44, 0x45, 0x46]);
+    assert.equal(r.dirty.size, 0);
+  } finally {
+    r.cpu.dispose();
+  }
+});

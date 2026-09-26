@@ -174,10 +174,12 @@ D3D10/11 and broader D3D12 support are still required.
       verify all pixels for five bitmap depths, blank/multiple-size/scaled images.
       See `docs/custom-cursors.md`. Resource-only DLLs now map with empty relocation
       tables when IMAGE_FILE_RELOCS_STRIPPED is clear.
-- [ ] Continue Hamsterball through texture-file startup (`shadow.png`).
-      NtCreateFile rejects FILE_RANDOM_ACCESS (options 0x860), causing the game's error dialog.
+- [x] Accept NT random/sequential cache hints for resident package files, with
+      read/seek/EOF/access tests. The original texture file now opens successfully.
+- [ ] Implement native file-section creation and views. Hamsterball now stops at
+      `NtCreateSection` while mapping `shadow.png` (read-only, SEC_COMMIT).
       Chromium passes capabilities, viewport setup, finite projection and mip-bias setup after creating
-      its 800×600 RGB565/FLIP device, then stops at 8,884,954 guest instructions.
+      its 800×600 RGB565/FLIP device, then stops at 8,879,806 guest instructions.
       Node stops at device creation without WebGPU. See `docs/d3d-display.md` and
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.
 - [ ] Continue from the original game entry through D3D8 resources, textures,

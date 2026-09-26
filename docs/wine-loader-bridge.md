@@ -134,11 +134,11 @@ lookup and filename conversion. Package metadata queries now pass, including
 the game's `C:\winebrowser\DATA` directory. Startup now initializes two workers and creates the 800×600 Hamsterball window.
 It passes D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP
 device, passes capabilities and initial SetTransform, then stops at
-texture startup: NtCreateFile rejects the random-access hint for `shadow.png`,
-followed by the game's error dialog at 8,884,954 guest instructions;
+texture startup: NtCreateFile now opens `shadow.png`, followed by unsupported
+NtCreateSection at 8,879,806 guest instructions;
 Node stops at device creation without WebGPU. See [presentation scope](d3d-display.md).
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is NT file access hints, remaining D3D8 texture/resource
+unverified. The next work is NT file sections and views, remaining D3D8 texture/resource
 interfaces and buffered geometry, with remaining
 audio/Win32 services and input still required. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
@@ -210,3 +210,10 @@ The [metadata fixture](../tests/fixtures/file-metadata/README.md) verifies ordin
 EXE/ZIP uploads and actual Wine KernelBase/NTDLL in Node and Chromium. Directory
 creation/enumeration, empty directory import and persistent timestamps remain
 unfinished.
+
+NT file creation/open accepts FILE_RANDOM_ACCESS and FILE_SEQUENTIAL_ONLY cache
+hints for files already resident in browser memory. Read, arbitrary seek, partial
+EOF reads, sharing, access rights and close behavior remain enforced by the same
+file implementation. Tests cover both hints (and their combination) through
+NtCreateFile/NtOpenFile, while asynchronous, unbuffered and delete-on-close modes
+remain unsupported. See Microsoft's [NtCreateFile options](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).

@@ -60,11 +60,13 @@ function create(runtime, argument) {
   if (disposition > 5 || share & ~7) return complete(INVALID_PARAMETER);
   // Synchronous non-directory files only; never pretend to honor async I/O,
   // delete-on-close, EAs, reparse points, allocation hints or security policies.
+  // SEQUENTIAL_ONLY (0x4) and RANDOM_ACCESS (0x800) are cache hints. Package
+  // files are already memory-resident; both retain ordinary read/seek semantics.
   if (
     argument(4) ||
     argument(9) ||
     argument(10) ||
-    options & ~0x60 ||
+    options & ~0x864 ||
     !(options & 0x20) ||
     access & ~0xc012019f ||
     disposition === 0

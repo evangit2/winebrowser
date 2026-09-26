@@ -47,7 +47,7 @@ reset. [Evidence](../evidence/custom-cursors-browser-results.json).
 
 Unit tests cover resource parsing/selection, masks/alpha, hotspot bounds, downscale
 hotspots, malformed resources, destination-XOR rejection and immutable cached
-pixels. The complete suite passes 524 tests; existing system cursor and desktop
+pixels. The complete suite passes 525 tests; existing system cursor and desktop
 control browser regressions and the production build pass.
 
 The resource DLL test exposed a separate PE mapper error. An empty relocation
@@ -57,9 +57,9 @@ if it contains relocation records. That fix is committed as `3aeb4d3` and follow
 the pinned Wine loader and the [PE specification](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format).
 
 The original Hamsterball diagnostic now passes LoadCursorA and reaches texture
-startup. It reports `TEXTURE LOAD FAILED! shadow.png` after 8,884,954 guest
-instructions. Both texture attribute queries succeed; NtCreateFile rejects its
-FILE_RANDOM_ACCESS hint (options 0x860). No game frame has rendered yet.
+startup. The NT file adapter now accepts FILE_RANDOM_ACCESS (options 0x860),
+opens `shadow.png` and stops at unsupported NtCreateSection after 8,879,806 guest
+instructions. No game frame has rendered yet.
 
 References: Microsoft [LoadCursor](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadcursorw),
 [LOCALHEADER](https://learn.microsoft.com/en-us/windows/win32/menurc/localheader),

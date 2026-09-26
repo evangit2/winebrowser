@@ -70,10 +70,10 @@ renders overlapping primitives into RGB565 with alpha/additive blending, dither,
 write masks, state queries and COPY presentation.
 [Native evidence](../evidence/blending-browser-results.json).
 
-524 unit tests pass, along with the lighting GPU, native programmable D3D9 and
+525 unit tests pass, along with the lighting GPU, native programmable D3D9 and
 DirectX 12 cube regressions and the production build. Original Hamsterball now
 passes SRCBLEND/DESTBLEND and disabled fog/stencil setup. It now stops at
-a `shadow.png` file-open failure (NtCreateFile random-access hint, 8,884,954 guest instructions).
+NtCreateSection while mapping `shadow.png` (8,879,806 guest instructions).
 It still presents zero frames. The probe uses the unchanged original EXE and
 local Wine DLL/NLS closure; those assets are not distributed.
 
