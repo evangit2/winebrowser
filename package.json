@@ -14,6 +14,8 @@
     "test:windows": "node scripts/test-windows-browser.mjs",
     "test:winmm": "node scripts/test-winmm-browser.mjs",
     "test:com": "node scripts/test-com-browser.mjs",
+    "test:x87-log": "node scripts/test-x87-log-browser.mjs",
+    "build:x87-log": "sh scripts/build-x87-log-fixture.sh",
     "build:com": "sh scripts/build-com-fixtures.sh",
     "build:winmm": "sh scripts/build-winmm-fixture.sh",
     "build:windows": "bash scripts/build-window-demo.sh",

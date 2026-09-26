@@ -1,0 +1,12 @@
+{
+  "date": "2026-09-26T00:58:09.403Z",
+  "exeSha256": "d0f526cc3575b3b6e13ef85ff2f94c479eb794e595ac498919e89185aba1b614",
+  "status": "passed",
+  "exitCode": 0,
+  "instructions": 17144,
+  "scope": "Native PE32 FYL2X execution against 204 independently generated 320-digit Decimal vectors, including all rounding modes, extended range, subnormals and overflow; exact ext80 bytes, exception bits, C1 and stack pop checked.",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}

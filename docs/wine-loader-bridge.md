@@ -107,7 +107,8 @@ Both Node and the Chromium worker pass source bootstrap, callback installation
 and packed BASS translation. WinMM mixer and multimedia time exports resolve,
 as do the native ACM/UCRT exports and virtual foreground-window queries. The
 OLE32 exports now resolve, including `CoCreateInstance`; the current stop is the
-unimplemented x87 `FYL2X` instruction during BASS attach. The game has not reached
+unimplemented x87 `FSIN` instruction during BASS attach, after the now-supported
+extended-precision `FYL2X`. The game has not reached
 its EXE entry or rendered a frame. Native ACM conversion and BASS playback have
 not been verified. The next work is x87 execution and the remaining native
 audio/Win32 services, followed by

@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
 
 const probes = {
+  x87log: { script: 'x87-log-probe.js', entry: 'probeX87Log' },
   com: { script: 'com-probe.js', entry: 'probeCom' },
   winmm: { script: 'winmm-probe.js', entry: 'probeWinmm' },
   loader: { script: 'wine-loader-probe.js', entry: 'probeWineLoader' },
@@ -124,3 +125,4 @@ export const probeWineCrtInBrowser = (root, input) => probeInBrowser(root, 'crt'
 export const probeWineTargetInBrowser = (root, input) => probeInBrowser(root, 'target', input);
 export const probeWinmmInBrowser = (root, input) => probeInBrowser(root, 'winmm', input);
 export const probeComInBrowser = (root, input) => probeInBrowser(root, 'com', input);
+export const probeX87LogInBrowser = (root, input) => probeInBrowser(root, 'x87log', input);

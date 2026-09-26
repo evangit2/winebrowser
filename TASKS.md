@@ -40,7 +40,10 @@ D3D10/11 and broader D3D12 support are still required.
       activation through real DLL factories. A native client/server pair passes
       object calls, failure HRESULTs, reference counts, locks and unload/reload
       in Node and Chromium; no unknown CLSID receives a substitute object.
-- [ ] Continue BASS startup past its current unimplemented x87 `FYL2X` instruction.
+- [x] Execute `FYL2X` without narrowing ext80 operands. A native fixture passes
+      204 independent high-precision vectors in Node and Chromium, including
+      directed rounding, subnormals, overflow, status flags and stack behavior.
+- [ ] Continue BASS startup past its current unimplemented x87 `FSIN` instruction.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

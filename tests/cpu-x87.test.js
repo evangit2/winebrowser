@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import iced from 'iced-x86';
 import { CPU } from '../src/cpu.js';
+import { readFile } from 'node:fs/promises';
 
 const CODE = 0x1000,
   DATA = 0x2000;
@@ -42,6 +43,54 @@ async function machine(code, check) {
   await cpu.initialize();
   return { cpu, memory, view, bytes: new Uint8Array(memory.buffer) };
 }
+
+test('FYL2X preserves ext80 low bits regardless of precision control and leaves integer flags unchanged', async () => {
+  const { vectors } = JSON.parse(
+    await readFile(new URL('./fixtures/x87-log-vectors.json', import.meta.url)),
+  );
+  const { cpu, bytes } = await machine([0xdb, 0x28, 0xdb, 0x29, 0xd9, 0xf1, 0xdb, 0x3a]);
+  cpu.r[0].value = DATA;
+  cpu.r[1].value = DATA + 16;
+  cpu.r[2].value = DATA + 32;
+  for (const pc of [0, 2, 3])
+    for (const v of vectors.filter((v) => v.name === 'above-one')) {
+      cpu.x87.reset();
+      cpu.x87.control = 0x7f | (pc << 8) | (v.mode << 10);
+      cpu.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+      bytes.set(Buffer.from(v.y, 'hex'), DATA);
+      bytes.set(Buffer.from(v.x, 'hex'), DATA + 16);
+      cpu.step(CODE);
+      assert.equal(Buffer.from(bytes.slice(DATA + 32, DATA + 42)).toString('hex'), v.output);
+      assert.equal(cpu.x87.status & 0x3f, v.flags);
+      assert.equal(cpu.x87.top, 0);
+      assert.ok(cpu.x87.tags.every((tag) => tag === 3));
+      assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+    }
+});
+
+test('FYL2X unmasked exceptions stop before modifying operands or popping; masked stack faults return indefinite', async () => {
+  const { cpu, view, bytes } = await machine([0xdd, 0x00, 0xdd, 0x01, 0xd9, 0xf1, 0xdb, 0x3a]);
+  cpu.r[0].value = DATA;
+  cpu.r[1].value = DATA + 8;
+  cpu.r[2].value = DATA + 32;
+  view.setFloat64(DATA, 1, true);
+  view.setFloat64(DATA + 8, 0, true);
+  bytes.fill(0xa5, DATA + 32, DATA + 42);
+  cpu.x87.control = 0x037b; // Divide-by-zero unmasked.
+  assert.throws(() => cpu.step(CODE), /Unmasked x87 exception 0x4/);
+  assert.equal(cpu.x87.top, 6);
+  assert.equal(cpu.x87.tags[6], 1); // ST0 is still zero.
+  assert.equal(cpu.x87.tags[7], 0); // ST1 is still one.
+  assert.equal(cpu.x87.status & 0x84, 0x84);
+  assert.deepEqual([...bytes.slice(DATA + 32, DATA + 42)], Array(10).fill(0xa5));
+  cpu.x87.reset();
+  cpu.step(CODE + 4); // Empty-stack FYL2X followed by FSTP.
+  assert.equal(cpu.x87.status & 0x241, 0x41);
+  assert.equal(
+    Buffer.from(bytes.slice(DATA + 32, DATA + 42)).toString('hex'),
+    '00000000000000c0ffff',
+  );
+});
 
 test('x87 loads mixed binary formats, performs ext80 arithmetic, and stores rounded f64', async () => {
   const { cpu, view } = await machine([

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T00:35:58.951Z",
+  "date": "2026-09-26T00:56:26.913Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -4153,36 +4153,300 @@
   ],
   "firstFailure": {
     "phase": "guest DLL attach",
-    "message": "x86 block 0x1430ca5: Unsupported instruction fyl2x at 0x1430ca9",
+    "message": "x86 block 0x1431601: Unsupported instruction fsin at 0x1431601",
     "ip": {
-      "address": "0x1430ca5",
+      "address": "0x1431601",
       "module": "bass.dll",
-      "offset": "0x20ca5"
+      "offset": "0x21601"
     },
     "registers": [
-      "0x8",
-      "0x6",
-      "0x2000488",
+      "0x0",
+      "0x0",
+      "0x2e00000",
       "0x1410000",
-      "0x3ffeeb8",
       "0x3ffeec4",
-      "0x145aa84",
-      "0x0"
+      "0x3ffeecc",
+      "0x100f49c",
+      "0x8001f"
     ],
-    "compiledBlocks": 3875,
-    "instructions": 5426614,
+    "compiledBlocks": 3903,
+    "instructions": 5429627,
     "recentBlocks": [
       {
-        "address": "0x14309d1",
+        "address": "0x1469070",
         "module": "bass.dll",
-        "offset": "0x209d1",
+        "offset": "0x59070",
         "registers": [
-          "0x5",
-          "0x6",
-          "0x2000488",
+          "0x8",
+          "0x0",
+          "0xffffffff",
+          "0x1410000",
+          "0x3ffeea4",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x100f500",
+        "module": "kernel32.dll",
+        "offset": "0xf500",
+        "registers": [
+          "0x8",
+          "0x0",
+          "0xffffffff",
+          "0x1410000",
+          "0x3ffeea4",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1525ff0",
+        "module": "kernelbase.dll",
+        "offset": "0x65ff0",
+        "registers": [
+          "0x8",
+          "0x0",
+          "0xffffffff",
+          "0x1410000",
+          "0x3ffeea4",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1526000",
+        "module": "kernelbase.dll",
+        "offset": "0x66000",
+        "registers": [
+          "0x3",
+          "0x0",
+          "0xffffffff",
+          "0x1410000",
+          "0x3ffee8c",
+          "0x3ffeea0",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1415f4c",
+        "module": "bass.dll",
+        "offset": "0x5f4c",
+        "registers": [
+          "0x1",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeeb0",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1415f54",
+        "module": "bass.dll",
+        "offset": "0x5f54",
+        "registers": [
+          "0x1",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeeb4",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 1,
+          "pf": 0,
+          "cf": 1,
+          "of": 0,
+          "af": 1,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1430d43",
+        "module": "bass.dll",
+        "offset": "0x20d43",
+        "registers": [
+          "0x1",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeeb8",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1430d4f",
+        "module": "bass.dll",
+        "offset": "0x20d4f",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeeb8",
+          "0x3ffeec4",
+          "0x145a8f8",
+          "0x0"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x1430ff7",
+        "module": "bass.dll",
+        "offset": "0x20ff7",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeed4",
+          "0x3ffeee4",
+          "0x100f49c",
+          "0x8001f"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14315ef",
+        "module": "bass.dll",
+        "offset": "0x215ef",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeed0",
+          "0x3ffeee4",
+          "0x100f49c",
+          "0x8001f"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14315f0",
+        "module": "bass.dll",
+        "offset": "0x215f0",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x2e00000",
+          "0x1410000",
+          "0x3ffeecc",
+          "0x3ffeee4",
+          "0x100f49c",
+          "0x8001f"
+        ],
+        "flags": {
+          "zf": 0,
+          "sf": 0,
+          "pf": 0,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14315f3",
+        "module": "bass.dll",
+        "offset": "0x215f3",
+        "registers": [
+          "0x0",
+          "0x0",
+          "0x2e00000",
           "0x1410000",
           "0x3ffeec8",
-          "0x3ffeee4",
+          "0x3ffeecc",
           "0x100f49c",
           "0x8001f"
         ],
@@ -4197,16 +4461,16 @@
         }
       },
       {
-        "address": "0x14309d2",
+        "address": "0x14315f4",
         "module": "bass.dll",
-        "offset": "0x209d2",
+        "offset": "0x215f4",
         "registers": [
-          "0x5",
-          "0x6",
-          "0x2000488",
+          "0x0",
+          "0x0",
+          "0x2e00000",
           "0x1410000",
           "0x3ffeec4",
-          "0x3ffeee4",
+          "0x3ffeecc",
           "0x100f49c",
           "0x8001f"
         ],
@@ -4221,23 +4485,23 @@
         }
       },
       {
-        "address": "0x14309d7",
+        "address": "0x14315f8",
         "module": "bass.dll",
-        "offset": "0x209d7",
+        "offset": "0x215f8",
         "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
+          "0x0",
+          "0x0",
+          "0x2e00000",
           "0x1410000",
           "0x3ffeec4",
-          "0x3ffeec4",
+          "0x3ffeecc",
           "0x100f49c",
           "0x8001f"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
-          "pf": 0,
+          "pf": 1,
           "cf": 0,
           "of": 0,
           "af": 0,
@@ -4245,314 +4509,50 @@
         }
       },
       {
-        "address": "0x14309db",
+        "address": "0x14315fb",
         "module": "bass.dll",
-        "offset": "0x209db",
+        "offset": "0x215fb",
         "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
+          "0x0",
+          "0x0",
+          "0x2e00000",
           "0x1410000",
-          "0x3ffeec0",
           "0x3ffeec4",
+          "0x3ffeecc",
           "0x100f49c",
           "0x8001f"
         ],
         "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
           "of": 0,
-          "af": 1,
+          "af": 0,
           "df": 0
         }
       },
       {
-        "address": "0x14309dc",
+        "address": "0x1431601",
         "module": "bass.dll",
-        "offset": "0x209dc",
+        "offset": "0x21601",
         "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
+          "0x0",
+          "0x0",
+          "0x2e00000",
           "0x1410000",
-          "0x3ffeebc",
           "0x3ffeec4",
+          "0x3ffeecc",
           "0x100f49c",
           "0x8001f"
         ],
         "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x14309dd",
-        "module": "bass.dll",
-        "offset": "0x209dd",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x14309e3",
-        "module": "bass.dll",
-        "offset": "0x209e3",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c50",
-        "module": "bass.dll",
-        "offset": "0x20c50",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x8001f"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c53",
-        "module": "bass.dll",
-        "offset": "0x20c53",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 1,
-          "pf": 0,
-          "cf": 1,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c75",
-        "module": "bass.dll",
-        "offset": "0x20c75",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x0"
-        ],
-        "flags": {
           "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
           "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c7c",
-        "module": "bass.dll",
-        "offset": "0x20c7c",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c86",
-        "module": "bass.dll",
-        "offset": "0x20c86",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c90",
-        "module": "bass.dll",
-        "offset": "0x20c90",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c97",
-        "module": "bass.dll",
-        "offset": "0x20c97",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x100f49c",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430c9f",
-        "module": "bass.dll",
-        "offset": "0x20c9f",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x145aa84",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1430ca5",
-        "module": "bass.dll",
-        "offset": "0x20ca5",
-        "registers": [
-          "0x8",
-          "0x6",
-          "0x2000488",
-          "0x1410000",
-          "0x3ffeeb8",
-          "0x3ffeec4",
-          "0x145aa84",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 1,
+          "af": 0,
           "df": 0
         }
       }

@@ -1,5 +1,6 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
+import { fyl2x } from './x87-transcendentals.js';
 export const X87Op = Object.freeze({
   loadFloat: 0,
   loadInt: 1,
@@ -20,6 +21,7 @@ export const X87Op = Object.freeze({
   clearExceptions: 16,
   sign: 17,
   wait: 18,
+  logarithm: 19,
 });
 
 const POP = 1,
@@ -103,6 +105,7 @@ export function classifyX87(i, iced) {
   }
   if (m === M.Fsqrt) return result(X87Op.sqrt);
   if (m === M.Frndint) return result(X87Op.round);
+  if (m === M.Fyl2x) return result(X87Op.logarithm);
   if (m === M.Fabs || m === M.Fchs) return result(X87Op.sign, m === M.Fchs ? 1 : 0);
   if (m === M.Ftst) return result(X87Op.compare, 0, 0, ZERO);
   if (m === M.Fldcw) return result(X87Op.loadControl);
@@ -423,6 +426,15 @@ export class X87State {
         0,
         this.#operation(() => this.sf._wb_sf_round(this.p, 4, this.p + 24, 10, this.p + 4, 10)),
       );
+    }
+    if (op === X87Op.logarithm) {
+      const result = fyl2x(this.#value(0), this.#value(1), (this.control >>> 10) & 3);
+      this.status &= ~0x200;
+      if (result.flags) this.#exception(result.flags, false);
+      if (result.roundedUp) this.status |= 0x200;
+      this.#set(1, result.bytes);
+      this.#pop();
+      return;
     }
     if (op === X87Op.compare) {
       let right;

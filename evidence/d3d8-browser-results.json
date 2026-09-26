@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-25T22:18:29.581Z",
+  "date": "2026-09-26T01:03:53.480Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.57",
   "nativeGame": "d3d8-cube",
@@ -12,35 +12,33 @@
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 4,
-        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
+        "frames": 5,
+        "hash": "a93354cf26c6fda1be5d511962aedc76dc8ac2ca6999547912071a0e3cf3e8f2",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 74972,
+        "coloredPixels": 77284,
         "colors": [
-          "93,197,239",
-          "121,216,117"
+          "242,207,91"
         ]
       },
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 18,
-        "hash": "c27a891999c438545f9322e087f48fc9d8b2eb5fa1d4afb823c4ca694aab08cf",
+        "frames": 19,
+        "hash": "dfad25165a27f537ae43a03cd83ca7bc60bff3b6fd1a6751452cbf7c0c75ce1e",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 77812,
+        "coloredPixels": 77284,
         "colors": [
-          "93,197,239",
-          "242,207,91"
+          "232,101,84"
         ]
       },
       "exitCode": 0,
@@ -71,15 +69,15 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 16,
-        "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
+        "frames": 17,
+        "hash": "9f940b40c2ed9ec399cb14a5083a2ef98bb3ab1908d8bc604686ce33189c500c",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 74972,
+        "coloredPixels": 77812,
         "colors": [
           "121,216,117",
           "93,197,239"
