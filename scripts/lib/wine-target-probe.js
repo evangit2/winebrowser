@@ -317,6 +317,26 @@ export async function probeWineTarget(
           record.traceError = error.message;
         }
       }
+      // Record the guest's virtual-memory requests so an allocator failure or
+      // an uncommitted-page fault can be traced to the exact call sequence.
+      if (name === 'NtAllocateVirtualMemory' || name === 'NtFreeVirtualMemory') {
+        try {
+          const allocate = name === 'NtAllocateVirtualMemory';
+          const basePointer = args[1],
+            sizePointer = allocate ? args[3] : args[2];
+          report.vmCalls ??= [];
+          if (report.vmCalls.length > 1024) report.vmCalls.shift();
+          report.vmCalls.push({
+            op: allocate ? 'alloc' : 'free',
+            base: hex(runtime.read32(basePointer)),
+            size: hex(runtime.read32(sizePointer)),
+            type: allocate ? hex(args[4]) : hex(args[3]),
+            sizeDwords: allocate ? [runtime.read32(sizePointer), runtime.read32(args[5])] : null,
+          });
+        } catch (error) {
+          // Never let tracing change the guest's failure.
+        }
+      }
       if (/DrawPrimitiveUP$/.test(name) && args.length >= 5) {
         try {
           const primitive = args[1],
@@ -369,6 +389,22 @@ export async function probeWineTarget(
         throw error;
       }
     };
+    // Resolve a guest memory-violation address against the allocator's live
+    // reservations so a fault can be classified without guesswork.
+    const faultContext = (target, message) => {
+      const match = /at 0x([0-9a-f]+)/i.exec(message ?? '');
+      if (!match || !target?.virtualMemory) return null;
+      const address = parseInt(match[1], 16);
+      for (const reservation of target.virtualMemory.reservations.values())
+        if (address >= reservation.base && address < reservation.end)
+          return {
+            address: hex(address),
+            reservationBase: hex(reservation.base),
+            reservationEnd: hex(reservation.end),
+            committed: reservation.pages.get(address & ~0xfff) !== null,
+          };
+      return { address: hex(address), reservation: null };
+    };
     const dispatch = runtime.dispatch.bind(runtime);
     runtime.dispatch = async (...args) => {
       try {
@@ -380,6 +416,7 @@ export async function probeWineTarget(
           threadId: runtime.threads.current?.id,
           message: error.message,
           ip: locate(lastIP),
+          faultContext: faultContext(runtime, error.message),
           registers: runtime.cpu.r.map((r) => hex(r.value)),
           compiledBlocks: runtime.cpu.cache.size,
           compilations: runtime.cpu.compilations,
@@ -502,6 +539,28 @@ export async function probeWineTarget(
     if (runtime?.virtualMemory?.stats) {
       try {
         report.virtualMemory = runtime.virtualMemory.stats();
+        // If the run failed on a memory violation, report the allocator history
+        // for the reservation that contains the fault address.
+        const message = report.firstFailure?.message ?? '';
+        const match = /at 0x([0-9a-f]+)/i.exec(message);
+        if (match) {
+          const address = parseInt(match[1], 16),
+            range = runtime.virtualMemory.rangeFor(address);
+          report.faultRange = range && {
+            base: hex(range.base),
+            end: hex(range.end),
+            committed: range.committed.map((r) => [hex(r.base), hex(r.end)]),
+          };
+          // Keep the last 80 guest virtual-memory calls; together with the
+          // allocator history they identify the whole sequence for the run.
+          report.vmCalls = (report.vmCalls ?? []).slice(-80);
+          report.vmHistory = (runtime.virtualMemory.history ?? []).filter(
+            (entry) =>
+              !range ||
+              (parseInt(entry.end, 16) > range.base && parseInt(entry.base, 16) < range.end) ||
+              (parseInt(entry.base, 16) <= address && parseInt(entry.end, 16) > address),
+          );
+        }
       } catch (error) {
         report.virtualMemory = { error: error.message };
       }

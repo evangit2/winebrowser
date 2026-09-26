@@ -197,6 +197,14 @@ export class VirtualMemory {
       reserved += reservation.end - reservation.base;
       for (const page of reservation.pages.values()) if (page !== null) committed += PAGE_SIZE;
     }
+    const ranges = [...this.reservations.values()]
+      .map((reservation) => ({
+        base: reservation.base,
+        end: reservation.end,
+        committed:
+          [...reservation.pages.values()].filter((page) => page !== null).length * PAGE_SIZE,
+      }))
+      .sort((a, b) => a.base - b.base);
     return {
       arenaStart: ARENA_START,
       arenaEnd: ARENA_END,
@@ -204,8 +212,29 @@ export class VirtualMemory {
       reservations: this.reservations.size,
       reservedBytes: reserved,
       committedBytes: committed,
+      ranges,
       lastFailure: this.lastFailure ?? null,
     };
+  }
+  // Which reservation contains an address, and the committed extent around it.
+  rangeFor(address) {
+    for (const reservation of this.reservations.values())
+      if (address >= reservation.base && address < reservation.end) {
+        const committed = [];
+        let run = null;
+        for (let page = reservation.base; page < reservation.end; page += PAGE_SIZE) {
+          if (reservation.pages.get(page) !== null) {
+            if (!run) run = { base: page, end: page + PAGE_SIZE };
+            else run.end = page + PAGE_SIZE;
+          } else if (run) {
+            committed.push(run);
+            run = null;
+          }
+        }
+        if (run) committed.push(run);
+        return { base: reservation.base, end: reservation.end, committed };
+      }
+    return null;
   }
   findFreeReservation(size) {
     const roundedSize = alignUp(size, PAGE_SIZE);
