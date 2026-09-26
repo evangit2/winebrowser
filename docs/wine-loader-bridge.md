@@ -121,10 +121,10 @@ arithmetic/comparisons, COM GUID conversion, window lookup and 24-bit icon
 decoding. Native window metadata passes through the original game window
 procedure, and both probes create the 800×600 Hamsterball window with its native
 icon. Window positioning now passes. DirectInput 8 formats, cooperative levels and
-input setup now pass. Both next stop at `dsound.dll!#1` (`DirectSoundCreate`), after
-8,807,719 guest instructions.
+input setup and DirectSound creation now pass. Both next stop in native BASS
+initialization at `NtCreateEvent`, after 8,819,067 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is DirectSound and remaining
+unverified. The next work is synchronization and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
@@ -135,7 +135,17 @@ each with uniform volume and mute controls. These controls scale the actual
 a repository-owned PE32 fixture in an isolated Chromium worker and verifies exact
 scaled and muted samples, ANSI/Unicode structure layouts and clock queries. It
 does not test physical speakers or implement capture, mixer notifications,
-multimedia callback timers, or a general waveOut/DirectSound driver.
+multimedia callback timers, or a general waveOut driver.
+
+The separate DirectSound bridge now supplies PCM8/PCM16 mono/stereo secondary
+buffers, shared duplicate storage, wrapping locks, monotonic play/write cursors,
+looping/one-shot playback and volume/pan/frequency controls. A bounded worker
+mixer submits actual samples to Web Audio; the ordinary EXE/ZIP browser fixture
+checks running sources, channel values and process/Stop cleanup. The WinMM mixer
+also scales this stream. Primary buffers expose format and mix controls, while
+primary locking, capture, effects, 3D and notification events remain unfinished.
+See [the fixture and exact limits](../tests/fixtures/dsound/README.md) and
+`evidence/dsound-browser-results.json`.
 
 The separate native character fixture verifies all eight case APIs, including
 CP1252, surrogate pairs and counted UTF-16 buffers, then exits through real Wine

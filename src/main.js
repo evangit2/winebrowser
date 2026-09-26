@@ -1,5 +1,6 @@
 import './style.css';
 import { audioQueueNeedsReset } from './audio-scheduling.js';
+import { BrowserAudioStream } from './browser-audio-stream.js';
 import { ensureIsolation } from './isolation.js';
 import { VirtualDesktop } from './desktop.js';
 import { selectedFiles, droppedFiles, validateImportFiles } from './import-files.js';
@@ -24,6 +25,7 @@ let stdout = '',
 let exampleRequest = 0,
   downloadingExample = false;
 const activeTones = new Set();
+const soundStream = new BrowserAudioStream();
 
 function log(text) {
   $('logs').textContent = ($('logs').textContent + '\n' + text).slice(-24000);
@@ -33,6 +35,7 @@ function status(text, state) {
   $('state').textContent = state;
 }
 function stopAudio(suspend = true) {
+  soundStream.stop();
   for (const tone of activeTones) {
     try {
       tone.stop();
@@ -76,6 +79,7 @@ function createWorker() {
   const instance = worker;
   worker.onerror = (event) => {
     if (worker !== instance) return;
+    stopAudio(false);
     log(event.message);
     status('Worker failed', 'ERROR');
     loadWait?.reject(Error(event.message));
@@ -127,12 +131,24 @@ function createWorker() {
         .putImageData(new ImageData(message.pixels, message.width, message.height), 0, 0);
     }
     if (message.type === 'log') log(message.text);
+    if (message.type === 'audio-stream') {
+      if (audio && ((suiteMode && suiteAudioReady) || (!suiteMode && $('audio-enabled').checked))) {
+        try {
+          soundStream.write(audio, message, suiteMode);
+        } catch (error) {
+          soundStream.stop();
+          log('DirectSound playback unavailable: ' + error.message);
+        }
+      } else soundStream.stop();
+    }
+    if (message.type === 'audio-stream-stop') soundStream.stop();
     if (message.type === 'progress') {
       $('metrics').dataset.blocks = String(message.blocks);
       $('metrics').textContent =
         `${message.compiledBlocks} Wasm blocks · ${message.blocks} dispatches · ${message.instructions} x86 instructions · ${message.apiCalls} API calls`;
     }
     if (message.type === 'error') {
+      stopAudio(false);
       log(message.text);
       $('output').textContent += `\n${message.text}`;
       status('Stopped: unsupported or invalid program', 'ERROR');

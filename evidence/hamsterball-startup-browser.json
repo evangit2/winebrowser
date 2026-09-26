@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T05:47:14.060Z",
+  "date": "2026-09-26T06:13:45.620Z",
   "targetId": ".cache/hamsterball-original",
   "exe": "hamsterball.exe",
   "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
@@ -2718,7 +2718,6 @@
     "user32.dll!DrawTextA",
     "user32.dll!OpenClipboard",
     "shell32.dll!ShellExecuteA",
-    "dsound.dll!#1",
     "ws2_32.dll!#16",
     "ws2_32.dll!#111",
     "ws2_32.dll!#108",
@@ -2745,176 +2744,6 @@
     "user32.dll!SetPropW"
   ],
   "apiCalls": [
-    {
-      "name": "advapi32.dll!RegQueryValueExA",
-      "args": [
-        1358954506,
-        5056276,
-        0,
-        0
-      ],
-      "result": "0x2"
-    },
-    {
-      "name": "advapi32.dll!RegQueryValueExA",
-      "args": [
-        1358954506,
-        5056260,
-        0,
-        0
-      ],
-      "result": "0x2"
-    },
-    {
-      "name": "advapi32.dll!RegQueryValueExA",
-      "args": [
-        1358954506,
-        5056260,
-        0,
-        0
-      ],
-      "result": "0x2"
-    },
-    {
-      "name": "advapi32.dll!RegQueryValueExA",
-      "args": [
-        1358954506,
-        5056260,
-        0,
-        0
-      ],
-      "result": "0x2"
-    },
-    {
-      "name": "advapi32.dll!RegQueryValueExA",
-      "args": [
-        1358954506,
-        5056260,
-        0,
-        0
-      ],
-      "result": "0x2"
-    },
-    {
-      "name": "advapi32.dll!RegCloseKey",
-      "args": [
-        1358954506,
-        5232256,
-        4635530,
-        5232256
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!LoadIconA",
-      "args": [
-        4194304,
-        5084732,
-        16831556,
-        5232256
-      ],
-      "result": "0x62000000"
-    },
-    {
-      "name": "user32.dll!RegisterClassA",
-      "args": [
-        67104376,
-        16831556,
-        5232256,
-        8
-      ],
-      "result": "0xc000"
-    },
-    {
-      "name": "user32.dll!CreateWindowExA",
-      "args": [
-        8,
-        5084020,
-        5061032,
-        2415919104
-      ],
-      "result": "0x20000"
-    },
-    {
-      "name": "user32.dll!GetWindowLongA",
-      "args": [
-        131072,
-        4294967275,
-        16831556,
-        5232256
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        129,
-        0,
-        50331648
-      ],
-      "result": "0x1"
-    },
-    {
-      "name": "user32.dll!GetWindowLongA",
-      "args": [
-        131072,
-        4294967275,
-        16831556,
-        5232256
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        131,
-        0,
-        50331696
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!GetWindowLongA",
-      "args": [
-        131072,
-        4294967275,
-        16831556,
-        5232256
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        1,
-        0,
-        50331648
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!GetWindowLongA",
-      "args": [
-        131072,
-        4294967275,
-        16831556,
-        5232256
-      ],
-      "result": "0x0"
-    },
-    {
-      "name": "user32.dll!DefWindowProcA",
-      "args": [
-        131072,
-        24,
-        1,
-        0
-      ],
-      "result": "0x0"
-    },
     {
       "name": "user32.dll!GetWindowLongA",
       "args": [
@@ -3380,44 +3209,191 @@
       "result": "0x0"
     },
     {
-      "name": "dsound.dll!#1",
+      "name": "dsound.dll!DirectSoundCreate",
       "args": [
         0,
         39340324,
         0,
         16831556
       ],
-      "error": "Unimplemented import dsound.dll!#1"
+      "result": "0x0"
+    },
+    {
+      "name": "IDirectSound.SetCooperativeLevel",
+      "args": [
+        50332112,
+        131072,
+        2,
+        16831556
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "advapi32.dll!RegOpenKeyExA",
+      "args": [
+        2147483650,
+        39333608,
+        0,
+        131079
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "advapi32.dll!RegOpenKeyExA",
+      "args": [
+        2147483649,
+        39333608,
+        0,
+        131079
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "advapi32.dll!RegQueryValueExA",
+      "args": [
+        1358954508,
+        5083388,
+        0,
+        0
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "advapi32.dll!RegQueryValueExA",
+      "args": [
+        1358954508,
+        5083388,
+        0,
+        0
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "advapi32.dll!RegQueryValueExA",
+      "args": [
+        1358954508,
+        5083388,
+        0,
+        0
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "advapi32.dll!RegQueryValueExA",
+      "args": [
+        1358954508,
+        5083388,
+        0,
+        0
+      ],
+      "result": "0x2"
+    },
+    {
+      "name": "advapi32.dll!RegCloseKey",
+      "args": [
+        1358954508,
+        39338200,
+        4613933,
+        16831556
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        1,
+        33585936,
+        0,
+        67103496
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "WineBrowserLoaderCallback",
+      "args": [
+        2,
+        20971520,
+        67103512,
+        0
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "dsound.dll!DirectSoundEnumerateA",
+      "args": [
+        21161319,
+        0,
+        21161874,
+        16831556
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "ole32.dll!CoInitialize",
+      "args": [
+        0,
+        21161973,
+        16831556,
+        39340544
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "ole32.dll!CoCreateInstance",
+      "args": [
+        21177776,
+        0,
+        3,
+        21177712
+      ],
+      "result": "0x80040154"
+    },
+    {
+      "name": "ole32.dll!CoCreateInstance",
+      "args": [
+        21177792,
+        0,
+        3,
+        21177728
+      ],
+      "result": "0x80040154"
+    },
+    {
+      "name": "ole32.dll!CoUninitialize",
+      "args": [
+        16831556,
+        39340544,
+        0,
+        589439264
+      ],
+      "result": "0x0"
+    },
+    {
+      "name": "ole32.dll!CoInitialize",
+      "args": [
+        0,
+        21161973,
+        16831556,
+        39340544
+      ],
+      "result": "0x1"
+    },
+    {
+      "name": "NtCreateEvent",
+      "args": [
+        67103404,
+        2031619,
+        67103416,
+        0,
+        0
+      ],
+      "error": "Unsupported Wine NT service NtCreateEvent"
     }
   ],
   "output": [],
   "requests": [],
   "frames": 0,
   "nativeLoaderCalls": [
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "QueryPerformanceCounter",
-      "status": "0x0"
-    },
-    {
-      "name": "LdrGetProcedureAddress",
-      "args": [
-        16777216,
-        67104406,
-        0,
-        67104402
-      ],
-      "dll": "kernel32.dll",
-      "symbol": "TlsAlloc",
-      "status": "0x0"
-    },
     {
       "name": "LdrGetProcedureAddress",
       "args": [
@@ -4158,69 +4134,68 @@
       "dll": "msvcrt.dll",
       "symbol": "_control87",
       "status": "0x0"
+    },
+    {
+      "name": "LdrLoadDll",
+      "args": [
+        33585936,
+        0,
+        67103496,
+        67103460
+      ],
+      "dll": "dsound.dll",
+      "status": "0x0"
+    },
+    {
+      "name": "LdrGetProcedureAddress",
+      "args": [
+        20971520,
+        67103512,
+        0,
+        67103508
+      ],
+      "dll": "dsound.dll",
+      "symbol": "DirectSoundEnumerateA",
+      "status": "0x0"
     }
   ],
   "firstFailure": {
     "phase": "native EXE entry point",
-    "message": "Unimplemented import dsound.dll!#1",
+    "message": "Unsupported Wine NT service NtCreateEvent",
     "ip": {
-      "address": "0x1401000",
-      "module": "dsound.dll",
-      "offset": "0x1000"
+      "address": "0x107e124",
+      "module": "ntdll.dll",
+      "offset": "0xe124"
     },
     "registers": [
-      "0x25849ec",
+      "0x48",
+      "0x1",
+      "0x107e124",
+      "0x25310a8",
+      "0x3ffea7c",
+      "0x3ffeb30",
       "0x0",
-      "0x0",
-      "0x0",
-      "0x3ffee48",
-      "0x25849e0",
-      "0x25840d8",
-      "0x2584924"
+      "0x1"
     ],
     "compiledBlocks": 4096,
-    "instructions": 8807719,
+    "instructions": 8819067,
     "recentBlocks": [
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x142eea4",
+        "module": "bass.dll",
+        "offset": "0x1eea4",
         "registers": [
-          "0x2584950",
-          "0xd",
           "0x0",
           "0x0",
-          "0x3ffee58",
-          "0x2584944",
-          "0x25840d8",
-          "0x0"
+          "0x0",
+          "0x25310a8",
+          "0x3ffeb44",
+          "0x3ffec54",
+          "0x0",
+          "0x1"
         ],
         "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
-        "registers": [
-          "0x258495c",
-          "0xc",
-          "0x0",
-          "0x0",
-          "0x3ffee58",
-          "0x2584950",
-          "0x25840d8",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4230,45 +4205,21 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x142eea5",
+        "module": "bass.dll",
+        "offset": "0x1eea5",
         "registers": [
-          "0x2584968",
-          "0xb",
           "0x0",
           "0x0",
-          "0x3ffee58",
-          "0x258495c",
-          "0x25840d8",
-          "0x0"
+          "0x0",
+          "0x25310a8",
+          "0x3ffeb40",
+          "0x3ffec54",
+          "0x0",
+          "0x1"
         ],
         "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
-        "registers": [
-          "0x2584974",
-          "0xa",
-          "0x0",
-          "0x0",
-          "0x3ffee58",
-          "0x2584968",
-          "0x25840d8",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4278,21 +4229,21 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x142eea6",
+        "module": "bass.dll",
+        "offset": "0x1eea6",
         "registers": [
-          "0x2584980",
-          "0x9",
           "0x0",
           "0x0",
-          "0x3ffee58",
-          "0x2584974",
-          "0x25840d8",
-          "0x0"
+          "0x0",
+          "0x25310a8",
+          "0x3ffeb3c",
+          "0x3ffec54",
+          "0x0",
+          "0x1"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4302,69 +4253,21 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x100c148",
+        "module": "kernel32.dll",
+        "offset": "0xc148",
         "registers": [
-          "0x258498c",
-          "0x8",
           "0x0",
           "0x0",
-          "0x3ffee58",
-          "0x2584980",
-          "0x25840d8",
-          "0x0"
+          "0x0",
+          "0x25310a8",
+          "0x3ffeb38",
+          "0x3ffec54",
+          "0x0",
+          "0x1"
         ],
         "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
-        "registers": [
-          "0x2584998",
-          "0x7",
-          "0x0",
-          "0x0",
-          "0x3ffee58",
-          "0x258498c",
-          "0x25840d8",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
-        "registers": [
-          "0x25849a4",
-          "0x6",
-          "0x0",
-          "0x0",
-          "0x3ffee58",
-          "0x2584998",
-          "0x25840d8",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4374,21 +4277,21 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x14d05f0",
+        "module": "kernelbase.dll",
+        "offset": "0x105f0",
         "registers": [
-          "0x25849b0",
-          "0x5",
           "0x0",
           "0x0",
-          "0x3ffee58",
-          "0x25849a4",
-          "0x25840d8",
-          "0x0"
+          "0x0",
+          "0x25310a8",
+          "0x3ffeb38",
+          "0x3ffec54",
+          "0x0",
+          "0x1"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
           "pf": 1,
           "cf": 0,
@@ -4398,42 +4301,90 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x14d0640",
+        "module": "kernelbase.dll",
+        "offset": "0x10640",
         "registers": [
-          "0x25849bc",
-          "0x4",
-          "0x0",
-          "0x0",
-          "0x3ffee58",
-          "0x25849b0",
-          "0x25840d8",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
-        "registers": [
-          "0x25849c8",
+          "0x1",
           "0x3",
           "0x0",
+          "0x25310a8",
+          "0x3ffeb38",
+          "0x3ffec54",
           "0x0",
-          "0x3ffee58",
-          "0x25849bc",
-          "0x25840d8",
-          "0x0"
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14d06f0",
+        "module": "kernelbase.dll",
+        "offset": "0x106f0",
+        "registers": [
+          "0x0",
+          "0x3",
+          "0x1f0003",
+          "0x25310a8",
+          "0x3ffe904",
+          "0x3ffeb34",
+          "0x0",
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14d0710",
+        "module": "kernelbase.dll",
+        "offset": "0x10710",
+        "registers": [
+          "0x0",
+          "0x3",
+          "0x1f0003",
+          "0x25310a8",
+          "0x3ffeb38",
+          "0x3ffec54",
+          "0x0",
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14cc064",
+        "module": "kernelbase.dll",
+        "offset": "0xc064",
+        "registers": [
+          "0x3ffeae0",
+          "0x3ffeb3c",
+          "0x1f0003",
+          "0x25310a8",
+          "0x3ffea80",
+          "0x3ffeb30",
+          "0x0",
+          "0x1"
         ],
         "flags": {
           "zf": 0,
@@ -4446,23 +4397,23 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x14d0771",
+        "module": "kernelbase.dll",
+        "offset": "0x10771",
         "registers": [
-          "0x25849d4",
-          "0x2",
           "0x0",
+          "0x3ffeae0",
+          "0x1f0003",
+          "0x25310a8",
+          "0x3ffea84",
+          "0x3ffeb30",
           "0x0",
-          "0x3ffee58",
-          "0x25849c8",
-          "0x25840d8",
-          "0x0"
+          "0x1"
         ],
         "flags": {
-          "zf": 0,
+          "zf": 1,
           "sf": 0,
-          "pf": 0,
+          "pf": 1,
           "cf": 0,
           "of": 0,
           "af": 0,
@@ -4470,42 +4421,114 @@
         }
       },
       {
-        "address": "0x4666b8",
-        "module": "hamsterball.exe",
-        "offset": "0x666b8",
+        "address": "0x14d0779",
+        "module": "kernelbase.dll",
+        "offset": "0x10779",
         "registers": [
-          "0x25849e0",
+          "0x0",
+          "0x3ffeae0",
+          "0x1f0003",
+          "0x25310a8",
+          "0x3ffea84",
+          "0x3ffeb30",
+          "0x0",
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14d0880",
+        "module": "kernelbase.dll",
+        "offset": "0x10880",
+        "registers": [
+          "0x0",
+          "0x3ffeae0",
+          "0x3ffee78",
+          "0x25310a8",
+          "0x3ffea84",
+          "0x3ffeb30",
+          "0x0",
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14d07c8",
+        "module": "kernelbase.dll",
+        "offset": "0x107c8",
+        "registers": [
+          "0x0",
+          "0x3ffeae0",
+          "0x3ffee78",
+          "0x25310a8",
+          "0x3ffea84",
+          "0x3ffeb30",
+          "0x0",
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x14d0806",
+        "module": "kernelbase.dll",
+        "offset": "0x10806",
+        "registers": [
+          "0x0",
+          "0x3ffeae0",
+          "0x0",
+          "0x25310a8",
+          "0x3ffea84",
+          "0x3ffeb30",
+          "0x0",
+          "0x1"
+        ],
+        "flags": {
+          "zf": 1,
+          "sf": 0,
+          "pf": 1,
+          "cf": 0,
+          "of": 0,
+          "af": 0,
+          "df": 0
+        }
+      },
+      {
+        "address": "0x107d524",
+        "module": "ntdll.dll",
+        "offset": "0xd524",
+        "registers": [
+          "0x3ffeaac",
           "0x1",
           "0x0",
+          "0x25310a8",
+          "0x3ffea80",
+          "0x3ffeb30",
           "0x0",
-          "0x3ffee58",
-          "0x25849d4",
-          "0x25840d8",
-          "0x0"
-        ],
-        "flags": {
-          "zf": 0,
-          "sf": 0,
-          "pf": 0,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x4666c9",
-        "module": "hamsterball.exe",
-        "offset": "0x666c9",
-        "registers": [
-          "0x25849ec",
-          "0x0",
-          "0x0",
-          "0x0",
-          "0x3ffee58",
-          "0x25849e0",
-          "0x25840d8",
-          "0x0"
+          "0x1"
         ],
         "flags": {
           "zf": 1,
@@ -4518,42 +4541,18 @@
         }
       },
       {
-        "address": "0x4793d8",
-        "module": "hamsterball.exe",
-        "offset": "0x793d8",
+        "address": "0x107e124",
+        "module": "ntdll.dll",
+        "offset": "0xe124",
         "registers": [
-          "0x25849ec",
+          "0x48",
+          "0x1",
+          "0x107e124",
+          "0x25310a8",
+          "0x3ffea7c",
+          "0x3ffeb30",
           "0x0",
-          "0x0",
-          "0x0",
-          "0x3ffee48",
-          "0x25849e0",
-          "0x25840d8",
-          "0x2584924"
-        ],
-        "flags": {
-          "zf": 1,
-          "sf": 0,
-          "pf": 1,
-          "cf": 0,
-          "of": 0,
-          "af": 0,
-          "df": 0
-        }
-      },
-      {
-        "address": "0x1401000",
-        "module": "dsound.dll",
-        "offset": "0x1000",
-        "registers": [
-          "0x25849ec",
-          "0x0",
-          "0x0",
-          "0x0",
-          "0x3ffee48",
-          "0x25849e0",
-          "0x25840d8",
-          "0x2584924"
+          "0x1"
         ],
         "flags": {
           "zf": 1,

@@ -3,6 +3,7 @@ import { decodeWave } from './wave.js';
 import { mixerApis, applyMixerGain } from './winmm-mixer.js';
 import { multimediaTimeApis } from './winmm-time.js';
 import { driverApis } from './winmm-driver.js';
+import { dsoundApis } from './dsound.js';
 
 async function playSound(runtime, argument, wide) {
   const name = argument(0),
@@ -36,6 +37,7 @@ async function playSound(runtime, argument, wide) {
 }
 
 export const audioApis = {
+  ...dsoundApis,
   ...driverApis,
   ...mixerApis,
   ...multimediaTimeApis,

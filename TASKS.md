@@ -110,8 +110,13 @@ D3D10/11 and broader D3D12 support are still required.
       acquisition and immediate/buffered APIs, including custom offsets, relative
       axes, button/wheel events, overflow, focus loss and reacquisition. Native
       EXE/ZIP tests verify actual browser keyboard and mouse actions.
-- [ ] Continue Hamsterball startup through `dsound.dll!#1` (`DirectSoundCreate`),
-      after 8,807,719 guest instructions in Node and Chromium.
+- [x] Preserve published DirectSound ordinal/name export identity and implement
+      PCM8/16 mono/stereo buffers with shared duplicates, wrapped locks, timed
+      cursors, looping/one-shot playback and volume/pan/frequency controls.
+      Ordinary native EXE/ZIP tests verify real Web Audio PCM and Stop/exit cleanup.
+      Capture, effects, 3D and notification events remain unfinished.
+- [ ] Continue Hamsterball/BASS startup through `NtCreateEvent`, after 8,819,067
+      guest instructions in Node and Chromium. DirectSound creation now passes.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

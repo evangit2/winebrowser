@@ -78,10 +78,13 @@ EXE entry. Its native clock reads now pass through the read-only Windows shared
 data mapping. Predefined cursor loading and x87 integer-operand arithmetic now
 pass, as do COM GUID conversion, window lookup and 24-bit icon decoding.
 Native window metadata now passes, and the original game creates its 800×600
-window and icon. Native window positioning now passes; startup next stops at
-`dsound.dll!#1` (`DirectSoundCreate`), after 8,807,719 guest instructions in Node and Chromium.
+window and icon. Native window positioning and DirectSound creation now pass;
+startup next stops at `NtCreateEvent`, after 8,819,067 guest instructions in Node and Chromium.
 DirectInput 8 setup now passes; independent native browser tests verify keyboard and
 mouse formats, immediate/buffered input and focus-loss recovery.
+DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
+wrapped locks, shared duplicates, timed cursors and playback controls; see the
+[audio fixture and limits](tests/fixtures/dsound/README.md).
 Native process shutdown also passes a separate character-conversion fixture with the supplied Wine/NLS closure;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11

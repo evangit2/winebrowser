@@ -471,6 +471,7 @@ export class Runtime {
     try {
       return await this.#runProcess();
     } finally {
+      this.directSound?.dispose();
       this.windows.dispose();
       this.cpu.dispose();
     }
