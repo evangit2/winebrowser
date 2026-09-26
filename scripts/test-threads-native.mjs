@@ -21,6 +21,7 @@ for (const [name, expectedExit] of [
   ['threads-native', 0],
   ['static-tls', 0],
   ['duplicate', 0],
+  ['semaphore', 0],
   ['duplicate-main-exit', 0],
   ['worker-exit', 77],
   ['main-exit', 77],
@@ -51,7 +52,10 @@ for (const [name, expectedExit] of [
         !result.firstFailure;
   results.push({
     name,
-    passed: !!passed && (name !== 'static-tls' || result.output.join('').includes('static-tls-ok')),
+    passed:
+      !!passed &&
+      (!['static-tls', 'semaphore'].includes(name) ||
+        result.output.join('').includes(name + '-ok')),
     output: result.output,
     staticTLSValidation: result.phases.filter((p) => p.name.startsWith('static TLS rejects')),
     expectedExit,
@@ -72,7 +76,7 @@ const report = {
   patchSha256: inputs.patchSha256,
   inputDlls: inputs.dlls.map(({ name, sha256 }) => ({ name, sha256 })),
   scope:
-    'Native PE32 through actual Wine KernelBase/NTDLL: suspended creation/resume, priority, separate TEBs/stacks/last-error values, events, preempted loops, joins, return/ExitThread status, handle lifetime, main/worker process exit and deliberate worker-fault propagation. General APC, SEH and arbitrary thread compatibility remain unfinished.',
+    'Native PE32 through actual Wine KernelBase/NTDLL: suspended creation/resume, priority, separate TEBs/stacks/last-error values, events, counted semaphores and aliases, preempted loops, joins, return/ExitThread status, handle lifetime, main/worker process exit and deliberate worker-fault propagation. General APC, SEH and arbitrary thread compatibility remain unfinished.',
   results,
 };
 await writeFile(

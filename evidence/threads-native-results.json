@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-26T14:44:30.490Z",
+  "date": "2026-09-26T14:58:23.176Z",
   "status": "passed",
   "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
   "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e",
@@ -33,7 +33,7 @@
       "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
     }
   ],
-  "scope": "Native PE32 through actual Wine KernelBase/NTDLL: suspended creation/resume, priority, separate TEBs/stacks/last-error values, events, preempted loops, joins, return/ExitThread status, handle lifetime, main/worker process exit and deliberate worker-fault propagation. General APC, SEH and arbitrary thread compatibility remain unfinished.",
+  "scope": "Native PE32 through actual Wine KernelBase/NTDLL: suspended creation/resume, priority, separate TEBs/stacks/last-error values, events, counted semaphores and aliases, preempted loops, joins, return/ExitThread status, handle lifetime, main/worker process exit and deliberate worker-fault propagation. General APC, SEH and arbitrary thread compatibility remain unfinished.",
   "results": [
     {
       "name": "threads-native",
@@ -430,6 +430,138 @@
           ],
           "threadId": 1,
           "result": "0xc0000008"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "WineBrowserLoaderCallback",
+          "args": [
+            6,
+            0,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtTerminateProcess",
+          "args": [
+            4294967295,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        }
+      ]
+    },
+    {
+      "name": "semaphore",
+      "passed": true,
+      "output": [
+        "semaphore-ok\n"
+      ],
+      "staticTLSValidation": [],
+      "expectedExit": 0,
+      "exeSha256": "fefa68eb9f172d98ba6c6a4f2eff4de03d566f79b2de0cc1370cb372859cfa39",
+      "exitCode": 0,
+      "firstFailure": null,
+      "recentNativeCalls": [
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731728,
+            0,
+            67104648
+          ],
+          "threadId": 1,
+          "result": "0x102"
+        },
+        {
+          "name": "NtWaitForSingleObject",
+          "args": [
+            1375731752,
+            0,
+            67104648
+          ],
+          "threadId": 1,
+          "result": "0x102"
+        },
+        {
+          "name": "NtSignalAndWaitForSingleObject",
+          "args": [
+            1375731728,
+            1375731728,
+            0,
+            67104640
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731728
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731732
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731736
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtClose",
+          "args": [
+            1375731752
+          ],
+          "threadId": 1,
+          "result": "0x0"
+        },
+        {
+          "name": "NtOpenSemaphore",
+          "args": [
+            67104052,
+            2031619,
+            67104064
+          ],
+          "threadId": 1,
+          "result": "0xc0000034"
+        },
+        {
+          "name": "NtWriteFile",
+          "args": [
+            1,
+            0,
+            0,
+            0,
+            67104640,
+            4202576,
+            13,
+            0,
+            0
+          ],
+          "threadId": 1,
+          "result": "0x0"
         },
         {
           "name": "NtTerminateProcess",

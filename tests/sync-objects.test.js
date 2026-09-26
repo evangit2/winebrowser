@@ -230,3 +230,138 @@ test('late host signals do not consume events for expired waits when the worker 
   assert.equal(await pending, SYNC.TIMEOUT);
   assert.equal(await wait(handle), 0, 'the late signal is available to the next waiter');
 });
+
+test('semaphore counts, release limits and output faults preserve state on failure', async (t) => {
+  const { r, nt, out, wait, objects } = setup(t);
+  for (const [initial, max] of [
+    [-1, 2],
+    [0, 0],
+    [3, 2],
+    [0, 0x80000000],
+  ]) {
+    assert.equal(nt('NtCreateSemaphore', out, SYNC.ALL, 0, initial, max), SYNC.INVALID);
+    assert.equal(r.read32(out), 0);
+  }
+  assert.equal(nt('NtCreateSemaphore', out, SYNC.ALL, 0, 1, 3), 0);
+  const h = r.read32(out),
+    state = objects.lookup(h, 'sync-semaphore').object;
+  assert.equal(await wait(h), 0);
+  assert.equal(await wait(h), SYNC.TIMEOUT);
+  assert.equal(nt('NtReleaseSemaphore', h, 2, out), 0);
+  assert.equal(r.read32(out), 0);
+  r.write32(out, 0xdeadbeef);
+  assert.equal(nt('NtReleaseSemaphore', h, 2, out), SYNC.LIMIT);
+  for (const count of [0, -1, 0x80000000])
+    assert.equal(nt('NtReleaseSemaphore', h, count, out), SYNC.INVALID);
+  assert.equal(nt('NtReleaseSemaphore', h, 1, 0x4000000), SYNC.FAULT);
+  assert.equal(r.read32(out), 0xdeadbeef);
+  assert.equal(state.count, 2);
+  assert.equal(nt('NtQuerySemaphore', h, 0, out, 8, 0x4000000), SYNC.FAULT);
+  assert.equal(r.read32(out), 0xdeadbeef);
+  assert.equal(nt('NtQuerySemaphore', h, 1, out, 8, 0), 0xc0000003);
+  assert.equal(nt('NtQuerySemaphore', h, 0, out, 12, 0), 0xc0000004);
+  assert.equal(nt('NtQuerySemaphore', h, 0, out, 8, out + 8), 0);
+  assert.deepEqual(
+    [0, 4, 8].map((i) => r.read32(out + i)),
+    [2, 3, 8],
+  );
+  assert.equal(await wait(h), 0);
+  assert.equal(await wait(h), 0);
+  assert.equal(await wait(h), SYNC.TIMEOUT);
+});
+
+test('semaphore releases wake only the available count and wait-all consumes atomically', async (t) => {
+  const { nt, out, r, wait, create, objects } = setup(t);
+  nt('NtCreateSemaphore', out, SYNC.ALL, 0, 0, 3);
+  const h = r.read32(out),
+    event = create();
+  const first = wait(h, null),
+    second = wait(h, null),
+    third = wait(h, null);
+  nt('NtReleaseSemaphore', h, 2, out);
+  assert.equal(r.read32(out), 0);
+  assert.deepEqual(await Promise.all([first, second]), [0, 0]);
+  assert.equal(objects.waiters.size, 1);
+  assert.equal(await wait(h), SYNC.TIMEOUT);
+  nt('NtReleaseSemaphore', h, 1, 0);
+  assert.equal(await third, 0);
+  nt('NtReleaseSemaphore', h, 1, 0);
+  assert.equal(await objects.wait([h, event], true, 0n), SYNC.TIMEOUT);
+  assert.equal(await wait(h), 0, 'failed wait-all keeps the count');
+  const both = objects.wait([h, event], true, null);
+  nt('NtSetEvent', event, 0);
+  assert.equal(objects.waiters.size, 1);
+  nt('NtReleaseSemaphore', h, 1, 0);
+  assert.equal(await both, 0);
+  assert.equal(await wait(event), SYNC.TIMEOUT);
+  assert.equal(await wait(h), SYNC.TIMEOUT);
+  nt('NtSetEvent', event, 0);
+  nt('NtReleaseSemaphore', h, 1, 0);
+  assert.equal(await objects.wait([event, h], false, 0n), 0);
+  assert.equal(await wait(h), 0, 'wait-any consumes only the selected object');
+});
+
+test('named semaphores share counts across NT, Win32 and duplicate handles with separate rights', async (t) => {
+  const { r, nt, api, out, wait, objects } = setup(t);
+  const name = string(r, 'Local\\CountingGate'),
+    attr = attributes(r, objects.local + '\\CountingGate', 0x80);
+  const first = api('CreateSemaphoreW', 0, 1, 2, name).result;
+  assert.ok(first);
+  assert.equal(nt('NtCreateSemaphore', out, SYNC.ALL, attr, 0, 7), SYNC.EXISTS);
+  const alias = r.read32(out);
+  assert.equal(objects.lookup(alias, 'sync-semaphore').object.maximum, 2);
+  const query = api('OpenSemaphoreW', SYNC.QUERY, 1, name).result;
+  assert.ok(query);
+  assert.equal(r.handles.get(query).inherit, true);
+  assert.equal(nt('NtReleaseSemaphore', query, 1, 0), SYNC.ACCESS);
+  assert.equal(await wait(query), SYNC.ACCESS);
+  assert.equal(nt('NtQuerySemaphore', query, 0, out, 8, 0), 0);
+  assert.equal(nt('NtDuplicateObject', 0xffffffff, first, 0xffffffff, out, SYNC.WAIT, 0, 0), 0);
+  const duplicate = r.read32(out);
+  assert.equal(api('ReleaseSemaphore', duplicate, 1, 0).result, 0);
+  assert.equal(r.lastError, 5);
+  assert.equal(await objects.wait([duplicate, alias], true, 0n), SYNC.INVALID);
+  assert.equal(await wait(duplicate), 0);
+  assert.equal(await wait(alias), SYNC.TIMEOUT);
+  assert.equal(api('CreateEventW', 0, 0, 0, name).result, 0);
+  assert.equal(r.lastError, 6);
+  assert.equal(nt('NtOpenEvent', out, SYNC.ALL, attr), SYNC.TYPE);
+  assert.equal(nt('NtSetEvent', first, 0), SYNC.TYPE);
+  const reverse = string(r, 'EventCollision');
+  const event = api('CreateEventW', 0, 0, 0, reverse).result;
+  assert.equal(api('CreateSemaphoreW', 0, 0, 2, reverse).result, 0);
+  assert.equal(r.lastError, 6);
+  nt('NtClose', event);
+  for (const h of [first, alias, query, duplicate]) nt('NtClose', h);
+  assert.equal(api('OpenSemaphoreW', SYNC.ALL, 0, name).result, 0);
+  assert.equal(r.lastError, 2);
+  assert.equal(objects.names.size, 0);
+});
+
+test('extended semaphore APIs, signal-and-wait, timeouts and close retain count semantics', async (t) => {
+  const { r, nt, api, out, wait, limit, objects } = setup(t);
+  assert.equal(api('CreateSemaphoreExA', 0, 0, 1, 0, 1, SYNC.ALL).result, 0);
+  const h = api('CreateSemaphoreExA', 0, 0, 1, 0, 0, SYNC.ALL).result;
+  assert.ok(h);
+  assert.equal(await nt('NtSignalAndWaitForSingleObject', h, h, 0, limit), 0);
+  assert.equal((await api('SignalObjectAndWait', h, h, 0, 0)).result, 0);
+  assert.equal(await wait(h), SYNC.TIMEOUT);
+  assert.equal(api('ReleaseSemaphore', h, 1, out).result, 1);
+  r.write32(out, 0xdeadbeef);
+  assert.equal(api('ReleaseSemaphore', h, 1, out).result, 0);
+  assert.equal(r.lastError, 298);
+  assert.equal(r.read32(out), 0xdeadbeef);
+  assert.equal(await wait(h), 0);
+  const initial = Number(r.performanceClock.read()) / 1e6;
+  let advance = 0;
+  r.performanceClock.now = () => initial + advance;
+  const expired = wait(h, -100000n);
+  advance = 20;
+  nt('NtReleaseSemaphore', h, 1, 0);
+  assert.equal(await expired, SYNC.TIMEOUT);
+  assert.equal(await wait(h), 0);
+  const closed = wait(h, null);
+  nt('NtClose', h);
+  assert.equal(await closed, SYNC.HANDLE);
+  assert.equal(objects.waiters.size, 0);
+});

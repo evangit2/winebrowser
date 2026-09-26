@@ -5,6 +5,7 @@ export const SYNC = {
   SUCCESS: 0,
   EXISTS: 0x40000000,
   TIMEOUT: 0x102,
+  LIMIT: 0xc0000047,
   INVALID: 0xc000000d,
   HANDLE: 0xc0000008,
   ACCESS: 0xc0000022,
@@ -104,23 +105,44 @@ export class SyncObjects {
     for (const [key, object] of this.names)
       if (key.toLowerCase() === name.toLowerCase()) return object;
   }
-  event({
-    name = null,
-    access = SYNC.ALL,
-    inherit = false,
-    manual = false,
-    signaled = false,
-    open = false,
-    openIf = true,
-    insensitive = false,
-  } = {}) {
+  event(options = {}) {
+    const { manual = false, signaled = false } = options;
+    return this.named('sync-event', { manual, signaled }, options);
+  }
+  semaphore(options = {}) {
+    const { initial = 0, maximum = 1, open = false } = options;
+    if (
+      !open &&
+      (!Number.isInteger(initial) ||
+        !Number.isInteger(maximum) ||
+        initial < 0 ||
+        maximum <= 0 ||
+        maximum > 0x7fffffff ||
+        initial > maximum)
+    )
+      return { status: SYNC.INVALID };
+    return this.named('sync-semaphore', { count: initial, maximum }, options);
+  }
+  named(
+    kind,
+    state,
+    {
+      name = null,
+      access = SYNC.ALL,
+      inherit = false,
+      open = false,
+      openIf = true,
+      insensitive = false,
+    } = {},
+  ) {
     access = syncAccess(access);
     if (access === null) return { status: SYNC.ACCESS };
     let object = name ? this.find(name, insensitive) : null;
     const existed = !!object;
+    if (object && object.kind !== kind) return { status: SYNC.TYPE };
     if (object && !open && !openIf) return { status: SYNC.COLLISION };
     if (!object && open) return { status: SYNC.NOT_FOUND };
-    if (!object) object = { kind: 'sync-event', name, manual, signaled, refs: 0 };
+    if (!object) object = { kind, name, ...state, refs: 0 };
     const result = this.openHandle(object, access, inherit);
     if (result.status) return result;
     if (name) this.names.set(object.name, object);
@@ -141,27 +163,50 @@ export class SyncObjects {
     if (operation === 'pulse') object.signaled = false;
     return { status: 0, previous };
   }
+  release(handle, count) {
+    if (!Number.isInteger(count) || count <= 0 || count > 0x7fffffff)
+      return { status: SYNC.INVALID };
+    const found = this.lookup(handle, 'sync-semaphore', SYNC.MODIFY);
+    if (found.status) return found;
+    const { object } = found,
+      previous = object.count;
+    if (count > object.maximum - previous) return { status: SYNC.LIMIT };
+    object.count += count;
+    this.dispatch();
+    return { status: 0, previous };
+  }
+  signal(handle) {
+    return this.runtime.handles.get(handle)?.kind === 'sync-semaphore'
+      ? this.release(handle, 1)
+      : this.change(handle, 'set');
+  }
   validateWait(handles, all) {
     if (!handles.length || handles.length > 64) return { status: SYNC.INVALID };
     if (all && new Set(handles).size !== handles.length) return { status: SYNC.INVALID };
     const objects = [];
     for (const handle of handles) {
       const kind = this.runtime.handles.get(handle)?.kind;
-      const found = this.lookup(handle, kind === 'sync-thread' ? kind : 'sync-event', SYNC.WAIT);
+      const found = this.lookup(
+        handle,
+        ['sync-thread', 'sync-semaphore'].includes(kind) ? kind : 'sync-event',
+        SYNC.WAIT,
+      );
       if (found.status) return found;
+      // Multiple aliases of one semaphore in a wait-all are not supported.
+      // Reject before consuming any count instead of allowing an underflow.
+      if (all && kind === 'sync-semaphore' && objects.includes(found.object))
+        return { status: SYNC.INVALID };
       objects.push(found.object);
     }
     return { status: 0, objects };
   }
   consume(objects, all) {
-    const index = all
-      ? objects.every((o) => o.signaled)
-        ? 0
-        : -1
-      : objects.findIndex((o) => o.signaled);
+    const ready = (o) => (o.kind === 'sync-semaphore' ? o.count > 0 : o.signaled);
+    const index = all ? (objects.every(ready) ? 0 : -1) : objects.findIndex(ready);
     if (index < 0) return null;
     for (const object of all ? objects : [objects[index]])
-      if (!object.manual) object.signaled = false;
+      if (object.kind === 'sync-semaphore') object.count--;
+      else if (!object.manual) object.signaled = false;
     return index;
   }
   wait(handles, all, timeout = null) {
@@ -228,7 +273,7 @@ export class SyncObjects {
     this.runtime.handles.delete(handle);
     this.handles.delete(handle);
     const object = opened.object;
-    if (!--object.refs && object.name && object.kind === 'sync-event')
+    if (!--object.refs && object.name && this.names.get(object.name) === object)
       this.names.delete(object.name);
     return 0;
   }

@@ -39,7 +39,7 @@ The real upstream C++ HelloTriangle application is a separate acceptance target;
 compiling its shaders does not establish executable compatibility. Its current
 MinGW build now passes static-TLS initialization and reaches its native EXE entry
 point with real UCRT API-set imports resolved and current-thread duplication
-working, then stops at `NtCreateSemaphore` in its native runtime.
+working, passes native semaphore creation, then reaches `CommandLineToArgvW`.
 DXGI factory/adapter coverage is also still incomplete. The build
 uses a native cross-compiler; C++ source compilation in the browser is not yet
 implemented. HLSL and x86 machine-code compilation do happen in the browser.

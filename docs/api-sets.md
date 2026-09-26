@@ -24,7 +24,7 @@ It checks allocations/reallocation, narrow/wide strings and conversion,
 hashes are in `evidence/ucrt-native{,-browser}-results.json`.
 
 The real Microsoft HelloTriangle EXE now passes the UCRT import gate and reaches
-`NtCreateSemaphore` in its MinGW runtime, after passing current-thread
+`CommandLineToArgvW`, after passing native semaphore creation and current-thread
 handle duplication. This remains an execution failure; no full sample frame has
 rendered yet. The independently verified original HLSL shader render remains
 separate evidence from application compatibility.

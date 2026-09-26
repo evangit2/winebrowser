@@ -202,8 +202,10 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Duplicate same-process thread/event handles with shared signal state,
       independent rights/lifetimes and current-thread conversion. Native tests
       join a worker through its alias and wait for the main thread after exit.
-- [ ] Implement native semaphores: Microsoft HelloTriangle now passes TLS,
-      real UCRT imports and thread duplication, then stops at NtCreateSemaphore.
+- [x] Implement counted native/Win32 semaphores, named and duplicated aliases,
+      mixed waits and guest-thread release accounting. Microsoft HelloTriangle
+      now passes both semaphore creations and reaches CommandLineToArgvW.
+      See `docs/semaphores.md` for independent native EXE/ZIP validation.
 - [ ] Priority: compile, load and render an independently maintained real D3D12
       demo through the ordinary browser PE/ZIP path. Pin upstream source and
       binary provenance; verify guest execution, browser shader compilation and

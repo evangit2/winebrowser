@@ -4,6 +4,7 @@ import { syncChecked, syncHandles } from './wine-sync.js';
 const dosError = (status) =>
   ({
     [SYNC.HANDLE]: 6,
+    [SYNC.LIMIT]: 298,
     [SYNC.TYPE]: 6,
     [SYNC.ACCESS]: 5,
     [SYNC.INVALID]: 87,
@@ -21,8 +22,8 @@ function fail(r, status, argc, value = 0) {
   r.lastError = dosError(status);
   return result(value, argc);
 }
-function create(r, a, wide, extended = false, open = false) {
-  const argc = open ? 3 : 4,
+function create(r, a, wide, extended = false, open = false, semaphore = false) {
+  const argc = open ? 3 : extended && semaphore ? 6 : 4,
     objects = syncObjects(r);
   let inherit = open && !!a(1);
   if (!open && a(0)) {
@@ -31,7 +32,7 @@ function create(r, a, wide, extended = false, open = false) {
     if (r.read32(a(0) + 4)) return fail(r, SYNC.UNSUPPORTED, argc);
     inherit = !!r.read32(a(0) + 8);
   }
-  const p = a(open ? 2 : extended ? 1 : 3);
+  const p = a(open ? 2 : extended && !semaphore ? 1 : 3);
   let name = null;
   if (open && !p) return fail(r, SYNC.INVALID, argc);
   if (p) {
@@ -42,13 +43,15 @@ function create(r, a, wide, extended = false, open = false) {
     if (parsed.directory) return fail(r, SYNC.TYPE, argc);
     name = parsed.name;
   }
-  const flags = extended ? a(2) : (!!a(1) ? 1 : 0) | (!!a(2) ? 2 : 0);
-  if (!open && extended && flags & ~3) return fail(r, SYNC.INVALID, argc);
-  const response = objects.event({
+  const flags = extended ? a(semaphore ? 4 : 2) : (!!a(1) ? 1 : 0) | (!!a(2) ? 2 : 0);
+  if (!open && extended && flags & ~(semaphore ? 0 : 3)) return fail(r, SYNC.INVALID, argc);
+  const response = objects[semaphore ? 'semaphore' : 'event']({
     name,
     inherit,
     open,
-    access: open ? a(0) : extended ? a(3) : SYNC.ALL,
+    access: open ? a(0) : extended ? a(semaphore ? 5 : 3) : SYNC.ALL,
+    initial: a(1) | 0,
+    maximum: a(2) | 0,
     manual: !!(flags & 1),
     signaled: !!(flags & 2),
   });
@@ -70,10 +73,22 @@ async function wait(r, a, multiple, extended) {
 export const syncApis = {};
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
+  syncApis[`kernel32.dll!CreateSemaphore${suffix}`] = (r, a) =>
+    create(r, a, wide, false, false, true);
+  syncApis[`kernel32.dll!CreateSemaphoreEx${suffix}`] = (r, a) =>
+    create(r, a, wide, true, false, true);
+  syncApis[`kernel32.dll!OpenSemaphore${suffix}`] = (r, a) => create(r, a, wide, false, true, true);
   syncApis[`kernel32.dll!CreateEvent${suffix}`] = (r, a) => create(r, a, wide);
   syncApis[`kernel32.dll!CreateEventEx${suffix}`] = (r, a) => create(r, a, wide, true);
   syncApis[`kernel32.dll!OpenEvent${suffix}`] = (r, a) => create(r, a, wide, false, true);
 }
+syncApis['kernel32.dll!ReleaseSemaphore'] = (r, a) => {
+  if (a(2) && !syncChecked(r, a(2), 4, true)) return fail(r, SYNC.FAULT, 3);
+  const response = syncObjects(r).release(a(0), a(1) | 0);
+  if (response.status) return fail(r, response.status, 3);
+  if (a(2)) r.write32(a(2), response.previous);
+  return result(1, 3);
+};
 for (const [name, operation] of [
   ['SetEvent', 'set'],
   ['ResetEvent', 'reset'],
@@ -92,7 +107,7 @@ syncApis['kernel32.dll!SignalObjectAndWait'] = async (r, a) => {
   const objects = syncObjects(r),
     valid = objects.validateWait([a(1)], false);
   if (valid.status) return fail(r, valid.status, 4, 0xffffffff);
-  const signal = objects.change(a(0), 'set');
+  const signal = objects.signal(a(0));
   if (signal.status) return fail(r, signal.status, 4, 0xffffffff);
   const status = await r.threads.block(objects.wait([a(1)], false, timeout(a(2))));
   return status >= 0x80000000 ? fail(r, status, 4, 0xffffffff) : result(status, 4);

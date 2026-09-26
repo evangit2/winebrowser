@@ -1,7 +1,7 @@
 # Duplicate kernel handles
 
 `NtDuplicateObject` and Win32 `DuplicateHandle` now duplicate same-process
-thread, event and object-directory handles. A current-thread pseudo-handle
+thread, event, semaphore and object-directory handles. A current-thread pseudo-handle
 becomes an ordinary independently closeable handle to that specific thread.
 Aliases retain shared signal state and thread identity, with independent access
 and inheritance. Closing one alias does not stop the thread or invalidate others.
@@ -32,7 +32,7 @@ for a duplicated main-thread handle after main-thread ExitThread. They run with
 `scripts/test-threads-browser.mjs` and `scripts/test-threads-native.mjs`.
 
 The unchanged Microsoft HelloTriangle EXE now passes current-thread duplication
-and next stops at `NtCreateSemaphore` in its native MinGW runtime. It still has
+and native semaphore creation, then reaches `CommandLineToArgvW`. It still has
 no rendered application frame.
 
 Sources: Microsoft's [Nt/ZwDuplicateObject](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwduplicateobject),

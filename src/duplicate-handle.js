@@ -12,7 +12,7 @@ function threadAccess(raw) {
   return access & ~0x1fffff ? null : access;
 }
 
-// Same-process events, object directories and thread handles. Other families
+// Same-process events, semaphores, object directories and thread handles. Other families
 // need their own shared object/position ownership before they can be duplicated.
 export function duplicateHandle(r, a) {
   if (a(0) !== 0xffffffff) return SYNC.HANDLE;
@@ -23,7 +23,7 @@ export function duplicateHandle(r, a) {
     ? { kind: 'sync-thread', access: 0x1fffff, inherit: false }
     : r.handles.get(source);
   if (!opened) return SYNC.HANDLE;
-  if (!['sync-thread', 'sync-event', 'sync-directory'].includes(opened.kind))
+  if (!['sync-thread', 'sync-event', 'sync-semaphore', 'sync-directory'].includes(opened.kind))
     return SYNC.UNSUPPORTED;
   const objects = syncObjects(r);
   try {

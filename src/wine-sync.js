@@ -36,10 +36,13 @@ function attributes(r, p, open = false) {
     name += String.fromCharCode(r.view.getUint16(buffer + i, true));
   return { ...result, ...syncObjects(r).path(name, root, result.insensitive) };
 }
-function create(r, a, open = false, directory = false) {
+function create(r, a, open = false, kind = 'event') {
+  const directory = kind === 'directory',
+    semaphore = kind === 'semaphore';
   if (!syncChecked(r, a(0), 4, true)) return SYNC.FAULT;
   r.write32(a(0), 0);
-  if (!open && a(3) > 1) return SYNC.INVALID;
+  if (!open && (semaphore ? (a(3) | 0) < 0 || (a(4) | 0) <= 0 || a(3) > a(4) : a(3) > 1))
+    return SYNC.INVALID;
   const attr = attributes(r, a(2), open);
   if (attr.status) return attr.status;
   if (!open && attr.root) {
@@ -50,7 +53,9 @@ function create(r, a, open = false, directory = false) {
   const objects = syncObjects(r),
     result = directory
       ? objects.directory(attr.name, a(1), attr.inherit)
-      : objects.event({ ...attr, access: a(1), open, manual: !a(3), signaled: !!a(4) });
+      : semaphore
+        ? objects.semaphore({ ...attr, access: a(1), open, initial: a(3) | 0, maximum: a(4) | 0 })
+        : objects.event({ ...attr, access: a(1), open, manual: !a(3), signaled: !!a(4) });
   if (result.handle) r.write32(a(0), result.handle);
   return result.status;
 }
@@ -70,9 +75,35 @@ export function syncHandles(r, count, pointer) {
   return { handles: Array.from({ length: count }, (_, i) => r.read32(pointer + 4 * i)) };
 }
 export const syncNtServices = {
+  NtCreateSemaphore: { argc: 5, call: (r, a) => create(r, a, false, 'semaphore') },
+  NtOpenSemaphore: { argc: 3, call: (r, a) => create(r, a, true, 'semaphore') },
+  NtReleaseSemaphore: {
+    argc: 3,
+    call(r, a) {
+      if (a(2) && !syncChecked(r, a(2), 4, true)) return SYNC.FAULT;
+      const result = syncObjects(r).release(a(0), a(1) | 0);
+      if (!result.status && a(2)) r.write32(a(2), result.previous);
+      return result.status;
+    },
+  },
+  NtQuerySemaphore: {
+    argc: 5,
+    call(r, a) {
+      if (a(1)) return 0xc0000003;
+      if (a(3) !== 8) return 0xc0000004;
+      if (!syncChecked(r, a(2), 8, true) || (a(4) && !syncChecked(r, a(4), 4, true)))
+        return SYNC.FAULT;
+      const result = syncObjects(r).lookup(a(0), 'sync-semaphore', SYNC.QUERY);
+      if (result.status) return result.status;
+      r.write32(a(2), result.object.count);
+      r.write32(a(2) + 4, result.object.maximum);
+      if (a(4)) r.write32(a(4), 8);
+      return 0;
+    },
+  },
   NtCreateEvent: { argc: 5, call: (r, a) => create(r, a) },
   NtOpenEvent: { argc: 3, call: (r, a) => create(r, a, true) },
-  NtOpenDirectoryObject: { argc: 3, call: (r, a) => create(r, a, true, true) },
+  NtOpenDirectoryObject: { argc: 3, call: (r, a) => create(r, a, true, 'directory') },
   NtSetEvent: { argc: 2, call: (r, a) => change(r, a, 'set') },
   NtResetEvent: { argc: 2, call: (r, a) => change(r, a, 'reset') },
   NtPulseEvent: { argc: 2, call: (r, a) => change(r, a, 'pulse') },
@@ -122,7 +153,7 @@ export const syncNtServices = {
       if (t.status) return t.status;
       const valid = objects.validateWait([a(1)], false);
       if (valid.status) return valid.status;
-      const signaled = objects.change(a(0), 'set');
+      const signaled = objects.signal(a(0));
       return signaled.status || r.threads.block(objects.wait([a(1)], false, t.value));
     },
   },

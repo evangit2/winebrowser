@@ -26,6 +26,23 @@ try {
   for (const [name, mimeType, buffer, expected] of [
     ['threads.exe', 'application/octet-stream', executable, 0],
     ['threads.zip', 'application/zip', Buffer.from(archive), 0],
+    [
+      'semaphore.exe',
+      'application/octet-stream',
+      await readFile('tests/fixtures/threads/semaphore.exe'),
+      0,
+    ],
+    [
+      'semaphore.zip',
+      'application/zip',
+      Buffer.from(
+        zipSync({
+          'app/semaphore.exe': await readFile('tests/fixtures/threads/semaphore.exe'),
+          'app/readme.txt': strToU8('Counted synchronization fixture'),
+        }),
+      ),
+      0,
+    ],
     ...(await Promise.all(
       [
         ['duplicate', 0],
@@ -71,7 +88,7 @@ try {
     browser: browser.version(),
     exeSha256: createHash('sha256').update(executable).digest('hex'),
     scope:
-      'Native EXE/ZIP with two suspended workers, distinct TEBs/stacks/last-error values, event synchronization, CPU-loop preemption, thread joins, return/ExitThread codes, close-before-exit and process cancellation.',
+      'Native EXE/ZIP with two suspended workers, distinct TEBs/stacks/last-error values, event and semaphore synchronization, CPU-loop preemption, thread joins, return/ExitThread codes, close-before-exit and process cancellation.',
     results,
   };
   await writeFile('evidence/threads-browser-results.json', JSON.stringify(report, null, 2) + '\n');
