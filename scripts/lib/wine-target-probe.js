@@ -23,6 +23,10 @@ export async function probeWineTarget(
     phases: [],
     trappedImports: [],
     apiCalls: [],
+    apiHistogram: {},
+    blockHistogram: {},
+    memorySamples: [],
+    memorySampleKeys: new Set(),
     output: [],
     requests: [],
     frames: 0,
@@ -218,6 +222,31 @@ export async function probeWineTarget(
         report.nativeLoaderCalls.push(record);
         if (report.nativeLoaderCalls.length > 64) report.nativeLoaderCalls.shift();
       }
+      // Hot-block histogram: locates a spin/wait loop that saturates the
+      // bounded recent-block window during a long run.
+      const hot = locate(ip);
+      const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
+      report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
+      // Snapshot the runtime bytes of very hot blocks. Packed images
+      // self-modify, so static disassembly of those regions is unusable.
+      if (
+        hot.module &&
+        report.blockHistogram[hotKey] === 200000 &&
+        report.memorySamples.length < 16
+      ) {
+        try {
+          const module = guestModules().find((m) => m.name === hot.module);
+          const address = module.base + Number(BigInt(hot.offset));
+          report.memorySamples.push({
+            key: `${hotKey}@200k`,
+            bytes: [...runtime.data.slice(address, address + 64)].map((b) =>
+              b.toString(16).padStart(2, '0'),
+            ),
+          });
+        } catch {
+          // Ignore samples outside mapped memory.
+        }
+      }
       recentBlocks.push({
         threadId: runtime.threads.current?.id,
         ...locate(ip),
@@ -289,6 +318,10 @@ export async function probeWineTarget(
       }
       report.apiCalls.push(record);
       if (report.apiCalls.length > 64) report.apiCalls.shift();
+      // A bounded histogram keeps every distinct call visible even when the
+      // recent-call window saturates during a long render loop.
+      const key = record.name + (record.error ? '!' + record.error : '');
+      report.apiHistogram[key] = (report.apiHistogram[key] ?? 0) + 1;
       try {
         const next = await api(entry);
         record.result = hex(runtime.cpu.r[0].value);
@@ -314,6 +347,8 @@ export async function probeWineTarget(
           compiledBlocks: runtime.cpu.cache.size,
           instructions: runtime.cpu.instructions,
           recentBlocks: recentBlocks.slice(),
+          blockHistogram: report.blockHistogram,
+          memorySamples: report.memorySamples,
         };
         throw error;
       }
@@ -425,6 +460,7 @@ export async function probeWineTarget(
     // Let the bounded frame samplers finish before the graphics backend closes.
     await Promise.allSettled(report.pendingSamples);
     delete report.pendingSamples;
+    delete report.memorySampleKeys;
     await runtime?.threads.stopOthers();
     runtime?.directSound?.dispose();
     runtime?.syncObjects?.dispose();
