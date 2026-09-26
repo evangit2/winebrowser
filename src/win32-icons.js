@@ -84,8 +84,8 @@ export function decodeIconDib(bytes, expected = {}) {
     (expected.height && expected.height !== height)
   )
     throw Error('Icon DIB dimensions do not match group resource');
-  if (![4, 32].includes(bitCount)) throw Error(`Unsupported icon DIB bit depth ${bitCount}`);
-  if ((bitCount === 4 && colorsUsed !== 0 && colorsUsed !== 16) || (bitCount === 32 && colorsUsed))
+  if (![4, 24, 32].includes(bitCount)) throw Error(`Unsupported icon DIB bit depth ${bitCount}`);
+  if ((bitCount === 4 && colorsUsed !== 0 && colorsUsed !== 16) || (bitCount >= 24 && colorsUsed))
     throw Error('Unsupported icon DIB palette size');
   if (expected.bitCount && expected.bitCount !== bitCount)
     throw Error('Icon DIB depth does not match group resource');
@@ -109,12 +109,14 @@ export function decodeIconDib(bytes, expected = {}) {
         pixels[out + 1] = bytes[palette + 1];
         pixels[out + 2] = bytes[palette];
       } else {
-        const source = xorOffset + sourceY * xorStride + x * 4;
+        const source = xorOffset + sourceY * xorStride + x * (bitCount / 8);
         pixels[out] = bytes[source + 2];
         pixels[out + 1] = bytes[source + 1];
         pixels[out + 2] = bytes[source];
-        pixels[out + 3] = bytes[source + 3];
-        hasAlpha ||= pixels[out + 3] !== 0;
+        if (bitCount === 32) {
+          pixels[out + 3] = bytes[source + 3];
+          hasAlpha ||= pixels[out + 3] !== 0;
+        }
       }
     }
   }
@@ -128,7 +130,7 @@ export function decodeIconDib(bytes, expected = {}) {
       );
       // For 32-bit icons with alpha, Windows uses the alpha channel and ignores
       // the legacy monochrome mask. Alpha-less and indexed icons use the mask.
-      if (bitCount === 4 || !hasAlpha) pixels[out + 3] = transparent ? 0 : 255;
+      if (bitCount !== 32 || !hasAlpha) pixels[out + 3] = transparent ? 0 : 255;
     }
   return Object.freeze({ width, height, pixels });
 }

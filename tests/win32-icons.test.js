@@ -172,3 +172,44 @@ test('32-bit icon alpha takes precedence over its legacy AND mask', () => {
   bytes[44] = 0x80;
   assert.deepEqual([...decodeIconDib(bytes).pixels], [10, 20, 30, 128]);
 });
+
+test('24-bit icon DIBs decode BGR rows with padding, bottom-up order and a separate 1-bit mask', () => {
+  const bytes = new Uint8Array(72),
+    v = new DataView(bytes.buffer);
+  put32(v, 0, 40);
+  put32(v, 4, 3);
+  put32(v, 8, 4);
+  put16(v, 12, 1);
+  put16(v, 14, 24);
+  bytes.set([3, 2, 1, 6, 5, 4, 9, 8, 7, 0xff, 0xff, 0xff], 40);
+  bytes.set([30, 20, 10, 60, 50, 40, 90, 80, 70, 0xaa, 0xaa, 0xaa], 52);
+  bytes[64] = 0x20; // Bottom-right transparent.
+  bytes[68] = 0x40; // Top-middle transparent.
+  assert.deepEqual(
+    [...decodeIconDib(bytes, { width: 3, height: 2, bitCount: 24 }).pixels],
+    [10, 20, 30, 255, 40, 50, 60, 0, 70, 80, 90, 255, 1, 2, 3, 255, 4, 5, 6, 255, 7, 8, 9, 0],
+  );
+  assert.throws(() => decodeIconDib(bytes.subarray(0, 71)), /Truncated icon DIB/);
+  assert.throws(() => decodeIconDib(bytes, { bitCount: 32 }), /depth does not match/);
+  put32(v, 32, 1);
+  assert.throws(() => decodeIconDib(bytes), /palette size/);
+});
+
+test('24-bit icon masks span byte and row padding boundaries without reading RGB as alpha', () => {
+  const bytes = new Uint8Array(40 + 28 + 4),
+    v = new DataView(bytes.buffer);
+  put32(v, 0, 40);
+  put32(v, 4, 9);
+  put32(v, 8, 2);
+  put16(v, 12, 1);
+  put16(v, 14, 24);
+  bytes.fill(0xfe, 40, 68);
+  bytes[68] = 0x81;
+  bytes[69] = 0x80;
+  const icon = decodeIconDib(bytes);
+  assert.deepEqual(
+    Array.from({ length: 9 }, (_, i) => icon.pixels[i * 4 + 3]),
+    [0, 255, 255, 255, 255, 255, 255, 0, 0],
+  );
+  assert.deepEqual([...icon.pixels.slice(4, 8)], [254, 254, 254, 255]);
+});

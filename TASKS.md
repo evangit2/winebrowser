@@ -90,8 +90,11 @@ D3D10/11 and broader D3D12 support are still required.
       child lookup and activation order. Native EXE and ZIP upload checks pass.
       Nested controls now render with independent client layers and preserve
       focus, geometry, ancestor visibility/enabling and destruction.
-- [ ] Continue Hamsterball EXE startup through 24-bit icon DIB decoding in
-      `LoadIconA`, after 8,800,518 guest instructions in both Node and Chromium.
+- [x] Decode 24-bit icon DIBs with BGR ordering, DWORD row padding and separate
+      transparency masks. A native PE resource renders correctly in the upload UI;
+      all 1,024 browser canvas pixels match independently expected RGBA values.
+- [ ] Continue Hamsterball EXE startup through the topmost window style in
+      `CreateWindowExA`, after 8,800,564 guest instructions in Node and Chromium.
       Previously required OLE32 exports resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

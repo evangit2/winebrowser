@@ -73,7 +73,9 @@
     "build:x87-integer": "sh scripts/build-x87-integer-fixture.sh",
     "test:x87-integer": "node scripts/test-x87-integer-browser.mjs",
     "build:window-find": "sh scripts/build-window-find-fixture.sh",
-    "test:window-find": "node scripts/test-window-find-browser.mjs"
+    "test:window-find": "node scripts/test-window-find-browser.mjs",
+    "build:icon24": "sh scripts/build-icon24-fixture.sh",
+    "test:icon24": "node scripts/test-icon24-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

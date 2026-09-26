@@ -1,0 +1,12 @@
+{
+  "date": "2026-09-26T04:33:32.514Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "9b1d1f9faaef4bbedcfaff5e1b792a0c884d51921189efd99e6b4cccc1c1b086",
+  "exitCode": 0,
+  "width": 32,
+  "height": 32,
+  "checkedPixels": 1024,
+  "rgbaSha256": "52b6ca014d4e18b74807dfb313aa7a02bb9c8ee39e2271c56f4018321911b558",
+  "errors": []
+}

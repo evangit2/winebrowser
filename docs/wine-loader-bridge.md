@@ -117,10 +117,11 @@ messages and hidden descriptor sessions; ACM discovery and packed BASS attachmen
 complete. The game reaches its original EXE entry. The fixed-address shared-user-data
 clock mapping now lets native Kernel32 GetTickCount run. Both Node and Chromium
 pass predefined cursor loading, including IDC_HAND, and x87 integer-operand
-arithmetic/comparisons, COM GUID conversion and window lookup. Both probes
-next stop on a 24-bit icon DIB in `LoadIconA`, after 8,800,518 guest instructions.
+arithmetic/comparisons, COM GUID conversion, window lookup and 24-bit icon
+decoding. Both probes next stop on the topmost window style in `CreateWindowExA`,
+after 8,800,564 guest instructions.
 No game frame renders yet. Native ACM conversion and BASS playback remain
-unverified. The next work is icon decoding and remaining
+unverified. The next work is window styles and remaining
 audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
