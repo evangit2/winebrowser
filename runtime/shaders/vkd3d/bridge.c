@@ -245,8 +245,51 @@ unsigned int wb_d3dbc_result_size(unsigned int stage)
     return stage < WB_LEGACY_STAGES ? (unsigned int)wb_legacy_results[stage].size : 0;
 }
 
+/* Compile application-provided HLSL in the browser, without shader substitution. */
+int wb_hlsl_compile(const void *bytes, unsigned int length, const char *entry,
+        const char *profile, const char *source_name)
+{
+    struct vkd3d_shader_hlsl_source_info hlsl = {0};
+    struct vkd3d_shader_compile_info info = {0};
+    char *messages = NULL;
+    int result;
+
+    wb_clear();
+    if (!bytes || !length || length > WB_MAX_DXBC || !entry || !entry[0] || !profile
+            || (strcmp(profile, "vs_5_0") && strcmp(profile, "ps_5_0")))
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Expected bounded HLSL and a vs_5_0/ps_5_0 entry point");
+        return 0;
+    }
+    hlsl.type = VKD3D_SHADER_STRUCTURE_TYPE_HLSL_SOURCE_INFO;
+    hlsl.entry_point = entry;
+    hlsl.profile = profile;
+    info.type = VKD3D_SHADER_STRUCTURE_TYPE_COMPILE_INFO;
+    info.next = &hlsl;
+    info.source.code = bytes;
+    info.source.size = length;
+    info.source_type = VKD3D_SHADER_SOURCE_HLSL;
+    info.target_type = VKD3D_SHADER_TARGET_DXBC_TPF;
+    info.source_name = source_name;
+    info.log_level = VKD3D_SHADER_LOG_WARNING;
+    result = vkd3d_shader_compile(&info, &wb_result, &messages);
+    wb_capture_messages(messages);
+    if (result < 0 || !wb_result.code || wb_result.size < 32 || wb_result.size > WB_MAX_DXBC)
+    {
+        if (!wb_messages[0]) snprintf(wb_messages, sizeof(wb_messages), "HLSL compilation failed (%d)", result);
+        vkd3d_shader_free_shader_code(&wb_result);
+        memset(&wb_result, 0, sizeof(wb_result));
+        return 0;
+    }
+    return 1;
+}
+
 int wb_dxbc_compile(const void *bytes, unsigned int length)
 {
+    const struct vkd3d_shader_compile_option options[] =
+    {
+        {VKD3D_SHADER_COMPILE_OPTION_WRITE_TESS_GEOM_POINT_SIZE, 0},
+    };
     struct vkd3d_shader_spirv_target_info target = {0};
     struct vkd3d_shader_compile_info info = {0};
     uint32_t magic = 0;
@@ -275,6 +318,8 @@ int wb_dxbc_compile(const void *bytes, unsigned int length)
     info.source.size = length;
     info.source_type = VKD3D_SHADER_SOURCE_DXBC_TPF;
     info.target_type = VKD3D_SHADER_TARGET_SPIRV_BINARY;
+    info.options = options;
+    info.option_count = sizeof(options) / sizeof(options[0]);
     info.log_level = VKD3D_SHADER_LOG_WARNING;
     result = vkd3d_shader_compile(&info, &wb_result, &messages);
     wb_capture_messages(messages);

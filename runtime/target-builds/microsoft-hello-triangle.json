@@ -1,0 +1,22 @@
+{
+  "upstream": "https://github.com/microsoft/DirectX-Graphics-Samples",
+  "revision": "be8195fc324c97c6550b710ace15e18b560c07c8",
+  "directory": "Samples/Desktop/D3D12HelloWorld/src/HelloTriangle",
+  "license": "MIT",
+  "licenseSha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409",
+  "files": {
+    "D3D12HelloTriangle.cpp": "24d4a5bea9770f98871cf56e1cb526e5c061b944a4ff095415d6f992c536fc95",
+    "D3D12HelloTriangle.h": "4e8ce9167debc1d50adb866484dc3edfc37f355d70f31c81fd2c80a7371f9339",
+    "DXSample.cpp": "25c51d42cb06880a505c5d98cf6e1cbf2d63b65170279c5eca4f7c0186891dd3",
+    "DXSample.h": "ceea5ae9bbd10ca2b6b32cfc033e31ab943fe81b12fe1f8bc35963759d409a86",
+    "DXSampleHelper.h": "86af1d04592653df95ffcdf3317a5ba385cb80da4e30288d855824ac36df67fb",
+    "Main.cpp": "6719980c4f89b50229ea015a3446ea3d950c7dd64e2505ef7f6f4e239e83cb36",
+    "Win32Application.cpp": "ac26ca37c04af681d474f4ad0999e5095a2c52410e2867f38236e050521d6043",
+    "Win32Application.h": "95c2397c40a2d6a5b3a8c0bae3c78626fc516436d3bbc9d588cc56b3fe6ddf9d",
+    "d3dx12.h": "8c93513dc3e9f5bb2a607df96334add9684846fc249b69d2fea08c430edf1169",
+    "shaders.hlsl": "f71931770cec62ece1cd5b1725c01dd30bdd4fda659c3c9a71c33f3b0978039e",
+    "stdafx.cpp": "4e1e06e897454f22c0d3c880e23f4114109bf912ff311a28b88d10eeae9b8518",
+    "stdafx.h": "7af438d0e94da45e64b16ad62e54c106593d6053c5a28ee11e02136e6b47f00a"
+  },
+  "buildNote": "Application sources unchanged. MinGW compatibility preinclude supplies an omitted WRL FileHandle type in an unused upstream inline helper and maps _uuidof to __uuidof. -fpermissive permits MSVC temporary-address extensions. Native C++ build; application and HLSL compile/JIT later in browser."
+}

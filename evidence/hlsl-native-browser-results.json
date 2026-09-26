@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-26T14:18:36.069Z",
+  "status": "passed",
+  "browser": "154.0.8037.57",
+  "exeSha256": "8944c02b063aa09679f4765b42d09d6703fab2485bef1c4ea429cf8aca320f3e",
+  "scope": "Native PE32 EXE plus original Microsoft HLSL / nested ZIP: browser HLSL compilation, DXBC blobs, independent lifetimes, syntax errors, missing file and unsupported profile, followed by successful recovery.",
+  "results": [
+    {
+      "name": "hlsl.exe",
+      "exitCode": 0,
+      "output": "hlsl-ok\n",
+      "instructions": 297,
+      "compiledBlocks": 69,
+      "errors": []
+    },
+    {
+      "name": "hlsl.zip",
+      "exitCode": 0,
+      "output": "hlsl-ok\n",
+      "instructions": 297,
+      "compiledBlocks": 69,
+      "errors": []
+    }
+  ]
+}

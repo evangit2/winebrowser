@@ -1,0 +1,566 @@
+{
+  "date": "2026-09-26T14:20:14.492Z",
+  "targetId": ".cache/dx12-microsoft",
+  "exe": "hellotriangle.exe",
+  "exeSha256": "3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899",
+  "packageFiles": [
+    {
+      "name": "d3d12hellotriangle.cpp",
+      "bytes": 12622,
+      "sha256": "24d4a5bea9770f98871cf56e1cb526e5c061b944a4ff095415d6f992c536fc95"
+    },
+    {
+      "name": "d3d12hellotriangle.h",
+      "bytes": 2052,
+      "sha256": "4e8ce9167debc1d50adb866484dc3edfc37f355d70f31c81fd2c80a7371f9339"
+    },
+    {
+      "name": "dxsample.cpp",
+      "bytes": 2591,
+      "sha256": "25c51d42cb06880a505c5d98cf6e1cbf2d63b65170279c5eca4f7c0186891dd3"
+    },
+    {
+      "name": "dxsample.h",
+      "bytes": 1584,
+      "sha256": "ceea5ae9bbd10ca2b6b32cfc033e31ab943fe81b12fe1f8bc35963759d409a86"
+    },
+    {
+      "name": "dxsamplehelper.h",
+      "bytes": 2865,
+      "sha256": "86af1d04592653df95ffcdf3317a5ba385cb80da4e30288d855824ac36df67fb"
+    },
+    {
+      "name": "hellotriangle.exe",
+      "bytes": 2498322,
+      "sha256": "3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899"
+    },
+    {
+      "name": "license",
+      "bytes": 1077,
+      "sha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409"
+    },
+    {
+      "name": "main.cpp",
+      "bytes": 714,
+      "sha256": "6719980c4f89b50229ea015a3446ea3d950c7dd64e2505ef7f6f4e239e83cb36"
+    },
+    {
+      "name": "win32application.cpp",
+      "bytes": 3159,
+      "sha256": "ac26ca37c04af681d474f4ad0999e5095a2c52410e2867f38236e050521d6043"
+    },
+    {
+      "name": "win32application.h",
+      "bytes": 775,
+      "sha256": "95c2397c40a2d6a5b3a8c0bae3c78626fc516436d3bbc9d588cc56b3fe6ddf9d"
+    },
+    {
+      "name": "build.json",
+      "bytes": 1270,
+      "sha256": "ae17481bbc0ad3b721086d643821a44b04a894908931d25510c6fa6968ce7f99"
+    },
+    {
+      "name": "build.log",
+      "bytes": 29717,
+      "sha256": "84d068011d0bbc77ac975d28cd42da6be9607e6ec7ab5d2b45c6b414f7a87dd2"
+    },
+    {
+      "name": "d3dx12.h",
+      "bytes": 79591,
+      "sha256": "8c93513dc3e9f5bb2a607df96334add9684846fc249b69d2fea08c430edf1169"
+    },
+    {
+      "name": "mingw-compat.h",
+      "bytes": 487,
+      "sha256": "72374a070a32cc7be58456322e6ba857928af9fd44c34c49156e74d1f07e3046"
+    },
+    {
+      "name": "shaders.hlsl",
+      "bytes": 736,
+      "sha256": "f71931770cec62ece1cd5b1725c01dd30bdd4fda659c3c9a71c33f3b0978039e"
+    },
+    {
+      "name": "stdafx.cpp",
+      "bytes": 457,
+      "sha256": "4e1e06e897454f22c0d3c880e23f4114109bf912ff311a28b88d10eeae9b8518"
+    },
+    {
+      "name": "stdafx.h",
+      "bytes": 927,
+      "sha256": "7af438d0e94da45e64b16ad62e54c106593d6053c5a28ee11e02136e6b47f00a"
+    }
+  ],
+  "inputs": {
+    "manifest": ".cache/wine-loader/manifest.json",
+    "wineDirectory": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows",
+    "nlsDirectory": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls",
+    "dlls": [
+      {
+        "name": "ntdll.dll",
+        "path": ".cache/wine-loader/82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2/build/dlls/ntdll/i386-windows/ntdll.dll",
+        "bytes": 3797756,
+        "sha256": "0f095f95bff7b8b93df69ec87561881181c21f45419a48982e6212bfd3ab1fe3"
+      },
+      {
+        "name": "wine-format.dll",
+        "path": "public/runtime/wine-format.dll",
+        "bytes": 10752,
+        "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+      },
+      {
+        "name": "msvcrt.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msvcrt.dll",
+        "bytes": 679950,
+        "sha256": "612edff0b1d2493a6c491aa3be10f1b42a961f8516db8cffe3d59dbe4c192558"
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernel32.dll",
+        "bytes": 397326,
+        "sha256": "c4b1f1f1210e85acc9f82a898664b1c79b6e83e0485cb59e2e6251885cde9418"
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/kernelbase.dll",
+        "bytes": 2703374,
+        "sha256": "4fae98d80c69cf36fbfc669acbe87676f0ad06dcebb85cff7b4abee13912a6f6"
+      },
+      {
+        "name": "msacm32.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/msacm32.dll",
+        "bytes": 126990,
+        "sha256": "5659d500f2735aa81b77123f0f47fa8f5947ef497d5f30c0d9af1e6244e592c8"
+      },
+      {
+        "name": "ucrtbase.dll",
+        "path": "/Applications/Wine Stable.app/Contents/Resources/wine/lib/wine/i386-windows/ucrtbase.dll",
+        "bytes": 892942,
+        "sha256": "b0ea76c3a2dfd04f6775825777febb61c63fa00a3fd2059d4c2d29564355fbe4"
+      }
+    ],
+    "nls": [
+      {
+        "name": "locale.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/locale.nls",
+        "bytes": 794914,
+        "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+      },
+      {
+        "name": "sortdefault.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/sortdefault.nls",
+        "bytes": 3380468,
+        "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+      },
+      {
+        "name": "l_intl.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/l_intl.nls",
+        "bytes": 5564,
+        "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+      },
+      {
+        "name": "normnfc.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/normnfc.nls",
+        "bytes": 60194,
+        "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+      },
+      {
+        "name": "c_1252.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_1252.nls",
+        "bytes": 66082,
+        "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+      },
+      {
+        "name": "c_437.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_437.nls",
+        "bytes": 66594,
+        "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+      },
+      {
+        "name": "c_20127.nls",
+        "path": ".cache/wine-db11d0fe6a169c457e23d007e20404643d067aa8/nls/c_20127.nls",
+        "bytes": 66082,
+        "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
+      }
+    ],
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+    "patchSha256": "82c40146ee6cc127ef60d4870322a86f849e51cf69d166fcea812f69b38442b2"
+  },
+  "status": "blocked-guest",
+  "scope": "Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.",
+  "phases": [
+    {
+      "name": "map guest closure",
+      "passed": true,
+      "modules": [
+        {
+          "name": "hellotriangle.exe",
+          "path": "hellotriangle.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "d3d12.dll",
+          "path": "@host/d3d12.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "d3dcompiler_47.dll",
+          "path": "@host/d3dcompiler_47.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "dxgi.dll",
+          "path": "@host/dxgi.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 17432576,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "api-ms-win-crt-convert-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-convert-l1-1-0.dll",
+          "host": true,
+          "base": 20971520,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-environment-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-environment-l1-1-0.dll",
+          "host": true,
+          "base": 21037056,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-heap-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-heap-l1-1-0.dll",
+          "host": true,
+          "base": 21102592,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-locale-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-locale-l1-1-0.dll",
+          "host": true,
+          "base": 21168128,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-math-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-math-l1-1-0.dll",
+          "host": true,
+          "base": 21233664,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-private-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-private-l1-1-0.dll",
+          "host": true,
+          "base": 21299200,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-runtime-l1-1-0.dll",
+          "host": true,
+          "base": 21364736,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-stdio-l1-1-0.dll",
+          "host": true,
+          "base": 21430272,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-string-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-string-l1-1-0.dll",
+          "host": true,
+          "base": 21495808,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "api-ms-win-crt-utility-l1-1-0.dll",
+          "path": "@host/api-ms-win-crt-utility-l1-1-0.dll",
+          "host": true,
+          "base": 21561344,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@host/shell32.dll",
+          "host": true,
+          "base": 21626880,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 21692416,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 21757952,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ]
+    },
+    {
+      "name": "Wine process bootstrap",
+      "passed": true
+    }
+  ],
+  "trappedImports": [
+    "dxgi.dll!CreateDXGIFactory2",
+    "api-ms-win-crt-convert-l1-1-0.dll!mbsrtowcs",
+    "api-ms-win-crt-convert-l1-1-0.dll!strtoul",
+    "api-ms-win-crt-environment-l1-1-0.dll!__p__environ",
+    "api-ms-win-crt-environment-l1-1-0.dll!getenv",
+    "api-ms-win-crt-heap-l1-1-0.dll!_set_new_mode",
+    "api-ms-win-crt-heap-l1-1-0.dll!calloc",
+    "api-ms-win-crt-heap-l1-1-0.dll!free",
+    "api-ms-win-crt-heap-l1-1-0.dll!malloc",
+    "api-ms-win-crt-heap-l1-1-0.dll!realloc",
+    "api-ms-win-crt-locale-l1-1-0.dll!_configthreadlocale",
+    "api-ms-win-crt-math-l1-1-0.dll!__setusermatherr",
+    "api-ms-win-crt-private-l1-1-0.dll!_setjmp3",
+    "api-ms-win-crt-private-l1-1-0.dll!longjmp",
+    "api-ms-win-crt-private-l1-1-0.dll!memchr",
+    "api-ms-win-crt-private-l1-1-0.dll!memcmp",
+    "api-ms-win-crt-private-l1-1-0.dll!memcpy",
+    "api-ms-win-crt-private-l1-1-0.dll!memmove",
+    "api-ms-win-crt-private-l1-1-0.dll!strchr",
+    "api-ms-win-crt-private-l1-1-0.dll!wcsrchr",
+    "api-ms-win-crt-runtime-l1-1-0.dll!__p___argc",
+    "api-ms-win-crt-runtime-l1-1-0.dll!__p___argv",
+    "api-ms-win-crt-runtime-l1-1-0.dll!__p__acmdln",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_assert",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_beginthreadex",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_cexit",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_configure_narrow_argv",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_crt_atexit",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_endthreadex",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_errno",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_exit",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initialize_narrow_environment",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initterm",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_initterm_e",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_set_app_type",
+    "api-ms-win-crt-runtime-l1-1-0.dll!_set_invalid_parameter_handler",
+    "api-ms-win-crt-runtime-l1-1-0.dll!abort",
+    "api-ms-win-crt-runtime-l1-1-0.dll!exit",
+    "api-ms-win-crt-runtime-l1-1-0.dll!signal",
+    "api-ms-win-crt-runtime-l1-1-0.dll!strerror",
+    "api-ms-win-crt-stdio-l1-1-0.dll!__acrt_iob_func",
+    "api-ms-win-crt-stdio-l1-1-0.dll!__p__commode",
+    "api-ms-win-crt-stdio-l1-1-0.dll!__p__fmode",
+    "api-ms-win-crt-stdio-l1-1-0.dll!__stdio_common_vfprintf",
+    "api-ms-win-crt-stdio-l1-1-0.dll!__stdio_common_vsprintf",
+    "api-ms-win-crt-stdio-l1-1-0.dll!_fileno",
+    "api-ms-win-crt-stdio-l1-1-0.dll!_read",
+    "api-ms-win-crt-stdio-l1-1-0.dll!_setmode",
+    "api-ms-win-crt-stdio-l1-1-0.dll!fflush",
+    "api-ms-win-crt-stdio-l1-1-0.dll!fputc",
+    "api-ms-win-crt-stdio-l1-1-0.dll!fputs",
+    "api-ms-win-crt-stdio-l1-1-0.dll!fwrite",
+    "api-ms-win-crt-stdio-l1-1-0.dll!setvbuf",
+    "api-ms-win-crt-string-l1-1-0.dll!_strdup",
+    "api-ms-win-crt-string-l1-1-0.dll!_wcsnicmp",
+    "api-ms-win-crt-string-l1-1-0.dll!memset",
+    "api-ms-win-crt-string-l1-1-0.dll!strcmp",
+    "api-ms-win-crt-string-l1-1-0.dll!strlen",
+    "api-ms-win-crt-string-l1-1-0.dll!strncmp",
+    "api-ms-win-crt-string-l1-1-0.dll!wcslen",
+    "api-ms-win-crt-utility-l1-1-0.dll!rand_s",
+    "shell32.dll!CommandLineToArgvW",
+    "advapi32.dll!RegEnumKeyExW",
+    "advapi32.dll!RegEnumValueW",
+    "advapi32.dll!RegQueryInfoKeyW",
+    "user32.dll!DialogBoxIndirectParamW",
+    "user32.dll!DialogBoxParamW",
+    "user32.dll!EndDialog",
+    "user32.dll!GetPropW",
+    "user32.dll!RegisterWindowMessageW",
+    "user32.dll!SendDlgItemMessageW",
+    "user32.dll!SetPropW"
+  ],
+  "apiCalls": [
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104600,
+        0,
+        67104752,
+        8192,
+        4
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        67104600,
+        0,
+        67104756,
+        4096,
+        4
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    },
+    {
+      "name": "NtAllocateVirtualMemory",
+      "args": [
+        4294967295,
+        33555552,
+        0,
+        67104720,
+        4096,
+        4
+      ],
+      "threadId": 1,
+      "result": "0x0"
+    }
+  ],
+  "output": [],
+  "requests": [],
+  "frames": 0,
+  "nativeLoaderCalls": [],
+  "firstFailure": {
+    "phase": "source loader registration",
+    "message": "WineBrowserLoaderBootstrap returned 0xc00000bb",
+    "ip": {
+      "address": "0x10dcb35",
+      "module": "ntdll.dll",
+      "offset": "0x3cb35"
+    },
+    "registers": [
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x3fff000",
+      "0x0",
+      "0x0",
+      "0x0"
+    ],
+    "compiledBlocks": 334,
+    "instructions": 10056
+  },
+  "diagnosticLimits": {
+    "maxBlocks": 10000000,
+    "maxExecutionMs": 45000
+  },
+  "threadsAtStop": [
+    {
+      "id": 1,
+      "teb": "0x2e00000",
+      "started": true,
+      "attached": false,
+      "suspended": 0,
+      "exited": false,
+      "exitCode": null
+    }
+  ],
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": [],
+  "nativeBuild": {
+    "revision": "be8195fc324c97c6550b710ace15e18b560c07c8",
+    "compiler": "i686-w64-mingw32-g++ (GCC) 16.1.0",
+    "command": [
+      "i686-w64-mingw32-g++",
+      "-std=c++14",
+      "-O2",
+      "-fpermissive",
+      "-DUNICODE",
+      "-D_UNICODE",
+      "-static",
+      "-static-libgcc",
+      "-static-libstdc++",
+      "-include",
+      "runtime/target-builds/mingw-wrl-compat.h",
+      "-Wl,--no-insert-timestamp",
+      "-mwindows",
+      "-o",
+      ".cache/dx12-microsoft/HelloTriangle.exe",
+      ".cache/dx12-microsoft/Main.cpp",
+      ".cache/dx12-microsoft/DXSample.cpp",
+      ".cache/dx12-microsoft/Win32Application.cpp",
+      ".cache/dx12-microsoft/D3D12HelloTriangle.cpp",
+      "-ld3d12",
+      "-ldxgi",
+      "-ld3dcompiler",
+      "-ldxguid"
+    ],
+    "exeSha256": "3551b94ac891f44d7194a05d4caf9ae5f6f71f738340a012204449333ac2f899",
+    "exeBytes": 2498322,
+    "sourcePinSha256": "a2cca572a2cd6bb9b3ae1577bba9884a32b32248081ff4434979d57122feb6fd",
+    "compatibilityHeaderSha256": "72374a070a32cc7be58456322e6ba857928af9fd44c34c49156e74d1f07e3046"
+  }
+}

@@ -190,6 +190,9 @@ D3D10/11 and broader D3D12 support are still required.
       (caller `0x488f63`, 9,420,850 guest instructions). It maps `shadow.png` and
       creates its texture; no original game frame renders yet. See
       `evidence/hamsterball-startup-browser.json`.
+- [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
+      rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
+      See `docs/hlsl-compilation.md`; full upstream C++ execution remains open.
 - [ ] Priority: compile, load and render an independently maintained real D3D12
       demo through the ordinary browser PE/ZIP path. Pin upstream source and
       binary provenance; verify guest execution, browser shader compilation and

@@ -1,6 +1,7 @@
 // Bounded PE32 D3D12/DXGI bootstrap. Slot order and struct offsets are from
 // i686-w64-mingw32 d3d12.h/dxgi.h (MinGW-w64 14.0.0).
 import { ComObjects, readGuid } from './com.js';
+import { createBlob } from './com-blob.js';
 import { validateIndexSnapshot } from './d3d12-indices.js';
 import {
   parseCommittedResourceDescriptor,
@@ -33,7 +34,6 @@ const iids = {
   swapchain1: '790a45f7-0d42-4876-983a-0a55cfe6f4aa',
   swapchain2: 'a8be2ac4-199f-4946-b331-79599fb98de7',
   swapchain3: '94d99bdb-f1f8-4ab0-b236-7da0170edab1',
-  blob: '8ba5fb08-5195-40e2-ac58-0d989c3a0102',
 };
 const names = {
   device: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetNodeCount CreateCommandQueue CreateCommandAllocator CreateGraphicsPipelineState CreateComputePipelineState CreateCommandList CheckFeatureSupport CreateDescriptorHeap GetDescriptorHandleIncrementSize CreateRootSignature CreateConstantBufferView CreateShaderResourceView CreateUnorderedAccessView CreateRenderTargetView CreateDepthStencilView CreateSampler CopyDescriptors CopyDescriptorsSimple GetResourceAllocationInfo GetCustomHeapProperties CreateCommittedResource CreateHeap CreatePlacedResource CreateReservedResource CreateSharedHandle OpenSharedHandle OpenSharedHandleByName MakeResident Evict CreateFence GetDeviceRemovedReason GetCopyableFootprints CreateQueryHeap SetStablePowerState CreateCommandSignature GetResourceTiling GetAdapterLuid`,
@@ -47,7 +47,6 @@ const names = {
   resource: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Map Unmap GetDesc GetGPUVirtualAddress WriteToSubresource ReadFromSubresource GetHeapProperties`,
   factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent`,
   swapchain: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDevice Present GetBuffer SetFullscreenState GetFullscreenState GetDesc ResizeBuffers ResizeTarget GetContainingOutput GetFrameStatistics GetLastPresentCount GetDesc1 GetFullscreenDesc GetHwnd GetCoreWindow Present1 IsTemporaryMonoSupported GetRestrictToOutput SetBackgroundColor GetBackgroundColor SetRotation GetRotation SetSourceSize GetSourceSize SetMaximumFrameLatency GetMaximumFrameLatency GetFrameLatencyWaitableObject SetMatrixTransform GetMatrixTransform GetCurrentBackBufferIndex CheckColorSpaceSupport SetColorSpace1 ResizeBuffers1`,
-  blob: `QueryInterface AddRef Release GetBufferPointer GetBufferSize`,
 };
 const name = {
   device: 'ID3D12Device',
@@ -61,7 +60,6 @@ const name = {
   resource: 'ID3D12Resource',
   factory: 'IDXGIFactory1',
   swapchain: 'IDXGISwapChain',
-  blob: 'ID3DBlob',
 };
 const number = (value) => value >>> 0;
 const u32 = (r, p, off = 0) => r.read32(p + off) >>> 0;
@@ -980,26 +978,6 @@ function queueMethods() {
     },
   };
 }
-function blob(r, raw) {
-  const ptr = r.allocate(raw.length);
-  r.data.set(raw, ptr);
-  try {
-    return make(
-      r,
-      'blob',
-      {
-        3: { argc: 1, invoke: () => ptr },
-        4: { argc: 1, invoke: () => raw.length },
-      },
-      {},
-      null,
-      () => r.free(ptr),
-    );
-  } catch (error) {
-    r.free(ptr);
-    throw error;
-  }
-}
 export const d3d12Apis = {
   'd3d12.dll!D3D12CreateDevice': (r, a) => {
     const out = number(a(3));
@@ -1026,7 +1004,7 @@ export const d3d12Apis = {
     const raw = await r.graphics12.serializeRootSignature(u32(r, p, 16));
     if (!(raw instanceof Uint8Array) || !raw.length || raw.length > MAX_BYTES)
       throw Error('D3D12 backend returned invalid root signature blob');
-    r.write32(out, blob(r, raw).pointer);
+    r.write32(out, createBlob(r, raw).pointer);
     return { result: S_OK, argc: 4 };
   },
 };

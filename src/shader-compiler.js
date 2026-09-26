@@ -160,6 +160,48 @@ export class ShaderCompiler {
     }
   }
 
+  async compileHLSL(bytes, entry, profile, sourceName = 'shader.hlsl') {
+    if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > MAX_SHADER_BYTES)
+      throw Error('Expected bounded HLSL source');
+    if (!['vs_5_0', 'ps_5_0'].includes(profile)) throw Error('Unsupported HLSL profile');
+    if (typeof entry !== 'string' || !entry.length || entry.length > 256 || entry.includes('\0'))
+      throw Error('Invalid HLSL entry point');
+    if (typeof sourceName !== 'string' || sourceName.length > 4096 || sourceName.includes('\0'))
+      throw Error('Invalid HLSL source name');
+    const encoder = new TextEncoder();
+    const sources = [
+      bytes.slice(),
+      ...[entry, profile, sourceName].map((s) => encoder.encode(s + '\0')),
+    ];
+    await this.initialize();
+    const compiler = this.dxbc;
+    const pointers = [];
+    try {
+      for (const source of sources) {
+        const pointer = compiler._malloc(source.length);
+        if (!pointer) throw Error('HLSL compiler allocation failed');
+        pointers.push(pointer);
+        compiler.HEAPU8.set(source, pointer);
+      }
+      if (compiler._wb_hlsl_compile(pointers[0], sources[0].length, ...pointers.slice(1)) !== 1)
+        throw this.diagnostic('HLSL compilation failed');
+      const pointer = compiler._wb_result_ptr(),
+        length = compiler._wb_result_size();
+      if (
+        !pointer ||
+        length < 32 ||
+        length > MAX_SHADER_BYTES ||
+        pointer + length > compiler.HEAPU8.length
+      )
+        throw Error('Invalid HLSL compiler output');
+      const messages = compiler.UTF8ToString(compiler._wb_messages_ptr());
+      return { bytes: compiler.HEAPU8.slice(pointer, pointer + length), messages };
+    } finally {
+      compiler._wb_clear();
+      for (const pointer of pointers) compiler._free(pointer);
+    }
+  }
+
   async compileLegacyPair(vertexBytes, pixelBytes) {
     validateLegacyShader(vertexBytes, 'vertex');
     validateLegacyShader(pixelBytes, 'pixel');

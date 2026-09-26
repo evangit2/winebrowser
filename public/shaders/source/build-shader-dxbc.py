@@ -183,7 +183,7 @@ def main():
     run("library", [emmake, "make", "-j4", "libvkd3d-shader.la"], build, env)
 
     output = PUBLIC / "vkd3d-shader.js"
-    exports = ["_malloc", "_free", "_wb_dxbc_compile", "_wb_result_ptr",
+    exports = ["_malloc", "_free", "_wb_hlsl_compile", "_wb_dxbc_compile", "_wb_result_ptr",
                "_wb_result_size", "_wb_messages_ptr", "_wb_clear",
                "_wb_root_signature_serialize", "_wb_root_signature_validate",
                "_wb_root_signature_flags", "_wb_d3dbc_compile_pair",

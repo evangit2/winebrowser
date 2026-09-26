@@ -1,0 +1,60 @@
+{
+  "scope": "Original Microsoft HelloTriangle HLSL compiled in a browser worker to DXBC, SPIR-V and WGSL, then rendered with WebGPU. This compiler test does not execute the upstream C++ EXE.",
+  "browser": "154.0.8037.57",
+  "sourceSha256": "f71931770cec62ece1cd5b1725c01dd30bdd4fda659c3c9a71c33f3b0978039e",
+  "compilationMs": 54.625,
+  "invalid": [
+    "HLSL compilation failed: shader.hlsl:1:7: E5030: Unknown modifier \"shader\".\nshader.hlsl:1:5: E5030: Unknown modifier \"a\".\nshader.hlsl:1:1: E5030: Unknown modifier \"not\".\nshader.hlsl:1:14: E5000: syntax error, unexpected end of file\n",
+    "HLSL compilation failed: shader.hlsl: E5005: Entry point \"MissingEntry\" is not defined.\n",
+    "Unsupported HLSL profile",
+    "HLSL compilation failed: shader.hlsl:1:1: E4002: Failed to open \"missing.hlsl\".\n"
+  ],
+  "stages": [
+    {
+      "dxbcBytes": 576,
+      "spirvBytes": 508,
+      "wgsl": "struct VertexOutput {\n    @builtin(position) member: vec4<f32>,\n    @location(1) member_1: vec4<f32>,\n}\n\nvar<private> v0_1: vec4<f32>;\nvar<private> v1_1: vec4<f32>;\nvar<private> o0_: vec4<f32> = vec4<f32>(0f, 0f, 0f, 1f);\nvar<private> o1_: vec4<f32>;\n\nfn main_1() {\n    let _e4 = v0_1;\n    o0_ = _e4;\n    let _e5 = v1_1;\n    o1_ = _e5;\n    return;\n}\n\n@vertex \nfn main(@location(0) v0_: vec4<f32>, @location(1) v1_: vec4<f32>) -> VertexOutput {\n    v0_1 = v0_;\n    v1_1 = v1_;\n    main_1();\n    let _e6 = o0_;\n    let _e7 = o1_;\n    return VertexOutput(_e6, _e7);\n}\n",
+      "messages": ""
+    },
+    {
+      "dxbcBytes": 496,
+      "spirvBytes": 584,
+      "wgsl": "var<private> global: vec4<f32>;\nvar<private> v0_: vec4<f32>;\nvar<private> v1_1: vec4<f32>;\nvar<private> o0_: vec4<f32>;\n\nfn main_1() {\n    let _e5 = global;\n    v0_ = vec4<f32>(_e5.x, _e5.y, _e5.z, (1f / _e5.w));\n    let _e13 = v1_1;\n    o0_ = _e13;\n    return;\n}\n\n@fragment \nfn main(@builtin(position) param: vec4<f32>, @location(1) v1_: vec4<f32>) -> @location(0) vec4<f32> {\n    global = param;\n    v1_1 = v1_;\n    main_1();\n    let _e5 = o0_;\n    return _e5;\n}\n",
+      "messages": ""
+    }
+  ],
+  "coverage": 5202,
+  "opaque": 16384,
+  "corner": [
+    0,
+    51,
+    102,
+    255
+  ],
+  "center": [
+    126,
+    66,
+    63,
+    255
+  ],
+  "top": [
+    236,
+    11,
+    8,
+    255
+  ],
+  "left": [
+    24,
+    20,
+    211,
+    255
+  ],
+  "right": [
+    24,
+    214,
+    17,
+    255
+  ],
+  "errors": [],
+  "outbound": []
+}

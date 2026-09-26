@@ -116,7 +116,10 @@
     "build:cmps": "sh scripts/build-cmps-fixture.sh",
     "test:cmps": "node scripts/test-cmps-browser.mjs",
     "build:wide-math": "sh scripts/build-wide-math-fixture.sh",
-    "test:wide-math": "node scripts/test-wide-math-browser.mjs"
+    "test:wide-math": "node scripts/test-wide-math-browser.mjs",
+    "build:hlsl": "sh scripts/build-hlsl-fixture.sh",
+    "test:hlsl": "node scripts/test-hlsl-browser.mjs",
+    "test:hlsl-native": "node scripts/test-hlsl-native-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

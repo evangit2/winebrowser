@@ -93,3 +93,14 @@ existing result pointer, size, and clear functions. Validation leaves that
 result alive, so it can directly validate the just-serialized pointer. Input
 is limited to 1 MiB; nonempty signatures and other versions or flags remain
 explicitly unsupported.
+
+## HLSL input
+
+`wb_hlsl_compile(bytes, length, entry, profile, source_name)` accepts bounded
+HLSL and `vs_5_0`/`ps_5_0`, returning DXBC through the existing result accessors.
+Every call clears previous results and diagnostics. Entry/profile/source-name
+strings remain allocated for the synchronous compiler call. No include callback
+or filesystem is exposed. The JS wrapper copies both input and output, retains
+compiler messages, and clears/free temporary state on success or failure.
+The existing PointSize portability option is now set for DXBC translation too.
+See `docs/hlsl-compilation.md` and the native/browser HLSL tests.

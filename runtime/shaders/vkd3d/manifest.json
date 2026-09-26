@@ -33,22 +33,22 @@
   },
   "bridge": {
     "path": "runtime/shaders/vkd3d/bridge.c",
-    "bytes": 14918,
-    "sha256": "de2d5b6341178e7c3d390dbc573373160db409f05606178f4e6a45dea0c6a6c8"
+    "bytes": 16728,
+    "sha256": "fe1607e76379db139d8c451ef351dcbd50d4d291b02d9f7b90eb128e24c55f39"
   },
   "buildScript": {
     "path": "scripts/build-shader-dxbc.py",
-    "bytes": 11171,
-    "sha256": "a05e115cc13a42b20f8e4b861143f137add8d7c1e855e6f39fb87a68c1f2e614"
+    "bytes": 11191,
+    "sha256": "17d1099d836c42f4530be539fba5a24b90d040290106db4e0e1e355763610f90"
   },
   "artifacts": {
     "vkd3d-shader.js": {
-      "bytes": 14684,
-      "sha256": "0ff6abc27662fdb813d87b171d964fe7e98a2968b93a623e5f4e8a8ac8ce6911"
+      "bytes": 14763,
+      "sha256": "eb1b1e02c32a5663b09754b61e6c5c8f38d2882c971940a424e5695f966a3ba2"
     },
     "vkd3d-shader.wasm": {
-      "bytes": 1262711,
-      "sha256": "8b709f7e15c2deeae210b1cd2e1a7d29ec17e955980e5201b7fe522429c0d803"
+      "bytes": 1263544,
+      "sha256": "f03d2bf23c81941ee505318014ff86ae6c814a762ed26ab20fd500eeeea8a735"
     },
     "vkd3d-COPYING": {
       "bytes": 786,
@@ -67,13 +67,13 @@
     },
     "bridge.c": {
       "path": "public/shaders/source/bridge.c",
-      "bytes": 14918,
-      "sha256": "de2d5b6341178e7c3d390dbc573373160db409f05606178f4e6a45dea0c6a6c8"
+      "bytes": 16728,
+      "sha256": "fe1607e76379db139d8c451ef351dcbd50d4d291b02d9f7b90eb128e24c55f39"
     },
     "build-shader-dxbc.py": {
       "path": "public/shaders/source/build-shader-dxbc.py",
-      "bytes": 11171,
-      "sha256": "a05e115cc13a42b20f8e4b861143f137add8d7c1e855e6f39fb87a68c1f2e614"
+      "bytes": 11191,
+      "sha256": "17d1099d836c42f4530be539fba5a24b90d040290106db4e0e1e355763610f90"
     },
     "COPYING": {
       "path": "public/shaders/source/COPYING",
