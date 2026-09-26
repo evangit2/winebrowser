@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-26T03:01:49.661Z",
+  "sha256": {
+    "client.exe": "19585df3fef65f8bd5fd41fad4e2a50e1b0dd0ff950f475d5b6100ca26e39128",
+    "plugins/codec.dll": "19977a9f64c62f66efc18e99f2c323b29499e51ffe2dc44f3b34e68cd7bcf4ce",
+    "bad.dll": "1b0cfb2577541739cd12e5d19c8d6cecb949f2e0402ab5dc94eacc4aed397be6"
+  },
+  "status": "passed",
+  "exitCode": 0,
+  "instructions": 4511,
+  "scope": "Native DriverProc callbacks, distinct instances and IDs, DLL path and registry lookup, ANSI entry, hidden descriptor sessions, exact message order, failure cleanup and unload. No system device or codec emulation.",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.57",
+  "outboundRequests": []
+}

@@ -68,8 +68,13 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Delegate native Wine process shutdown to the runtime's single detach pass;
       verify reverse TLS/DllMain order, recursion, repeated shutdown and termination.
       Native ExitProcess completes in Node and Chromium without duplicate cleanup.
-- [ ] Continue BASS startup through `winmm.dll!OpenDriver`. Node and Chromium
-      reach this call after 8,692,700 guest instructions during DLL attachment.
+- [x] Load packaged installable-driver DLLs and call their real DriverProc through
+      WinMM. Native fixtures verify instances, messages, registry aliases, hidden
+      sessions, failure cleanup and unload in Node and Chromium. Native ACM now
+      completes driver discovery and BASS DLL attachment.
+- [ ] Continue original Hamsterball EXE startup through the shared-user-data read
+      at `0x7ffe0320` in Kernel32 (`+0x1b870`). Node and Chromium reach this read
+      after 8,770,928 guest instructions and pass all guest DLL attachment.
       OLE32 exports now resolve; foreground queries reflect the virtual window
       manager. Node/browser evidence is in
       `evidence/hamsterball-startup{,-browser}.json`; no game frame renders yet.

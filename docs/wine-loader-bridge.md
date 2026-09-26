@@ -112,11 +112,13 @@ signed-int32-to-double conversion. Scalar SSE arithmetic, square roots,
 conversions, comparisons and MXCSR now execute, as do 16/32-bit `SHLD`/`SHRD`
 and x87 `FISTTP` conversions. User32 character calls now execute native Wine
 KernelBase/NLS code, and legacy registry create/open aliases share the existing
-key store. Both probes execute 8,692,700 guest instructions before the unresolved
-`winmm.dll!OpenDriver` call during DLL attachment.
-The game has not reached its EXE entry or rendered a frame. Native ACM conversion
-and BASS playback have not been verified. The next work is native audio driver loading and the remaining
-audio/Win32 services, followed by
+key store. WinMM now loads native DriverProc exports and manages real instances,
+messages and hidden descriptor sessions; ACM discovery and packed BASS attachment
+complete. The game reaches its original EXE entry. Both Node and Chromium stop on
+a Kernel32 read at `0x7ffe0320`, after 8,770,928 guest instructions.
+No game frame renders yet. Native ACM conversion and BASS playback remain
+unverified. The next work is the Windows shared-user-data memory boundary and
+remaining audio/Win32 services, followed by
 broader D3D8 resources and input. Evidence: `evidence/hamsterball-startup.json` and
 `evidence/hamsterball-startup-browser.json`.
 
@@ -134,3 +136,9 @@ CP1252, surrogate pairs and counted UTF-16 buffers, then exits through real Wine
 `evidence/characters-startup.json` and `evidence/characters-startup-browser.json`
 record exit code zero. These conversions require the supplied Wine/NLS closure;
 the normal upload harness does not yet bundle it.
+
+The ordinary runtime also supports packaged installable-driver DLLs without the
+optional Wine base closure. `npm run test:drivers` verifies the native client and
+DriverProc ABI in Chromium; fixture scope and limitations are in
+[the driver fixture](../tests/fixtures/drivers/README.md). Native ACM discovery
+uses this same bridge; it does not substitute successful codec responses.

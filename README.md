@@ -72,9 +72,10 @@ translation target. Its packed native BASS DLL now loads dependencies through th
 experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
 native ACM/UCRT and OLE32 exports, executes x87 logarithms, trigonometry and
 classification, scalar SSE arithmetic, double-width integer shifts and `FISTTP`.
-Native Wine character conversion and legacy registry calls now pass; startup
-reaches the unresolved `winmm.dll!OpenDriver` API. Native process shutdown also
-passes a separate character-conversion fixture with the supplied Wine/NLS closure;
+Native Wine character conversion, legacy registry calls and WinMM native-driver
+loading now pass. Hamsterball completes DLL attachment and reaches its original
+EXE entry, where the next failure is a shared-user-data read at `0x7ffe0320`.
+Native process shutdown also passes a separate character-conversion fixture with the supplied Wine/NLS closure;
 see [the active gate](TASKS.md#current-original-hamsterball-gate).
 The overall scope remains DirectX through 12, including the unfinished D3D10/11
 frontends and broader D3D12 resources/shaders.

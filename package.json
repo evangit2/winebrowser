@@ -63,7 +63,9 @@
     "build:softfloat": "python3 scripts/build-softfloat.py",
     "test:softfloat": "node runtime/softfloat/test.mjs",
     "build:characters": "sh scripts/build-character-fixture.sh",
-    "probe:characters": "node scripts/probe-wine-target.mjs tests/fixtures/characters"
+    "probe:characters": "node scripts/probe-wine-target.mjs tests/fixtures/characters",
+    "build:drivers": "sh scripts/build-driver-fixtures.sh",
+    "test:drivers": "node scripts/test-drivers-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
