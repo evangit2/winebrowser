@@ -22,6 +22,7 @@ import { GuestPerformanceClock } from './guest-clock.js';
 import { createSharedUserData, systemFileTime } from './shared-user-data.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
 import { GuestThreads } from './guest-threads.js';
+import { THUNK_BASE, THUNK_END } from './thunk-addresses.js';
 import { yieldToHost, yieldToTimer } from './host-yield.js';
 
 export { API_NAMES };
@@ -216,9 +217,13 @@ export class Runtime {
     while (this.exitCode === null && ip !== until) {
       this.threads.checkRunning(thread);
       if (++this.blocks > this.maxBlocks) throw Error('Execution block budget exceeded');
-      const thunk = this.thunks.get(ip);
-      if (thunk) ip = await this.api(thunk);
-      else {
+      // Host thunks live in their own high address range; guest code, mapped
+      // images and virtual allocations never do, so the common case skips the
+      // map lookup entirely.
+      const thunk = ip >= THUNK_BASE && ip < THUNK_END ? this.thunks.get(ip) : undefined;
+      if (thunk) {
+        ip = await this.api(thunk);
+      } else {
         const preparation = this.cpu.prepare(ip);
         if (preparation) await preparation;
         ip = this.cpu.step(ip);

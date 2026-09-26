@@ -71,6 +71,7 @@ export class CPU {
     this.cache = new Map();
     this.cachePages = new Map();
     this.cacheLimit = MAX_TRANSLATED_BLOCKS;
+    this.pendingBlock = undefined;
     this.compiledBytes = 0;
     // Total blocks compiled over the run; compared with cache.size it reveals
     // translation-cache eviction pressure on large/packed images.
@@ -1329,9 +1330,12 @@ export class CPU {
   }
   step(ip) {
     if (this.stringRestart && this.stringRestart.at !== ip) this.stringRestart = null;
-    let block = this.cache.get(ip);
-    if (!block) block = this.compile(ip);
-    else if (!block.referenced) block.referenced = true;
+    // prepare() may have resolved the block already; reuse it so the common
+    // dispatch path performs a single cache lookup per block.
+    let block = this.pendingBlock;
+    this.pendingBlock = undefined;
+    if (!block) block = this.cache.get(ip) ?? this.compile(ip);
+    if (!block.referenced) block.referenced = true;
     if (block.usesFS && !this.fsBase) throw Error('FS requires guest TEB');
     this.instructions += block.count;
     return block.run() >>> 0;
@@ -1354,14 +1358,20 @@ export class CPU {
     }
   }
   prepare(ip) {
-    // Resolve the block once: step() reuses the same lookup, and the x87
-    // requirement lives on the block rather than in a second Set.
+    // Resolve the block once. A non-x87 block is handed to step() so the
+    // dispatcher does not look it up again. The x87 requirement lives on the
+    // block rather than in a second Set. When an x87 initialization is
+    // returned the caller must await it, so no pending block is kept: another
+    // guest thread could otherwise run before step() and clobber it.
     const block = this.cache.get(ip) ?? this.compile(ip);
-    return block.x87 ? this.initialize() : null;
+    if (block.x87) return this.initialize();
+    this.pendingBlock = block;
+    return null;
   }
   clearCache() {
     this.cache.clear();
     this.cachePages.clear();
+    this.pendingBlock = undefined;
   }
   removeBlock(ip) {
     const block = this.cache.get(ip);
