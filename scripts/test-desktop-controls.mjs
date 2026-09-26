@@ -213,6 +213,129 @@ try {
     await noPrefixStatic.evaluate((element) => getComputedStyle(element).borderLeftWidth),
     '0px',
   );
+  await page.evaluate(() => {
+    const desktop = window.virtualDesktop;
+    for (const window of [
+      {
+        id: 6,
+        parentId: 1,
+        controlType: 'static',
+        title: 'Container',
+        x: 200,
+        y: 100,
+        width: 180,
+        height: 140,
+        controlBorder: 2,
+      },
+      {
+        id: 7,
+        parentId: 6,
+        controlType: 'edit',
+        title: 'Input parent',
+        x: 5,
+        y: 7,
+        width: 120,
+        height: 80,
+        controlBorder: 1,
+      },
+      {
+        id: 8,
+        parentId: 7,
+        controlType: 'button',
+        title: 'Nested',
+        x: 8,
+        y: 9,
+        width: 70,
+        height: 40,
+      },
+      {
+        id: 9,
+        parentId: 8,
+        controlType: 'static',
+        title: 'Label',
+        x: 2,
+        y: 2,
+        width: 30,
+        height: 10,
+      },
+    ])
+      desktop.update({ operation: 'create', window: { ...window, visible: true, enabled: true } });
+    desktop.update({
+      operation: 'update',
+      window: { id: 6, parentId: 1, controlType: 'static', title: 'Renamed container' },
+    });
+    desktop.update({
+      operation: 'update',
+      window: { id: 7, parentId: 6, controlType: 'edit', title: 'Changed input' },
+    });
+  });
+  const nestedButton = page.locator('[data-window-id="8"]');
+  assert.equal(
+    await page.locator('[data-window-id="9"]').textContent(),
+    'Label',
+    'changing ancestor text preserves descendants',
+  );
+  const nestedGeometry = await page.evaluate(() => {
+    const rect = (id) => document.querySelector(`[data-window-id="${id}"]`).getBoundingClientRect();
+    const parent = rect(6),
+      input = rect(7),
+      button = rect(8);
+    return [input.x - parent.x, input.y - parent.y, button.x - input.x, button.y - input.y];
+  });
+  assert.deepEqual(
+    nestedGeometry,
+    [7, 9, 9, 10],
+    'child origins include native client borders at each level',
+  );
+  await nestedButton.click({ position: { x: 50, y: 30 } });
+  assert.equal(await page.evaluate(() => window.virtualDesktop.activeWindowId), 8);
+  assert.equal(
+    await page.locator('.virtual-desktop-window.is-focused').getAttribute('data-window-id'),
+    '1',
+  );
+  assert.ok(
+    (await page.evaluate(() => window.desktopEvents)).some(
+      (e) => e.type === 'command' && e.windowId === 8,
+    ),
+  );
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 6, parentId: 1, controlType: 'static', enabled: false },
+    }),
+  );
+  assert.equal(
+    await page.evaluate(() => window.virtualDesktop.focus(8)),
+    false,
+    'disabled ancestors prevent native focus',
+  );
+  assert.equal(await nestedButton.evaluate((el) => !!el.closest('[inert]')), true);
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 6, parentId: 1, controlType: 'static', enabled: true, visible: false },
+    }),
+  );
+  assert.equal(await nestedButton.isVisible(), false);
+  assert.equal(await page.evaluate(() => window.virtualDesktop.focus(8)), false);
+  assert.equal(await page.evaluate(() => window.virtualDesktop.activeWindowId), 1);
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 6, parentId: 1, controlType: 'static', visible: true },
+    }),
+  );
+  assert.equal(await nestedButton.isVisible(), true);
+  await page.evaluate(() =>
+    window.virtualDesktop.update({ operation: 'destroy', window: { id: 6 } }),
+  );
+  assert.equal(await nestedButton.count(), 0);
+  assert.equal(
+    await page.evaluate(() => [6, 7, 8, 9].some((id) => window.virtualDesktop.windows.has(id))),
+    false,
+  );
+  assert.equal(await page.locator('.virtual-desktop-control-container').count(), 4);
+  assert.deepEqual(pageErrors, []);
   console.log(
     JSON.stringify(
       {
@@ -221,6 +344,7 @@ try {
         readOnlyAndAlignment: true,
         editValueAndCaretPreserved: true,
         titlebarIconPixels: true,
+        nestedControlGeometryFocusAndLifecycle: true,
         pageErrors,
       },
       null,

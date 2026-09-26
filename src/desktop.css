@@ -115,6 +115,24 @@
   z-index: 1;
 }
 
+.virtual-desktop-control-container {
+  position: absolute;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.virtual-desktop-control-container[hidden] {
+  display: none;
+}
+
+.virtual-desktop-control-client {
+  position: absolute;
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .virtual-desktop-control-static {
   overflow: hidden;
   color: #111;

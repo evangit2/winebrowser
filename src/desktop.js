@@ -76,9 +76,31 @@ export class VirtualDesktop {
     this.onInput({ windowId, type, ...values });
   }
 
+  #topLevel(window) {
+    while (window?.isControl) window = this.windows.get(window.parentId);
+    return window;
+  }
+
+  #available(window) {
+    while (window) {
+      if (!window.visible || window.enabled === false) return false;
+      if (!window.isControl) return true;
+      window = this.windows.get(window.parentId);
+    }
+    return false;
+  }
+
+  #descendantOf(window, id) {
+    while (window) {
+      if (window.id === id) return true;
+      window = window.isControl ? this.windows.get(window.parentId) : null;
+    }
+    return false;
+  }
+
   #focus(window, { focusElement = false } = {}) {
-    const parent = window.isControl ? this.windows.get(window.parentId) : window;
-    if (!parent) return;
+    const parent = this.#topLevel(window);
+    if (!parent || !this.#available(window)) return;
     if (window.isControl) {
       if (focusElement) window.element.focus({ preventScroll: true });
     } else this.container.focus({ preventScroll: true });
@@ -92,8 +114,7 @@ export class VirtualDesktop {
 
   focus(windowId) {
     const window = this.windows.get(windowId);
-    const parent = window?.isControl ? this.windows.get(window.parentId) : null;
-    if (!window || !window.visible || (window.isControl && !parent?.visible)) return false;
+    if (!window || !this.#available(window)) return false;
     this.#focus(window, { focusElement: true });
     return true;
   }
@@ -251,8 +272,7 @@ export class VirtualDesktop {
 
   #createControl(state) {
     const parent = this.windows.get(state.parentId);
-    if (!parent || parent.isControl)
-      throw new Error(`Child control ${state.id} references an unknown parent window`);
+    if (!parent) throw new Error(`Child control ${state.id} references an unknown parent window`);
     const controlType = state.controlType;
     if (!['static', 'button', 'edit'].includes(controlType))
       throw new Error(`Unsupported child control type: ${controlType}`);
@@ -298,6 +318,13 @@ export class VirtualDesktop {
         this.#sendKey(event, type, control.id, false);
       });
 
+    // A separate client layer can host native child windows even when the
+    // control itself is an HTML input, which cannot contain DOM children.
+    const container = document.createElement('div');
+    container.className = 'virtual-desktop-control-container';
+    const viewport = document.createElement('div');
+    viewport.className = 'virtual-desktop-control-client';
+    container.append(element, viewport);
     const control = {
       ...state,
       isControl: true,
@@ -305,6 +332,8 @@ export class VirtualDesktop {
       parentId: state.parentId,
       parent,
       element,
+      container,
+      viewport,
       x: 0,
       y: 0,
       width: 1,
@@ -312,7 +341,8 @@ export class VirtualDesktop {
       visible: true,
       enabled: true,
     };
-    parent.viewport.append(element);
+    // Native newly created child windows start below their existing siblings.
+    parent.viewport.prepend(container);
     this.#applyControlState(control, state);
     return control;
   }
@@ -340,13 +370,16 @@ export class VirtualDesktop {
     if (state.visible !== undefined) {
       control.visible = !!state.visible;
       control.element.hidden = !control.visible;
+      control.container.hidden = !control.visible;
     }
     if (state.enabled !== undefined) {
       control.enabled = !!state.enabled;
+      control.container.inert = !control.enabled;
       if ('disabled' in control.element) control.element.disabled = !control.enabled;
     }
     if (state.controlBorder !== undefined) {
       const border = state.controlBorder;
+      control.controlBorder = border;
       control.element.style.border = border
         ? `${border}px ${border === 2 ? 'inset' : 'solid'} #888`
         : control.controlType === 'button'
@@ -371,12 +404,14 @@ export class VirtualDesktop {
   }
 
   #applyControlGeometry(control) {
-    Object.assign(control.element.style, {
+    Object.assign(control.container.style, {
       left: `${control.x}px`,
       top: `${control.y}px`,
       width: `${control.width}px`,
       height: `${control.height}px`,
     });
+    Object.assign(control.element.style, { left: '0', top: '0', width: '100%', height: '100%' });
+    control.viewport.style.inset = `${control.controlBorder ?? 0}px`;
   }
 
   #moveDrag(event) {
@@ -444,7 +479,7 @@ export class VirtualDesktop {
       }
       for (const id of removedIds) {
         const removed = this.windows.get(id);
-        removed?.element.remove();
+        (removed?.container ?? removed?.element)?.remove();
         this.windows.delete(id);
       }
       if (removedIds.has(this.activeWindowId)) {
@@ -461,10 +496,13 @@ export class VirtualDesktop {
       const control = existing ?? this.#createControl(state);
       this.#applyControlState(control, state);
       this.windows.set(state.id, control);
-      if (!control.visible && this.activeWindowId === control.id) {
+      if (
+        !control.visible &&
+        this.#descendantOf(this.windows.get(this.activeWindowId), control.id)
+      ) {
         const parent = this.windows.get(control.parentId);
         this.activeWindowId = null;
-        if (parent?.visible) this.#focus(parent, { focusElement: true });
+        if (parent && this.#available(parent)) this.#focus(parent, { focusElement: true });
       }
       return;
     }
@@ -489,7 +527,7 @@ export class VirtualDesktop {
     if (state.visible !== undefined) {
       this.#setVisibility(window, state.visible);
       const active = this.windows.get(this.activeWindowId);
-      if (!state.visible && (this.activeWindowId === state.id || active?.parentId === state.id)) {
+      if (!state.visible && this.#descendantOf(active, state.id)) {
         this.activeWindowId = null;
         const next = [...this.windows.values()]
           .filter((item) => !item.isControl && item.visible)
