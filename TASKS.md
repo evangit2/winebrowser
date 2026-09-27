@@ -323,11 +323,19 @@ D3D10/11 and broader D3D12 support are still required.
 - [ ] **Wine application startup:** finish initialization after the optional [CRT service probe](evidence/wine-loader-crt-browser-results.json). Fresh unchanged Humus EXE diagnostics pass Wine DLL attach but reach the 45-second execution deadline in application model preprocessing before graphics setup. [Node](evidence/wine-target-startup.json) and [browser](evidence/wine-target-startup-browser.json) retain the actual guest location and recent calls. Profile this startup work and then extend the bounded capabilities/resources; zero frames, no independent Humus compatibility claim. The [unchanged-DLL probe](evidence/wine-crt-results.json) retains its separate startup boundary.
 - [x] Render real frames from the original Hamsterball. The unchanged EXE
       now presents six frames with non-uniform pixels, 30 fixed-function
-      draws and 5 presents, then faults reading reserved-but-uncommitted
-      virtual memory (`0x507c950` inside reservation `0x4fd0000-0x5fa0000`).
-      The target probe reports the faulting reservation's committed extents
-      and a bounded allocator op log; separating an application expectation
-      from a decommit-accounting defect is the next step.
+      draws and 5 presents.
+- [ ] Hamsterball then faults reading reserved-but-uncommitted virtual memory.
+      The complete allocator op log (now including `MEM_DECOMMIT`) replays
+      exactly to the observed state: the EXE reserves `0x4fd0000..0x5fa0000`,
+      commits `0x5030000..0x5070000`, decommits `0x5040000..0x5070000`,
+      re-commits only `0x5040000..0x5050000`, and then executes a 16-bit
+      table load at `ecx + eax*4 = 0x503cd58 + 0xfefe*4 = 0x507c950` inside
+      the pages it just decommitted. No recorded commit ever covered that
+      page, so the access would also fault on Windows; the remaining
+      question is whether the guest expects an access violation it can
+      handle (SEH) or reached this state through an earlier emulation
+      inaccuracy. Next: inspect the guest's exception handling around
+      `0x485c26` and the provenance of the index value `0xfefe`.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
