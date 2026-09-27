@@ -77,7 +77,12 @@ async function probeInBrowser(root, kind, input) {
               if (!response.ok) throw Error('Probe asset unavailable: ' + key);
               return new Uint8Array(await response.arrayBuffer());
             };
-            const input = { testStaticTLS: data.testStaticTLS, limits: data.limits };
+            const input = {
+              testStaticTLS: data.testStaticTLS,
+              limits: data.limits,
+              watchValue: data.watchValue,
+              watchRange: data.watchRange,
+            };
             for (const [field, entries] of Object.entries(data.descriptors))
               input[field] = new Map(await Promise.all(entries.map(async ([name,key]) => [name,await fetchBytes(key)])));
             for (const field of data.byteFields) input[field] = await fetchBytes(field);
@@ -122,6 +127,8 @@ async function probeInBrowser(root, kind, input) {
         testStaticTLS: input.testStaticTLS,
         workerTimeoutMs: input.workerTimeoutMs,
         limits: input.limits,
+        watchValue: input.watchValue,
+        watchRange: input.watchRange,
       },
     );
     if (result.worker !== true || result.crossOriginIsolated !== true)

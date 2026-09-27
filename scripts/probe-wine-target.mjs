@@ -19,6 +19,8 @@ const { values: options, positionals } = parseArgs({
     exe: { type: 'string' },
     report: { type: 'string' },
     'worker-timeout': { type: 'string' },
+    watch: { type: 'string' },
+    'watch-range': { type: 'string' },
     'max-blocks': { type: 'string' },
     'max-ms': { type: 'string' },
   },
@@ -66,6 +68,10 @@ const input = {
   builtinFiles,
   nlsFiles,
   ...(options['worker-timeout'] ? { workerTimeoutMs: Number(options['worker-timeout']) } : {}),
+  ...(options.watch ? { watchValue: Number.parseInt(options.watch, 16) } : {}),
+  ...(options['watch-range']
+    ? { watchRange: options['watch-range'].split('-').map((v) => Number.parseInt(v, 16)) }
+    : {}),
   ...(options['max-blocks'] || options['max-ms']
     ? {
         limits: {

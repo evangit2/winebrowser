@@ -169,6 +169,19 @@ export class GuestMemory {
     else if (width === 2) this.view.setUint16(address, value, true);
     else if (width === 4) this.view.setUint32(address, value >>> 0, true);
     else throw Error('Unsupported guest write width');
+    if (this.watchValue !== undefined && value >>> 0 === this.watchValue)
+      this.#noteWatch(address, width);
+  }
+  #noteWatch(address, width) {
+    if (this.watchRange && (address < this.watchRange[0] || address >= this.watchRange[1])) return;
+    this.watchHits ??= [];
+    if (this.watchHits.length >= 64) return;
+    this.watchHits.push({
+      address: address >>> 0,
+      width,
+      ip: this.watchIp?.() ?? null,
+      instructions: this.watchInstructions?.() ?? null,
+    });
   }
   read32(address) {
     address >>>= 0;
@@ -178,6 +191,8 @@ export class GuestMemory {
 
   write32(address, value) {
     this.view.setUint32(this.check(address, 4, true), value >>> 0, true);
+    if (this.watchValue !== undefined && value >>> 0 === this.watchValue)
+      this.#noteWatch(address, 4);
   }
 
   string(address) {

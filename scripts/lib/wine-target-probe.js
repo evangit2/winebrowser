@@ -16,7 +16,16 @@ const hex = (value) => `0x${(value >>> 0).toString(16)}`;
 // The normal package loader continues rejecting unresolved imports up front.
 export async function probeWineTarget(
   iced,
-  { files, exe, builtinFiles, nlsFiles, testStaticTLS = false, limits = {} },
+  {
+    files,
+    exe,
+    builtinFiles,
+    nlsFiles,
+    testStaticTLS = false,
+    limits = {},
+    watchValue,
+    watchRange,
+  },
 ) {
   const report = {
     status: 'blocked-guest',
@@ -411,6 +420,30 @@ export async function probeWineTarget(
           };
       return { address: hex(address), reservation: null };
     };
+    // Walk the guest stack for plausible return addresses (values that fall
+    // inside a mapped guest image). Bounded and safe: reads are guarded.
+    const guestCallStack = (target, esp, limit = 32) => {
+      const frames = [];
+      const modules = [...target.graph.modules.values()].filter((m) => m.mapped && m.pe);
+      for (let offset = 0; offset < 0x400 && frames.length < limit; offset += 4) {
+        let value;
+        try {
+          value = target.read32((esp + offset) >>> 0);
+        } catch {
+          break;
+        }
+        const module = modules.find((m) => value >= m.base && value < m.base + m.pe.imageSize);
+        if (module)
+          frames.push({
+            stackOffset: offset,
+            address: hex(value),
+            module: module.name,
+            offset: hex(value - module.base),
+          });
+      }
+      return frames;
+    };
+
     // At a memory fault, dump the small windows that identify the faulting
     // table: the frame locals (esp/ebp) and the computed operand addresses.
     const faultMemory = (target, message) => {
@@ -434,15 +467,23 @@ export async function probeWineTarget(
       window('esp', esp);
       window('ebp', ebp);
       const word = (address) => target.data[address] | (target.data[address + 1] << 8);
+      // Frame locals: [ebp-0x14] is the structure pointer whose first word
+      // became the table index; [ebp+0x0c] is the table base parameter.
       try {
-        const table = target.cpu.r[1].value >>> 0,
-          indexSource = target.cpu.r[0].value >>> 0;
-        dump.tableBase = hex(table);
-        dump.indexSource = hex(indexSource);
-        dump.indexValue = word(indexSource);
-        dump.tableHead = [...target.data.slice(table, table + 32)].map((b) =>
-          b.toString(16).padStart(2, '0'),
-        );
+        const ebpValue = target.cpu.r[5].value >>> 0,
+          structure = target.read32((ebpValue - 0x14) >>> 0) >>> 0,
+          tableParameter = target.read32((ebpValue + 0x0c) >>> 0) >>> 0;
+        dump.frameStructure = hex(structure);
+        dump.tableParameter = hex(tableParameter);
+        dump.structureIndex = word(structure);
+        window('structure', structure, 64);
+      } catch {
+        // Ignore unmapped frame locals.
+      }
+      // Thread-local data pointer (esi) and the raw table base (ecx).
+      try {
+        const esiValue = target.cpu.r[6].value >>> 0;
+        window('esi', esiValue, 64);
       } catch {
         // Ignore unmapped operands.
       }
@@ -461,6 +502,7 @@ export async function probeWineTarget(
           ip: locate(lastIP),
           faultContext: faultContext(runtime, error.message),
           faultMemory: faultMemory(runtime, error.message),
+          faultCallStack: guestCallStack(runtime, runtime.cpu.r[4].value >>> 0),
           registers: runtime.cpu.r.map((r) => hex(r.value)),
           compiledBlocks: runtime.cpu.cache.size,
           compilations: runtime.cpu.compilations,
@@ -472,6 +514,11 @@ export async function probeWineTarget(
         throw error;
       }
     };
+    runtime.guestMemory.watchValue = watchValue;
+    runtime.guestMemory.watchRange = watchRange;
+    runtime.guestMemory.watchIp = () => lastIP;
+    runtime.guestMemory.watchInstructions = () => runtime.cpu.instructions;
+    report.watchValue = watchValue;
     report.phases.push({ name: phase, passed: true, modules: runtime.graph.describe() });
     phase = 'Wine process bootstrap';
     const ntdll = runtime.graph.modules.get('ntdll.dll');
@@ -584,6 +631,7 @@ export async function probeWineTarget(
       try {
         report.virtualMemory = runtime.virtualMemory.stats();
         report.vmOps = runtime.virtualMemory.ops ?? [];
+        report.watchHits = runtime.guestMemory.watchHits ?? [];
         // If the run failed on a memory violation, report the allocator history
         // for the reservation that contains the fault address.
         const message = report.firstFailure?.message ?? '';
