@@ -25,6 +25,7 @@ export async function probeWineTarget(
     limits = {},
     watchValue,
     watchRange,
+    watchAnyRange,
   },
 ) {
   const report = {
@@ -519,6 +520,7 @@ export async function probeWineTarget(
     runtime.guestMemory.watchIp = () => lastIP;
     runtime.guestMemory.watchInstructions = () => runtime.cpu.instructions;
     runtime.guestMemory.watchRegisters = () => runtime.cpu.r.map((register) => hex(register.value));
+    runtime.guestMemory.watchAnyRange = watchAnyRange;
     runtime.guestMemory.watchCallStack = (address) => ({
       destination: hex(address),
       frames: guestCallStack(runtime, runtime.cpu.r[4].value >>> 0),
@@ -637,6 +639,7 @@ export async function probeWineTarget(
         report.virtualMemory = runtime.virtualMemory.stats();
         report.vmOps = runtime.virtualMemory.ops ?? [];
         report.watchHits = runtime.guestMemory.watchHits ?? [];
+        report.watchEntries = runtime.guestMemory.watchEntries ?? [];
         // If the run failed on a memory violation, report the allocator history
         // for the reservation that contains the fault address.
         const message = report.firstFailure?.message ?? '';

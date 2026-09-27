@@ -21,6 +21,7 @@ const { values: options, positionals } = parseArgs({
     'worker-timeout': { type: 'string' },
     watch: { type: 'string' },
     'watch-range': { type: 'string' },
+    'watch-any': { type: 'string' },
     'max-blocks': { type: 'string' },
     'max-ms': { type: 'string' },
   },
@@ -71,6 +72,9 @@ const input = {
   ...(options.watch ? { watchValue: Number.parseInt(options.watch, 16) } : {}),
   ...(options['watch-range']
     ? { watchRange: options['watch-range'].split('-').map((v) => Number.parseInt(v, 16)) }
+    : {}),
+  ...(options['watch-any']
+    ? { watchAnyRange: options['watch-any'].split('-').map((v) => Number.parseInt(v, 16)) }
     : {}),
   ...(options['max-blocks'] || options['max-ms']
     ? {

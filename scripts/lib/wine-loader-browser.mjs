@@ -82,6 +82,7 @@ async function probeInBrowser(root, kind, input) {
               limits: data.limits,
               watchValue: data.watchValue,
               watchRange: data.watchRange,
+              watchAnyRange: data.watchAnyRange,
             };
             for (const [field, entries] of Object.entries(data.descriptors))
               input[field] = new Map(await Promise.all(entries.map(async ([name,key]) => [name,await fetchBytes(key)])));
@@ -129,6 +130,7 @@ async function probeInBrowser(root, kind, input) {
         limits: input.limits,
         watchValue: input.watchValue,
         watchRange: input.watchRange,
+        watchAnyRange: input.watchAnyRange,
       },
     );
     if (result.worker !== true || result.crossOriginIsolated !== true)
