@@ -518,6 +518,11 @@ export async function probeWineTarget(
     runtime.guestMemory.watchRange = watchRange;
     runtime.guestMemory.watchIp = () => lastIP;
     runtime.guestMemory.watchInstructions = () => runtime.cpu.instructions;
+    runtime.guestMemory.watchRegisters = () => runtime.cpu.r.map((register) => hex(register.value));
+    runtime.guestMemory.watchCallStack = (address) => ({
+      destination: hex(address),
+      frames: guestCallStack(runtime, runtime.cpu.r[4].value >>> 0),
+    });
     report.watchValue = watchValue;
     report.phases.push({ name: phase, passed: true, modules: runtime.graph.describe() });
     phase = 'Wine process bootstrap';

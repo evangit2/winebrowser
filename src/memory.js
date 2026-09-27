@@ -176,11 +176,17 @@ export class GuestMemory {
     if (this.watchRange && (address < this.watchRange[0] || address >= this.watchRange[1])) return;
     this.watchHits ??= [];
     if (this.watchHits.length >= 64) return;
+    // Capture the first write per instruction address to keep the log compact
+    // and point at the highest-level producer.
+    const ip = this.watchIp?.() ?? null;
+    if (this.watchHits.some((hit) => hit.ip === ip)) return;
     this.watchHits.push({
       address: address >>> 0,
       width,
-      ip: this.watchIp?.() ?? null,
+      ip,
       instructions: this.watchInstructions?.() ?? null,
+      registers: this.watchRegisters?.() ?? null,
+      callStack: this.watchCallStack?.(address) ?? null,
     });
   }
   read32(address) {
