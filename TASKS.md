@@ -325,17 +325,22 @@ D3D10/11 and broader D3D12 support are still required.
       now presents six frames with non-uniform pixels, 30 fixed-function
       draws and 5 presents.
 - [ ] Hamsterball then faults reading reserved-but-uncommitted virtual memory.
-      The complete allocator op log (now including `MEM_DECOMMIT`) replays
-      exactly to the observed state: the EXE reserves `0x4fd0000..0x5fa0000`,
-      commits `0x5030000..0x5070000`, decommits `0x5040000..0x5070000`,
-      re-commits only `0x5040000..0x5050000`, and then executes a 16-bit
-      table load at `ecx + eax*4 = 0x503cd58 + 0xfefe*4 = 0x507c950` inside
-      the pages it just decommitted. No recorded commit ever covered that
-      page, so the access would also fault on Windows; the remaining
-      question is whether the guest expects an access violation it can
-      handle (SEH) or reached this state through an earlier emulation
-      inaccuracy. Next: inspect the guest's exception handling around
-      `0x485c26` and the provenance of the index value `0xfefe`.
+      The allocator op log replays exactly to the observed state: the EXE
+      reserves `0x4fd0000..0x5fa0000`, commits `0x5030000..0x5070000`,
+      decommits `0x5040000..0x5070000`, re-commits only `0x5040000..0x5050000`,
+      and then executes a 16-bit table load at
+      `ecx + eax*4 = 0x503cd58 + 0xfefe*4 = 0x507c950` inside the pages it
+      just decommitted.
+      The faulting index is not a real index: the structure at `0x503ba70`
+      is filled with the repeating dword `0xfffefefe`. A guest write
+      watchpoint shows a memory-copy block starting at `hamsterball.exe`
+      offset `0xad731` copying that poison into the structure from
+      `[eax+0xdch]`. Native Wine 11.0 runs the same unchanged EXE for 90
+      seconds with no access violation (it proceeds through wined3d), so
+      this is an emulation divergence rather than an application fault.
+      Next: watch the source buffer `[eax+0xdch]` to find where `0xfffefefe`
+      is first produced, and compare that producing path (likely a buffer
+      fill or lock) against native behaviour.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
