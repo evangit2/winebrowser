@@ -411,6 +411,43 @@ export async function probeWineTarget(
           };
       return { address: hex(address), reservation: null };
     };
+    // At a memory fault, dump the small windows that identify the faulting
+    // table: the frame locals (esp/ebp) and the computed operand addresses.
+    const faultMemory = (target, message) => {
+      const match = /at 0x([0-9a-f]+)/i.exec(message ?? '');
+      if (!match || !target?.cpu) return null;
+      const dump = {};
+      const window = (label, address, size = 32) => {
+        try {
+          dump[label] = {
+            base: hex(address),
+            bytes: [...target.data.slice(address, address + size)].map((b) =>
+              b.toString(16).padStart(2, '0'),
+            ),
+          };
+        } catch {
+          dump[label] = { base: hex(address), error: 'unmapped' };
+        }
+      };
+      const esp = target.cpu.r[4].value >>> 0,
+        ebp = target.cpu.r[5].value >>> 0;
+      window('esp', esp);
+      window('ebp', ebp);
+      const word = (address) => target.data[address] | (target.data[address + 1] << 8);
+      try {
+        const table = target.cpu.r[1].value >>> 0,
+          indexSource = target.cpu.r[0].value >>> 0;
+        dump.tableBase = hex(table);
+        dump.indexSource = hex(indexSource);
+        dump.indexValue = word(indexSource);
+        dump.tableHead = [...target.data.slice(table, table + 32)].map((b) =>
+          b.toString(16).padStart(2, '0'),
+        );
+      } catch {
+        // Ignore unmapped operands.
+      }
+      return dump;
+    };
     const dispatch = runtime.dispatch.bind(runtime);
     runtime.dispatch = async (...args) => {
       try {
@@ -423,6 +460,7 @@ export async function probeWineTarget(
           message: error.message,
           ip: locate(lastIP),
           faultContext: faultContext(runtime, error.message),
+          faultMemory: faultMemory(runtime, error.message),
           registers: runtime.cpu.r.map((r) => hex(r.value)),
           compiledBlocks: runtime.cpu.cache.size,
           compilations: runtime.cpu.compilations,
