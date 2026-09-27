@@ -128,10 +128,15 @@ export class VirtualMemory {
     }
 
     const reservation = this.containingReservation(start, end);
-    if (!reservation) return { status: NTSTATUS.MEMORY_NOT_ALLOCATED, base, size };
+    if (!reservation)
+      return this.#logged('decommit', base, size, 'type=0x4000', {
+        status: NTSTATUS.MEMORY_NOT_ALLOCATED,
+        base,
+        size,
+      });
     for (let page = start; page < end; page += PAGE_SIZE) reservation.pages.set(page, null);
     this.syncRegions();
-    return ok(start, end - start);
+    return this.#logged('decommit', start, end - start, 'type=0x4000', ok(start, end - start));
   }
 
   validInput(base, size) {
