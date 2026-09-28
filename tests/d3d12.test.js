@@ -736,3 +736,55 @@ test('GetDesc, ClearState and the annotation no-ops round-trip without trapping'
   await call(buffer, 2);
   await call(dev, 2);
 });
+
+test('device-child GetDevice, GetDeviceRemovedReason and GetAdapterLuid answer without trapping', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+
+  const props = alloc(20);
+  r.write32(props, 2);
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const desc = alloc(56);
+  r.write32(desc, 1);
+  r.write32(desc + 16, 64);
+  r.write32(desc + 24, 1);
+  r.view.setUint16(desc + 28, 1, true);
+  r.view.setUint16(desc + 30, 1, true);
+  r.write32(desc + 36, 1);
+  r.write32(desc + 44, 1);
+  const buffer = await create(dev, 27, [props, 0, desc, 0xac3, 0], 'resource');
+
+  const deviceOut = alloc();
+  r.data.fill(0xcc, deviceOut, deviceOut + 4);
+  assert.equal((await call(list, 7, guid(IID.device), deviceOut)).result, 0);
+  assert.equal(r.read32(deviceOut), dev, 'list GetDevice returns the device');
+  deviceOut && r.write32(deviceOut, 0xcccccccc);
+  assert.equal((await call(buffer, 7, guid(IID.device), deviceOut)).result, 0);
+  assert.equal(r.read32(deviceOut), dev, 'resource GetDevice returns the device');
+  // A refused interface clears the output to NULL and reports E_NOINTERFACE,
+  // matching the Direct3D contract for a failed interface query.
+  r.write32(deviceOut, 0x11223344);
+  assert.equal((await call(list, 7, guid(IID.resource), deviceOut)).result, 0x80004002);
+  assert.equal(r.read32(deviceOut), 0);
+  // A NULL output is a documented probe that must not create a reference.
+  const refsBefore = r.comObjects.objects.get(dev).refs;
+  assert.equal((await call(list, 7, guid(IID.device), 0)).result, 0);
+  assert.equal(r.comObjects.objects.get(dev).refs, refsBefore);
+
+  assert.equal((await call(dev, 37)).result, 0, 'no device removal is simulated');
+  const luid = alloc();
+  r.data.fill(0xcc, luid, luid + 8);
+  assert.equal((await call(dev, 43, luid)).result, undefined);
+  assert.notEqual(r.read32(luid), 0xcccccccc, 'GetAdapterLuid writes a LUID');
+
+  await call(list, 2);
+  await call(allocator, 2);
+  await call(buffer, 2);
+  await call(dev, 2);
+});

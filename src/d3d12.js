@@ -15,6 +15,8 @@ const E_NOINTERFACE = 0x80004002;
 const MAX_BYTES = 1024 * 1024;
 const MAX_RESOURCE_BYTES = 8 * 1024 * 1024;
 const MAX_COMMANDS = 256;
+// Stable synthetic adapter LUID presented through GetAdapterLuid.
+const ADAPTER_LUID = 0x4c554944, ADAPTER_LUID_HIGH = 0x57420000;
 // D3D12_RESOURCE_STATES values the bounded renderer tracks. Buffers move
 // through COMMON/COPY_DEST/COPY_SOURCE and the shader-readable READ states;
 // depth targets only ever sit in DEPTH_WRITE; swapchain images alternate
@@ -137,6 +139,23 @@ function extraIids(kind, parent) {
 // ID3D12Object private-data and debug-name calls appear throughout real
 // applications and carry no rendering semantics. Answer them without storing
 // anything: GetPrivateData reports "not found" and the setters succeed.
+// ID3D12DeviceChild.GetDevice is equally common and hands back the owning
+// device with its own reference.
+const DEVICE_CHILD_GET_DEVICE = {
+  argc: 3,
+  invoke(r, a, o) {
+    const out = number(a(2));
+    if (out) output(r, out);
+    if (!iid(r, a(1), 'device')) return E_NOINTERFACE;
+    if (!out) return S_OK;
+    const device = o.state.device;
+    if (!device || !device.refs) throw Error('Released D3D12 device');
+    if (device.refs >= 0x7fffffff) throw Error('D3D12 device reference limit exceeded');
+    device.refs++;
+    r.write32(out, device.pointer);
+    return S_OK;
+  },
+};
 const METADATA_METHODS = {
   GetPrivateData: {
     argc: 4,
@@ -160,6 +179,12 @@ function make(r, kind, methods, itemState = {}, parent = null, onRelease = null)
   for (let slot = 0; slot < methodNames.length; slot++)
     if (!table[slot] && METADATA_METHODS[methodNames[slot]])
       table[slot] = METADATA_METHODS[methodNames[slot]];
+  // Every non-device object is an ID3D12DeviceChild at the user level, so
+  // GetDevice is answered for the whole graph rather than per vtable (the
+  // factory and adapter expose no such slot).
+  const getDeviceSlot = methodNames.indexOf('GetDevice');
+  if (kind !== 'device' && getDeviceSlot >= 0 && !table[getDeviceSlot])
+    table[getDeviceSlot] = DEVICE_CHILD_GET_DEVICE;
   try {
     return r.comObjects.create({
       name: name[kind],
@@ -1048,6 +1073,19 @@ function deviceMethods() {
         const item = make(r, 'fence', fenceMethods(), { device: dev, value }, dev);
         r.write32(out, item.pointer);
         return S_OK;
+      },
+    },
+    // A removed device is never simulated; the reason is always S_OK.
+    37: { argc: 1, invoke: () => S_OK },
+    // GetAdapterLuid: the default adapter's stable synthetic LUID.
+    43: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        r.check(out, 8, true);
+        r.write32(out, ADAPTER_LUID & 0xffffffff);
+        r.write32(out + 4, ADAPTER_LUID_HIGH);
+        return undefined;
       },
     },
   };
