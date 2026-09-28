@@ -113,10 +113,14 @@ static int run(void)
             enumerated.Width != 123 ||
             IDirect3D9_GetAdapterDisplayMode(d3d, 1, &enumerated) != D3DERR_INVALIDCALL ||
             enumerated.Width != 123) return 32;
+    // The renderer supplies depth-only attachments: D16 and D24S8 both work,
+    // while formats needing real stencil or 32-bit depth must stay unadvertised.
     if (FAILED(IDirect3D9_CheckDepthStencilMatch(d3d, 0, D3DDEVTYPE_HAL, desktop.Format,
                     D3DFMT_X8R8G8B8, D3DFMT_D16)) ||
+            FAILED(IDirect3D9_CheckDepthStencilMatch(d3d, 0, D3DDEVTYPE_HAL, desktop.Format,
+                    D3DFMT_X8R8G8B8, D3DFMT_D24S8)) ||
             IDirect3D9_CheckDepthStencilMatch(d3d, 0, D3DDEVTYPE_HAL, desktop.Format,
-                    D3DFMT_X8R8G8B8, D3DFMT_D24S8) != D3DERR_NOTAVAILABLE) return 33;
+                    D3DFMT_X8R8G8B8, D3DFMT_D15S1) != D3DERR_NOTAVAILABLE) return 33;
     D3DPRESENT_PARAMETERS params = {0};
     params.BackBufferWidth = WIDTH;
     params.BackBufferHeight = HEIGHT;

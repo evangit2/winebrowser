@@ -31,7 +31,7 @@ function writeSurfaceDesc(r, pointer, version, level, state) {
   r.data.fill(0, pointer, pointer + 32);
   r.write32(pointer, state.format);
   r.write32(pointer + 4, 1); // D3DRTYPE_SURFACE
-  r.write32(pointer + 8, 0); // Texture level surfaces have no extra usage.
+  r.write32(pointer + 8, state.usage ?? 0); // Texture levels carry no extra usage.
   r.write32(pointer + 12, state.pool);
   r.write32(pointer + (version === 8 ? 20 : 16), 0); // D3DMULTISAMPLE_NONE
   r.write32(pointer + 20, 0); // MultiSampleQuality.
@@ -145,6 +145,143 @@ function createSurface(r, texture, levelIndex) {
     texture.refs--;
     throw error;
   }
+}
+
+// A device-level surface (the implicit backbuffer, an implicit depth-stencil
+// buffer, or a CreateRenderTarget/CreateDepthStencilSurface/CreateOffscreenPlain
+// result) owns a private level-shaped buffer and exposes the same
+// IDirect3DSurface ABI as a texture level view, but has no container texture.
+const SURFACE_SECONDARY_IID = {
+  8: '1b36bb7b-09b7-410a-b445-7d1430d7b33f',
+  9: '580ca87e-1d3c-4d54-991d-b7d3e3c298ce',
+};
+function deviceSurfaceMethods(version) {
+  const shift = version === 8 ? 0 : 4;
+  return {
+    3: {
+      argc: 2,
+      invoke(r, a, surface) {
+        r.check(a(1), 4, true);
+        const device = surface.state.device;
+        if (device.refs >= 0x7fffffff) throw Error('D3D device reference limit exceeded');
+        device.refs++;
+        r.write32(a(1), device.pointer);
+        return 0;
+      },
+    },
+    [7 + shift]: {
+      // GetContainer: a device surface is not owned by a texture.
+      argc: 3,
+      invoke(r, a) {
+        r.check(a(2), 4, true);
+        r.write32(a(2), 0);
+        return 0x80004002;
+      },
+    },
+    [8 + shift]: {
+      argc: 2,
+      invoke: (r, a, surface) => {
+        writeSurfaceDesc(r, a(1), version, surface.state.level, surface.state);
+        return 0;
+      },
+    },
+    [9 + shift]: {
+      argc: 5,
+      invoke(r, a, surface) {
+        const { level, bpp } = surface.state;
+        const flags = a(3) >>> 0;
+        if (level.locked || !a(1) || flags & ~(0x10 | 0x800 | 0x1000 | 0x2000)) return INVALID;
+        const region = rect(r, a(2), level);
+        if (!region) return INVALID;
+        const base = surfaceStorage(r, surface);
+        if (!base) return INVALID;
+        r.check(a(1), 8, true);
+        r.write32(a(1), level.pitch);
+        r.write32(a(1) + 4, base + region.top * level.pitch + region.left * bpp);
+        level.locked = { flags };
+        return 0;
+      },
+    },
+    [10 + shift]: {
+      argc: 1,
+      invoke(_r, _a, surface) {
+        if (!surface.state.level.locked) return INVALID;
+        surface.state.level.locked = null;
+        return 0;
+      },
+    },
+  };
+}
+
+export function createDeviceSurface(
+  r,
+  device,
+  { width, height, format, pool = 0, usage = 0, bpp = 4 },
+) {
+  const version = device.state.version;
+  if (device.refs >= 0x7fffffff) throw Error('D3D device reference limit exceeded');
+  const pitch = (width * bpp + 3) & ~3;
+  const bytes = pitch * height;
+  // Storage is allocated lazily: a device creates an implicit backbuffer and
+  // depth surface at startup, but many programs never read their pixels. This
+  // keeps creation cheap and avoids reserving megabytes for untouched targets.
+  return r.comObjects.create({
+    name: surfaceName(version),
+    iid: SURFACE_IIDS[version],
+    iids: [SURFACE_SECONDARY_IID[version]],
+    methodNames: version === 8 ? SURFACE_METHODS_8 : SURFACE_METHODS_9,
+    methods: deviceSurfaceMethods(version),
+    state: {
+      device,
+      format,
+      pool,
+      usage,
+      base: 0,
+      bpp,
+      bytes,
+      level: { width, height, pitch, offset: 0, locked: null },
+      internalRefs: 0,
+      freed: false,
+    },
+    onRelease: () => releaseDeviceSurface(r, { state: { base: 0, bytes: 0 } }),
+  });
+}
+// Materialize a device surface's pixel storage on first use. Returns the base
+// guest address, or null when the term budget or size limit is exceeded.
+export function surfaceStorage(r, surface) {
+  const state = surface.state;
+  if (state.freed) return null;
+  if (state.base) return state.base;
+  if ((r.d3dTextureBytes ?? 0) + state.bytes > MAX_BYTES) return null;
+  state.base = r.allocate(state.bytes);
+  r.d3dTextureBytes = (r.d3dTextureBytes ?? 0) + state.bytes;
+  return state.base;
+}
+// Release a device-level surface's private storage exactly once, whatever ref
+// count path reached zero. Implicit backbuffer/depth targets are owned by the
+// device itself, so they never hold a reference of their own.
+export function releaseDeviceSurface(r, surface) {
+  const state = surface.state;
+  if (!state || state.freed) return;
+  state.freed = true;
+  if (state.base) {
+    r.free(state.base);
+    r.d3dTextureBytes = (r.d3dTextureBytes ?? 0) - state.bytes;
+    state.base = 0;
+  }
+}
+
+export function deviceSurface(r, pointer, device) {
+  const object = r.comObjects?.objects.get(pointer >>> 0);
+  if (
+    !object ||
+    !object.refs ||
+    (object.name !== 'IDirect3DSurface8' && object.name !== 'IDirect3DSurface9') ||
+    object.state.device !== device ||
+    object.state.texture
+  )
+    return null;
+  return object;
 }
 
 export function initTextures() {
@@ -439,6 +576,34 @@ export function surfaceLevel(r, pointer, device) {
 
 // CopyRects(src, srcRects, rectCount, dst, dstPoints): copy `rectCount`
 // rectangles from src to dst, or the whole surface when srcRects is NULL.
+// A surface's pixels live either in its container texture's storage or, for a
+// device-level surface, in its own. Return the level plus the owning bytes so
+// copies work uniformly across both.
+export function surfaceImage(r, pointer, device) {
+  const object = r.comObjects?.objects.get(number(pointer));
+  if (
+    !object ||
+    !object.refs ||
+    (object.name !== 'IDirect3DSurface8' && object.name !== 'IDirect3DSurface9') ||
+    object.state.device !== device
+  )
+    return null;
+  const texture = object.state.texture;
+  return texture
+    ? {
+        level: object.state.level,
+        base: texture.state.base,
+        bpp: texture.state.bpp,
+        invalidate: () => invalidate(texture),
+      }
+    : {
+        level: object.state.level,
+        base: surfaceStorage(r, object),
+        bpp: object.state.bpp,
+        invalidate: () => {},
+      };
+}
+
 export function copyRects(
   r,
   device,
@@ -451,14 +616,15 @@ export function copyRects(
   const src = surfaceLevel(r, srcPointer, device),
     dst = surfaceLevel(r, dstPointer, device);
   if (!src || !dst || !rectCount || rectCount > 1024) return INVALID;
-  const srcTexture = r.comObjects.objects.get(number(srcPointer)).state.texture;
-  const dstTexture = r.comObjects.objects.get(number(dstPointer)).state.texture;
+  const srcImage = surfaceImage(r, srcPointer, device),
+    dstImage = surfaceImage(r, dstPointer, device);
+  if (!srcImage || !dstImage) return INVALID;
   if (src.locked || dst.locked) return INVALID;
-  if (srcTexture.state.bpp !== dstTexture.state.bpp) return INVALID;
-  const bpp = srcTexture.state.bpp;
+  if (srcImage.bpp !== dstImage.bpp) return INVALID;
+  const bpp = srcImage.bpp;
   const source = new DataView(r.data.buffer, r.data.byteOffset, r.data.byteLength);
-  const first = srcTexture.state.base + src.offset,
-    second = dstTexture.state.base + dst.offset;
+  const first = srcImage.base + src.offset,
+    second = dstImage.base + dst.offset;
   const copy = (sx, sy, dx, dy, width, height) => {
     const rowBytes = width * bpp;
     for (let row = 0; row < height; row++) {
@@ -498,7 +664,7 @@ export function copyRects(
       copy(left, top, dx, dy, width, height);
     }
   }
-  invalidate(dstTexture);
+  dstImage.invalidate();
   return 0;
 }
 

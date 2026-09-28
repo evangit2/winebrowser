@@ -1,18 +1,18 @@
 {
-  "date": "2026-09-26T16:44:00.184Z",
+  "date": "2026-09-28T23:58:18.503Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
-  "browser": "154.0.8037.57",
+  "browser": "154.0.8037.58",
   "nativeGame": "d3d8-cube",
   "browserCompilation": true,
   "workerWebGPU": true,
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "6b432c69d69c889f3020eff71a145edd299b341967ca43212b3a9597eb98720c",
+      "exeSha256": "b08b81321368d7f62b65dbceb042b2dfe4159b62a2d867a1fd085009a3cefbd6",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 5,
+        "frames": 4,
         "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
         "corner": [
           23,
@@ -29,7 +29,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 16,
+        "frames": 17,
         "hash": "cd7a20799ad1b1602e0927d685913a1109117f63ee65a2c19c3ead13cf4c96dc",
         "corner": [
           23,
@@ -43,34 +43,34 @@
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 171,
-      "instructions": 3498,
-      "apiCalls": 266
+      "compiledBlocks": 173,
+      "instructions": 3608,
+      "apiCalls": 276
     },
     {
       "mode": "hosted-zip",
-      "exeSha256": "6b432c69d69c889f3020eff71a145edd299b341967ca43212b3a9597eb98720c",
+      "exeSha256": "b08b81321368d7f62b65dbceb042b2dfe4159b62a2d867a1fd085009a3cefbd6",
       "first": {
         "width": 640,
         "height": 480,
         "frames": 4,
-        "hash": "7da060142ac992981a56eaaa6b39d48292655c8b074da1de4e33aa8e82f2eee9",
+        "hash": "85fb11369dc72836436c7ae42b02791fe5cf7eef99c1b3595183ef338bf427af",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 77812,
+        "coloredPixels": 74972,
         "colors": [
-          "232,101,84",
-          "121,216,117"
+          "121,216,117",
+          "232,101,84"
         ]
       },
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 15,
+        "frames": 16,
         "hash": "9f940b40c2ed9ec399cb14a5083a2ef98bb3ab1908d8bc604686ce33189c500c",
         "corner": [
           23,
@@ -85,9 +85,9 @@
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 171,
-      "instructions": 3304,
-      "apiCalls": 248
+      "compiledBlocks": 173,
+      "instructions": 3414,
+      "apiCalls": 258
     }
   ],
   "errors": []

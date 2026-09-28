@@ -16,6 +16,9 @@ import {
   unbindTextures,
   fixedTextureDraw,
   textureBytesPerPixel,
+  createDeviceSurface,
+  releaseDeviceSurface,
+  deviceSurface,
 } from './d3d9-textures.js';
 import { textureStateMethod } from './d3d-texture-state.js';
 import { ComObjects } from './com.js';
@@ -54,6 +57,7 @@ const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_COMMANDS = 256;
 const MAX_FRAME_BYTES = 8 * 1024 * 1024;
 const MAX_VERTICES = 65535;
+const number = (value) => value >>> 0;
 const IDENTITY = Float32Array.from([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const floatBits = new DataView(new ArrayBuffer(4));
 const floatFromBits = (bits) => {
@@ -247,6 +251,21 @@ function bufferedDraw(runtime, state, source, primitive, primitiveCount) {
   return fixedFunctionDraw(runtime, state, expanded.vertices, stride, expanded.vertexCount);
 }
 
+// Hand a device-owned surface back to the guest with a fresh reference count.
+function returnDeviceSurface(r, surface, out) {
+  if (out) {
+    r.check(out, 4, true);
+    r.write32(out, 0);
+  }
+  if (!surface || !surface.refs) {
+    if (!out) return D3DERR_INVALIDCALL;
+    return D3D_OK;
+  }
+  if (surface.refs >= 0x7fffffff) throw Error('D3D surface reference limit exceeded');
+  surface.refs++;
+  if (out) r.write32(out, surface.pointer);
+  return D3D_OK;
+}
 function queue(state, command, bytes = 0) {
   if (state.commands.length >= MAX_COMMANDS || state.frameBytes + bytes > MAX_FRAME_BYTES)
     throw Error('D3D9 frame command limit exceeded');
@@ -303,6 +322,176 @@ function deviceMethods(version = 9) {
         state.textureSnapshots.clear();
         state.frameTextureBytes = 0;
         return D3D_OK;
+      },
+    },
+    // GetBackBuffer(iSwapChain, iBackBuffer, Type, ppBackBuffer). Only the
+    // implicit swap chain and its single mono back buffer exist.
+    18: {
+      argc: 5,
+      invoke(r, a, device) {
+        const out = number(a(4));
+        if (!out) return D3DERR_INVALIDCALL;
+        const state = device.state;
+        if (number(a(1)) !== 0 || number(a(2)) !== 0 || number(a(3)) !== 1)
+          return D3DERR_INVALIDCALL;
+        return returnDeviceSurface(r, state.backBuffer, out);
+      },
+    },
+    // CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality,
+    //                     Lockable, ppSurface, pSharedHandle)
+    28: {
+      argc: 9,
+      invoke(r, a, device) {
+        const out = number(a(7));
+        if (!out) return D3DERR_INVALIDCALL;
+        r.check(out, 4, true);
+        r.write32(out, 0);
+        const width = number(a(1)),
+          height = number(a(2)),
+          format = number(a(3));
+        const bpp = textureBytesPerPixel(format);
+        if (
+          !width ||
+          !height ||
+          width > 2048 ||
+          height > 2048 ||
+          ![21, 22, 23].includes(format) ||
+          number(a(4)) ||
+          number(a(5)) ||
+          number(a(6)) ||
+          number(a(8))
+        )
+          return D3DERR_INVALIDCALL;
+        const surface = createDeviceSurface(r, device, {
+          width,
+          height,
+          format,
+          pool: 0,
+          usage: 1,
+          bpp,
+        });
+        if (!surface) return D3DERR_INVALIDCALL;
+        r.write32(out, surface.pointer);
+        return D3D_OK;
+      },
+    },
+    // CreateDepthStencilSurface(Width, Height, Format, MultiSample,
+    //                           MultisampleQuality, Discard, ppSurface, pShared)
+    29: {
+      argc: 9,
+      invoke(r, a, device) {
+        const out = number(a(7));
+        if (!out) return D3DERR_INVALIDCALL;
+        r.check(out, 4, true);
+        r.write32(out, 0);
+        const width = number(a(1)),
+          height = number(a(2)),
+          format = number(a(3));
+        if (
+          !width ||
+          !height ||
+          width > 2048 ||
+          height > 2048 ||
+          ![75, 80].includes(format) ||
+          number(a(4)) ||
+          number(a(5)) ||
+          number(a(6)) ||
+          number(a(8))
+        )
+          return D3DERR_INVALIDCALL;
+        const surface = createDeviceSurface(r, device, {
+          width,
+          height,
+          format,
+          pool: 0,
+          usage: 2,
+          bpp: format === 75 ? 4 : 2,
+        });
+        if (!surface) return D3DERR_INVALIDCALL;
+        r.write32(out, surface.pointer);
+        return D3D_OK;
+      },
+    },
+    // CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface,
+    //                             pSharedHandle)
+    36: {
+      argc: 7,
+      invoke(r, a, device) {
+        const out = number(a(5));
+        if (!out) return D3DERR_INVALIDCALL;
+        r.check(out, 4, true);
+        r.write32(out, 0);
+        const width = number(a(1)),
+          height = number(a(2)),
+          format = number(a(3)),
+          pool = number(a(4));
+        const bpp = textureBytesPerPixel(format);
+        if (
+          !width ||
+          !height ||
+          width > 2048 ||
+          height > 2048 ||
+          !bpp ||
+          ![0, 1, 2].includes(pool) ||
+          number(a(6))
+        )
+          return D3DERR_INVALIDCALL;
+        const surface = createDeviceSurface(r, device, { width, height, format, pool, bpp });
+        if (!surface) return D3DERR_INVALIDCALL;
+        r.write32(out, surface.pointer);
+        return D3D_OK;
+      },
+    },
+    // SetRenderTarget(RenderTargetIndex, pRenderTarget)
+    37: {
+      argc: 3,
+      invoke(r, a, device) {
+        const state = device.state;
+        if (number(a(1)) !== 0) return D3DERR_INVALIDCALL;
+        const pointer = number(a(2));
+        if (!pointer) {
+          state.renderTarget = state.backBuffer;
+          return D3D_OK;
+        }
+        const surface = deviceSurface(r, pointer, device);
+        if (!surface || surface.state.format > 23) return D3DERR_INVALIDCALL;
+        state.renderTarget = surface;
+        return D3D_OK;
+      },
+    },
+    // GetRenderTarget(RenderTargetIndex, ppRenderTarget)
+    38: {
+      argc: 3,
+      invoke(r, a, device) {
+        const out = number(a(2));
+        if (!out) return D3DERR_INVALIDCALL;
+        if (number(a(1)) !== 0) return D3DERR_INVALIDCALL;
+        return returnDeviceSurface(r, device.state.renderTarget, out);
+      },
+    },
+    // SetDepthStencilSurface(pNewZStencil)
+    39: {
+      argc: 2,
+      invoke(r, a, device) {
+        const state = device.state;
+        const pointer = number(a(1));
+        if (!pointer) {
+          state.depthStencil = state.depthSurface;
+          return D3D_OK;
+        }
+        const surface = deviceSurface(r, pointer, device);
+        if (!surface || ![75, 80].includes(surface.state.format)) return D3DERR_INVALIDCALL;
+        state.depthStencil = surface;
+        return D3D_OK;
+      },
+    },
+    // GetDepthStencilSurface(ppZStencilSurface)
+    40: {
+      argc: 2,
+      invoke(r, a, device) {
+        const out = number(a(1));
+        if (!out) return D3DERR_INVALIDCALL;
+        return returnDeviceSurface(r, device.state.depthStencil, out);
       },
     },
     41: {
@@ -711,6 +900,7 @@ function factoryMethods(version = 9) {
         if (factory.refs >= 0x7fffffff) throw Error('D3D factory reference count limit exceeded');
         const state = {
           factory,
+          version,
           id: 0,
           commands: [],
           frameBytes: 0,
@@ -755,6 +945,15 @@ function factoryMethods(version = 9) {
           state,
           onRelease: async () => {
             unbindTextures(runtime, object);
+            for (const field of ['backBuffer', 'depthSurface', 'renderTarget', 'depthStencil']) {
+              const surface = state[field];
+              if (surface && surface.refs) {
+                surface.refs = 0;
+                releaseDeviceSurface(runtime, surface);
+                runtime.comObjects.liveObjects--;
+              }
+              state[field] = null;
+            }
             releaseBufferBindings(state);
             state.commands = [];
             state.textureSnapshots.clear();
@@ -780,7 +979,41 @@ function factoryMethods(version = 9) {
         try {
           await requireGraphics(runtime).createDevice({ id: state.id, ...options });
           if (!options.windowed) await enterFullscreen(runtime, state, options);
+          // The implicit swap chain exposes one mono back buffer and, when the
+          // device was created with one, an automatic depth-stencil surface.
+          const colorBpp = textureBytesPerPixel(options.colorFormat);
+          state.backBuffer = createDeviceSurface(runtime, object, {
+            width: options.width,
+            height: options.height,
+            format: options.colorFormat,
+            pool: 0,
+            usage: 1,
+            bpp: colorBpp,
+          });
+          if (!state.backBuffer) throw Error('D3D backbuffer allocation failed');
+          state.renderTarget = state.backBuffer;
+          if (options.depth) {
+            state.depthSurface = createDeviceSurface(runtime, object, {
+              width: options.width,
+              height: options.height,
+              format: options.depthFormat === 'depth24plus' ? 75 : 80,
+              pool: 0,
+              usage: 2,
+              bpp: options.depthFormat === 'depth24plus' ? 4 : 2,
+            });
+            if (!state.depthSurface) throw Error('D3D depth-stencil allocation failed');
+            state.depthStencil = state.depthSurface;
+          }
         } catch (error) {
+          for (const field of ['backBuffer', 'depthSurface', 'renderTarget', 'depthStencil']) {
+            const surface = state[field];
+            if (surface && surface.refs) {
+              surface.refs = 0;
+              releaseDeviceSurface(runtime, surface);
+              runtime.comObjects.liveObjects--;
+            }
+            state[field] = null;
+          }
           object.refs = 0;
           try {
             await requireGraphics(runtime).destroyDevice({ id: state.id });
