@@ -122,8 +122,14 @@ test('EnumDisplaySettingsA exposes bounded virtual modes for index/current/defau
   }
   assert.equal(call(r, 'EnumDisplaySettingsA', [0, 6, address]).result, 0);
   assert.equal(call(r, 'EnumDisplaySettingsA', [0x300, 0, address]).result, 0);
+  // EnumDisplaySettings is an output query: an uninitialized/zero dmSize from the
+  // caller is accepted and overwritten, matching Wine's NtUserEnumDisplaySettings.
+  r.view.setUint16(address + 36, 0, true);
+  assert.equal(call(r, 'EnumDisplaySettingsA', [0, 0, address]).result, 1);
+  assert.equal(r.view.getUint16(address + 36, true), 124);
   r.view.setUint16(address + 36, 40, true);
-  assert.equal(call(r, 'EnumDisplaySettingsA', [0, 0, address]).result, 0);
+  assert.equal(call(r, 'EnumDisplaySettingsA', [0, 0, address]).result, 1);
+  assert.equal(r.view.getUint16(address + 36, true), 124);
 });
 
 test('ChangeDisplaySettingsA accepts restore/current mode tests and rejects flags or unsupported modes', () => {

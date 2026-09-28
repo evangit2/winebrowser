@@ -82,9 +82,10 @@ function enumDisplaySettingsA(runtime, argument) {
         : VIRTUAL_DISPLAY_MODES[modeIndex];
   if (!mode) return response(0, 3);
 
-  runtime.check(devmode, 40, true);
-  const suppliedSize = runtime.data[devmode + 36] | (runtime.data[devmode + 37] << 8);
-  if (suppliedSize < DEVMODEA_DISPLAY_SIZE) return response(0, 3);
+  // EnumDisplaySettings is an output call: like Wine's NtUserEnumDisplaySettings,
+  // it initializes the whole DEVMODEA and writes the final dmSize itself, so it
+  // must not reject a caller whose dmSize is uninitialized (a common pattern:
+  // zero the buffer, then query). Validate only the writable output range.
   runtime.check(devmode, DEVMODEA_DISPLAY_SIZE, true);
   runtime.data.fill(0, devmode, devmode + DEVMODEA_DISPLAY_SIZE);
   const name = new TextEncoder().encode('WineBrowser Virtual Display');
