@@ -52,6 +52,7 @@ jobs:
           npm run test:d3d9-shader-cube
           npm run test:d3d12
           npm run test:d3d12-cube
+          npm run test:d3d12-parade
         env:
           BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

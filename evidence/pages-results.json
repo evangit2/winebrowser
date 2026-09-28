@@ -1,7 +1,7 @@
 {
-  "date": "2026-09-25T20:20:30.118Z",
+  "date": "2026-09-28T23:32:00.970Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
-  "browser": "154.0.8037.57",
+  "browser": "154.0.8037.58",
   "capabilities": {
     "controlled": true,
     "isolated": true,
