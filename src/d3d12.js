@@ -24,6 +24,10 @@ const ADAPTER_LUID = 0x4c554944, ADAPTER_LUID_HIGH = 0x57420000;
 const BUFFER_STATES = new Set([0, 0x1, 0x2, 0x40, 0x80, 0x200, 0x400, 0x800, 0xac3]);
 const DEPTH_STATES = new Set([0, 0x10]);
 const COLOR_STATES = new Set([0, 4]);
+// DXGI_FORMAT byte sizes for the texture formats the bounded path models.
+const TEXTURE_FORMAT_BYTES = {
+  2: 16, 6: 12, 10: 8, 11: 8, 28: 4, 29: 4, 41: 8, 40: 4, 45: 4, 49: 2, 55: 2, 61: 1, 87: 4, 88: 4,
+};
 const resourceStates = (kind) =>
   kind === 'depth' ? DEPTH_STATES : kind === 'color' ? COLOR_STATES : BUFFER_STATES;
 const OBJECT = 'c4fec28f-7966-4e95-9f94-f431cb56c3b8';
@@ -1368,6 +1372,69 @@ function deviceMethods() {
         r.write32(out, heapType);
         r.write32(out + 12, 1); // CreationNodeMask.
         r.write32(out + 16, 1); // VisibleNodeMask.
+        return undefined;
+      },
+    },
+    // GetCopyableFootprints(desc, first_sub_resource, sub_resource_count,
+    //                       base_offset (UINT64), layouts, row_count,
+    //                       row_size, total_bytes). Buffers and mip-0 2D
+    // textures get the documented 256-byte row alignment.
+    38: {
+      argc: 10,
+      invoke(r, a) {
+        const desc = number(a(1)),
+          first = number(a(2)),
+          count = number(a(3)),
+          offsetLow = number(a(4)),
+          offsetHigh = number(a(5));
+        if (!desc || !count || count > 16 || first || offsetHigh) return E_INVALIDARG;
+        r.check(desc, 56);
+        const layouts = number(a(6)),
+          rowCountOut = number(a(7)),
+          rowSizeOut = number(a(8)),
+          totalOut = number(a(9));
+        if (layouts) r.check(layouts, count * 32);
+        if (rowCountOut) r.check(rowCountOut, count * 4, true);
+        if (rowSizeOut) r.check(rowSizeOut, count * 8, true);
+        if (totalOut) r.check(totalOut, 8, true);
+        const dimension = u32(r, desc);
+        const width = u32(r, desc, 16),
+          height = u32(r, desc, 24),
+          format = u32(r, desc, 32);
+        const align256 = (value) => (value + 255) & ~255;
+        const pieces = [];
+        if (dimension === 1) {
+          if (!width) return E_INVALIDARG;
+          pieces.push({ width, height: 1, rowPitch: align256(width), rowSize: width });
+        } else if (dimension === 3) {
+          const bpp = TEXTURE_FORMAT_BYTES[format];
+          if (!bpp || !width || !height || count !== 1) return E_INVALIDARG;
+          const rowSize = width * bpp;
+          pieces.push({ width, height, rowPitch: align256(rowSize), rowSize });
+        } else return E_INVALIDARG;
+        let offset = offsetLow;
+        for (let i = 0; i < pieces.length; i++) {
+          const piece = pieces[i];
+          if (layouts) {
+            r.write32(layouts + i * 32, offset);
+            r.write32(layouts + i * 32 + 4, 0);
+            r.write32(layouts + i * 32 + 8, dimension === 1 ? 0 : format);
+            r.write32(layouts + i * 32 + 12, piece.width);
+            r.write32(layouts + i * 32 + 16, piece.height);
+            r.write32(layouts + i * 32 + 20, 1);
+            r.write32(layouts + i * 32 + 24, piece.rowPitch);
+          }
+          if (rowCountOut) r.write32(rowCountOut + i * 4, piece.height);
+          if (rowSizeOut) {
+            r.write32(rowSizeOut + i * 8, piece.rowSize);
+            r.write32(rowSizeOut + i * 8 + 4, 0);
+          }
+          offset += piece.rowPitch * piece.height;
+        }
+        if (totalOut) {
+          r.write32(totalOut, offset);
+          r.write32(totalOut + 4, 0);
+        }
         return undefined;
       },
     },

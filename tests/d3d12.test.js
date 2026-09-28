@@ -1092,3 +1092,65 @@ test('create CBV/SRV/UAV/sampler descriptors, bind heaps and set stable power', 
   await call(buffer, 2);
   await call(dev, 2);
 });
+
+test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte rows', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // A 100-byte buffer: one row, 256-byte-pitched, 256 total.
+  const buffer = alloc(56);
+  r.write32(buffer, 1);
+  r.write32(buffer + 16, 100);
+  r.write32(buffer + 24, 1);
+  r.view.setUint16(buffer + 28, 1, true);
+  r.view.setUint16(buffer + 30, 1, true);
+  r.write32(buffer + 36, 1);
+  r.write32(buffer + 44, 1);
+  const layout = alloc(32),
+    rows = alloc(4),
+    rowSize = alloc(8),
+    total = alloc(8);
+  assert.equal((await call(dev, 38, buffer, 0, 1, 0, 0, layout, rows, rowSize, total)).result, undefined);
+  assert.equal(r.read32(layout), 0, 'layout offset honors base offset');
+  assert.equal(r.read32(layout + 12), 100, 'layout width');
+  assert.equal(r.read32(layout + 16), 1, 'buffer height is 1');
+  assert.equal(r.read32(layout + 24), 256, 'row pitch is 256-aligned');
+  assert.equal(r.read32(rows), 1);
+  assert.equal(r.read32(rowSize), 100, 'row size is the unaligned byte width');
+  assert.equal(r.read32(total), 256);
+
+  // A 4x4 RGBA texture (format 28): 16-byte rows, 64 total.
+  const texture = alloc(56);
+  r.write32(texture, 3);
+  r.write32(texture + 16, 4);
+  r.write32(texture + 24, 4);
+  r.view.setUint16(texture + 28, 1, true);
+  r.view.setUint16(texture + 30, 1, true);
+  r.write32(texture + 32, 28);
+  r.write32(texture + 36, 1);
+  assert.equal((await call(dev, 38, texture, 0, 1, 0, 0, layout, rows, rowSize, total)).result, undefined);
+  assert.equal(r.read32(layout + 8), 28, 'texture format recorded');
+  assert.equal(r.read32(layout + 16), 4, 'texture height');
+  assert.equal(r.read32(layout + 24), 256, 'texture row pitch aligned');
+  assert.equal(r.read32(rows), 4);
+  assert.equal(r.read32(rowSize), 16, 'texture row size 4*4 bytes');
+  assert.equal(r.read32(total), 1024);
+
+  // Explicit base offset is folded into the first layout and the total.
+  assert.equal((await call(dev, 38, buffer, 0, 1, 0x1000, 0, layout, rows, rowSize, total)).result, undefined);
+  assert.equal(r.read32(layout), 0x1000);
+  assert.equal(r.read32(total), 0x1100);
+
+  // Unsupported inputs fail explicitly: nonzero first subresource, unknown
+  // format, and a count above one for a single-mip texture.
+  assert.equal((await call(dev, 38, buffer, 1, 1, 0, 0, 0, 0, 0, 0)).result, 0x80070057);
+  r.write32(texture + 32, 9999);
+  assert.equal((await call(dev, 38, texture, 0, 1, 0, 0, 0, 0, 0, 0)).result, 0x80070057);
+  r.write32(texture + 32, 28);
+  assert.equal((await call(dev, 38, texture, 0, 2, 0, 0, 0, 0, 0, 0)).result, 0x80070057);
+
+  await call(dev, 2);
+});
