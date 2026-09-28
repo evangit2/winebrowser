@@ -1154,3 +1154,56 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
 
   await call(dev, 2);
 });
+
+test('CheckFeatureSupport reports format, multisample and options admissions', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // FORMAT_SUPPORT (feature 3): RGBA8 is a sampleable render target; D16 is a
+  // depth format; R32G32B32_FLOAT is a vertex format; unknown formats are 0.
+  const formatSupport = alloc(12);
+  r.write32(formatSupport, 28);
+  assert.equal((await call(dev, 13, 3, formatSupport, 12)).result, 0);
+  const rgba = r.read32(formatSupport + 4);
+  assert.ok(rgba & 0x4000, 'R8G8B8A8_UNORM is a render target');
+  assert.ok(rgba & 0x200, 'R8G8B8A8_UNORM is sampleable');
+  r.write32(formatSupport, 55);
+  assert.equal((await call(dev, 13, 3, formatSupport, 12)).result, 0);
+  assert.ok(r.read32(formatSupport + 4) & 0x10000, 'D16_UNORM is a depth format');
+  r.write32(formatSupport, 6);
+  assert.equal((await call(dev, 13, 3, formatSupport, 12)).result, 0);
+  assert.ok(r.read32(formatSupport + 4) & 0x2, 'R32G32B32_FLOAT is a vertex format');
+  r.write32(formatSupport, 0);
+  assert.equal((await call(dev, 13, 3, formatSupport, 12)).result, 0);
+  assert.equal(r.read32(formatSupport + 4), 0, 'unknown format reports no support');
+  assert.equal((await call(dev, 13, 3, formatSupport, 8)).result, 0x80070057, 'short buffer');
+
+  // MULTISAMPLE_QUALITY_LEVELS (feature 4): only 1x reports a level.
+  const msaa = alloc(16);
+  r.write32(msaa, 28);
+  r.write32(msaa + 4, 1);
+  assert.equal((await call(dev, 13, 4, msaa, 16)).result, 0);
+  assert.equal(r.read32(msaa + 12), 1, '1x has one quality level');
+  r.write32(msaa + 4, 4);
+  assert.equal((await call(dev, 13, 4, msaa, 16)).result, 0);
+  assert.equal(r.read32(msaa + 12), 0, '4x has no quality level');
+
+  // OPTIONS1 (feature 8) advertises no wave ops; SHADER_CACHE (19) and
+  // EXISTING_HEAPS (22) are explicitly zeroed.
+  const options1 = alloc(24);
+  r.data.fill(0xcc, options1, options1 + 24);
+  assert.equal((await call(dev, 13, 8, options1, 24)).result, 0);
+  assert.ok(r.data.subarray(options1, options1 + 24).every((b) => b === 0));
+  const four = alloc(4);
+  r.write32(four, 0xcc);
+  assert.equal((await call(dev, 13, 19, four, 4)).result, 0);
+  assert.equal(r.read32(four), 0);
+  r.write32(four, 0xcc);
+  assert.equal((await call(dev, 13, 22, four, 4)).result, 0);
+  assert.equal(r.read32(four), 0);
+
+  await call(dev, 2);
+});

@@ -28,6 +28,24 @@ const COLOR_STATES = new Set([0, 4]);
 const TEXTURE_FORMAT_BYTES = {
   2: 16, 6: 12, 10: 8, 11: 8, 28: 4, 29: 4, 41: 8, 40: 4, 45: 4, 49: 2, 55: 2, 61: 1, 87: 4, 88: 4,
 };
+// D3D12_FORMAT_SUPPORT1 masks for the formats the bounded path accepts.
+const FMT_BUFFER = 0x1,
+  FMT_VERTEX = 0x2,
+  FMT_INDEX = 0x4,
+  FMT_TEX2D = 0x20,
+  FMT_LOAD = 0x100,
+  FMT_SAMPLE = 0x200,
+  FMT_RT = 0x4000,
+  FMT_BLEND = 0x8000,
+  FMT_DEPTH = 0x10000;
+const FORMAT_SUPPORT = {
+  2: FMT_BUFFER | FMT_VERTEX | FMT_TEX2D | FMT_LOAD, // R32G32B32A32_FLOAT
+  6: FMT_BUFFER | FMT_VERTEX | FMT_TEX2D | FMT_LOAD, // R32G32B32_FLOAT
+  28: FMT_TEX2D | FMT_LOAD | FMT_SAMPLE | FMT_RT | FMT_BLEND, // R8G8B8A8_UNORM
+  42: FMT_BUFFER | FMT_INDEX, // R32_UINT
+  55: FMT_TEX2D | FMT_DEPTH, // D16_UNORM
+  57: FMT_BUFFER | FMT_INDEX, // R16_UINT
+};
 const resourceStates = (kind) =>
   kind === 'depth' ? DEPTH_STATES : kind === 'color' ? COLOR_STATES : BUFFER_STATES;
 const OBJECT = 'c4fec28f-7966-4e95-9f94-f431cb56c3b8';
@@ -1031,6 +1049,33 @@ function deviceMethods() {
             });
           case 7: // SHADER_MODEL
             return write(4, () => r.write32(data, 0x51)); // D3D_SHADER_MODEL_5_1
+          case 3: {
+            // D3D12_FEATURE_DATA_FORMAT_SUPPORT: the caller supplies Format and
+            // receives the support masks. Answer only for the formats the
+            // bounded renderer actually accepts.
+            if (size < 12) return E_INVALIDARG;
+            r.check(data, 12, true);
+            const format = u32(r, data);
+            const support = FORMAT_SUPPORT[format] ?? 0;
+            r.write32(data + 4, support & 0xffffffff);
+            r.write32(data + 8, 0);
+            return S_OK;
+          }
+          case 4: {
+            // D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS. Only single
+            // sampling is implemented, so counts above one report no levels.
+            if (size < 16) return E_INVALIDARG;
+            r.check(data, 16, true);
+            const sampleCount = u32(r, data + 4);
+            r.write32(data + 12, sampleCount === 1 ? 1 : 0);
+            return S_OK;
+          }
+          case 8: // D3D12_FEATURE_DATA_D3D12_OPTIONS1: no wave ops advertised.
+            return write(24, () => {});
+          case 19: // D3D12_FEATURE_DATA_SHADER_CACHE: caching is not exposed.
+            return write(4, () => {});
+          case 22: // D3D12_FEATURE_DATA_EXISTING_HEAPS: not supported.
+            return write(4, () => r.write32(data, 0));
           case 12: // ROOT_SIGNATURE
             return write(4, () => r.write32(data, 1)); // D3D_ROOT_SIGNATURE_VERSION_1
           default:
