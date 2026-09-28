@@ -62,6 +62,7 @@ const iids = {
   fence: '0a753dcf-c4d8-4b91-adf6-be5a60d95a76',
   heap: '8efb471d-616c-4f49-90f7-127bb763fa51',
   resource: '696442be-a72e-4059-bc79-5b5c98040fad',
+  query: '0d9658ae-ed45-469e-a61d-970ec583cab4', // ID3D12QueryHeap
   factory: '770aae78-f26f-4dba-a829-253c83d1b387', // IDXGIFactory1
   factory1: '770aae78-f26f-4dba-a829-253c83d1b387',
   factoryBase: '7b7166ec-21c7-44ae-b21a-c9ae321ae369',
@@ -83,6 +84,7 @@ const names = {
   root: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice`,
   fence: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetCompletedValue SetEventOnCompletion Signal`,
   heap: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetDesc GetCPUDescriptorHandleForHeapStart GetGPUDescriptorHandleForHeapStart`,
+  query: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice`,
   resource: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Map Unmap GetDesc GetGPUVirtualAddress WriteToSubresource ReadFromSubresource GetHeapProperties`,
   factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent IsWindowedStereoEnabled CreateSwapChainForHwnd CreateSwapChainForCoreWindow GetSharedResourceAdapterLuid RegisterStereoStatusWindow RegisterStereoStatusEvent UnregisterStereoStatus RegisterOcclusionStatusWindow RegisterOcclusionStatusEvent UnregisterOcclusionStatus CreateSwapChainForComposition GetCreationFlags EnumAdapterByLuid EnumWarpAdapter`,
   adapter: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1`,
@@ -98,6 +100,7 @@ const name = {
   fence: 'ID3D12Fence',
   heap: 'ID3D12DescriptorHeap',
   resource: 'ID3D12Resource',
+  query: 'ID3D12QueryHeap',
   factory: 'IDXGIFactory1',
   adapter: 'IDXGIAdapter1',
   swapchain: 'IDXGISwapChain',
@@ -151,7 +154,7 @@ function extraIids(kind, parent) {
   return [
     OBJECT,
     CHILD,
-    ...(['queue', 'allocator', 'pipeline', 'heap', 'fence', 'resource'].includes(kind)
+    ...(['queue', 'allocator', 'pipeline', 'heap', 'fence', 'resource', 'query'].includes(kind)
       ? [PAGEABLE]
       : []),
     ...(kind === 'list' ? [COMMAND_LIST] : []),
@@ -711,6 +714,54 @@ function listMethods() {
         return undefined;
       },
     },
+    // BeginQuery/EndQuery record a virtual-clock sample for TIMESTAMP queries;
+    // OCCLUSION queries count as a fully-visible pass. Values are written at
+    // execution time in command order, like the resource copies.
+    52: {
+      argc: 4,
+      invoke(r, a, o) {
+        const heap = object(r, a(1), 'query', o.state.device);
+        const type = number(a(2)),
+          index = number(a(3));
+        if (type !== (heap.state.type === 1 ? 2 : 0) || index >= heap.state.count)
+          throw Error('Unsupported D3D12 BeginQuery');
+        add(o, { type: 'query-begin', heap, queryType: type, index });
+        return undefined;
+      },
+    },
+    53: {
+      argc: 4,
+      invoke(r, a, o) {
+        const heap = object(r, a(1), 'query', o.state.device);
+        const type = number(a(2)),
+          index = number(a(3));
+        if (type !== (heap.state.type === 1 ? 2 : 0) || index >= heap.state.count)
+          throw Error('Unsupported D3D12 EndQuery');
+        add(o, { type: 'query-end', heap, queryType: type, index });
+        return undefined;
+      },
+    },
+    // ResolveQueryData(heap, type, start, count, dstBuffer, offset (UINT64)).
+    54: {
+      argc: 8,
+      invoke(r, a, o) {
+        const heap = object(r, a(1), 'query', o.state.device);
+        const type = number(a(2)),
+          start = number(a(3)),
+          count = number(a(4));
+        const dst = object(r, a(5), 'resource', o.state.device);
+        const offsetLow = number(a(6)),
+          offsetHigh = number(a(7));
+        if (type !== (heap.state.type === 1 ? 2 : 0) || !count || start + count > heap.state.count)
+          throw Error('Unsupported D3D12 ResolveQueryData');
+        if (dst.state.kind !== 'buffer' || offsetHigh)
+          throw Error('Unsupported D3D12 ResolveQueryData destination');
+        if (offsetLow + count * 8 > dst.state.size)
+          throw Error('D3D12 ResolveQueryData exceeds the destination buffer');
+        add(o, { type: 'query-resolve', heap, queryType: type, start, count, dst, offset: offsetLow });
+        return undefined;
+      },
+    },
     // Predication is only accepted in its disabled (null buffer) form.
     55: {
       argc: 4,
@@ -870,7 +921,7 @@ function resourceMethods() {
         if (props) {
           r.check(props, 20, true);
           r.data.fill(0, props, props + 20);
-          r.write32(props, o.state.upload ? 2 : 1);
+          r.write32(props, o.state.upload ? 2 : o.state.readback ? 3 : 1);
           r.write32(props + 12, 1);
           r.write32(props + 16, 1);
         }
@@ -1369,6 +1420,21 @@ function deviceMethods() {
         return S_OK;
       },
     },
+    // CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc, REFIID, void **).
+    // D3D12_QUERY_HEAP_TYPE_OCCLUSION(0)/TIMESTAMP(1); 12-byte descriptor.
+    39: child(
+      'query',
+      4,
+      (r, a, dev) => {
+        const p = number(a(1));
+        r.check(p, 12);
+        const type = u32(r, p),
+          count = u32(r, p, 4),
+          nodeMask = u32(r, p + (8));
+        if (type > 1 || !count || count > 4096 || nodeMask > 1) return E_INVALIDARG;
+        return { type, count, values: new Array(count).fill(0n) };
+      },
+    ),
     // SetStablePowerState(BOOL Enable) is a developer-only hint.
     40: { argc: 2, invoke: () => S_OK },
     // CopyDescriptorsSimple: duplicate `count` descriptors between two heap
@@ -1794,6 +1860,24 @@ function queueMethods() {
               const from = src.state.storage + c.srcOffset;
               const to = dst.state.storage + c.dstOffset;
               r.data.copyWithin(to, from, from + c.size);
+            } else if (c.type === 'query-begin' || c.type === 'query-end') {
+              // A TIMESTAMP query samples the monotonic guest clock; an
+              // OCCLUSION pair counts as a fully-visible pass.
+              const heap = object(r, c.heap.pointer, 'query', q.state.device);
+              if (c.queryType === 2)
+                heap.state.values[c.index] = r.performanceClock ? r.performanceClock.read() : 0n;
+              else if (c.type === 'query-begin') heap.state.values[c.index] = 0xffffffffn;
+            } else if (c.type === 'query-resolve') {
+              const heap = object(r, c.heap.pointer, 'query', q.state.device);
+              const dst = object(r, c.dst.pointer, 'resource', q.state.device);
+              if (dst.state.kind !== 'buffer')
+                throw Error('D3D12 ResolveQueryData requires a buffer');
+              for (let i = 0; i < c.count; i++) {
+                const value = BigInt.asUintN(64, heap.state.values[c.start + i] ?? 0n);
+                const at = dst.state.storage + c.offset + i * 8;
+                r.write32(at, Number(value & 0xffffffffn) >>> 0);
+                r.write32(at + 4, Number(value >> 32n) >>> 0);
+              }
             } else if (c.type === 'clear-depth') {
               const depth = object(r, c.target, 'resource', q.state.device);
               if (depth.state.kind !== 'depth' || depth.state.state !== 0x10)

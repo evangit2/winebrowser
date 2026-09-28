@@ -197,12 +197,14 @@ export function parseCommittedResourceDescriptor({
   const height = u32(read32, descriptor, 24);
   if (!width || width > maxBytes) return null;
   const uint16 = (offset) => data[descriptor + offset] | (data[descriptor + offset + 1] << 8);
-  if ((heapType === 1 || heapType === 2) && dimension === 1) {
+  if ((heapType === 1 || heapType === 2 || heapType === 3) && dimension === 1) {
     // Upload buffers publish GENERIC_READ (0xac3) after their Map/Unmap; the
     // default heap buffers they copy into start in COMMON (0) or COPY_DEST
     // (0x400) and transition to a shader-readable state with a barrier.
+    // Readback-heap buffers start in COMMON and are resolved into in-browser.
     const upload = heapType === 2;
-    const states = upload ? [0, 0xac3] : [0, 0x400];
+    const readback = heapType === 3;
+    const states = upload ? [0, 0xac3] : readback ? [0] : [0, 0x400];
     if (
       height !== 1 ||
       uint16(28) !== 1 ||
@@ -216,7 +218,7 @@ export function parseCommittedResourceDescriptor({
       !states.includes(initialState)
     )
       return null;
-    return { kind: 'buffer', size: width, state: initialState, upload };
+    return { kind: 'buffer', size: width, state: initialState, upload, readback };
   }
   if (heapType === 1) {
     if (

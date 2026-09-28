@@ -13,6 +13,7 @@ const IID = {
   root: 'c54a6b66-72df-4ee8-8be5-a946a1429214',
   pipeline: '765a30f3-f624-4c6f-a828-ace948622445',
   fence: '0a753dcf-c4d8-4b91-adf6-be5a60d95a76',
+  query: '0d9658ae-ed45-469e-a61d-970ec583cab4',
 };
 function fixture() {
   const buffer = new ArrayBuffer(2 * 1024 * 1024);
@@ -1318,5 +1319,92 @@ test('queue, fence, heap and resource metadata calls answer real startup and rea
   await call(buffer, 2);
   await call(fence, 2);
   await call(queue, 2);
+  await call(dev, 2);
+});
+
+test('query heaps record guest-clock timestamps and resolve them into a buffer', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // A timestamp query heap with two slots.
+  const heapDesc = alloc(12);
+  r.write32(heapDesc, 1); // D3D12_QUERY_HEAP_TYPE_TIMESTAMP
+  r.write32(heapDesc + 4, 2);
+  r.write32(heapDesc + 8, 1);
+  const query = await create(dev, 39, [heapDesc], 'query');
+  assert.equal(r.comObjects.objects.get(query).state.type, 1);
+  assert.equal(r.comObjects.objects.get(query).state.count, 2);
+  // An unsupported heap type is rejected.
+  r.write32(heapDesc, 9);
+  assert.equal((await call(dev, 39, heapDesc, guid(IID.query), alloc())).result, 0x80070057);
+  // A zero count is rejected.
+  r.write32(heapDesc, 1);
+  r.write32(heapDesc + 4, 0);
+  assert.equal((await call(dev, 39, heapDesc, guid(IID.query), alloc())).result, 0x80070057);
+  r.write32(heapDesc + 4, 2);
+
+  const queueDesc = alloc(16);
+  const queue = await create(dev, 8, [queueDesc], 'queue');
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+
+  // A readback buffer for the resolved timestamps.
+  const props = alloc(20);
+  r.write32(props, 3); // D3D12_HEAP_TYPE_READBACK
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const bufferDesc = alloc(56);
+  r.write32(bufferDesc, 1);
+  r.write32(bufferDesc + 16, 32);
+  r.write32(bufferDesc + 24, 1);
+  r.view.setUint16(bufferDesc + 28, 1, true);
+  r.view.setUint16(bufferDesc + 30, 1, true);
+  r.write32(bufferDesc + 36, 1);
+  r.write32(bufferDesc + 44, 1);
+  const dst = await create(dev, 27, [props, 0, bufferDesc, 0, 0], 'resource');
+  const dstStorage = (await call(dst, 11)).result;
+
+  // Begin/End at two monotonically increasing guest-clock samples.
+  let clock = 5_000n;
+  r.performanceClock = { read: () => (clock += 1_000n) };
+  const sequence = [
+    [52, query, 2, 0],
+    [53, query, 2, 0],
+    [52, query, 2, 1],
+    [53, query, 2, 1],
+  ];
+  for (const [slot, heap, type, index] of sequence) await call(list, slot, heap, type, index);
+  // A mismatched query type is rejected before recording.
+  await assert.rejects(call(list, 52, query, 0, 0), /BeginQuery/);
+  await assert.rejects(call(list, 53, query, 2, 5), /EndQuery/);
+  // ResolveQueryData copies both timestamps into the destination buffer.
+  await call(list, 54, query, 2, 0, 2, dst, 0, 0);
+  await assert.rejects(call(list, 54, query, 2, 1, 2, dst, 0, 0), /ResolveQueryData/);
+  await call(list, 9);
+
+  const lists = alloc(4);
+  r.write32(lists, list);
+  await call(queue, 10, 1, lists);
+
+  const first = [
+    r.read32(dstStorage),
+    r.read32(dstStorage + 4),
+  ];
+  const second = [
+    r.read32(dstStorage + 8),
+    r.read32(dstStorage + 12),
+  ];
+  const asNumber = ([low, high]) => (BigInt(high >>> 0) << 32n) + BigInt(low >>> 0);
+  assert.ok(asNumber(first) >= 5_000n, 'first timestamp is the first sample');
+  assert.ok(asNumber(second) > asNumber(first), 'second timestamp is later');
+
+  await call(list, 2);
+  await call(allocator, 2);
+  await call(queue, 2);
+  await call(dst, 2);
+  await call(query, 2);
   await call(dev, 2);
 });
