@@ -274,7 +274,8 @@ function recordDraw(r, a, o, indexed) {
   if (
     !count ||
     count > 65535 ||
-    instances !== 1 ||
+    instances < 1 ||
+    instances > 1024 ||
     first > 0x7fffffff - count ||
     firstInstance > 0x7fffffff - instances ||
     !s.pipeline ||

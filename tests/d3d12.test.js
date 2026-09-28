@@ -788,3 +788,53 @@ test('device-child GetDevice, GetDeviceRemovedReason and GetAdapterLuid answer w
   await call(buffer, 2);
   await call(dev, 2);
 });
+
+test('DrawInstanced accepts bounded instance counts and first-instance offsets', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+
+  // A minimal recorded state: no vertex input, a bound root and target, and a
+  // valid viewport/scissor. Recording alone proves the frontend gate.
+  const root = { pointer: 0x1111 };
+  const target = { pointer: 0x2222 };
+  Object.assign(r.comObjects.objects.get(list).state, {
+    pipeline: { state: { root, inputLayout: [], depth: null, vertexStride: 0 } },
+    root,
+    target,
+    viewport: { x: 0, y: 0, width: 640, height: 480, minDepth: 0, maxDepth: 1 },
+    scissor: { left: 0, top: 0, right: 640, bottom: 480 },
+    topology: 4,
+    vertexBuffer: null,
+    indexBuffer: null,
+    commands: [],
+  });
+
+  const commands = () => r.comObjects.objects.get(list).state.commands;
+
+  await call(list, 12, 3, 4, 0, 0);
+  assert.equal(commands().length, 1);
+  assert.deepEqual(
+    { vertexCount: commands()[0].vertexCount, instanceCount: commands()[0].instanceCount, firstInstance: commands()[0].firstInstance },
+    { vertexCount: 3, instanceCount: 4, firstInstance: 0 },
+    'instanceCount and firstInstance are recorded',
+  );
+
+  await call(list, 12, 3, 2, 0, 5);
+  assert.equal(commands()[1].instanceCount, 2);
+  assert.equal(commands()[1].firstInstance, 5, 'first-instance offset is preserved');
+
+  // Zero and out-of-range instance counts are rejected before anything records.
+  const recorded = commands().length;
+  await assert.rejects(call(list, 12, 3, 0, 0, 0), /DrawInstanced state/);
+  await assert.rejects(call(list, 12, 3, 1025, 0, 0), /DrawInstanced state/);
+  assert.equal(commands().length, recorded, 'rejected draws record nothing');
+
+  await call(list, 2);
+  await call(allocator, 2);
+  await call(dev, 2);
+});
