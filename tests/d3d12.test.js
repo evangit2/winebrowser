@@ -1475,3 +1475,60 @@ test('CopyResource duplicates equal-sized buffers and rejects mismatches', async
   await call(other, 2);
   await call(dev, 2);
 });
+
+test('shared-handle round trip and GetResourceTiling for committed resources', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, f.guid(IID.device), out);
+  const dev = r.read32(out);
+
+  const props = alloc(20);
+  r.write32(props, 2);
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const desc = alloc(56);
+  r.write32(desc, 1);
+  r.write32(desc + 16, 64);
+  r.write32(desc + 24, 1);
+  r.view.setUint16(desc + 28, 1, true);
+  r.view.setUint16(desc + 30, 1, true);
+  r.write32(desc + 36, 1);
+  r.write32(desc + 44, 1);
+  const buffer = await create(dev, 27, [props, 0, desc, 0xac3, 0], 'resource');
+
+  // CreateSharedHandle writes a synthetic handle; OpenSharedHandle maps it
+  // back to the same object with a fresh reference.
+  const handleOut = alloc();
+  assert.equal((await call(dev, 31, buffer, 0, 0, 0, handleOut)).result, 0);
+  const handle = r.read32(handleOut);
+  assert.notEqual(handle, 0);
+  const openOut = alloc();
+  assert.equal((await call(dev, 32, handle, f.guid(IID.resource), openOut)).result, 0);
+  assert.equal(r.read32(openOut), buffer, 'the same resource pointer comes back');
+  // An unknown handle and a wrong interface fail explicitly.
+  assert.equal((await call(dev, 32, 0x1234, f.guid(IID.resource), openOut)).result, 0x80070057);
+  assert.equal((await call(dev, 32, handle, f.guid(IID.device), openOut)).result, 0x80004002);
+  // A named (or secured) handle is not modeled.
+  await assert.rejects(call(dev, 31, buffer, 0, 0, alloc(8), handleOut), /named or secured/);
+  await assert.rejects(call(dev, 31, buffer, alloc(24), 0, 0, handleOut), /named or secured/);
+  assert.equal((await call(dev, 33, alloc(4), 0, 0, handleOut)).result, 0x80070057);
+
+  // GetResourceTiling reports a committed (untiled) resource.
+  const total = alloc(4),
+    packed = alloc(12),
+    shape = alloc(12),
+    count = alloc(4);
+  assert.equal(
+    (await call(dev, 42, buffer, total, packed, shape, count, 0, 0)).result,
+    undefined,
+  );
+  assert.equal(r.read32(total), 0, 'no tiles');
+  assert.equal(r.read32(count), 0, 'no tiled subresources');
+  assert.deepEqual([r.read32(shape), r.read32(shape + 4), r.read32(shape + 8)], [256, 256, 1]);
+  // A nonzero first tiled subresource is rejected.
+  assert.equal((await call(dev, 42, buffer, total, packed, shape, count, 1, 0)).result, 0x80070057);
+
+  await call(buffer, 2);
+  await call(dev, 2);
+});

@@ -125,7 +125,12 @@ function requireBackend(r) {
 }
 function state(r) {
   r.comObjects ??= new ComObjects(r);
-  r.d3d12State ??= { descriptors: new Map(), swapchains: new Set() };
+  r.d3d12State ??= {
+    descriptors: new Map(),
+    swapchains: new Set(),
+    sharedHandles: new Map(),
+    nextSharedHandle: 0x80000000,
+  };
   return r.d3d12State;
 }
 function object(r, pointer, kind, owner = null) {
@@ -1721,6 +1726,86 @@ function deviceMethods() {
         const item = make(r, 'fence', fenceMethods(), { device: dev, value }, dev);
         r.write32(out, item.pointer);
         return S_OK;
+      },
+    },
+    // CreateSharedHandle(object, attributes, access, name, HANDLE *): only
+    // unnamed, in-process sharing is modeled. The handle is a synthetic value
+    // that OpenSharedHandle maps back to the same COM object.
+    31: {
+      argc: 6,
+      invoke(r, a, dev) {
+        const target = object(r, a(1), 'resource', dev);
+        if (number(a(2)) || number(a(3)) || number(a(4)))
+          throw Error('Unsupported D3D12 named or secured shared handle');
+        const out = number(a(5));
+        r.check(out, 4, true);
+        const state12 = state(r);
+        if (state12.nextSharedHandle >= 0xbfffffff)
+          throw Error('D3D12 shared handle limit exceeded');
+        const handle = state12.nextSharedHandle++;
+        state12.sharedHandles.set(handle, target);
+        r.write32(out, handle);
+        return S_OK;
+      },
+    },
+    32: {
+      argc: 4,
+      invoke(r, a, dev) {
+        const out = number(a(3));
+        output(r, out);
+        if (!iid(r, a(2), 'resource')) return E_NOINTERFACE;
+        const target = state(r).sharedHandles.get(number(a(1)));
+        if (!target || !target.refs) return E_INVALIDARG;
+        if (target.state.device !== dev) throw Error('Shared handle belongs to another device');
+        if (target.refs >= 0x7fffffff) throw Error('D3D12 resource reference limit exceeded');
+        target.refs++;
+        r.write32(out, target.pointer);
+        return S_OK;
+      },
+    },
+    33: {
+      // OpenSharedHandleByName is not modeled: no cross-process name table.
+      argc: 4,
+      invoke(r, a) {
+        if (number(a(2))) output(r, number(a(2)));
+        return E_INVALIDARG;
+      },
+    },
+    // GetResourceTiling(resource, totalTileCount, packedMipInfo, tileShape,
+    //                   subresourceTilingCount, firstSubresource, tilings).
+    // Every modeled resource is committed, never reserved/tiled.
+    42: {
+      argc: 8,
+      invoke(r, a, dev) {
+        object(r, a(1), 'resource', dev);
+        const total = number(a(2)),
+          packed = number(a(3)),
+          shape = number(a(4)),
+          count = number(a(5)),
+          first = number(a(6)),
+          tilings = number(a(7));
+        if (first) return E_INVALIDARG;
+        if (total) {
+          r.check(total, 4, true);
+          r.write32(total, 0);
+        }
+        if (packed) {
+          r.check(packed, 12, true);
+          r.data.fill(0, packed, packed + 12);
+        }
+        if (shape) {
+          // A fixed 64 KiB tile shape for the modeled formats.
+          r.check(shape, 12, true);
+          r.write32(shape, 256);
+          r.write32(shape + 4, 256);
+          r.write32(shape + 8, 1);
+        }
+        if (count) {
+          r.check(count, 4, true);
+          r.write32(count, 0);
+        }
+        if (tilings) return E_INVALIDARG; // No subresources are tiled.
+        return undefined;
       },
     },
     // A removed device is never simulated; the reason is always S_OK.
