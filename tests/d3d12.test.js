@@ -670,3 +670,69 @@ test('CopyBufferRegion performs the canonical upload-to-default-heap copy with s
   await call(queue, 2);
   await call(dev, 2);
 });
+
+test('GetDesc, ClearState and the annotation no-ops round-trip without trapping', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, f.guid(IID.device), out);
+  const dev = r.read32(out);
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+  assert.equal((await call(list, 8)).result, 0, 'GetType reports DIRECT');
+
+  const props = alloc(20);
+  r.write32(props, 2);
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const desc = alloc(56);
+  r.write32(desc, 1);
+  r.write32(desc + 16, 256);
+  r.write32(desc + 24, 1);
+  r.view.setUint16(desc + 28, 1, true);
+  r.view.setUint16(desc + 30, 1, true);
+  r.write32(desc + 36, 1);
+  r.write32(desc + 44, 1);
+  const buffer = await create(dev, 27, [props, 0, desc, 0xac3, 0], 'resource');
+
+  const descOut = alloc();
+  r.data.fill(0xcc, descOut, descOut + 56);
+  await call(buffer, 10, descOut);
+  assert.equal(r.read32(descOut), 1, 'buffer dimension');
+  assert.equal(r.read32(descOut + 16), 256, 'buffer byte width');
+  assert.equal(r.read32(descOut + 44), 1, 'row-major layout');
+  assert.ok(
+    r.data.subarray(descOut + 48, descOut + 56).every((b) => b === 0),
+    'buffer tail stays zeroed',
+  );
+
+  // Metadata no-ops, PIX markers, disabled predication and pair setters.
+  const name = alloc(8);
+  r.data.set([0x78, 0, 0x79, 0, 0, 0, 0, 0], name);
+  assert.equal((await call(buffer, 6, name)).result, 0, 'SetName');
+  assert.equal((await call(buffer, 4, alloc(16), 0, 0, name)).result, 0, 'SetPrivateData');
+  assert.equal((await call(buffer, 5, alloc(16), 0)).result, 0, 'SetPrivateDataInterface');
+  const sizeOut = alloc();
+  assert.equal(
+    (await call(buffer, 3, alloc(16), 0, sizeOut, 0)).result,
+    0x887a0002,
+    'GetPrivateData reports not-found',
+  );
+  assert.equal((await call(list, 57, name, 8)).result, undefined, 'BeginEvent');
+  assert.equal((await call(list, 58)).result, undefined, 'EndEvent');
+  assert.equal((await call(list, 56, 0, 0)).result, undefined, 'SetMarker');
+  assert.equal((await call(list, 55, 0, 0, 0)).result, undefined, 'disabled predication');
+  await assert.rejects(call(list, 55, buffer, 0, 0), /predication/);
+  const blend = alloc(16);
+  for (let i = 0; i < 4; i++) r.view.setFloat32(blend + i * 4, 0.5, true);
+  assert.equal((await call(list, 23, blend)).result, undefined, 'OMSetBlendFactor');
+  assert.equal((await call(list, 24, 3)).result, undefined, 'OMSetStencilRef');
+  assert.equal((await call(list, 45, 0, 0, 0)).result, undefined, 'empty SOSetTargets');
+  await assert.rejects(call(list, 45, 1, 0, 0), /stream output/);
+  await call(list, 26, 0, 0).catch(() => {});
+  assert.equal((await call(list, 11)).result, undefined, 'ClearState');
+  await call(list, 2);
+  await call(allocator, 2);
+  await call(buffer, 2);
+  await call(dev, 2);
+});

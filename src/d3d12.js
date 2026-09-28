@@ -560,6 +560,83 @@ function listMethods() {
         return undefined;
       },
     },
+    // GetType reports the DIRECT command-list type created above.
+    8: { argc: 1, invoke: () => 0 },
+    // ClearState drops every bound resource/state but keeps the list open and
+    // still attached to its allocator, matching D3D12's reuse contract.
+    11: {
+      argc: 1,
+      invoke(_r, _a, o) {
+        o.state.pipeline = null;
+        o.state.root = null;
+        o.state.target = null;
+        o.state.depthTarget = null;
+        o.state.vertexBuffer = null;
+        o.state.indexBuffer = null;
+        o.state.viewport = null;
+        o.state.scissor = null;
+        o.state.topology = 0;
+        return undefined;
+      },
+    },
+    // Output-merger blend factor and stencil reference carry no weight for the
+    // opaque pipelines this bounded path builds; validate and record nothing.
+    23: {
+      argc: 2,
+      invoke(r, a) {
+        const ptr = number(a(1));
+        r.check(ptr, 16);
+        if (
+          ![0, 1, 2, 3].every(
+            (i) => Number.isFinite(f32(r, ptr, i * 4)) && f32(r, ptr, i * 4) >= 0 && f32(r, ptr, i * 4) <= 1,
+          )
+        )
+          throw Error('Unsupported D3D12 blend factor');
+        return undefined;
+      },
+    },
+    24: { argc: 2, invoke: () => undefined },
+    // Stream output is not implemented; the empty-target form is a legal no-op.
+    45: {
+      argc: 4,
+      invoke(_r, a) {
+        if (number(a(1))) throw Error('Unsupported D3D12 stream output targets');
+        return undefined;
+      },
+    },
+    // DiscardResource marks contents undefined. The renderer always writes full
+    // attachments, so the hint needs no work.
+    51: {
+      argc: 3,
+      invoke(r, a, o) {
+        object(r, a(1), 'resource', o.state.device);
+        return undefined;
+      },
+    },
+    // Predication is only accepted in its disabled (null buffer) form.
+    55: {
+      argc: 4,
+      invoke(_r, a) {
+        if (number(a(1))) throw Error('Unsupported D3D12 predication');
+        return undefined;
+      },
+    },
+    // Debug markers and PIX events are pure annotations.
+    56: {
+      argc: 3,
+      invoke(r, a) {
+        if (number(a(2))) r.check(number(a(1)), number(a(2)));
+        return undefined;
+      },
+    },
+    57: {
+      argc: 3,
+      invoke(r, a) {
+        if (number(a(2))) r.check(number(a(1)), number(a(2)));
+        return undefined;
+      },
+    },
+    58: { argc: 1, invoke: () => undefined },
   };
   for (const [slot, method] of Object.entries(methods)) {
     if (slot === '9' || slot === '10') continue;
@@ -615,6 +692,39 @@ function resourceMethods() {
           pointer: number(a(2)),
           size: o.state.size,
         });
+        return undefined;
+      },
+    },
+    // GetDesc reconstructs the 56-byte D3D12_RESOURCE_DESC the guest handed
+    // the device. Buffers report their byte width; textures report their
+    // dimensions, format and depth/stencil flag.
+    10: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 56, true);
+        r.data.fill(0, out, out + 56);
+        if (o.state.kind === 'buffer') {
+          r.write32(out, 1); // D3D12_RESOURCE_DIMENSION_BUFFER
+          r.write32(out + 16, o.state.size);
+          r.write32(out + 24, 1);
+          r.view.setUint16(out + 28, 1, true);
+          r.view.setUint16(out + 30, 1, true);
+          r.write32(out + 36, 1); // SampleDesc.Count
+          r.write32(out + 44, 1); // D3D12_TEXTURE_LAYOUT_ROW_MAJOR
+        } else {
+          const swapchain = o.state.kind === 'color' ? o.state.swapchain : null;
+          const width = swapchain ? swapchain.width : o.state.width;
+          const height = swapchain ? swapchain.height : o.state.height;
+          r.write32(out, 3); // D3D12_RESOURCE_DIMENSION_TEXTURE2D
+          r.write32(out + 16, width);
+          r.write32(out + 24, height);
+          r.view.setUint16(out + 28, 1, true);
+          r.view.setUint16(out + 30, 1, true);
+          r.write32(out + 32, o.state.kind === 'depth' ? 55 : 28);
+          r.write32(out + 36, 1); // SampleDesc.Count
+          if (o.state.kind === 'depth') r.write32(out + 48, 2);
+        }
         return undefined;
       },
     },
@@ -1225,7 +1335,7 @@ async function createSwapChain(rt, self, queue, desc, result) {
     rt,
     'swapchain',
     swapchainMethods(),
-    { queue, index: 0, buffers: [] },
+    { queue, index: 0, buffers: [], width: desc.width, height: desc.height },
     self,
     async (item) => {
       for (const b of item.state.buffers) if (!--b.refs) queue.state.device.refs--;
