@@ -1207,3 +1207,116 @@ test('CheckFeatureSupport reports format, multisample and options admissions', a
 
   await call(dev, 2);
 });
+
+test('queue, fence, heap and resource metadata calls answer real startup and readback APIs', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  const queueDesc = alloc(16);
+  const queue = await create(dev, 8, [queueDesc], 'queue');
+
+  // GetTimestampFrequency is one tick per virtual nanosecond (1e9 Hz).
+  const freq = alloc(8);
+  assert.equal((await call(queue, 16, freq)).result, 0);
+  assert.deepEqual([r.read32(freq), r.read32(freq + 4)], [0x40000000, 0x3b9aca00]);
+
+  // GetClockCalibration writes both 64-bit domains; without a guest clock the
+  // values are zero but the call must still succeed and touch memory.
+  r.performanceClock = { read: () => 1_234_567_890n };
+  const gpuTime = alloc(8),
+    cpuTime = alloc(8);
+  r.data.fill(0xcc, gpuTime, gpuTime + 16);
+  assert.equal((await call(queue, 17, gpuTime, cpuTime)).result, 0);
+  assert.deepEqual([r.read32(gpuTime), r.read32(gpuTime + 4)], [1_234_567_890, 0]);
+  assert.deepEqual([r.read32(cpuTime), r.read32(cpuTime + 4)], [1_234_567_890, 0]);
+  // NULL outputs are tolerated.
+  assert.equal((await call(queue, 17, 0, 0)).result, 0);
+
+  // PIX/debug markers validate their optional string range and are no-ops.
+  const label = alloc(8);
+  r.data.set([0x61, 0x62, 0x63, 0, 0, 0, 0, 0], label);
+  // SetMarker/BeginEvent(this, Metadata, pData, Size).
+  assert.equal((await call(queue, 11, 0, label, 4)).result, undefined);
+  assert.equal((await call(queue, 12, 0, label, 4)).result, undefined);
+  assert.equal((await call(queue, 13)).result, undefined);
+  await assert.rejects(call(queue, 11, 0, label, 0x400000), /Guest memory violation/);
+
+  // GetDesc returns a zeroed D3D12_COMMAND_QUEUE_DESC.
+  const descOut = alloc(16);
+  r.data.fill(0xcc, descOut, descOut + 16);
+  assert.equal((await call(queue, 18, descOut)).result, undefined);
+  assert.ok(r.data.subarray(descOut, descOut + 16).every((b) => b === 0));
+
+  // Fence: a completion value at or below the current one signals immediately;
+  // a higher value is released by a later Signal.
+  const signaled = [];
+  r.syncObjects = { signal: (handle) => signaled.push(handle) };
+  const fence = await create(dev, 36, [0, 0, 0], 'fence');
+  assert.equal((await call(fence, 9, 0, 0, 0x1111)).result, 0);
+  assert.deepEqual(signaled, [0x1111], 'a satisfied completion signals at once');
+  signaled.length = 0;
+  assert.equal((await call(fence, 9, 0x20, 0, 0x2222)).result, 0);
+  assert.deepEqual(signaled, [], 'a future completion waits');
+  assert.equal((await call(fence, 10, 0x20, 0)).result, 0, 'Signal raises the value');
+  assert.deepEqual(signaled, [0x2222], 'Signal releases the pending waiter');
+  assert.equal((await call(fence, 8)).result, 0x20, 'GetCompletedValue');
+  // A signal below the current value is rejected.
+  assert.equal((await call(fence, 10, 0x1f, 0)).result, 0x80070057);
+  // A NULL event handle is rejected.
+  assert.equal((await call(fence, 9, 0, 0, 0)).result, 0x80070057);
+
+  // Heap GPU handle mirrors the CPU slot address with a zero high word.
+  const heapDesc = alloc(16);
+  r.write32(heapDesc, 2);
+  r.write32(heapDesc + 4, 1);
+  const heap = await create(dev, 14, [heapDesc], 'heap');
+  const cpu = alloc(4),
+    gpu = alloc(8);
+  await call(heap, 9, cpu);
+  r.data.fill(0xcc, gpu, gpu + 8);
+  assert.equal((await call(heap, 10, gpu)).argc, 2);
+  assert.deepEqual([r.read32(gpu), r.read32(gpu + 4)], [r.read32(cpu), 0]);
+
+  // Resource subresource I/O and heap properties for an upload buffer.
+  const props = alloc(20);
+  r.write32(props, 2);
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const bufferDesc = alloc(56);
+  r.write32(bufferDesc, 1);
+  r.write32(bufferDesc + 16, 64);
+  r.write32(bufferDesc + 24, 1);
+  r.view.setUint16(bufferDesc + 28, 1, true);
+  r.view.setUint16(bufferDesc + 30, 1, true);
+  r.write32(bufferDesc + 36, 1);
+  r.write32(bufferDesc + 44, 1);
+  const buffer = await create(dev, 27, [props, 0, bufferDesc, 0xac3, 0], 'resource');
+  const storage = (await call(buffer, 11)).result;
+  const source = alloc(64);
+  for (let i = 0; i < 64; i++) r.data[source + i] = 0xa0 + i;
+  assert.equal((await call(buffer, 12, 0, source, 0, 0, 0)).result, 0);
+  assert.deepEqual(
+    [...r.data.subarray(storage, storage + 4)],
+    [0xa0, 0xa1, 0xa2, 0xa3],
+    'WriteToSubresource copied the buffer bytes',
+  );
+  const target = alloc(64);
+  assert.equal((await call(buffer, 13, target, 0, 0, 0)).result, 0);
+  assert.deepEqual([...r.data.subarray(target, target + 4)], [0xa0, 0xa1, 0xa2, 0xa3]);
+  const heapPropsOut = alloc(20),
+    heapFlagsOut = alloc(4);
+  assert.equal((await call(buffer, 14, heapPropsOut, heapFlagsOut)).result, 0);
+  assert.equal(r.read32(heapPropsOut), 2, 'upload heap type');
+  assert.equal(r.read32(heapFlagsOut), 0);
+  // Unknown subresource index is rejected for the buffer path.
+  assert.equal((await call(buffer, 12, 1, source, 0, 0, 0)).result, 0x80070057);
+
+  await call(heap, 2);
+  await call(buffer, 2);
+  await call(fence, 2);
+  await call(queue, 2);
+  await call(dev, 2);
+});

@@ -833,6 +833,54 @@ function resourceMethods() {
         return { result: o.state.storage, resultHigh: 0 };
       },
     },
+    // WriteToSubresource/ReadFromSubresource copy between the resource's guest
+    // storage and the caller's buffer for buffer resources (the documented
+    // destination/source boxes and pitches apply to textures, which this
+    // bounded path models only as depth/swap-chain images).
+    12: {
+      argc: 7,
+      invoke(r, a, o) {
+        if (o.state.kind !== 'buffer') throw Error('Unsupported D3D12 WriteToSubresource');
+        if (number(a(1))) return E_INVALIDARG;
+        const src = number(a(2));
+        const size = o.state.size;
+        r.check(src, size);
+        r.data.copyWithin(o.state.storage, src, src + size);
+        return S_OK;
+      },
+    },
+    13: {
+      argc: 7,
+      invoke(r, a, o) {
+        if (o.state.kind !== 'buffer') throw Error('Unsupported D3D12 ReadFromSubresource');
+        const dst = number(a(1));
+        const size = o.state.size;
+        r.check(dst, size, true);
+        r.data.copyWithin(dst, o.state.storage, o.state.storage + size);
+        return S_OK;
+      },
+    },
+    // GetHeapProperties(D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS
+    // *pHeapFlags): report the heap type the resource was created in.
+    14: {
+      argc: 3,
+      invoke(r, a, o) {
+        const props = number(a(1)),
+          flags = number(a(2));
+        if (props) {
+          r.check(props, 20, true);
+          r.data.fill(0, props, props + 20);
+          r.write32(props, o.state.upload ? 2 : 1);
+          r.write32(props + 12, 1);
+          r.write32(props + 16, 1);
+        }
+        if (flags) {
+          r.check(flags, 4, true);
+          r.write32(flags, 0);
+        }
+        return S_OK;
+      },
+    },
   };
 }
 function committedResource(r, a) {
@@ -1110,6 +1158,18 @@ function deviceMethods() {
             const out = number(a(1));
             r.check(out, 4, true);
             r.write32(out, o.state.base);
+            return out;
+          },
+        },
+        // GetGPUDescriptorHandleForHeapStart returns the same slot address as a
+        // 64-bit GPU handle; the runtime has no separate GPU address space.
+        10: {
+          argc: 2,
+          invoke(r, a, o) {
+            const out = number(a(1));
+            r.check(out, 8, true);
+            r.write32(out, o.state.base);
+            r.write32(out + 4, 0);
             return out;
           },
         },
@@ -1588,6 +1648,7 @@ function deviceMethods() {
   };
 }
 function fenceMethods() {
+  const readValue = (a) => (BigInt(number(a(2))) << 32n) | BigInt(number(a(1)));
   return {
     8: {
       argc: 1,
@@ -1598,10 +1659,94 @@ function fenceMethods() {
         };
       },
     },
+    // SetEventOnCompletion(Value, HANDLE): fences complete synchronously in
+    // this model, so a value at or below the current one signals the event now;
+    // a higher value is retained and signalled when a later Signal/Wait
+    // reaches it. Only one waiter is tracked per fence.
+    9: {
+      argc: 4,
+      invoke(r, a, o) {
+        const value = readValue(a);
+        const event = number(a(3));
+        if (!event) return E_INVALIDARG;
+        if (value <= o.state.value) r.syncObjects?.signal(event);
+        else o.state.waiters ??= [], o.state.waiters.push({ value, event });
+        return S_OK;
+      },
+    },
+    // Signal(Value): raise the fence and release any reached waiters.
+    10: {
+      argc: 3,
+      invoke(r, a, o) {
+        const value = readValue(a);
+        if (value < o.state.value) return E_INVALIDARG;
+        o.state.value = value;
+        for (const waiter of o.state.waiters ?? []) if (waiter.value <= value) r.syncObjects?.signal(waiter.event);
+        if (o.state.waiters) o.state.waiters = o.state.waiters.filter((w) => w.value > value);
+        return S_OK;
+      },
+    },
   };
 }
 function queueMethods() {
   return {
+    // Debug markers carry no rendering semantics.
+    11: {
+      argc: 4,
+      invoke(r, a) {
+        const size = number(a(3));
+        if (size) r.check(number(a(2)), size);
+        return undefined;
+      },
+    },
+    12: {
+      argc: 4,
+      invoke(r, a) {
+        const size = number(a(3));
+        if (size) r.check(number(a(2)), size);
+        return undefined;
+      },
+    },
+    13: { argc: 1, invoke: () => undefined },
+    // GetTimestampFrequency(UINT64 *pFrequency): one tick per virtual
+    // nanosecond, matching the guest performance clock and RDTSC.
+    16: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        r.check(out, 8, true);
+        r.write32(out, 0x40000000);
+        r.write32(out + 4, 0x3b9aca00); // 1,000,000,000
+        return S_OK;
+      },
+    },
+    // GetClockCalibration(UINT64 *pGpuTimestamp, UINT64 *pCpuTimestamp): both
+    // domains read the same monotonic guest clock.
+    17: {
+      argc: 3,
+      invoke(r, a) {
+        const gpu = number(a(1)),
+          cpu = number(a(2));
+        const now = r.performanceClock ? r.performanceClock.read() : 0n;
+        for (const out of [gpu, cpu]) {
+          if (!out) continue;
+          r.check(out, 8, true);
+          const ticks = BigInt.asUintN(64, now);
+          r.write32(out, Number(ticks & 0xffffffffn) >>> 0);
+          r.write32(out + 4, Number(ticks >> 32n) >>> 0);
+        }
+        return S_OK;
+      },
+    },
+    18: {
+      argc: 2,
+      invoke(r, a, q) {
+        const out = number(a(1));
+        r.check(out, 16, true);
+        r.data.fill(0, out, out + 16);
+        return undefined;
+      },
+    },
     10: {
       argc: 3,
       async invoke(r, a, q) {
@@ -1710,6 +1855,8 @@ function queueMethods() {
         const value = (BigInt(number(a(3))) << 32n) | BigInt(number(a(2)));
         if (value < fence.state.value) return E_INVALIDARG;
         fence.state.value = value;
+        for (const waiter of fence.state.waiters ?? []) if (waiter.value <= value) r.syncObjects?.signal(waiter.event);
+        if (fence.state.waiters) fence.state.waiters = fence.state.waiters.filter((w) => w.value > value);
         return S_OK;
       },
     },
