@@ -29,7 +29,12 @@ export class D3DClearRenderer {
         },
       ],
     });
-    const key = [!!surface.depthTexture, command.clearColor, command.clearDepth].join(':');
+    const key = [
+      !!surface.depthTexture,
+      surface.depthFormat,
+      command.clearColor,
+      command.clearDepth,
+    ].join(':');
     if (!this.pipelines.has(key))
       this.pipelines.set(
         key,
@@ -51,7 +56,7 @@ export class D3DClearRenderer {
           ...(surface.depthTexture
             ? {
                 depthStencil: {
-                  format: 'depth16unorm',
+                  format: surface.depthFormat,
                   depthWriteEnabled: command.clearDepth,
                   depthCompare: 'always',
                 },

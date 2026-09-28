@@ -59,6 +59,7 @@ export class D3D9ProgrammableRenderer {
       attributes,
       command.stride,
       !!surface.depthTexture,
+      surface.depthFormat,
       command.depthTest,
       command.depthWrite,
       command.depthCompare ?? 'less-equal',
@@ -118,7 +119,7 @@ export class D3D9ProgrammableRenderer {
         ...(surface.depthTexture
           ? {
               depthStencil: {
-                format: 'depth16unorm',
+                format: surface.depthFormat,
                 depthWriteEnabled: command.depthTest && command.depthWrite,
                 depthCompare: command.depthTest ? (command.depthCompare ?? 'less-equal') : 'always',
               },

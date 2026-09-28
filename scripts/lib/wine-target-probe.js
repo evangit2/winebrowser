@@ -314,6 +314,16 @@ export async function probeWineTarget(
         }
       }
       const record = { name, args, threadId: runtime.threads.current?.id };
+      if (name === 'user32.dll!EnumDisplaySettingsA' || name === 'user32.dll!ChangeDisplaySettingsA') {
+        try {
+          const devmode = args[2] >>> 0;
+          record.devmode = [...runtime.data.slice(devmode, devmode + 40)];
+          record.devmodeSize =
+            runtime.data[devmode + 36] | (runtime.data[devmode + 37] << 8);
+        } catch (error) {
+          record.devmodeError = error.message;
+        }
+      }
       if (['NtQueryAttributesFile', 'NtQueryFullAttributesFile'].includes(name)) {
         try {
           const string = runtime.read32(args[0] + 8),

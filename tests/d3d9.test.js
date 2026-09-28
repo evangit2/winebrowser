@@ -595,13 +595,15 @@ test('legacy SDK 31 uses the same COM factory, identity and device lifetime as S
   assert.equal(events.at(-1).type, 'destroy');
 });
 
-test('frontend enforces renderer dimensions, command budget, and D16-only depth', async () => {
+test('frontend enforces renderer dimensions, command budget, and depth-format support', async () => {
   const { runtime, call, factory, params, output, create } = fixture();
   runtime.write32(params + 0, 2049);
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0x8876086c);
   runtime.write32(params + 0, 0);
-  runtime.write32(params + 40, 75); // D24S8 needs stencil, which the backend lacks.
+  runtime.write32(params + 40, 77); // D16_LOCKABLE is not a supported depth attachment.
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0x8876086c);
+  runtime.write32(params + 40, 75); // D24S8 maps to a depth24plus attachment.
+  assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0);
   runtime.write32(params + 40, 80);
   const device = await create();
   for (let i = 0; i < 256; i++)
@@ -835,11 +837,12 @@ for (const version of [8, 9]) {
 }
 
 for (const version of [8, 9]) {
-  test(`D3D${version} depth matching exposes only the implemented D16 attachment`, async () => {
+  test(`D3D${version} depth matching exposes only the implemented D16/D24S8 attachments`, async () => {
     const { call, factory } = fixture(version);
     for (const color of [21, 22])
-      assert.deepEqual(await call(factory, 12, 0, 1, 22, color, 80), { result: 0, argc: 6 });
-    for (const depth of [0, 70, 75, 77, 79])
+      for (const depth of [75, 80])
+        assert.deepEqual(await call(factory, 12, 0, 1, 22, color, depth), { result: 0, argc: 6 });
+    for (const depth of [0, 70, 77, 79])
       assert.equal((await call(factory, 12, 0, 1, 22, 22, depth)).result, 0x8876086a);
     assert.equal((await call(factory, 12, 0, 1, 23, 22, 80)).result, 0);
     assert.equal((await call(factory, 12, 0, 1, 22, 23, 80)).result, 0);

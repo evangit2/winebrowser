@@ -639,6 +639,7 @@ function createDevice(runtime, argument, version) {
   const height = read(4) || window?.height;
   const format = read(8);
   const depth = !!read(36);
+  const autoDepthFormat = read(40);
   const windowed = !!read(32);
   const fullscreenMode = VIRTUAL_DISPLAY_MODES.find(
     (mode) => mode.width === width && mode.height === height && displayFormat(mode) === format,
@@ -662,8 +663,10 @@ function createDevice(runtime, argument, version) {
     read(32) > 1 ||
     (!windowed &&
       (!read(0) || !read(4) || !fullscreenMode || runtime.d3dFullscreen || window?.parentId)) ||
-    // The first backend gate has a depth buffer but no stencil attachment.
-    (depth ? read(40) !== 80 : read(40) !== 0) ||
+    // The shared renderer supplies depth-only attachments. D16 maps to a
+    // depth16unorm texture and D24S8 to depth24plus; guest stencil operations
+    // are not implemented, so any other depth format is rejected.
+    (depth ? ![75, 80].includes(autoDepthFormat) : autoDepthFormat !== 0) ||
     read(44) ||
     (windowed ? read(48) !== 0 : ![0, 60].includes(read(48))) ||
     ![0, 1, 0x80000000].includes(read(52))
@@ -674,6 +677,7 @@ function createDevice(runtime, argument, version) {
     width,
     height,
     depth,
+    depthFormat: depth ? (autoDepthFormat === 75 ? 'depth24plus' : 'depth16unorm') : null,
     windowed,
     colorFormat: format || displayFormat(currentDisplayMode(runtime)),
     swapEffect: read(24),

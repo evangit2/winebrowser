@@ -100,8 +100,13 @@ export function displayMethods(version) {
       argc: 6,
       invoke(_r, a) {
         if (a(1) !== 0) return INVALID;
-        // The shared renderer currently supplies D16 depth without stencil.
-        return a(2) === 1 && [22, 23].includes(a(3)) && [21, 22, 23].includes(a(4)) && a(5) === 80
+        // The shared renderer supplies depth-only attachments: D16 maps to a
+        // depth16unorm texture and D24S8 to depth24plus. Guest stencil
+        // operations are not implemented, so other depth formats are rejected.
+        return a(2) === 1 &&
+          [22, 23].includes(a(3)) &&
+          [21, 22, 23].includes(a(4)) &&
+          [75, 80].includes(a(5))
           ? 0
           : NOT_AVAILABLE;
       },

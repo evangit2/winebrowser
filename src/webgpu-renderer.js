@@ -73,6 +73,7 @@ export class WebGPURenderer {
     width,
     height,
     depth,
+    depthFormat = null,
     colorFormat = 22,
     swapEffect = 1,
     interval = 0x80000000,
@@ -85,6 +86,7 @@ export class WebGPURenderer {
       !integer(width, 1, MAX_DIMENSION) ||
       !integer(height, 1, MAX_DIMENSION) ||
       typeof depth !== 'boolean' ||
+      (depth ? !['depth16unorm', 'depth24plus'].includes(depthFormat) : depthFormat !== null) ||
       ![21, 22, 23].includes(colorFormat) ||
       ![1, 2, 3].includes(swapEffect) ||
       ![0, 1, 0x80000000].includes(interval)
@@ -135,7 +137,7 @@ export class WebGPURenderer {
         ? this.device.createTexture({
             label: 'guest depth buffer',
             size: [width, height],
-            format: 'depth16unorm',
+            format: depthFormat,
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
           })
         : null;
@@ -163,6 +165,7 @@ export class WebGPURenderer {
       readback,
       bytesPerRow,
       depthTexture,
+      depthFormat,
       depthInitialized: false,
       slots: [],
     });
@@ -250,6 +253,7 @@ export class WebGPURenderer {
       command.stride,
       blendKey(command),
       !!surface.depthTexture,
+      surface.depthFormat,
       command.depthTest,
       command.depthWrite,
       command.depthCompare ?? 'less-equal',
@@ -317,7 +321,7 @@ export class WebGPURenderer {
           ...(surface.depthTexture
             ? {
                 depthStencil: {
-                  format: 'depth16unorm',
+                  format: surface.depthFormat,
                   depthWriteEnabled: command.depthTest && command.depthWrite,
                   depthCompare: command.depthTest
                     ? (command.depthCompare ?? 'less-equal')
