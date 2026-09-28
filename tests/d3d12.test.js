@@ -889,3 +889,89 @@ test('CheckFeatureSupport answers the startup capability probes from a fixed pro
 
   await call(dev, 2);
 });
+
+test('descriptor copies, allocation info, custom heap properties and residency answer real startup calls', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // A 2-slot RTV heap plus an RTV bound to slot 0.
+  const heapDesc = alloc(16);
+  r.write32(heapDesc, 2);
+  r.write32(heapDesc + 4, 2);
+  const heap = await create(dev, 14, [heapDesc], 'heap');
+  const handleOut = alloc();
+  await call(heap, 9, handleOut);
+  const handle = r.read32(handleOut);
+
+  const props = alloc(20);
+  r.write32(props, 2);
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const desc = alloc(56);
+  r.write32(desc, 1);
+  r.write32(desc + 16, 128);
+  r.write32(desc + 24, 1);
+  r.view.setUint16(desc + 28, 1, true);
+  r.view.setUint16(desc + 30, 1, true);
+  r.write32(desc + 36, 1);
+  r.write32(desc + 44, 1);
+  const buffer = await create(dev, 27, [props, 0, desc, 0xac3, 0], 'resource');
+  await call(dev, 20, buffer, 0, handle);
+
+  const descriptors = r.d3d12State.descriptors;
+  assert.equal(descriptors.get(handle).resource, r.comObjects.objects.get(buffer));
+
+  // CopyDescriptorsSimple duplicates slot 0 into slot 1.
+  assert.equal((await call(dev, 24, 1, handle + 4, handle, 2)).result, 0);
+  assert.equal(descriptors.get(handle + 4).resource, descriptors.get(handle).resource);
+  // A mismatched heap type is rejected without mutating anything.
+  assert.equal((await call(dev, 24, 1, handle + 4, handle, 3)).result, 0x80070057);
+
+  // CopyDescriptors: two source ranges into two destinations of equal total.
+  descriptors.get(handle + 4).resource = null;
+  const dstOffsets = alloc(8),
+    dstSizes = alloc(8),
+    srcOffsets = alloc(8),
+    srcSizes = alloc(8);
+  r.write32(dstOffsets, handle);
+  r.write32(dstSizes, 1);
+  r.write32(dstOffsets + 4, handle + 4);
+  r.write32(dstSizes + 4, 1);
+  r.write32(srcOffsets, handle);
+  r.write32(srcSizes, 1);
+  r.write32(srcOffsets + 4, handle + 4);
+  r.write32(srcSizes + 4, 1);
+  assert.equal((await call(dev, 23, 2, dstOffsets, dstSizes, 2, srcOffsets, srcSizes, 2)).result, 0);
+  assert.equal(descriptors.get(handle).resource, r.comObjects.objects.get(buffer));
+  // Unequal totals are rejected.
+  r.write32(srcSizes + 4, 2);
+  assert.equal((await call(dev, 23, 2, dstOffsets, dstSizes, 2, srcOffsets, srcSizes, 2)).result, 0x80070057);
+
+  // GetResourceAllocationInfo (hidden struct return) sums buffer sizes.
+  const infoDesc = alloc(56);
+  r.write32(infoDesc, 1);
+  r.write32(infoDesc + 16, 4096);
+  const infoOut = alloc(16);
+  assert.equal((await call(dev, 25, infoOut, 1, 1, infoDesc)).result, undefined);
+  assert.equal(r.read32(infoOut), 4096);
+  // GetCustomHeapProperties echoes the heap type with node masks of 1.
+  const heapPropsOut = alloc(20);
+  assert.equal((await call(dev, 26, heapPropsOut, 1, 1)).result, undefined);
+  assert.equal(r.read32(heapPropsOut), 1);
+  assert.equal(r.read32(heapPropsOut + 12), 1);
+  assert.equal((await call(dev, 26, heapPropsOut, 2, 1)).result, 0x80070057, 'only node 0');
+
+  // MakeResident/Evict validate the object list and succeed.
+  const list = alloc(4);
+  r.write32(list, buffer);
+  assert.equal((await call(dev, 34, 1, list)).result, 0);
+  assert.equal((await call(dev, 35, 1, list)).result, 0);
+  assert.equal((await call(dev, 34, 0, 0)).result, 0, 'empty list is legal');
+
+  await call(heap, 2);
+  await call(buffer, 2);
+  await call(dev, 2);
+});

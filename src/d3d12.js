@@ -223,6 +223,24 @@ function floatBits(value) {
   data.setUint32(0, number(value), true);
   return data.getFloat32(0, true);
 }
+// Descriptor heaps are backed by a fixed set of CPU descriptor handle
+// addresses (one 4-byte slot per descriptor). Copying a descriptor duplicates
+// the resource binding from the source slot, matching how the RTV/DSV/CBV
+// creators store it.
+function copyDescriptorRange(r, dev, type, dstHandle, srcHandle, count) {
+  for (let i = 0; i < count; i++) {
+    const source = state(r).descriptors.get(srcHandle + i * 4);
+    const target = state(r).descriptors.get(dstHandle + i * 4);
+    if (!source || !source.heap.refs || source.heap.state.device !== dev)
+      return E_INVALIDARG;
+    if (!target || !target.heap.refs || target.heap.state.device !== dev)
+      return E_INVALIDARG;
+    if (source.heap.state.type !== type || target.heap.state.type !== type)
+      return E_INVALIDARG;
+    target.resource = source.resource ?? null;
+  }
+  return S_OK;
+}
 function uploadAt(r, address, size, dev) {
   for (const item of r.comObjects.objects.values()) {
     const s = item.state;
@@ -1082,6 +1100,143 @@ function deviceMethods() {
           throw Error('D3D12 DSV descriptor mismatch');
         d.resource = res;
         return undefined;
+      },
+    },
+    // CopyDescriptorsSimple: duplicate `count` descriptors between two heap
+    // slots of the same type.
+    24: {
+      argc: 5,
+      invoke(r, a, dev) {
+        const count = number(a(1)),
+          dst = number(a(2)),
+          src = number(a(3)),
+          type = number(a(4));
+        if (!count || count > 256) return E_INVALIDARG;
+        return copyDescriptorRange(r, dev, type, dst, src, count);
+      },
+    },
+    // CopyDescriptors: the ranged form. Destination and source ranges must
+    // describe the same total number of descriptors.
+    23: {
+      argc: 8,
+      invoke(r, a, dev) {
+        const dstCount = number(a(1)),
+          dstOffsets = number(a(2)),
+          dstSizes = number(a(3)),
+          srcCount = number(a(4)),
+          srcOffsets = number(a(5)),
+          srcSizes = number(a(6)),
+          type = number(a(7));
+        if (!dstCount || dstCount > 16 || !srcCount || srcCount > 16) return E_INVALIDARG;
+        r.check(dstOffsets, dstCount * 4);
+        r.check(dstSizes, dstCount * 4);
+        r.check(srcOffsets, srcCount * 4);
+        r.check(srcSizes, srcCount * 4);
+        const ranges = (offsets, sizes, count) =>
+          Array.from({ length: count }, (_, i) => ({
+            handle: u32(r, offsets, i * 4),
+            size: u32(r, sizes, i * 4),
+          }));
+        const destinations = ranges(dstOffsets, dstSizes, dstCount);
+        const sources = ranges(srcOffsets, srcSizes, srcCount);
+        if (destinations.some((entry) => !entry.size) || sources.some((entry) => !entry.size))
+          return E_INVALIDARG;
+        const total = (list) => list.reduce((sum, entry) => sum + entry.size, 0);
+        if (total(destinations) !== total(sources)) return E_INVALIDARG;
+        let srcIndex = 0,
+          srcOffset = 0;
+        for (const destination of destinations) {
+          let remaining = destination.size,
+            dstHandle = destination.handle;
+          while (remaining) {
+            const source = sources[srcIndex];
+            const take = Math.min(remaining, source.size - srcOffset);
+            const result = copyDescriptorRange(
+              r,
+              dev,
+              type,
+              dstHandle,
+              source.handle + srcOffset * 4,
+              take,
+            );
+            if (result !== S_OK) return result;
+            dstHandle += take * 4;
+            remaining -= take;
+            srcOffset += take;
+            if (srcOffset === source.size) {
+              srcIndex++;
+              srcOffset = 0;
+            }
+          }
+        }
+        return S_OK;
+      },
+    },
+    // GetResourceAllocationInfo uses the WIDL aggregate-return ABI: the caller
+    // supplies the 16-byte output as the first argument.
+    25: {
+      argc: 5,
+      invoke(r, a) {
+        const out = number(a(1));
+        const count = number(a(3));
+        if (!out || !count || count > 8) return E_INVALIDARG;
+        const descs = number(a(4));
+        r.check(descs, count * 56);
+        let size = 0;
+        for (let i = 0; i < count; i++) {
+          const dimension = u32(r, descs, i * 56);
+          if (dimension === 1) size += u32(r, descs, i * 56 + 16);
+          else return E_INVALIDARG;
+        }
+        r.check(out, 16, true);
+        r.data.fill(0, out, out + 16);
+        r.write32(out, size);
+        r.write32(out + 4, 1); // Alignment.
+        return undefined;
+      },
+    },
+    // GetCustomHeapProperties also returns a struct by hidden pointer.
+    26: {
+      argc: 4,
+      invoke(r, a) {
+        const out = number(a(1));
+        const nodeMask = number(a(2));
+        const heapType = number(a(3));
+        if (!out || nodeMask !== 1 || ![1, 2, 3].includes(heapType)) return E_INVALIDARG;
+        r.check(out, 20, true);
+        r.data.fill(0, out, out + 20);
+        r.write32(out, heapType);
+        r.write32(out + 12, 1); // CreationNodeMask.
+        r.write32(out + 16, 1); // VisibleNodeMask.
+        return undefined;
+      },
+    },
+    // Residency is a hint; every object is already resident in this bounded
+    // model, so both calls validate the list and succeed.
+    34: {
+      argc: 3,
+      invoke(r, a, dev) {
+        const count = number(a(1)),
+          list = number(a(2));
+        if (count > 16) return E_INVALIDARG;
+        if (count) {
+          r.check(list, count * 4);
+          for (let i = 0; i < count; i++) object(r, u32(r, list, i * 4), 'resource', dev);
+        }
+        return S_OK;
+      },
+    },
+    35: {
+      argc: 3,
+      invoke(r, a, dev) {
+        const count = number(a(1)),
+          list = number(a(2));
+        if (count > 16) return E_INVALIDARG;
+        if (count) {
+          r.check(list, count * 4);
+          for (let i = 0; i < count; i++) object(r, u32(r, list, i * 4), 'resource', dev);
+        }
+        return S_OK;
       },
     },
     27: {
