@@ -516,6 +516,31 @@ function listMethods() {
         return undefined;
       },
     },
+    // CopyResource(dst, src): whole-resource copy. Buffers must match in size;
+    // textures are handled by the renderer, which this bounded path models only
+    // as depth/swap-chain attachments.
+    17: {
+      argc: 3,
+      invoke(r, a, o) {
+        const dst = object(r, a(1), 'resource', o.state.device);
+        const src = object(r, a(2), 'resource', o.state.device);
+        if (dst.state.kind !== 'buffer' || src.state.kind !== 'buffer')
+          throw Error('Unsupported D3D12 CopyResource for non-buffer resources');
+        if (dst.state.size !== src.state.size)
+          throw Error('D3D12 CopyResource requires equal buffer sizes');
+        add(o, { type: 'copy-buffer', dst, dstOffset: 0, src, srcOffset: 0, size: dst.state.size });
+        return undefined;
+      },
+    },
+    // ExecuteBundle(ID3D12GraphicsCommandList *pCommandList): bundles are not
+    // supported; the empty form still fails explicitly.
+    27: {
+      argc: 2,
+      invoke(r, a) {
+        if (number(a(1))) throw Error('Unsupported D3D12 ExecuteBundle');
+        return undefined;
+      },
+    },
     // SetDescriptorHeaps(UINT NumDescriptorHeaps,
     //                    ID3D12DescriptorHeap *const *ppDescriptorHeaps)
     // Up to two heaps (CBV/SRV/UAV and SAMPLER) are recorded as bound.

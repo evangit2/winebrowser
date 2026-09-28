@@ -1408,3 +1408,70 @@ test('query heaps record guest-clock timestamps and resolve them into a buffer',
   await call(query, 2);
   await call(dev, 2);
 });
+
+test('CopyResource duplicates equal-sized buffers and rejects mismatches', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, f.guid(IID.device), out);
+  const dev = r.read32(out);
+  const queueDesc = alloc(16);
+  const queue = await create(dev, 8, [queueDesc], 'queue');
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+
+  const makeBuffer = async (heapType, size, state) => {
+    const props = alloc(20);
+    r.write32(props, heapType);
+    r.write32(props + 12, 1);
+    r.write32(props + 16, 1);
+    const desc = alloc(56);
+    r.write32(desc, 1);
+    r.write32(desc + 16, size);
+    r.write32(desc + 24, 1);
+    r.view.setUint16(desc + 28, 1, true);
+    r.view.setUint16(desc + 30, 1, true);
+    r.write32(desc + 36, 1);
+    r.write32(desc + 44, 1);
+    return create(dev, 27, [props, 0, desc, state, 0], 'resource');
+  };
+
+  const upload = await makeBuffer(2, 32, 0xac3);
+  const target = await makeBuffer(1, 32, 0);
+  const other = await makeBuffer(1, 16, 0);
+  const uploadStorage = (await call(upload, 11)).result;
+  const targetStorage = (await call(target, 11)).result;
+  for (let i = 0; i < 32; i++) r.data[uploadStorage + i] = 0x10 + i;
+
+  // Same-size whole-resource copy: barrier into COPY_DEST then CopyResource.
+  const barrier = alloc(24);
+  r.write32(barrier + 12, 0xffffffff);
+  r.write32(barrier + 8, target);
+  r.write32(barrier + 16, 0);
+  r.write32(barrier + 20, 0x400);
+  await call(list, 26, 1, barrier);
+  await call(list, 17, target, upload);
+  await call(list, 9);
+  const lists = alloc(4);
+  r.write32(lists, list);
+  await call(queue, 10, 1, lists);
+  assert.deepEqual(
+    [...r.data.subarray(targetStorage, targetStorage + 32)],
+    Array.from({ length: 32 }, (_, i) => 0x10 + i),
+    'CopyResource duplicated every byte',
+  );
+
+  // A size mismatch and a null resource fail before recording anything.
+  await call(allocator, 8);
+  await call(list, 10, allocator, 0);
+  await assert.rejects(call(list, 17, other, upload), /equal buffer sizes/);
+  await assert.rejects(call(list, 17, target, 0), /Invalid or released ID3D12Resource/);
+  await assert.rejects(call(list, 27, upload), /ExecuteBundle/);
+  await call(list, 2);
+  await call(allocator, 2);
+  await call(queue, 2);
+  await call(upload, 2);
+  await call(target, 2);
+  await call(other, 2);
+  await call(dev, 2);
+});
