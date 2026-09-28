@@ -838,3 +838,54 @@ test('DrawInstanced accepts bounded instance counts and first-instance offsets',
   await call(allocator, 2);
   await call(dev, 2);
 });
+
+test('CheckFeatureSupport answers the startup capability probes from a fixed profile', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // D3D12_FEATURE_D3D12_OPTIONS (feature 0) is 15 DWORDs.
+  const options = alloc(60);
+  assert.equal((await call(dev, 13, 0, options, 60)).result, 0);
+  assert.equal(r.read32(options + 16), 1, 'ResourceBindingTier');
+  assert.equal(r.read32(options + 36), 32, 'MaxGPUVirtualAddressBitsPerResource');
+  assert.equal(r.read32(options + 56), 1, 'ResourceHeapTier');
+
+  // D3D12_FEATURE_ARCHITECTURE (feature 1) only has node 0.
+  const arch = alloc(16);
+  r.write32(arch, 0);
+  assert.equal((await call(dev, 13, 1, arch, 16)).result, 0);
+  assert.ok(r.data.subarray(arch, arch + 16).every((b) => b === 0), 'non-UMA non-tiled');
+  r.write32(arch, 1);
+  assert.equal((await call(dev, 13, 1, arch, 16)).result, 0x80070057, 'only node 0 exists');
+
+  // D3D12_FEATURE_DATA_FEATURE_LEVELS (feature 2) clamps to 11_0.
+  const levels = alloc(12);
+  const requested = alloc(12);
+  r.write32(levels, 3);
+  r.write32(levels + 4, requested);
+  [0xb100, 0xa100, 0xb000].forEach((v, i) => r.write32(requested + i * 4, v));
+  assert.equal((await call(dev, 13, 2, levels, 12)).result, 0);
+  assert.equal(r.read32(levels + 8), 0xb000, 'clamps to D3D_FEATURE_LEVEL_11_0');
+  r.write32(levels + 4, 0);
+  assert.equal((await call(dev, 13, 2, levels, 12)).result, 0x80070057, 'NULL list rejected');
+
+  // SHADER_MODEL, ROOT_SIGNATURE and GPU_VIRTUAL_ADDRESS_SUPPORT.
+  const four = alloc(4);
+  assert.equal((await call(dev, 13, 7, four, 4)).result, 0);
+  assert.equal(r.read32(four), 0x51, 'D3D_SHADER_MODEL_5_1');
+  assert.equal((await call(dev, 13, 12, four, 4)).result, 0);
+  assert.equal(r.read32(four), 1, 'D3D_ROOT_SIGNATURE_VERSION_1');
+  const eight = alloc(8);
+  assert.equal((await call(dev, 13, 6, eight, 8)).result, 0);
+  assert.deepEqual([r.read32(eight), r.read32(eight + 4)], [32, 32]);
+
+  // Unknown features and undersized buffers fail explicitly.
+  assert.equal((await call(dev, 13, 99, four, 4)).result, 0x80070057, 'unknown feature');
+  assert.equal((await call(dev, 13, 0, options, 8)).result, 0x80070057, 'short buffer');
+  assert.equal((await call(dev, 13, 0, 0, 60)).result, 0x80070057, 'NULL output');
+
+  await call(dev, 2);
+});

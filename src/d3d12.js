@@ -914,6 +914,75 @@ function deviceMethods() {
         return S_OK;
       },
     },
+    // CheckFeatureSupport answers the capability probes real applications make
+    // at startup from a fixed, honest profile of the implemented backend.
+    13: {
+      argc: 3,
+      invoke(r, a) {
+        // COM method: argument(0) is `this`.
+        const feature = number(a(1));
+        const data = number(a(2));
+        const size = number(a(3));
+        if (!data || !size) return E_INVALIDARG;
+        const write = (bytes, fill) => {
+          if (size < bytes) return E_INVALIDARG;
+          r.check(data, bytes, true);
+          r.data.fill(0, data, data + bytes);
+          fill();
+          return S_OK;
+        };
+        switch (feature) {
+          case 0: // D3D12_FEATURE_D3D12_OPTIONS (15 DWORDs)
+            return write(60, () => {
+              r.write32(data + 16, 1); // ResourceBindingTier = TIER_1
+              r.write32(data + 36, 32); // MaxGPUVirtualAddressBitsPerResource
+              r.write32(data + 56, 1); // ResourceHeapTier = TIER_1
+            });
+          case 1: {
+            // D3D12_FEATURE_DATA_ARCHITECTURE: NodeIndex and the three WINBOOL
+            // outputs. Only node 0 exists; the adapter is a discrete-like,
+            // non-UMA device as far as this bounded backend is concerned.
+            if (size < 16) return E_INVALIDARG;
+            r.check(data, 16, true);
+            const nodeIndex = u32(r, data);
+            if (nodeIndex !== 0) return E_INVALIDARG;
+            r.data.fill(0, data, data + 16);
+            return S_OK;
+          }
+          case 2: {
+            // D3D12_FEATURE_DATA_FEATURE_LEVELS; clamp to what the translator
+            // actually compiles (SM5 DXBC, feature level 11_0).
+            if (size < 12) return E_INVALIDARG;
+            r.check(data, 12, true);
+            const count = u32(r, data);
+            const list = u32(r, data + 4);
+            if (!count || count > 16 || !list) return E_INVALIDARG;
+            r.check(list, count * 4);
+            let best = 0;
+            for (let i = 0; i < count; i++) {
+              const level = u32(r, list, i * 4);
+              if (level <= 0xb000 && level > best) best = level;
+            }
+            r.data.fill(0, data, data + 12);
+            r.write32(data, count);
+            r.write32(data + 4, list);
+            r.write32(data + 8, best || 0xb000);
+            return S_OK;
+          }
+          case 6: // GPU_VIRTUAL_ADDRESS_SUPPORT
+            return write(8, () => {
+              r.write32(data, 32);
+              r.write32(data + 4, 32);
+            });
+          case 7: // SHADER_MODEL
+            return write(4, () => r.write32(data, 0x51)); // D3D_SHADER_MODEL_5_1
+          case 12: // ROOT_SIGNATURE
+            return write(4, () => r.write32(data, 1)); // D3D_ROOT_SIGNATURE_VERSION_1
+          default:
+            return E_INVALIDARG;
+        }
+      },
+    },
     14: child(
       'heap',
       4,
