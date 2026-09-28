@@ -592,3 +592,81 @@ test('payload allocations roll back when COM object creation fails', async () =>
   assert.ok(!freed.includes(bufferDesc));
   assert.ok(!freed.includes(rootDesc));
 });
+
+test('CopyBufferRegion performs the canonical upload-to-default-heap copy with state tracking', async () => {
+  const f = fixture(),
+    { runtime: r, events, alloc, call, create, api } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, f.guid(IID.device), out);
+  const dev = r.read32(out);
+  const queueDesc = alloc(16);
+  const queue = await create(dev, 8, [queueDesc], 'queue');
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+
+  const makeBuffer = async (heapType, size, state) => {
+    const props = alloc(20);
+    r.write32(props, heapType);
+    r.write32(props + 12, 1);
+    r.write32(props + 16, 1);
+    const desc = alloc(56);
+    r.write32(desc, 1);
+    r.write32(desc + 16, size);
+    r.write32(desc + 24, 1);
+    r.view.setUint16(desc + 28, 1, true);
+    r.view.setUint16(desc + 30, 1, true);
+    r.write32(desc + 36, 1);
+    r.write32(desc + 44, 1);
+    return create(dev, 27, [props, 0, desc, state, 0], 'resource');
+  };
+
+  const upload = await makeBuffer(2, 16, 0xac3);
+  const target = await makeBuffer(1, 16, 0);
+  const uploadStorage = (await call(upload, 11)).result;
+  const targetStorage = (await call(target, 11)).result;
+
+  const mappedOut = alloc();
+  assert.equal((await call(upload, 8, 0, 0, mappedOut)).result, 0);
+  const mapped = r.read32(mappedOut);
+  for (let i = 0; i < 16; i++) r.data[mapped + i] = 0x40 + i;
+  await call(upload, 9, 0, 0);
+
+  // Barrier the default-heap buffer into COPY_DEST, copy, then into INDEX_BUFFER.
+  const barrier = alloc(24);
+  r.write32(barrier + 12, 0xffffffff);
+  r.write32(barrier + 8, target);
+  r.write32(barrier + 16, 0);
+  r.write32(barrier + 20, 0x400);
+  await call(list, 26, 1, barrier);
+  await call(list, 15, target, 0, 0, upload, 0, 0, 16, 0);
+  r.write32(barrier + 16, 0x400);
+  r.write32(barrier + 20, 0x2);
+  await call(list, 26, 1, barrier);
+  await call(list, 9);
+
+  const listPtr = alloc();
+  r.write32(listPtr, list);
+  await call(queue, 10, 1, listPtr);
+
+  assert.deepEqual(
+    [...r.data.subarray(targetStorage, targetStorage + 16)],
+    Array.from({ length: 16 }, (_, i) => 0x40 + i),
+    'the copy landed in the default-heap buffer storage',
+  );
+  assert.notEqual(targetStorage, uploadStorage);
+  assert.equal(events.filter((e) => e.type === 'execute').length, 1);
+
+  // A copy that exceeds either resource must fail before mutating storage.
+  await call(allocator, 8);
+  await call(list, 10, allocator, 0);
+  await assert.rejects(
+    call(list, 15, target, 8, 0, upload, 0, 0, 16, 0),
+    /exceeds a resource/,
+  );
+  await call(list, 2);
+  await call(target, 2);
+  await call(upload, 2);
+  await call(allocator, 2);
+  await call(queue, 2);
+  await call(dev, 2);
+});

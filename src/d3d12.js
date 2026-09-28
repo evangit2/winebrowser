@@ -15,6 +15,15 @@ const E_NOINTERFACE = 0x80004002;
 const MAX_BYTES = 1024 * 1024;
 const MAX_RESOURCE_BYTES = 8 * 1024 * 1024;
 const MAX_COMMANDS = 256;
+// D3D12_RESOURCE_STATES values the bounded renderer tracks. Buffers move
+// through COMMON/COPY_DEST/COPY_SOURCE and the shader-readable READ states;
+// depth targets only ever sit in DEPTH_WRITE; swapchain images alternate
+// between PRESENT and RENDER_TARGET.
+const BUFFER_STATES = new Set([0, 0x1, 0x2, 0x40, 0x80, 0x200, 0x400, 0x800, 0xac3]);
+const DEPTH_STATES = new Set([0, 0x10]);
+const COLOR_STATES = new Set([0, 4]);
+const resourceStates = (kind) =>
+  kind === 'depth' ? DEPTH_STATES : kind === 'color' ? COLOR_STATES : BUFFER_STATES;
 const OBJECT = 'c4fec28f-7966-4e95-9f94-f431cb56c3b8';
 const CHILD = '905db94b-a00c-4140-9df5-2b64ca9ea357';
 const PAGEABLE = '63ee58fb-1268-4835-86da-f008ce62f0d6';
@@ -125,18 +134,39 @@ function extraIids(kind, parent) {
   ];
 }
 
+// ID3D12Object private-data and debug-name calls appear throughout real
+// applications and carry no rendering semantics. Answer them without storing
+// anything: GetPrivateData reports "not found" and the setters succeed.
+const METADATA_METHODS = {
+  GetPrivateData: {
+    argc: 4,
+    invoke(r, a) {
+      const size = number(a(2));
+      if (size) output(r, size);
+      return 0x887a0002; // DXGI_ERROR_NOT_FOUND
+    },
+  },
+  SetPrivateData: { argc: 5, invoke: () => S_OK },
+  SetPrivateDataInterface: { argc: 4, invoke: () => S_OK },
+  SetName: { argc: 2, invoke: () => S_OK },
+};
 function make(r, kind, methods, itemState = {}, parent = null, onRelease = null) {
   if (parent) {
     if (parent.refs >= 0x7fffffff) throw Error('D3D12 parent reference limit exceeded');
     parent.refs++;
   }
+  const methodNames = names[kind].split(' ');
+  const table = { ...methods };
+  for (let slot = 0; slot < methodNames.length; slot++)
+    if (!table[slot] && METADATA_METHODS[methodNames[slot]])
+      table[slot] = METADATA_METHODS[methodNames[slot]];
   try {
     return r.comObjects.create({
       name: name[kind],
       iid: iids[kind],
       iids: extraIids(kind, parent),
-      methodNames: names[kind].split(' '),
-      methods,
+      methodNames,
+      methods: table,
       state: itemState,
       onRelease: async (item) => {
         await onRelease?.(item);
@@ -374,11 +404,37 @@ function listMethods() {
           const res = object(r, u32(r, p, 8), 'resource', o.state.device);
           const before = u32(r, p, 16),
             after = u32(r, p, 20);
-          if (![0, 4].includes(before) || ![0, 4].includes(after) || before === after)
+          const allowed = resourceStates(res.state.kind);
+          if (!allowed.has(before) || !allowed.has(after) || before === after)
             throw Error('Unsupported D3D12 resource state transition');
           barriers.push({ type: 'barrier', resource: res, before, after });
         }
         o.state.commands.push(...barriers);
+        return undefined;
+      },
+    },
+    15: {
+      // CopyBufferRegion(dst, DstOffset, src, SrcOffset, NumBytes); the two
+      // 64-bit offsets and the size arrive as low/high pairs on i386.
+      argc: 9,
+      invoke(r, a, o) {
+        const dst = object(r, a(1), 'resource', o.state.device);
+        const src = object(r, a(4), 'resource', o.state.device);
+        if (dst.state.kind !== 'buffer' || src.state.kind !== 'buffer')
+          throw Error('D3D12 CopyBufferRegion requires buffers');
+        if (number(a(3)) || number(a(6)) || number(a(8)))
+          throw Error('Unsupported 64-bit D3D12 CopyBufferRegion offset');
+        const dstOffset = number(a(2)),
+          srcOffset = number(a(5)),
+          size = number(a(7));
+        if (
+          !size ||
+          size > MAX_RESOURCE_BYTES ||
+          dstOffset + size > dst.state.size ||
+          srcOffset + size > src.state.size
+        )
+          throw Error('D3D12 CopyBufferRegion exceeds a resource');
+        add(o, { type: 'copy-buffer', dst, dstOffset, src, srcOffset, size });
         return undefined;
       },
     },
@@ -924,6 +980,30 @@ function queueMethods() {
               const current = states.get(c.resource) ?? c.resource.state.state;
               if (current !== c.before) throw Error('D3D12 resource state mismatch');
               states.set(c.resource, c.after);
+            } else if (c.type === 'copy-buffer') {
+              // The canonical upload pattern: Map an upload-heap buffer, write
+              // bytes, unmap, then CopyBufferRegion into a default-heap buffer
+              // before a state transition makes it shader-readable. The copy
+              // runs in command order against the guest storage, so a later
+              // vertex/index view that points at the default buffer sees it.
+              const dst = object(r, c.dst.pointer, 'resource', q.state.device);
+              const src = object(r, c.src.pointer, 'resource', q.state.device);
+              if (dst.state.kind !== 'buffer' || src.state.kind !== 'buffer')
+                throw Error('D3D12 CopyBufferRegion requires buffers');
+              const dstState = states.get(dst) ?? dst.state.state;
+              const srcState = states.get(src) ?? src.state.state;
+              if (![0, 0x400].includes(dstState))
+                throw Error('D3D12 CopyBufferRegion destination is not in a copyable state');
+              if (![0x800, 0xac3].includes(srcState))
+                throw Error('D3D12 CopyBufferRegion source is not in a copyable state');
+              if (
+                c.dstOffset + c.size > dst.state.size ||
+                c.srcOffset + c.size > src.state.size
+              )
+                throw Error('D3D12 CopyBufferRegion exceeds a resource');
+              const from = src.state.storage + c.srcOffset;
+              const to = dst.state.storage + c.dstOffset;
+              r.data.copyWithin(to, from, from + c.size);
             } else if (c.type === 'clear-depth') {
               const depth = object(r, c.target, 'resource', q.state.device);
               if (depth.state.kind !== 'depth' || depth.state.state !== 0x10)
