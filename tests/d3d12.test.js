@@ -975,3 +975,120 @@ test('descriptor copies, allocation info, custom heap properties and residency a
   await call(buffer, 2);
   await call(dev, 2);
 });
+
+test('create CBV/SRV/UAV/sampler descriptors, bind heaps and set stable power', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // One CBV/SRV/UAV heap (type 0, shader-visible) and one SAMPLER heap (type 1).
+  const makeHeap = async (type, count) => {
+    const desc = alloc(16);
+    r.write32(desc, type);
+    r.write32(desc + 4, count);
+    r.write32(desc + 12, 1); // SHADER_VISIBLE
+    const heap = await create(dev, 14, [desc], 'heap');
+    const handleOut = alloc();
+    await call(heap, 9, handleOut);
+    return { heap, base: r.read32(handleOut) };
+  };
+  const views = await makeHeap(0, 4);
+  const samplers = await makeHeap(1, 2);
+  assert.equal((await call(dev, 15, 0)).result, 4, 'descriptor increment is 4 bytes');
+  assert.equal((await call(dev, 15, 3)).result, 4);
+
+  // An upload buffer sized to hold a 256-byte constant buffer.
+  const props = alloc(20);
+  r.write32(props, 2);
+  r.write32(props + 12, 1);
+  r.write32(props + 16, 1);
+  const bufferDesc = alloc(56);
+  r.write32(bufferDesc, 1);
+  r.write32(bufferDesc + 16, 256);
+  r.write32(bufferDesc + 24, 1);
+  r.view.setUint16(bufferDesc + 28, 1, true);
+  r.view.setUint16(bufferDesc + 30, 1, true);
+  r.write32(bufferDesc + 36, 1);
+  r.write32(bufferDesc + 44, 1);
+  const buffer = await create(dev, 27, [props, 0, bufferDesc, 0xac3, 0], 'resource');
+  const storage = (await call(buffer, 11)).result;
+
+  const descriptors = r.d3d12State.descriptors;
+
+  // Constant buffer view bound at slot 0.
+  const cbv = alloc(16);
+  r.write32(cbv, storage);
+  r.write32(cbv + 4, 0);
+  r.write32(cbv + 8, 256);
+  assert.equal((await call(dev, 17, cbv, views.base)).result, 0);
+  assert.equal(descriptors.get(views.base).kind, 'cbv');
+  assert.equal(descriptors.get(views.base).size, 256);
+  // A size that runs past the resource is rejected without mutating the slot.
+  r.write32(cbv + 8, 512);
+  assert.equal((await call(dev, 17, cbv, views.base + 4)).result, 0x80070057);
+  assert.equal(descriptors.get(views.base + 4).kind, undefined);
+  // A CBV must target a type-0 heap; a sampler slot is refused.
+  assert.equal((await call(dev, 17, cbv, samplers.base)).result, 0x80070057);
+
+  // Shader resource view: buffer SRV with element range and stride.
+  const srv = alloc(40);
+  r.write32(srv, 0); // Format UNKNOWN for a structured buffer.
+  r.write32(srv + 4, 1); // D3D12_SRV_DIMENSION_BUFFER
+  r.write32(srv + 8, 0x00016800); // Default 4-component mapping.
+  r.write32(srv + 16, 0); // FirstElement
+  r.write32(srv + 24, 16); // NumElements
+  r.write32(srv + 28, 16); // StructureByteStride
+  assert.equal((await call(dev, 18, buffer, srv, views.base + 4)).result, 0);
+  assert.equal(descriptors.get(views.base + 4).kind, 'srv');
+  assert.equal(descriptors.get(views.base + 4).elementCount, 16);
+  r.write32(srv + 24, 1024); // Out-of-range element count.
+  assert.equal((await call(dev, 18, buffer, srv, views.base + 8)).result, 0x80070057);
+
+  // Unordered access view with no counter.
+  const uav = alloc(40);
+  r.write32(uav, 0);
+  r.write32(uav + 4, 1); // D3D12_UAV_DIMENSION_BUFFER
+  r.write32(uav + 8, 0);
+  r.write32(uav + 16, 8);
+  r.write32(uav + 20, 16);
+  assert.equal((await call(dev, 19, buffer, 0, uav, views.base + 8)).result, 0);
+  assert.equal(descriptors.get(views.base + 8).kind, 'uav');
+
+  // Sampler descriptor in the type-1 heap.
+  const samplerDesc = alloc(52);
+  r.write32(samplerDesc, 1); // Filter MIN_MAG_MIP_POINT
+  r.write32(samplerDesc + 24, 4); // ComparisonFunc NEVER (unused)
+  r.write32(samplerDesc + 48, 16); // MaxAnisotropy
+  assert.equal((await call(dev, 22, samplerDesc, samplers.base)).result, 0);
+  assert.equal(descriptors.get(samplers.base).kind, 'sampler');
+  // The sampler heap type is enforced.
+  assert.equal((await call(dev, 22, samplerDesc, views.base)).result, 0x80070057);
+
+  // SetStablePowerState is accepted.
+  assert.equal((await call(dev, 40, 1)).result, 0);
+
+  // Bind both heaps on a command list, then ClearState drops them.
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+  const listState = () => r.comObjects.objects.get(list).state;
+  const heapList = alloc(8);
+  r.write32(heapList, views.heap);
+  r.write32(heapList + 4, samplers.heap);
+  assert.equal((await call(list, 28, 2, heapList)).result, undefined);
+  assert.equal(listState().descriptorHeaps.length, 2);
+  // A single heap of each type is allowed; a duplicate type is not.
+  r.write32(heapList, views.heap);
+  assert.equal((await call(list, 28, 1, heapList)).result, undefined);
+  assert.equal(listState().descriptorHeaps.length, 1);
+  assert.equal((await call(list, 11)).result, undefined, 'ClearState');
+  assert.equal(listState().descriptorHeaps.length, 0);
+
+  await call(list, 2);
+  await call(allocator, 2);
+  await call(views.heap, 2);
+  await call(samplers.heap, 2);
+  await call(buffer, 2);
+  await call(dev, 2);
+});

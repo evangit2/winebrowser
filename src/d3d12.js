@@ -227,6 +227,14 @@ function floatBits(value) {
 // addresses (one 4-byte slot per descriptor). Copying a descriptor duplicates
 // the resource binding from the source slot, matching how the RTV/DSV/CBV
 // creators store it.
+// Resolve a descriptor slot that must belong to a heap of the given type on
+// the given device. Descriptor creators write their binding into this slot.
+function viewSlot(r, dev, handle, heapType) {
+  const entry = state(r).descriptors.get(number(handle));
+  if (!entry || !entry.heap.refs || entry.heap.state.device !== dev) return null;
+  if (entry.heap.state.type !== heapType) return null;
+  return entry;
+}
 function copyDescriptorRange(r, dev, type, dstHandle, srcHandle, count) {
   for (let i = 0; i < count; i++) {
     const source = state(r).descriptors.get(srcHandle + i * 4);
@@ -385,6 +393,7 @@ function listMethods() {
         o.state.viewport = null;
         o.state.scissor = null;
         o.state.topology = 0;
+        o.state.descriptorHeaps = [];
         o.state.commands = [];
         o.state.vertexBytes = 0;
         o.state.closed = false;
@@ -479,6 +488,28 @@ function listMethods() {
         )
           throw Error('D3D12 CopyBufferRegion exceeds a resource');
         add(o, { type: 'copy-buffer', dst, dstOffset, src, srcOffset, size });
+        return undefined;
+      },
+    },
+    // SetDescriptorHeaps(UINT NumDescriptorHeaps,
+    //                    ID3D12DescriptorHeap *const *ppDescriptorHeaps)
+    // Up to two heaps (CBV/SRV/UAV and SAMPLER) are recorded as bound.
+    28: {
+      argc: 3,
+      invoke(r, a, o) {
+        const count = number(a(1)),
+          ptr = number(a(2));
+        if (count > 2) throw Error('Unsupported D3D12 descriptor heap count');
+        if (count) r.check(ptr, count * 4);
+        const heaps = [];
+        for (let i = 0; i < count; i++) {
+          const heap = object(r, u32(r, ptr, i * 4), 'heap', o.state.device);
+          if (heap.state.type > 1) throw Error('D3D12 SetDescriptorHeaps requires CPU-visible heaps');
+          if (heaps.some((other) => other.state.type === heap.state.type))
+            throw Error('D3D12 descriptor heaps must have distinct types');
+          heaps.push(heap);
+        }
+        o.state.descriptorHeaps = heaps;
         return undefined;
       },
     },
@@ -620,6 +651,7 @@ function listMethods() {
         o.state.viewport = null;
         o.state.scissor = null;
         o.state.topology = 0;
+        o.state.descriptorHeaps = [];
         return undefined;
       },
     },
@@ -921,6 +953,7 @@ function deviceMethods() {
             viewport: null,
             scissor: null,
             topology: 0,
+            descriptorHeaps: [],
             commands: [],
             vertexBytes: 0,
             closed: false,
@@ -1007,17 +1040,19 @@ function deviceMethods() {
       (r, a, dev) => {
         const p = number(a(1));
         r.check(p, 16);
+        // D3D12_DESCRIPTOR_HEAP_TYPE: 0 CBV_SRV_UAV, 1 SAMPLER, 2 RTV, 3 DSV.
+        // Flags must be NONE or SHADER_VISIBLE; the runtime owns the storage.
         if (
-          ![2, 3].includes(u32(r, p)) ||
+          u32(r, p) > 3 ||
           u32(r, p, 4) < 1 ||
           u32(r, p, 4) > 16 ||
           u32(r, p, 8) ||
-          u32(r, p, 12)
+          u32(r, p, 12) & ~1
         )
           return E_INVALIDARG;
         const count = u32(r, p, 4),
           base = r.allocate(count * 4);
-        return { base, count, device: dev, type: u32(r, p) };
+        return { base, count, device: dev, type: u32(r, p), shaderVisible: !!u32(r, p, 12) };
       },
       {
         9: {
@@ -1048,9 +1083,11 @@ function deviceMethods() {
       },
     ),
     15: {
+      // Descriptor handles are guest addresses of 4-byte slots in our table,
+      // so the increment reported for every heap type stays 4.
       argc: 2,
       invoke(_r, a) {
-        return [2, 3].includes(number(a(1))) ? 4 : 0;
+        return number(a(1)) <= 3 ? 4 : 0;
       },
     },
     16: {
@@ -1102,6 +1139,129 @@ function deviceMethods() {
         return undefined;
       },
     },
+    // CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc,
+    //                         D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+    17: {
+      argc: 3,
+      invoke(r, a, dev) {
+        const desc = number(a(1)),
+          handle = number(a(2));
+        const slot = viewSlot(r, dev, handle, 0);
+        if (!slot) return E_INVALIDARG;
+        r.check(desc, 16);
+        const location = u32(r, desc),
+          locationHigh = u32(r, desc, 4),
+          size = u32(r, desc, 8);
+        if (locationHigh) return E_INVALIDARG;
+        const resource = uploadAt(r, location, 1, dev);
+        if (size < 1 || location + size > resource.state.storage + resource.state.size)
+          return E_INVALIDARG;
+        slot.kind = 'cbv';
+        slot.resource = resource;
+        slot.offset = location - resource.state.storage;
+        slot.size = size;
+        return S_OK;
+      },
+    },
+    // CreateShaderResourceView(ID3D12Resource *pResource,
+    //                          const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc,
+    //                          D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+    18: {
+      argc: 4,
+      invoke(r, a, dev) {
+        const resource = object(r, a(1), 'resource', dev);
+        const desc = number(a(2)),
+          handle = number(a(3));
+        const slot = viewSlot(r, dev, handle, 0);
+        if (!slot || resource.state.kind !== 'buffer') return E_INVALIDARG;
+        let format = 0,
+          dimension = 0,
+          componentMapping = 0;
+        if (desc) {
+          r.check(desc, 40);
+          format = u32(r, desc);
+          dimension = u32(r, desc, 4);
+          componentMapping = u32(r, desc, 8);
+          if (dimension === 1) {
+            // D3D12_BUFFER_SRV: FirstElement, NumElements, StructureByteStride.
+            r.check(desc + 16, 24);
+            const first = u32(r, desc, 16),
+              count = u32(r, desc, 24),
+              stride = u32(r, desc, 28);
+            if (first + count > resource.state.size) return E_INVALIDARG;
+            slot.firstElement = first;
+            slot.elementCount = count;
+            slot.stride = stride;
+          } else if (dimension !== 4) {
+            return E_INVALIDARG; // Only BUFFER and TEXTURE2D are modeled.
+          }
+        }
+        slot.kind = 'srv';
+        slot.resource = resource;
+        slot.format = format;
+        slot.dimension = dimension;
+        slot.componentMapping = componentMapping;
+        return S_OK;
+      },
+    },
+    // CreateUnorderedAccessView(ID3D12Resource *pResource,
+    //                           ID3D12Resource *pCounterResource,
+    //                           const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc,
+    //                           D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+    19: {
+      argc: 5,
+      invoke(r, a, dev) {
+        const resource = object(r, a(1), 'resource', dev);
+        const counter = a(2) ? object(r, a(2), 'resource', dev) : null;
+        const desc = number(a(3)),
+          handle = number(a(4));
+        const slot = viewSlot(r, dev, handle, 0);
+        if (!slot || resource.state.kind !== 'buffer') return E_INVALIDARG;
+        if (counter && counter.state.kind !== 'buffer') return E_INVALIDARG;
+        let format = 0,
+          dimension = 0;
+        if (desc) {
+          r.check(desc, 40);
+          format = u32(r, desc);
+          dimension = u32(r, desc, 4);
+          if (dimension === 1) {
+            const first = u32(r, desc, 8),
+              count = u32(r, desc, 16),
+              stride = u32(r, desc, 20);
+            if (first + count > resource.state.size) return E_INVALIDARG;
+            slot.firstElement = first;
+            slot.elementCount = count;
+            slot.stride = stride;
+          } else if (dimension !== 4) {
+            return E_INVALIDARG;
+          }
+        }
+        slot.kind = 'uav';
+        slot.resource = resource;
+        slot.counter = counter;
+        slot.format = format;
+        slot.dimension = dimension;
+        return S_OK;
+      },
+    },
+    // CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
+    //               D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
+    22: {
+      argc: 3,
+      invoke(r, a, dev) {
+        const desc = number(a(1)),
+          handle = number(a(2));
+        const slot = viewSlot(r, dev, handle, 1);
+        if (!slot) return E_INVALIDARG;
+        r.check(desc, 52);
+        slot.kind = 'sampler';
+        // Retain the raw description so a future sampler path can read it back.
+        slot.sampler = r.data.slice(desc, desc + 52);
+        return S_OK;
+      },
+    },
+    // SetStablePowerState(BOOL Enable) is a developer-only hint.
+    40: { argc: 2, invoke: () => S_OK },
     // CopyDescriptorsSimple: duplicate `count` descriptors between two heap
     // slots of the same type.
     24: {
