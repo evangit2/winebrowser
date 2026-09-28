@@ -27,6 +27,7 @@ export const X87Op = Object.freeze({
   arctangent: 23,
   examine: 21,
   free: 22,
+  conditionalMove: 24,
 });
 
 const POP = 1,
@@ -127,6 +128,24 @@ export function classifyX87(i, iced) {
   if (m === M.Fsin || m === M.Fcos || m === M.Fsincos)
     return result(X87Op.trigonometric, m === M.Fsin ? 0 : m === M.Fcos ? 1 : 2);
   if (m === M.Fxam) return result(X87Op.examine);
+  // FCMOVcc moves ST(i) into ST(0) only when the matching integer condition
+  // holds; otherwise the instruction is a no-op and raises no exception.
+  const conditionalMoves = new Map([
+    [M.Fcmovb, 0],
+    [M.Fcmove, 1],
+    [M.Fcmovbe, 2],
+    [M.Fcmovu, 3],
+    [M.Fcmovnb, 4],
+    [M.Fcmovne, 5],
+    [M.Fcmovnbe, 6],
+    [M.Fcmovnu, 7],
+  ]);
+  if (conditionalMoves.has(m))
+    return result(
+      X87Op.conditionalMove,
+      i.opCount > 1 ? reg(1) : reg(0),
+      conditionalMoves.get(m),
+    );
   if (m === M.Ffree) return result(X87Op.free, reg(0));
   if (m === M.Fabs || m === M.Fchs) return result(X87Op.sign, m === M.Fchs ? 1 : 0);
   if (m === M.Ftst) return result(X87Op.compare, 0, 0, ZERO);
@@ -415,6 +434,25 @@ export class X87State {
     if (op === X87Op.storeStack) {
       this.#set(a, this.#value(0));
       if (options & POP) this.#pop();
+      return;
+    }
+    if (op === X87Op.conditionalMove) {
+      // The integer condition codes come from the shared EFLAGS register file.
+      const f = this.flags.f ?? this.flags;
+      const cf = f.cf ? 1 : 0,
+        zf = f.zf ? 1 : 0,
+        pf = f.pf ? 1 : 0;
+      const condition = [
+        cf, // FCMOVB  / FCMOVC
+        zf, // FCMOVE  / FCMOVZ
+        cf | zf, // FCMOVBE / FCMOVNA
+        pf, // FCMOVU
+        cf ^ 1, // FCMOVNB / FCMOVNC
+        zf ^ 1, // FCMOVNE / FCMOVNZ
+        (cf | zf) ^ 1, // FCMOVNBE / FCMOVNBC
+        pf ^ 1, // FCMOVNU
+      ][b];
+      if (condition) this.#set(0, this.#value(a).slice());
       return;
     }
     if (op === X87Op.exchange) {

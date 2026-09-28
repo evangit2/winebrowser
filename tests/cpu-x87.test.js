@@ -985,3 +985,78 @@ test('freestanding native integer-x87 fixture passes the ordinary PE runtime', a
   const report = await probeX87Integer(iced, { files: new Map([['x87-integer.exe', bytes]]) });
   assert.equal(report.status, 'passed', report.failure);
 });
+
+// FCMOVcc moves ST(i) into ST(0) only when the matching integer condition
+// holds. The encodings are DA/DB C0..DF with ST(i) in the low three bits.
+const FCMOV = {
+  fcmovb: [0xda, 0xc0],
+  fcmove: [0xda, 0xc8],
+  fcmovbe: [0xda, 0xd0],
+  fcmovu: [0xda, 0xd8],
+  fcmovnb: [0xdb, 0xc0],
+  fcmovne: [0xdb, 0xc8],
+  fcmovnbe: [0xdb, 0xd0],
+  fcmovnu: [0xdb, 0xd8],
+};
+// Explicit flag pairs per condition: [movesWhen], [doesNotMoveWhen].
+const F = (cf, zf, pf) => ({ cf, zf, pf });
+const CONDITIONS = {
+  fcmovb: [F(1, 0, 0), F(0, 0, 0)],
+  fcmove: [F(0, 1, 0), F(0, 0, 0)],
+  fcmovbe: [F(1, 0, 0), F(0, 0, 0)],
+  fcmovu: [F(0, 0, 1), F(0, 0, 0)],
+  fcmovnb: [F(0, 0, 0), F(1, 0, 0)],
+  fcmovne: [F(0, 0, 0), F(0, 1, 0)],
+  fcmovnbe: [F(0, 0, 0), F(1, 0, 0)],
+  fcmovnu: [F(0, 0, 0), F(0, 0, 1)],
+};
+
+// Eight distinct, finite ext80 patterns so a copy is unmistakable.
+const CONSTANTS_FOR_TEST = [
+  '0000000000000000' + '0000',
+  '0000000000000080' + 'ff3f',
+  '00000000000000c0' + 'ff3f',
+  '0000000000000000' + '0140',
+  '0000000000000000' + '0240',
+  '0000000000000000' + '0340',
+  '0000000000000000' + '0440',
+  '0000000000000000' + '0540',
+].map((hex) => Uint8Array.from(hex.match(/../g), (x) => Number.parseInt(x, 16)));
+
+test('FCMOVcc conditionally copies ST(i) to ST0 for all eight integer conditions', async () => {
+  for (const [name, [opcode, base]] of Object.entries(FCMOV)) {
+    for (const i of [1, 2, 5, 7]) {
+      const { cpu } = await machine([opcode, base + i]);
+      try {
+        const [trueFlags, falseFlags] = CONDITIONS[name];
+        for (const [flags, expectMove] of [
+          [trueFlags, true],
+          [falseFlags, false],
+        ]) {
+          cpu.x87.reset();
+          cpu.x87.tags.fill(0);
+          cpu.x87.values.forEach((v, n) => v.set(CONSTANTS_FOR_TEST[n]));
+          const before = cpu.x87.snapshot();
+          cpu.f = { sf: 0, of: 0, af: 0, df: 0, ...flags };
+          cpu.step(CODE);
+          assert.equal(cpu.x87.top, before.top, `${name} ST(${i}) preserves TOP`);
+          for (let st = 0; st < 8; st++) {
+            // FCMOVcc copies ST(i) into ST(0); every other register, including
+            // the source, keeps its prior value.
+            const expected =
+              st === 0 ? (expectMove ? before.values[i] : before.values[0]) : before.values[st];
+            assert.deepEqual(cpu.x87.values[st], expected, `${name} ST(${i}) value ${st}`);
+          }
+          assert.equal(cpu.x87.status & 0xff, 0, `${name} raises no exception flags`);
+          assert.deepEqual(
+            { cf: cpu.f.cf, zf: cpu.f.zf, pf: cpu.f.pf },
+            flags,
+            `${name} preserves integer flags`,
+          );
+        }
+      } finally {
+        cpu.dispose();
+      }
+    }
+  }
+});
