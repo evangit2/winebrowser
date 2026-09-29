@@ -687,14 +687,17 @@ export class D3D12Renderer {
                 GPUBufferUsage.VERTEX,
               ),
             );
-          const groups = this.bindingGroups(
-            command.bindings,
-            draws++,
-            this.pipelines.get(command.pipeline)?.groupLayouts,
-          );
+          // A pipeline built from a parameterless root signature has no
+          // canonical layout and binds only the built-in empty groups.
+          const groups =
+            this.bindingGroups(
+              command.bindings,
+              draws,
+              this.pipelines.get(command.pipeline)?.groupLayouts,
+            ) ?? [];
           for (let group = 0; group < 3; group++)
             pass.setBindGroup(group, groups[group] ?? this.emptyGroup);
-          pass.setBindGroup(3, this.drawParameters(draws - 1, command));
+          pass.setBindGroup(3, this.drawParameters(draws++, command));
           pass.setViewport(v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth);
           pass.setScissorRect(s.left, s.top, s.right - s.left, s.bottom - s.top);
           if (command.indexCount !== undefined) {
