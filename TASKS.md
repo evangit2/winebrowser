@@ -228,6 +228,23 @@ D3D10/11 and broader D3D12 support are still required.
   loops complete, and the distinct-block count keeps rising. No accepted
   game frame renders yet, so the original EXE remains an open target. See
   `evidence/hamsterball-startup-browser.json`.
+
+- 2026-09-29: dropping the original game folder into the **interactive**
+  harness (not the instrumented probe) runs 113-118M guest instructions in
+  ~25s, opens its 800x600 window, creates the D3D8 device, loads its textures
+  through LockRect/CopyRects and reaches its message loop, then stops with an
+  unhandled read violation at `bass.dll+0x234e` reading one byte from
+  `0x6dcaa38a`. The report for that stop now carries the faulting encoding, the
+  register file and its operand windows snapshotted at fault time, the guest
+  exception chain and the recent execution path, plus the last OS calls and all
+  135 APIs the program reached (its protector drives
+  `GlobalAlloc`/`GlobalFree`/`VirtualProtect`/`LoadLibraryA`/`GetProcAddress`
+  and the heap family). The disassembly is a clean table lookup whose
+  destination table still holds non-pointer cipher values, so the open question
+  is whether the protector's own bulk decrypt or one of those emulated calls is
+  wrong. Bulk `memcpy`/`memmove`/`memset` now apply the code-write rule (they
+  write through the linear buffer and previously left stale translations); that
+  fix does not clear this stop.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
       See `docs/hlsl-compilation.md`; full upstream C++ execution remains open.
