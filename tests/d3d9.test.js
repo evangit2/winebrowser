@@ -878,7 +878,12 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 14 * 4), 0x4208);
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
-    for (const index of [17, 18, 34, 47, 49, 51]) assert.equal(runtime.read32(p + index * 4), 0);
+    for (const index of [17, 18, 34, 47]) assert.equal(runtime.read32(p + index * 4), 0);
+    // The programmable path compiles VS 1.1 and PS 2.0, so those versions are
+    // advertised while other shader models stay unadvertised.
+    assert.equal(runtime.read32(p + 49 * 4), 0xfffe0101);
+    assert.equal(runtime.read32(p + 50 * 4), 256);
+    assert.equal(runtime.read32(p + 51 * 4), 0xffff0200);
     assert.equal(runtime.read32(p + 15 * 4), 0x4005);
     assert.equal(runtime.read32(p + 16 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 22 * 4), 2048);

@@ -25,12 +25,27 @@ export function deviceCaps(version) {
   caps[37] = caps[38] = 1; // One blend stage and sampled texture.
   new Float32Array(caps.buffer)[28] = 1e10; // Finite homogeneous W range.
   caps[45] = 21845; // Triangle-list primitive count (65,535 vertices).
+  // The programmable path compiles VS 1.1 and PS 2.0 bytecode in the browser
+  // (see src/d3d9-programmable.js), so advertise exactly those versions. Other
+  // shader models stay unadvertised.
+  caps[49] = 0xfffe0101; // D3DVS_VERSION(1,1)
+  caps[50] = 256; // MaxVertexShaderConst, matching the device constant bank.
+  caps[51] = 0xffff0200; // D3DPS_VERSION(2,0)
+  new Float32Array(caps.buffer)[52] = 8; // D3D9 PixelShader1xMaxValue.
   if (version === 9) {
     caps[58] = 1; // NumberOfAdaptersInGroup.
     caps[60] = 1; // One render target.
+    // D3DPS20Caps: swizzle and gradient instructions pass through the browser
+    // shader compiler; predication and NP2 padding are not implemented.
+    const ps20 = 66;
+    caps[ps20] = 0x3; // ARBITRARYSWIZZLE | GRADIENTINSTRUCTIONS
+    caps[ps20 + 1] = 0; // DynamicFlowControlDepth.
+    caps[ps20 + 2] = 32; // NumTemps.
+    caps[ps20 + 3] = 0; // StaticFlowControlDepth.
+    caps[ps20 + 4] = 512; // NumInstructionSlots for ps_2_0.
   }
-  // Cube/volume textures, stencil, indexed streams and general shader
-  // models remain unadvertised until their corresponding paths are implemented.
+  // Cube/volume textures, stencil and indexed streams remain unadvertised
+  // until their corresponding paths are implemented.
   return caps;
 }
 export function writeDeviceCaps(runtime, pointer, version, adapter = 0, type = 1) {
