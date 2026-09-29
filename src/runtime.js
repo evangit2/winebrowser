@@ -435,8 +435,10 @@ export class Runtime {
       // Raw bytes at the addresses the faulting instruction actually used, so a
       // bad index or table entry is visible without a second reproduction.
       memory: error.faultMemory ?? null,
-      // The last OS calls the guest made, oldest first.
+      // The last OS calls the guest made, oldest first, and every distinct API
+      // and COM method the program reached.
       recentApiCalls: this.apiRing.slice(-24),
+      apiNames: [...this.apiNames].sort(),
       modules: this.graph.describe ? this.graph.describe() : [],
       exceptionFrames: frames,
       framesWalked: delivered?.frames ?? 0,
