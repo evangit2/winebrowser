@@ -1,6 +1,12 @@
 {
   "schemaVersion": 1,
-  "statusVocabulary": ["untested", "blocked", "passed", "partial", "failed"],
+  "statusVocabulary": [
+    "untested",
+    "blocked",
+    "passed",
+    "partial",
+    "failed"
+  ],
   "referenceFiles": [
     {
       "url": "https://raw.githubusercontent.com/m417z/winapiexec/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/winapiexec.c",
@@ -36,7 +42,11 @@
       "bytes": 3584,
       "sha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
       "architecture": "x86",
-      "imports": ["KERNEL32.dll", "USER32.dll", "SHELL32.dll"],
+      "imports": [
+        "KERNEL32.dll",
+        "USER32.dll",
+        "SHELL32.dll"
+      ],
       "downloadEntry": "winapiexec.exe",
       "source": {
         "project": "m417z/winapiexec",
@@ -118,7 +128,11 @@
         },
         {
           "id": "kernel32-beep",
-          "args": ["kernel32@Beep", "440", "20"],
+          "args": [
+            "kernel32@Beep",
+            "440",
+            "20"
+          ],
           "expected": "WebAudio tone at 440 Hz for 20 ms; exit code 1",
           "status": "passed",
           "evidence": {
@@ -128,7 +142,12 @@
         },
         {
           "id": "winmm-playsound-alias",
-          "args": ["winmm.dll@PlaySoundW", "$u:SystemAsterisk", "0", "0x00010001"],
+          "args": [
+            "winmm.dll@PlaySoundW",
+            "$u:SystemAsterisk",
+            "0",
+            "0x00010001"
+          ],
           "expected": "requests asynchronous playback of the Windows SystemAsterisk alias via a dynamically loaded winmm.dll",
           "status": "blocked",
           "statusNote": "SystemAsterisk with SND_ASYNC|SND_ALIAS is outside the measured implementation: current PlaySoundW support is synchronous filename playback (plus SND_NODEFAULT). The passing PCM filename case below verifies the same upstream EXE and PlaySoundW entry point."
@@ -165,7 +184,12 @@
             "bitsPerSample": 16,
             "frames": 80
           },
-          "args": ["winmm.dll@PlaySoundW", "tone.wav", "0", "0x20002"],
+          "args": [
+            "winmm.dll@PlaySoundW",
+            "tone.wav",
+            "0",
+            "0x20002"
+          ],
           "expected": "one AudioBufferSource starts and ends before exit; decoded mono PCM exactly matches the 80-frame test signal; exit code 1",
           "status": "passed",
           "evidence": {
@@ -413,7 +437,9 @@
       "bytes": 402,
       "sha256": "d8f1526db518a7ca9e43ead18b9f5d1d023a63ae4b8479cfd5d782e6811e9f85",
       "architecture": "x86",
-      "imports": ["KERNEL32.dll"],
+      "imports": [
+        "KERNEL32.dll"
+      ],
       "source": {
         "project": "pts/pts-tinype",
         "version": "master at 00bb8824c93188b236599c174af4269abf281664 (2025-06-23)",
@@ -434,7 +460,9 @@
       "bytes": 610,
       "sha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230",
       "architecture": "x86",
-      "imports": ["KERNEL32.dll"],
+      "imports": [
+        "KERNEL32.dll"
+      ],
       "source": {
         "project": "pts/pts-tinype",
         "version": "master at 00bb8824c93188b236599c174af4269abf281664 (2025-06-23)",
@@ -467,7 +495,13 @@
       "bytes": 602624,
       "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
       "architecture": "x86",
-      "imports": ["OLEAUT32.dll", "USER32.dll", "ADVAPI32.dll", "MSVCRT.dll", "KERNEL32.dll"],
+      "imports": [
+        "OLEAUT32.dll",
+        "USER32.dll",
+        "ADVAPI32.dll",
+        "MSVCRT.dll",
+        "KERNEL32.dll"
+      ],
       "source": {
         "project": "7-Zip",
         "version": "26.03",
@@ -477,7 +511,11 @@
       },
       "use": "Real console and filesystem workload from an upstream-built standalone archive tool; includes CRT and security API imports.",
       "workingDirectory": "public/demos/files",
-      "args": ["a", "winebrowser-target.7z", "assets/message.txt"],
+      "args": [
+        "a",
+        "winebrowser-target.7z",
+        "assets/message.txt"
+      ],
       "expected": "creates `winebrowser-target.7z` from the supplied existing text asset and reports successful archive creation",
       "statusNote": "Static import closure is unresolved: OLEAUT32, ADVAPI32, and MSVCRT are missing modules; the image also requires many unsupported KERNEL32 calls (including thread/event, VM, file-enumeration, and console APIs) and USER32 CharUpperW."
     },
@@ -550,7 +588,7 @@
     },
     {
       "id": "humus-dynamic-branching-d3d9-x86",
-      "status": "blocked",
+      "status": "runs",
       "path": ".cache/targets/DynamicBranching/DynamicBranching.exe",
       "bytes": 925696,
       "sha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
@@ -577,7 +615,7 @@
       "workingDirectory": ".cache/targets/DynamicBranching",
       "args": [],
       "expected": "opens the Dynamic Branching room scene, renders its shader variants and lighting, accepts camera/settings input, and closes cleanly",
-      "statusNote": "The unchanged EXE now passes source-built Wine loader registration and real guest DLL attach, enters its native startup, loads icon resource 101 and registers its window class, completes timing calibration and enumerates the virtual display. Both engines now pass LOCK XADD, F3 bit scans and ROL/ROR, create the application window and call Direct3DCreate9(31), then stop at unsupported IDirect3D9.GetDeviceCaps with zero rendered frames. Node and Chromium-worker reports retain the next runtime failures in evidence/wine-target-startup*.json; no rendered scene or application compatibility is claimed. Normal harness static inspection still reports 69 missing imports, while the optional Wine closure leaves seven explicit host-import traps. After startup it needs programmable vertex/index buffers, textures, stencil/depth/blending and indexed D3D9 draws; it requests Direct3DCreate9 SDK31. The bounded programmable cube is a separate original fixture."
+      "statusNote": "The unchanged upstream EXE now runs to its render loop in the browser: after source-built Wine loader registration, guest DLL attach, window creation and Direct3DCreate9(31), it creates its DXT1/DXT3 textures and 512x512 L8 font, compiles its shaders, and plays the Dynamic Branching scene with stencil shadow volumes and alpha-tested silhouettes. The browser probe presents three 798x570 frames of 39 draws each with differing pixel hashes, and the captured frame decodes to a coherent pillar-room scene lit by the demo's five coloured lights (25,770 distinct colours, mean luminance 27.6). Camera and settings input are not yet wired to the in-app browser harness, so the report does not claim full interactive parity."
     },
     {
       "id": "humus-inferno-d3d10-x86",
@@ -618,7 +656,13 @@
       "bytes": 16384,
       "sha256": "3687bc1cfe9a7657ca9da1daacec9f97a92946f0b0440acdb70d3a71a4560007",
       "architecture": "x86",
-      "imports": ["KERNEL32.dll", "USER32.dll", "GDI32.dll", "ADVAPI32.dll", "SHELL32.dll"],
+      "imports": [
+        "KERNEL32.dll",
+        "USER32.dll",
+        "GDI32.dll",
+        "ADVAPI32.dll",
+        "SHELL32.dll"
+      ],
       "downloadEntry": "tetris.exe",
       "source": {
         "project": "wesmar/Tetris",

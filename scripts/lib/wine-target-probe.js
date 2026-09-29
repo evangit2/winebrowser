@@ -131,6 +131,16 @@ export async function probeWineTarget(
           pixels.buffer.slice(pixels.byteOffset, pixels.byteOffset + pixels.byteLength),
         ),
       );
+      // Publish the first frame as an inline base64 PNG so the render can be
+      // inspected visually without a separate screenshot harness. A string
+      // keeps the JSON report compact instead of one number per byte.
+      if (!report.framePngBase64) {
+        const bytes = new Uint8Array(await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer());
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += 8192)
+          binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+        report.framePngBase64 = btoa(binary);
+      }
       report.frameSamples.push({
         windowId: message.windowId,
         width: canvas.width,
