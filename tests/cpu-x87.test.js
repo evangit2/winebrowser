@@ -1060,3 +1060,173 @@ test('FCMOVcc conditionally copies ST(i) to ST0 for all eight integer conditions
     }
   }
 });
+
+// FNSTENV/FNSAVE store the 28-byte environment (control, status, tag word,
+// instruction/data pointers, last opcode) and FNSAVE appends the eight 80-bit
+// registers in physical R0..R7 order before reinitializing the FPU.
+const ENV_STATE = () => ({
+  control: 0x0320, // RC=0, PC=11 (64-bit), only some exception masks set.
+  status: 0x0041,
+  top: 3,
+  tags: [0, 1, 2, 3, 0, 1, 2, 3],
+  values: Array.from({ length: 8 }, (_, i) => Uint8Array.from({ length: 10 }, () => 0xa0 + i)),
+});
+
+test('FNSAVE stores control (masked), status, the tag word and physical registers, then reinitializes', async () => {
+  const { cpu, view, bytes } = await machine([0xdd, 0x30]); // fnsave [eax]
+  try {
+    cpu.r[0].value = DATA;
+    const state = ENV_STATE();
+    cpu.x87.reset();
+    cpu.x87.control = state.control;
+    cpu.x87.status = state.status;
+    cpu.x87.top = state.top;
+    cpu.x87.tags.set(state.tags);
+    state.values.forEach((value, i) => cpu.x87.values[i].set(value));
+
+    cpu.step(CODE);
+
+    assert.equal(view.getUint16(DATA, true), state.control | 0x3f, 'every exception is masked');
+    assert.equal(
+      view.getUint16(DATA + 4, true),
+      (state.status & ~(7 << 11)) | (state.top << 11),
+      'status carries TOP in bits 11-13',
+    );
+    assert.equal(view.getUint16(DATA + 8, true), 0xe4e4, 'two-bit tags, physical order');
+    for (let i = 0; i < 8; i++)
+      assert.deepEqual(
+        [...bytes.subarray(DATA + 28 + i * 10, DATA + 38 + i * 10)],
+        [...state.values[i]],
+        `register R${i} stored in physical order`,
+      );
+    // FNSAVE reinitializes the FPU: default control, empty tags, TOP 0.
+    assert.equal(cpu.x87.control, 0x037f);
+    assert.equal(cpu.x87.status, 0);
+    assert.equal(cpu.x87.top, 0);
+    assert.ok([...cpu.x87.tags].every((tag) => tag === 3));
+  } finally {
+    cpu.dispose();
+  }
+});
+
+test('FRSTOR restores the environment and registers from an FNSAVE image', async () => {
+  const state = ENV_STATE();
+  const stateBytes = Uint8Array.from({ length: 108 }, () => 0);
+  const stateView = new DataView(stateBytes.buffer);
+  stateView.setUint16(0, state.control | 0x3f, true);
+  stateView.setUint16(4, (state.status & ~(7 << 11)) | (state.top << 11), true);
+  let tags = 0;
+  for (let i = 0; i < 8; i++) tags |= state.tags[i] << (i * 2);
+  stateView.setUint16(8, tags, true);
+  for (let i = 0; i < 8; i++) stateBytes.set(state.values[i], 28 + i * 10);
+
+  // Only the FRSTOR instruction: a block starting at the save instruction
+  // would otherwise re-save after the restore.
+  const { cpu, bytes } = await machine([0xdd, 0x20]); // frstor [eax]
+  try {
+    cpu.r[0].value = DATA;
+    cpu.x87.reset();
+    cpu.x87.control = 0x037f;
+    cpu.x87.tags.fill(3);
+    bytes.set(stateBytes, DATA);
+
+    cpu.step(CODE);
+
+    assert.equal(cpu.x87.control, state.control | 0x3f, 'control comes back as stored (masked)');
+    assert.equal(cpu.x87.top, state.top, 'TOP is restored');
+    assert.deepEqual([...cpu.x87.tags], state.tags, 'tag word is restored verbatim');
+    // Empty slots keep their undefined contents; only occupied registers load.
+    for (let i = 0; i < 8; i++)
+      if (state.tags[i] !== 3)
+        assert.deepEqual([...cpu.x87.values[i]], [...state.values[i]], `R${i} restored`);
+  } finally {
+    cpu.dispose();
+  }
+});
+
+test('an FNSAVE/FRSTOR round trip through memory preserves live x87 state', async () => {
+  const state = ENV_STATE();
+  // Two separate programs so each translated block holds exactly one state
+  // instruction: a save block and a restore block.
+  const save = await machine([0xdd, 0x30]); // fnsave [eax]
+  const restore = await machine([0xdd, 0x20]); // frstor [eax]
+  try {
+    save.cpu.r[0].value = DATA;
+    save.cpu.x87.reset();
+    save.cpu.x87.control = state.control;
+    save.cpu.x87.status = state.status;
+    save.cpu.x87.top = state.top;
+    save.cpu.x87.tags.set(state.tags);
+    state.values.forEach((value, i) => save.cpu.x87.values[i].set(value));
+    save.cpu.step(CODE);
+    const image = save.bytes.slice(DATA, DATA + 108);
+
+    restore.bytes.set(image, DATA);
+    restore.cpu.r[0].value = DATA;
+    restore.cpu.step(CODE);
+
+    assert.equal(restore.cpu.x87.control, state.control | 0x3f);
+    assert.equal(restore.cpu.x87.top, state.top);
+    assert.deepEqual([...restore.cpu.x87.tags], state.tags);
+    for (let i = 0; i < 8; i++)
+      if (state.tags[i] !== 3)
+        assert.deepEqual([...restore.cpu.x87.values[i]], [...state.values[i]]);
+  } finally {
+    save.cpu.dispose();
+    restore.cpu.dispose();
+  }
+});
+
+test('FNSTENV writes only the masked environment and leaves the live control word alone', async () => {
+  const { cpu, view } = await machine([0xd9, 0x30]); // fnstenv [eax]
+  try {
+    cpu.r[0].value = DATA;
+    const state = ENV_STATE();
+    cpu.x87.reset();
+    cpu.x87.control = state.control;
+    cpu.x87.status = state.status;
+    cpu.x87.top = state.top;
+    cpu.x87.tags.set(state.tags);
+    cpu.step(CODE);
+    assert.equal(view.getUint16(DATA, true), state.control | 0x3f, 'stored control is masked');
+    assert.equal(cpu.x87.control, state.control, 'the live control word is untouched by FNSTENV');
+    assert.equal(cpu.x87.top, state.top, 'FNSTENV does not pop or reinitialize');
+    assert.equal(view.getUint16(DATA + 8, true), 0xe4e4);
+  } finally {
+    cpu.dispose();
+  }
+});
+
+test('FLDENV restores control and tags but leaves register contents stale', async () => {
+  const state = ENV_STATE();
+  const envBytes = Uint8Array.from({ length: 28 }, () => 0);
+  const envView = new DataView(envBytes.buffer);
+  envView.setUint16(0, state.control | 0x3f, true);
+  envView.setUint16(4, (state.status & ~(7 << 11)) | (state.top << 11), true);
+  let tags = 0;
+  for (let i = 0; i < 8; i++) tags |= state.tags[i] << (i * 2);
+  envView.setUint16(8, tags, true);
+
+  const { cpu, bytes } = await machine([0xd9, 0x20]); // fldenv [eax]
+  try {
+    cpu.r[0].value = DATA;
+    cpu.x87.reset();
+    cpu.x87.tags.fill(0);
+    cpu.x87.values.forEach((value, i) => value.fill(0x11 * i));
+    bytes.set(envBytes, DATA);
+
+    cpu.step(CODE);
+
+    assert.equal(cpu.x87.control, state.control | 0x3f, 'control restored from the image');
+    assert.equal(cpu.x87.top, state.top, 'TOP restored');
+    assert.deepEqual([...cpu.x87.tags], state.tags, 'tags restored from the image');
+    // FLDENV does not reload the register file; only the tag word changes.
+    for (let i = 0; i < 8; i++)
+      assert.ok(
+        cpu.x87.values[i].every((byte) => byte === 0x11 * i),
+        `R${i} contents stay stale after FLDENV`,
+      );
+  } finally {
+    cpu.dispose();
+  }
+});

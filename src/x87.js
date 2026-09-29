@@ -28,6 +28,8 @@ export const X87Op = Object.freeze({
   examine: 21,
   free: 22,
   conditionalMove: 24,
+  storeState: 25,
+  loadState: 26,
 });
 
 const POP = 1,
@@ -37,7 +39,8 @@ const POP = 1,
   UNORDERED = 16,
   ZERO = 32,
   TRUNCATE = 64,
-  INTEGER = 128;
+  INTEGER = 128,
+  ENVIRONMENT = 256;
 
 const stIndex = (register, R) => (register >= R.ST0 && register <= R.ST7 ? register - R.ST0 : -1);
 
@@ -153,6 +156,14 @@ export function classifyX87(i, iced) {
   if (m === M.Fnstcw || m === M.Fstcw) return result(X87Op.storeControl);
   if (m === M.Fnstsw || m === M.Fstsw)
     return result(X87Op.storeStatus, i.opCount && i.opKind(0) === K.Register ? 1 : 0);
+  // FSAVE/FNSAVE write the 28-byte environment followed by the eight 80-bit
+  // registers and then reinitialize the FPU; FSTENV/FNSTENV write only the
+  // environment. FRSTOR/FLDENV are their inverses.
+  if (m === M.Fnsave || m === M.Fsave) return result(X87Op.storeState);
+  if (m === M.Fnstenv || m === M.Fstenv)
+    return result(X87Op.storeState, 0, 0, ENVIRONMENT);
+  if (m === M.Frstor) return result(X87Op.loadState);
+  if (m === M.Fldenv) return result(X87Op.loadState, 0, 0, ENVIRONMENT);
   if (m === M.Fninit || m === M.Finit) return result(X87Op.initialize);
   if (m === M.Fnclex || m === M.Fclex) return result(X87Op.clearExceptions);
   if (m === M.Wait) return result(X87Op.wait);
@@ -260,11 +271,15 @@ export class X87State {
     return this.values[n];
   }
 
+  #tagFor(value) {
+    const c = this.sf._wb_sf_classify(this.#put(value), 10);
+    return c & 1 ? 1 : c & (2 | 8 | 16 | 32) ? 2 : 0;
+  }
+
   #set(st, value) {
     const n = this.#physical(st);
     this.values[n].set(value);
-    const c = this.sf._wb_sf_classify(this.#put(value), 10);
-    this.tags[n] = c & 1 ? 1 : c & (2 | 8 | 16 | 32) ? 2 : 0;
+    this.tags[n] = this.#tagFor(value);
   }
 
   #push(value) {
@@ -393,6 +408,49 @@ export class X87State {
     }
     if (op === X87Op.storeControl)
       return this.#write(address, Uint8Array.of(this.control & 255, this.control >>> 8));
+    if (op === X87Op.storeState || op === X87Op.loadState) {
+      const environment = !!(options & ENVIRONMENT);
+      const size = environment ? 28 : 108;
+      if (width !== size) throw Error(`Unsupported x87 state width ${width}`);
+      if (op === X87Op.loadState) {
+        const bytes = this.#read(address, size);
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        this.control = view.getUint16(0, true);
+        const stored = view.getUint16(4, true);
+        this.status = stored & ~(7 << 11);
+        this.top = (stored >>> 11) & 7;
+        // The tag word restores verbatim in both forms (FLDENV historically
+        // leaves register contents stale next to a fresh tag word). Registers
+        // are stored in physical R0..R7 order and only reloaded by FRSTOR; an
+        // empty slot keeps its undefined contents and must not be read.
+        const storedTags = view.getUint16(8, true);
+        for (let i = 0; i < 8; i++) {
+          this.tags[i] = (storedTags >>> (i * 2)) & 3;
+          if (!environment && this.tags[i] !== 3)
+            this.values[i].set(bytes.subarray(28 + i * 10, 38 + i * 10));
+        }
+        return this.#configure();
+      }
+      const bytes = new Uint8Array(size);
+      const view = new DataView(bytes.buffer);
+      const status = (this.status & ~(7 << 11)) | (this.top << 11);
+      // FSTENV/FNSTENV/FSAVE/FNSAVE store the control word with every exception
+      // masked. The live control word is left untouched by FSTENV; FNSAVE
+      // reinitializes the FPU afterwards, which masks anyway.
+      view.setUint16(0, this.control | 0x3f, true);
+      view.setUint16(4, status, true);
+      let tag = 0;
+      for (let i = 0; i < 8; i++) tag |= this.tags[i] << (i * 2);
+      view.setUint16(8, tag, true);
+      // The instruction/data pointers and last opcode are documented as not
+      // meaningful on modern processors; leave them zeroed.
+      if (!environment)
+        for (let i = 0; i < 8; i++) bytes.set(this.values[i], 28 + i * 10);
+      this.#write(address, bytes);
+      // FSAVE/FNSAVE reinitialize the FPU after storing their state.
+      if (!environment) this.reset();
+      return;
+    }
     if (op === X87Op.storeStatus) {
       const status = (this.status & ~(7 << 11)) | (this.top << 11);
       if (a) this.registers[0].value = (this.registers[0].value & ~0xffff) | status;
