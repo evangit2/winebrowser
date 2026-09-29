@@ -390,9 +390,15 @@ D3D10/11 and broader D3D12 support are still required.
       parameter), `d3d12-constbuffer` (CBV descriptor table) and
       `d3d12-texture` (upload + SRV table + static sampler), plus
       `d3d12-terrain` (a generated 32,768-triangle indexed mesh with 32-bit
-      indices and a three-attribute input layout). D3D10/11 frontends, compute,
-      DXIL, bindless arrays and resource formats beyond those modelled remain
-      unfinished; no all-games claim is supported.
+      indices and a three-attribute input layout), `d3d12-blend` (three pipeline
+      blend states verified against the arithmetic each factor pair computes),
+      `d3d12-rootcbv` (a root CBV bound by GPU virtual address, no heap) and
+      `d3d12-rendertexture` (an offscreen render-target texture transitioned and
+      sampled back). Pipeline blend factors/operations, all eight depth
+      comparisons and a disabled depth test are mapped from D3D12 to WebGPU.
+      D3D10/11 frontends, compute, DXIL, bindless arrays, multisampling and
+      resource formats beyond those modelled remain unfinished; no all-games
+      claim is supported.
 - [x] Deliver guest access faults to the structured-exception chain. A guest
       memory fault raises `GuestFault`; a translated block records the guest
       address of the instruction it is executing immediately before any checked
