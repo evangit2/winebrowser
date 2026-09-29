@@ -1,0 +1,93 @@
+{
+  "scope": "D3D12 pipeline blend states: unblended, SRC_ALPHA/INV_SRC_ALPHA and additive ONE/ONE, verified against the colours each factor pair computes",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "154.0.8037.58",
+  "exeSha256": "31fddc3a2c739076a49ca7a121d925f01cd91aa06ecebd57f3945f29aca123b5",
+  "zipSha256": "bc896b309a3810ba5f098695579bf8bd59a4b2929c5dea67a7182f0a5774efe2",
+  "expected": {
+    "background": [
+      26,
+      36,
+      97
+    ],
+    "sourceAlphaOver": [
+      128,
+      33,
+      61
+    ],
+    "additive": [
+      154,
+      250,
+      125
+    ]
+  },
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "counts": [
+        [
+          "5,8,15",
+          108752
+        ],
+        [
+          "26,36,97",
+          62972
+        ],
+        [
+          "128,33,61",
+          60576
+        ],
+        [
+          "31,225,79",
+          39068
+        ],
+        [
+          "52,253,161",
+          27288
+        ],
+        [
+          "117,19,20",
+          5780
+        ],
+        [
+          "154,250,125",
+          2764
+        ]
+      ]
+    },
+    {
+      "mode": "hosted-zip",
+      "counts": [
+        [
+          "5,8,15",
+          108752
+        ],
+        [
+          "26,36,97",
+          62972
+        ],
+        [
+          "128,33,61",
+          60576
+        ],
+        [
+          "31,225,79",
+          39068
+        ],
+        [
+          "52,253,161",
+          27288
+        ],
+        [
+          "117,19,20",
+          5780
+        ],
+        [
+          "154,250,125",
+          2764
+        ]
+      ]
+    }
+  ],
+  "errors": []
+}

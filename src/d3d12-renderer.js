@@ -11,6 +11,29 @@ const DESCRIPTOR_KIND_NAMES = ['shader resource view', 'unordered access view', 
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 
+// D3D12's default is "write all channels"; an absent or disabled target writes
+// every channel with blending off.
+function colorTargetFor(target, alphaToCoverage) {
+  const writeMask = target?.writeMask ?? 0xf;
+  if (!target?.enabled) return { format: 'rgba8unorm', writeMask };
+  return {
+    format: 'rgba8unorm',
+    writeMask,
+    blend: {
+      color: {
+        operation: target.color.operation,
+        srcFactor: target.color.srcFactor,
+        dstFactor: target.color.dstFactor,
+      },
+      alpha: {
+        operation: target.alpha.operation,
+        srcFactor: target.alpha.srcFactor,
+        dstFactor: target.alpha.dstFactor,
+      },
+    },
+  };
+}
+
 // D3D12_FILTER -> WebGPU min/mag/mip filter and anisotropy. The equality and
 // comparison filters are unsupported (the backend has no shadow sampler path),
 // which is reported rather than silently changed to a filtering sampler.
@@ -253,6 +276,8 @@ export class D3D12Renderer {
     depth = null,
     cullMode = 'none',
     frontFace = 'cw',
+    blend = null,
+    alphaToCoverage = false,
     rootPlan = null,
   }) {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
@@ -359,7 +384,10 @@ export class D3D12Renderer {
         fragment: {
           module: this.device.createShaderModule({ code: ps.wgsl }),
           entryPoint: 'main',
-          targets: [{ format: 'rgba8unorm' }],
+          // Render target 0's blend state becomes the WebGPU target. The
+          // backend models exactly one target, and the frontend has already
+          // rejected independent blending on later targets.
+          targets: [colorTargetFor(blend?.[0], alphaToCoverage)],
         },
         primitive: { topology: 'triangle-list', cullMode, frontFace },
         ...(depth

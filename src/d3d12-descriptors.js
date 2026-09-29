@@ -81,6 +81,44 @@ export function parseInputLayout({ check, read32, readString, pointer, count }) 
   return { attributes, stride: maxEnd };
 }
 
+// D3D12_BLEND factors the backend can express as a WebGPU blend factor. The
+// dual-source (SRC1_*) and alpha-factor operands have no single-source WebGPU
+// equivalent and are rejected rather than silently substituted.
+const BLEND_FACTORS = {
+  1: 'zero',
+  2: 'one',
+  3: 'src',
+  4: 'one-minus-src',
+  5: 'src-alpha',
+  6: 'one-minus-src-alpha',
+  7: 'dst-alpha',
+  8: 'one-minus-dst-alpha',
+  9: 'dst',
+  10: 'one-minus-dst',
+  11: 'src-alpha-saturated',
+  14: 'constant',
+  15: 'one-minus-constant',
+};
+const BLEND_OPERATIONS = {
+  1: 'add',
+  2: 'subtract',
+  3: 'reverse-subtract',
+  4: 'min',
+  5: 'max',
+};
+
+function blendComponent(source, destination, operation) {
+  // MIN/MAX ignore the factors; D3D requires them to be ONE.
+  const op = BLEND_OPERATIONS[operation];
+  if (!op) throw Error(`Unsupported D3D12 blend operation ${operation}`);
+  const src = BLEND_FACTORS[source];
+  const dst = BLEND_FACTORS[destination];
+  if (!src || !dst) throw Error(`Unsupported D3D12 blend factor ${source}/${destination}`);
+  if (operation >= 4 && (source !== 2 || destination !== 2))
+    throw Error('D3D12 MIN/MAX blending requires ONE factors');
+  return { operation: op, srcFactor: src, dstFactor: dst };
+}
+
 export function parsePipelineDescriptor({ check, data, read32, readString, pointer }) {
   check(pointer, 572);
   if (
@@ -100,30 +138,32 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
     u32(read32, pointer, 392) !== 0xffffffff
   )
     throw Error('Unsupported D3D12 pipeline target/topology/sampling');
-  // D3D12_BLEND_DESC: two BOOLs, then 8 D3D12_RENDER_TARGET_BLEND_DESC entries
-  // of 40 bytes. Each entry is {Enable, LogicOpEnable, Src, Dest, Op, SrcA,
-  // DestA, OpA, LogicOp, WriteMask}. Both the all-zero CD3DX12 default and the
-  // D3D12_DEFAULT desc used by the Microsoft samples are valid opaque settings.
-  if (u32(read32, pointer, 64) || u32(read32, pointer, 68))
-    throw Error('Unsupported D3D12 alpha-to-coverage or independent blend state');
+  // D3D12_BLEND_DESC: AlphaToCoverageEnable, IndependentBlendEnable, then 8
+  // D3D12_RENDER_TARGET_BLEND_DESC entries of 40 bytes. Each entry is
+  // {Enable, LogicOpEnable, Src, Dest, Op, SrcA, DestA, OpA, LogicOp, WriteMask}.
+  // Render target 0 always applies; later targets only matter when independent
+  // blending is enabled, so unchanged later entries are ignored.
+  const alphaToCoverage = !!u32(read32, pointer, 64);
+  const independentBlend = !!u32(read32, pointer, 68);
+  const blend = [];
   for (let rt = 0; rt < 8; rt++) {
     const base = pointer + 72 + rt * 40;
     const entry = [0, 4, 8, 12, 16, 20, 24, 28, 32].map((offset) => u32(read32, base, offset));
     // RenderTargetWriteMask is a single UINT8; the following bytes are padding.
     const mask = data[base + 36];
-    const enabled = entry[0] >> 0;
-    const logicOpDisabled = entry[8] === 0 || entry[8] === 4;
-    const validDisabled =
-      !enabled &&
-      logicOpDisabled &&
-      entry.slice(1, 8).every((value) => value === 0) &&
-      (mask === 0 || mask === 15);
-    // CD3DX12_BLEND_DESC(D3D12_DEFAULT): Copy=ONE, ZERO, ADD for both color
-    // and alpha, LOGIC_OP_NOOP, and all write channels enabled.
-    const validDefault =
-      !enabled && logicOpDisabled && entry.slice(2, 8).join(',') === '2,1,1,2,1,1' && mask === 15;
-    if (!validDisabled && !validDefault)
-      throw Error(`Unsupported D3D12 render target ${rt} blend state: ${entry.join(',')},${mask}`);
+    const target = { writeMask: mask, enabled: !!entry[0] };
+    if (entry[1]) throw Error('Unsupported D3D12 logic-op blend target');
+    // LOGIC_OP_NOOP (4) is the only logic operation an active target may name.
+    if (entry[8] !== 0 && entry[8] !== 4)
+      throw Error(`Unsupported D3D12 logic operation ${entry[8]}`);
+    if (entry[0]) {
+      if (mask & ~0xf) throw Error('Unsupported D3D12 write mask');
+      target.color = blendComponent(entry[2], entry[3], entry[4]);
+      target.alpha = blendComponent(entry[5], entry[6], entry[7]);
+    } else if (mask & ~0xf) {
+      throw Error('Unsupported D3D12 write mask');
+    }
+    if (rt === 0 || independentBlend) blend.push(target);
   }
   // D3D12_RASTERIZER_DESC: FillMode, CullMode, FrontCCW, four scalars, three
   // BOOLs and ConservativeRaster. Solid fill with no/front/back culling is
@@ -179,6 +219,8 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
     depth,
     cullMode,
     frontFace,
+    blend,
+    alphaToCoverage,
   };
 }
 

@@ -58,6 +58,7 @@ jobs:
           npm run test:d3d12-texture
           npm run test:d3d12-terrain
           npm run test:seh
+          npm run test:d3d12-blend
         env:
           BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

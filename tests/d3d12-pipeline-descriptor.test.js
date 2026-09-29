@@ -80,23 +80,85 @@ test('D3D12 pipeline parser honors cull mode and front-face winding', () => {
   assert.equal(f.parse(front).frontFace, 'ccw');
 });
 
-test('D3D12 pipeline parser rejects unsupported blend, rasterizer and alpha state', () => {
+test('D3D12 pipeline parser maps an enabled blend state onto WebGPU factors', () => {
   const f = buffer();
-  // AlphaToCoverage / IndependentBlend are not supported.
-  let p = f.setup();
-  f.view.setUint32(p + 64, 1, true);
-  assert.throws(() => f.parse(p), /alpha-to-coverage/);
+  // SourceAlpha / OneMinusSourceAlpha with ADD on both colour and alpha is the
+  // ordinary "over" state a HUD or particle layer uses.
+  const p = f.setup();
+  f.view.setUint32(p + 72, 1, true); // Enable
+  f.view.setUint32(p + 80, 5, true); // SrcBlend = SRC_ALPHA
+  f.view.setUint32(p + 84, 6, true); // DestBlend = INV_SRC_ALPHA
+  f.view.setUint32(p + 88, 1, true); // BlendOp = ADD
+  f.view.setUint32(p + 92, 2, true); // SrcBlendAlpha = ONE
+  f.view.setUint32(p + 96, 1, true); // DestBlendAlpha = ZERO
+  f.view.setUint32(p + 100, 1, true); // BlendOpAlpha = ADD
+  f.data[p + 72 + 36] = 15; // RenderTargetWriteMask
+  const parsed = f.parse(p);
+  assert.equal(parsed.alphaToCoverage, false);
+  assert.deepEqual(parsed.blend, [
+    {
+      writeMask: 15,
+      enabled: true,
+      color: { operation: 'add', srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+      alpha: { operation: 'add', srcFactor: 'one', dstFactor: 'zero' },
+    },
+  ]);
+  // MIN/MAX ignore the factors, which D3D requires to be ONE.
+  const min = f.setup();
+  f.view.setUint32(min + 72, 1, true);
+  f.view.setUint32(min + 80, 2, true);
+  f.view.setUint32(min + 84, 2, true);
+  f.view.setUint32(min + 88, 4, true);
+  f.view.setUint32(min + 92, 2, true);
+  f.view.setUint32(min + 96, 2, true);
+  f.view.setUint32(min + 100, 4, true);
+  f.data[min + 72 + 36] = 15;
+  assert.deepEqual(f.parse(min).blend[0].color.operation, 'min');
+});
+
+test('D3D12 pipeline parser rejects unsupported rasterizer and blend state', () => {
+  const f = buffer();
   // Wireframe fill and depth bias are unsupported.
-  p = f.setup();
+  let p = f.setup();
   f.view.setUint32(p + 396, 2, true);
   assert.throws(() => f.parse(p), /rasterizer/);
   p = f.setup();
   f.view.setUint32(p + 408, 4, true);
   assert.throws(() => f.parse(p), /rasterizer/);
-  // An enabled blend state with non-default factors is unsupported.
+  // A dual-source factor has no single-source WebGPU equivalent, so it is
+  // refused rather than silently substituted.
   p = f.setup();
   f.view.setUint32(p + 72, 1, true);
-  assert.throws(() => f.parse(p), /blend state/);
+  f.view.setUint32(p + 80, 16, true); // SRC1_COLOR
+  f.view.setUint32(p + 84, 1, true);
+  f.view.setUint32(p + 88, 1, true); // BlendOp = ADD
+  f.view.setUint32(p + 92, 2, true);
+  f.view.setUint32(p + 96, 1, true);
+  f.view.setUint32(p + 100, 1, true);
+  f.data[p + 72 + 36] = 15;
+  assert.throws(() => f.parse(p), /blend factor/);
+  // A logic operation other than NOOP cannot be expressed.
+  p = f.setup();
+  f.view.setUint32(p + 72, 1, true);
+  f.view.setUint32(p + 80, 2, true);
+  f.view.setUint32(p + 84, 1, true);
+  f.view.setUint32(p + 88, 1, true);
+  f.view.setUint32(p + 92, 2, true);
+  f.view.setUint32(p + 96, 1, true);
+  f.view.setUint32(p + 100, 1, true);
+  f.view.setUint32(p + 104, 2, true); // LogicOp = COPY
+  assert.throws(() => f.parse(p), /logic operation/);
+  // A write mask outside RGBA is a malformed descriptor.
+  p = f.setup();
+  f.view.setUint32(p + 72, 1, true);
+  f.view.setUint32(p + 80, 2, true);
+  f.view.setUint32(p + 84, 1, true);
+  f.view.setUint32(p + 88, 1, true);
+  f.view.setUint32(p + 92, 2, true);
+  f.view.setUint32(p + 96, 1, true);
+  f.view.setUint32(p + 100, 1, true);
+  f.data[p + 72 + 36] = 0x80;
+  assert.throws(() => f.parse(p), /write mask/);
 });
 
 test('D3D12 input layouts map R32G32B32_FLOAT and R32G32B32A32_FLOAT to WebGPU formats', () => {

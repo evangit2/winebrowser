@@ -168,6 +168,15 @@
       "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Generates its mesh in guest code and uploads it through the canonical D3D12 heap path.",
       "exeSha256": "ddc4dee325aceded4423f0d11013f13d155091f435e0ea3094363de0072cf1c1",
       "zipSha256": "46dd2a17532a35471de26a276cd635229c7fc47b616cd1d117f81f014ef0ea21"
+    },
+    {
+      "name": "d3d12-blend",
+      "description": "Native Direct3D 12 blending: three pipelines over one region with blend disabled, SRC_ALPHA/INV_SRC_ALPHA and additive ONE/ONE, so the final pixels prove each blend state reached the GPU. Close the window to exit.",
+      "exe": "d3d12-blend/d3d12-blend.exe",
+      "zip": "d3d12-blend.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 blend descriptors and multiple pipeline states.",
+      "exeSha256": "31fddc3a2c739076a49ca7a121d925f01cd91aa06ecebd57f3945f29aca123b5",
+      "zipSha256": "bc896b309a3810ba5f098695579bf8bd59a4b2929c5dea67a7182f0a5774efe2"
     }
   ]
 }

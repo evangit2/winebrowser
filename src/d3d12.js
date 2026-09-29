@@ -1399,6 +1399,7 @@ function deviceMethods() {
             inputLayout: p.inputLayout,
             vertexStride: p.vertexStride,
             depth: p.depth,
+            blend: p.blend,
           },
           dev,
           async (o) => requireBackend(r).destroyPipeline({ id: o.pointer }),
@@ -1413,6 +1414,10 @@ function deviceMethods() {
             depth: p.depth,
             cullMode: p.cullMode,
             frontFace: p.frontFace,
+            // Blend state is baked into the D3D12 pipeline state, so it reaches
+            // the backend here rather than through the command list.
+            blend: p.blend,
+            alphaToCoverage: p.alphaToCoverage,
             // The pipeline's binding layout must follow the root signature the
             // pipeline state was created against.
             rootPlan: p.root.state.plan,
