@@ -11,55 +11,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 530,
-      "width": 640,
-      "height": 480,
-      "cellPixels": {
-        "235,90,45": 30653,
-        "40,170,210": 30636
-      },
-      "first": {
-        "width": 640,
-        "height": 480,
-        "counts": [
-          [
-            "9,17,36",
-            245911
-          ],
-          [
-            "235,90,45",
-            30653
-          ],
-          [
-            "40,170,210",
-            30636
-          ]
-        ],
-        "hash": "f4cfdcbf491b195f8ad730e9641048dd915a8119ba3dd0ffd915a5a02da118a3"
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "counts": [
-          [
-            "9,17,36",
-            240870
-          ],
-          [
-            "40,170,210",
-            33177
-          ],
-          [
-            "235,90,45",
-            33153
-          ]
-        ],
-        "hash": "98ef7002d17ddfeb3dddbcfde21dea34eae5abff43bd86277a29f5761ef6608e"
-      }
-    },
-    {
-      "mode": "hosted-zip",
-      "firstFourFramesMs": 397,
+      "firstFourFramesMs": 490,
       "width": 640,
       "height": 480,
       "cellPixels": {
@@ -91,18 +43,66 @@
         "counts": [
           [
             "9,17,36",
-            241205
+            240666
           ],
           [
             "40,170,210",
-            33075
+            33377
           ],
           [
             "235,90,45",
-            32920
+            33157
           ]
         ],
-        "hash": "50d53a37e7224f6200d045165666225fa8bc24c9f3cc859ff49242483d454746"
+        "hash": "b59b8badf113352185c6b220c23aed1290cedd38ebdfd5f09c34e0ad5a63f9a1"
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 372,
+      "width": 640,
+      "height": 480,
+      "cellPixels": {
+        "235,90,45": 31276,
+        "40,170,210": 31279
+      },
+      "first": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            244645
+          ],
+          [
+            "40,170,210",
+            31279
+          ],
+          [
+            "235,90,45",
+            31276
+          ]
+        ],
+        "hash": "2962a8f514b2ebbb7daaa77c6467fd1972c0352652341cddf23b2081d4ffa1e4"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            240666
+          ],
+          [
+            "40,170,210",
+            33377
+          ],
+          [
+            "235,90,45",
+            33157
+          ]
+        ],
+        "hash": "b59b8badf113352185c6b220c23aed1290cedd38ebdfd5f09c34e0ad5a63f9a1"
       }
     }
   ],

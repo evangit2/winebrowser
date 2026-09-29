@@ -7,7 +7,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 472,
+      "firstFourFramesMs": 531,
       "first": {
         "width": 640,
         "height": 480,
@@ -18,14 +18,14 @@
       "second": {
         "width": 640,
         "height": 480,
-        "colored": 81989,
-        "colors": 2,
-        "hash": "8c3f04dbb8c46a8e118d7738a3cf0c91178e3dd4344274603493e9d3e846f4f8"
+        "colored": 94206,
+        "colors": 4,
+        "hash": "5d8876a001af80a446b427f1df7d9c6149900a7e7ebb3a6c9745d251a2cf676f"
       }
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 379,
+      "firstFourFramesMs": 361,
       "first": {
         "width": 640,
         "height": 480,
@@ -36,9 +36,9 @@
       "second": {
         "width": 640,
         "height": 480,
-        "colored": 96063,
+        "colored": 95305,
         "colors": 4,
-        "hash": "703dadf867c94f9bffdf95d4a84f13b8ac709ec2b0c4c925136eb3f00f52c3a4"
+        "hash": "29dd949f7ad03bbc17393a398302c03b986015134e6a94b83b69c16444a348db"
       }
     }
   ],

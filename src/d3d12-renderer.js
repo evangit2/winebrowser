@@ -635,7 +635,6 @@ export class D3D12Renderer {
   }
 
   async execute({ commands }) {
-    this.validateCommands(commands);
     await this.initialize();
     if (this.graphics.failure) throw Error(this.graphics.failure);
     this.device.pushErrorScope('validation');

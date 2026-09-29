@@ -1,7 +1,7 @@
 {
   "demo": "d3d12-parade",
   "scope": "Native PE32 D3D12 fixture with 27 depth-tested indexed draws per frame, x87 guest transforms and per-vertex lighting, empty root signature, RTV/DSV descriptors, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
-  "date": "2026-09-29T11:18:23.012Z",
+  "date": "2026-09-29T12:20:03.200Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.58",
   "exeSha256": "a1e8a16ea357fad42243cd3527ef77707c88d932c58445c6eb746c3d4e3be1bd",
@@ -13,7 +13,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 565,
+      "firstFourFramesMs": 557,
       "first": {
         "width": 640,
         "height": 480,
@@ -31,16 +31,16 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 16,
-        "colored": 34858,
-        "colors": 34,
+        "frames": 15,
+        "colored": 34667,
+        "colors": 30,
         "corner": [
           9,
           17,
           36,
           255
         ],
-        "hash": "48c31268d3ff99b3fcd59aaf6f77cacf0e318ab6146a84d82ca9c5c4d28ee805"
+        "hash": "87cb7c44aa64f579a2734c0d2d9f065d2830c22fed0887a7ca1dedf303e94e4d"
       },
       "exitCode": 0,
       "compiledBlocks": 199,
@@ -48,7 +48,7 @@
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 447,
+      "firstFourFramesMs": 445,
       "first": {
         "width": 640,
         "height": 480,

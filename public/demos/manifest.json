@@ -134,6 +134,15 @@
       "zipSha256": "aeab708d6ca5b688c26e1a30070c464b54a0f52ec7614056c9e73caafa4d8689"
     },
     {
+      "name": "d3d12-constbuffer",
+      "description": "Native Direct3D 12 cube driven by a constant buffer bound through a CBV descriptor table (the HelloConstBuffers shape). Close the window to exit.",
+      "exe": "d3d12-constbuffer/d3d12-constbuffer.exe",
+      "zip": "d3d12-constbuffer.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 constant buffer views and descriptor tables.",
+      "exeSha256": "7b611560bd4aa899a8f9b3ceb541b1b6fa0580dd6a8991073a51c14e1d05f089",
+      "zipSha256": "a4aa7a405affabbbd36232596e7bb364b56ea5d2e20383f653c03895a56f2400"
+    },
+    {
       "name": "d3d12-constants",
       "description": "Native Direct3D 12 root-constants cube: the per-frame transform reaches the vertex shader as 32-bit root constants, so nothing is re-uploaded. Close the window to exit.",
       "exe": "d3d12-constants/d3d12-constants.exe",
