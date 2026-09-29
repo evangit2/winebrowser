@@ -1,5 +1,5 @@
-// msvcrt.dll. Real handlers where the runtime implements the entry point;
-// Minimal MSVCRT surface for the entry points native applications import when
+// msvcrt.dll: real handlers where the runtime implements the entry point, an
+// explicit trap otherwise. The msvcrt surface for the entry points applications import when
 // they statically link a CRT or load one indirectly. Everything here is pure
 // computation over guest memory; no host libc is involved. `$I10_OUTPUT` is
 // Wine's own algorithm: it converts the ext80 to a double and formats that, so
@@ -11,46 +11,27 @@ import {
 } from './msvcrt-exports.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
-// A double argument/result passed by value on the x86 stack. The runtime reads
-// the argument slot as two DWORDs and writes the result into eax:edx.
+// x86 argument passing: a double occupies two DWORDs on the stack, low half
+// first. The return convention is the important part: on i386 the MSVC and
+// MinGW ABIs return floating-point values in ST(0), not in eax:edx. Returning
+// the bits in eax would give the caller whatever the low half happened to be,
+// which is how a real program ends up dividing by zero.
 function doubleArg(r, a, index) {
   const low = a(index) >>> 0,
     high = a(index + 1) >>> 0;
   return new DataView(new Uint32Array([low, high]).buffer).getFloat64(0, true);
 }
-function doubleResult(compute, r, a) {
-  const bytes = new DataView(new ArrayBuffer(8));
-  bytes.setFloat64(0, compute(doubleArg(r, a, 0)), true);
-  const low = bytes.getUint32(0, true),
-    high = bytes.getUint32(4, true);
-  return { result: low | 0, resultHigh: high | 0, argc: 2 };
+function doubleResponse(r, value, argc) {
+  r.cpu.x87.pushDouble(value);
+  return { result: 0, argc };
 }
-function doubleResult2(compute, r, a) {
-  const bytes = new DataView(new ArrayBuffer(8));
-  bytes.setFloat64(0, compute(doubleArg(r, a, 0), doubleArg(r, a, 2)), true);
-  return {
-    result: bytes.getUint32(0, true) | 0,
-    resultHigh: bytes.getUint32(4, true) | 0,
-    argc: 4,
-  };
+function mathFunction1(compute) {
+  return (r, a) => doubleResponse(r, compute(doubleArg(r, a, 0)), 2);
+}
+function mathFunction2(compute) {
+  return (r, a) => doubleResponse(r, compute(doubleArg(r, a, 0), doubleArg(r, a, 2)), 4);
 }
 
-// struct _I10_OUTPUT_DATA { short pos; char sign; BYTE len; char str[22]; }
-const DATA_STR = 4,
-  DATA_SIZE = 4 + 22;
-const I10_MAX_PREC = 21;
-
-function unpackExt80(r, address) {
-  const sig = r.view.getBigUint64(address, true),
-    field = r.view.getUint16(address + 8, true);
-  const exponent = field & 0x7fff,
-    negative = !!(field & 0x8000);
-  const invalid = exponent !== 0 && !(sig & (1n << 63n));
-  const nan = exponent === 0x7fff && !!(sig & ((1n << 63n) - 1n));
-  return { sig, exponent, negative, invalid, nan, infinity: exponent === 0x7fff && sig === 1n << 63n };
-}
-
-// $I10_OUTPUT (_LDOUBLE ld80, int prec, int flag, struct _I10_OUTPUT_DATA *data)
 function i10Output(r, a) {
   const prec = a(1) | 0;
   let flag = a(2) | 0;
@@ -613,29 +594,92 @@ const NAMES = {
   },
   // The C math library, in binary64, matching the CRT's own double-precision
   // entry points (the x87 _CI* wrappers are separate).
-  floor: (r, a) => doubleResult(Math.floor, r, a),
-  ceil: (r, a) => doubleResult(Math.ceil, r, a),
-  sqrt: (r, a) => doubleResult(Math.sqrt, r, a),
-  fabs: (r, a) => doubleResult(Math.abs, r, a),
-  sin: (r, a) => doubleResult(Math.sin, r, a),
-  cos: (r, a) => doubleResult(Math.cos, r, a),
-  tan: (r, a) => doubleResult(Math.tan, r, a),
-  asin: (r, a) => doubleResult(Math.asin, r, a),
-  acos: (r, a) => doubleResult(Math.acos, r, a),
-  atan: (r, a) => doubleResult(Math.atan, r, a),
-  atan2: (r, a) => doubleResult2(Math.atan2, r, a),
-  exp: (r, a) => doubleResult(Math.exp, r, a),
-  log: (r, a) => doubleResult(Math.log, r, a),
-  log10: (r, a) => doubleResult(Math.log10, r, a),
-  pow: (r, a) => doubleResult2((x, y) => x ** y, r, a),
-  fmod: (r, a) => doubleResult2((x, y) => x % y, r, a),
-  cosh: (r, a) => doubleResult(Math.cosh, r, a),
-  sinh: (r, a) => doubleResult(Math.sinh, r, a),
-  tanh: (r, a) => doubleResult(Math.tanh, r, a),
-  atan2f: (r, a) => doubleResult2(Math.atan2, r, a),
-  fabsf: (r, a) => doubleResult(Math.abs, r, a),
-  sqrtf: (r, a) => doubleResult(Math.sqrt, r, a),
-  powf: (r, a) => doubleResult2((x, y) => x ** y, r, a),
+  // ldexp(x, n) = x * 2^n, with the int exponent in the second argument slot.
+  ldexp: (r, a) => doubleResponse(r, doubleArg(r, a, 0) * 2 ** (a(2) | 0), 3),
+  _copysign: (r, a) => doubleResponse(r, Math.abs(doubleArg(r, a, 0)) * (Math.sign(doubleArg(r, a, 2)) || 1), 4),
+  _chgsign: (r, a) => doubleResponse(r, -doubleArg(r, a, 0), 2),
+  frexp: (r, a) => {
+    const value = doubleArg(r, a, 0);
+    let exponent = 0, mantissa = value;
+    if (value && Number.isFinite(value)) {
+      exponent = Math.floor(Math.log2(Math.abs(value))) + 1;
+      mantissa = value / 2 ** exponent;
+    }
+    if (a(2)) {
+      r.check(a(2), 4, true);
+      r.write32(a(2), exponent | 0);
+    }
+    return doubleResponse(r, mantissa, 3);
+  },
+  modf: (r, a) => {
+    const value = doubleArg(r, a, 0),
+      integral = Math.trunc(value);
+    if (a(2)) {
+      r.check(a(2), 8, true);
+      new DataView(r.data.buffer, r.data.byteOffset).setFloat64(a(2), integral, true);
+    }
+    return doubleResponse(r, value - integral, 3);
+  },
+  floor: mathFunction1(Math.floor),
+  ceil: mathFunction1(Math.ceil),
+  sqrt: mathFunction1(Math.sqrt),
+  fabs: mathFunction1(Math.abs),
+  sin: mathFunction1(Math.sin),
+  cos: mathFunction1(Math.cos),
+  tan: mathFunction1(Math.tan),
+  asin: mathFunction1(Math.asin),
+  acos: mathFunction1(Math.acos),
+  atan: mathFunction1(Math.atan),
+  atan2: mathFunction2(Math.atan2),
+  exp: mathFunction1(Math.exp),
+  log: mathFunction1(Math.log),
+  log10: mathFunction1(Math.log10),
+  pow: mathFunction2((x, y) => x ** y),
+  fmod: mathFunction2((x, y) => x % y),
+  cosh: mathFunction1(Math.cosh),
+  sinh: mathFunction1(Math.sinh),
+  tanh: mathFunction1(Math.tanh),
+  atan2f: mathFunction2(Math.atan2),
+  fabsf: mathFunction1(Math.abs),
+  sqrtf: mathFunction1(Math.sqrt),
+  powf: mathFunction2((x, y) => x ** y),
+  // qsort/bsearch call a guest comparator with cdecl arguments. The sort is a
+  // stable merge sort over whole fixed-size records; only the comparator's
+  // ordering is used, never the records' contents.
+  qsort: async (r, a) => {
+    const base = a(0) >>> 0,
+      count = a(1) >>> 0,
+      size = a(2) >>> 0,
+      compare = a(3) >>> 0;
+    if (count < 2) return ok(0, 4);
+    if (!size || size > 4096 || count > 1 << 20) throw Error('Unsupported qsort size/count');
+    r.check(base, count * size);
+    const records = [];
+    for (let i = 0; i < count; i++) records.push(r.data.slice(base + i * size, base + (i + 1) * size));
+    const order = new Array(count).fill(0).map((_, i) => i);
+    // A simple bottom-up merge sort avoids deep recursion on large inputs.
+    for (let width = 1; width < count; width *= 2) {
+      const merged = [];
+      for (let start = 0; start < count; start += 2 * width) {
+        const left = order.slice(start, start + width),
+          right = order.slice(start + width, start + 2 * width);
+        let i = 0,
+          j = 0;
+        while (i < left.length && j < right.length) {
+          const result = await r.callGuest(compare, [base + left[i] * size, base + right[j] * size], 'cdecl');
+          if (result <= 0) merged.push(left[i++]);
+          else merged.push(right[j++]);
+        }
+        while (i < left.length) merged.push(left[i++]);
+        while (j < right.length) merged.push(right[j++]);
+      }
+      order.splice(0, order.length, ...merged);
+    }
+    const sorted = new Uint8Array(count * size);
+    order.forEach((index, position) => sorted.set(records[index], position * size));
+    r.data.set(sorted, base);
+    return ok(0, 4);
+  },
   _strdup: (r, a) => {
     const length = ansiLength(r, a).result;
     const copy = r.allocate(length + 1);
