@@ -15,6 +15,16 @@ export function resolveGuestPath(input, cwd = '', { allowRoot = false } = {}) {
   if (typeof input !== 'string' || !input || input.includes('\0'))
     throw Error('Invalid guest path');
   let path = input.replaceAll('\\', '/');
+  // The Win32 namespace prefixes name "no parsing, no normalization" forms of
+  // the same DOS path: `\\?\C:\x` is C:\x with long-path semantics and
+  // `\??\C:\x` is the NT object-manager spelling of it. A program that hits
+  // MAX_PATH switches to them, so they must resolve to the same file rather
+  // than being rejected as outside the volume. UNC verbatim paths
+  // (`\\?\UNC\server\share`) name a network share this process does not
+  // have, so they stay an error.
+  if (path.startsWith('//?/UNC/') || path.startsWith('/??/UNC/'))
+    throw Error('UNC paths are outside the package volume');
+  if (path.startsWith('//?/')) path = path.slice(4);
   if (path.startsWith('/??/')) path = path.slice(4);
   const root = GUEST_PACKAGE_ROOT.replaceAll('\\', '/').toLowerCase();
   let parts;

@@ -117,6 +117,27 @@ test('missing leaves and parents differ, malformed paths/pointers preserve outpu
   assert.equal(resolveGuestPath('C:\\winebrowser\\', '', { allowRoot: true }), '');
 });
 
+test('the Win32 namespace prefixes resolve to the same package path', () => {
+  // A program that exceeds MAX_PATH switches to the verbatim spellings. Both
+  // `\\?\C:\...` (long-path semantics) and `\??\C:\...` (the NT
+  // object-manager form) name the same file inside the package volume, so they
+  // must not be rejected as outside it.
+  for (const prefix of ['\\\\?\\', '\\??\\']) {
+    assert.equal(
+      resolveGuestPath(prefix + 'C:\\winebrowser\\app\\data\\payload.bin'),
+      'app/data/payload.bin',
+    );
+    assert.equal(
+      resolveGuestPath(prefix + 'C:\\winebrowser\\app\\data\\payload.bin', 'other/'),
+      'app/data/payload.bin',
+    );
+  }
+  // A verbatim UNC path names a network share this process does not have, so it
+  // stays an error rather than silently resolving inside the package.
+  assert.throws(() => resolveGuestPath('\\\\?\\UNC\\server\\share\\x'), /UNC paths/);
+  assert.throws(() => resolveGuestPath('\\??\\UNC\\server\\share\\x'), /UNC paths/);
+});
+
 test('guest writes/reads/truncation update shared metadata without changing imported creation time', (t) => {
   const { r, p, io, nt, api, attributes, name, time } = setup(t),
     attr = attributes('\\??\\C:\\winebrowser\\app\\data\\payload.bin');
