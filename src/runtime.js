@@ -136,6 +136,9 @@ export class Runtime {
     // diagnostics and compatibility reporting read.
     this.apiTrace = [];
     this.apiNames = new Set();
+    // The most recent interceptions with their arguments. A packed image that
+    // faults after an OS call needs the call, not just a stack address.
+    this.apiRing = [];
     this.blocks = 0;
     this.apiProvider = createWin32ApiProvider();
     this.threads = new GuestThreads(this);
@@ -156,6 +159,19 @@ export class Runtime {
 
   check(address, size, write = false) {
     return this.guestMemory.checkLinear(address, size, write);
+  }
+
+  recordApi(name, argument) {
+    const args = [];
+    for (let i = 0; i < 6; i++) {
+      try {
+        args.push('0x' + (argument(i) >>> 0).toString(16));
+      } catch {
+        break;
+      }
+    }
+    this.apiRing.push({ name, args });
+    if (this.apiRing.length > 64) this.apiRing.shift();
   }
 
   read32(address) {
@@ -181,6 +197,7 @@ export class Runtime {
       this.calls++;
       this.apiNames.add(entry.name);
       if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);
+      this.recordApi(entry.name, argument);
       try {
         response = await entry.invoke(this, argument);
       } catch (error) {
@@ -198,6 +215,7 @@ export class Runtime {
       this.calls++;
       this.apiNames.add(importKey(entry.dll, entry.name));
       if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
+      this.recordApi(importKey(entry.dll, entry.name), argument);
       response = await handler(this, argument);
     }
     const { result, resultHigh, argc, convention = 'stdcall' } = response;
@@ -380,10 +398,15 @@ export class Runtime {
       code: (() => {
         try {
           const at = (error.faultEip ?? this.cpu.instructionIp ?? 0) >>> 0;
-          const start = (at - 32) >>> 0;
-          return [...this.guestMemory.data.slice(start, at + 32)].map((b) =>
-            b.toString(16).padStart(2, '0'),
-          );
+          // Decoding is only meaningful from a block boundary, so a generous
+          // window lets a packed image's control flow be reconstructed.
+          const start = (at - 96) >>> 0;
+          return {
+            start: '0x' + start.toString(16),
+            bytes: [...this.guestMemory.data.slice(start, at + 48)].map((b) =>
+              b.toString(16).padStart(2, '0'),
+            ),
+          };
         } catch {
           return null;
         }
@@ -400,6 +423,28 @@ export class Runtime {
       },
       // Oldest first: the execution path that reached the fault.
       recentBlocks: this.cpu.recentPath().map((address) => locate(address)),
+      // The tail of the virtual-memory call log: a wild pointer is often one
+      // allocation that returned an unexpected base.
+      vmOperations: (this.virtualMemory.ops ?? []).slice(-64),
+      // Raw bytes at the addresses the faulting instruction actually used, so a
+      // bad index or table entry is visible without a second reproduction.
+      memory: ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi'].reduce((windows, name) => {
+        const register = ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'].indexOf(name);
+        const address = this.cpu.r[register].value >>> 0;
+        try {
+          windows[name] = {
+            address: '0x' + address.toString(16),
+            bytes: [...this.guestMemory.data.slice(address - 16, address + 48)].map((b) =>
+              b.toString(16).padStart(2, '0'),
+            ),
+          };
+        } catch {
+          // An unmapped register value is itself informative; omit it.
+        }
+        return windows;
+      }, {}),
+      // The last OS calls the guest made, oldest first.
+      recentApiCalls: this.apiRing.slice(-24),
       modules: this.graph.describe ? this.graph.describe() : [],
       exceptionFrames: frames,
       framesWalked: delivered?.frames ?? 0,
