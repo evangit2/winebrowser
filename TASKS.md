@@ -373,7 +373,37 @@ D3D10/11 and broader D3D12 support are still required.
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
 - [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. The native D3D9 cube passes a bounded bootstrap frontend. Next establish Wine-derived state/resources and programmable rendering with the pinned Humus Dynamic Branching D3D9 EXE. Programmable shader draws and float constants pass backend pixel checks; the application still needs more Win32 startup, CPU coverage, buffers, textures, stencil and indexed D3D9 draws. See [graphics handoff](docs/graphics-handoff.md).
-- [ ] Implement D3D10/11 frontends and expand the bounded D3D12 path: root bindings, textures, resource formats, shaders, compute and DXIL. The passing native DX12 fixture does not establish independent game compatibility or x64 execution. No all-games or instant-startup claim is supported.
+- [x] Broaden the D3D12 path from the empty-root-signature bootstrap to the
+      ordinary descriptor flow. A root signature is now inspected, not merely
+      accepted, and its parameters, descriptor ranges and static samplers drive
+      a canonical WebGPU layout: constant buffers in group 0, SRVs/UAVs in
+      group 1, samplers in group 2, with the draw-parameter group left free.
+      Shaders are scanned for the registers they declare and compiled against
+      that layout, so a program's own signature reaches its pipeline unchanged.
+      The command list records descriptor tables, root descriptors and inline
+      32-bit constants; sampled 2D textures are committed resources uploaded
+      through `GetCopyableFootprints` and `CopyTextureRegion` and bound from an
+      SRV descriptor table. Draw counts and index counts are no longer capped at
+      65,535 (they are UINTs in both D3D12 and WebGPU; the upload snapshot
+      bounds a draw). Three new targets verify the breadth on the EXE-upload and
+      hosted-ZIP browser paths: `d3d12-constants` (32-bit-constants root
+      parameter), `d3d12-constbuffer` (CBV descriptor table) and
+      `d3d12-texture` (upload + SRV table + static sampler), plus
+      `d3d12-terrain` (a generated 32,768-triangle indexed mesh with 32-bit
+      indices and a three-attribute input layout). D3D10/11 frontends, compute,
+      DXIL, bindless arrays and resource formats beyond those modelled remain
+      unfinished; no all-games claim is supported.
+- [x] Deliver guest access faults to the structured-exception chain. A guest
+      memory fault raises `GuestFault`; a translated block records the guest
+      address of the instruction it is executing immediately before any checked
+      access; and the dispatcher offers the fault to the registration chain at
+      `fs:[0]`. The handler return value is `EXCEPTION_DISPOSITION`, the record
+      and `I386_CONTEXT` follow the documented offsets, and `RtlUnwind` walks
+      the chain with `EXCEPTION_UNWINDING` set. A fault with no chain, or one
+      every handler declines, still stops the run. Verified by a native PE32
+      fixture whose own filter observes the access-violation record and resumes
+      past the fault, in Node and Chromium; see
+      [structured exceptions](docs/structured-exceptions.md).
 - [ ] Expand audio beyond synchronous PCM, and add networking and other OS services with explicit browser constraints.
 - [ ] Persist registry and application-file overlays between runs; support reopening saved applications.
 - [ ] Add wider compatibility/performance testing against native behavior. No claim that arbitrary EXEs run or can simply be compiled to Wasm.
