@@ -43,7 +43,8 @@ export function fogSnapshot(state) {
 export function validFog(fog) {
   return (
     fog === undefined ||
-    (fog !== null &&
+    fog === null ||
+    (
       typeof fog === 'object' &&
       FOG_MODE[fog.mode] !== null &&
       Number.isInteger(fog.color) &&
