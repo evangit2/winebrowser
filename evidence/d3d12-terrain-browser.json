@@ -7,25 +7,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 9523,
-      "first": {
-        "width": 640,
-        "height": 480,
-        "distinct": 478,
-        "draws": 6,
-        "hash": "66b136b4a60f212fe742fec013c1d880ce0a8ffd20b59673c8e0b5eb119c8b97"
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "distinct": 483,
-        "draws": 770,
-        "hash": "43ce81daed90528a84797e3a17be91e397d73fbe5a88ba2d53d7a9deb247691c"
-      }
-    },
-    {
-      "mode": "hosted-zip",
-      "firstFourFramesMs": 9231,
+      "firstFourFramesMs": 9363,
       "first": {
         "width": 640,
         "height": 480,
@@ -36,9 +18,27 @@
       "second": {
         "width": 640,
         "height": 480,
-        "distinct": 484,
-        "draws": 766,
-        "hash": "af18f97316198213886a290bb0cb9cf5a21644a9d3e113bb88803471960da08a"
+        "distinct": 475,
+        "draws": 713,
+        "hash": "e3632a5f752b4a5b5ee6c897c66c5b8cdfb6ab1f2ad9d70abbf07121b81d763c"
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 9046,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "distinct": 479,
+        "draws": 9,
+        "hash": "6fa860484744ac70c7223fe599be4c4166c6fd3975cb83c24dff35e686ccfb48"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "distinct": 466,
+        "draws": 700,
+        "hash": "07175635d3cf23fc589277e1457a3efbefda50844e6fb0ae99e801eb7b1b5c9c"
       }
     }
   ],

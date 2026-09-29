@@ -508,3 +508,133 @@ export function parseRootSignatureDescriptor({ check, read32, readFloat32, point
   }
   return words;
 }
+
+// D3D12_VERSIONED_ROOT_SIGNATURE_DESC and the version 1.1 records. The 1.1
+// parameter and range records add a Flags field, so their sizes differ from the
+// 1.0 ones; the parser accepts either version and feeds the same flattened
+// layout the bridge builds.
+//   versioned desc  Version 0, then the union at 4       (16 bytes, aligned 8)
+//   parameter 1.0   ParameterType 0, union 4..15, Visibility 16   (20)
+//   parameter 1.1   ParameterType 0, union 4..15, Visibility 16   (20)
+//   range 1.0       RangeType 0, Num 4, Base 8, Space 12, Offset 16 (20)
+//   range 1.1       RangeType 0, Num 4, Base 8, Space 12, Flags 16,
+//                   Offset 20                                    (24)
+const MAX_VERSIONED_PARAMETERS = 64;
+const VERSIONED_RANGE_1_0_BYTES = 20;
+const VERSIONED_RANGE_1_1_BYTES = 24;
+
+/**
+ * Reads a guest D3D12_VERSIONED_ROOT_SIGNATURE_DESC into the same flattened
+ * word layout `buildRootSignature` consumes. Returns null when the description
+ * is outside the bounded subset, so the caller reports E_INVALIDARG.
+ */
+export function parseVersionedRootSignatureDescriptor({ check, read32, readFloat32, pointer }) {
+  const u32 = (at) => read32(at) >>> 0;
+  if (!pointer) return null;
+  check(pointer, 24);
+  const version = u32(pointer);
+  // D3D_ROOT_SIGNATURE_VERSION_1_0 (1) and _1_1 (2) share the parameter record
+  // layout; only the descriptor ranges differ.
+  if (version !== 1 && version !== 2) return null;
+  // The union starts at the descriptor's natural alignment, which is 4 here:
+  // Version is a 4-byte enum followed immediately by the Desc struct.
+  const base = pointer + 4;
+  const parameterCount = u32(base);
+  const parameters = u32(base + 4);
+  const samplerCount = u32(base + 8);
+  const samplers = u32(base + 12);
+  const flags = u32(base + 16);
+  if (parameterCount > MAX_VERSIONED_PARAMETERS || samplerCount > 64) return null;
+  if (flags & ~0x7f) return null;
+  if (parameterCount && !parameters) return null;
+  if (samplerCount && !samplers) return null;
+
+  const rangeBytes = version === 2 ? VERSIONED_RANGE_1_1_BYTES : VERSIONED_RANGE_1_0_BYTES;
+  const rangeBlockStart = 6 + parameterCount * 7;
+  let totalRanges = 0;
+  for (let i = 0; i < parameterCount; i++) {
+    const at = parameters + i * 20;
+    check(at, 20);
+    if (u32(at) === 0) {
+      const count = u32(at + 4);
+      if (!count || count > 128) return null;
+      totalRanges += count;
+    }
+  }
+  if (totalRanges > 128) return null;
+  const samplerStart = rangeBlockStart + totalRanges * 5;
+  const words = new Uint32Array(samplerStart + samplerCount * 11);
+  words[0] = parameterCount;
+  words[1] = samplerCount;
+  words[2] = flags;
+  words[4] = 11;
+
+  let rangeCursor = rangeBlockStart;
+  for (let i = 0; i < parameterCount; i++) {
+    const at = parameters + i * 20;
+    const type = u32(at);
+    const visibility = u32(at + 16);
+    if (type >= 5 || visibility > 5) return null;
+    const record = 6 + i * 7;
+    words[record] = type;
+    words[record + 1] = visibility;
+    if (type === 0) {
+      const count = u32(at + 4);
+      const ranges = u32(at + 8);
+      if (!count || !ranges) return null;
+      words[record + 2] = count;
+      for (let r = 0; r < count; r++) {
+        const range = ranges + r * rangeBytes;
+        check(range, rangeBytes);
+        const rangeType = u32(range);
+        const descriptors = u32(range + 4);
+        if (rangeType >= 4 || !descriptors) return null;
+        if (version === 2 && u32(range + 16) & ~0x1000f) return null;
+        words[record + 6] = rangeCursor;
+        const slot = rangeCursor + r * 5;
+        words[slot] = rangeType;
+        words[slot + 1] = descriptors;
+        words[slot + 2] = u32(range + 8);
+        words[slot + 3] = u32(range + 12);
+        words[slot + 4] = version === 2 ? u32(range + 20) : u32(range + 16);
+      }
+      rangeCursor += count * 5;
+    } else if (type === 1) {
+      const valueCount = u32(at + 12);
+      if (!valueCount || valueCount > 64) return null;
+      words[record + 3] = u32(at + 4);
+      words[record + 4] = u32(at + 8);
+      words[record + 5] = valueCount;
+      words[3] += valueCount;
+    } else {
+      words[record + 3] = u32(at + 4);
+      words[record + 4] = u32(at + 8);
+    }
+  }
+
+  for (let i = 0; i < samplerCount; i++) {
+    const at = samplers + i * 52;
+    check(at, 52);
+    const visibility = u32(at + 48);
+    if (visibility > 5) return null;
+    const slot = samplerStart + i * 11;
+    const view = new DataView(new ArrayBuffer(4));
+    const bits = (value) => {
+      view.setFloat32(0, value, true);
+      return view.getUint32(0, true);
+    };
+    words[slot] = u32(at);
+    words[slot + 1] = u32(at + 4);
+    words[slot + 2] = u32(at + 8);
+    words[slot + 3] = u32(at + 12);
+    words[slot + 4] = bits(readFloat32(at + 16));
+    words[slot + 5] = u32(at + 20);
+    words[slot + 6] = u32(at + 24);
+    words[slot + 7] = u32(at + 28);
+    words[slot + 8] = bits(readFloat32(at + 32));
+    words[slot + 9] = bits(readFloat32(at + 36));
+    words[slot + 10] =
+      (u32(at + 40) & 0xffff) | ((u32(at + 44) & 0xff) << 16) | ((visibility & 0xff) << 24);
+  }
+  return words;
+}

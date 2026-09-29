@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRootSignatureDescriptor } from '../src/d3d12-descriptors.js';
+import {
+  parseRootSignatureDescriptor,
+  parseVersionedRootSignatureDescriptor,
+} from '../src/d3d12-descriptors.js';
 import { canonicalBindings, decodeRootSignatureWords, planRootSignature, resolveDescriptorPlacement } from '../src/d3d12-bindings.js';
 
 // A tiny guest-memory model with the same accessors the real runtime supplies,
@@ -333,4 +336,81 @@ test('lays the flattened words out in the documented order', () => {
   assert.equal(words[6 + 6], 6 + 2 * 7, 'table points at its first range record');
   assert.equal(words[6 + 2 * 7 + 4], 2, 'range table offset is preserved');
   assert.equal(words[words.length - 11 + 10] & 0xffff, 0, 'sampler register is last');
+});
+
+// D3D12_VERSIONED_ROOT_SIGNATURE_DESC: version 1.0 and 1.1 descriptions, whose
+// descriptor ranges differ only by an added flags field.
+test('decodes a versioned 1.1 description with its wider range records', () => {
+  const m = memory(4096);
+  const rangeArray = m.alloc(24);
+  m.u32(rangeArray, 0); // SRV
+  m.u32(rangeArray, 1, 4);
+  m.u32(rangeArray, 0, 8);
+  m.u32(rangeArray, 0, 12);
+  m.u32(rangeArray, 0x10000 | 0x2, 16); // Flags: descriptors + data volatile
+  m.u32(rangeArray, 0, 20); // OffsetInDescriptorsFromTableStart
+  const parameters = m.alloc(20);
+  m.u32(parameters, 0); // descriptor table
+  m.u32(parameters, 1, 4);
+  m.u32(parameters, rangeArray, 8);
+  m.u32(parameters, 5, 16); // pixel visibility
+  const description = m.alloc(24);
+  m.u32(description, 2); // D3D_ROOT_SIGNATURE_VERSION_1_1
+  m.u32(description, 1, 4); // NumParameters
+  m.u32(description, parameters, 8);
+  m.u32(description, 0, 12); // NumStaticSamplers
+  m.u32(description, 0, 16);
+  m.u32(description, 1, 20); // Flags
+  const words = parseVersionedRootSignatureDescriptor({
+    check: m.check,
+    read32: m.read32,
+    readFloat32: m.readFloat32,
+    pointer: description,
+  });
+  assert.ok(words, 'the versioned description was rejected');
+  const plan = planRootSignature(decodeRootSignatureWords(words));
+  assert.equal(plan.parameterCount, 1);
+  assert.equal(plan.flags, 1);
+  assert.deepEqual(plan.ranges.map((r) => [r.kind, r.count, r.space, r.tableOffset]), [
+    ['srv', 1, 0, 0],
+  ]);
+});
+
+test('rejects a malformed versioned description', () => {
+  const make = (mutate) => {
+    const m = memory(4096);
+    const parameters = m.alloc(20);
+    m.u32(parameters, 0);
+    m.u32(parameters, 1, 4);
+    m.u32(parameters, 0, 8); // a null range pointer
+    const description = m.alloc(24);
+    m.u32(description, 1);
+    m.u32(description, 1, 4);
+    m.u32(description, parameters, 8);
+    mutate?.(m, description, parameters);
+    return parseVersionedRootSignatureDescriptor({
+      check: m.check,
+      read32: m.read32,
+      readFloat32: m.readFloat32,
+      pointer: description,
+    });
+  };
+  assert.equal(make(), null, 'a table with no range pointer must be rejected');
+  // An unknown version is not a 1.0 or 1.1 description.
+  assert.equal(
+    make((m, description) => m.u32(description, 3)),
+    null,
+  );
+  // A 1.1 range may not carry an unknown flag.
+  assert.equal(
+    make((m, description, parameters) => {
+      m.u32(description, 2);
+      const range = m.alloc(24);
+      m.u32(range, 0);
+      m.u32(range, 1, 4);
+      m.u32(range, 0x20000, 16);
+      m.u32(parameters, range, 8);
+    }),
+    null,
+  );
 });

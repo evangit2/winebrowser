@@ -258,12 +258,57 @@ function extractIcon(r, a, wide) {
   // Do not fabricate an HICON until the runtime has a real icon object.
   throw Error('PE icon resources are not supported');
 }
+// FormatMessage fills a caller-supplied buffer (or an allocated one) with the
+// text of a Win32 error. The runtime has no message-table resources, so it
+// supplies a short synthetic description for the codes it itself sets. That is
+// honest: the caller gets a description of the code, not a fabricated system
+// message table.
+function formatMessage(r, a, wide) {
+  const flags = a(0) >>> 0;
+  const source = a(3) >>> 0;
+  const messageId = a(4) >>> 0;
+  const languageId = a(5) >>> 0;
+  const argumentsPtr = a(6) >>> 0;
+  const size = a(7) >>> 0;
+  const outputPtr = a(8) >>> 0;
+  // Only the "ignore inserts, plain text" path the samples use is modelled.
+  if (
+    !(flags & 0x1000) /* FROM_SYSTEM */ &&
+    !(flags & 0x800) /* FROM_HMODULE */ &&
+    !(flags & 0x400) /* FROM_STRING */
+  ) {
+    r.lastError = 87; // ERROR_INVALID_PARAMETER
+    return ok(0, 9);
+  }
+  if (flags & 0xffff0000) {
+    r.lastError = 87;
+    return ok(0, 9);
+  }
+  if (flags & 0x100) {
+    r.lastError = 317; // ERROR_MR_MID_NOT_FOUND: no message table to draw from.
+    return ok(0, 9);
+  }
+  void source;
+  void argumentsPtr;
+  const text = `Win32 error ${messageId}`;
+  const needed = text.length + 1;
+  if (!outputPtr || needed > size) {
+    r.lastError = 122; // ERROR_INSUFFICIENT_BUFFER
+    return ok(0, 9);
+  }
+  void languageId;
+  writeString(r, outputPtr, text, wide);
+  return ok(text.length, 9);
+}
+
 export const processApis = {
   'kernel32.dll!GetProcessHeap': (r) => ok(r.wineProcess?.heap ?? 0x50000000),
   'kernel32.dll!HeapAlloc': heapAlloc,
   'kernel32.dll!HeapFree': heapFree,
   'kernel32.dll!LocalAlloc': localAlloc,
   'kernel32.dll!LocalFree': localFree,
+  'kernel32.dll!FormatMessageA': (r, a) => formatMessage(r, a, false),
+  'kernel32.dll!FormatMessageW': (r, a) => formatMessage(r, a, true),
   'kernel32.dll!GetCommandLineW': (r) => commandLine(r, true),
   'kernel32.dll!GetCommandLineA': (r) => commandLine(r, false),
   'kernel32.dll!GetModuleHandleW': (r, a) => moduleHandle(r, a, true),

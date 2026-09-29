@@ -8,6 +8,7 @@ import {
   parsePipelineDescriptor,
   parseResourceRange,
   parseRootSignatureDescriptor,
+  parseVersionedRootSignatureDescriptor,
 } from './d3d12-descriptors.js';
 import {
   decodeRootSignatureWords,
@@ -2546,6 +2547,30 @@ export const d3d12Apis = {
       throw Error('D3D12 backend returned invalid root signature blob');
     r.write32(out, createBlob(r, raw).pointer);
     return { result: S_OK, argc: 4 };
+  },
+  // D3D12SerializeVersionedRootSignature(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC*,
+  //                                     ID3DBlob **ppBlob, ID3DBlob **ppErrorBlob)
+  // takes a versioned description whose 1.1 records add a flags field. Every
+  // Microsoft D3D12 sample uses this entry point rather than the 1.0 one.
+  'd3d12.dll!D3D12SerializeVersionedRootSignature': async (r, a) => {
+    const out = number(a(1)),
+      err = number(a(2));
+    output(r, out);
+    if (err) output(r, err);
+    requireBackend(r);
+    state(r);
+    const words = parseVersionedRootSignatureDescriptor({
+      check: r.check.bind(r),
+      read32: r.read32.bind(r),
+      readFloat32: (pointer) => r.view.getFloat32(r.check(pointer, 4), true),
+      pointer: number(a(0)),
+    });
+    if (!words) return { result: E_INVALIDARG, argc: 3 };
+    const raw = await r.graphics12.buildRootSignature(words);
+    if (!(raw instanceof Uint8Array) || !raw.length || raw.length > MAX_BYTES)
+      throw Error('D3D12 backend returned invalid root signature blob');
+    r.write32(out, createBlob(r, raw).pointer);
+    return { result: S_OK, argc: 3 };
   },
 };
 

@@ -1,7 +1,7 @@
 {
   "demo": "d3d12-parade",
   "scope": "Native PE32 D3D12 fixture with 27 depth-tested indexed draws per frame, x87 guest transforms and per-vertex lighting, empty root signature, RTV/DSV descriptors, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
-  "date": "2026-09-29T14:00:25.478Z",
+  "date": "2026-09-29T14:22:45.725Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.58",
   "exeSha256": "a1e8a16ea357fad42243cd3527ef77707c88d932c58445c6eb746c3d4e3be1bd",
@@ -13,7 +13,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 656,
+      "firstFourFramesMs": 611,
       "first": {
         "width": 640,
         "height": 480,
@@ -44,11 +44,11 @@
       },
       "exitCode": 0,
       "compiledBlocks": 199,
-      "instructions": 1343287
+      "instructions": 1409871
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 479,
+      "firstFourFramesMs": 464,
       "first": {
         "width": 640,
         "height": 480,

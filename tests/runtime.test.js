@@ -62,3 +62,27 @@ test('execution budgets and executable-memory writes fail explicitly', async () 
   assert.throws(() => runtime.write32(runtime.pe.entryPoint, 0), /write violation/);
   await assert.rejects(runtime.run(), /budget exceeded/);
 });
+
+test('the Microsoft sample import surface is present', async () => {
+  const { API_NAMES } = await import('../src/win32.js');
+  const { d3d12Apis } = await import('../src/d3d12.js');
+  // An unchanged Microsoft D3D12 sample imports these; each was a real gap.
+  for (const name of [
+    'FormatMessageA',
+    'FormatMessageW',
+    'GetProcessAffinityMask',
+    'SetProcessAffinityMask',
+    'SetThreadAffinityMask',
+    'OpenProcess',
+    'GetThreadContext',
+    'SetThreadContext',
+  ])
+    assert.ok(
+      API_NAMES['kernel32.dll']?.includes(name),
+      `kernel32 ${name} is not exported to guests`,
+    );
+  assert.ok(
+    d3d12Apis['d3d12.dll!D3D12SerializeVersionedRootSignature'],
+    'the versioned root-signature serializer is missing',
+  );
+});
