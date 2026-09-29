@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-29T12:19:48.995Z",
+  "date": "2026-09-29T14:02:21.325Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.58",
   "nativeGame": "d3d9-cube",
@@ -12,7 +12,7 @@
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 4,
+        "frames": 5,
         "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
         "corner": [
           23,
@@ -29,7 +29,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 15,
+        "frames": 16,
         "hash": "cd7a20799ad1b1602e0927d685913a1109117f63ee65a2c19c3ead13cf4c96dc",
         "corner": [
           23,
@@ -44,8 +44,8 @@
       },
       "exitCode": 0,
       "compiledBlocks": 174,
-      "instructions": 3608,
-      "apiCalls": 258
+      "instructions": 3705,
+      "apiCalls": 267
     },
     {
       "mode": "hosted-zip",
@@ -53,7 +53,7 @@
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 4,
+        "frames": 5,
         "hash": "85fb11369dc72836436c7ae42b02791fe5cf7eef99c1b3595183ef338bf427af",
         "corner": [
           23,
@@ -70,18 +70,18 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 16,
-        "hash": "9f940b40c2ed9ec399cb14a5083a2ef98bb3ab1908d8bc604686ce33189c500c",
+        "frames": 17,
+        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 77812,
+        "coloredPixels": 74972,
         "colors": [
-          "121,216,117",
-          "93,197,239"
+          "93,197,239",
+          "121,216,117"
         ]
       },
       "exitCode": 0,

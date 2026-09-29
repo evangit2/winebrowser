@@ -7,7 +7,25 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 9190,
+      "firstFourFramesMs": 9523,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "distinct": 478,
+        "draws": 6,
+        "hash": "66b136b4a60f212fe742fec013c1d880ce0a8ffd20b59673c8e0b5eb119c8b97"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "distinct": 483,
+        "draws": 770,
+        "hash": "43ce81daed90528a84797e3a17be91e397d73fbe5a88ba2d53d7a9deb247691c"
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 9231,
       "first": {
         "width": 640,
         "height": 480,
@@ -18,27 +36,9 @@
       "second": {
         "width": 640,
         "height": 480,
-        "distinct": 470,
-        "draws": 777,
-        "hash": "dae64b83d28635e7a1220a1bc376c291a37372af4fd0ea9c6d2b67a9847422f3"
-      }
-    },
-    {
-      "mode": "hosted-zip",
-      "firstFourFramesMs": 9197,
-      "first": {
-        "width": 640,
-        "height": 480,
-        "distinct": 478,
-        "draws": 11,
-        "hash": "542138ffc58aa92191aff35fff1a11d8271dc573eb706b7f8664753fd8792400"
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "distinct": 471,
-        "draws": 784,
-        "hash": "37cbf0c015a511f958576cddc7eef8ca5754d692fa4e71d89f1fc6d4b3711876"
+        "distinct": 484,
+        "draws": 766,
+        "hash": "af18f97316198213886a290bb0cb9cf5a21644a9d3e113bb88803471960da08a"
       }
     }
   ],

@@ -7,13 +7,13 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 546,
+      "firstFourFramesMs": 533,
       "first": {
         "width": 640,
         "height": 480,
-        "colored": 286352,
+        "colored": 298968,
         "colors": 5,
-        "hash": "2181910ee7ec24ddffe95816e45447d30c2a3c7fccee278b2af99c3fdc809b0a"
+        "hash": "1a72d7958a81e5225ebee318ec3e18b26dd515d95ab4e009df0aaf560383cb1d"
       },
       "second": {
         "width": 640,
@@ -25,7 +25,7 @@
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 415,
+      "firstFourFramesMs": 405,
       "first": {
         "width": 640,
         "height": 480,

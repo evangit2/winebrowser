@@ -11,7 +11,55 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 593,
+      "firstFourFramesMs": 548,
+      "width": 640,
+      "height": 480,
+      "cellPixels": {
+        "235,90,45": 31276,
+        "40,170,210": 31279
+      },
+      "first": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            244645
+          ],
+          [
+            "40,170,210",
+            31279
+          ],
+          [
+            "235,90,45",
+            31276
+          ]
+        ],
+        "hash": "2962a8f514b2ebbb7daaa77c6467fd1972c0352652341cddf23b2081d4ffa1e4"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            242854
+          ],
+          [
+            "40,170,210",
+            32216
+          ],
+          [
+            "235,90,45",
+            32130
+          ]
+        ],
+        "hash": "b288337a564cf8ec5917d0182c54fc1826f9ea4eaef4a329624e5e0dc236e688"
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 414,
       "width": 640,
       "height": 480,
       "cellPixels": {
@@ -55,54 +103,6 @@
           ]
         ],
         "hash": "3eb6eed22f3548442b279d8e64a33b61f788be83b1ef5c9eae7e09e6608a41c2"
-      }
-    },
-    {
-      "mode": "hosted-zip",
-      "firstFourFramesMs": 429,
-      "width": 640,
-      "height": 480,
-      "cellPixels": {
-        "235,90,45": 31276,
-        "40,170,210": 31279
-      },
-      "first": {
-        "width": 640,
-        "height": 480,
-        "counts": [
-          [
-            "9,17,36",
-            244645
-          ],
-          [
-            "40,170,210",
-            31279
-          ],
-          [
-            "235,90,45",
-            31276
-          ]
-        ],
-        "hash": "2962a8f514b2ebbb7daaa77c6467fd1972c0352652341cddf23b2081d4ffa1e4"
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "counts": [
-          [
-            "9,17,36",
-            241630
-          ],
-          [
-            "235,90,45",
-            32788
-          ],
-          [
-            "40,170,210",
-            32782
-          ]
-        ],
-        "hash": "495551d7948fe940f8849d216b31bed3a5114a645b7202a2b39998eb2ebd0f73"
       }
     }
   ],

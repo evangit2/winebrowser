@@ -1,7 +1,7 @@
 {
   "demo": "d3d12-triangle",
   "scope": "Native PE32 D3D12 fixture with SM5 shaders, empty root signature, RTV descriptors, command lists, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
-  "date": "2026-09-29T13:45:30.151Z",
+  "date": "2026-09-29T14:06:01.004Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.58",
   "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
@@ -10,7 +10,7 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 560,
+      "firstFourFramesMs": 545,
       "first": {
         "width": 640,
         "height": 480,
@@ -29,7 +29,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 28,
+        "frames": 29,
         "green": 108000,
         "colored": 108000,
         "colors": 1,
@@ -43,16 +43,16 @@
       },
       "exitCode": 0,
       "compiledBlocks": 141,
-      "instructions": 10593,
-      "apiCalls": 721
+      "instructions": 10792,
+      "apiCalls": 740
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 363,
+      "firstFourFramesMs": 362,
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 5,
+        "frames": 4,
         "green": 108000,
         "colored": 108000,
         "colors": 1,

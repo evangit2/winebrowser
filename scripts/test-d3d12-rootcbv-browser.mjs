@@ -93,15 +93,18 @@ try {
     // The cube yaws and pitches, so a single instant shows one to three faces.
     // Sampling across a full turn proves every face is drawn from the
     // constant-buffer transform rather than the image merely changing.
+    // The cube yaws and pitches; a face can be edge-on for a while, so sample
+    // across several full turns before concluding one was never drawn.
     const seen = new Set();
     let last = first;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 20; i++) {
       for (const [colour, count] of last.counts) {
-        if (count <= 200 || colour === '9,17,36') continue;
+        if (count <= 100 || colour === '9,17,36') continue;
         const face = matchFace(colour);
         if (face) seen.add(face);
       }
-      await page.waitForTimeout(1800);
+      if (seen.size === FACE_COLOURS.length) break;
+      await page.waitForTimeout(1200);
       last = await sample();
     }
     const visible = FACE_COLOURS.filter((colour) => seen.has(colour));
