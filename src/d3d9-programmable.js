@@ -348,12 +348,21 @@ export function getFloatConstants(runtime, state, start, pointer, count, limit) 
 function programmableAttributes(state, stride) {
   const vertex = state.vertexShader,
     declaration = state.vertexDeclaration;
-  const inputs = vertex.state.inputs;
-  const attributes = declaration.state.elements.map((element) => {
-    const input = inputs.find(
-      (entry) => entry.usage === element.usage && entry.usageIndex === element.usageIndex,
+  const elements = declaration.state.elements;
+  // A D3D9 vertex declaration may carry elements the shader never reads (the
+  // Humus demos declare four texture-coordinate sets but bind shaders that use
+  // one). The contract is that every shader input has a matching declaration
+  // element, not that the two lists are equal.
+  const attributes = vertex.state.inputs.map((input) => {
+    const element = elements.find(
+      (entry) => entry.usage === input.usage && entry.usageIndex === input.usageIndex,
     );
-    if (!input) throw Error('D3D9 declaration does not match vertex shader inputs');
+    if (!element)
+      throw Error(
+        'D3D9 declaration does not match vertex shader inputs: missing ' +
+          `${input.usage}/${input.usageIndex} for register ${input.register}; declaration ` +
+          elements.map((e) => `${e.usage}/${e.usageIndex}`).join(','),
+      );
     return {
       shaderLocation: input.register,
       offset: element.offset,
@@ -362,8 +371,11 @@ function programmableAttributes(state, stride) {
       size: element.size,
     };
   });
-  if (inputs.length !== attributes.length || attributes.some((a) => a.offset + a.size > stride))
-    throw Error('D3D9 declaration does not cover the vertex shader inputs');
+  if (attributes.some((a) => a.offset + a.size > stride))
+    throw Error(
+      `D3D9 declaration does not cover the vertex shader inputs: stride ${stride}, ends ` +
+        attributes.map((a) => a.offset + a.size).join(','),
+    );
   return attributes;
 }
 
