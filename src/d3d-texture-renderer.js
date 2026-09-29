@@ -324,14 +324,16 @@ export class D3DTextureRenderer {
     this.samplers.clear();
   }
   trim(surface, commands = []) {
-    const used = new Set(
-      commands
-        .filter((c) => c.texturing)
-        .map((c) => {
-          const t = c.texturing.texture;
-          return t ? `${t.id}:${t.revision}` : 'white';
-        }),
-    );
+    // Both render paths share the cache: fixed-function draws publish a single
+    // texture in texturing, programmable draws one per sampler register. A
+    // snapshot missing from here would be destroyed and re-uploaded every
+    // frame, which for a 512x512 mip chain dominates the frame time.
+    const used = new Set();
+    const key = (snapshot) => (snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white');
+    for (const c of commands) {
+      if (c.texturing) used.add(key(c.texturing.texture));
+      for (const binding of c.textures?.values() ?? []) used.add(key(binding.snapshot));
+    }
     for (const [key, value] of surface.textures ?? [])
       if (!used.has(key)) {
         value.texture.destroy();

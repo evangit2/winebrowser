@@ -53,6 +53,10 @@ export async function probeWineTarget(
   };
   const restore = new Map();
   const recentBlocks = [];
+  let blockHistogramKeys = 0;
+  // Sentinel thrown once the guest has presented enough frames to prove that
+  // it renders; treated as success, not as a diagnostic failure.
+  const FRAME_GOAL = 'Wine target presented the requested frames';
   let runtime,
     graphics,
     graphics12,
@@ -144,6 +148,9 @@ export async function probeWineTarget(
       emit: (message) => {
         if (message.type === 'frame') {
           report.frames++;
+          // A real render loop never returns; once the guest has presented
+          // several frames the diagnostic goal (it renders) is met.
+          if (report.frames >= 3) report.frameGoalReached = true;
           // A render loop presents indefinitely; keep the sample set bounded
           // (and await it exactly once) so a long run cannot grow the report.
           if (report.frameSamples.length < 3 && report.pendingSamples.length < 3) {
@@ -207,6 +214,9 @@ export async function probeWineTarget(
     runtime.cpu.prepare = (ip) => {
       lastIP = ip;
       const dispatch = ++dispatches;
+      // A guest render loop presents frames forever, so a presented-frame goal
+      // is a successful stop rather than a failure.
+      if (report.frameGoalReached) throw Error(FRAME_GOAL);
       // Retain the guest's actual location if it spins, before the browser's
       // outer worker deadline discards the diagnostic state entirely.
       if (
@@ -253,11 +263,16 @@ export async function probeWineTarget(
       if (dispatch % 8 === 0) {
         const hot = locate(ip);
         const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
+        // A long-running guest (a render loop) visits unbounded distinct blocks.
+        // Track the key count incrementally: Object.keys() would allocate a
+        // 200k-element array on every sampled dispatch.
+        if (report.blockHistogram[hotKey] === undefined) {
+          if (++blockHistogramKeys > 200000) {
+            report.blockHistogram = {};
+            blockHistogramKeys = 0;
+          }
+        }
         report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
-        // A long-running guest (a render loop) visits unbounded distinct blocks,
-        // so the histogram is a plain object and must be size-checked by its
-        // own key count rather than Map.size, which does not exist here.
-        if (Object.keys(report.blockHistogram).length > 200000) report.blockHistogram = {};
         // Snapshot the runtime bytes of very hot blocks. Packed images
         // self-modify, so static disassembly of those regions is unusable.
         const HOT_SAMPLE_THRESHOLD = 20000;
@@ -645,6 +660,12 @@ export async function probeWineTarget(
     report.status = 'entry-returned';
     report.phases.push({ name: phase, passed: true });
   } catch (error) {
+    if (error.message === FRAME_GOAL) {
+      report.status = 'frames-presented';
+      report.exitCode = 0;
+      phase = 'native EXE render loop';
+      report.phases.push({ name: 'guest presented frames (render loop)', passed: true });
+    } else
     report.firstFailure ??= {
       phase,
       message: error.message,
