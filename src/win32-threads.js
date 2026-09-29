@@ -41,8 +41,22 @@ function create(r, a) {
 const CONTEXT_I386 = 0x00010000;
 const CONTEXT_CONTROL = CONTEXT_I386 | 0x1;
 const CONTEXT_INTEGER = CONTEXT_I386 | 0x2;
-const CONTEXT_REGISTER_OFFSETS = { Edi: 0x9c, Esi: 0xa0, Ebx: 0xa4, Edx: 0xa8, Ecx: 0xac, Eax: 0xb0 };
-const CONTEXT_CONTROL_OFFSETS = { Ebp: 0xb4, Eip: 0xb8, SegCs: 0xbc, EFlags: 0xc0, Esp: 0xc4, SegSs: 0xc8 };
+const CONTEXT_REGISTER_OFFSETS = {
+  Edi: 0x9c,
+  Esi: 0xa0,
+  Ebx: 0xa4,
+  Edx: 0xa8,
+  Ecx: 0xac,
+  Eax: 0xb0,
+};
+const CONTEXT_CONTROL_OFFSETS = {
+  Ebp: 0xb4,
+  Eip: 0xb8,
+  SegCs: 0xbc,
+  EFlags: 0xc0,
+  Esp: 0xc4,
+  SegSs: 0xc8,
+};
 
 /**
  * Copies the integer and control registers between a guest CONTEXT and the CPU.
@@ -53,8 +67,8 @@ const CONTEXT_CONTROL_OFFSETS = { Ebp: 0xb4, Eip: 0xb8, SegCs: 0xbc, EFlags: 0xc
 function copyThreadContext(r, pointer, store) {
   if (!r.check(pointer, 0xcc, store)) return false;
   const flags = r.read32(pointer) >>> 0;
-  const integer = (flags & 0xffff) === (CONTEXT_INTEGER & 0xffff) || (flags & CONTEXT_INTEGER);
-  const control = (flags & 0xffff) === (CONTEXT_CONTROL & 0xffff) || (flags & CONTEXT_CONTROL);
+  const integer = (flags & 0xffff) === (CONTEXT_INTEGER & 0xffff) || flags & CONTEXT_INTEGER;
+  const control = (flags & 0xffff) === (CONTEXT_CONTROL & 0xffff) || flags & CONTEXT_CONTROL;
   if (!integer && !control) return false;
   const registers = r.cpu.r;
   const order = [7, 6, 3, 2, 1, 0];
@@ -98,14 +112,14 @@ export const threadApis = {
     return result(1, 3);
   },
   'kernel32.dll!SetProcessAffinityMask': (r, a) => {
-    if ((a(1) >>> 0) !== 1) {
+    if (a(1) >>> 0 !== 1) {
       r.lastError = 87; // ERROR_INVALID_PARAMETER
       return result(0, 2);
     }
     return result(1, 2);
   },
   'kernel32.dll!SetThreadAffinityMask': (r, a) => {
-    if ((a(1) >>> 0) !== 1) {
+    if (a(1) >>> 0 !== 1) {
       r.lastError = 87;
       return result(0, 2);
     }

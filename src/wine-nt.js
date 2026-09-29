@@ -152,11 +152,9 @@ function queryVirtualMemory(runtime, argument) {
   // Only the current-process pseudo-handle is meaningful here; a real handle
   // would name a different address space the runtime does not model.
   if (process !== 0xffffffff) return 0xc0000008; // STATUS_INVALID_HANDLE.
-  if (infoClass !== MEMORY_INFORMATION_CLASS_BASIC)
-    return 0xc0000003; // STATUS_INVALID_INFO_CLASS.
+  if (infoClass !== MEMORY_INFORMATION_CLASS_BASIC) return 0xc0000003; // STATUS_INVALID_INFO_CLASS.
   if (!buffer) return ACCESS_VIOLATION;
-  if (length < MEMORY_BASIC_INFORMATION_BYTES)
-    return 0xc0000004; // STATUS_INFO_LENGTH_MISMATCH.
+  if (length < MEMORY_BASIC_INFORMATION_BYTES) return 0xc0000004; // STATUS_INFO_LENGTH_MISMATCH.
   if (returnLength) {
     try {
       runtime.check(returnLength, 4, true);
@@ -170,10 +168,10 @@ function queryVirtualMemory(runtime, argument) {
   const reservation = [...runtime.virtualMemory.reservations.values()].find(
     (entry) => base >= entry.base && base < entry.end,
   );
-  const region = runtime.regions.find(
-    (entry) => entry.read !== false && base >= entry.start && base < entry.end,
-  ) ??
-    runtime.regions.find((entry) => base >= entry.start && base < entry.end);
+  const region =
+    runtime.regions.find(
+      (entry) => entry.read !== false && base >= entry.start && base < entry.end,
+    ) ?? runtime.regions.find((entry) => base >= entry.start && base < entry.end);
 
   let regionSize, state, protect, type, allocationBase, allocationProtect;
   if (reservation) {

@@ -62,7 +62,9 @@ try {
       { timeout: 45000 },
     );
     const counts = await page.locator('[data-graphics-api="d3d12"]').evaluate((element) => {
-      const pixels = element.getContext('2d').getImageData(0, 0, element.width, element.height).data;
+      const pixels = element
+        .getContext('2d')
+        .getImageData(0, 0, element.width, element.height).data;
       const map = new Map();
       for (let i = 0; i < pixels.length; i += 4) {
         const key = `${pixels[i]},${pixels[i + 1]},${pixels[i + 2]}`;
@@ -75,11 +77,17 @@ try {
       const key = colour.join(',');
       assert.ok(
         (observed.get(key) ?? 0) > 2000,
-        `expected the ${name} blend result ${key} to cover a visible area; saw ${[...observed].slice(0, 8).map(([k, n]) => `${k}:${n}`).join(' ')}`,
+        `expected the ${name} blend result ${key} to cover a visible area; saw ${[...observed]
+          .slice(0, 8)
+          .map(([k, n]) => `${k}:${n}`)
+          .join(' ')}`,
       );
     }
     runs.push({ mode, counts: counts.slice(0, 8) });
-    await page.locator('#stop').click().catch(() => {});
+    await page
+      .locator('#stop')
+      .click()
+      .catch(() => {});
   }
 
   assert.deepEqual(errors, []);
@@ -102,7 +110,13 @@ try {
       2,
     ) + '\n',
   );
-  console.log(JSON.stringify({ runs: runs.map((r) => ({ mode: r.mode, top: r.counts.slice(0, 4) })) }, null, 1));
+  console.log(
+    JSON.stringify(
+      { runs: runs.map((r) => ({ mode: r.mode, top: r.counts.slice(0, 4) })) },
+      null,
+      1,
+    ),
+  );
 } finally {
   await browser?.close();
 }

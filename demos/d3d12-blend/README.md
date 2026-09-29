@@ -6,20 +6,20 @@ blend state**. The final image is the proof: an unblended foreground would
 replace the background entirely, whereas the observed pixels are exactly what
 each blend factor pair computes.
 
-| Pass | Blend state | Expected result on a `0.10,0.14,0.38` background |
-|---|---|---|
-| 0 | disabled (write mask only) | the background `26,36,97` |
-| 1 | `SRC_ALPHA` / `INV_SRC_ALPHA`, ADD | 50 % red over it → `128,33,61` |
-| 2 | `ONE` / `ONE`, ADD | additive green → `154,250,125` |
+| Pass | Blend state                        | Expected result on a `0.10,0.14,0.38` background |
+| ---- | ---------------------------------- | ------------------------------------------------ |
+| 0    | disabled (write mask only)         | the background `26,36,97`                        |
+| 1    | `SRC_ALPHA` / `INV_SRC_ALPHA`, ADD | 50 % red over it → `128,33,61`                   |
+| 2    | `ONE` / `ONE`, ADD                 | additive green → `154,250,125`                   |
 
 It exercises:
 
-* `D3D12_BLEND_DESC` with an enabled render target, separate colour and alpha
+- `D3D12_BLEND_DESC` with an enabled render target, separate colour and alpha
   factor pairs, `D3D12_BLEND_OP_ADD`, and a full `D3D12_COLOR_WRITE_ENABLE_ALL`
   write mask;
-* three distinct `ID3D12PipelineState` objects created from one root signature
+- three distinct `ID3D12PipelineState` objects created from one root signature
   and switched within a single command list with `SetPipelineState`;
-* an upload-heap vertex buffer with three layers selected by `firstVertex`.
+- an upload-heap vertex buffer with three layers selected by `firstVertex`.
 
 The runtime maps D3D12 blend factors and operations onto WebGPU's, and refuses
 the ones with no single-source equivalent (dual-source `SRC1_*`, alpha factor)

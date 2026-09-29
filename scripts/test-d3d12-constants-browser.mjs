@@ -93,7 +93,10 @@ try {
     assert.ok(first.colored > 100000, `only ${first.colored} lit pixels were drawn`);
     assert.ok(first.colors >= 4, `expected at least four face colours, saw ${first.colors}`);
     runs.push({ mode, firstFourFramesMs, first, second });
-    await page.locator('#stop').click().catch(() => {});
+    await page
+      .locator('#stop')
+      .click()
+      .catch(() => {});
   }
 
   assert.deepEqual(errors, []);
@@ -115,7 +118,13 @@ try {
       2,
     ) + '\n',
   );
-  console.log(JSON.stringify({ runs: runs.map((r) => ({ mode: r.mode, first: r.first.colored, colors: r.first.colors })) }, null, 1));
+  console.log(
+    JSON.stringify(
+      { runs: runs.map((r) => ({ mode: r.mode, first: r.first.colored, colors: r.first.colors })) },
+      null,
+      1,
+    ),
+  );
 } finally {
   await browser?.close();
 }

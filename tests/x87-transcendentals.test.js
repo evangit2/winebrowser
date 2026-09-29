@@ -200,7 +200,12 @@ test('F2XM1 returns 2^0-1 = 0, exact endpoints, and #IA outside [-1, 1]', () => 
   assert.equal(encode(f2xm1(decode(negone), 0).bytes), '0000000000000080febf', '2^-1 - 1 = -0.5');
   // Outside the domain, infinities and invalid encodings raise #IA and
   // produce the x87 indefinite QNaN.
-  for (const input of [inf, '0000000000000080ff7f', 'fffffffffffffffffe7f', '0100000000000000ff3f']) {
+  for (const input of [
+    inf,
+    '0000000000000080ff7f',
+    'fffffffffffffffffe7f',
+    '0100000000000000ff3f',
+  ]) {
     const result = f2xm1(decode(input), 0);
     assert.equal(encode(result.bytes), indefinite, input);
     assert.equal(result.flags, 1, input);

@@ -13,7 +13,7 @@ const BASE_METHODS =
 const TAIL_METHODS = 'GetLevelDesc GetSurfaceLevel LockRect UnlockRect AddDirtyRect';
 export const textureBytesPerPixel = (format) =>
   compressedFormat(format)?.blockBytes ??
-  ({ 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1, 50: 1, 51: 2, 52: 1 })[format];
+  { 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1, 50: 1, 51: 2, 52: 1 }[format];
 
 // Row length and row count for one mip level. Compressed formats store 4x4
 // texel blocks, so their rows are block rows and a level holds
@@ -358,16 +358,14 @@ function rect(r, pointer, level) {
   if (!pointer) return { left: 0, top: 0, right: level.width, bottom: level.height };
   r.check(pointer, 16);
   const [left, top, right, bottom] = [0, 4, 8, 12].map((i) => r.read32(pointer + i) | 0);
-  if (
-    !(
-      left >= 0 &&
-      top >= 0 &&
-      right > left &&
-      bottom > top &&
-      right <= level.width &&
-      bottom <= level.height
-    )
-  )
+  if (!(
+    left >= 0 &&
+    top >= 0 &&
+    right > left &&
+    bottom > top &&
+    right <= level.width &&
+    bottom <= level.height
+  ))
     return null;
   // A block-compressed level is addressed in 4x4 blocks, and D3D rejects a
   // lock rectangle that would split one.
@@ -472,16 +470,7 @@ export function createTextureMethod(version) {
               r.check(a(2), 32, true);
               const values =
                 version === 8
-                  ? [
-                      format,
-                      1,
-                      usage,
-                      pool,
-                      level.pitch * level.rows,
-                      0,
-                      level.width,
-                      level.height,
-                    ]
+                  ? [format, 1, usage, pool, level.pitch * level.rows, 0, level.width, level.height]
                   : [format, 1, usage, pool, 0, 0, level.width, level.height];
               values.forEach((v, i) => r.write32(a(2) + i * 4, v));
               return 0;
@@ -520,7 +509,10 @@ export function createTextureMethod(version) {
               if (!region) return INVALID;
               r.check(a(2), 8, true);
               r.write32(a(2), level.pitch);
-              r.write32(a(2) + 4, base + level.offset + levelOffset(level, region.left, region.top, bpp));
+              r.write32(
+                a(2) + 4,
+                base + level.offset + levelOffset(level, region.left, region.top, bpp),
+              );
               level.locked = { flags };
               return 0;
             },

@@ -496,7 +496,11 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
   const { runtime, parentId } = harness;
   runtime.windows.windows.get(parentId).visible = true;
   const create = (style) =>
-    createChild(runtime, parentId, { className: 'BUTTON', title: 'Caption', style: WS_CHILD | WS_VISIBLE | style });
+    createChild(runtime, parentId, {
+      className: 'BUTTON',
+      title: 'Caption',
+      style: WS_CHILD | WS_VISIBLE | style,
+    });
   const publish = (id) => {
     const emitted = [];
     const originalEmit = runtime.emit;
@@ -507,7 +511,9 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
   };
 
   // Every documented modifier bit is accepted and round-trips.
-  const modifiers = [0x20, 0x100, 0x200, 0x300, 0x400, 0x800, 0xc00, 0x1000, 0x2000, 0x4000, 0x8000];
+  const modifiers = [
+    0x20, 0x100, 0x200, 0x300, 0x400, 0x800, 0xc00, 0x1000, 0x2000, 0x4000, 0x8000,
+  ];
   for (const bit of modifiers) {
     const control = await create(bit);
     assert.ok(control.result, `BUTTON style 0x${bit.toString(16)} is accepted`);
@@ -526,7 +532,11 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
     [0x300, 'center'],
   ]);
   for (const [bits, expected] of horizontal) {
-    assert.equal(publish((await create(bits)).result).horizontalAlign, expected, `0x${bits.toString(16)}`);
+    assert.equal(
+      publish((await create(bits)).result).horizontalAlign,
+      expected,
+      `0x${bits.toString(16)}`,
+    );
   }
   const vertical = new Map([
     [0x000, 'top'],
@@ -535,7 +545,11 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
     [0xc00, 'center'],
   ]);
   for (const [bits, expected] of vertical) {
-    assert.equal(publish((await create(bits)).result).verticalAlign, expected, `0x${bits.toString(16)}`);
+    assert.equal(
+      publish((await create(bits)).result).verticalAlign,
+      expected,
+      `0x${bits.toString(16)}`,
+    );
   }
 
   // BS_PUSHLIKE renders a checkbox as a push button; BS_MULTILINE wraps; and

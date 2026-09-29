@@ -60,7 +60,11 @@ function htons(r, a) {
 function htonl(r, a) {
   const value = a(0) >>> 0;
   return ok(
-    (((value & 0xff) << 24) | ((value & 0xff00) << 8) | ((value >>> 8) & 0xff00) | (value >>> 24)) >>> 0,
+    (((value & 0xff) << 24) |
+      ((value & 0xff00) << 8) |
+      ((value >>> 8) & 0xff00) |
+      (value >>> 24)) >>>
+      0,
     1,
   );
 }
@@ -84,7 +88,11 @@ function inetAddr(r, a) {
   }
   // The API returns the address in network byte order.
   return ok(
-    (((value & 0xff) << 24) | ((value & 0xff00) << 8) | ((value >>> 8) & 0xff00) | (value >>> 24)) >>> 0,
+    (((value & 0xff) << 24) |
+      ((value & 0xff00) << 8) |
+      ((value >>> 8) & 0xff00) |
+      (value >>> 24)) >>>
+      0,
     1,
   );
 }

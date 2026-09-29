@@ -99,8 +99,7 @@ async function heapAlloc(r, a) {
   const heap = a(0);
   if (r.wineProcess && heap !== 0x50000000 && !r.customHeaps?.has(heap))
     return ok(await callWineHeap(r, 'RtlAllocateHeap', [heap, a(1), a(2)]), 3);
-  if ((heap !== 0x50000000 && !r.customHeaps?.has(heap)) || a(1) & ~0xc)
-    return fail(r, 87, 3);
+  if ((heap !== 0x50000000 && !r.customHeaps?.has(heap)) || a(1) & ~0xc) return fail(r, 87, 3);
   if (!a(2)) return ok(0, 3);
   return ok(r.allocate(a(2), !!(a(1) & 8)), 3);
 }

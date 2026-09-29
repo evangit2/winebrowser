@@ -99,7 +99,10 @@ try {
       first,
       second,
     });
-    await page.locator('#stop').click().catch(() => {});
+    await page
+      .locator('#stop')
+      .click()
+      .catch(() => {});
   }
 
   assert.deepEqual(errors, []);
@@ -122,7 +125,13 @@ try {
       2,
     ) + '\n',
   );
-  console.log(JSON.stringify({ runs: runs.map((r) => ({ mode: r.mode, cellPixels: r.cellPixels })) }, null, 1));
+  console.log(
+    JSON.stringify(
+      { runs: runs.map((r) => ({ mode: r.mode, cellPixels: r.cellPixels })) },
+      null,
+      1,
+    ),
+  );
 } finally {
   await browser?.close();
 }

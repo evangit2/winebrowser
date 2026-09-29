@@ -27,7 +27,11 @@ try {
     mimeType: 'application/octet-stream',
     buffer: Buffer.from(executable),
   });
-  await page.waitForFunction(() => !document.getElementById('run').disabled, {}, { timeout: 20000 });
+  await page.waitForFunction(
+    () => !document.getElementById('run').disabled,
+    {},
+    { timeout: 20000 },
+  );
   await page.locator('#run').click();
   await page.waitForFunction(
     () => ['EXITED', 'ERROR'].includes(document.querySelector('#state').textContent),

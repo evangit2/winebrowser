@@ -7,13 +7,13 @@ most real D3D12 programs use for per-frame data.
 
 It drives:
 
-* a 256-byte upload-heap buffer created in `D3D12_RESOURCE_STATE_GENERIC_READ`
+- a 256-byte upload-heap buffer created in `D3D12_RESOURCE_STATE_GENERIC_READ`
   and permanently mapped, so each frame writes the 4×4 matrix straight into it;
-* `CreateConstantBufferView` recording the CBV in a shader-visible
+- `CreateConstantBufferView` recording the CBV in a shader-visible
   `CBV_SRV_UAV` descriptor heap;
-* a root signature with one `D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE`
+- a root signature with one `D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE`
   parameter holding a `D3D12_DESCRIPTOR_RANGE_TYPE_CBV` range at `b0`;
-* `SetDescriptorHeaps` plus `SetGraphicsRootDescriptorTable` binding the table.
+- `SetDescriptorHeaps` plus `SetGraphicsRootDescriptorTable` binding the table.
 
 The pipeline's shaders are compiled against the canonical bindings that root
 parameter implies: the constant buffer lands in group 0 as a uniform, and the

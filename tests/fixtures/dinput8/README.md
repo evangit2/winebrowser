@@ -17,5 +17,5 @@ released pointers stay reserved to detect stale calls.
 References: the DirectInput ABI and keyboard/mouse model in
 `directwebgpu-wined3d/patches/theseus.patch` and its retained Theseus source; Wine
 revision `db11d0fe6a169c457e23d007e20404643d067aa8`, `dlls/dinput/{ansi,dinput,device,mouse,keyboard}.c`;
-Microsoft's [DirectInput 8 interface reference](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee417799(v=vs.85)).
+Microsoft's [DirectInput 8 interface reference](<https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee417799(v=vs.85)>).
 No game-specific translated module is loaded.

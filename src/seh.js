@@ -21,8 +21,7 @@ export const EXCEPTION_MAXIMUM_PARAMETERS = 15;
 export const EXCEPTION_RECORD_BYTES = 20 + EXCEPTION_MAXIMUM_PARAMETERS * 4;
 // I386_CONTEXT = 0xcc bytes of registers plus 512 bytes of extended registers.
 export const CONTEXT_BYTES = 0xcc + 512;
-const CONTEXT_FLAGS =
-  0x00010000 | 0x00010001 | 0x00010002 | 0x00010004 | 0x00010008 | 0x00010010;
+const CONTEXT_FLAGS = 0x00010000 | 0x00010001 | 0x00010002 | 0x00010004 | 0x00010008 | 0x00010010;
 
 // Register offsets inside I386_CONTEXT, from winnt.h's documented comments.
 export const CONTEXT_OFFSETS = Object.freeze({
@@ -81,7 +80,10 @@ export const ExceptionCollidedUnwind = 3;
  * to guest code.
  */
 export class GuestFault extends Error {
-  constructor(message, { code = EXCEPTION_CODE.ACCESS_VIOLATION, address = 0, write = false, size = 0 } = {}) {
+  constructor(
+    message,
+    { code = EXCEPTION_CODE.ACCESS_VIOLATION, address = 0, write = false, size = 0 } = {},
+  ) {
     super(message);
     this.name = 'GuestFault';
     this.sehCode = code >>> 0;
@@ -113,7 +115,9 @@ export class GuestUnwind extends Error {
 export function isGuestFault(error) {
   return (
     error instanceof GuestFault ||
-    (error instanceof Error && Number.isInteger(error.sehCode) && Number.isInteger(error.sehAddress))
+    (error instanceof Error &&
+      Number.isInteger(error.sehCode) &&
+      Number.isInteger(error.sehAddress))
   );
 }
 

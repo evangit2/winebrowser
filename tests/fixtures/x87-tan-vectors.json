@@ -1,18 +1,9 @@
 {
   "oracle": "Python Decimal tangent from independent Taylor sine/cosine with Chudnovsky pi; 420+ decimal digits, adaptive for tiny arguments; mathematical tangent",
   "outOfRange": [
-    [
-      "two-to-63",
-      "00000000000000803e40"
-    ],
-    [
-      "two-to-64",
-      "00000000000000803f40"
-    ],
-    [
-      "negative-two-to-63",
-      "00000000000000803ec0"
-    ]
+    ["two-to-63", "00000000000000803e40"],
+    ["two-to-64", "00000000000000803f40"],
+    ["negative-two-to-63", "00000000000000803ec0"]
   ],
   "vectors": [
     {

@@ -153,11 +153,7 @@ export function classifyX87(i, iced) {
     [M.Fcmovnu, 7],
   ]);
   if (conditionalMoves.has(m))
-    return result(
-      X87Op.conditionalMove,
-      i.opCount > 1 ? reg(1) : reg(0),
-      conditionalMoves.get(m),
-    );
+    return result(X87Op.conditionalMove, i.opCount > 1 ? reg(1) : reg(0), conditionalMoves.get(m));
   if (m === M.Ffree) return result(X87Op.free, reg(0));
   if (m === M.Fabs || m === M.Fchs) return result(X87Op.sign, m === M.Fchs ? 1 : 0);
   if (m === M.Ftst) return result(X87Op.compare, 0, 0, ZERO);
@@ -169,8 +165,7 @@ export function classifyX87(i, iced) {
   // registers and then reinitialize the FPU; FSTENV/FNSTENV write only the
   // environment. FRSTOR/FLDENV are their inverses.
   if (m === M.Fnsave || m === M.Fsave) return result(X87Op.storeState);
-  if (m === M.Fnstenv || m === M.Fstenv)
-    return result(X87Op.storeState, 0, 0, ENVIRONMENT);
+  if (m === M.Fnstenv || m === M.Fstenv) return result(X87Op.storeState, 0, 0, ENVIRONMENT);
   if (m === M.Frstor) return result(X87Op.loadState);
   if (m === M.Fldenv) return result(X87Op.loadState, 0, 0, ENVIRONMENT);
   if (m === M.Fninit || m === M.Finit) return result(X87Op.initialize);
@@ -483,8 +478,7 @@ export class X87State {
       view.setUint16(8, tag, true);
       // The instruction/data pointers and last opcode are documented as not
       // meaningful on modern processors; leave them zeroed.
-      if (!environment)
-        for (let i = 0; i < 8; i++) bytes.set(this.values[i], 28 + i * 10);
+      if (!environment) for (let i = 0; i < 8; i++) bytes.set(this.values[i], 28 + i * 10);
       this.#write(address, bytes);
       // FSAVE/FNSAVE reinitialize the FPU after storing their state.
       if (!environment) this.reset();

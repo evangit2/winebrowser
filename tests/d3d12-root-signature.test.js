@@ -4,7 +4,12 @@ import {
   parseRootSignatureDescriptor,
   parseVersionedRootSignatureDescriptor,
 } from '../src/d3d12-descriptors.js';
-import { canonicalBindings, decodeRootSignatureWords, planRootSignature, resolveDescriptorPlacement } from '../src/d3d12-bindings.js';
+import {
+  canonicalBindings,
+  decodeRootSignatureWords,
+  planRootSignature,
+  resolveDescriptorPlacement,
+} from '../src/d3d12-bindings.js';
 
 // A tiny guest-memory model with the same accessors the real runtime supplies,
 // so the parser is exercised through its documented interface rather than by
@@ -133,7 +138,7 @@ function rootSignature(m, { parameters = [], samplers = [], flags = 1 }) {
     for (const range of ranges) rangeCursor = writeRange(m, rangeCursor, range);
     writeParameter(m, parameterArray + index * 20, {
       ...description,
-      ranges: ranges.length ? (rangeArray + (rangeCursor - rangeArray) - ranges.length * 20) : 0,
+      ranges: ranges.length ? rangeArray + (rangeCursor - rangeArray) - ranges.length * 20 : 0,
       rangeCount: ranges.length,
     });
   });
@@ -190,7 +195,10 @@ test('decodes a descriptor table with a static sampler and a root CBV', () => {
     parameter: 0,
     heapSlot: 0,
   });
-  assert.equal(resolveDescriptorPlacement(signature, { type: 3, space: 0, register: 0 }).kind, 'static-sampler');
+  assert.equal(
+    resolveDescriptorPlacement(signature, { type: 3, space: 0, register: 0 }).kind,
+    'static-sampler',
+  );
   // The root CBV is a root descriptor, not a heap slot.
   assert.deepEqual(resolveDescriptorPlacement(signature, { type: 2, space: 0, register: 0 }), {
     kind: 'root-descriptor',
@@ -371,9 +379,10 @@ test('decodes a versioned 1.1 description with its wider range records', () => {
   const plan = planRootSignature(decodeRootSignatureWords(words));
   assert.equal(plan.parameterCount, 1);
   assert.equal(plan.flags, 1);
-  assert.deepEqual(plan.ranges.map((r) => [r.kind, r.count, r.space, r.tableOffset]), [
-    ['srv', 1, 0, 0],
-  ]);
+  assert.deepEqual(
+    plan.ranges.map((r) => [r.kind, r.count, r.space, r.tableOffset]),
+    [['srv', 1, 0, 0]],
+  );
 });
 
 test('rejects a malformed versioned description', () => {

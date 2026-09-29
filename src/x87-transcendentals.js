@@ -505,7 +505,8 @@ export function fpatan(yBytes, xBytes, rounding) {
 
 // Ordering used when two quiet NaNs meet: the larger exponent wins, then the
 // larger significand; exact ties keep the second operand, as SoftFloat does.
-const isLargerNaN = (a, b) => a.exponent > b.exponent || (a.exponent === b.exponent && a.sig > b.sig);
+const isLargerNaN = (a, b) =>
+  a.exponent > b.exponent || (a.exponent === b.exponent && a.sig > b.sig);
 
 // Signed interval helpers for outward-rounded rational evaluation.
 const min2 = (a, b) => (a < b ? a : b);
@@ -531,7 +532,9 @@ export function f2xm1(xBytes, rounding) {
   if (x.exponent > 16383 || (x.exponent === 16383 && x.sig > J)) return invalid();
   // The two endpoints are the exact rationals 2^(+/-1) - 1.
   if (x.exponent === 16383 && x.sig === J)
-    return x.negative ? answer(pack(J, 16382, true), denormal, false) : answer(pack(J, 16383, false), denormal, false);
+    return x.negative
+      ? answer(pack(J, 16382, true), denormal, false)
+      : answer(pack(J, 16383, false), denormal, false);
 
   for (let precision = 192; precision <= 12288; precision *= 2) {
     const P = BigInt(precision);
@@ -692,9 +695,7 @@ export function fscale(aBytes, bBytes, rounding) {
   if (a.infinity) return b.infinity && b.negative ? invalid() : answer(aBytes, denormal);
   if (b.infinity) {
     if (a.zero) return b.negative ? answer(aBytes, denormal) : invalid();
-    return b.negative
-      ? answer(pack(0n, 0, a.negative), denormal)
-      : infinity(a.negative, denormal);
+    return b.negative ? answer(pack(0n, 0, a.negative), denormal) : infinity(a.negative, denormal);
   }
   if (a.zero) return answer(aBytes, denormal);
   // |ST(1)| < 1 truncates to a zero scale, and a subnormal ST(1) normalizes to
@@ -706,7 +707,9 @@ export function fscale(aBytes, bBytes, rounding) {
     // range so the shared rounding still reports the correct infinity or zero.
     scale =
       b.exponent > 0x400e
-        ? (b.negative ? -0x10000 : 0x10000)
+        ? b.negative
+          ? -0x10000
+          : 0x10000
         : Number(b.sig >> BigInt(0x403e - b.exponent)) * (b.negative ? -1 : 1);
   }
   // The exact product is the unbounded significand shifted by this exponent;

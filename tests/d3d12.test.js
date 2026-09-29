@@ -66,7 +66,16 @@ function fixture() {
         // Echo a DXBC-tagged container carrying the flattened parameter,
         // sampler and flag words so the test can assert both the description
         // that reached the backend and the blob the frontend publishes.
-        return Uint8Array.of(0x44, 0x58, 0x42, 0x43, words[2] ?? 0, words[0] ?? 0, words[1] ?? 0, 0);
+        return Uint8Array.of(
+          0x44,
+          0x58,
+          0x42,
+          0x43,
+          words[2] ?? 0,
+          words[0] ?? 0,
+          words[1] ?? 0,
+          0,
+        );
       },
       async inspectRootSignature(raw) {
         events.push({ type: 'inspect', raw: [...raw] });
@@ -207,7 +216,10 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
     blobSize = (await call(blob, 4)).result;
   // The empty guest description (no parameters, no samplers, flag 1) must
   // reach the backend as the flattened words and come back as its blob.
-  assert.deepEqual([...r.data.subarray(blobPtr, blobPtr + blobSize)], [0x44, 0x58, 0x42, 0x43, 1, 0, 0, 0]);
+  assert.deepEqual(
+    [...r.data.subarray(blobPtr, blobPtr + blobSize)],
+    [0x44, 0x58, 0x42, 0x43, 1, 0, 0, 0],
+  );
   assert.deepEqual(
     events.filter((event) => event.type === 'build').at(-1).words,
     [0, 0, 1, 0, 11, 0],
@@ -698,10 +710,7 @@ test('CopyBufferRegion performs the canonical upload-to-default-heap copy with s
   // A copy that exceeds either resource must fail before mutating storage.
   await call(allocator, 8);
   await call(list, 10, allocator, 0);
-  await assert.rejects(
-    call(list, 15, target, 8, 0, upload, 0, 0, 16, 0),
-    /exceeds a resource/,
-  );
+  await assert.rejects(call(list, 15, target, 8, 0, upload, 0, 0, 16, 0), /exceeds a resource/);
   await call(list, 2);
   await call(target, 2);
   await call(upload, 2);
@@ -858,7 +867,11 @@ test('DrawInstanced accepts bounded instance counts and first-instance offsets',
   await call(list, 12, 3, 4, 0, 0);
   assert.equal(commands().length, 1);
   assert.deepEqual(
-    { vertexCount: commands()[0].vertexCount, instanceCount: commands()[0].instanceCount, firstInstance: commands()[0].firstInstance },
+    {
+      vertexCount: commands()[0].vertexCount,
+      instanceCount: commands()[0].instanceCount,
+      firstInstance: commands()[0].firstInstance,
+    },
     { vertexCount: 3, instanceCount: 4, firstInstance: 0 },
     'instanceCount and firstInstance are recorded',
   );
@@ -896,7 +909,10 @@ test('CheckFeatureSupport answers the startup capability probes from a fixed pro
   const arch = alloc(16);
   r.write32(arch, 0);
   assert.equal((await call(dev, 13, 1, arch, 16)).result, 0);
-  assert.ok(r.data.subarray(arch, arch + 16).every((b) => b === 0), 'non-UMA non-tiled');
+  assert.ok(
+    r.data.subarray(arch, arch + 16).every((b) => b === 0),
+    'non-UMA non-tiled',
+  );
   r.write32(arch, 1);
   assert.equal((await call(dev, 13, 1, arch, 16)).result, 0x80070057, 'only node 0 exists');
 
@@ -983,11 +999,17 @@ test('descriptor copies, allocation info, custom heap properties and residency a
   r.write32(srcSizes, 1);
   r.write32(srcOffsets + 4, handle + 4);
   r.write32(srcSizes + 4, 1);
-  assert.equal((await call(dev, 23, 2, dstOffsets, dstSizes, 2, srcOffsets, srcSizes, 2)).result, 0);
+  assert.equal(
+    (await call(dev, 23, 2, dstOffsets, dstSizes, 2, srcOffsets, srcSizes, 2)).result,
+    0,
+  );
   assert.equal(descriptors.get(handle).resource, r.comObjects.objects.get(buffer));
   // Unequal totals are rejected.
   r.write32(srcSizes + 4, 2);
-  assert.equal((await call(dev, 23, 2, dstOffsets, dstSizes, 2, srcOffsets, srcSizes, 2)).result, 0x80070057);
+  assert.equal(
+    (await call(dev, 23, 2, dstOffsets, dstSizes, 2, srcOffsets, srcSizes, 2)).result,
+    0x80070057,
+  );
 
   // GetResourceAllocationInfo (hidden struct return) sums buffer sizes.
   const infoDesc = alloc(56);
@@ -1152,7 +1174,10 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
     rows = alloc(4),
     rowSize = alloc(8),
     total = alloc(8);
-  assert.equal((await call(dev, 38, buffer, 0, 1, 0, 0, layout, rows, rowSize, total)).result, undefined);
+  assert.equal(
+    (await call(dev, 38, buffer, 0, 1, 0, 0, layout, rows, rowSize, total)).result,
+    undefined,
+  );
   assert.equal(r.read32(layout), 0, 'layout offset honors base offset');
   assert.equal(r.read32(layout + 12), 100, 'layout width');
   assert.equal(r.read32(layout + 16), 1, 'buffer height is 1');
@@ -1170,7 +1195,10 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
   r.view.setUint16(texture + 30, 1, true);
   r.write32(texture + 32, 28);
   r.write32(texture + 36, 1);
-  assert.equal((await call(dev, 38, texture, 0, 1, 0, 0, layout, rows, rowSize, total)).result, undefined);
+  assert.equal(
+    (await call(dev, 38, texture, 0, 1, 0, 0, layout, rows, rowSize, total)).result,
+    undefined,
+  );
   assert.equal(r.read32(layout + 8), 28, 'texture format recorded');
   assert.equal(r.read32(layout + 16), 4, 'texture height');
   assert.equal(r.read32(layout + 24), 256, 'texture row pitch aligned');
@@ -1179,7 +1207,10 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
   assert.equal(r.read32(total), 1024);
 
   // Explicit base offset is folded into the first layout and the total.
-  assert.equal((await call(dev, 38, buffer, 0, 1, 0x1000, 0, layout, rows, rowSize, total)).result, undefined);
+  assert.equal(
+    (await call(dev, 38, buffer, 0, 1, 0x1000, 0, layout, rows, rowSize, total)).result,
+    undefined,
+  );
   assert.equal(r.read32(layout), 0x1000);
   assert.equal(r.read32(total), 0x1100);
 
@@ -1427,14 +1458,8 @@ test('query heaps record guest-clock timestamps and resolve them into a buffer',
   r.write32(lists, list);
   await call(queue, 10, 1, lists);
 
-  const first = [
-    r.read32(dstStorage),
-    r.read32(dstStorage + 4),
-  ];
-  const second = [
-    r.read32(dstStorage + 8),
-    r.read32(dstStorage + 12),
-  ];
+  const first = [r.read32(dstStorage), r.read32(dstStorage + 4)];
+  const second = [r.read32(dstStorage + 8), r.read32(dstStorage + 12)];
   const asNumber = ([low, high]) => (BigInt(high >>> 0) << 32n) + BigInt(low >>> 0);
   assert.ok(asNumber(first) >= 5_000n, 'first timestamp is the first sample');
   assert.ok(asNumber(second) > asNumber(first), 'second timestamp is later');
@@ -1557,10 +1582,7 @@ test('shared-handle round trip and GetResourceTiling for committed resources', a
     packed = alloc(12),
     shape = alloc(12),
     count = alloc(4);
-  assert.equal(
-    (await call(dev, 42, buffer, total, packed, shape, count, 0, 0)).result,
-    undefined,
-  );
+  assert.equal((await call(dev, 42, buffer, total, packed, shape, count, 0, 0)).result, undefined);
   assert.equal(r.read32(total), 0, 'no tiles');
   assert.equal(r.read32(count), 0, 'no tiled subresources');
   assert.deepEqual([r.read32(shape), r.read32(shape + 4), r.read32(shape + 8)], [256, 256, 1]);

@@ -9,11 +9,11 @@ registration chain at `fs:[0]` before treating it as fatal.
 The layouts follow the documented i386 ABI, which Wine's `winnt.h` records with
 the same offsets:
 
-* `EXCEPTION_RECORD` (80 bytes) — `ExceptionCode`, `ExceptionFlags`, a nested
+- `EXCEPTION_RECORD` (80 bytes) — `ExceptionCode`, `ExceptionFlags`, a nested
   record pointer, `ExceptionAddress`, `NumberParameters` and 15 parameter
   slots. For an access violation `ExceptionInformation[0]` is 0 for a read and
   1 for a write, and `[1]` is the faulting address.
-* `I386_CONTEXT` (`0xcc` bytes plus 512 extended bytes) — `ContextFlags`, the
+- `I386_CONTEXT` (`0xcc` bytes plus 512 extended bytes) — `ContextFlags`, the
   debug registers, `FloatSave`, the four segment selectors, then `Edi`, `Esi`,
   `Ebx`, `Edx`, `Ecx`, `Eax`, `Ebp`, `Eip`, `SegCs`, `EFlags`, `Esp`, `SegSs`.
   The integer and control registers sit at the offsets `winnt.h` documents, and
@@ -25,16 +25,16 @@ A fault is delivered by walking the chain from `fs:[0]` to `0xffffffff`. Each
 handler is called as cdecl with `(record, frame, context, dispatcher)`. A
 handler returns an `EXCEPTION_DISPOSITION`:
 
-| Return | Value | Meaning |
-|---|---|---|
-| `ExceptionContinueExecution` | 0 | Resume at the context's (possibly repaired) `Eip`; the runtime applies the repaired registers. |
-| `ExceptionContinueSearch` | 1 | The next frame decides. |
-| `ExceptionNestedException` | 2 | A nested exception is in progress; the search continues. |
-| `ExceptionCollidedUnwind` | 3 | An unwind collided with this frame. |
+| Return                       | Value | Meaning                                                                                        |
+| ---------------------------- | ----- | ---------------------------------------------------------------------------------------------- |
+| `ExceptionContinueExecution` | 0     | Resume at the context's (possibly repaired) `Eip`; the runtime applies the repaired registers. |
+| `ExceptionContinueSearch`    | 1     | The next frame decides.                                                                        |
+| `ExceptionNestedException`   | 2     | A nested exception is in progress; the search continues.                                       |
+| `ExceptionCollidedUnwind`    | 3     | An unwind collided with this frame.                                                            |
 
-The disposition enum is *not* the filter enum. `EXCEPTION_EXECUTE_HANDLER` (1),
+The disposition enum is _not_ the filter enum. `EXCEPTION_EXECUTE_HANDLER` (1),
 `EXCEPTION_CONTINUE_SEARCH` (0) and `EXCEPTION_CONTINUE_EXECUTION` (-1) are the
-values a `__except` *filter expression* returns; the compiler's frame handler
+values a `__except` _filter expression_ returns; the compiler's frame handler
 translates one into the other.
 
 An empty chain, or one every handler declines, is reported as unhandled and the
@@ -63,5 +63,5 @@ touch the global, so the common path pays nothing.
 ## Limits
 
 Vectored exception handlers, `NtContinue`/`ZwContinue`, 64-bit exception paths
-and C++ exception *objects* are not implemented. A nested exception during a
+and C++ exception _objects_ are not implemented. A nested exception during a
 handler runs the same search from the current chain head.

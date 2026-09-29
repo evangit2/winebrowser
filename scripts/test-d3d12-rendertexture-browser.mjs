@@ -57,7 +57,9 @@ try {
       { timeout: 45000 },
     );
     const sample = await page.locator('[data-graphics-api="d3d12"]').evaluate((element) => {
-      const pixels = element.getContext('2d').getImageData(0, 0, element.width, element.height).data;
+      const pixels = element
+        .getContext('2d')
+        .getImageData(0, 0, element.width, element.height).data;
       const at = (x, y) => {
         const i = (y * element.width + x) * 4;
         return [pixels[i], pixels[i + 1], pixels[i + 2]];
@@ -98,7 +100,10 @@ try {
       `no corner reaches the green end of the gradient: ${sample.bottomLeft} / ${sample.topRight}`,
     );
     runs.push({ mode, sample });
-    await page.locator('#stop').click().catch(() => {});
+    await page
+      .locator('#stop')
+      .click()
+      .catch(() => {});
   }
 
   assert.deepEqual(errors, []);
@@ -120,7 +125,18 @@ try {
       2,
     ) + '\n',
   );
-  console.log(JSON.stringify({ runs: runs.map((r) => ({ mode: r.mode, corners: [r.sample.bottomLeft, r.sample.topRight] })) }, null, 1));
+  console.log(
+    JSON.stringify(
+      {
+        runs: runs.map((r) => ({
+          mode: r.mode,
+          corners: [r.sample.bottomLeft, r.sample.topRight],
+        })),
+      },
+      null,
+      1,
+    ),
+  );
 } finally {
   await browser?.close();
 }

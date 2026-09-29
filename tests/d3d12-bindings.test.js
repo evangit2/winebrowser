@@ -62,13 +62,7 @@ function rootSignatureWords({ parameters = [], samplers = [], flags = 1 }) {
   }
   for (const parameter of parameters)
     for (const range of parameter.ranges)
-      words.push(
-        range.kind,
-        range.count,
-        range.baseRegister,
-        range.space ?? 0,
-        range.tableOffset,
-      );
+      words.push(range.kind, range.count, range.baseRegister, range.space ?? 0, range.tableOffset);
   for (const sampler of samplers)
     words.push(
       sampler.filter ?? 21,
@@ -85,7 +79,10 @@ function rootSignatureWords({ parameters = [], samplers = [], flags = 1 }) {
         (((sampler.space ?? 0) & 0xff) << 16) |
         (((sampler.visibility ?? 0) & 0xff) << 24),
     );
-  assert.equal(words.length, rangeBlockStart + totalRanges * RANGE_WORDS + samplers.length * SAMPLER_WORDS);
+  assert.equal(
+    words.length,
+    rangeBlockStart + totalRanges * RANGE_WORDS + samplers.length * SAMPLER_WORDS,
+  );
   return Uint32Array.from(words);
 }
 
@@ -94,11 +91,8 @@ function rootSignatureWords({ parameters = [], samplers = [], flags = 1 }) {
 // DWORDs and one linear/clamp static sampler, then inspect it. This vector is
 // the bridge's real output and is not produced by the builder above.
 const REAL_WORDS = Uint32Array.from([
-  2, 1, 1, 16, 11, 0,
-  0, 5, 1, 0, 0, 0, 20,
-  1, 0, 0, 0, 0, 16, 0,
-  0, 1, 0, 0, 0,
-  21, 3, 3, 3, 0, 1, 0, 0, 0, 0, 83886080,
+  2, 1, 1, 16, 11, 0, 0, 5, 1, 0, 0, 0, 20, 1, 0, 0, 0, 0, 16, 0, 0, 1, 0, 0, 0, 21, 3, 3, 3, 0, 1,
+  0, 0, 0, 0, 83886080,
 ]);
 assert.equal(REAL_WORDS.length, 36, 'captured inspection vector is truncated');
 
@@ -170,10 +164,7 @@ test('decodes the bridge inspection words for a table, constants and a sampler',
 });
 
 test('rejects malformed inspection input', () => {
-  assert.throws(
-    () => decodeRootSignatureWords(new Uint32Array([1, 2, 3])),
-    /header is truncated/,
-  );
+  assert.throws(() => decodeRootSignatureWords(new Uint32Array([1, 2, 3])), /header is truncated/);
   assert.throws(() => decodeRootSignatureWords(null), /inspection words are missing/);
   assert.throws(
     () => decodeRootSignatureWords(new Uint32Array([1, 0, 1, 0, 11, 0, 9, 0, 0, 0, 0, 0, 20])),
@@ -193,9 +184,24 @@ test('rejects malformed inspection input', () => {
     () =>
       decodeRootSignatureWords(
         new Uint32Array([
-          1, 0, 0, 16, 11, 0, // header: one parameter, 16 constant DWORDs
-          1, 0, 1, 0, 0, 16, 13, // 32-bit constants claiming one range record
-          0, 1, 0, 0, 0, // the stray range record
+          1,
+          0,
+          0,
+          16,
+          11,
+          0, // header: one parameter, 16 constant DWORDs
+          1,
+          0,
+          1,
+          0,
+          0,
+          16,
+          13, // 32-bit constants claiming one range record
+          0,
+          1,
+          0,
+          0,
+          0, // the stray range record
         ]),
       ),
     /non-table parameter declares descriptor ranges/,
@@ -247,17 +253,55 @@ test('two tables claim slots in declaration order', () => {
     ],
   });
   const signature = planRootSignature(decodeRootSignatureWords(words));
-  assert.deepEqual(signature.parameters.map((p) => p.slot), [0, 2]);
+  assert.deepEqual(
+    signature.parameters.map((p) => p.slot),
+    [0, 2],
+  );
   assert.equal(signature.slotCount, 5);
 });
 
 test('places descriptors by kind into dense group bindings', () => {
   const descriptors = [
-    { type: DESCRIPTOR_CBV, space: 0, register: 2, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_CBV, space: 0, register: 0, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_SRV, space: 0, register: 3, resourceType: RESOURCE_TEXTURE_2D, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_SAMPLER, space: 0, register: 3, resourceType: 0, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_SRV, space: 0, register: 0, resourceType: RESOURCE_TEXTURE_CUBE, dataType: DATA_FLOAT, count: 1 },
+    {
+      type: DESCRIPTOR_CBV,
+      space: 0,
+      register: 2,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_CBV,
+      space: 0,
+      register: 0,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SRV,
+      space: 0,
+      register: 3,
+      resourceType: RESOURCE_TEXTURE_2D,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SAMPLER,
+      space: 0,
+      register: 3,
+      resourceType: 0,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SRV,
+      space: 0,
+      register: 0,
+      resourceType: RESOURCE_TEXTURE_CUBE,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
   ];
   const { bindings, lookup } = canonicalBindings(descriptors);
   assert.deepEqual(
@@ -279,7 +323,14 @@ test('places descriptors by kind into dense group bindings', () => {
 });
 
 test('the same register declared by both stages is one binding', () => {
-  const vertex = { type: DESCRIPTOR_CBV, space: 0, register: 0, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 };
+  const vertex = {
+    type: DESCRIPTOR_CBV,
+    space: 0,
+    register: 0,
+    resourceType: RESOURCE_BUFFER,
+    dataType: DATA_FLOAT,
+    count: 1,
+  };
   const pixel = { ...vertex, visibility: 'pixel' };
   const { bindings } = canonicalBindings([vertex, pixel]);
   assert.equal(bindings.length, 1);
@@ -288,8 +339,22 @@ test('the same register declared by both stages is one binding', () => {
 
 test('register spaces sort before register numbers', () => {
   const { bindings } = canonicalBindings([
-    { type: DESCRIPTOR_CBV, space: 1, register: 0, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_CBV, space: 0, register: 5, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 },
+    {
+      type: DESCRIPTOR_CBV,
+      space: 1,
+      register: 0,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_CBV,
+      space: 0,
+      register: 5,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
   ]);
   assert.deepEqual(
     bindings.map((b) => [b.space, b.register]),
@@ -323,11 +388,46 @@ test('rejects unknown descriptor types instead of substituting a binding', () =>
 
 test('layout entries describe the group each binding lives in', () => {
   const { bindings } = canonicalBindings([
-    { type: DESCRIPTOR_CBV, space: 0, register: 0, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_SRV, space: 0, register: 0, resourceType: RESOURCE_BUFFER, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_SRV, space: 0, register: 1, resourceType: RESOURCE_TEXTURE_2D, dataType: DATA_FLOAT, count: 1 },
-    { type: DESCRIPTOR_SRV, space: 0, register: 2, resourceType: RESOURCE_TEXTURE_2D, dataType: DATA_UINT, count: 1 },
-    { type: DESCRIPTOR_SAMPLER, space: 0, register: 0, resourceType: 0, dataType: DATA_FLOAT, count: 1 },
+    {
+      type: DESCRIPTOR_CBV,
+      space: 0,
+      register: 0,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SRV,
+      space: 0,
+      register: 0,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SRV,
+      space: 0,
+      register: 1,
+      resourceType: RESOURCE_TEXTURE_2D,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SRV,
+      space: 0,
+      register: 2,
+      resourceType: RESOURCE_TEXTURE_2D,
+      dataType: DATA_UINT,
+      count: 1,
+    },
+    {
+      type: DESCRIPTOR_SAMPLER,
+      space: 0,
+      register: 0,
+      resourceType: 0,
+      dataType: DATA_FLOAT,
+      count: 1,
+    },
   ]);
   const layouts = layoutEntries(bindings, VISIBILITY);
   assert.deepEqual(
@@ -337,11 +437,7 @@ test('layout entries describe the group each binding lives in', () => {
   assert.deepEqual(layouts[0].entries[0].buffer, { type: 'uniform' });
   assert.deepEqual(
     layouts[1].entries.map((entry) => entry.buffer ?? entry.texture),
-    [
-      { type: 'read-only-storage' },
-      { sampleType: 'float' },
-      { sampleType: 'uint' },
-    ],
+    [{ type: 'read-only-storage' }, { sampleType: 'float' }, { sampleType: 'uint' }],
   );
   assert.deepEqual(layouts[2].entries[0].sampler, { type: 'filtering' });
 });
@@ -362,19 +458,28 @@ test('resolves table placement through the declared range offsets', () => {
       }),
     ),
   );
-  assert.deepEqual(resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SRV, space: 0, register: 0 }), {
-    kind: 'table',
-    parameter: 0,
-    heapSlot: 2,
-  });
+  assert.deepEqual(
+    resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SRV, space: 0, register: 0 }),
+    {
+      kind: 'table',
+      parameter: 0,
+      heapSlot: 2,
+    },
+  );
   // The second descriptor of the CBV range is one slot further along.
-  assert.deepEqual(resolveDescriptorPlacement(plan, { type: DESCRIPTOR_CBV, space: 0, register: 5 }), {
-    kind: 'table',
-    parameter: 0,
-    heapSlot: 6,
-  });
+  assert.deepEqual(
+    resolveDescriptorPlacement(plan, { type: DESCRIPTOR_CBV, space: 0, register: 5 }),
+    {
+      kind: 'table',
+      parameter: 0,
+      heapSlot: 6,
+    },
+  );
   // A register outside every range is not produced by this signature.
-  assert.equal(resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SRV, space: 0, register: 7 }), null);
+  assert.equal(
+    resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SRV, space: 0, register: 7 }),
+    null,
+  );
 });
 
 test('resolves a root descriptor and inline constants', () => {
@@ -385,10 +490,13 @@ test('resolves a root descriptor and inline constants', () => {
       }),
     ),
   );
-  assert.deepEqual(resolveDescriptorPlacement(constants, { type: DESCRIPTOR_CBV, space: 0, register: 0 }), {
-    kind: 'inline-constants',
-    parameter: 0,
-  });
+  assert.deepEqual(
+    resolveDescriptorPlacement(constants, { type: DESCRIPTOR_CBV, space: 0, register: 0 }),
+    {
+      kind: 'inline-constants',
+      parameter: 0,
+    },
+  );
 
   const rootPlan = planRootSignature(
     decodeRootSignatureWords(
@@ -400,19 +508,29 @@ test('resolves a root descriptor and inline constants', () => {
       }),
     ),
   );
-  assert.deepEqual(resolveDescriptorPlacement(rootPlan, { type: DESCRIPTOR_CBV, space: 0, register: 1 }), {
-    kind: 'root-descriptor',
-    parameter: 0,
-  });
-  assert.deepEqual(resolveDescriptorPlacement(rootPlan, { type: DESCRIPTOR_SRV, space: 0, register: 4 }), {
-    kind: 'root-descriptor',
-    parameter: 1,
-  });
+  assert.deepEqual(
+    resolveDescriptorPlacement(rootPlan, { type: DESCRIPTOR_CBV, space: 0, register: 1 }),
+    {
+      kind: 'root-descriptor',
+      parameter: 0,
+    },
+  );
+  assert.deepEqual(
+    resolveDescriptorPlacement(rootPlan, { type: DESCRIPTOR_SRV, space: 0, register: 4 }),
+    {
+      kind: 'root-descriptor',
+      parameter: 1,
+    },
+  );
 });
 
 test('resolves a static sampler declared by the signature', () => {
   const plan = planRootSignature(decodeRootSignatureWords(REAL_WORDS));
-  const placement = resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SAMPLER, space: 0, register: 0 });
+  const placement = resolveDescriptorPlacement(plan, {
+    type: DESCRIPTOR_SAMPLER,
+    space: 0,
+    register: 0,
+  });
   assert.equal(placement.kind, 'static-sampler');
   assert.equal(placement.sampler.addressU, 3);
   assert.equal(placement.sampler.register, 0);
@@ -424,9 +542,7 @@ test('a static sampler shadows a same-register dynamic sampler range', () => {
   const plan = planRootSignature(
     decodeRootSignatureWords(
       rootSignatureWords({
-        parameters: [
-          { type: 0, ranges: [{ kind: 3, count: 2, baseRegister: 0, tableOffset: 0 }] },
-        ],
+        parameters: [{ type: 0, ranges: [{ kind: 3, count: 2, baseRegister: 0, tableOffset: 0 }] }],
         samplers: [{ register: 0, visibility: 0 }],
       }),
     ),
@@ -436,18 +552,30 @@ test('a static sampler shadows a same-register dynamic sampler range', () => {
     'static-sampler',
   );
   // Register 1 is not covered by the static sampler, so it is table-bound.
-  assert.deepEqual(resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SAMPLER, space: 0, register: 1 }), {
-    kind: 'table',
-    parameter: 0,
-    heapSlot: 1,
-  });
+  assert.deepEqual(
+    resolveDescriptorPlacement(plan, { type: DESCRIPTOR_SAMPLER, space: 0, register: 1 }),
+    {
+      kind: 'table',
+      parameter: 0,
+      heapSlot: 1,
+    },
+  );
 });
 
 test('UAV descriptors land in the storage-buffer group', () => {
   const { bindings } = canonicalBindings([
-    { type: DESCRIPTOR_UAV, space: 0, register: 0, resourceType: RESOURCE_BUFFER, dataType: DATA_UINT, count: 1 },
+    {
+      type: DESCRIPTOR_UAV,
+      space: 0,
+      register: 0,
+      resourceType: RESOURCE_BUFFER,
+      dataType: DATA_UINT,
+      count: 1,
+    },
   ]);
   assert.equal(bindings[0].group, UAV_GROUP);
-  const uavLayout = layoutEntries(bindings, VISIBILITY).find((layout) => layout.group === UAV_GROUP);
+  const uavLayout = layoutEntries(bindings, VISIBILITY).find(
+    (layout) => layout.group === UAV_GROUP,
+  );
   assert.deepEqual(uavLayout.entries[0].buffer, { type: 'storage' });
 });

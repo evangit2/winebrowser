@@ -6,15 +6,15 @@ The source-built PE32 ntdll exports private `WineBrowserLoaderBootstrap(batch*)`
 
 All fields are little-endian 32-bit guest values:
 
-| Structure | Offset | Field                                                        |
-| --------- | -----: | ------------------------------------------------------------ |
-| `batch`   |      0 | `size = 16`                                                  |
-|           |      4 | `version = 1`                                                |
-|           |      8 | `count`                                                      |
-|           |     12 | pointer to contiguous `module[count]`                        |
-| `module`  |      0 | `size = 16`                                                  |
-|           |      4 | already mapped PE image base                                 |
-|           |      8 | pointer to NUL-terminated NT path (`\??\C:\...`)             |
+| Structure | Offset | Field                                                                                      |
+| --------- | -----: | ------------------------------------------------------------------------------------------ |
+| `batch`   |      0 | `size = 16`                                                                                |
+|           |      4 | `version = 1`                                                                              |
+|           |      8 | `count`                                                                                    |
+|           |     12 | pointer to contiguous `module[count]`                                                      |
+| `module`  |      0 | `size = 16`                                                                                |
+|           |      4 | already mapped PE image base                                                               |
+|           |      8 | pointer to NUL-terminated NT path (`\??\C:\...`)                                           |
 |           |     12 | flags: `1` main EXE, `2` ntdll, `4` already process-attached, `8` host-prepared static TLS |
 
 Exactly one main EXE and one ntdll are required; bases, image ranges, and case-insensitive basenames must be distinct. The main base must equal `PEB.ImageBaseAddress`. The ntdll flag must identify the validated image range containing the bridge function address; the PE ntdll link does not expose Wine's generated `__wine_spec_nt_header` symbol to this object. Every image must be i386 PE32. Legacy images without `NX_COMPAT` are accepted, while browser DEP remains permanently enabled: `ProcessExecuteFlags` queries return `0x0d`, identical updates succeed, and requests to disable DEP or change that permanent policy return `STATUS_ACCESS_DENIED`. This does not make guest data executable. Static TLS directories require flag 8 and a host-prepared TEB vector/index/slot. The bridge rejects a missing flag, missing vector or slot outside 0–127 before publishing metadata. The host must list already-attached modules in their actual attach order; those entries are linked into Wine's initialization-order list and marked attached. `STATUS_INVALID_PARAMETER` and `STATUS_OBJECT_NAME_COLLISION` reject malformed or duplicate batches before publication; `STATUS_INVALID_DEVICE_STATE` rejects a second bootstrap or an existing loader owner. An allocation failure removes only new Wine metadata, including all three list links and the address index, and restores `PEB.LdrData` and `PEB.LoaderLock`. Image mappings, the heap, parameters, and NLS remain host-owned. A guest exception inside `version_init()` still requires the host's enclosing ntdll-image/process rollback; the export cannot turn a fault into an NTSTATUS. The host must serialize this call with module operations and validate guest descriptors and mapped ranges before invoking it.

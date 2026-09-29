@@ -894,11 +894,7 @@ function createDevice(runtime, argument, version) {
     width,
     height,
     depth,
-    depthFormat: depth
-      ? autoDepthFormat === 75
-        ? 'depth24plus-stencil8'
-        : 'depth16unorm'
-      : null,
+    depthFormat: depth ? (autoDepthFormat === 75 ? 'depth24plus-stencil8' : 'depth16unorm') : null,
     stencil: depth && autoDepthFormat === 75,
     windowed,
     colorFormat: format || displayFormat(currentDisplayMode(runtime)),

@@ -1649,8 +1649,7 @@ for (const version of [8, 9]) {
       assert.equal(r.read32(output), 1);
       assert.equal((await call(d, set, state, 0)).result, 0);
     }
-    for (const state of [35, 140])
-      assert.equal((await call(d, set, state, 4)).result, 0x8876086c);
+    for (const state of [35, 140]) assert.equal((await call(d, set, state, 4)).result, 0x8876086c);
     const cases = [
       [24, 0xab], // ALPHAREF is a 0-255 byte.
       [25, 5, [25]],

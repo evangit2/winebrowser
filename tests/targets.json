@@ -1,12 +1,6 @@
 {
   "schemaVersion": 1,
-  "statusVocabulary": [
-    "untested",
-    "blocked",
-    "passed",
-    "partial",
-    "failed"
-  ],
+  "statusVocabulary": ["untested", "blocked", "passed", "partial", "failed"],
   "referenceFiles": [
     {
       "url": "https://raw.githubusercontent.com/m417z/winapiexec/b1420a81da3eeea1fa9342cd1db2fe9f7f86cf89/winapiexec.c",
@@ -42,11 +36,7 @@
       "bytes": 3584,
       "sha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
       "architecture": "x86",
-      "imports": [
-        "KERNEL32.dll",
-        "USER32.dll",
-        "SHELL32.dll"
-      ],
+      "imports": ["KERNEL32.dll", "USER32.dll", "SHELL32.dll"],
       "downloadEntry": "winapiexec.exe",
       "source": {
         "project": "m417z/winapiexec",
@@ -128,11 +118,7 @@
         },
         {
           "id": "kernel32-beep",
-          "args": [
-            "kernel32@Beep",
-            "440",
-            "20"
-          ],
+          "args": ["kernel32@Beep", "440", "20"],
           "expected": "WebAudio tone at 440 Hz for 20 ms; exit code 1",
           "status": "passed",
           "evidence": {
@@ -142,12 +128,7 @@
         },
         {
           "id": "winmm-playsound-alias",
-          "args": [
-            "winmm.dll@PlaySoundW",
-            "$u:SystemAsterisk",
-            "0",
-            "0x00010001"
-          ],
+          "args": ["winmm.dll@PlaySoundW", "$u:SystemAsterisk", "0", "0x00010001"],
           "expected": "requests asynchronous playback of the Windows SystemAsterisk alias via a dynamically loaded winmm.dll",
           "status": "blocked",
           "statusNote": "SystemAsterisk with SND_ASYNC|SND_ALIAS is outside the measured implementation: current PlaySoundW support is synchronous filename playback (plus SND_NODEFAULT). The passing PCM filename case below verifies the same upstream EXE and PlaySoundW entry point."
@@ -184,12 +165,7 @@
             "bitsPerSample": 16,
             "frames": 80
           },
-          "args": [
-            "winmm.dll@PlaySoundW",
-            "tone.wav",
-            "0",
-            "0x20002"
-          ],
+          "args": ["winmm.dll@PlaySoundW", "tone.wav", "0", "0x20002"],
           "expected": "one AudioBufferSource starts and ends before exit; decoded mono PCM exactly matches the 80-frame test signal; exit code 1",
           "status": "passed",
           "evidence": {
@@ -437,9 +413,7 @@
       "bytes": 402,
       "sha256": "d8f1526db518a7ca9e43ead18b9f5d1d023a63ae4b8479cfd5d782e6811e9f85",
       "architecture": "x86",
-      "imports": [
-        "KERNEL32.dll"
-      ],
+      "imports": ["KERNEL32.dll"],
       "source": {
         "project": "pts/pts-tinype",
         "version": "master at 00bb8824c93188b236599c174af4269abf281664 (2025-06-23)",
@@ -460,9 +434,7 @@
       "bytes": 610,
       "sha256": "c3b4822ad32c379f7aa9dc39aff6b8a5047a81461de91a27e0ff072dbbb61230",
       "architecture": "x86",
-      "imports": [
-        "KERNEL32.dll"
-      ],
+      "imports": ["KERNEL32.dll"],
       "source": {
         "project": "pts/pts-tinype",
         "version": "master at 00bb8824c93188b236599c174af4269abf281664 (2025-06-23)",
@@ -495,13 +467,7 @@
       "bytes": 602624,
       "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
       "architecture": "x86",
-      "imports": [
-        "OLEAUT32.dll",
-        "USER32.dll",
-        "ADVAPI32.dll",
-        "MSVCRT.dll",
-        "KERNEL32.dll"
-      ],
+      "imports": ["OLEAUT32.dll", "USER32.dll", "ADVAPI32.dll", "MSVCRT.dll", "KERNEL32.dll"],
       "source": {
         "project": "7-Zip",
         "version": "26.03",
@@ -511,11 +477,7 @@
       },
       "use": "Real console and filesystem workload from an upstream-built standalone archive tool; includes CRT and security API imports.",
       "workingDirectory": "public/demos/files",
-      "args": [
-        "a",
-        "winebrowser-target.7z",
-        "assets/message.txt"
-      ],
+      "args": ["a", "winebrowser-target.7z", "assets/message.txt"],
       "expected": "creates `winebrowser-target.7z` from the supplied existing text asset and reports successful archive creation",
       "statusNote": "Static import closure is unresolved: OLEAUT32, ADVAPI32, and MSVCRT are missing modules; the image also requires many unsupported KERNEL32 calls (including thread/event, VM, file-enumeration, and console APIs) and USER32 CharUpperW."
     },
@@ -656,13 +618,7 @@
       "bytes": 16384,
       "sha256": "3687bc1cfe9a7657ca9da1daacec9f97a92946f0b0440acdb70d3a71a4560007",
       "architecture": "x86",
-      "imports": [
-        "KERNEL32.dll",
-        "USER32.dll",
-        "GDI32.dll",
-        "ADVAPI32.dll",
-        "SHELL32.dll"
-      ],
+      "imports": ["KERNEL32.dll", "USER32.dll", "GDI32.dll", "ADVAPI32.dll", "SHELL32.dll"],
       "downloadEntry": "tetris.exe",
       "source": {
         "project": "wesmar/Tetris",

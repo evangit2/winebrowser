@@ -253,7 +253,7 @@ export class Runtime {
           // RtlUnwind's TargetIp, when non-zero, is where control resumes. The
           // CRT passes 0 and relies on the accepting frame's own stack instead,
           // which the unwind walk has already restored.
-          ip = error.targetIp || (this.cpu.r[0].value >>> 0);
+          ip = error.targetIp || this.cpu.r[0].value >>> 0;
         }
       } else {
         const preparation = this.cpu.prepare(ip);

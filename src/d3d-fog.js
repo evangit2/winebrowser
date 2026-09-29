@@ -44,8 +44,7 @@ export function validFog(fog) {
   return (
     fog === undefined ||
     fog === null ||
-    (
-      typeof fog === 'object' &&
+    (typeof fog === 'object' &&
       FOG_MODE[fog.mode] !== null &&
       Number.isInteger(fog.color) &&
       fog.color >= 0 &&

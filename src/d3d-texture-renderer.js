@@ -131,10 +131,14 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
   let color = ${output};
   ${alphaTestCode('color.a', command)}
   let lit = ${command.specularEnable ? 'vec4(clamp(color.rgb + input.specular.rgb,vec3(0.0),vec3(1.0)),color.a)' : 'color'};
-  ${command.fog ? `// D3D fog replaces toward the fog colour by (1 - fog): Wine's own GLSL
+  ${
+    command.fog
+      ? `// D3D fog replaces toward the fog colour by (1 - fog): Wine's own GLSL
   // mixes fogColor with the fragment by the clamped factor.
   let fog = clamp(winebrowser_fogFactor(input.viewDepth), 0.0, 1.0);
-  return vec4(mix(${fogCode(command.fog).color}, lit.rgb, fog), lit.a);` : 'return lit;'}
+  return vec4(mix(${fogCode(command.fog).color}, lit.rgb, fog), lit.a);`
+      : 'return lit;'
+  }
 }`;
 }
 export class D3DTextureRenderer {
@@ -283,15 +287,17 @@ export class D3DTextureRenderer {
       if (!cached.views.has(0))
         cached.views.set(
           0,
-          cached.texture.createView({ baseMipLevel: 0, mipLevelCount: snapshot?.levels.length ?? 1 }),
+          cached.texture.createView({
+            baseMipLevel: 0,
+            mipLevelCount: snapshot?.levels.length ?? 1,
+          }),
         );
       return cached.views.get(0);
     };
     for (const binding of expected) {
       const register = (binding - 16) >> 1;
       const entry = textures.get(register);
-      if (binding % 2 === 0)
-        entries.push({ binding, resource: view(entry?.snapshot) });
+      if (binding % 2 === 0) entries.push({ binding, resource: view(entry?.snapshot) });
       else
         entries.push({
           binding,
@@ -302,7 +308,6 @@ export class D3DTextureRenderer {
     }
     return entries;
   }
-
 
   // D3D's separate minification, magnification and mip filters map directly
   // onto WebGPU's sampler fields; address modes and the LOD clamp do too.

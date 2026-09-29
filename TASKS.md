@@ -215,19 +215,19 @@ D3D10/11 and broader D3D12 support are still required.
       and execution has moved out of the packed BASS DLL into the game's own
       image. See `evidence/hamsterball-startup-browser.json`.
 
-      Performance work continued: clock (second-chance) block eviction, an
-      index-validated region cache in the guest memory check (82 ns to 9.5 ns
-      per access on a 31-region process), a dispatch path that skips the thunk
-      lookup off the host address range and resolves each block once, and a
-      writable-code rule that ends a block on a memory write rather than any
-      memory operand. Together these raise the same 60-second startup from
-      16.9M instructions to 155.9M (~9x). The main thread is still inside the
-      packed BASS DLL's self-decrypting protector rather than game code, but
-      it is making forward progress, not spinning: the dominant hot block
-      differs between 15s (offset 0x590e3) and 60s (offset 0x1586c), earlier
-      loops complete, and the distinct-block count keeps rising. No accepted
-      game frame renders yet, so the original EXE remains an open target. See
-      `evidence/hamsterball-startup-browser.json`.
+- Performance work continued: clock (second-chance) block eviction, an
+  index-validated region cache in the guest memory check (82 ns to 9.5 ns
+  per access on a 31-region process), a dispatch path that skips the thunk
+  lookup off the host address range and resolves each block once, and a
+  writable-code rule that ends a block on a memory write rather than any
+  memory operand. Together these raise the same 60-second startup from
+  16.9M instructions to 155.9M (~9x). The main thread is still inside the
+  packed BASS DLL's self-decrypting protector rather than game code, but
+  it is making forward progress, not spinning: the dominant hot block
+  differs between 15s (offset 0x590e3) and 60s (offset 0x1586c), earlier
+  loops complete, and the distinct-block count keeps rising. No accepted
+  game frame renders yet, so the original EXE remains an open target. See
+  `evidence/hamsterball-startup-browser.json`.
 - [x] Compile original Microsoft HelloTriangle HLSL in a browser worker, verify
       rendered pixels, and expose D3DCompile/FromFile to native EXE/ZIP programs.
       See `docs/hlsl-compilation.md`; full upstream C++ execution remains open.

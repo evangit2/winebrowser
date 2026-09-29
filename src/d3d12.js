@@ -23,7 +23,8 @@ const MAX_BYTES = 1024 * 1024;
 const MAX_RESOURCE_BYTES = 8 * 1024 * 1024;
 const MAX_COMMANDS = 256;
 // Stable synthetic adapter LUID presented through GetAdapterLuid.
-const ADAPTER_LUID = 0x4c554944, ADAPTER_LUID_HIGH = 0x57420000;
+const ADAPTER_LUID = 0x4c554944,
+  ADAPTER_LUID_HIGH = 0x57420000;
 // D3D12_RESOURCE_STATES values the bounded renderer tracks. Buffers move
 // through COMMON/COPY_DEST/COPY_SOURCE and the shader-readable READ states;
 // depth targets only ever sit in DEPTH_WRITE; swapchain images alternate
@@ -43,7 +44,20 @@ const RENDER_TEXTURE_STATES = new Set([0, 4, 0x40, 0x80]);
 const WEBGPU_FORMAT = { 28: 'rgba8unorm', 87: 'bgra8unorm', 49: 'r16unorm', 61: 'r8unorm' };
 // DXGI_FORMAT byte sizes for the texture formats the bounded path models.
 const TEXTURE_FORMAT_BYTES = {
-  2: 16, 6: 12, 10: 8, 11: 8, 28: 4, 29: 4, 41: 8, 40: 4, 45: 4, 49: 2, 55: 2, 61: 1, 87: 4, 88: 4,
+  2: 16,
+  6: 12,
+  10: 8,
+  11: 8,
+  28: 4,
+  29: 4,
+  41: 8,
+  40: 4,
+  45: 4,
+  49: 2,
+  55: 2,
+  61: 1,
+  87: 4,
+  88: 4,
 };
 // D3D12_FORMAT_SUPPORT1 masks for the formats the bounded path accepts.
 const FMT_BUFFER = 0x1,
@@ -303,12 +317,9 @@ function copyDescriptorRange(r, dev, type, dstHandle, srcHandle, count) {
   for (let i = 0; i < count; i++) {
     const source = state(r).descriptors.get(srcHandle + i * 4);
     const target = state(r).descriptors.get(dstHandle + i * 4);
-    if (!source || !source.heap.refs || source.heap.state.device !== dev)
-      return E_INVALIDARG;
-    if (!target || !target.heap.refs || target.heap.state.device !== dev)
-      return E_INVALIDARG;
-    if (source.heap.state.type !== type || target.heap.state.type !== type)
-      return E_INVALIDARG;
+    if (!source || !source.heap.refs || source.heap.state.device !== dev) return E_INVALIDARG;
+    if (!target || !target.heap.refs || target.heap.state.device !== dev) return E_INVALIDARG;
+    if (source.heap.state.type !== type || target.heap.state.type !== type) return E_INVALIDARG;
     target.resource = source.resource ?? null;
   }
   return S_OK;
@@ -367,9 +378,10 @@ function rootDescribedParameter(root, index) {
 // of a 4-byte descriptor slot; `heapSlot` is the range offset within the table,
 // so the address is the handle advanced that many descriptors.
 function descriptorTableEntry(r, o, entry, heapSlot) {
-  const heap = o.state.descriptorHeaps.find((candidate) =>
-    entry.handle >= candidate.state.base &&
-    entry.handle < candidate.state.base + candidate.state.count * 4,
+  const heap = o.state.descriptorHeaps.find(
+    (candidate) =>
+      entry.handle >= candidate.state.base &&
+      entry.handle < candidate.state.base + candidate.state.count * 4,
   );
   if (!heap) throw Error('D3D12 root descriptor table is not backed by a bound heap');
   const base = entry.handle + heapSlot * 4;
@@ -478,8 +490,7 @@ function setRootDescriptor(r, a, o, kind) {
   const root = o.state.root;
   if (!root) throw Error('D3D12 root descriptor requires a root signature');
   const parameter = rootDescribedParameter(root, index);
-  if (parameter.type !== kind)
-    throw Error(`D3D12 root ${kind} index is not a ${kind} parameter`);
+  if (parameter.type !== kind) throw Error(`D3D12 root ${kind} index is not a ${kind} parameter`);
   const resource = uploadAt(r, address, 1, o.state.device);
   o.state.roots.set(index, {
     kind: 'root-descriptor',
@@ -615,8 +626,7 @@ function recordDraw(r, a, o, indexed) {
     bindings = resolved.map((entry) => bindingSnapshot(r, o, entry));
     for (const entry of bindings)
       if (entry.kind === 'uniform' && entry.bytes) s.vertexBytes += entry.bytes.length;
-    if (s.vertexBytes > MAX_RESOURCE_BYTES)
-      throw Error('D3D12 binding snapshot limit exceeded');
+    if (s.vertexBytes > MAX_RESOURCE_BYTES) throw Error('D3D12 binding snapshot limit exceeded');
   }
   add(o, {
     type: 'draw',
@@ -784,19 +794,29 @@ function listMethods() {
         const dst = textureCopyLocation(r, o, number(a(1)));
         const src = textureCopyLocation(r, o, number(a(5)));
         if (dst.resource.state.kind !== 'texture' || src.resource.state.kind !== 'buffer')
-          throw Error(
-            'D3D12 CopyTextureRegion requires a texture destination and buffer source',
-          );
+          throw Error('D3D12 CopyTextureRegion requires a texture destination and buffer source');
         if (src.format && src.format !== dst.location.format)
           throw Error('D3D12 placed footprint format does not match the destination texture');
         const box = number(a(6));
         if (box) {
           r.check(box, 24);
           // D3D12_BOX: left, top, front, right, bottom, back.
-          const left = u32(r, box), top = u32(r, box, 4), front = u32(r, box, 8);
-          const right = u32(r, box, 12), bottom = u32(r, box, 16), back = u32(r, box, 20);
-          if (left || top || front || back !== 1 || !right || !bottom ||
-              right !== dst.location.width || bottom !== dst.location.height)
+          const left = u32(r, box),
+            top = u32(r, box, 4),
+            front = u32(r, box, 8);
+          const right = u32(r, box, 12),
+            bottom = u32(r, box, 16),
+            back = u32(r, box, 20);
+          if (
+            left ||
+            top ||
+            front ||
+            back !== 1 ||
+            !right ||
+            !bottom ||
+            right !== dst.location.width ||
+            bottom !== dst.location.height
+          )
             throw Error('Unsupported D3D12 CopyTextureRegion box');
         }
         const footprint = textureFootprint(dst.location, src.location.rowPitch);
@@ -843,7 +863,8 @@ function listMethods() {
         const heaps = [];
         for (let i = 0; i < count; i++) {
           const heap = object(r, u32(r, ptr, i * 4), 'heap', o.state.device);
-          if (heap.state.type > 1) throw Error('D3D12 SetDescriptorHeaps requires CPU-visible heaps');
+          if (heap.state.type > 1)
+            throw Error('D3D12 SetDescriptorHeaps requires CPU-visible heaps');
           if (heaps.some((other) => other.state.type === heap.state.type))
             throw Error('D3D12 descriptor heaps must have distinct types');
           heaps.push(heap);
@@ -1085,7 +1106,10 @@ function listMethods() {
         r.check(ptr, 16);
         if (
           ![0, 1, 2, 3].every(
-            (i) => Number.isFinite(f32(r, ptr, i * 4)) && f32(r, ptr, i * 4) >= 0 && f32(r, ptr, i * 4) <= 1,
+            (i) =>
+              Number.isFinite(f32(r, ptr, i * 4)) &&
+              f32(r, ptr, i * 4) >= 0 &&
+              f32(r, ptr, i * 4) <= 1,
           )
         )
           throw Error('Unsupported D3D12 blend factor');
@@ -1154,7 +1178,15 @@ function listMethods() {
           throw Error('Unsupported D3D12 ResolveQueryData destination');
         if (offsetLow + count * 8 > dst.state.size)
           throw Error('D3D12 ResolveQueryData exceeds the destination buffer');
-        add(o, { type: 'query-resolve', heap, queryType: type, start, count, dst, offset: offsetLow });
+        add(o, {
+          type: 'query-resolve',
+          heap,
+          queryType: type,
+          start,
+          count,
+          dst,
+          offset: offsetLow,
+        });
         return undefined;
       },
     },
@@ -1787,8 +1819,7 @@ function deviceMethods() {
             if (resource.state.kind !== 'texture' && resource.state.kind !== 'render-texture')
               return E_INVALIDARG;
             r.check(desc + 16, 20);
-            if (u32(r, desc, 16) || u32(r, desc, 24) || u32(r, desc, 28) ||
-                f32(r, desc, 32) !== 0)
+            if (u32(r, desc, 16) || u32(r, desc, 24) || u32(r, desc, 28) || f32(r, desc, 32) !== 0)
               return E_INVALIDARG;
             if (format && format !== resource.state.format) return E_INVALIDARG;
             format = resource.state.format;
@@ -1866,19 +1897,15 @@ function deviceMethods() {
     },
     // CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc, REFIID, void **).
     // D3D12_QUERY_HEAP_TYPE_OCCLUSION(0)/TIMESTAMP(1); 12-byte descriptor.
-    39: child(
-      'query',
-      4,
-      (r, a, dev) => {
-        const p = number(a(1));
-        r.check(p, 12);
-        const type = u32(r, p),
-          count = u32(r, p, 4),
-          nodeMask = u32(r, p + (8));
-        if (type > 1 || !count || count > 4096 || nodeMask > 1) return E_INVALIDARG;
-        return { type, count, values: new Array(count).fill(0n) };
-      },
-    ),
+    39: child('query', 4, (r, a, dev) => {
+      const p = number(a(1));
+      r.check(p, 12);
+      const type = u32(r, p),
+        count = u32(r, p, 4),
+        nodeMask = u32(r, p + 8);
+      if (type > 1 || !count || count > 4096 || nodeMask > 1) return E_INVALIDARG;
+      return { type, count, values: new Array(count).fill(0n) };
+    }),
     // SetStablePowerState(BOOL Enable) is a developer-only hint.
     40: { argc: 2, invoke: () => S_OK },
     // CopyDescriptorsSimple: duplicate `count` descriptors between two heap
@@ -2264,7 +2291,7 @@ function fenceMethods() {
         const event = number(a(3));
         if (!event) return E_INVALIDARG;
         if (value <= o.state.value) r.syncObjects?.signal(event);
-        else o.state.waiters ??= [], o.state.waiters.push({ value, event });
+        else ((o.state.waiters ??= []), o.state.waiters.push({ value, event }));
         return S_OK;
       },
     },
@@ -2275,7 +2302,8 @@ function fenceMethods() {
         const value = readValue(a);
         if (value < o.state.value) return E_INVALIDARG;
         o.state.value = value;
-        for (const waiter of o.state.waiters ?? []) if (waiter.value <= value) r.syncObjects?.signal(waiter.event);
+        for (const waiter of o.state.waiters ?? [])
+          if (waiter.value <= value) r.syncObjects?.signal(waiter.event);
         if (o.state.waiters) o.state.waiters = o.state.waiters.filter((w) => w.value > value);
         return S_OK;
       },
@@ -2405,10 +2433,7 @@ function queueMethods() {
                 throw Error('D3D12 CopyBufferRegion destination is not in a copyable state');
               if (![0x800, 0xac3].includes(srcState))
                 throw Error('D3D12 CopyBufferRegion source is not in a copyable state');
-              if (
-                c.dstOffset + c.size > dst.state.size ||
-                c.srcOffset + c.size > src.state.size
-              )
+              if (c.dstOffset + c.size > dst.state.size || c.srcOffset + c.size > src.state.size)
                 throw Error('D3D12 CopyBufferRegion exceeds a resource');
               const from = src.state.storage + c.srcOffset;
               const to = dst.state.storage + c.dstOffset;
@@ -2494,8 +2519,10 @@ function queueMethods() {
         const value = (BigInt(number(a(3))) << 32n) | BigInt(number(a(2)));
         if (value < fence.state.value) return E_INVALIDARG;
         fence.state.value = value;
-        for (const waiter of fence.state.waiters ?? []) if (waiter.value <= value) r.syncObjects?.signal(waiter.event);
-        if (fence.state.waiters) fence.state.waiters = fence.state.waiters.filter((w) => w.value > value);
+        for (const waiter of fence.state.waiters ?? [])
+          if (waiter.value <= value) r.syncObjects?.signal(waiter.event);
+        if (fence.state.waiters)
+          fence.state.waiters = fence.state.waiters.filter((w) => w.value > value);
         return S_OK;
       },
     },

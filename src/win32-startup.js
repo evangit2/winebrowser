@@ -380,7 +380,7 @@ function getFileType(r, a) {
   return r.handles.has(handle) ? ok(1, 1) : fail(r, 6, 1); // FILE_TYPE_DISK
 }
 function flushFileBuffers(r, a) {
-  return r.handles.has(a(0)) || a(0) >= 0 && a(0) <= 2 ? ok(1, 1) : fail(r, 6, 1);
+  return r.handles.has(a(0)) || (a(0) >= 0 && a(0) <= 2) ? ok(1, 1) : fail(r, 6, 1);
 }
 function setEndOfFile(r, a) {
   const handle = r.handles.get(a(0));
@@ -635,12 +635,11 @@ function getStringType(r, a, wide) {
   if (count < 0 || !destination) return fail(r, 87, 5);
   r.check(destination, count * 2, true);
   for (let i = 0; i < count; i++) {
-    const code = wide
-      ? r.guestMemory.read(source + i * 2, 2)
-      : r.guestMemory.read(source + i, 1);
+    const code = wide ? r.guestMemory.read(source + i * 2, 2) : r.guestMemory.read(source + i, 1);
     const char = String.fromCharCode(code);
     let types = 0;
-    if (/[a-zA-Z]/.test(char)) types |= 0x0100 | 0x0004 | (char === char.toUpperCase() ? 0x0001 : 0x0002);
+    if (/[a-zA-Z]/.test(char))
+      types |= 0x0100 | 0x0004 | (char === char.toUpperCase() ? 0x0001 : 0x0002);
     if (/[0-9]/.test(char)) types |= 0x0004;
     if (/\s/.test(char)) types |= 0x0008;
     if (/[!-\/:-@\[-`{-~]/.test(char)) types |= 0x0010;

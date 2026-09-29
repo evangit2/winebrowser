@@ -138,7 +138,9 @@ export async function probeWineTarget(
       // inspected visually without a separate screenshot harness. A string
       // keeps the JSON report compact instead of one number per byte.
       if (!report.framePngBase64) {
-        const bytes = new Uint8Array(await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer());
+        const bytes = new Uint8Array(
+          await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer(),
+        );
         let binary = '';
         for (let i = 0; i < bytes.length; i += 8192)
           binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
@@ -373,12 +375,14 @@ export async function probeWineTarget(
         }
       }
       const record = { name, args, threadId: runtime.threads.current?.id };
-      if (name === 'user32.dll!EnumDisplaySettingsA' || name === 'user32.dll!ChangeDisplaySettingsA') {
+      if (
+        name === 'user32.dll!EnumDisplaySettingsA' ||
+        name === 'user32.dll!ChangeDisplaySettingsA'
+      ) {
         try {
           const devmode = args[2] >>> 0;
           record.devmode = [...runtime.data.slice(devmode, devmode + 40)];
-          record.devmodeSize =
-            runtime.data[devmode + 36] | (runtime.data[devmode + 37] << 8);
+          record.devmodeSize = runtime.data[devmode + 36] | (runtime.data[devmode + 37] << 8);
         } catch (error) {
           record.devmodeError = error.message;
         }
@@ -693,18 +697,18 @@ export async function probeWineTarget(
       phase = 'native EXE render loop';
       report.phases.push({ name: 'guest presented frames (render loop)', passed: true });
     } else
-    report.firstFailure ??= {
-      phase,
-      message: error.message,
-      ...(runtime
-        ? {
-            ip: locate(lastIP),
-            registers: runtime.cpu.r.map((r) => hex(r.value)),
-            compiledBlocks: runtime.cpu.cache.size,
-            instructions: runtime.cpu.instructions,
-          }
-        : {}),
-    };
+      report.firstFailure ??= {
+        phase,
+        message: error.message,
+        ...(runtime
+          ? {
+              ip: locate(lastIP),
+              registers: runtime.cpu.r.map((r) => hex(r.value)),
+              compiledBlocks: runtime.cpu.cache.size,
+              instructions: runtime.cpu.instructions,
+            }
+          : {}),
+      };
   } finally {
     report.threadsAtStop =
       runtime &&

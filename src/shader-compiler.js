@@ -196,7 +196,10 @@ export class ShaderCompiler {
     try {
       compiler.HEAPU8.set(source, input);
       if (records.length)
-        compiler.HEAPU8.set(new Uint8Array(records.buffer, records.byteOffset, records.byteLength), table);
+        compiler.HEAPU8.set(
+          new Uint8Array(records.buffer, records.byteOffset, records.byteLength),
+          table,
+        );
       if (compiler._wb_dxbc_compile_bound(input, source.length, table, placements.length) !== 1)
         throw this.diagnostic('Bound DXBC compilation failed');
       const address = compiler._wb_result_ptr(),
@@ -268,12 +271,20 @@ export class ShaderCompiler {
     const address = compiler._malloc(words.byteLength);
     if (!address) throw Error('Root signature build allocation failed');
     try {
-      compiler.HEAPU8.set(new Uint8Array(words.buffer, words.byteOffset, words.byteLength), address);
+      compiler.HEAPU8.set(
+        new Uint8Array(words.buffer, words.byteOffset, words.byteLength),
+        address,
+      );
       if (compiler._wb_root_signature_build(address, words.length) !== 1)
         throw this.diagnostic('Root signature serialization failed');
       const pointer = compiler._wb_result_ptr(),
         length = compiler._wb_result_size();
-      if (!pointer || length < 32 || length > MAX_SHADER_BYTES || pointer + length > compiler.HEAPU8.length)
+      if (
+        !pointer ||
+        length < 32 ||
+        length > MAX_SHADER_BYTES ||
+        pointer + length > compiler.HEAPU8.length
+      )
         throw Error('Invalid serialized root signature');
       return compiler.HEAPU8.slice(pointer, pointer + length);
     } finally {

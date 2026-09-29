@@ -7,7 +7,12 @@ import {
   resolveDescriptorPlacement,
 } from './d3d12-bindings.js';
 
-const DESCRIPTOR_KIND_NAMES = ['shader resource view', 'unordered access view', 'constant buffer', 'sampler'];
+const DESCRIPTOR_KIND_NAMES = [
+  'shader resource view',
+  'unordered access view',
+  'constant buffer',
+  'sampler',
+];
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 
@@ -305,9 +310,7 @@ export class D3D12Renderer {
             attribute.offset + widthOf(attribute.format) * 4 <= vertexStride &&
             (index === 0 || attribute.offset > inputLayout[index - 1].offset),
         ) &&
-        inputLayout.every(
-          (attribute) => widthOf(attribute.format) > 0 && !!attribute.semanticName,
-        ))
+        inputLayout.every((attribute) => widthOf(attribute.format) > 0 && !!attribute.semanticName))
     ))
       throw Error('Unsupported D3D12 input layout');
     if (
@@ -616,7 +619,8 @@ export class D3D12Renderer {
       const resource = this.bindingResource(binding, drawIndex);
       if (!resource) throw Error('D3D12 binding has no bound resource');
       const list = entries.get(binding.group);
-      if (!list) throw Error(`D3D12 binding group ${binding.group} is outside the canonical groups`);
+      if (!list)
+        throw Error(`D3D12 binding group ${binding.group} is outside the canonical groups`);
       list.push({ binding: binding.binding, resource: resource.resource });
     }
     const groups = [null, null, null];
@@ -644,7 +648,10 @@ export class D3D12Renderer {
         sampler = this.device.createSampler(toSamplerDescriptor(binding.sampler));
         cache.set(key, sampler);
       }
-      return { layout: { sampler: { type: binding.sampler.comparison ? 'comparison' : 'filtering' } }, resource: sampler };
+      return {
+        layout: { sampler: { type: binding.sampler.comparison ? 'comparison' : 'filtering' } },
+        resource: sampler,
+      };
     }
     if (binding.kind === 'uniform') {
       const slot = this.uniformSlot(drawIndex, binding.group, binding.binding);
@@ -665,7 +672,12 @@ export class D3D12Renderer {
     const key = `${drawIndex}:${group}:${binding}`;
     let slot = this.uniformSlots?.get(key);
     if (!slot) {
-      slot = { buffer: this.device.createBuffer({ size: 65536, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }) };
+      slot = {
+        buffer: this.device.createBuffer({
+          size: 65536,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        }),
+      };
       this.uniformSlots ??= new Map();
       this.uniformSlots.set(key, slot);
     }
@@ -849,8 +861,7 @@ export class D3D12Renderer {
       throw Error('D3D12 texture upload data is invalid');
     if (bytesPerRow < width * TEXTURE_FORMAT_BYTES[resource.format])
       throw Error('D3D12 texture upload row pitch is too small');
-    if (rows.length < bytesPerRow * height)
-      throw Error('D3D12 texture upload covers too few rows');
+    if (rows.length < bytesPerRow * height) throw Error('D3D12 texture upload covers too few rows');
     this.device.queue.writeTexture(
       { texture: resource.texture },
       rows.subarray(0, bytesPerRow * height),

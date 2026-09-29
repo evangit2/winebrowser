@@ -198,11 +198,15 @@ export class CPU {
         const unit = signed >> shift;
         const bit = signed & (width - 1);
         const target = (address + unit * unitBytes) >>> 0;
-        const value = this.host.load(this.checkMemory(target, unitBytes, operation !== 0), unitBytes);
+        const value = this.host.load(
+          this.checkMemory(target, unitBytes, operation !== 0),
+          unitBytes,
+        );
         this.f.cf = (value >>> bit) & 1;
         if (operation === 0) return;
         const mask = 1 << bit;
-        const next = operation === 1 ? value | mask : operation === 2 ? value & ~mask : value ^ mask;
+        const next =
+          operation === 1 ? value | mask : operation === 2 ? value & ~mask : value ^ mask;
         this.host.store(target, next, unitBytes);
       },
       simd: (op, dst, src, address, immediate) =>
@@ -1140,17 +1144,14 @@ export class CPU {
               // index may be any register or an imm8, and the effective
               // address can move backwards for a signed register index.
               const bits = MemorySizeExt.size(i.memorySize) * 8;
-              if (![16, 32].includes(bits))
-                throw Error('Memory bit operand must be 16 or 32 bits');
+              if (![16, 32].includes(bits)) throw Error('Memory bit operand must be 16 or 32 bits');
               const indexKind = i.opKind(1);
               if (indexKind !== K.Register && indexKind !== K.Immediate8)
                 throw Error('Memory bit index must be a register or imm8');
               if (i.hasLockPrefix && operation === 0)
                 throw Error('LOCK BT without a memory write is unsupported');
               const offset =
-                indexKind === K.Immediate8
-                  ? constant(i.immediate8)
-                  : readReg(i.opRegister(1));
+                indexKind === K.Immediate8 ? constant(i.immediate8) : readReg(i.opRegister(1));
               code.push(
                 ...addr(i),
                 ...offset,
@@ -1163,11 +1164,17 @@ export class CPU {
               if (![16, 32].includes(bits))
                 throw Error('BT register operand must be 16 or 32 bits');
               const indexKind = i.opKind(1);
-              if (
-                !((indexKind === K.Register && width(i, 1) === bits) || indexKind === K.Immediate8)
-              )
+              if (!(
+                (indexKind === K.Register && width(i, 1) === bits) ||
+                indexKind === K.Immediate8
+              ))
                 throw Error('BT bit index must be a same-width register or imm8');
-              code.push(...operand(i, 0), ...operand(i, 1), ...constant(bits), ...call(Host.bitTest));
+              code.push(
+                ...operand(i, 0),
+                ...operand(i, 1),
+                ...constant(bits),
+                ...call(Host.bitTest),
+              );
               if (m !== M.Bt) {
                 const mask = [...constant(1), ...operand(i, 1), ...constant(bits - 1), 0x71, 0x74];
                 const value =

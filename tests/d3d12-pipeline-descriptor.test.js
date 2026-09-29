@@ -12,7 +12,12 @@ function buffer() {
   const read32 = (pointer) => view.getUint32(pointer, true);
   const strings = new Map();
   const readString = (pointer) => strings.get(pointer) ?? '\0';
-  const setup = ({ blendDefault = false, depth = null, depthEnable = 1, stencilEnable = 0 } = {}) => {
+  const setup = ({
+    blendDefault = false,
+    depth = null,
+    depthEnable = 1,
+    stencilEnable = 0,
+  } = {}) => {
     const pointer = 0;
     data.fill(0);
     view.setUint32(pointer + 392, 0xffffffff, true);

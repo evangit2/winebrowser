@@ -15,12 +15,12 @@ mapped upload buffer.
 Together with the other D3D12 samples this covers every root-parameter binding
 form D3D12 offers:
 
-| Demo | Binding style |
-|---|---|
-| `d3d12-constants` | `D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS` |
-| `d3d12-rootcbv` | `D3D12_ROOT_PARAMETER_TYPE_CBV` (this demo) |
-| `d3d12-constbuffer` | a CBV descriptor range in a descriptor table |
-| `d3d12-texture` | an SRV descriptor table plus a static sampler |
+| Demo                | Binding style                                 |
+| ------------------- | --------------------------------------------- |
+| `d3d12-constants`   | `D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS`   |
+| `d3d12-rootcbv`     | `D3D12_ROOT_PARAMETER_TYPE_CBV` (this demo)   |
+| `d3d12-constbuffer` | a CBV descriptor range in a descriptor table  |
+| `d3d12-texture`     | an SRV descriptor table plus a static sampler |
 
 The runtime resolves a root descriptor to the buffer its address names, starting
 the view at that address so a program may bind into the middle of a buffer.

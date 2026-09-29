@@ -12,11 +12,7 @@ export const COMPRESSED_FORMATS = {
 export const compressedFormat = (format) => COMPRESSED_FORMATS[format] ?? null;
 
 // Force the specials back to the normal end-point ramp.
-const expand565 = (value) => [
-  ((value >>> 11) & 31),
-  ((value >>> 5) & 63),
-  (value & 31),
-];
+const expand565 = (value) => [(value >>> 11) & 31, (value >>> 5) & 63, value & 31];
 const replicate = ([r, g, b]) => [(r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)];
 
 function endpoints(data, p, alpha) {
@@ -64,9 +60,9 @@ function alphaTable(data, p, kind) {
   const table = new Uint8Array(8);
   table[0] = a0;
   table[1] = a1;
-  if (a0 > a1) for (let i = 1; i <= 6; i++) table[i + 1] = ((7 - i) * a0 + i * a1) / 7 | 0;
+  if (a0 > a1) for (let i = 1; i <= 6; i++) table[i + 1] = (((7 - i) * a0 + i * a1) / 7) | 0;
   else {
-    for (let i = 1; i <= 4; i++) table[i + 1] = ((5 - i) * a0 + i * a1) / 5 | 0;
+    for (let i = 1; i <= 4; i++) table[i + 1] = (((5 - i) * a0 + i * a1) / 5) | 0;
     table[6] = 0;
     table[7] = 255;
   }

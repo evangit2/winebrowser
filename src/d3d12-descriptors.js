@@ -46,14 +46,7 @@ export function parseInputLayout({ check, read32, readString, pointer, count }) 
     const stepRate = u32(read32, element, 24);
     const described = INPUT_FORMATS[format];
     const key = `${semanticName.toUpperCase()}\0${semanticIndex}`;
-    if (
-      !described ||
-      !semanticName ||
-      inputSlot ||
-      classification ||
-      stepRate ||
-      seen.has(key)
-    )
+    if (!described || !semanticName || inputSlot || classification || stepRate || seen.has(key))
       throw Error(
         'Unsupported D3D12 input layout element ' +
           JSON.stringify({
@@ -315,12 +308,7 @@ export function parseCommittedResourceDescriptor({
     if (format === 55) {
       // A D16_UNORM depth attachment: one mip, one array slice, DEPTH_WRITE
       // state and an explicit depth clear value are all required.
-      if (
-        u32(read32, descriptor, 48) !== 2 ||
-        initialState !== 0x10 ||
-        !clearValue
-      )
-        return null;
+      if (u32(read32, descriptor, 48) !== 2 || initialState !== 0x10 || !clearValue) return null;
     } else {
       // An ordinary 2D texture: R8G8B8A8_UNORM, one mip, one slice. It is
       // either sampled (uploaded into, no clear value) or a render target

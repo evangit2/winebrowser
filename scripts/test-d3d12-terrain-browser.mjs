@@ -89,7 +89,10 @@ try {
     );
     assert.ok(first.hash !== second.hash, 'the orbiting terrain did not change between frames');
     runs.push({ mode, firstFourFramesMs, first, second });
-    await page.locator('#stop').click().catch(() => {});
+    await page
+      .locator('#stop')
+      .click()
+      .catch(() => {});
   }
 
   assert.deepEqual(errors, []);
@@ -113,7 +116,13 @@ try {
   );
   console.log(
     JSON.stringify(
-      { runs: runs.map((r) => ({ mode: r.mode, distinctColours: r.first.distinct, draws: r.first.draws })) },
+      {
+        runs: runs.map((r) => ({
+          mode: r.mode,
+          distinctColours: r.first.distinct,
+          draws: r.first.draws,
+        })),
+      },
       null,
       1,
     ),

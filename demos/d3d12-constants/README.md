@@ -11,12 +11,12 @@ geometry or a constant buffer.
 It exercises a different path from the other D3D12 samples in this repository,
 which all use an empty root signature and transform on the guest CPU:
 
-* a real `D3D12_ROOT_SIGNATURE_DESC` with one parameter, serialized by
+- a real `D3D12_ROOT_SIGNATURE_DESC` with one parameter, serialized by
   `D3D12SerializeRootSignature` and created through `CreateRootSignature`;
-* `SetGraphicsRoot32BitConstants` staged per constant register;
-* the pipeline's shaders compiled against the canonical bindings that root
+- `SetGraphicsRoot32BitConstants` staged per constant register;
+- the pipeline's shaders compiled against the canonical bindings that root
   parameter implies (the transform arrives as a uniform in group 0);
-* the same command-list, descriptor-heap, fence and swapchain sequence the
+- the same command-list, descriptor-heap, fence and swapchain sequence the
   other samples use.
 
 It has no C runtime, pretranslated WebAssembly, or browser-specific imports.

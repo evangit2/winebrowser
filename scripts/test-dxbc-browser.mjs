@@ -108,7 +108,10 @@ try {
     result.signatureRoundTrip.rebuiltBytes,
     'inspect/build round trip changed the root signature length',
   );
-  assert.equal(result.signatureRoundTrip.rebuiltEmptyBytes, result.signatureRoundTrip.originalBytes);
+  assert.equal(
+    result.signatureRoundTrip.rebuiltEmptyBytes,
+    result.signatureRoundTrip.originalBytes,
+  );
   // An application-declared signature (descriptor table + static sampler +
   // root CBV) must parse, build into DXBC and inspect back identically.
   const application = result.applicationSignature;
@@ -124,7 +127,9 @@ try {
   // exactly the planned @group/@binding decorations.
   const scanned = result.descriptorBindings.scanned;
   assert.deepEqual(
-    scanned.map(({ type, space, register }) => [type, space, register]).sort((a, b) => a[0] - b[0] || a[2] - b[2]),
+    scanned
+      .map(({ type, space, register }) => [type, space, register])
+      .sort((a, b) => a[0] - b[0] || a[2] - b[2]),
     [
       [0, 0, 0], // SRV texture2D t0
       [0, 0, 3], // SRV textureCube t3
@@ -177,7 +182,9 @@ try {
         descriptorBindings: {
           scanned: result.descriptorBindings.scanned.length,
           planned: result.descriptorBindings.planned.length,
-          groups: [...new Set(result.descriptorBindings.planned.map((entry) => entry.group))].sort(),
+          groups: [
+            ...new Set(result.descriptorBindings.planned.map((entry) => entry.group)),
+          ].sort(),
           boundWGSLBytes: result.descriptorBindings.boundWGSL.length,
         },
         signatureWords: result.signatureWords,

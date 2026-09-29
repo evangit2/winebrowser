@@ -41,12 +41,7 @@ function i10Output(r, a) {
   const value = unpackExt80(r, a(0));
   let text;
   if (value.invalid || value.nan || value.infinity) {
-    text =
-      value.invalid || value.nan
-        ? value.sig & (1n << 62n)
-          ? '1#QNAN'
-          : '1#SNAN'
-        : '1#INF';
+    text = value.invalid || value.nan ? (value.sig & (1n << 62n) ? '1#QNAN' : '1#SNAN') : '1#INF';
     if (data) {
       r.guestMemory.write(data, 1, 2);
       r.data[data + 2] = value.negative ? 0x2d : 0x20;
@@ -321,9 +316,7 @@ msvcrtApis['msvcrt.dll!_controlfp_s'] = (r, a) => {
 };
 msvcrtApis['msvcrt.dll!__getmainargs'] = (r, a) => {
   // __getmainargs(int *argc, char ***argv, char ***envp, int expand, _startupinfo *)
-  for (const [index, value] of [
-    [0, (r.arguments ?? []).length],
-  ]) {
+  for (const [index, value] of [[0, (r.arguments ?? []).length]]) {
     if (a(index)) {
       r.check(a(index), 4, true);
       r.write32(a(index), value);
@@ -458,7 +451,7 @@ function applyMsvcControl(state, newval, mask) {
   let cw = state.control;
   cw &= ~0x1f3f;
   let invalid = false;
-  if ((mask & MSVC_MASK.INVALID) && newval & MSVC_MASK.INVALID) {
+  if (mask & MSVC_MASK.INVALID && newval & MSVC_MASK.INVALID) {
     // An unmasked invalid operation is what the guest asked for; the runtime's
     // explicit exception boundary would stop the run, so the mask bit is
     // honored exactly as written.
@@ -473,7 +466,7 @@ function applyMsvcControl(state, newval, mask) {
     if (newval & value) cw |= bit;
   }
   if (mask & MSVC_MCW_RC) {
-    if (newval & 0x300) cw |= newval & 0x200 ? ((newval & 0x100) ? 0xc00 : 0x800) : 0x400;
+    if (newval & 0x300) cw |= newval & 0x200 ? (newval & 0x100 ? 0xc00 : 0x800) : 0x400;
   } else cw |= state.control & 0xc00;
   if (mask & MSVC_MCW_PC) {
     const pc = newval & MSVC_MCW_PC;
@@ -597,11 +590,13 @@ const NAMES = {
   // entry points (the x87 _CI* wrappers are separate).
   // ldexp(x, n) = x * 2^n, with the int exponent in the second argument slot.
   ldexp: (r, a) => doubleResponse(r, doubleArg(r, a, 0) * 2 ** (a(2) | 0), 3),
-  _copysign: (r, a) => doubleResponse(r, Math.abs(doubleArg(r, a, 0)) * (Math.sign(doubleArg(r, a, 2)) || 1), 4),
+  _copysign: (r, a) =>
+    doubleResponse(r, Math.abs(doubleArg(r, a, 0)) * (Math.sign(doubleArg(r, a, 2)) || 1), 4),
   _chgsign: (r, a) => doubleResponse(r, -doubleArg(r, a, 0), 2),
   frexp: (r, a) => {
     const value = doubleArg(r, a, 0);
-    let exponent = 0, mantissa = value;
+    let exponent = 0,
+      mantissa = value;
     if (value && Number.isFinite(value)) {
       exponent = Math.floor(Math.log2(Math.abs(value))) + 1;
       mantissa = value / 2 ** exponent;
@@ -656,7 +651,8 @@ const NAMES = {
     if (!size || size > 4096 || count > 1 << 20) throw Error('Unsupported qsort size/count');
     r.check(base, count * size);
     const records = [];
-    for (let i = 0; i < count; i++) records.push(r.data.slice(base + i * size, base + (i + 1) * size));
+    for (let i = 0; i < count; i++)
+      records.push(r.data.slice(base + i * size, base + (i + 1) * size));
     const order = new Array(count).fill(0).map((_, i) => i);
     // A simple bottom-up merge sort avoids deep recursion on large inputs.
     for (let width = 1; width < count; width *= 2) {
@@ -667,7 +663,11 @@ const NAMES = {
         let i = 0,
           j = 0;
         while (i < left.length && j < right.length) {
-          const result = await r.callGuest(compare, [base + left[i] * size, base + right[j] * size], 'cdecl');
+          const result = await r.callGuest(
+            compare,
+            [base + left[i] * size, base + right[j] * size],
+            'cdecl',
+          );
           if (result <= 0) merged.push(left[i++]);
           else merged.push(right[j++]);
         }
@@ -696,7 +696,7 @@ const NAMES = {
     if (!encoded) return ok(0, 1);
     const cookie = r.crtPointerCookie ?? 0;
     if (!cookie) return ok(encoded, 1);
-    return ok((((((encoded - (cookie & 0xff)) >>> 0) ^ cookie)) >>> 0), 1);
+    return ok((((encoded - (cookie & 0xff)) >>> 0) ^ cookie) >>> 0, 1);
   },
   _invoke_watson: (r, a) => {
     // The CRT's fatal handler. Reporting the reason is more useful than
@@ -727,7 +727,7 @@ const NAMES = {
     if (a(0)) r.free(a(0));
     return ok(0, 1);
   },
-  '_set_new_handler': (r, a) => {
+  _set_new_handler: (r, a) => {
     const previous = r.crtNewHandler ?? 0;
     r.crtNewHandler = a(0) >>> 0;
     return ok(previous, 1);
@@ -812,7 +812,10 @@ const NAMES = {
     for (let i = 0; i + needle <= haystack; i++) {
       let match = true;
       for (let j = 0; j < needle; j++)
-        if (r.data[a(0) + i + j] !== r.data[a(1) + j]) { match = false; break; }
+        if (r.data[a(0) + i + j] !== r.data[a(1) + j]) {
+          match = false;
+          break;
+        }
       if (match) return ok(a(0) + i, 2);
     }
     return ok(0, 2);
@@ -840,7 +843,7 @@ const NAMES = {
     }
     return ok(0, 3);
   },
-  '$I10_OUTPUT': i10Output,
+  $I10_OUTPUT: i10Output,
 };
 for (const [name, handler] of Object.entries(NAMES)) msvcrtApis[`msvcrt.dll!${name}`] = handler;
 // Ordinal 1 is $I10_OUTPUT; registering the ordinal key lets an import that
@@ -977,7 +980,8 @@ for (const [accessor, target] of Object.entries(POINTER_ACCESSORS)) {
       // The ctype tables are plain zeroed arrays: the runtime models a
       // single-byte code page, so every character maps to itself.
       r.msvcrtData ??= new Map();
-      if (!r.msvcrtData.has(target)) r.msvcrtData.set(target, r.allocate(target === '_pwctype' ? 1024 : 512, true));
+      if (!r.msvcrtData.has(target))
+        r.msvcrtData.set(target, r.allocate(target === '_pwctype' ? 1024 : 512, true));
       return { result: r.msvcrtData.get(target), argc: 0 };
     }
     return { result: dataAddress(r, target), argc: 0 };

@@ -13,7 +13,14 @@ const demo = 'd3d12-constbuffer';
 // The six tinted cube faces from this demo's vertex data. A vertex colour is a
 // float the rasteriser quantises to RGBA8, so a face can land one unit away
 // from the value the source literal implies; matching allows for that.
-const FACE_COLOURS = ['230,102,84', '92,196,240', '242,194,48', '64,209,97', '171,87,232', '240,117,43'];
+const FACE_COLOURS = [
+  '230,102,84',
+  '92,196,240',
+  '242,194,48',
+  '64,209,97',
+  '171,87,232',
+  '240,117,43',
+];
 const channel = (value) => Number(value);
 const matchFace = (colour) => {
   const [r, g, b] = colour.split(',').map(channel);
@@ -126,7 +133,10 @@ try {
       first,
       second: last,
     });
-    await page.locator('#stop').click().catch(() => {});
+    await page
+      .locator('#stop')
+      .click()
+      .catch(() => {});
   }
 
   assert.deepEqual(errors, []);
@@ -149,7 +159,19 @@ try {
       2,
     ) + '\n',
   );
-  console.log(JSON.stringify({ runs: runs.map((r) => ({ mode: r.mode, visibleFaces: r.visibleFaces, facePixels: r.facePixels })) }, null, 1));
+  console.log(
+    JSON.stringify(
+      {
+        runs: runs.map((r) => ({
+          mode: r.mode,
+          visibleFaces: r.visibleFaces,
+          facePixels: r.facePixels,
+        })),
+      },
+      null,
+      1,
+    ),
+  );
 } finally {
   await browser?.close();
 }

@@ -22,7 +22,13 @@ import { fileMetadataApis } from './win32-file-metadata.js';
 import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
-import { startupApis, startupApis2, startupApis3, startupApis4, startupApis5 } from './win32-startup.js';
+import {
+  startupApis,
+  startupApis2,
+  startupApis3,
+  startupApis4,
+  startupApis5,
+} from './win32-startup.js';
 import { systemApis, systemApis2, systemApis3, systemApis4 } from './win32-system.js';
 import { ws2Apis, WS2_NAMES } from './ws2_32.js';
 import { msvcrtApis, msacmApis } from './msvcrt.js';
@@ -104,7 +110,6 @@ for (const key of [
   API_NAMES[dll] ??= [];
   if (!API_NAMES[dll].includes(name)) API_NAMES[dll].push(name);
 }
-
 
 export const importKey = (dll, name) => `${dll.toLowerCase()}!${name}`;
 
@@ -203,9 +208,16 @@ async function messageBox(runtime, argument, wide = false) {
     icon = options & 0x70,
     defButton = options & 0xf00,
     style = options & MB_STYLE;
-  if ((options & ~(7 | 0x70 | 0xf00 | MB_STYLE)) || buttons !== 0 || !MB_ICONS.has(icon) || defButton > 0x300)
+  if (
+    options & ~(7 | 0x70 | 0xf00 | MB_STYLE) ||
+    buttons !== 0 ||
+    !MB_ICONS.has(icon) ||
+    defButton > 0x300
+  )
     throw Error(
-      'MessageBox flags 0x' + options.toString(16) + ' unsupported: only MB_OK with a standard icon is rendered',
+      'MessageBox flags 0x' +
+        options.toString(16) +
+        ' unsupported: only MB_OK with a standard icon is rendered',
     );
   const window = owner ? runtime.windows.windows.get(owner) : null;
   if (owner && !window) return failure(runtime, 1400, 4);

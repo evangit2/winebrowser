@@ -80,14 +80,18 @@ export function controlStyle(kind, style, extended) {
     // field: 0 is left, 0x100 is right, and 0x200 and the combined 0x300 both
     // mean centred. BS_TOP(0x400) / BS_BOTTOM(0x800) / BS_VCENTER(0xc00) share
     // 0xc00 the same way with 0 meaning top.
-    horizontalAlign: kind === 'button' ? ['left', 'right', 'center', 'center'][(local & 0x300) >> 8] : 'left',
-    verticalAlign: kind === 'button' ? ['top', 'top', 'bottom', 'center'][(local & 0xc00) >> 10] : 'top',
+    horizontalAlign:
+      kind === 'button' ? ['left', 'right', 'center', 'center'][(local & 0x300) >> 8] : 'left',
+    verticalAlign:
+      kind === 'button' ? ['top', 'top', 'bottom', 'center'][(local & 0xc00) >> 10] : 'top',
     pushLike: kind === 'button' && !!(local & 0x1000),
     multilineCaption: kind === 'button' && !!(local & 0x2000),
     notify: kind === 'button' && !!(local & 0x4000),
     icon: kind === 'button' && !!(local & 0x40),
     bitmap: kind === 'button' && !!(local & 0x80),
-    toggle: kind === 'button' && ['checkbox', 'auto-checkbox', 'radio', 'auto-radio'].includes(buttonType),
+    toggle:
+      kind === 'button' &&
+      ['checkbox', 'auto-checkbox', 'radio', 'auto-radio'].includes(buttonType),
     triState: kind === 'button' && ['three-state', 'auto-three-state'].includes(buttonType),
     automatic: kind === 'button' && buttonType?.startsWith('auto') === true,
     groupBox: buttonType === 'group-box',
@@ -161,10 +165,7 @@ function clearRadioGroup(r, window) {
       continue;
     }
     if (!inGroup) continue;
-    if (
-      (other.buttonType === 'auto-radio' || other.buttonType === 'radio') &&
-      other.checkState
-    ) {
+    if ((other.buttonType === 'auto-radio' || other.buttonType === 'radio') && other.checkState) {
       other.checkState = 0;
       r.windows.emit(other);
     }

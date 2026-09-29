@@ -59,8 +59,8 @@ onmessage = async ({ data }) => {
     const decorations = new Map();
     for (const binding of plan.bindings)
       decorations.set(`${binding.group}:${binding.binding}`, binding);
-    const observed = [...bound.wgsl.matchAll(/@group\((\d+)\) @binding\((\d+)\)/g)].map((match) =>
-      Number(match[1]) + ':' + Number(match[2]),
+    const observed = [...bound.wgsl.matchAll(/@group\((\d+)\) @binding\((\d+)\)/g)].map(
+      (match) => Number(match[1]) + ':' + Number(match[2]),
     );
     const expected = [...decorations.keys()].sort();
     if (JSON.stringify(observed.sort()) !== JSON.stringify(expected))
@@ -78,8 +78,7 @@ onmessage = async ({ data }) => {
     const memoryView = new DataView(memory.buffer);
     let alloc = memory.length;
     const reserve = (bytes) => (alloc = (alloc - bytes) & ~3);
-    const put32 = (at, value, offset = 0) =>
-      memoryView.setUint32(at + offset, value >>> 0, true);
+    const put32 = (at, value, offset = 0) => memoryView.setUint32(at + offset, value >>> 0, true);
     const putFloat = (at, value, offset = 0) => memoryView.setFloat32(at + offset, value, true);
     const rangeArray = reserve(20);
     put32(rangeArray, 0); // D3D12_DESCRIPTOR_RANGE_TYPE_SRV
@@ -128,8 +127,10 @@ onmessage = async ({ data }) => {
     if (!flattened) throw Error('Guest root signature description was rejected');
     const builtTable = await compiler.buildRootSignature(flattened);
     const inspectedTable = await compiler.inspectRootSignature(builtTable);
-    if (inspectedTable.words.length !== flattened.length ||
-        inspectedTable.words.some((word, index) => word !== flattened[index]))
+    if (
+      inspectedTable.words.length !== flattened.length ||
+      inspectedTable.words.some((word, index) => word !== flattened[index])
+    )
       throw Error('Application root signature did not round trip through the bridge');
 
     // Root-signature inspection must report the serialised structure, not just

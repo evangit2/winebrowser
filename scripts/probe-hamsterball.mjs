@@ -27,7 +27,8 @@ const { values: options } = parseArgs({
   },
 });
 const EXE_SHA256 = '3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d';
-const directory = process.env.HAMSTERBALL_DIRECTORY || path.join(root, '.cache/hamsterball-original');
+const directory =
+  process.env.HAMSTERBALL_DIRECTORY || path.join(root, '.cache/hamsterball-original');
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 const files = new Map();
@@ -35,7 +36,8 @@ async function walk(base, prefix = '') {
   for (const entry of await readdir(base)) {
     const full = path.join(base, entry);
     if ((await stat(full)).isDirectory()) await walk(full, prefix + entry + '/');
-    else files.set(prefix.toLowerCase() + entry.toLowerCase(), new Uint8Array(await readFile(full)));
+    else
+      files.set(prefix.toLowerCase() + entry.toLowerCase(), new Uint8Array(await readFile(full)));
   }
 }
 await walk(directory);

@@ -25,7 +25,14 @@ test('S3TC block geometry and chunk sizes are exact', () => {
   // writes only the texels that exist.
   const dxt1 = compressedFormat(0x31545844);
   const payload = Uint8Array.from([
-    0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // white over black
+    0xff,
+    0xff,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00, // white over black
   ]);
   const out = new Uint8Array(3 * 2 * 4);
   decodeCompressed(payload, 0, 0x31545844, 3, 2, out);
@@ -38,7 +45,14 @@ test('DXT1 one-bit alpha keeps the transparent index at zero alpha', () => {
   // color0 <= color1 selects the 3-color plus transparent mode, where index 3
   // is transparent black regardless of the color bits.
   const payload = Uint8Array.from([
-    0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // every texel selects index 3
+    0x00,
+    0x00,
+    0xff,
+    0xff,
+    0xff,
+    0xff,
+    0xff,
+    0xff, // every texel selects index 3
   ]);
   const out = new Uint8Array(4 * 4 * 4);
   decodeCompressed(payload, 0, 0x31545844, 4, 4, out);

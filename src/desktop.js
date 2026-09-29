@@ -525,7 +525,11 @@ export class VirtualDesktop {
         if (control.triState)
           control.element.setAttribute(
             'aria-checked',
-            (style.checkState ?? state.checkState ?? 0) === 2 ? 'mixed' : checked ? 'true' : 'false',
+            (style.checkState ?? state.checkState ?? 0) === 2
+              ? 'mixed'
+              : checked
+                ? 'true'
+                : 'false',
           );
         control.element.classList.toggle('virtual-desktop-control-checked', checked);
       }
@@ -567,9 +571,7 @@ export class VirtualDesktop {
         control.element.style.overflowX = state.controlStyle.horizontalScroll ? 'scroll' : '';
       // A multiline edit wraps by default; ES_AUTOHSCROLL turns wrapping off.
       if (multiline)
-        control.element.style.whiteSpace = state.controlStyle?.autoHScroll
-          ? 'pre'
-          : 'pre-wrap';
+        control.element.style.whiteSpace = state.controlStyle?.autoHScroll ? 'pre' : 'pre-wrap';
     }
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
 
@@ -734,7 +736,17 @@ export class VirtualDesktop {
     this.#restack();
   }
 
-  frame({ windowId, width, height, pixels, bitmap, renderer, graphicsApi, graphicsFrames, graphicsDraws }) {
+  frame({
+    windowId,
+    width,
+    height,
+    pixels,
+    bitmap,
+    renderer,
+    graphicsApi,
+    graphicsFrames,
+    graphicsDraws,
+  }) {
     const window = this.windows.get(windowId);
     if (
       !window ||

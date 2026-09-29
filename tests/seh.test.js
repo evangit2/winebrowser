@@ -106,7 +106,18 @@ test('a read fault reports access 0', () => {
 
 test('writes and reads a full i386 CONTEXT round trip', () => {
   const m = memory();
-  const cpu = { r: registers({ 0: 0x1111, 1: 0x2222, 2: 0x3333, 3: 0x4444, 4: 0x7fff0, 5: 0x7fff8, 6: 0x6666, 7: 0x7777 }) };
+  const cpu = {
+    r: registers({
+      0: 0x1111,
+      1: 0x2222,
+      2: 0x3333,
+      3: 0x4444,
+      4: 0x7fff0,
+      5: 0x7fff8,
+      6: 0x6666,
+      7: 0x7777,
+    }),
+  };
   writeContext(m.write32, 0x400, cpu, 0x401000, 0x200000);
   // The documented offsets must be exactly what the structure uses.
   assert.equal(m.read32(0x400 + CONTEXT_OFFSETS.Eax), 0x1111);
@@ -271,11 +282,14 @@ test('a real faulting instruction is offered to the chain with its address', asy
     write: (a, v, w) => guest.write(a, v, w),
     check: (a, n, write) => guest.check(a, n, write),
   });
-  assert.throws(() => cpu.step(0x1000), (error) => {
-    assert.equal(isGuestFault(error), true);
-    assert.equal(error.sehCode, EXCEPTION_CODE.ACCESS_VIOLATION);
-    return true;
-  });
+  assert.throws(
+    () => cpu.step(0x1000),
+    (error) => {
+      assert.equal(isGuestFault(error), true);
+      assert.equal(error.sehCode, EXCEPTION_CODE.ACCESS_VIOLATION);
+      return true;
+    },
+  );
   // The faulting instruction's own address was recorded before the access, so
   // the exception record can name it rather than the block's start.
   assert.equal(cpu.instructionIp, 0x1000);

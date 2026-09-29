@@ -19,7 +19,7 @@ const fail = (r, error, argc = 0, value = 0) => {
 // fabricated handles.
 function moduleBytes(r, handle) {
   if (!handle) return r.files.get(r.exe) ?? null;
-  const module = [...r.graph.modules.values()].find((m) => m.base === (handle >>> 0));
+  const module = [...r.graph.modules.values()].find((m) => m.base === handle >>> 0);
   if (!module) return null;
   return r.files.get(module.path) ?? null;
 }
@@ -144,7 +144,8 @@ function tlsFree(r, a) {
 function tlsSetValue(r, a) {
   const index = tlsIndex(r, a(0) >>> 0);
   if (index === null) return fail(r, 87, 2);
-  if (index < TLS_MINIMUM_AVAILABLE) r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, a(1) >>> 0);
+  if (index < TLS_MINIMUM_AVAILABLE)
+    r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, a(1) >>> 0);
   else {
     const slots = expansionSlots(r, true);
     r.write32(slots + (index - TLS_MINIMUM_AVAILABLE) * 4, a(1) >>> 0);
@@ -330,7 +331,9 @@ function virtualQuery(r, a) {
   r.data.fill(0, out, out + Math.min(size, 28));
   const committed = range.committed.some((run) => address >= run[0] && address < run[1]);
   const protection = committed ? 0x04 : 0x01; // PAGE_READWRITE / PAGE_NOACCESS.
-  const base = committed ? range.committed.find((run) => address >= run[0] && address < run[1])[0] : start;
+  const base = committed
+    ? range.committed.find((run) => address >= run[0] && address < run[1])[0]
+    : start;
   r.write32(out, base);
   r.write32(out + 4, start);
   r.write32(out + 8, protection);
@@ -383,8 +386,7 @@ export const systemApis = {
   'kernel32.dll!FindResourceW': (r, a) => findResourceA(r, a),
   // FindResourceExA(dwModule, lpType, lpName, wLanguage). The runtime stores one
   // payload per name, so the requested language does not change the result.
-  'kernel32.dll!FindResourceExA': (r, a) =>
-    findResourceA(r, (index) => a([0, 2, 1][index] ?? 0)),
+  'kernel32.dll!FindResourceExA': (r, a) => findResourceA(r, (index) => a([0, 2, 1][index] ?? 0)),
   'kernel32.dll!SizeofResource': sizeOfResource,
   'kernel32.dll!LoadResource': loadResource,
   'kernel32.dll!LockResource': lockResource,

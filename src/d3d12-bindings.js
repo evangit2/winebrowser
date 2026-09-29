@@ -99,8 +99,7 @@ export function decodeRootSignatureWords(words) {
     invalid('parameter count is outside the inspected range');
   if (!Number.isInteger(staticSamplerCount) || staticSamplerCount > 64)
     invalid('static sampler count is outside the inspected range');
-  if (words[4] !== STATIC_SAMPLER_RECORD_WORDS)
-    invalid('unexpected static sampler record width');
+  if (words[4] !== STATIC_SAMPLER_RECORD_WORDS) invalid('unexpected static sampler record width');
 
   const parameterBase = 6;
   const parameterWords = 7;
@@ -110,7 +109,8 @@ export function decodeRootSignatureWords(words) {
   let declaredRanges = 0;
   for (let i = 0; i < parameterCount; i++) {
     const at = parameterBase + i * parameterWords;
-    if (parameterTypes[words[at]] === undefined) invalid(`unknown root parameter type ${words[at]}`);
+    if (parameterTypes[words[at]] === undefined)
+      invalid(`unknown root parameter type ${words[at]}`);
     if (visibilities[words[at + 1]] === undefined)
       invalid(`unknown root parameter visibility ${words[at + 1]}`);
     declaredRanges += words[at + 2];

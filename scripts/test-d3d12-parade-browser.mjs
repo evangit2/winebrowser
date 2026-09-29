@@ -44,7 +44,9 @@ try {
               ' ' +
               document.querySelector('#status').textContent,
           );
-        return Number(document.querySelector('[data-graphics-api="d3d12"]')?.dataset.graphicsFrames) >= 4;
+        return (
+          Number(document.querySelector('[data-graphics-api="d3d12"]')?.dataset.graphicsFrames) >= 4
+        );
       },
       null,
       { timeout: 60000 },
@@ -127,12 +129,16 @@ try {
     browserCompilation: true,
     browserShaderCompilation: true,
     nativeVertexTransforms: true,
-    vertexArithmetic: 'x87 runtime rotation, per-vertex diffuse lighting and perspective projection',
+    vertexArithmetic:
+      'x87 runtime rotation, per-vertex diffuse lighting and perspective projection',
     objectsPerFrame: 27,
     runs,
     errors,
   };
-  await writeFile('evidence/d3d12-parade-browser-results.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(
+    'evidence/d3d12-parade-browser-results.json',
+    JSON.stringify(report, null, 2) + '\n',
+  );
   console.log(JSON.stringify(report, null, 2));
 } finally {
   await browser.close();
