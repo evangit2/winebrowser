@@ -12,7 +12,7 @@ function buffer() {
   const read32 = (pointer) => view.getUint32(pointer, true);
   const strings = new Map();
   const readString = (pointer) => strings.get(pointer) ?? '\0';
-  const setup = ({ blendDefault = false } = {}) => {
+  const setup = ({ blendDefault = false, depth = null, depthEnable = 1, stencilEnable = 0 } = {}) => {
     const pointer = 0;
     data.fill(0);
     view.setUint32(pointer + 392, 0xffffffff, true);
@@ -23,6 +23,13 @@ function buffer() {
     view.setUint32(pointer + 508, 1, true);
     view.setUint32(pointer + 512, 28, true); // R8G8B8A8_UNORM
     view.setUint32(pointer + 548, 1, true); // SampleDesc.Count
+    if (depth !== null) {
+      view.setUint32(pointer + 440, depthEnable, true); // DepthEnable
+      view.setUint32(pointer + 444, 1, true); // DepthWriteMask = ALL
+      view.setUint32(pointer + 448, depth, true); // DepthFunc
+      data[pointer + 452] = stencilEnable;
+      view.setUint32(pointer + 544, 55, true); // DSVFormat = D16_UNORM
+    }
     if (blendDefault)
       for (let rt = 0; rt < 8; rt++) {
         const base = pointer + 72 + rt * 40;
@@ -114,6 +121,32 @@ test('D3D12 pipeline parser maps an enabled blend state onto WebGPU factors', ()
   f.view.setUint32(min + 100, 4, true);
   f.data[min + 72 + 36] = 15;
   assert.deepEqual(f.parse(min).blend[0].color.operation, 'min');
+});
+
+test('D3D12 pipeline parser maps every depth comparison and a disabled test', () => {
+  const f = buffer();
+  for (const [value, expected] of [
+    [1, 'never'],
+    [2, 'less'],
+    [3, 'equal'],
+    [4, 'less-equal'],
+    [5, 'greater'],
+    [6, 'not-equal'],
+    [7, 'greater-equal'],
+    [8, 'always'],
+  ]) {
+    const p = f.setup({ depth: value });
+    const parsed = f.parse(p);
+    assert.equal(parsed.depth.compare, expected);
+    assert.equal(parsed.depth.testEnabled, true);
+  }
+  // DepthEnable = FALSE is legal and reports the test as disabled.
+  const off = f.setup({ depth: 4, depthEnable: 0 });
+  assert.equal(f.parse(off).depth.testEnabled, false);
+  // An out-of-range comparison is rejected rather than narrowed.
+  assert.throws(() => f.parse(f.setup({ depth: 9 })), /depth\/stencil pipeline/);
+  // StencilEnable is not modelled and must fail explicitly.
+  assert.throws(() => f.parse(f.setup({ depth: 4, stencilEnable: 1 })), /depth\/stencil pipeline/);
 });
 
 test('D3D12 pipeline parser rejects unsupported rasterizer and blend state', () => {

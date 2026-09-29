@@ -572,7 +572,9 @@ function recordDraw(r, a, o, indexed) {
       throw Error('D3D12 draw exceeds the bound index buffer');
     object(r, indexView.resource.pointer, 'resource', s.device);
   }
-  if (!!pipeline.depth !== !!s.depthTarget)
+  // A pipeline with depth testing disabled needs no depth target; one with it
+  // enabled requires a bound depth resource.
+  if (!!(pipeline.depth && pipeline.depth.testEnabled) !== !!s.depthTarget)
     throw Error('D3D12 pipeline depth state does not match bound target');
   const snapshotBytes = (vertexView?.size ?? 0) + (indexView?.size ?? 0);
   if (s.vertexBytes + snapshotBytes > MAX_RESOURCE_BYTES)

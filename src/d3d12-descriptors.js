@@ -107,6 +107,18 @@ const BLEND_OPERATIONS = {
   5: 'max',
 };
 
+// D3D12_COMPARISON_FUNC maps one-to-one onto WebGPU's compare functions.
+const DEPTH_COMPARE = {
+  1: 'never',
+  2: 'less',
+  3: 'equal',
+  4: 'less-equal',
+  5: 'greater',
+  6: 'not-equal',
+  7: 'greater-equal',
+  8: 'always',
+};
+
 function blendComponent(source, destination, operation) {
   // MIN/MAX ignore the factors; D3D requires them to be ONE.
   const op = BLEND_OPERATIONS[operation];
@@ -186,19 +198,27 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
   // D3D FrontCounterClockwise=FALSE means a clockwise winding is front facing,
   // the opposite of WebGPU's counter-clockwise default.
   const frontFace = u32(read32, pointer, 404) ? 'ccw' : 'cw';
+  // D3D12_DEPTH_STENCIL_DESC: DepthEnable, DepthWriteMask, DepthFunc,
+  // StencilEnable, StencilReadMask, StencilWriteMask, then the front and back
+  // D3D12_DEPTH_STENCILOP_DESC records (8 bytes each). Stencil is not modelled.
   let depth = null;
   if (u32(read32, pointer, 544) === 55) {
     if (
-      u32(read32, pointer, 440) !== 1 ||
+      ![0, 1].includes(u32(read32, pointer, 440)) ||
       ![0, 1].includes(u32(read32, pointer, 444)) ||
-      u32(read32, pointer, 448) !== 4 ||
-      data.subarray(pointer + 452, pointer + 492).some((value) => value !== 0)
+      !DEPTH_COMPARE[u32(read32, pointer, 448)] ||
+      data[pointer + 452] ||
+      data[pointer + 453] ||
+      data.subarray(pointer + 456, pointer + 492).some((value) => value !== 0)
     )
       throw Error('Unsupported D3D12 depth/stencil pipeline');
     depth = {
       format: 'depth16unorm',
+      // DepthEnable=FALSE means depth testing and writing are both off, which
+      // WebGPU expresses as a comparison that always passes with no write.
+      testEnabled: !!u32(read32, pointer, 440),
       writeEnabled: !!u32(read32, pointer, 444),
-      compare: 'less-equal',
+      compare: DEPTH_COMPARE[u32(read32, pointer, 448)],
     };
   } else if (data.subarray(pointer + 440, pointer + 492).some((value) => value !== 0)) {
     throw Error('D3D12 depth state requires a D16_UNORM target');

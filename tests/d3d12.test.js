@@ -331,6 +331,7 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
   assert.equal(depthPipelineEvent.vertexStride, 32);
   assert.deepEqual(depthPipelineEvent.depth, {
     format: 'depth16unorm',
+    testEnabled: true,
     writeEnabled: true,
     compare: 'less-equal',
   });

@@ -7,38 +7,38 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 8802,
+      "firstFourFramesMs": 9190,
       "first": {
         "width": 640,
         "height": 480,
-        "distinct": 478,
-        "draws": 7,
-        "hash": "cd4510aa99f67dcbf16a82bf033e4c91a4d30512155163a0b2743c9234a64e21"
+        "distinct": 479,
+        "draws": 9,
+        "hash": "6fa860484744ac70c7223fe599be4c4166c6fd3975cb83c24dff35e686ccfb48"
       },
       "second": {
         "width": 640,
         "height": 480,
-        "distinct": 464,
-        "draws": 967,
-        "hash": "3a24e1bd3db659b4e01f8c2e8dbab5d6d20da829de28830eaf785517e78aa256"
+        "distinct": 470,
+        "draws": 777,
+        "hash": "dae64b83d28635e7a1220a1bc376c291a37372af4fd0ea9c6d2b67a9847422f3"
       }
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 8563,
+      "firstFourFramesMs": 9197,
       "first": {
         "width": 640,
         "height": 480,
         "distinct": 478,
-        "draws": 7,
-        "hash": "cd4510aa99f67dcbf16a82bf033e4c91a4d30512155163a0b2743c9234a64e21"
+        "draws": 11,
+        "hash": "542138ffc58aa92191aff35fff1a11d8271dc573eb706b7f8664753fd8792400"
       },
       "second": {
         "width": 640,
         "height": 480,
-        "distinct": 473,
-        "draws": 963,
-        "hash": "cf28a0fbb9f95423b290695eac6d79b0b9a18b28cc9b12aabcc8466735715920"
+        "distinct": 471,
+        "draws": 784,
+        "hash": "37cbf0c015a511f958576cddc7eef8ca5754d692fa4e71d89f1fc6d4b3711876"
       }
     }
   ],

@@ -308,7 +308,8 @@ export class D3D12Renderer {
       depth &&
       (depth.format !== 'depth16unorm' ||
         typeof depth.writeEnabled !== 'boolean' ||
-        depth.compare !== 'less-equal')
+        typeof depth.testEnabled !== 'boolean' ||
+        typeof depth.compare !== 'string')
     )
       throw Error('Unsupported D3D12 depth pipeline');
     const signature = reflectDXBCInputSignature(vertex).filter((entry) => entry.systemValue === 0);
@@ -394,8 +395,10 @@ export class D3D12Renderer {
           ? {
               depthStencil: {
                 format: depth.format,
-                depthWriteEnabled: depth.writeEnabled,
-                depthCompare: depth.compare,
+                // DepthEnable=FALSE disables both the test and the write; WebGPU
+                // has no separate enable, so the comparison becomes ALWAYS.
+                depthWriteEnabled: depth.testEnabled && depth.writeEnabled,
+                depthCompare: depth.testEnabled ? depth.compare : 'always',
               },
             }
           : {}),
@@ -481,7 +484,7 @@ export class D3D12Renderer {
         const depth = this.resources.get(command.depthTarget);
         if (
           !p ||
-          (p.depth
+          (p.depth && p.depth.testEnabled
             ? !depth ||
               depth.kind !== 'depth' ||
               depth.width !== resource.width ||
