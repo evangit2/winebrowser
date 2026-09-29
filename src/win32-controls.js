@@ -25,8 +25,19 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'button' && ![0, 1].includes(local)) throw Error('Only push buttons are supported');
   if (kind === 'static' && (local & ~0x83 || (local & 3) === 3))
     throw Error('Unsupported STATIC style');
-  if (kind === 'edit' && (local & ~0x883 || (local & 3) === 3))
-    throw Error('Only single-line plain EDIT controls are supported');
+  // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
+  // LOWERCASE (0x10), PASSWORD (0x20), AUTOVSCROLL (0x40), AUTOHSCROLL (0x80),
+  // NOHIDESEL (0x100), READONLY (0x800), WANTRETURN (0x1000), NUMBER (0x2000).
+  const EDIT_STYLES = 0x3bff;
+  if (kind === 'edit') {
+    if (local & ~EDIT_STYLES) throw Error('Unsupported EDIT control style');
+    if ((local & 3) === 3) throw Error('ES_LEFT, ES_CENTER and ES_RIGHT are mutually exclusive');
+    // A password field is always single line, and a number field is a plain
+    // single-line box; the OS rejects both combinations.
+    if (local & 0x20 && local & (0x4 | 0x1000)) throw Error('ES_PASSWORD requires single line');
+    if (local & 0x2000 && local & 0x4 && local & 0x1000)
+      throw Error('ES_NUMBER with multiline requires ES_AUTOHSCROLL');
+  }
   return {
     controlBorder: extended & 0x200 ? 2 : style & 0x800000 ? 1 : 0,
     readOnly: kind === 'edit' && !!(local & 0x800),
@@ -35,6 +46,18 @@ export function controlStyle(kind, style, extended) {
     enabled: !(style & 0x08000000),
     fontHandle: 0,
     font: null,
+    // EDIT attributes. Multiline is the one that changes which browser element
+    // is used, so the desktop needs it explicitly.
+    multiline: kind === 'edit' && !!(local & 0x4),
+    password: kind === 'edit' && !!(local & 0x20),
+    uppercase: kind === 'edit' && !!(local & 0x8),
+    lowercase: kind === 'edit' && !!(local & 0x10),
+    number: kind === 'edit' && !!(local & 0x2000),
+    autoVScroll: kind === 'edit' && !!(local & 0x40),
+    autoHScroll: kind === 'edit' && !!(local & 0x80),
+    wantReturn: kind === 'edit' && !!(local & 0x1000),
+    verticalScroll: kind === 'edit' && !!(style & 0x00200000),
+    horizontalScroll: kind === 'edit' && !!(style & 0x00100000),
   };
 }
 function command(window, notification) {
@@ -77,6 +100,16 @@ export async function controlMessage(r, window, message, wp, lp, fallback) {
   return value;
 }
 
+// ES_UPPERCASE / ES_LOWERCASE / ES_NUMBER rewrite typed text the way the real
+// edit control does, so a guest reading the window text back sees the filtered
+// value rather than the raw keystrokes.
+function applyEditFilters(window, text) {
+  if (window.uppercase) text = text.toUpperCase();
+  if (window.lowercase) text = text.toLowerCase();
+  if (window.number) text = text.replace(/[^0-9-]/g, '');
+  return text;
+}
+
 // Browser input mutates control state and queues guest notifications. It never
 // invokes a guest callback concurrently with the running CPU dispatcher.
 export function controlInput(r, window, event) {
@@ -87,7 +120,8 @@ export function controlInput(r, window, event) {
   }
   if (event.type === 'text' && window.controlType === 'edit') {
     if (window.readOnly || typeof event.text !== 'string') return true;
-    window.title = event.text.replace(/[\r\n]/g, '').slice(0, 32767);
+    const text = window.multiline ? event.text : event.text.replace(/[\r\n]/g, '');
+    window.title = applyEditFilters(window, text).slice(0, 32767);
     r.windows.emit(window);
     r.windows.post(window.parentId, 0x111, command(window, 0x400), window.id);
     r.windows.post(window.parentId, 0x111, command(window, 0x300), window.id);

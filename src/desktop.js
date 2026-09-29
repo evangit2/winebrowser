@@ -388,11 +388,16 @@ export class VirtualDesktop {
           this.#emit(control.id, 'command', { notification: 0 });
       });
     } else if (controlType === 'edit') {
-      element = document.createElement('input');
-      element.type = 'text';
+      // ES_MULTILINE needs a text area; a single-line edit is an input. The
+      // element is chosen at creation because the style cannot change later.
+      const multiline = !!state.controlStyle?.multiline;
+      element = document.createElement(multiline ? 'textarea' : 'input');
+      if (!multiline) element.type = 'text';
       element.autocomplete = 'off';
       element.spellcheck = false;
-      element.className = 'virtual-desktop-control virtual-desktop-control-edit';
+      element.className =
+        'virtual-desktop-control virtual-desktop-control-edit' +
+        (multiline ? ' virtual-desktop-control-edit-multiline' : '');
       element.addEventListener('input', () =>
         this.#emit(control.id, 'text', { text: element.value }),
       );
@@ -492,6 +497,24 @@ export class VirtualDesktop {
     const readOnly = state.readOnly ?? controlStyle.readOnly;
     if (control.controlType === 'edit' && readOnly !== undefined)
       control.element.readOnly = !!readOnly;
+    if (control.controlType === 'edit') {
+      const multiline = !!(state.controlStyle?.multiline ?? control.multiline);
+      control.multiline = multiline;
+      control.uppercase = !!(state.controlStyle?.uppercase ?? control.uppercase);
+      control.lowercase = !!(state.controlStyle?.lowercase ?? control.lowercase);
+      control.number = !!(state.controlStyle?.number ?? control.number);
+      if (state.controlStyle?.password !== undefined)
+        control.element.type = state.controlStyle.password ? 'password' : 'text';
+      if (state.controlStyle?.verticalScroll !== undefined)
+        control.element.style.overflowY = state.controlStyle.verticalScroll ? 'scroll' : '';
+      if (state.controlStyle?.horizontalScroll !== undefined)
+        control.element.style.overflowX = state.controlStyle.horizontalScroll ? 'scroll' : '';
+      // A multiline edit wraps by default; ES_AUTOHSCROLL turns wrapping off.
+      if (multiline)
+        control.element.style.whiteSpace = state.controlStyle?.autoHScroll
+          ? 'pre'
+          : 'pre-wrap';
+    }
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
 
     control.isControl = true;

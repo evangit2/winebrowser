@@ -159,3 +159,14 @@
   margin: 0;
   padding: 2px 3px;
 }
+
+/* A multiline edit is a text area: it fills its control box, scrolls when the
+   guest asked for scroll bars, and keeps the caret behaviour of the native
+   control rather than a single-line input. */
+.virtual-desktop-control-edit-multiline {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  overflow: auto;
+  font: inherit;
+}

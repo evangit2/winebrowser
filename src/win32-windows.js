@@ -103,6 +103,16 @@ export class WindowManager {
       readOnly,
       textAlign,
       noPrefix,
+      multiline,
+      password,
+      uppercase,
+      lowercase,
+      number,
+      autoVScroll,
+      autoHScroll,
+      wantReturn,
+      verticalScroll,
+      horizontalScroll,
     } = window;
     const border = window.controlBorder ?? 0;
     this.runtime.emit({
@@ -120,6 +130,23 @@ export class WindowManager {
         controlType,
         controlBorder: border,
         enabled,
+        controlStyle: controlType
+          ? {
+              readOnly: !!readOnly,
+              textAlign,
+              noPrefix: !!noPrefix,
+              multiline: !!multiline,
+              password: !!password,
+              uppercase: !!uppercase,
+              lowercase: !!lowercase,
+              number: !!number,
+              autoVScroll: !!autoVScroll,
+              autoHScroll: !!autoHScroll,
+              wantReturn: !!wantReturn,
+              verticalScroll: !!verticalScroll,
+              horizontalScroll: !!horizontalScroll,
+            }
+          : undefined,
         topmost: !!window.topmost,
         zOrder: window.zOrder,
         frame: parentId ? undefined : frameForWindow(window),
@@ -614,6 +641,11 @@ async function create(r, a, wide) {
     height: height - titleHeight - 2 * border,
     parentId,
     controlType: cls.controlType,
+    // EDIT attributes the browser input path needs to filter typed text.
+    multiline: !!control.multiline,
+    uppercase: !!control.uppercase,
+    lowercase: !!control.lowercase,
+    number: !!control.number,
     controlId: child ? a(9) : 0,
     enabled: !(a(3) & 0x08000000),
     ...control,

@@ -353,3 +353,55 @@ test('child focus, ancestor visibility, and parent destruction cascade through c
     ),
   );
 });
+
+test('multiline, password and case-filtered EDIT styles are modelled', async (t) => {
+  const harness = await makeHarness(t);
+  const { runtime, parentId } = harness;
+  // Input is delivered only to a visible window, so the parent must be shown.
+  runtime.windows.windows.get(parentId).visible = true;
+  const create = (style, title = '') =>
+    createChild(runtime, parentId, {
+      className: 'EDIT',
+      title,
+      style: WS_CHILD | WS_VISIBLE | style,
+    });
+  // ES_MULTILINE | ES_AUTOVSCROLL survives line breaks.
+  const multiline = await create(0x4 | 0x40, 'one');
+  assert.ok(multiline.result);
+  const multiWindow = runtime.windows.windows.get(multiline.result);
+  assert.equal(multiWindow.multiline, true);
+  runtime.windows.input({ type: 'text', windowId: multiline.result, text: 'a\nb\nc' });
+  assert.equal(runtime.windows.windows.get(multiline.result).title, 'a\nb\nc');
+  // ES_UPPERCASE rewrites typed text.
+  const upper = await create(0x8);
+  runtime.windows.input({ type: 'text', windowId: upper.result, text: 'mixed Case' });
+  assert.equal(runtime.windows.windows.get(upper.result).title, 'MIXED CASE');
+  // ES_LOWERCASE rewrites it the other way.
+  const lower = await create(0x10);
+  runtime.windows.input({ type: 'text', windowId: lower.result, text: 'MIXED Case' });
+  assert.equal(runtime.windows.windows.get(lower.result).title, 'mixed case');
+  // ES_NUMBER strips everything but digits and the minus sign.
+  const numeric = await create(0x2000);
+  runtime.windows.input({ type: 'text', windowId: numeric.result, text: 'a1b2-c3' });
+  assert.equal(runtime.windows.windows.get(numeric.result).title, '12-3');
+  // ES_PASSWORD is recorded and reaches the desktop, which turns the element
+  // into a password field.
+  const password = await create(0x20);
+  assert.equal(runtime.windows.windows.get(password.result).password, true);
+  const emitted = [];
+  const originalEmit = runtime.emit;
+  runtime.emit = (event) => emitted.push(event);
+  runtime.windows.emit(runtime.windows.windows.get(password.result));
+  runtime.emit = originalEmit;
+  const published = emitted.find((e) => e.type === 'window')?.window;
+  assert.equal(published.controlStyle.password, true, 'ES_PASSWORD reached the desktop');
+  // An unsupported style bit and a contradictory alignment are rejected,
+  // rather than silently producing a control with different behaviour.
+  await assert.rejects(create(0x4000), /Unsupported EDIT control style/);
+  await assert.rejects(create(0x3), /mutually exclusive/);
+  await assert.rejects(create(0x20 | 0x4), /ES_PASSWORD requires single line/);
+  // A single-line edit still flattens line breaks.
+  const single = await create(0);
+  runtime.windows.input({ type: 'text', windowId: single.result, text: 'x\ny' });
+  assert.equal(runtime.windows.windows.get(single.result).title, 'xy');
+});
