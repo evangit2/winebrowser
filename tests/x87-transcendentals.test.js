@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { fyl2x } from '../src/x87-transcendentals.js';
+import { fyl2x, f2xm1 } from '../src/x87-transcendentals.js';
 import iced from 'iced-x86';
 import { probeX87Log } from '../scripts/lib/x87-log-probe.js';
+import { probeX87Exp } from '../scripts/lib/x87-exp-probe.js';
+const expVectors = JSON.parse(
+  await readFile(new URL('./fixtures/x87-exp-vectors.json', import.meta.url)),
+).vectors;
 
 const decode = (hex) => Uint8Array.from(Buffer.from(hex, 'hex'));
 const encode = (bytes) => Buffer.from(bytes).toString('hex');
@@ -147,4 +151,54 @@ test('FPATAN preserves signed zeros and the pi branches on the axes', async () =
   assert.ok(Math.abs(posPi - Math.PI) < 1e-15, `got ${posPi}`);
   // A finite argument sets only the precision (inexact) flag, never invalid.
   assert.equal(fpatan(doubleToExt80(1), doubleToExt80(1), 0).flags & 0x01, 0);
+});
+
+test('F2XM1 matches an independent high-precision Decimal oracle for |x| < 1', () => {
+  for (const v of expVectors) {
+    const result = f2xm1(decode(v.x), v.mode);
+    const label = `${v.name}, mode ${v.mode}`;
+    assert.equal(encode(result.bytes), v.output, label);
+    assert.equal(result.flags, v.flags, label + ' exceptions');
+    assert.equal(result.roundedUp, v.roundedUp, label + ' C1');
+  }
+});
+
+test('native PE32 F2XM1 loop executes every Decimal vector through translated x86', async () => {
+  const bytes = new Uint8Array(
+    await readFile(new URL('./fixtures/x87/exponential.exe', import.meta.url)),
+  );
+  const result = await probeX87Exp(iced, { files: new Map([['exponential.exe', bytes]]) });
+  assert.equal(result.status, 'passed', result.failure);
+});
+
+test('F2XM1 returns 2^0-1 = 0, exact endpoints, and #IA outside [-1, 1]', () => {
+  const zero = '00000000000000000000',
+    negzero = '00000000000000000080',
+    one = '0000000000000080ff3f',
+    negone = '0000000000000080ffbf',
+    inf = '0000000000000080ff7f',
+    indefinite = '00000000000000c0ffff',
+    snan = '0100000000000080ff7f',
+    qnan = '01000000000000c0ff7f';
+  for (const input of [zero, negzero]) {
+    const result = f2xm1(decode(input), 0);
+    assert.equal(encode(result.bytes), zero, '2^0 - 1 is +0 for either zero sign');
+    assert.equal(result.flags, 0);
+  }
+  // The exact endpoints of the domain.
+  assert.equal(encode(f2xm1(decode(one), 0).bytes), one, '2^1 - 1 = 1');
+  assert.equal(encode(f2xm1(decode(negone), 0).bytes), '0000000000000080febf', '2^-1 - 1 = -0.5');
+  // Outside the domain, infinities and invalid encodings raise #IA and
+  // produce the x87 indefinite QNaN.
+  for (const input of [inf, '0000000000000080ff7f', 'fffffffffffffffffe7f', '0100000000000000ff3f']) {
+    const result = f2xm1(decode(input), 0);
+    assert.equal(encode(result.bytes), indefinite, input);
+    assert.equal(result.flags, 1, input);
+  }
+  // A signaling NaN is quieted and raises #IA; a quiet NaN propagates cleanly.
+  const quieted = f2xm1(decode(snan), 0);
+  assert.equal(encode(quieted.bytes), qnan, 'SNaN is quieted');
+  assert.equal(quieted.flags, 1, 'SNaN raises #IA');
+  assert.equal(encode(f2xm1(decode(qnan), 0).bytes), qnan);
+  assert.equal(f2xm1(decode(qnan), 0).flags, 0);
 });

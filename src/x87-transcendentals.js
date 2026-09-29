@@ -129,12 +129,19 @@ function log2Interval(x, precision) {
   const exponent = BigInt(x.shift + bits - 1),
     scale = 1n << BigInt(precision);
   const [lo, hi] = logarithm(x.sig - unit, x.sig + unit, precision);
+  const ln2 = ln2Interval(precision);
+  return [exponent * scale + (lo * scale) / ln2[1], exponent * scale + ceil(hi * scale, ln2[0])];
+}
+
+// 2*atanh(1/3) = ln 2, as an outward-rounded fixed-point interval scaled by
+// 2^precision. Shared by the base-two logarithm and exponential paths.
+function ln2Interval(precision) {
   let ln2 = ln2Cache.get(precision);
   if (!ln2) {
     ln2 = logarithm(1n, 3n, precision);
     ln2Cache.set(precision, ln2);
   }
-  return [exponent * scale + (lo * scale) / ln2[1], exponent * scale + ceil(hi * scale, ln2[0])];
+  return ln2;
 }
 
 function sameResult(a, b) {
@@ -494,4 +501,73 @@ export function fpatan(yBytes, xBytes, rounding) {
     if (result) return result;
   }
   throw Error('x87 arctangent rounding could not be resolved within the precision bound');
+}
+
+// Signed interval helpers for outward-rounded rational evaluation.
+const min2 = (a, b) => (a < b ? a : b);
+const max2 = (a, b) => (a > b ? a : b);
+const intervalMul = (a, b) => [
+  min2(min2(a[0] * b[0], a[0] * b[1]), min2(a[1] * b[0], a[1] * b[1])),
+  max2(max2(a[0] * b[0], a[0] * b[1]), max2(a[1] * b[0], a[1] * b[1])),
+];
+const floorDiv = (n, d) => (n >= 0n ? n / d : -((-n + d - 1n) / d));
+
+// F2XM1: 2^x - 1 for the documented domain -1 <= x <= 1. 2^x = e^(x ln 2), so
+// the result is the signed expm1 series over a bounded interval for z = x ln 2.
+// Arguments outside the domain, infinities, invalid encodings and NaNs produce
+// the x87 #IA result.
+export function f2xm1(xBytes, rounding) {
+  const x = unpack(xBytes),
+    nan = specialNaN(x);
+  if (nan) return nan;
+  if (x.invalid || x.infinity) return invalid();
+  const denormal = x.denormal ? 0x2 : 0;
+  // 2^0 - 1 is exactly zero, positive regardless of the sign of the zero input.
+  if (x.zero) return answer(pack(0n, 0, false), denormal, false);
+  if (x.exponent > 16383 || (x.exponent === 16383 && x.sig > J)) return invalid();
+  // The two endpoints are the exact rationals 2^(+/-1) - 1.
+  if (x.exponent === 16383 && x.sig === J)
+    return x.negative ? answer(pack(J, 16382, true), denormal, false) : answer(pack(J, 16383, false), denormal, false);
+
+  for (let precision = 192; precision <= 12288; precision *= 2) {
+    const P = BigInt(precision);
+    const ln2 = ln2Interval(precision); // ln 2 scaled by 2^precision.
+    const znLo = x.sig * ln2[0],
+      znHi = x.sig * ln2[1];
+    // z = x ln 2 as a signed interval scaled by 2^L.
+    const z = x.negative ? [-znHi, -znLo] : [znLo, znHi];
+    const scale = 1n << (P - BigInt(x.shift));
+    // expm1 series: term_k = z^k / k!, summed outward over the interval.
+    let termLo = z[0],
+      termHi = z[1],
+      sumLo = z[0],
+      sumHi = z[1];
+    for (let k = 2n; ; k += 1n) {
+      const [mL, mH] = intervalMul([termLo, termHi], z);
+      const den = scale * k;
+      termLo = floorDiv(mL, den);
+      termHi = ceilDiv(mH, den);
+      sumLo += termLo;
+      sumHi += termHi;
+      // |z| <= ln 2, so the remaining tail is bounded by the term just added;
+      // widen by that magnitude in both directions before stopping.
+      const bound = max2(termLo < 0n ? -termLo : termLo, termHi < 0n ? -termHi : termHi);
+      if (bound <= 1n) {
+        sumLo -= bound;
+        sumHi += bound;
+        break;
+      }
+      if (k > P + 256n) throw Error('x87 exponential series bound exceeded');
+    }
+    // The interval is expressed in units of 2^-L, and L is a power-of-two
+    // exponent, so the existing dyadic rounding (with its subnormal and
+    // overflow handling) applies directly.
+    const L = Number(P - BigInt(x.shift));
+    const lower = roundDyadic(sumLo, -L, rounding),
+      upper = roundDyadic(sumHi, -L, rounding);
+    lower.flags |= 0x20 | denormal;
+    upper.flags |= 0x20 | denormal;
+    if (sameResult(lower, upper)) return lower;
+  }
+  throw Error('x87 exponential rounding could not be resolved within the precision bound');
 }

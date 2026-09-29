@@ -15,6 +15,7 @@
     "test:winmm": "node scripts/test-winmm-browser.mjs",
     "test:com": "node scripts/test-com-browser.mjs",
     "test:x87-log": "node scripts/test-x87-log-browser.mjs",
+    "test:x87-exp": "node scripts/test-x87-exp-browser.mjs",
     "test:x87-trig": "node scripts/test-x87-trig-browser.mjs",
     "test:scalar-sse": "node scripts/test-scalar-sse-browser.mjs",
     "build:scalar-sse": "sh scripts/build-scalar-sse-fixture.sh",
