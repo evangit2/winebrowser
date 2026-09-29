@@ -200,6 +200,12 @@ export class Runtime {
   free(address) {
     return this.heap.free(address);
   }
+  reallocate(address, size, zero = false) {
+    return this.heap.reallocate(address, size, zero);
+  }
+  allocationSize(address) {
+    return this.heap.allocationSize(address);
+  }
   wideString(address) {
     if (!address) return '';
     let value = '';

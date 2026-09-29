@@ -22,6 +22,7 @@ import { fileMetadataApis } from './win32-file-metadata.js';
 import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
+import { startupApis, startupApis2, startupApis3 } from './win32-startup.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
@@ -61,6 +62,9 @@ for (const key of [
   ...Object.keys(iconApis),
   ...Object.keys(formatApis),
   ...Object.keys(nativeForwarderApis),
+  ...Object.keys(startupApis),
+  ...Object.keys(startupApis2),
+  ...Object.keys(startupApis3),
   ...Object.keys(registryApis),
   ...Object.keys(comApis),
   ...Object.keys(d3d9Apis),
@@ -131,16 +135,33 @@ async function beep(runtime, argument) {
   return success(await runtime.request('beep', { frequency, duration }), 2);
 }
 
+// MB_* flags, from winuser.h. The button set and icon are the parts that
+// change the dialog; modality, foreground, topmost, right-align and RTL hints
+// describe placement the browser desktop already controls, so they are accepted
+// and simply carried through for the caller to ignore.
+const MB_ICONS = new Set([0, 0x10, 0x20, 0x30, 0x40]),
+  MB_STYLE = 0x1000 | 0x2000 | 0x4000 | 0x8000 | 0x10000 | 0x20000 | 0x40000 | 0x80000 | 0x100000;
 async function messageBox(runtime, argument, wide = false) {
   const owner = argument(0);
   const options = argument(3);
-  if (options & ~0x70 || ![0, 0x10, 0x20, 0x30, 0x40].includes(options))
-    throw Error('MessageBox currently supports MB_OK with standard icons only');
+  const buttons = options & 7,
+    icon = options & 0x70,
+    defButton = options & 0xf00,
+    style = options & MB_STYLE;
+  if (
+    (options & ~(7 | 0x70 | 0xf00 | MB_STYLE)) ||
+    buttons !== 0 || // Only MB_OK's single button is rendered today.
+    !MB_ICONS.has(icon) ||
+    defButton > 0x300
+  )
+    throw Error(
+      'MessageBox flags 0x' + options.toString(16) + ' unsupported: only MB_OK with a standard icon is rendered',
+    );
   const window = owner ? runtime.windows.windows.get(owner) : null;
   if (owner && !window) return failure(runtime, 1400, 4);
   const detail = {
     owner,
-    icon: { 16: 'error', 32: 'question', 48: 'warning', 64: 'information' }[options] ?? null,
+    icon: { 16: 'error', 32: 'question', 48: 'warning', 64: 'information' }[icon] ?? null,
     text: argument(1) ? (wide ? runtime.wideString(argument(1)) : runtime.string(argument(1))) : '',
     title: argument(2)
       ? wide
@@ -310,6 +331,9 @@ export function createWin32ApiProvider() {
     ...Object.entries(d3d12Apis),
     ...Object.entries(d3dCompilerApis),
     ...Object.entries(dxgiApis),
+    ...Object.entries(startupApis),
+    ...Object.entries(startupApis2),
+    ...Object.entries(startupApis3),
     ['kernel32.dll!ExitProcess', exitProcess],
     ['kernel32.dll!GetStdHandle', getStdHandle],
     ['kernel32.dll!WriteFile', writeFile],

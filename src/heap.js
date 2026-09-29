@@ -18,6 +18,46 @@ export class GuestHeap {
     if (zero) this.bytes.fill(0, address, address + count);
     return address;
   }
+  // Current usable size of an allocation (the rounded block, as HeapSize
+  // reports). Null when the pointer is not a live allocation.
+  allocationSize(address) {
+    return this.allocations.get(address) ?? null;
+  }
+  // Grow or shrink an allocation in place when the following range is free;
+  // otherwise allocate a new block, copy the live bytes and free the old one.
+  reallocate(address, size, zero = false) {
+    const current = this.allocations.get(address);
+    if (current === undefined) return null;
+    const count = Math.max(16, Math.ceil(size / 16) * 16);
+    if (count === current) return address;
+    if (count < current) {
+      const tail = address + count;
+      this.allocations.set(address, count);
+      this.bytes.fill(0, tail, address + current);
+      this.freeRanges.push([tail, address + current]);
+      this.freeRanges.sort((a, b) => a[0] - b[0]);
+      for (let i = 1; i < this.freeRanges.length;) {
+        const prev = this.freeRanges[i - 1],
+          next = this.freeRanges[i];
+        if (prev[1] === next[0]) {
+          prev[1] = next[1];
+          this.freeRanges.splice(i, 1);
+        } else i++;
+      }
+      return address;
+    }
+    let replacement = null;
+    try {
+      replacement = this.allocate(count, false);
+    } catch {
+      return null;
+    }
+    this.bytes.copyWithin(replacement, address, address + current);
+    this.bytes.fill(0, replacement + current, replacement + count);
+    if (zero) this.bytes.fill(0, address, address + current);
+    this.free(address);
+    return replacement;
+  }
   free(address) {
     const count = this.allocations.get(address);
     if (count === undefined) return false;
