@@ -33,6 +33,11 @@ const COLOR_STATES = new Set([0, 4]);
 // A sampled texture starts in COMMON or COPY_DEST and transitions to a
 // shader-readable state before the shader reads it.
 const TEXTURE_STATES = new Set([0, 0x400, 0x40, 0x80]);
+// A texture created with ALLOW_RENDER_TARGET moves between RENDER_TARGET and a
+// shader-readable state, exactly like a swapchain image does. Both the
+// PIXEL_SHADER_RESOURCE (0x40) and NON_PIXEL_SHADER_RESOURCE (0x80) read states
+// are accepted, since a post-process may sample the result from either stage.
+const RENDER_TEXTURE_STATES = new Set([0, 4, 0x40, 0x80]);
 // DXGI_FORMAT -> WebGPU format for the sampled textures this path uploads.
 const WEBGPU_FORMAT = { 28: 'rgba8unorm', 87: 'bgra8unorm', 49: 'r16unorm', 61: 'r8unorm' };
 // DXGI_FORMAT byte sizes for the texture formats the bounded path models.
@@ -67,7 +72,9 @@ const resourceStates = (kind) =>
       ? COLOR_STATES
       : kind === 'texture'
         ? TEXTURE_STATES
-        : BUFFER_STATES;
+        : kind === 'render-texture'
+          ? RENDER_TEXTURE_STATES
+          : BUFFER_STATES;
 const OBJECT = 'c4fec28f-7966-4e95-9f94-f431cb56c3b8';
 const CHILD = '905db94b-a00c-4140-9df5-2b64ca9ea357';
 const PAGEABLE = '63ee58fb-1268-4835-86da-f008ce62f0d6';
@@ -729,7 +736,10 @@ function listMethods() {
             after = u32(r, p, 20);
           const allowed = resourceStates(res.state.kind);
           if (!allowed.has(before) || !allowed.has(after) || before === after)
-            throw Error('Unsupported D3D12 resource state transition');
+            throw Error(
+              `Unsupported D3D12 resource state transition ${before} -> ${after} ` +
+                `on a ${res.state.kind} resource`,
+            );
           barriers.push({ type: 'barrier', resource: res, before, after });
         }
         o.state.commands.push(...barriers);
@@ -1257,10 +1267,15 @@ function resourceMethods() {
           r.view.setUint16(out + 30, 1, true);
           r.write32(
             out + 32,
-            o.state.kind === 'depth' ? 55 : o.state.kind === 'texture' ? o.state.format : 28,
+            o.state.kind === 'depth'
+              ? 55
+              : o.state.kind === 'texture' || o.state.kind === 'render-texture'
+                ? o.state.format
+                : 28,
           );
           r.write32(out + 36, 1); // SampleDesc.Count
           if (o.state.kind === 'depth') r.write32(out + 48, 2);
+          else if (o.state.kind === 'render-texture') r.write32(out + 48, 1);
         }
         return undefined;
       },
@@ -1740,7 +1755,11 @@ function deviceMethods() {
           handle = number(a(3));
         const slot = viewSlot(r, dev, handle, 0);
         if (!slot) return E_INVALIDARG;
-        if (resource.state.kind !== 'buffer' && resource.state.kind !== 'texture')
+        if (
+          resource.state.kind !== 'buffer' &&
+          resource.state.kind !== 'texture' &&
+          resource.state.kind !== 'render-texture'
+        )
           return E_INVALIDARG;
         let format = 0,
           dimension = 0,
@@ -1764,7 +1783,8 @@ function deviceMethods() {
           } else if (dimension === 4) {
             // D3D12_TEX2D_SRV: MostDetailedMip, MipLevels, PlaneSlice,
             // ResourceMinLODClamp. Only a full single-mip view is modelled.
-            if (resource.state.kind !== 'texture') return E_INVALIDARG;
+            if (resource.state.kind !== 'texture' && resource.state.kind !== 'render-texture')
+              return E_INVALIDARG;
             r.check(desc + 16, 20);
             if (u32(r, desc, 16) || u32(r, desc, 24) || u32(r, desc, 28) ||
                 f32(r, desc, 32) !== 0)
@@ -2077,7 +2097,11 @@ function deviceMethods() {
             { device: dev, ...info },
             dev,
             async (o) => {
-              if (o.state.kind === 'depth' || o.state.kind === 'texture')
+              if (
+                o.state.kind === 'depth' ||
+                o.state.kind === 'texture' ||
+                o.state.kind === 'render-texture'
+              )
                 await requireBackend(r).destroyResource({ id: o.pointer });
               else if (o.state.kind === 'buffer') r.free(o.state.storage);
             },
@@ -2087,7 +2111,7 @@ function deviceMethods() {
           throw error;
         }
         try {
-          if (info.kind === 'depth' || info.kind === 'texture') {
+          if (info.kind === 'depth' || info.kind === 'texture' || info.kind === 'render-texture') {
             const backend = requireBackend(r);
             if (!backend.createResource || !backend.destroyResource)
               throw Error('D3D12 texture backend is unavailable');
@@ -2428,6 +2452,8 @@ function queueMethods() {
                 if (vertexBytes > MAX_RESOURCE_BYTES)
                   throw Error('D3D12 upload snapshot limit exceeded');
               }
+              if (res.state.kind !== 'color' && res.state.kind !== 'render-texture')
+                throw Error('D3D12 render target must be a swapchain image or a render texture');
               const current = states.get(res) ?? res.state.state;
               if (current !== 4) throw Error('D3D12 render target is not in RENDER_TARGET state');
               if (c.type === 'draw') {

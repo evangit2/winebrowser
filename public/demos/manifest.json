@@ -170,6 +170,15 @@
       "zipSha256": "8e421685c87ac20b8962511bf75f8420a40acf3066160e73d7b963377769cef5"
     },
     {
+      "name": "d3d12-rendertexture",
+      "description": "Native Direct3D 12 render-to-texture: a gradient is drawn into an offscreen RTV texture, transitioned, then sampled through an SRV and composited. Close the window to exit.",
+      "exe": "d3d12-rendertexture/d3d12-rendertexture.exe",
+      "zip": "d3d12-rendertexture.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 render-target textures and resource transitions.",
+      "exeSha256": "f546e69d6bc38a740c7368ea912aed2d2905a4277960e2696ddf01a59c074a18",
+      "zipSha256": "75459fa520e45a674cd2caa1397d2e23fba3c626f139d7a6998cb206138c202f"
+    },
+    {
       "name": "d3d12-terrain",
       "description": "Native Direct3D 12 procedural terrain: a generated 129x129 height field drawn as 32,768 indexed triangles with 32-bit indices, a three-attribute vertex layout and a constant-buffer camera. Close the window to exit.",
       "exe": "d3d12-terrain/d3d12-terrain.exe",

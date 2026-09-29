@@ -322,16 +322,32 @@ export function parseCommittedResourceDescriptor({
       )
         return null;
     } else {
-      // An ordinary sampled 2D texture: R8G8B8A8_UNORM, one mip, one slice,
-      // no clear value, and an initial state the renderer can copy into.
+      // An ordinary 2D texture: R8G8B8A8_UNORM, one mip, one slice. It is
+      // either sampled (uploaded into, no clear value) or a render target
+      // (ALLOW_RENDER_TARGET plus a clear value, as the descriptor requires).
       const bpp = TEXTURE_FORMAT_BYTES[format];
-      if (
-        !bpp ||
-        u32(read32, descriptor, 48) ||
-        clearValue ||
-        !SAMPLED_TEXTURE_STATES.has(initialState)
-      )
-        return null;
+      const flags = u32(read32, descriptor, 48);
+      if (!bpp || flags & ~1) return null;
+      if (flags & 1) {
+        // D3D12 requires a clear value whenever ALLOW_RENDER_TARGET is set,
+        // and the resource starts in RENDER_TARGET state when so requested.
+        if (!clearValue || ![0, 4].includes(initialState)) return null;
+        check(clearValue, 20);
+        // A colour clear value is DXGI_FORMAT plus four FLOATs: all twenty
+        // bytes are meaningful, unlike a depth/stencil clear.
+        if (u32(read32, clearValue) !== format) return null;
+        const colour = Array.from({ length: 4 }, (_, i) => readFloat32(clearValue + 4 + i * 4));
+        if (colour.some((value) => !Number.isFinite(value))) return null;
+        return {
+          kind: 'render-texture',
+          width,
+          height,
+          format,
+          bytesPerPixel: bpp,
+          state: initialState,
+        };
+      }
+      if (clearValue || !SAMPLED_TEXTURE_STATES.has(initialState)) return null;
       return { kind: 'texture', width, height, format, bytesPerPixel: bpp, state: initialState };
     }
     check(clearValue, 20);

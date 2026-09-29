@@ -1,0 +1,54 @@
+{
+  "scope": "D3D12 render-to-texture: offscreen gradient pass, RTV/SRV over one resource, barrier to PIXEL_SHADER_RESOURCE, and a composite pass that samples it",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "154.0.8037.58",
+  "exeSha256": "f546e69d6bc38a740c7368ea912aed2d2905a4277960e2696ddf01a59c074a18",
+  "zipSha256": "75459fa520e45a674cd2caa1397d2e23fba3c626f139d7a6998cb206138c202f",
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "sample": {
+        "width": 640,
+        "height": 480,
+        "bottomLeft": [
+          7,
+          122,
+          121
+        ],
+        "topRight": [
+          122,
+          7,
+          6
+        ],
+        "centre": [
+          64,
+          64,
+          64
+        ]
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "sample": {
+        "width": 640,
+        "height": 480,
+        "bottomLeft": [
+          7,
+          122,
+          121
+        ],
+        "topRight": [
+          122,
+          7,
+          6
+        ],
+        "centre": [
+          64,
+          64,
+          64
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

@@ -238,7 +238,7 @@ export class D3D12Renderer {
       !integer(id, 1, 0xffffffff) ||
       this.resources.has(id) ||
       this.resources.size >= 24 ||
-      !['depth', 'texture'].includes(kind) ||
+      !['depth', 'texture', 'render-texture'].includes(kind) ||
       !integer(width, 1, 2048) ||
       !integer(height, 1, 2048) ||
       typeof format !== 'string'
@@ -257,7 +257,13 @@ export class D3D12Renderer {
       usage:
         kind === 'depth'
           ? GPUTextureUsage.RENDER_ATTACHMENT
-          : GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+          : kind === 'render-texture'
+            ? // A render texture is drawn into and then sampled, so it needs
+              // both usages and a copy source for readback.
+              GPUTextureUsage.RENDER_ATTACHMENT |
+              GPUTextureUsage.TEXTURE_BINDING |
+              GPUTextureUsage.COPY_SRC
+            : GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
     const error = await this.device.popErrorScope();
     if (error) {
@@ -470,7 +476,8 @@ export class D3D12Renderer {
           throw Error('Invalid D3D12 depth clear');
         continue;
       }
-      if (resource.kind !== 'color') throw Error('D3D12 command requires a color target');
+      if (resource.kind !== 'color' && resource.kind !== 'render-texture')
+        throw Error('D3D12 command requires a color target');
       if (command.type === 'clear') {
         if (
           !Array.isArray(command.color) ||
@@ -855,7 +862,8 @@ export class D3D12Renderer {
   /** A texture view for a shader resource descriptor, or null when unsupported. */
   textureBindingResource(descriptor) {
     const resource = this.resources.get(descriptor.resource.pointer);
-    if (!resource || resource.kind !== 'texture') return null;
+    if (!resource || (resource.kind !== 'texture' && resource.kind !== 'render-texture'))
+      return null;
     const key = `${descriptor.resource.pointer}:${descriptor.format ?? resource.format}`;
     this.textureViews ??= new Map();
     let view = this.textureViews.get(key);
