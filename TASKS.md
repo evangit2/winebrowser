@@ -341,6 +341,30 @@ D3D10/11 and broader D3D12 support are still required.
       Next: watch the source buffer `[eax+0xdch]` to find where `0xfffefefe`
       is first produced, and compare that producing path (likely a buffer
       fill or lock) against native behaviour.
+- [x] Resolve the whole host-API closure the unchanged EXE imports. It now
+      reports 177 supported imports and the interactive harness enables Run.
+      The work added the process/TLS/resource/console surface, the virtual
+      filesystem's directory enumeration, Winsock 2 with Wine's ordinal table,
+      D3D8/D3D9 fog, alpha test, stencil, block-compressed and L8 textures, the
+      MSVCRT export surface with per-name calling conventions, and the CRT
+      startup, sorting, floating-point and math entry points. Two ABI defects
+      found this way were real: dynamic TLS wrote through the static image TLS
+      vector, and double-valued CRT functions returned in eax:edx instead of
+      ST(0). The unchanged EXE now runs its own CRT, creates its window, loads
+      its cursors and icon, registers its class, creates DirectInput and
+      DirectSound, opens its data files, spawns a worker thread, runs its timing
+      loop (WaitForSingleObject and QueryPerformanceCounter) and reaches
+      `bass.dll`'s packing loop.
+- [ ] Hamsterball still stops with an unmapped read inside `bass.dll` at
+      offset `0x234b` (guest `0x105234b`). The protector installs a real
+      exception registration chain (three frames at `fs:[0]`, handlers in the
+      EXE), and the instruction that faults is a table lookup whose index comes
+      from the decrypted pointer the protector built, so the failure is an
+      emulation divergence rather than an application fault. WineBrowser has no
+      structured-exception delivery: a guest fault stops the run instead of
+      being offered to the chain at `fs:[0]`. Next: implement SEH delivery with
+      the documented EXCEPTION_RECORD/CONTEXT and handler calling convention,
+      then compare the protector's decryption against native Wine.
 - [ ] Finish host/Wine lifecycle integration beyond the passing load/unload, reference-count, attach and rollback callback tests. Native process shutdown now passes. Guest thread lifecycle and static TLS through the full Wine closure remain unfinished; the bridge is still optional.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
