@@ -30,6 +30,11 @@ const ADAPTER_LUID = 0x4c554944, ADAPTER_LUID_HIGH = 0x57420000;
 const BUFFER_STATES = new Set([0, 0x1, 0x2, 0x40, 0x80, 0x200, 0x400, 0x800, 0xac3]);
 const DEPTH_STATES = new Set([0, 0x10]);
 const COLOR_STATES = new Set([0, 4]);
+// A sampled texture starts in COMMON or COPY_DEST and transitions to a
+// shader-readable state before the shader reads it.
+const TEXTURE_STATES = new Set([0, 0x400, 0x40, 0x80]);
+// DXGI_FORMAT -> WebGPU format for the sampled textures this path uploads.
+const WEBGPU_FORMAT = { 28: 'rgba8unorm', 87: 'bgra8unorm', 49: 'r16unorm', 61: 'r8unorm' };
 // DXGI_FORMAT byte sizes for the texture formats the bounded path models.
 const TEXTURE_FORMAT_BYTES = {
   2: 16, 6: 12, 10: 8, 11: 8, 28: 4, 29: 4, 41: 8, 40: 4, 45: 4, 49: 2, 55: 2, 61: 1, 87: 4, 88: 4,
@@ -48,12 +53,21 @@ const FORMAT_SUPPORT = {
   2: FMT_BUFFER | FMT_VERTEX | FMT_TEX2D | FMT_LOAD, // R32G32B32A32_FLOAT
   6: FMT_BUFFER | FMT_VERTEX | FMT_TEX2D | FMT_LOAD, // R32G32B32_FLOAT
   28: FMT_TEX2D | FMT_LOAD | FMT_SAMPLE | FMT_RT | FMT_BLEND, // R8G8B8A8_UNORM
+  87: FMT_TEX2D | FMT_LOAD | FMT_SAMPLE, // B8G8R8A8_UNORM
+  49: FMT_TEX2D | FMT_LOAD | FMT_SAMPLE, // R16_UNORM
+  61: FMT_TEX2D | FMT_LOAD | FMT_SAMPLE, // R8_UNORM
   42: FMT_BUFFER | FMT_INDEX, // R32_UINT
   55: FMT_TEX2D | FMT_DEPTH, // D16_UNORM
   57: FMT_BUFFER | FMT_INDEX, // R16_UINT
 };
 const resourceStates = (kind) =>
-  kind === 'depth' ? DEPTH_STATES : kind === 'color' ? COLOR_STATES : BUFFER_STATES;
+  kind === 'depth'
+    ? DEPTH_STATES
+    : kind === 'color'
+      ? COLOR_STATES
+      : kind === 'texture'
+        ? TEXTURE_STATES
+        : BUFFER_STATES;
 const OBJECT = 'c4fec28f-7966-4e95-9f94-f431cb56c3b8';
 const CHILD = '905db94b-a00c-4140-9df5-2b64ca9ea357';
 const PAGEABLE = '63ee58fb-1268-4835-86da-f008ce62f0d6';
@@ -145,7 +159,10 @@ function state(r) {
 function object(r, pointer, kind, owner = null) {
   const item = r.comObjects?.objects.get(number(pointer));
   if (!item || !item.refs || item.name !== name[kind] || (owner && item.state.device !== owner))
-    throw Error(`Invalid or released ${name[kind]} pointer`);
+    throw Error(
+      `Invalid or released ${name[kind]} pointer (0x${number(pointer).toString(16)}` +
+        `${owner ? `, device 0x${owner.pointer.toString(16)}` : ''})`,
+    );
   return item;
 }
 function iid(r, ptr, expected) {
@@ -397,6 +414,15 @@ function resourceSnapshot(r, resource, offset, size) {
     bytes: r.data.slice(resource.state.storage + offset, resource.state.storage + offset + size),
   };
 }
+// D3D12 marks a comparison (shadow) sampler with the 0x80 bit of the filter
+// value. ComparisonFunc is set on ordinary filtering samplers too — normally
+// D3D12_COMPARISON_FUNC_NEVER — so it cannot be used to detect one.
+function isComparisonFilter(filter) {
+  return (filter & 0x80) !== 0;
+}
+// vkd3d-shader reports a sampler descriptor's comparison mode directly; the
+// scan record's flag bit 0x4 is authoritative when a shader declares it.
+
 // A static sampler declared by the root signature.
 function staticSamplerDescription(sampler) {
   return {
@@ -405,7 +431,7 @@ function staticSamplerDescription(sampler) {
     addressV: sampler.addressV,
     addressW: sampler.addressW,
     maxAnisotropy: sampler.maxAnisotropy,
-    comparison: !!sampler.comparisonFunc,
+    comparison: isComparisonFilter(sampler.filter),
   };
 }
 // A sampler created through CreateSampler: 52 bytes beginning with
@@ -413,13 +439,14 @@ function staticSamplerDescription(sampler) {
 // MaxAnisotropy, ComparisonFunc, BorderColor[4], MinLOD and MaxLOD.
 function dynamicSamplerDescription(bytes) {
   const data = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const filter = data.getUint32(0, true);
   return {
-    filter: data.getUint32(0, true),
+    filter,
     addressU: data.getUint32(4, true),
     addressV: data.getUint32(8, true),
     addressW: data.getUint32(12, true),
     maxAnisotropy: data.getUint32(20, true),
-    comparison: data.getUint32(24, true) !== 0,
+    comparison: isComparisonFilter(filter),
   };
 }
 
@@ -441,6 +468,59 @@ function setRootDescriptor(r, a, o, kind) {
     address,
   });
   return undefined;
+}
+
+// Reads a D3D12_TEXTURE_COPY_LOCATION: pResource, Type, then either a
+// subresource index or a placed footprint (offset, format, width, height,
+// depth, row pitch). Only the two shapes the modelled upload path uses are
+// accepted.
+function textureCopyLocation(r, o, pointer) {
+  if (!pointer) throw Error('D3D12 CopyTextureRegion location is null');
+  r.check(pointer, 32);
+  const resource = object(r, u32(r, pointer), 'resource', o.state.device);
+  const type = u32(r, pointer, 4);
+  if (type === 0) {
+    if (u32(r, pointer, 8)) throw Error('Unsupported D3D12 texture copy subresource');
+    // A subresource-index location names a texture, so it carries the
+    // destination's own format and dimension rather than a placed footprint.
+    return {
+      resource,
+      location: { ...resource.state, rowPitch: 0 },
+    };
+  }
+  if (type !== 1) throw Error('Unsupported D3D12 texture copy location type');
+  // D3D12_PLACED_SUBRESOURCE_FOOTPRINT: Offset (64-bit), Format, Width, Height,
+  // Depth, RowPitch — 32 bytes total on the 32-bit ABI.
+  if (u32(r, pointer, 12)) throw Error('Unsupported 64-bit D3D12 placed footprint offset');
+  const offset = u32(r, pointer, 8);
+  const format = u32(r, pointer, 16);
+  const width = u32(r, pointer, 20);
+  const height = u32(r, pointer, 24);
+  const depth = u32(r, pointer, 28);
+  const rowPitch = u32(r, pointer, 32);
+  if (resource.state.kind !== 'buffer' || depth !== 1 || !width || !height || !rowPitch)
+    throw Error('Unsupported D3D12 placed footprint');
+  // An upload buffer has no format of its own; the placed footprint names the
+  // texture format, which CopyTextureRegion checks against the destination.
+  return { resource, offset, format, location: { width, height, rowPitch } };
+}
+
+// The placed texture footprint for a 2D copy: the source buffer supplies the
+// row pitch, which GetCopyableFootprints computed with 256-byte alignment.
+function textureFootprint(texture, rowPitch) {
+  const bytesPerPixel = TEXTURE_FORMAT_BYTES[texture.format];
+  if (!bytesPerPixel || !texture.width || !texture.height)
+    throw Error('Unsupported D3D12 texture footprint');
+  const rowSize = texture.width * bytesPerPixel;
+  if (rowPitch < rowSize || rowPitch % 4)
+    throw Error('Unsupported D3D12 texture footprint row pitch');
+  return {
+    width: texture.width,
+    height: texture.height,
+    rowSize,
+    bytesPerRow: rowPitch,
+    totalBytes: rowPitch * texture.height,
+  };
 }
 
 function recordDraw(r, a, o, indexed) {
@@ -662,6 +742,39 @@ function listMethods() {
         )
           throw Error('D3D12 CopyBufferRegion exceeds a resource');
         add(o, { type: 'copy-buffer', dst, dstOffset, src, srcOffset, size });
+        return undefined;
+      },
+    },
+    // CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION *pDst, DstX, DstY,
+    //                   DstZ, const D3D12_TEXTURE_COPY_LOCATION *pSrc,
+    //                   const D3D12_BOX *pSrcBox). The canonical texture upload
+    // copies a placed footprint from an upload buffer into a 2D texture.
+    16: {
+      argc: 7,
+      invoke(r, a, o) {
+        if (number(a(2)) || number(a(3)) || number(a(4)))
+          throw Error('Unsupported D3D12 CopyTextureRegion destination offset');
+        const dst = textureCopyLocation(r, o, number(a(1)));
+        const src = textureCopyLocation(r, o, number(a(5)));
+        if (dst.resource.state.kind !== 'texture' || src.resource.state.kind !== 'buffer')
+          throw Error(
+            'D3D12 CopyTextureRegion requires a texture destination and buffer source',
+          );
+        if (src.format && src.format !== dst.location.format)
+          throw Error('D3D12 placed footprint format does not match the destination texture');
+        const box = number(a(6));
+        if (box) {
+          r.check(box, 24);
+          // D3D12_BOX: left, top, front, right, bottom, back.
+          const left = u32(r, box), top = u32(r, box, 4), front = u32(r, box, 8);
+          const right = u32(r, box, 12), bottom = u32(r, box, 16), back = u32(r, box, 20);
+          if (left || top || front || back !== 1 || !right || !bottom ||
+              right !== dst.location.width || bottom !== dst.location.height)
+            throw Error('Unsupported D3D12 CopyTextureRegion box');
+        }
+        const footprint = textureFootprint(dst.location, src.location.rowPitch);
+        footprint.offset = src.offset;
+        add(o, { type: 'copy-texture', dst: dst.resource, src: src.resource, footprint });
         return undefined;
       },
     },
@@ -1126,7 +1239,10 @@ function resourceMethods() {
           r.write32(out + 24, height);
           r.view.setUint16(out + 28, 1, true);
           r.view.setUint16(out + 30, 1, true);
-          r.write32(out + 32, o.state.kind === 'depth' ? 55 : 28);
+          r.write32(
+            out + 32,
+            o.state.kind === 'depth' ? 55 : o.state.kind === 'texture' ? o.state.format : 28,
+          );
           r.write32(out + 36, 1); // SampleDesc.Count
           if (o.state.kind === 'depth') r.write32(out + 48, 2);
         }
@@ -1453,19 +1569,17 @@ function deviceMethods() {
       (r, a, dev) => {
         const p = number(a(1));
         r.check(p, 16);
-        // D3D12_DESCRIPTOR_HEAP_TYPE: 0 CBV_SRV_UAV, 1 SAMPLER, 2 RTV, 3 DSV.
-        // Flags must be NONE or SHADER_VISIBLE; the runtime owns the storage.
-        if (
-          u32(r, p) > 3 ||
-          u32(r, p, 4) < 1 ||
-          u32(r, p, 4) > 16 ||
-          u32(r, p, 8) ||
-          u32(r, p, 12) & ~1
-        )
+        // D3D12_DESCRIPTOR_HEAP_DESC: Type, NumDescriptors, Flags, NodeMask.
+        // Type 0 is CBV_SRV_UAV, 1 SAMPLER, 2 RTV, 3 DSV. Flags must be NONE or
+        // SHADER_VISIBLE; the runtime owns the descriptor storage itself.
+        const type = u32(r, p),
+          count = u32(r, p, 4),
+          flags = u32(r, p, 8),
+          nodeMask = u32(r, p, 12);
+        if (type > 3 || count < 1 || count > 256 || flags & ~1 || nodeMask & ~1)
           return E_INVALIDARG;
-        const count = u32(r, p, 4),
-          base = r.allocate(count * 4);
-        return { base, count, device: dev, type: u32(r, p), shaderVisible: !!u32(r, p, 12) };
+        const base = r.allocate(count * 4);
+        return { base, count, device: dev, type, shaderVisible: !!(flags & 1) };
       },
       {
         9: {
@@ -1604,7 +1718,9 @@ function deviceMethods() {
         const desc = number(a(2)),
           handle = number(a(3));
         const slot = viewSlot(r, dev, handle, 0);
-        if (!slot || resource.state.kind !== 'buffer') return E_INVALIDARG;
+        if (!slot) return E_INVALIDARG;
+        if (resource.state.kind !== 'buffer' && resource.state.kind !== 'texture')
+          return E_INVALIDARG;
         let format = 0,
           dimension = 0,
           componentMapping = 0;
@@ -1614,6 +1730,7 @@ function deviceMethods() {
           dimension = u32(r, desc, 4);
           componentMapping = u32(r, desc, 8);
           if (dimension === 1) {
+            if (resource.state.kind !== 'buffer') return E_INVALIDARG;
             // D3D12_BUFFER_SRV: FirstElement, NumElements, StructureByteStride.
             r.check(desc + 16, 24);
             const first = u32(r, desc, 16),
@@ -1623,9 +1740,23 @@ function deviceMethods() {
             slot.firstElement = first;
             slot.elementCount = count;
             slot.stride = stride;
-          } else if (dimension !== 4) {
+          } else if (dimension === 4) {
+            // D3D12_TEX2D_SRV: MostDetailedMip, MipLevels, PlaneSlice,
+            // ResourceMinLODClamp. Only a full single-mip view is modelled.
+            if (resource.state.kind !== 'texture') return E_INVALIDARG;
+            r.check(desc + 16, 20);
+            if (u32(r, desc, 16) || u32(r, desc, 24) || u32(r, desc, 28) ||
+                f32(r, desc, 32) !== 0)
+              return E_INVALIDARG;
+            if (format && format !== resource.state.format) return E_INVALIDARG;
+            format = resource.state.format;
+          } else {
             return E_INVALIDARG; // Only BUFFER and TEXTURE2D are modeled.
           }
+        } else if (resource.state.kind !== 'buffer') {
+          // A null description on a 2D texture is the typed default view.
+          format = resource.state.format;
+          dimension = 4;
         }
         slot.kind = 'srv';
         slot.resource = resource;
@@ -1925,9 +2056,9 @@ function deviceMethods() {
             { device: dev, ...info },
             dev,
             async (o) => {
-              if (o.state.kind === 'depth')
+              if (o.state.kind === 'depth' || o.state.kind === 'texture')
                 await requireBackend(r).destroyResource({ id: o.pointer });
-              else r.free(o.state.storage);
+              else if (o.state.kind === 'buffer') r.free(o.state.storage);
             },
           );
         } catch (error) {
@@ -1935,16 +2066,16 @@ function deviceMethods() {
           throw error;
         }
         try {
-          if (info.kind === 'depth') {
+          if (info.kind === 'depth' || info.kind === 'texture') {
             const backend = requireBackend(r);
             if (!backend.createResource || !backend.destroyResource)
-              throw Error('D3D12 depth backend is unavailable');
+              throw Error('D3D12 texture backend is unavailable');
             await backend.createResource({
               id: item.pointer,
-              kind: 'depth',
+              kind: info.kind,
               width: info.width,
               height: info.height,
-              format: info.format,
+              format: info.kind === 'depth' ? info.format : WEBGPU_FORMAT[info.format],
             });
           }
         } catch (error) {
@@ -2187,6 +2318,31 @@ function queueMethods() {
               const current = states.get(c.resource) ?? c.resource.state.state;
               if (current !== c.before) throw Error('D3D12 resource state mismatch');
               states.set(c.resource, c.after);
+            } else if (c.type === 'copy-texture') {
+              const dst = object(r, c.dst.pointer, 'resource', q.state.device);
+              const src = object(r, c.src.pointer, 'resource', q.state.device);
+              if (dst.state.kind !== 'texture' || src.state.kind !== 'buffer')
+                throw Error('D3D12 CopyTextureRegion requires a texture and a buffer');
+              const dstState = states.get(dst) ?? dst.state.state;
+              const srcState = states.get(src) ?? src.state.state;
+              if (![0, 0x400].includes(dstState))
+                throw Error('D3D12 CopyTextureRegion destination is not copyable');
+              if (!(srcState & 0x800))
+                throw Error('D3D12 CopyTextureRegion source is not an upload buffer');
+              const { bytesPerRow, height, totalBytes, offset } = c.footprint;
+              if (offset + totalBytes > src.state.size)
+                throw Error('D3D12 texture upload exceeds the source buffer');
+              const rows = r.data.slice(
+                src.state.storage + offset,
+                src.state.storage + offset + totalBytes,
+              );
+              await requireBackend(r).uploadTexture({
+                id: dst.pointer,
+                width: c.footprint.width,
+                height,
+                bytesPerRow,
+                rows,
+              });
             } else if (c.type === 'copy-buffer') {
               // The canonical upload pattern: Map an upload-heap buffer, write
               // bytes, unmap, then CopyBufferRegion into a default-heap buffer
@@ -2461,7 +2617,14 @@ async function createSwapChain(rt, self, queue, desc, result) {
     rt,
     'swapchain',
     swapchainMethods(),
-    { queue, index: 0, buffers: [], width: desc.width, height: desc.height },
+    {
+      queue,
+      index: 0,
+      buffers: [],
+      width: desc.width,
+      height: desc.height,
+      windowId: desc.windowId,
+    },
     self,
     async (item) => {
       for (const b of item.state.buffers) if (!--b.refs) queue.state.device.refs--;

@@ -15,6 +15,18 @@ const integer = (value, low, high) => Number.isInteger(value) && value >= low &&
 // comparison filters are unsupported (the backend has no shadow sampler path),
 // which is reported rather than silently changed to a filtering sampler.
 const D3D12_ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
+// DXGI_FORMAT -> WebGPU format and sample type for the sampled textures this
+// backend models. The D3D12 format codes match the ones the frontend accepts.
+const DXGI_TEXTURE_FORMATS = {
+  28: { format: 'rgba8unorm', sampleType: 'float' },
+  87: { format: 'bgra8unorm', sampleType: 'float' },
+  49: { format: 'r16unorm', sampleType: 'float' },
+  61: { format: 'r8unorm', sampleType: 'float' },
+};
+const TEXTURE_FORMAT_BYTES = { 28: 4, 87: 4, 49: 2, 61: 1 };
+function sampleTypeForFormat(format) {
+  return DXGI_TEXTURE_FORMATS[format]?.sampleType ?? 'float';
+}
 function toSamplerDescriptor(sampler) {
   if (sampler.comparison) throw Error('Unsupported D3D12 comparison sampler');
   const filter = sampler.filter;
@@ -203,26 +215,33 @@ export class D3D12Renderer {
       !integer(id, 1, 0xffffffff) ||
       this.resources.has(id) ||
       this.resources.size >= 24 ||
-      kind !== 'depth' ||
-      format !== 'depth16unorm' ||
+      !['depth', 'texture'].includes(kind) ||
       !integer(width, 1, 2048) ||
-      !integer(height, 1, 2048)
+      !integer(height, 1, 2048) ||
+      typeof format !== 'string'
     )
+      throw Error('Unsupported D3D12 texture resource');
+    if (kind === 'depth' && format !== 'depth16unorm')
       throw Error('Unsupported D3D12 depth resource');
     await this.initialize();
     this.device.pushErrorScope('validation');
+    // A sampled texture is uploaded through CopyTextureRegion and then read by
+    // a shader, so it needs both a copy destination and a binding usage.
     const texture = this.device.createTexture({
-      label: 'D3D12 depth resource',
+      label: `D3D12 ${kind} resource`,
       size: [width, height],
       format,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      usage:
+        kind === 'depth'
+          ? GPUTextureUsage.RENDER_ATTACHMENT
+          : GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
     const error = await this.device.popErrorScope();
     if (error) {
       texture.destroy();
       throw Error(error.message);
     }
-    this.resources.set(id, { kind, width, height, texture });
+    this.resources.set(id, { kind, width, height, format, texture });
   }
 
   async createPipeline({
@@ -239,7 +258,8 @@ export class D3D12Renderer {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
       throw Error('D3D12 pipeline limit exceeded');
     if (!Array.isArray(inputLayout)) throw Error('Unsupported D3D12 input layout');
-    const widthOf = (format) => (format === 'float32x3' ? 3 : format === 'float32x4' ? 4 : 0);
+    const widthOf = (format) =>
+      ({ float32x2: 2, float32x3: 3, float32x4: 4, sint32x4: 4, uint32x4: 4 })[format] ?? 0;
     if (!(
       (inputLayout.length === 0 && vertexStride === 0) ||
       (inputLayout.length &&
@@ -253,6 +273,9 @@ export class D3D12Renderer {
             attribute.offset % 4 === 0 &&
             attribute.offset + widthOf(attribute.format) * 4 <= vertexStride &&
             (index === 0 || attribute.offset > inputLayout[index - 1].offset),
+        ) &&
+        inputLayout.every(
+          (attribute) => widthOf(attribute.format) > 0 && !!attribute.semanticName,
         ))
     ))
       throw Error('Unsupported D3D12 input layout');
@@ -267,7 +290,7 @@ export class D3D12Renderer {
     if (signature.length !== inputLayout.length)
       throw Error('D3D12 input layout does not cover the vertex shader signature');
     const attributes = inputLayout.map((attribute) => {
-      const semantic = (attribute.semantic ?? '').toUpperCase();
+      const semantic = (attribute.semanticName ?? attribute.semantic ?? '').toUpperCase();
       const entry = signature.find(
         (input) =>
           input.semanticName.toUpperCase() === semantic &&
@@ -543,14 +566,15 @@ export class D3D12Renderer {
    * backend created for them.
    */
   bindingGroups(bindings, drawIndex, groupLayouts) {
-    if (!bindings?.length) return null;
-    if (!groupLayouts) throw Error('D3D12 pipeline has no bind group layouts');
+    // A pipeline built from a parameterless root signature binds only the
+    // built-in empty groups, which the caller supplies.
+    if (!groupLayouts) return null;
     const entries = new Map([
       [0, []],
       [1, []],
       [2, []],
     ]);
-    for (const binding of bindings) {
+    for (const binding of bindings ?? []) {
       const resource = this.bindingResource(binding, drawIndex);
       if (!resource) throw Error('D3D12 binding has no bound resource');
       const list = entries.get(binding.group);
@@ -771,6 +795,47 @@ export class D3D12Renderer {
     });
   }
 
+  /**
+   * Uploads one subresource of a texture from a placed-footprint source buffer.
+   * `rows` already carries the source row pitch, so the copy preserves the
+   * D3D12 layout the application computed through GetCopyableFootprints.
+   */
+  async uploadTexture({ id, width, height, bytesPerRow, rows }) {
+    await this.initialize();
+    const resource = this.resources.get(id);
+    if (!resource || resource.kind !== 'texture')
+      throw Error('D3D12 texture upload target is missing');
+    if (!(rows instanceof Uint8Array) || !bytesPerRow)
+      throw Error('D3D12 texture upload data is invalid');
+    if (bytesPerRow < width * TEXTURE_FORMAT_BYTES[resource.format])
+      throw Error('D3D12 texture upload row pitch is too small');
+    if (rows.length < bytesPerRow * height)
+      throw Error('D3D12 texture upload covers too few rows');
+    this.device.queue.writeTexture(
+      { texture: resource.texture },
+      rows.subarray(0, bytesPerRow * height),
+      { bytesPerRow, rowsPerImage: height },
+      [width, height, 1],
+    );
+  }
+
+  /** A texture view for a shader resource descriptor, or null when unsupported. */
+  textureBindingResource(descriptor) {
+    const resource = this.resources.get(descriptor.resource.pointer);
+    if (!resource || resource.kind !== 'texture') return null;
+    const key = `${descriptor.resource.pointer}:${descriptor.format ?? resource.format}`;
+    this.textureViews ??= new Map();
+    let view = this.textureViews.get(key);
+    if (!view) {
+      view = resource.texture.createView();
+      this.textureViews.set(key, view);
+    }
+    return {
+      layout: { texture: { sampleType: sampleTypeForFormat(resource.format) } },
+      resource: view,
+    };
+  }
+
   destroyPipeline({ id }) {
     this.pipelines.delete(id);
   }
@@ -778,6 +843,8 @@ export class D3D12Renderer {
   destroyResource({ id }) {
     const resource = this.resources.get(id);
     if (!resource || resource.kind === 'color') return;
+    for (const key of this.textureViews?.keys() ?? [])
+      if (key.startsWith(`${id}:`)) this.textureViews.delete(key);
     resource.texture.destroy();
     this.resources.delete(id);
   }

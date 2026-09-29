@@ -132,28 +132,107 @@ test('D3D12 input layouts map R32G32B32_FLOAT and R32G32B32A32_FLOAT to WebGPU f
     },
     pointer: 8,
     count: 2,
-    semantics: [
-      { semantic: 'POSITION', semanticIndex: 0, shaderLocation: 0 },
-      { semantic: 'COLOR', semanticIndex: 0, shaderLocation: 1 },
-    ],
   });
+  // The semantic names and indices are reported as declared; the vertex shader
+  // signature decides the WebGPU shader location, not the parser.
   assert.deepEqual(layout.attributes, [
     {
-      semantic: 'POSITION',
+      semanticName: 'POSITION',
       semanticIndex: 0,
-      shaderLocation: 0,
       format: 'float32x3',
+      components: 3,
       offset: 0,
-      width: 3,
     },
     {
-      semantic: 'COLOR',
+      semanticName: 'COLOR',
       semanticIndex: 0,
-      shaderLocation: 1,
       format: 'float32x4',
+      components: 4,
       offset: 12,
-      width: 4,
     },
   ]);
   assert.equal(layout.stride, 28);
+});
+
+test('input layouts accept the formats a textured vertex carries', () => {
+  const data = new Uint8Array(256);
+  const view = new DataView(data.buffer);
+  const write = (offset, text) => {
+    for (const [index, ch] of [...text].entries()) data[offset + index] = ch.charCodeAt(0);
+    data[offset + text.length] = 0;
+  };
+  const positionName = 160,
+    uvName = 176;
+  write(positionName, 'POSITION');
+  write(uvName, 'TEXCOORD');
+  const element = (index, name, format, offset, semanticIndex = 0) => {
+    const base = 8 + index * 28;
+    view.setUint32(base, name, true);
+    view.setUint32(base + 4, semanticIndex, true);
+    view.setUint32(base + 8, format, true);
+    view.setUint32(base + 16, offset, true);
+  };
+  element(0, positionName, 2, 0); // R32G32B32A32_FLOAT
+  element(1, uvName, 16, 16); // R32G32_FLOAT
+  const layout = parseInputLayout({
+    check: (p, n) => {
+      if (p < 0 || n < 1 || p + n > data.length) throw Error('Guest memory violation');
+      return p;
+    },
+    read32: (p) => view.getUint32(p, true),
+    readString: (p) => {
+      let value = '';
+      while (data[p]) value += String.fromCharCode(data[p++]);
+      return value;
+    },
+    pointer: 8,
+    count: 2,
+  });
+  assert.deepEqual(
+    layout.attributes.map((a) => [a.semanticName, a.format, a.offset]),
+    [
+      ['POSITION', 'float32x4', 0],
+      ['TEXCOORD', 'float32x2', 16],
+    ],
+  );
+  assert.equal(layout.stride, 24);
+});
+
+test('input layouts reject an unknown semantic format and a duplicate', () => {
+  const data = new Uint8Array(256);
+  const view = new DataView(data.buffer);
+  const write = (offset, text) => {
+    for (const [index, ch] of [...text].entries()) data[offset + index] = ch.charCodeAt(0);
+    data[offset + text.length] = 0;
+  };
+  const name = 160;
+  write(name, 'POSITION');
+  const element = (index, format) => {
+    const base = 8 + index * 28;
+    view.setUint32(base, name, true);
+    view.setUint32(base + 8, format, true);
+  };
+  const accessors = {
+    check: (p, n) => p,
+    read32: (p) => view.getUint32(p, true),
+    readString: (p) => {
+      let value = '';
+      while (data[p]) value += String.fromCharCode(data[p++]);
+      return value;
+    },
+    pointer: 8,
+  };
+  // XYZ32_UNORM (63) is not a per-vertex float layout the backend feeds.
+  element(0, 63);
+  assert.throws(
+    () => parseInputLayout({ ...accessors, count: 1 }),
+    /Unsupported D3D12 input layout element/,
+  );
+  // The same semantic and index twice is not a legal input layout.
+  element(0, 6);
+  element(1, 6);
+  assert.throws(
+    () => parseInputLayout({ ...accessors, count: 2 }),
+    /Unsupported D3D12 input layout element/,
+  );
 });

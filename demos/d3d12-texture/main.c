@@ -1,10 +1,11 @@
-/* Freestanding PE32 Direct3D 12 cube driven by root constants.
+/* Freestanding PE32 Direct3D 12 textured cube.
  *
- * Unlike the fixed-function-style cube, this program uploads its 24 vertices
- * once and sends each frame's transform to the vertex shader as D3D12 root
- * constants: a 32-bit-constants root parameter covering HLSL cbuffer register
- * b0. The shader performs the matrix multiply on the GPU, so the frame loop
- * writes only 16 DWORDs of constants and never touches the vertex buffer.
+ * The per-frame transform travels as root constants (a 32-bit-constants root
+ * parameter at cbuffer register b0), while a procedurally generated 64x64
+ * RGBA texture is uploaded through an SRV descriptor table and sampled through
+ * a static sampler the root signature declares. This is the canonical D3D12
+ * resource flow: GetCopyableFootprints, a placed footprint copy into a default
+ * heap texture, a shader-visible descriptor heap, and a root descriptor table.
  * No C runtime, pretranslated WebAssembly or browser-specific imports.
  * Close the window to exit. */
 #define COBJMACROS
@@ -22,9 +23,11 @@
 #define HEIGHT 480
 #define BUFFER_COUNT 2
 #define CUBE_VERTEX_COUNT 24u
-#define CUBE_VERTEX_STRIDE 32u
+#define CUBE_VERTEX_STRIDE 24u
 #define CUBE_INDEX_COUNT 36u
 #define VERTEX_BYTES (CUBE_VERTEX_COUNT * CUBE_VERTEX_STRIDE)
+#define TEXTURE_SIZE 64u
+#define TEXTURE_BYTES (TEXTURE_SIZE * TEXTURE_SIZE * 4u)
 #define INDEX_BYTES (CUBE_INDEX_COUNT * sizeof(uint16_t))
 #define MATRIX_CONSTANTS 16u
 
@@ -41,21 +44,22 @@ static void copy_bytes(void *target, const void *source, size_t count)
     while (count--) *out++ = *in++;
 }
 
-struct source_vertex { float x, y, z, nx, ny, nz, r, g, b; };
-struct gpu_vertex { float x, y, z, w, r, g, b, a; };
+struct gpu_vertex { float x, y, z, w, u, v; };
 
 #define FACE(nx,ny,nz, x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3, cr,cg,cb) \
     {x0,y0,z0,nx,ny,nz,cr,cg,cb}, {x1,y1,z1,nx,ny,nz,cr,cg,cb}, \
     {x2,y2,z2,nx,ny,nz,cr,cg,cb}, {x3,y3,z3,nx,ny,nz,cr,cg,cb}
 
-/* Unit cube, four vertices per face so every face has its own flat normal. */
+/* Unit cube, four vertices per face so every face has its own flat normal.
+ * Each face carries a uv rectangle, giving a visible orientation cue. */
+struct source_vertex { float x, y, z, u, v; };
 static const struct source_vertex cube_vertices[CUBE_VERTEX_COUNT] = {
-    FACE( 0, 0,-1, -1,-1,-1, -1, 1,-1,  1, 1,-1,  1,-1,-1, .90f,.40f,.33f),
-    FACE( 0, 0, 1,  1,-1, 1,  1, 1, 1, -1, 1, 1, -1,-1, 1, .36f,.77f,.94f),
-    FACE(-1, 0, 0, -1,-1, 1, -1, 1, 1, -1, 1,-1, -1,-1,-1, .95f,.76f,.19f),
-    FACE( 1, 0, 0,  1,-1,-1,  1, 1,-1,  1, 1, 1,  1,-1, 1, .25f,.82f,.38f),
-    FACE( 0, 1, 0, -1, 1,-1, -1, 1, 1,  1, 1, 1,  1, 1,-1, .67f,.34f,.91f),
-    FACE( 0,-1, 0, -1,-1, 1, -1,-1,-1,  1,-1,-1,  1,-1, 1, .94f,.46f,.17f),
+    /* -Z */ {-1,-1,-1,0,1}, {-1, 1,-1,0,0}, { 1, 1,-1,1,0}, { 1,-1,-1,1,1},
+    /* +Z */ { 1,-1, 1,0,1}, { 1, 1, 1,0,0}, {-1, 1, 1,1,0}, {-1,-1, 1,1,1},
+    /* -X */ {-1,-1, 1,0,1}, {-1, 1, 1,0,0}, {-1, 1,-1,1,0}, {-1,-1,-1,1,1},
+    /* +X */ { 1,-1,-1,0,1}, { 1, 1,-1,0,0}, { 1, 1, 1,1,0}, { 1,-1, 1,1,1},
+    /* +Y */ {-1, 1,-1,0,1}, {-1, 1, 1,0,0}, { 1, 1, 1,1,0}, { 1, 1,-1,1,1},
+    /* -Y */ {-1,-1, 1,0,1}, {-1,-1,-1,0,0}, { 1,-1,-1,1,0}, { 1,-1, 1,1,1},
 };
 
 static const uint16_t cube_indices[CUBE_INDEX_COUNT] = {
@@ -107,10 +111,8 @@ static void build_matrix(float *rows)
     const float cc = pitch_cos * yaw_cos;
     const float cd = camera_distance;
 
-    /* Row 2: the fixed-function form is z' = (z_c * 10 - 10) / depth_range,
-     * which expands to z_c * (10/depth_range) - 10/depth_range. Since z_c is
-     * linear in (x, y, z), the constant term is -10/depth_range, not
-     * (camera * 10 - 10) * z_scale. */
+    /* Row 2: z' = (z_c * 10 - 10) / depth_range = z_c * z_scale - 10/depth_range,
+     * where z_c = ca*x + cb*y + cc*z + cd. */
     rows[8] = ca * z_scale;
     rows[9] = cb * z_scale;
     rows[10] = cc * z_scale;
@@ -140,11 +142,11 @@ static int run(void)
     WNDCLASSA cls = {0};
     cls.lpfnWndProc = window_proc;
     cls.hInstance = instance;
-    cls.lpszClassName = "WineBrowserD3D12Constants";
+    cls.lpszClassName = "WineBrowserD3D12Texture";
     if (!RegisterClassA(&cls)) return 1;
     RECT bounds = {0, 0, WIDTH, HEIGHT};
     if (!AdjustWindowRect(&bounds, WS_OVERLAPPEDWINDOW, FALSE)) return 2;
-    HWND window = CreateWindowExA(0, cls.lpszClassName, "WineBrowser Direct3D 12 root constants",
+    HWND window = CreateWindowExA(0, cls.lpszClassName, "WineBrowser Direct3D 12 textured cube",
             WS_OVERLAPPEDWINDOW, 20, 20, bounds.right - bounds.left,
             bounds.bottom - bounds.top, 0, 0, instance, 0);
     if (!window) return 3;
@@ -157,6 +159,8 @@ static int run(void)
     IDXGISwapChain3 *swapchain3 = 0;
     ID3D12DescriptorHeap *rtv_heap = 0, *dsv_heap = 0;
     ID3D12Resource *buffers[BUFFER_COUNT] = {0}, *depth = 0, *vertices = 0, *indices = 0;
+    ID3D12Resource *texture = 0, *texture_upload = 0;
+    ID3D12DescriptorHeap *srv_heap = 0;
     ID3D12CommandAllocator *allocator = 0;
     ID3D12GraphicsCommandList *list = 0;
     ID3D12RootSignature *root = 0;
@@ -268,10 +272,8 @@ static int run(void)
             out[i].y = cube_vertices[i].y;
             out[i].z = cube_vertices[i].z;
             out[i].w = 1.0f;
-            out[i].r = cube_vertices[i].r;
-            out[i].g = cube_vertices[i].g;
-            out[i].b = cube_vertices[i].b;
-            out[i].a = 1.0f;
+            out[i].u = cube_vertices[i].u;
+            out[i].v = cube_vertices[i].v;
         }
     }
     D3D12_RANGE vertices_written = {0, VERTEX_BYTES};
@@ -283,6 +285,79 @@ static int run(void)
     D3D12_RANGE indices_written = {0, INDEX_BYTES};
     ID3D12Resource_Unmap(indices, 0, &indices_written);
 
+    /* A 64x64 RGBA checkerboard generated in guest memory. Static storage: a
+     * 16 KiB frame would otherwise require the runtime's stack probe. */
+    static unsigned char pixels[TEXTURE_BYTES];
+    for (UINT y = 0; y < TEXTURE_SIZE; ++y) {
+        for (UINT x = 0; x < TEXTURE_SIZE; ++x) {
+            int cell = ((x >> 3) + (y >> 3)) & 1;
+            unsigned char *pixel = &pixels[(y * TEXTURE_SIZE + x) * 4];
+            pixel[0] = cell ? 235 : 40;
+            pixel[1] = (unsigned char)(cell ? 90 : 170);
+            pixel[2] = (unsigned char)(cell ? 45 : 210);
+            pixel[3] = 255;
+        }
+    }
+    D3D12_RESOURCE_DESC texture_desc = {0};
+    texture_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    texture_desc.Width = TEXTURE_SIZE;
+    texture_desc.Height = TEXTURE_SIZE;
+    texture_desc.DepthOrArraySize = 1;
+    texture_desc.MipLevels = 1;
+    texture_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    texture_desc.SampleDesc.Count = 1;
+    texture_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    result = 26;
+    if (FAILED(ID3D12Device_CreateCommittedResource(device, &default_heap, D3D12_HEAP_FLAG_NONE,
+            &texture_desc, D3D12_RESOURCE_STATE_COPY_DEST, 0,
+            &IID_ID3D12Resource, (void **)&texture))) goto done;
+
+    /* The upload buffer is sized from the runtime's placed-footprint query, so
+     * the row pitch comes from the API rather than a hand-written constant. */
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {0};
+    UINT64 upload_size = 0;
+    ID3D12Device_GetCopyableFootprints(device, &texture_desc, 0, 1, 0,
+            &footprint, 0, 0, &upload_size);
+    if (!upload_size) goto done;
+    D3D12_RESOURCE_DESC upload_desc = {0};
+    upload_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    upload_desc.Width = upload_size;
+    upload_desc.Height = 1;
+    upload_desc.DepthOrArraySize = 1;
+    upload_desc.MipLevels = 1;
+    upload_desc.SampleDesc.Count = 1;
+    upload_desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    result = 27;
+    if (FAILED(ID3D12Device_CreateCommittedResource(device, &upload_heap, D3D12_HEAP_FLAG_NONE,
+            &upload_desc, D3D12_RESOURCE_STATE_GENERIC_READ, 0,
+            &IID_ID3D12Resource, (void **)&texture_upload))) goto done;
+    void *mapped_texture = 0;
+    if (FAILED(ID3D12Resource_Map(texture_upload, 0, 0, &mapped_texture))) goto done;
+    {
+        unsigned char *out = mapped_texture;
+        for (UINT y = 0; y < TEXTURE_SIZE; ++y)
+            copy_bytes(out + y * footprint.Footprint.RowPitch,
+                    pixels + y * TEXTURE_SIZE * 4, TEXTURE_SIZE * 4);
+    }
+    D3D12_RANGE texture_written = {0, upload_size};
+    ID3D12Resource_Unmap(texture_upload, 0, &texture_written);
+
+    /* A shader-visible CBV/SRV/UAV heap holding the texture's SRV. */
+    heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heap_desc.NumDescriptors = 1;
+    heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    result = 28;
+    if (FAILED(ID3D12Device_CreateDescriptorHeap(device, &heap_desc, &IID_ID3D12DescriptorHeap,
+            (void **)&srv_heap))) goto done;
+    D3D12_CPU_DESCRIPTOR_HANDLE srv_cpu =
+            ID3D12DescriptorHeap_GetCPUDescriptorHandleForHeapStart(srv_heap);
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {0};
+    srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_desc.Texture2D.MipLevels = 1;
+    ID3D12Device_CreateShaderResourceView(device, texture, &srv_desc, srv_cpu);
+
     result = 15;
     if (FAILED(ID3D12Device_CreateCommandAllocator(device, D3D12_COMMAND_LIST_TYPE_DIRECT,
             &IID_ID3D12CommandAllocator, (void **)&allocator))) goto done;
@@ -291,17 +366,38 @@ static int run(void)
             allocator, 0, &IID_ID3D12GraphicsCommandList, (void **)&list))) goto done;
     if (FAILED(ID3D12GraphicsCommandList_Close(list))) goto done;
 
-    /* One 32-bit-constants root parameter at HLSL cbuffer register b0 holding
-     * the whole 4x4 transform. This is the only data the vertex shader reads. */
-    D3D12_ROOT_PARAMETER parameter = {0};
-    parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-    parameter.Constants.ShaderRegister = 0;
-    parameter.Constants.RegisterSpace = 0;
-    parameter.Constants.Num32BitValues = MATRIX_CONSTANTS;
-    parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    /* Parameter 0 is the 32-bit-constants transform at cbuffer register b0;
+     * parameter 1 is a descriptor table holding the texture's SRV at t0. A
+     * static sampler answers s0 without occupying a heap slot. */
+    D3D12_DESCRIPTOR_RANGE range = {0};
+    range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    range.NumDescriptors = 1;
+    range.BaseShaderRegister = 0;
+    D3D12_ROOT_PARAMETER parameter[2] = {0};
+    parameter[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    parameter[0].Constants.ShaderRegister = 0;
+    parameter[0].Constants.RegisterSpace = 0;
+    parameter[0].Constants.Num32BitValues = MATRIX_CONSTANTS;
+    parameter[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    parameter[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    parameter[1].DescriptorTable.NumDescriptorRanges = 1;
+    parameter[1].DescriptorTable.pDescriptorRanges = &range;
+    parameter[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    D3D12_STATIC_SAMPLER_DESC sampler = {0};
+    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    sampler.MaxAnisotropy = 1;
+    sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+    sampler.MinLOD = 0;
+    sampler.MaxLOD = 3.402823466e+38f;
+    sampler.ShaderRegister = 0;
+    sampler.RegisterSpace = 0;
+    sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_ROOT_SIGNATURE_DESC root_desc = {0};
-    root_desc.NumParameters = 1;
-    root_desc.pParameters = &parameter;
+    root_desc.NumParameters = 2;
+    root_desc.pParameters = parameter;
+    root_desc.NumStaticSamplers = 1;
+    root_desc.pStaticSamplers = &sampler;
     root_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     result = 17;
     if (FAILED(D3D12SerializeRootSignature(&root_desc, D3D_ROOT_SIGNATURE_VERSION_1,
@@ -313,14 +409,14 @@ static int run(void)
 
     static const D3D12_INPUT_ELEMENT_DESC input[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 16, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {0};
     pso_desc.pRootSignature = root;
-    pso_desc.VS.pShaderBytecode = constants_vs;
-    pso_desc.VS.BytecodeLength = sizeof(constants_vs);
-    pso_desc.PS.pShaderBytecode = constants_ps;
-    pso_desc.PS.BytecodeLength = sizeof(constants_ps);
+    pso_desc.VS.pShaderBytecode = texture_vs;
+    pso_desc.VS.BytecodeLength = sizeof(texture_vs);
+    pso_desc.PS.pShaderBytecode = texture_ps;
+    pso_desc.PS.BytecodeLength = sizeof(texture_ps);
     pso_desc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
     pso_desc.SampleMask = 0xffffffffu;
     pso_desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -351,6 +447,33 @@ static int run(void)
     index_view.BufferLocation = ID3D12Resource_GetGPUVirtualAddress(indices);
     index_view.SizeInBytes = INDEX_BYTES;
     index_view.Format = DXGI_FORMAT_R16_UINT;
+
+    /* Record the one-time texture upload: copy the placed footprint into the
+     * default-heap texture, then transition it to a shader-readable state. */
+    if (FAILED(ID3D12CommandAllocator_Reset(allocator))) goto done;
+    if (FAILED(ID3D12GraphicsCommandList_Reset(list, allocator, 0))) goto done;
+    {
+        D3D12_TEXTURE_COPY_LOCATION dst = {0}, src = {0};
+        dst.pResource = texture;
+        dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+        src.pResource = texture_upload;
+        src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+        src.PlacedFootprint = footprint;
+        D3D12_BOX box = {0, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, 1};
+        ID3D12GraphicsCommandList_CopyTextureRegion(list, &dst, 0, 0, 0, &src, &box);
+        D3D12_RESOURCE_BARRIER texture_barrier = {0};
+        texture_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        texture_barrier.Transition.pResource = texture;
+        texture_barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        texture_barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+        texture_barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        ID3D12GraphicsCommandList_ResourceBarrier(list, 1, &texture_barrier);
+    }
+    if (FAILED(ID3D12GraphicsCommandList_Close(list))) goto done;
+    {
+        ID3D12CommandList *uploads[1] = {(ID3D12CommandList *)list};
+        ID3D12CommandQueue_ExecuteCommandLists(queue, 1, uploads);
+    }
 
     float matrix[MATRIX_CONSTANTS];
     UINT64 fence_value = 0;
@@ -383,6 +506,15 @@ static int run(void)
         ID3D12GraphicsCommandList_RSSetViewports(list, 1, &viewport);
         ID3D12GraphicsCommandList_RSSetScissorRects(list, 1, &scissor);
         ID3D12GraphicsCommandList_SetGraphicsRootSignature(list, root);
+        /* Bind the shader-visible heap and point the SRV table parameter at its
+         * first descriptor; the texture itself was uploaded once. */
+        {
+            ID3D12DescriptorHeap *heaps[1] = {srv_heap};
+            ID3D12GraphicsCommandList_SetDescriptorHeaps(list, 1, heaps);
+            D3D12_GPU_DESCRIPTOR_HANDLE srv_gpu =
+                    ID3D12DescriptorHeap_GetGPUDescriptorHandleForHeapStart(srv_heap);
+            ID3D12GraphicsCommandList_SetGraphicsRootDescriptorTable(list, 1, srv_gpu);
+        }
         /* The whole per-frame transform travels as root constants: no vertex
          * re-upload and no constant buffer resource. */
         ID3D12GraphicsCommandList_SetGraphicsRoot32BitConstants(list, 0,
@@ -415,6 +547,9 @@ done:
     if (error_blob) ID3D10Blob_Release(error_blob);
     if (list) ID3D12GraphicsCommandList_Release(list);
     if (allocator) ID3D12CommandAllocator_Release(allocator);
+    if (srv_heap) ID3D12DescriptorHeap_Release(srv_heap);
+    if (texture_upload) ID3D12Resource_Release(texture_upload);
+    if (texture) ID3D12Resource_Release(texture);
     if (indices) ID3D12Resource_Release(indices);
     if (vertices) ID3D12Resource_Release(vertices);
     if (depth) ID3D12Resource_Release(depth);

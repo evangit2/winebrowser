@@ -1,0 +1,110 @@
+{
+  "scope": "D3D12 textured cube: GetCopyableFootprints + CopyTextureRegion upload, SRV descriptor table, static sampler and root constants, on the EXE-upload and hosted-ZIP paths",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "154.0.8037.58",
+  "exeSha256": "6d7bd65c37507abbd36db852d69514ca24bc838ffe2e336e87d3cb5fc0878332",
+  "zipSha256": "8e421685c87ac20b8962511bf75f8420a40acf3066160e73d7b963377769cef5",
+  "cellColours": [
+    "235,90,45",
+    "40,170,210"
+  ],
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "firstFourFramesMs": 530,
+      "width": 640,
+      "height": 480,
+      "cellPixels": {
+        "235,90,45": 30653,
+        "40,170,210": 30636
+      },
+      "first": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            245911
+          ],
+          [
+            "235,90,45",
+            30653
+          ],
+          [
+            "40,170,210",
+            30636
+          ]
+        ],
+        "hash": "f4cfdcbf491b195f8ad730e9641048dd915a8119ba3dd0ffd915a5a02da118a3"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            240870
+          ],
+          [
+            "40,170,210",
+            33177
+          ],
+          [
+            "235,90,45",
+            33153
+          ]
+        ],
+        "hash": "98ef7002d17ddfeb3dddbcfde21dea34eae5abff43bd86277a29f5761ef6608e"
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 397,
+      "width": 640,
+      "height": 480,
+      "cellPixels": {
+        "235,90,45": 31276,
+        "40,170,210": 31279
+      },
+      "first": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            244645
+          ],
+          [
+            "40,170,210",
+            31279
+          ],
+          [
+            "235,90,45",
+            31276
+          ]
+        ],
+        "hash": "2962a8f514b2ebbb7daaa77c6467fd1972c0352652341cddf23b2081d4ffa1e4"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "counts": [
+          [
+            "9,17,36",
+            241205
+          ],
+          [
+            "40,170,210",
+            33075
+          ],
+          [
+            "235,90,45",
+            32920
+          ]
+        ],
+        "hash": "50d53a37e7224f6200d045165666225fa8bc24c9f3cc859ff49242483d454746"
+      }
+    }
+  ],
+  "errors": []
+}

@@ -54,6 +54,7 @@ jobs:
           npm run test:d3d12-cube
           npm run test:d3d12-parade
           npm run test:d3d12-constants
+          npm run test:d3d12-texture
         env:
           BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

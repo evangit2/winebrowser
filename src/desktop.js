@@ -655,7 +655,7 @@ export class VirtualDesktop {
     this.#restack();
   }
 
-  frame({ windowId, width, height, pixels, bitmap, renderer, graphicsApi, graphicsFrames }) {
+  frame({ windowId, width, height, pixels, bitmap, renderer, graphicsApi, graphicsFrames, graphicsDraws }) {
     const window = this.windows.get(windowId);
     if (
       !window ||
@@ -679,6 +679,12 @@ export class VirtualDesktop {
         window.canvas.dataset.renderer = renderer ?? 'bitmap';
         window.canvas.dataset.graphicsApi = graphicsApi ?? (renderer === 'webgpu' ? 'd3d9' : '');
         window.canvas.dataset.graphicsFrames = String(graphicsFrames ?? 0);
+        // Presenting the frame count alone cannot distinguish "nothing was
+        // drawn" from "everything was cleared"; publish the draw count too.
+        // Publishing the draw count alongside the frame count lets a caller
+        // distinguish "nothing was drawn" from "everything was cleared".
+        if (graphicsDraws !== undefined)
+          window.canvas.dataset.graphicsDraws = String(graphicsDraws);
         return true;
       } finally {
         bitmap.close();

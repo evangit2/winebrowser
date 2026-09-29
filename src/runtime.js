@@ -173,7 +173,17 @@ export class Runtime {
     else if (entry.kind === 'com' || entry.kind === 'wine-loader') {
       this.calls++;
       if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);
-      response = await entry.invoke(this, argument);
+      try {
+        response = await entry.invoke(this, argument);
+      } catch (error) {
+        // A COM failure usually names only a pointer or a state; adding the
+        // vtable method makes the failing call identifiable in the log. The
+        // message is rewritten in place so the error's class and stack survive
+        // — guest-thread cancellation, for example, is recognised by type.
+        if (error instanceof Error && !error.message.startsWith(entry.name + ':'))
+          error.message = `${entry.name}: ${error.message}`;
+        throw error;
+      }
     } else {
       const handler = this.apiProvider.get(importKey(entry.dll, entry.name));
       if (!handler) throw Error(`Unimplemented import ${importKey(entry.dll, entry.name)}`);

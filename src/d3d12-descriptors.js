@@ -13,50 +13,70 @@ export function parseResourceRange({ check, read32, pointer, size }) {
 // D3D12_INPUT_ELEMENT_DESC subset for the POSITION/COLOR interleaved layout the
 // Microsoft samples use. `semantics` lists the accepted names in element order
 // with the WebGPU location and float width each maps to.
-export function parseInputLayout({ check, read32, readString, pointer, count, semantics }) {
+// The per-vertex formats the backend can feed a shader location, with the
+// number of 32-bit components each supplies.
+const INPUT_FORMATS = {
+  2: { components: 4, format: 'float32x4' }, // R32G32B32A32_FLOAT
+  6: { components: 3, format: 'float32x3' }, // R32G32B32_FLOAT
+  16: { components: 2, format: 'float32x2' }, // R32G32_FLOAT
+  41: { components: 4, format: 'sint32x4' }, // R32G32B32A32_SINT
+  42: { components: 4, format: 'uint32x4' }, // R32G32B32A32_UINT
+};
+
+/**
+ * Parses a D3D12_INPUT_LAYOUT_DESC. Semantic names and indices are reported as
+ * the application declared them; the caller matches them against the vertex
+ * shader's input signature and assigns WebGPU shader locations.
+ */
+export function parseInputLayout({ check, read32, readString, pointer, count }) {
   if (!count) return { attributes: [], stride: 0 };
-  if (!semantics || count !== semantics.length)
-    throw Error('Unsupported D3D12 input element count');
   check(pointer, count * 28);
   let minOffset = Infinity,
     maxEnd = 0;
-  const attributes = semantics.map((expected, index) => {
+  const attributes = [];
+  const seen = new Set();
+  for (let index = 0; index < count; index++) {
     const element = pointer + index * 28;
-    // DXGI_FORMAT_R32G32B32_FLOAT (6) or R32G32B32A32_FLOAT (2).
+    const semanticName = readString(u32(read32, element));
+    const semanticIndex = u32(read32, element, 4);
     const format = u32(read32, element, 8);
-    const width = format === 6 ? 3 : format === 2 ? 4 : 0;
+    const inputSlot = u32(read32, element, 12);
+    const offset = u32(read32, element, 16);
+    const classification = u32(read32, element, 20);
+    const stepRate = u32(read32, element, 24);
+    const described = INPUT_FORMATS[format];
+    const key = `${semanticName.toUpperCase()}\0${semanticIndex}`;
     if (
-      readString(u32(read32, element)).toUpperCase() !== expected.semantic ||
-      u32(read32, element, 4) !== expected.semanticIndex ||
-      !width ||
-      u32(read32, element, 12) ||
-      u32(read32, element, 20) ||
-      u32(read32, element, 24)
+      !described ||
+      !semanticName ||
+      inputSlot ||
+      classification ||
+      stepRate ||
+      seen.has(key)
     )
       throw Error(
         'Unsupported D3D12 input layout element ' +
           JSON.stringify({
-            semantic: readString(u32(read32, element)),
-            index: u32(read32, element, 4),
+            semantic: semanticName,
+            index: semanticIndex,
             format,
-            inputSlot: u32(read32, element, 12),
-            offset: u32(read32, element, 16),
-            classification: u32(read32, element, 20),
-            stepRate: u32(read32, element, 24),
+            inputSlot,
+            offset,
+            classification,
+            stepRate,
           }),
       );
-    const offset = u32(read32, element, 16);
+    seen.add(key);
     minOffset = Math.min(minOffset, offset);
-    maxEnd = Math.max(maxEnd, offset + width * 4);
-    return {
-      semantic: expected.semantic,
-      semanticIndex: expected.semanticIndex,
-      shaderLocation: expected.shaderLocation,
-      format: width === 3 ? 'float32x3' : 'float32x4',
+    maxEnd = Math.max(maxEnd, offset + described.components * 4);
+    attributes.push({
+      semanticName,
+      semanticIndex,
+      format: described.format,
+      components: described.components,
       offset,
-      width,
-    };
-  });
+    });
+  }
   if (minOffset) throw Error('Unsupported D3D12 input layout base offset');
   return { attributes, stride: maxEnd };
 }
@@ -149,10 +169,6 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
     readString,
     pointer: u32(read32, pointer, 492),
     count: u32(read32, pointer, 496),
-    semantics: [
-      { semantic: 'POSITION', semanticIndex: 0, shaderLocation: 0 },
-      { semantic: 'COLOR', semanticIndex: 0, shaderLocation: 1 },
-    ],
   });
   return {
     root: u32(read32, pointer),

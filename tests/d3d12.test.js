@@ -84,6 +84,7 @@ function fixture() {
       },
       async createPipeline(args) {
         events.push({ type: 'pipeline', ...args });
+        return { bindings: [] };
       },
       async destroyPipeline(args) {
         events.push({ type: 'destroyPipeline', ...args });
@@ -313,15 +314,18 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
   r.write32(depthPsoDesc + 544, 55);
   const depthPipeline = await create(dev, 10, [depthPsoDesc], 'pipeline');
   const depthPipelineEvent = events.filter((event) => event.type === 'pipeline').at(-1);
+  // The frontend reports the layout as the application declared it. The WebGPU
+  // shader location is assigned by the backend from the vertex shader's input
+  // signature, which this frontend-level test does not compile.
   assert.deepEqual(
-    depthPipelineEvent.inputLayout.map(({ shaderLocation, offset, format }) => ({
-      shaderLocation,
+    depthPipelineEvent.inputLayout.map(({ semanticName, offset, format }) => ({
+      semanticName,
       offset,
       format,
     })),
     [
-      { shaderLocation: 0, offset: 0, format: 'float32x4' },
-      { shaderLocation: 1, offset: 16, format: 'float32x4' },
+      { semanticName: 'POSITION', offset: 0, format: 'float32x4' },
+      { semanticName: 'COLOR', offset: 16, format: 'float32x4' },
     ],
   );
   assert.equal(depthPipelineEvent.vertexStride, 32);
@@ -555,11 +559,22 @@ test('unsupported calls and released COM pointers stay explicit', async () => {
   r.write32(queueDesc + 8, 1);
   assert.equal((await call(dev, 8, queueDesc, guid(IID.queue), out)).result, 0x80070057);
   await assert.rejects(call(dev, 28, 0), /Unsupported COM method ID3D12Device.CreateHeap/);
+  // D3D12_DESCRIPTOR_HEAP_DESC is Type, NumDescriptors, Flags, NodeMask. An
+  // empty heap, an unknown type and flags beyond SHADER_VISIBLE are rejected;
+  // a bounded shader-visible heap is accepted.
   const heapDesc = alloc(16);
+  r.write32(heapDesc, 4);
+  r.write32(heapDesc + 4, 2);
+  assert.equal((await call(dev, 14, heapDesc, guid(IID.heap), out)).result, 0x80070057);
   r.write32(heapDesc, 2);
-  r.write32(heapDesc + 4, 17);
+  r.write32(heapDesc + 4, 0);
+  assert.equal((await call(dev, 14, heapDesc, guid(IID.heap), out)).result, 0x80070057);
+  r.write32(heapDesc + 4, 257);
   assert.equal((await call(dev, 14, heapDesc, guid(IID.heap), out)).result, 0x80070057);
   r.write32(heapDesc + 4, 2);
+  r.write32(heapDesc + 8, 2);
+  assert.equal((await call(dev, 14, heapDesc, guid(IID.heap), out)).result, 0x80070057);
+  r.write32(heapDesc + 8, 0);
   const heap = await f.create(dev, 14, [heapDesc], 'heap');
   const result = alloc();
   await call(heap, 9, result);
