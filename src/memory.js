@@ -1,3 +1,5 @@
+import { GuestFault, EXCEPTION_CODE } from './seh.js';
+
 /** Bounds-checked access to the mapped PE and its guest stack/heap regions. */
 export class GuestMemory {
   constructor(memory, regions, { onCodeWrite, readOnlyViews = [] } = {}) {
@@ -54,8 +56,9 @@ export class GuestMemory {
       size < 0 ||
       !mapping.ranges.some(([start, end]) => offset >= start && offset + size <= end)
     )
-      throw Error(
+      throw new GuestFault(
         `Guest ${write ? 'write' : 'read'} violation at 0x${address.toString(16)} (${size} bytes)`,
+        { code: EXCEPTION_CODE.ACCESS_VIOLATION, address, write, size },
       );
     return address;
   }
@@ -125,8 +128,9 @@ export class GuestMemory {
       end > this.data.length ||
       (size > 0 ? cursor !== end : coverIndex < 0)
     ) {
-      throw Error(
+      throw new GuestFault(
         `Guest ${write ? 'write' : 'read'} violation at 0x${address.toString(16)} (${size} bytes)`,
+        { code: EXCEPTION_CODE.ACCESS_VIOLATION, address, write, size },
       );
     }
     if (size > 0 && coverIndex >= 0)

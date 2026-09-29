@@ -14,7 +14,9 @@ export function validateIndexSnapshot(command, vertexCapacity = null) {
     indices.length % width ||
     !Number.isInteger(indexCount) ||
     indexCount < 1 ||
-    indexCount > 65535 ||
+    // D3D12's index count is a UINT. The snapshot length already bounds it, so
+    // the only meaningful upper limit is that the referenced indices exist.
+    indexCount > 0x7fffffff ||
     !Number.isInteger(firstIndex) ||
     firstIndex < 0 ||
     (firstIndex + indexCount) * width > indices.length ||

@@ -159,6 +159,15 @@
       "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 texture upload, SRV descriptor tables and static samplers.",
       "exeSha256": "6d7bd65c37507abbd36db852d69514ca24bc838ffe2e336e87d3cb5fc0878332",
       "zipSha256": "8e421685c87ac20b8962511bf75f8420a40acf3066160e73d7b963377769cef5"
+    },
+    {
+      "name": "d3d12-terrain",
+      "description": "Native Direct3D 12 procedural terrain: a generated 129x129 height field drawn as 32,768 indexed triangles with 32-bit indices, a three-attribute vertex layout and a constant-buffer camera. Close the window to exit.",
+      "exe": "d3d12-terrain/d3d12-terrain.exe",
+      "zip": "d3d12-terrain.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Generates its mesh in guest code and uploads it through the canonical D3D12 heap path.",
+      "exeSha256": "ddc4dee325aceded4423f0d11013f13d155091f435e0ea3094363de0072cf1c1",
+      "zipSha256": "46dd2a17532a35471de26a276cd635229c7fc47b616cd1d117f81f014ef0ea21"
     }
   ]
 }

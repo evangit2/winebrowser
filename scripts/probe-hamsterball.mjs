@@ -22,6 +22,7 @@ const { values: options } = parseArgs({
     'worker-timeout': { type: 'string' },
     'max-blocks': { type: 'string' },
     'max-ms': { type: 'string' },
+    'frame-png': { type: 'string' },
   },
 });
 const EXE_SHA256 = '3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d';
@@ -70,9 +71,13 @@ const destination = path.join(
       ? 'evidence/hamsterball-startup-browser.json'
       : 'evidence/hamsterball-startup.json'),
 );
-// The pixel PNG is large and gitignored; keep the JSON metrics and hashes.
+// The pixel PNG is large and gitignored; keep the JSON metrics and hashes. A
+// caller may still ask for the frame to be written so the render can be
+// inspected directly rather than only through its digest.
 const framePngBase64 = report.framePngBase64;
 delete report.framePngBase64;
+if (options['frame-png'] && framePngBase64)
+  await writeFile(path.join(root, options['frame-png']), Buffer.from(framePngBase64, 'base64'));
 await writeFile(
   destination,
   JSON.stringify(

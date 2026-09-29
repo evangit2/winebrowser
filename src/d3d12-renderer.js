@@ -503,7 +503,7 @@ export class D3D12Renderer {
           !integer(s.right, s.left, resource.chain.width) ||
           !integer(s.top, 0, resource.chain.height) ||
           !integer(s.bottom, s.top, resource.chain.height) ||
-          (!indexed && !integer(command.vertexCount, 0, 65535)) ||
+          (!indexed && !integer(command.vertexCount, 0, 0x7fffffff)) ||
           !integer(command.instanceCount, 0, 1024) ||
           (!indexed && !integer(command.firstVertex, 0, 0x7fffffff - command.vertexCount)) ||
           !integer(command.firstInstance, 0, 0x7fffffff - command.instanceCount)

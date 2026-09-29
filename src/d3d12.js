@@ -532,7 +532,9 @@ function recordDraw(r, a, o, indexed) {
   const firstInstance = number(a(indexed ? 5 : 4));
   if (
     !count ||
-    count > 65535 ||
+    // A D3D12 draw count is a UINT; the bound vertex/index buffer snapshot is
+    // what actually limits how much can be drawn.
+    count > 0x7fffffff ||
     instances < 1 ||
     instances > 1024 ||
     first > 0x7fffffff - count ||
