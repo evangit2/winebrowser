@@ -1,0 +1,44 @@
+{
+  "date": "2026-09-29T07:56:32.519Z",
+  "harness": "in-app browser (interactive worker, host API providers)",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "cases": [
+    {
+      "demo": "d3d12-triangle",
+      "status": "renders",
+      "width": 640,
+      "height": 480,
+      "nonBackground": 307200
+    },
+    {
+      "demo": "d3d12-cube",
+      "status": "renders",
+      "width": 640,
+      "height": 480,
+      "nonBackground": 307200
+    },
+    {
+      "demo": "d3d12-parade",
+      "status": "renders",
+      "width": 640,
+      "height": 480,
+      "nonBackground": 307200
+    },
+    {
+      "demo": "d3d9-shader-cube",
+      "status": "renders",
+      "width": 640,
+      "height": 480,
+      "nonBackground": 307200
+    },
+    {
+      "demo": "humus-dynamic-branching (upstream ZIP dropped into the file input)",
+      "status": "renders",
+      "width": 798,
+      "height": 570,
+      "nonBackground": 454760,
+      "note": "The unmodified upstream archive is uploaded through the ordinary file input, not the catalog button, and the selected EXE runs after browser translation."
+    }
+  ],
+  "scope": "Each case was selected or uploaded in the running in-app browser at the recorded URL and observed to present a non-empty guest canvas. This is a render-loop observation, not an input or audio parity claim."
+}
