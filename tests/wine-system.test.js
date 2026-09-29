@@ -65,6 +65,30 @@ test('class 0 requires the exact structure length and leaves invalid outputs unt
   assert.ok(r.data.slice(output, output + 48).every((byte) => byte === 0xaa));
 });
 
+test('class 1 reports the same generic guest processor CPUID and PF bits describe', () => {
+  const r = runtime();
+  const output = r.allocate(20);
+  const length = r.allocate(4);
+  r.data.fill(0xaa, output, output + 20);
+
+  assert.equal(query(r, 1, output, 12, length), 0);
+  assert.equal(r.read32(length), 12);
+  assert.equal(r.view.getUint16(output, true), 0); // PROCESSOR_ARCHITECTURE_INTEL.
+  assert.equal(r.view.getUint16(output + 2, true), 5); // ProcessorLevel (family).
+  assert.equal(r.view.getUint16(output + 4, true), (4 << 8) | 3); // Model | stepping.
+  assert.equal(r.view.getUint16(output + 6, true), 1); // MaximumProcessors.
+  assert.equal(r.read32(output + 8), 1 << 8); // PF_RDTSC_INSTRUCTION_AVAILABLE.
+  assert.ok(r.data.slice(output + 12, output + 20).every((byte) => byte === 0xaa));
+
+  // Like class 0, class 1 requires the exact structure capacity.
+  for (const capacity of [0, 11, 13]) {
+    assert.equal(query(r, 1, output, capacity, length), 0xc0000004);
+    assert.equal(r.read32(length), 12);
+  }
+  assert.equal(query(r, 1, 0, 12, length), 0xc0000005);
+  assert.equal(query(r, 1, output, 12, 0x40000000), 0xc0000005);
+});
+
 test('class 102 returns a complete, stable UTC dynamic timezone with no DST', () => {
   const r = runtime();
   const output = r.allocate(440);

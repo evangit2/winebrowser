@@ -2,11 +2,13 @@
 // host timezone, so the guest sees stable no-DST rules in every environment.
 import { PROCESS_LAYOUT } from './process-layout.js';
 import { VirtualMemoryConstants } from './virtual-memory.js';
+import { GUEST_CPUID, GUEST_PROCESSOR_FEATURES } from './processor-features.js';
 
 const STATUS_SUCCESS = 0;
 const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 const STATUS_ACCESS_VIOLATION = 0xc0000005;
 const BASIC_INFORMATION_SIZE = 44; // PE32 SYSTEM_BASIC_INFORMATION.
+const PROCESSOR_INFORMATION_SIZE = 12; // PE32 SYSTEM_CPU_INFORMATION.
 const TIME_ZONE_SIZE = 172; // PE32 RTL_TIME_ZONE_INFORMATION.
 const DYNAMIC_TIME_ZONE_SIZE = 432; // PE32 RTL_DYNAMIC_TIME_ZONE_INFORMATION.
 
@@ -45,6 +47,24 @@ function basicInformation(runtime) {
   return bytes;
 }
 
+// SYSTEM_CPU_INFORMATION (class 1): the same stable, intentionally generic
+// processor the CPUID and PF_* paths describe. ProcessorFeatureBits is a
+// bitmask over Wine's PF_* indices, so index 8 (RDTSC) sets bit 8.
+function processorInformation(runtime) {
+  const processors = runtime.read32(PROCESS_LAYOUT.peb + 0x64);
+  if (processors !== 1) throw Error('Unsupported Wine guest processor count');
+  const bytes = new Uint8Array(PROCESSOR_INFORMATION_SIZE);
+  const view = new DataView(bytes.buffer);
+  view.setUint16(0, 0, true); // PROCESSOR_ARCHITECTURE_INTEL.
+  view.setUint16(2, GUEST_CPUID.family, true); // ProcessorLevel.
+  view.setUint16(4, (GUEST_CPUID.model << 8) | GUEST_CPUID.stepping, true);
+  view.setUint16(6, 1, true); // MaximumProcessors.
+  let featureBits = 0;
+  for (const index of GUEST_PROCESSOR_FEATURES.advertised) featureBits |= 1 << index;
+  view.setUint32(8, featureBits >>> 0, true);
+  return bytes;
+}
+
 export const systemNtServices = {
   NtQuerySystemInformation: {
     argc: 4,
@@ -63,15 +83,17 @@ export const systemNtServices = {
         }
         return 0xc0000003; // STATUS_INVALID_INFO_CLASS, never fabricated success.
       }
-      if (informationClass !== 0 && informationClass !== 44 && informationClass !== 102)
+      if (![0, 1, 44, 102].includes(informationClass))
         throw Error(`Unsupported Wine system information class ${informationClass}`);
       const value =
         informationClass === 0
           ? basicInformation(runtime)
-          : utcTimeZone.subarray(
-              0,
-              informationClass === 44 ? TIME_ZONE_SIZE : DYNAMIC_TIME_ZONE_SIZE,
-            );
+          : informationClass === 1
+            ? processorInformation(runtime)
+            : utcTimeZone.subarray(
+                0,
+                informationClass === 44 ? TIME_ZONE_SIZE : DYNAMIC_TIME_ZONE_SIZE,
+              );
       const size = value.length;
       const output = argument(1) >>> 0;
       const capacity = argument(2) >>> 0;
@@ -81,7 +103,7 @@ export const systemNtServices = {
       } catch {
         return STATUS_ACCESS_VIOLATION;
       }
-      if (informationClass === 0 ? capacity !== size : capacity < size) {
+      if ([0, 1].includes(informationClass) ? capacity !== size : capacity < size) {
         if (returnLength) runtime.write32(returnLength, size);
         return STATUS_INFO_LENGTH_MISMATCH;
       }
