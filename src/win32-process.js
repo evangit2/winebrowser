@@ -163,6 +163,10 @@ function wideToMulti(r, a) {
   r.data.set(bytes, out);
   return ok(bytes.length, 8);
 }
+// CP_ACP (0), the two single-byte code pages the runtime models, and UTF-8
+// (65001). A code page outside that set fails with ERROR_INVALID_PARAMETER
+// rather than silently decoding as Latin-1.
+const SINGLE_BYTE_CODE_PAGES = new Set([0, 437, 850, 1252]);
 function multiToWide(r, a) {
   const cp = a(0),
     flags = a(1),
@@ -170,8 +174,15 @@ function multiToWide(r, a) {
     count = a(3) | 0;
   const output = a(4),
     capacity = a(5) | 0;
-  if (![0, 1252, 65001].includes(cp) || (flags !== 0 && !(cp === 65001 && flags === 8)))
-    throw Error('Unsupported MultiByteToWideChar codepage/flags');
+  // MB_PRECOMPOSED (1) and MB_COMPOSITE (2) describe normalization, which
+  // does not change the one-to-one mapping of a single-byte code page. UTF-8
+  // additionally accepts MB_ERR_INVALID_CHARS (8), which the TextDecoder
+  // fatal option already implements.
+  const allowedFlags = cp === 65001 ? 8 : 3;
+  if ((!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== 65001) || flags & ~allowedFlags) {
+    if (!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== 65001) return fail(r, 87, 6);
+    throw Error(`Unsupported MultiByteToWideChar cp=${cp} flags=${flags}`);
+  }
   if (!input || count === 0 || count < -1 || capacity < 0 || (capacity && !output))
     return fail(r, 87, 6);
   let length = count;

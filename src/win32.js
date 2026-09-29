@@ -187,19 +187,48 @@ async function messageBox(runtime, argument, wide = false) {
   }
 }
 
+// CreateFileA(FileName, DesiredAccess, ShareMode, SecurityAttributes,
+//             CreationDisposition, FlagsAndAttributes, TemplateFile).
+// Generic read/write (0x80000000/0x40000000) cover the ordinary cases; the
+// file-specific rights (FILE_READ_DATA 0x1, FILE_WRITE_DATA 0x2, ...) are
+// translated to them because the virtual filesystem has no security model.
+const FILE_GENERIC_READ = 0x80000000,
+  FILE_GENERIC_WRITE = 0x40000000,
+  ACCESS_MASK_READ = 0x0001 | 0x0008 | 0x0020 | 0x0080,
+  ACCESS_MASK_WRITE = 0x0002 | 0x0004 | 0x0010 | 0x0100,
+  CREATE_DISPOSITION = new Set([1, 2, 3, 4, 5]);
 function createFile(runtime, argument, wide = false) {
-  const access = argument(1);
+  const requested = argument(1);
+  const share = argument(2);
   const mode = argument(4);
-  if (
-    argument(2) > 7 ||
-    argument(3) ||
-    argument(5) & ~0x80 ||
-    argument(6) ||
-    ![0x80000000, 0x40000000, 0xc0000000].includes(access) ||
-    ![2, 3].includes(mode)
-  ) {
-    throw Error('Unsupported CreateFileA flags/access/disposition');
+  const flags = argument(5);
+  // SECURITY_ATTRIBUTES only describes handle inheritance; the runtime tracks
+  // that per handle, so a supplied structure is validated but not stored here.
+  if (argument(3)) {
+    try {
+      runtime.check(argument(3), 12);
+    } catch {
+      throw Error('CreateFile SECURITY_ATTRIBUTES is outside guest memory');
+    }
   }
+  if (
+    share > 7 ||
+    flags & ~(0x80 | 0x40000000 | 0x8000000 | 0x80000000 | 0x01000000) ||
+    argument(6) ||
+    !CREATE_DISPOSITION.has(mode)
+  )
+    throw Error(
+      'Unsupported CreateFile flags/share/disposition: ' +
+        [argument(2), mode, flags, argument(6)].join(','),
+    );
+  // FILE_FLAG_OVERLAPPED is not implemented; the I/O entry points reject any
+  // OVERLAPPED structure, so accepting the flag here would be a silent lie.
+  if (flags & 0x40000000) throw Error('Overlapped CreateFile is unsupported');
+  let access = 0;
+  if (requested & (FILE_GENERIC_READ | ACCESS_MASK_READ)) access |= FILE_GENERIC_READ;
+  if (requested & (FILE_GENERIC_WRITE | ACCESS_MASK_WRITE)) access |= FILE_GENERIC_WRITE;
+  if (!access && requested) throw Error('Unsupported CreateFile access mask');
+  if (!access) access = FILE_GENERIC_READ;
 
   let path;
   try {
@@ -217,33 +246,46 @@ function createFile(runtime, argument, wide = false) {
     runtime.lastError = metadata.directory ? 5 : 3;
     return success(0xffffffff, 7);
   }
-  if (mode === 3 && !runtime.files.has(path)) {
+  const exists = runtime.files.has(path);
+  // CREATE_NEW (1) fails when the file exists; OPEN_EXISTING (3) and
+  // TRUNCATE_EXISTING (5) fail when it does not.
+  if (mode === 1 && exists) {
+    runtime.lastError = 80; // ERROR_FILE_EXISTS
+    return success(0xffffffff, 7);
+  }
+  if ((mode === 3 || mode === 5) && !exists) {
     runtime.lastError = 2;
     return success(0xffffffff, 7);
   }
-  if (fileShareConflict(runtime, path, access, argument(2))) {
+  if (fileShareConflict(runtime, path, access, share)) {
     runtime.lastError = 32;
     return success(0xffffffff, 7);
   }
   if (runtime.handles.size >= 4096) throw Error('Open handle limit exceeded');
   if (!runtime.files.has(path) && runtime.files.size >= 4096)
     throw Error('Virtual file count limit exceeded');
-  if (mode === 2) {
-    if (!(access & 0x40000000)) {
+  // CREATE_ALWAYS (2) and OPEN_ALWAYS (4) create a missing file;
+  // TRUNCATE_EXISTING (5) empties one. All three need write access.
+  if (mode === 2 || mode === 4 || mode === 5) {
+    const mustCreate = mode === 2 || (mode === 4 && !exists);
+    const mustTruncate = mode === 2 || mode === 5;
+    if ((mustCreate || mustTruncate) && !(access & 0x40000000)) {
       runtime.lastError = 5;
       return success(0xffffffff, 7);
     }
-    if (runtime.files.has(path) && runtime.fileSections?.canResize(path, 0) === false) {
+    if (mustTruncate && exists && runtime.fileSections?.canResize(path, 0) === false) {
       runtime.lastError = 1224; // ERROR_USER_MAPPED_FILE
       return success(0xffffffff, 7);
     }
-    touchFile(runtime, path, { created: !runtime.files.has(path), write: true });
-    runtime.files.set(path, new Uint8Array());
-    runtime.dirty.add(path);
+    if (mustCreate) touchFile(runtime, path, { created: true, write: true });
+    if (mustTruncate) {
+      runtime.files.set(path, new Uint8Array());
+      runtime.dirty.add(path);
+    }
   }
 
   const handle = runtime.nextHandle++;
-  runtime.handles.set(handle, { path, position: 0, access, share: argument(2) });
+  runtime.handles.set(handle, { path, position: 0, access, share });
   return success(handle, 7);
 }
 

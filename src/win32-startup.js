@@ -84,9 +84,9 @@ function globalFree(r, a) {
 // switch at explicit yield points, so a critical section that never blocks is
 // still correct for single-threaded and cooperatively scheduled guests; the
 // storage is a real 24-byte RTL_CRITICAL_SECTION with an owned debug field.
-function criticalSection(r, a, legacy) {
+function criticalSection(r, a, argc) {
   const pointer = a(0);
-  if (!pointer) return legacy ? fail(r, 87, 1) : undefined;
+  if (!pointer) return fail(r, 87, argc);
   r.check(pointer, 24, true);
   r.criticalSections ??= new Set();
   r.criticalSections.add(pointer);
@@ -97,18 +97,21 @@ function criticalSection(r, a, legacy) {
   r.write32(pointer + 12, 0);
   r.write32(pointer + 16, 0);
   r.write32(pointer + 20, 0);
-  return legacy ? ok(0, 1) : undefined;
+  return ok(0, argc);
 }
+// Enter/Leave/Delete return void; the runtime still needs the stdcall argument
+// count so the caller's stack is restored.
 function criticalSectionCall(r, a, kind) {
   const pointer = a(0);
   if (pointer && r.criticalSections?.has(pointer)) {
     // Track recursion so a mismatched Leave is observable rather than silent.
     const count = (r.read32(pointer + 8) | 0) + (kind === 'leave' ? -1 : 1);
-    if (kind === 'leave' && count < 0) return undefined;
-    r.write32(pointer + 8, count);
-    r.write32(pointer + 4, count ? 0 : 0xffffffff);
+    if (kind !== 'leave' || count >= 0) {
+      r.write32(pointer + 8, count);
+      r.write32(pointer + 4, count ? 0 : 0xffffffff);
+    }
   } else if (kind !== 'leave' && pointer) r.check(pointer, 24, true);
-  return undefined;
+  return ok(0, 1);
 }
 
 // QueryPerformanceCounter reads the runtime's own monotonic guest clock so the
@@ -202,8 +205,10 @@ function getOEMCP() {
   return ok(437, 0);
 }
 function getCPInfo(r, a) {
-  const pointer = a(0);
-  if (a(0) !== 0 && a(0) !== 1252 && a(0) !== 437) return fail(r, 87, 2);
+  // BOOL GetCPInfo(UINT CodePage, LPCPINFO lpCPInfo)
+  const codePage = a(0),
+    pointer = a(1);
+  if (codePage !== 0 && codePage !== 1252 && codePage !== 437) return fail(r, 87, 2);
   if (!pointer) return fail(r, 87, 2);
   r.check(pointer, 20, true);
   r.data.fill(0, pointer, pointer + 20);
@@ -387,11 +392,11 @@ function setEndOfFile(r, a) {
   return ok(1, 1);
 }
 
-function terminateProcess(r, a, exitKind) {
+function terminateProcess(r, a) {
   const code = a(1);
   r.exitCode = code;
   r.threads.terminateProcess(code);
-  return exitKind ? { result: 0, argc: 2 } : { result: 0, argc: 2 };
+  return ok(0, 2);
 }
 function raiseException(r, a) {
   // Structured exception handling is not implemented, so a raised exception is
@@ -473,20 +478,22 @@ export const startupApis = {
   'kernel32.dll!GlobalFree': globalFree,
   'kernel32.dll!GlobalLock': (r, a) => (r.customHeaps?.has(a(0)) ? ok(0, 1) : ok(a(0), 1)),
   'kernel32.dll!GlobalUnlock': (r, a) => ok(1, 1),
-  'kernel32.dll!InitializeCriticalSection': (r, a) => criticalSection(r, a, false),
+  'kernel32.dll!InitializeCriticalSection': (r, a) => criticalSection(r, a, 1),
   'kernel32.dll!InitializeCriticalSectionAndSpinCount': (r, a) => {
-    r.write32(a(0) + 20, a(1));
-    return criticalSection(r, a, false) ?? ok(1, 2);
+    const initialized = criticalSection(r, a, 2);
+    if (initialized.result) r.write32(a(0) + 20, a(1));
+    return ok(initialized.result, 2);
   },
   'kernel32.dll!InitializeCriticalSectionEx': (r, a) => {
-    r.write32(a(0) + 20, a(1));
-    return criticalSection(r, a, false) ?? ok(1, 3);
+    const initialized = criticalSection(r, a, 3);
+    if (initialized.result) r.write32(a(0) + 20, a(1));
+    return ok(initialized.result, 3);
   },
   'kernel32.dll!EnterCriticalSection': (r, a) => criticalSectionCall(r, a, 'enter'),
   'kernel32.dll!LeaveCriticalSection': (r, a) => criticalSectionCall(r, a, 'leave'),
   'kernel32.dll!DeleteCriticalSection': (r, a) => {
     if (a(0)) r.criticalSections?.delete(a(0));
-    return undefined;
+    return ok(0, 1);
   },
   'kernel32.dll!TryEnterCriticalSection': (r, a) => ok(1, 1),
   'kernel32.dll!QueryPerformanceCounter': queryPerformanceCounter,
@@ -523,7 +530,7 @@ export const startupApis = {
   'kernel32.dll!GetFileType': getFileType,
   'kernel32.dll!FlushFileBuffers': flushFileBuffers,
   'kernel32.dll!SetEndOfFile': setEndOfFile,
-  'kernel32.dll!TerminateProcess': (r, a) => terminateProcess(r, a, false),
+  'kernel32.dll!TerminateProcess': terminateProcess,
   'kernel32.dll!RaiseException': raiseException,
   'kernel32.dll!GetEnvironmentStrings': (r) => environmentStrings(r, null, false),
   'kernel32.dll!GetEnvironmentStringsW': (r) => environmentStrings(r, null, true),
@@ -690,9 +697,10 @@ function setUnhandledExceptionFilter(r, a) {
   return ok(previous, 1);
 }
 function unhandledExceptionFilter(r, a) {
-  const code = a(0);
-  r.lastError = 0;
-  return ok(1, 1) && ({ result: 1, argc: 1, code });
+  // EXCEPTION_EXECUTE_HANDLER (1): the process should terminate. The runtime
+  // has no SEH, so a real unhandled exception stops the run with its code.
+  r.exitCode = a(0) >>> 0;
+  return ok(1, 1);
 }
 
 export const startupApis2 = {
