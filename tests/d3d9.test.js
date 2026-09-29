@@ -893,7 +893,7 @@ for (const version of [8, 9]) {
     assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 21)).result, 0);
     assert.equal((await call(factory, 10, 0, 1, 23, 0x200, 3, 23)).result, 0);
     assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 21)).result, 0x8876086a);
-    assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 0x31545844)).result, 0x8876086a);
+    assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 0x31545844)).result, 0);
     const expected = runtime.data.slice(p, p + size),
       device = await create();
     runtime.data.fill(0xee, p, p + size);
@@ -1339,7 +1339,7 @@ for (const version of [8, 9])
       [0, 2049],
       [2, 3],
       [3, 1],
-      [4, 0x31545844],
+      [4, 0x32545844],
       [5, 4],
       ...(version === 9 ? [[7, output]] : []),
     ]) {

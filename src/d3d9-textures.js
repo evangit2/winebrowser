@@ -1,4 +1,5 @@
 import { readGuid } from './com.js';
+import { compressedFormat, decodeCompressed } from './d3d-compressed.js';
 import { releaseComReference } from './d3d9-programmable.js';
 import {
   defaultSampler,
@@ -11,7 +12,23 @@ const BASE_METHODS =
   'QueryInterface AddRef Release GetDevice SetPrivateData GetPrivateData FreePrivateData SetPriority GetPriority PreLoad GetType SetLOD GetLOD GetLevelCount';
 const TAIL_METHODS = 'GetLevelDesc GetSurfaceLevel LockRect UnlockRect AddDirtyRect';
 export const textureBytesPerPixel = (format) =>
-  ({ 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1 })[format];
+  compressedFormat(format)?.blockBytes ??
+  ({ 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1, 50: 1, 51: 2, 52: 1 })[format];
+
+// Row length and row count for one mip level. Compressed formats store 4x4
+// texel blocks, so their rows are block rows and a level holds
+// ceil(width/4) * ceil(height/4) blocks. Uncompressed levels use the D3D
+// DWORD-aligned pitch and one row per pixel row.
+export function levelGeometry(format, bpp, width, height) {
+  const compressed = compressedFormat(format);
+  if (compressed)
+    return {
+      pitch: Math.ceil(width / 4) * compressed.blockBytes,
+      rows: Math.ceil(height / 4),
+      blockBytes: compressed.blockBytes,
+    };
+  return { pitch: (width * bpp + 3) & ~3, rows: height, blockBytes: 0 };
+}
 const SURFACE_METHODS_8 =
   'QueryInterface AddRef Release GetDevice SetPrivateData GetPrivateData FreePrivateData GetContainer GetDesc LockRect UnlockRect'.split(
     ' ',
@@ -97,7 +114,7 @@ function surfaceMethods(version, texture) {
         r.write32(a(1), level.pitch);
         r.write32(
           a(1) + 4,
-          state.base + level.offset + region.top * level.pitch + region.left * state.bpp,
+          state.base + level.offset + levelOffset(level, region.left, region.top, state.bpp),
         );
         level.locked = { flags };
         return 0;
@@ -197,7 +214,7 @@ function deviceSurfaceMethods(version) {
         if (!base) return INVALID;
         r.check(a(1), 8, true);
         r.write32(a(1), level.pitch);
-        r.write32(a(1) + 4, base + region.top * level.pitch + region.left * bpp);
+        r.write32(a(1) + 4, base + levelOffset(level, region.left, region.top, bpp));
         level.locked = { flags };
         return 0;
       },
@@ -220,8 +237,8 @@ export function createDeviceSurface(
 ) {
   const version = device.state.version;
   if (device.refs >= 0x7fffffff) throw Error('D3D device reference limit exceeded');
-  const pitch = (width * bpp + 3) & ~3;
-  const bytes = pitch * height;
+  const { pitch, rows, blockBytes } = levelGeometry(format, bpp, width, height);
+  const bytes = pitch * rows;
   // Storage is allocated lazily: a device creates an implicit backbuffer and
   // depth surface at startup, but many programs never read their pixels. This
   // keeps creation cheap and avoids reserving megabytes for untouched targets.
@@ -239,7 +256,7 @@ export function createDeviceSurface(
       base: 0,
       bpp,
       bytes,
-      level: { width, height, pitch, offset: 0, locked: null },
+      level: { width, height, pitch, rows, blockBytes, offset: 0, locked: null },
       internalRefs: 0,
       freed: false,
     },
@@ -341,14 +358,27 @@ function rect(r, pointer, level) {
   if (!pointer) return { left: 0, top: 0, right: level.width, bottom: level.height };
   r.check(pointer, 16);
   const [left, top, right, bottom] = [0, 4, 8, 12].map((i) => r.read32(pointer + i) | 0);
-  return left >= 0 &&
-    top >= 0 &&
-    right > left &&
-    bottom > top &&
-    right <= level.width &&
-    bottom <= level.height
-    ? { left, top, right, bottom }
-    : null;
+  if (
+    !(
+      left >= 0 &&
+      top >= 0 &&
+      right > left &&
+      bottom > top &&
+      right <= level.width &&
+      bottom <= level.height
+    )
+  )
+    return null;
+  // A block-compressed level is addressed in 4x4 blocks, and D3D rejects a
+  // lock rectangle that would split one.
+  if (level.blockBytes && (left % 4 || top % 4 || right % 4 || bottom % 4)) return null;
+  return { left, top, right, bottom };
+}
+// Byte offset of the texel (or block) at (left, top) inside one level.
+function levelOffset(level, left, top, bpp) {
+  return level.blockBytes
+    ? (top >> 2) * level.pitch + (left >> 2) * level.blockBytes
+    : top * level.pitch + left * bpp;
 }
 function invalidate(o) {
   o.state.revision++;
@@ -383,9 +413,17 @@ export function createTextureMethod(version) {
       const levels = Array.from({ length: count }, (_, i) => {
         const w = Math.max(1, width >> i),
           h = Math.max(1, height >> i),
-          pitch = (w * bpp + 3) & ~3;
-        const level = { width: w, height: h, pitch, offset: bytes, locked: null };
-        bytes += pitch * h;
+          { pitch, rows, blockBytes } = levelGeometry(format, bpp, w, h);
+        const level = {
+          width: w,
+          height: h,
+          pitch,
+          rows,
+          blockBytes,
+          offset: bytes,
+          locked: null,
+        };
+        bytes += pitch * rows;
         return level;
       });
       if ((r.d3dTextureBytes ?? 0) + bytes > MAX_BYTES) return 0x8876017c;
@@ -439,7 +477,7 @@ export function createTextureMethod(version) {
                       1,
                       usage,
                       pool,
-                      level.pitch * level.height,
+                      level.pitch * level.rows,
                       0,
                       level.width,
                       level.height,
@@ -482,10 +520,7 @@ export function createTextureMethod(version) {
               if (!region) return INVALID;
               r.check(a(2), 8, true);
               r.write32(a(2), level.pitch);
-              r.write32(
-                a(2) + 4,
-                base + level.offset + region.top * level.pitch + region.left * bpp,
-              );
+              r.write32(a(2) + 4, base + level.offset + levelOffset(level, region.left, region.top, bpp));
               level.locked = { flags };
               return 0;
             },
@@ -594,12 +629,14 @@ export function surfaceImage(r, pointer, device) {
         level: object.state.level,
         base: texture.state.base,
         bpp: texture.state.bpp,
+        format: texture.state.format,
         invalidate: () => invalidate(texture),
       }
     : {
         level: object.state.level,
         base: surfaceStorage(r, object),
         bpp: object.state.bpp,
+        format: object.state.format,
         invalidate: () => {},
       };
 }
@@ -620,18 +657,25 @@ export function copyRects(
     dstImage = surfaceImage(r, dstPointer, device);
   if (!srcImage || !dstImage) return INVALID;
   if (src.locked || dst.locked) return INVALID;
-  if (srcImage.bpp !== dstImage.bpp) return INVALID;
+  if (srcImage.format !== dstImage.format) return INVALID;
+  const compressed = compressedFormat(srcImage.format);
   const bpp = srcImage.bpp;
-  const source = new DataView(r.data.buffer, r.data.byteOffset, r.data.byteLength);
   const first = srcImage.base + src.offset,
     second = dstImage.base + dst.offset;
+  // Compressed levels move whole 4x4 blocks, so both the rectangle and the
+  // per-row step are expressed in blocks rather than pixels.
+  const unit = compressed ? 4 : 1;
+  const bytesPerUnit = compressed ? compressed.blockBytes : bpp;
   const copy = (sx, sy, dx, dy, width, height) => {
-    const rowBytes = width * bpp;
-    for (let row = 0; row < height; row++) {
-      const from = first + (sy + row) * src.pitch + sx * bpp;
-      const to = second + (dy + row) * dst.pitch + dx * bpp;
+    if (compressed && (sx % 4 || sy % 4 || dx % 4 || dy % 4 || width % 4 || height % 4))
+      return false;
+    const rowBytes = (width / unit) * bytesPerUnit;
+    for (let row = 0; row < height; row += unit) {
+      const from = first + levelOffset(src, sx, sy + row, bpp);
+      const to = second + levelOffset(dst, dx, dy + row, bpp);
       r.data.copyWithin(to, from, from + rowBytes);
     }
+    return true;
   };
   if (!srcRectsPointer) {
     if (dstPointsPointer) {
@@ -639,8 +683,9 @@ export function copyRects(
         dy = r.read32(dstPointsPointer + 4) | 0;
       if (dx < 0 || dy < 0 || dx + src.width > dst.width || dy + src.height > dst.height)
         return INVALID;
-      copy(0, 0, dx, dy, src.width, src.height);
-    } else copy(0, 0, 0, 0, Math.min(src.width, dst.width), Math.min(src.height, dst.height));
+      if (!copy(0, 0, dx, dy, src.width, src.height)) return INVALID;
+    } else if (!copy(0, 0, 0, 0, Math.min(src.width, dst.width), Math.min(src.height, dst.height)))
+      return INVALID;
   } else {
     r.check(srcRectsPointer, rectCount * 16);
     if (dstPointsPointer) r.check(dstPointsPointer, rectCount * 8);
@@ -661,7 +706,7 @@ export function copyRects(
       const dx = dstPointsPointer ? r.read32(dstPointsPointer + i * 8) | 0 : left;
       const dy = dstPointsPointer ? r.read32(dstPointsPointer + i * 8 + 4) | 0 : top;
       if (dx < 0 || dy < 0 || dx + width > dst.width || dy + height > dst.height) return INVALID;
-      copy(left, top, dx, dy, width, height);
+      if (!copy(left, top, dx, dy, width, height)) return INVALID;
     }
   }
   dstImage.invalidate();
@@ -675,6 +720,10 @@ export function textureSnapshot(r, object) {
   if (!s.snapshot) {
     const levels = s.levels.map((l) => {
       const rgba = new Uint8Array(l.width * l.height * 4);
+      if (l.blockBytes) {
+        decodeCompressed(r.data, s.base + l.offset, s.format, l.width, l.height, rgba);
+        return { width: l.width, height: l.height, rgba };
+      }
       for (let y = 0; y < l.height; y++)
         for (let x = 0; x < l.width; x++) {
           const p = s.base + l.offset + y * l.pitch + x * s.bpp,
@@ -700,6 +749,21 @@ export function textureSnapshot(r, object) {
             rgba[q + 1] = ((value >>> 4) & 15) * 17;
             rgba[q + 2] = (value & 15) * 17;
             rgba[q + 3] = (value >>> 12) * 17;
+          } else if (s.format === 50) {
+            // L8 carries one luminance byte and samples as opaque grey.
+            rgba[q] = rgba[q + 1] = rgba[q + 2] = r.data[p];
+            rgba[q + 3] = 255;
+          } else if (s.format === 51) {
+            // A8L8: luminance in the low byte, alpha in the high byte.
+            const l = r.data[p];
+            rgba[q] = rgba[q + 1] = rgba[q + 2] = l;
+            rgba[q + 3] = r.data[p + 1];
+          } else if (s.format === 52) {
+            // A4L4: alpha in the high nibble, luminance in the low nibble.
+            const byte = r.data[p],
+              l = (byte & 15) * 17;
+            rgba[q] = rgba[q + 1] = rgba[q + 2] = l;
+            rgba[q + 3] = ((byte >>> 4) & 15) * 17;
           } else {
             rgba[q] = rgba[q + 1] = rgba[q + 2] = 255;
             rgba[q + 3] = r.data[p];

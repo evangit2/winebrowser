@@ -299,6 +299,12 @@ export async function probeWineTarget(
           'IDirect3D9.CheckDepthStencilMatch': 6,
           'IDirect3DDevice8.DrawPrimitiveUP': 5,
           'IDirect3D9.DrawPrimitiveUP': 5,
+          'IDirect3DDevice9.CreateTexture': 9,
+          'IDirect3DDevice8.CreateTexture': 8,
+          'IDirect3DDevice9.CreateVolumeTexture': 9,
+          'IDirect3DDevice9.CreateCubeTexture': 8,
+          'IDirect3DDevice9.CreateVertexBuffer': 6,
+          'IDirect3DDevice9.CreateIndexBuffer': 6,
           'IDirect3DVertexBuffer8.Lock': 5,
           'IDirect3DVertexBuffer9.Lock': 5,
           'IDirect3DIndexBuffer8.Lock': 5,
@@ -356,6 +362,22 @@ export async function probeWineTarget(
         } catch (error) {
           // Never let tracing change the guest's failure.
         }
+      }
+      if (/(CreateTexture|CreateVolumeTexture|CreateCubeTexture)$/.test(name)) {
+        const d3d9 = name.startsWith('IDirect3DDevice9.');
+        record.texture = {
+          width: args[1],
+          height: args[2],
+          levels: args[3],
+          usage: args[4],
+          format: args[5],
+          pool: args[6],
+          outPointer: hex(args[7]),
+          shared: d3d9 ? args[8] : undefined,
+        };
+        try {
+          record.texture.bytesAtOut = Array.from(runtime.data.slice(args[7], args[7] + 4));
+        } catch {}
       }
       if (/DrawPrimitiveUP$/.test(name) && args.length >= 5) {
         try {

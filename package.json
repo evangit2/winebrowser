@@ -22,6 +22,7 @@
     "build:dinput8": "sh scripts/build-dinput8-fixture.sh",
     "build:drivers": "sh scripts/build-driver-fixtures.sh",
     "build:dsound": "sh scripts/build-dsound-fixture.sh",
+    "build:dxt-vectors": "python3 scripts/generate-dxt-vectors.py",
     "build:events": "sh scripts/build-events-fixture.sh",
     "build:examples": "python3 scripts/package-examples.py",
     "build:hlsl": "sh scripts/build-hlsl-fixture.sh",
