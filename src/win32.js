@@ -22,14 +22,29 @@ import { fileMetadataApis } from './win32-file-metadata.js';
 import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
-import { startupApis, startupApis2, startupApis3, startupApis4 } from './win32-startup.js';
+import { startupApis, startupApis2, startupApis3, startupApis4, startupApis5 } from './win32-startup.js';
 import { systemApis, systemApis2, systemApis3, systemApis4 } from './win32-system.js';
 import { ws2Apis, WS2_NAMES } from './ws2_32.js';
 import { msvcrtApis, msacmApis } from './msvcrt.js';
+import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
 // Runtime owns the common stdcall thunk mechanics; handlers here implement API behavior.
+// The versioned Visual C++ runtimes are binary-compatible supersets of msvcrt
+// for the C entry points, so an application built against msvcr70..msvcr120
+// resolves through the same implementation. Each alias is registered explicitly
+// against the msvcrt handlers rather than rewriting the guest's import table.
+export const CRT_ALIAS_DLLS = [
+  'msvcr70.dll',
+  'msvcr71.dll',
+  'msvcr80.dll',
+  'msvcr90.dll',
+  'msvcr100.dll',
+  'msvcr110.dll',
+  'msvcr120.dll',
+];
+
 export const API_NAMES = {
   'kernel32.dll': [
     'ExitProcess',
@@ -69,6 +84,7 @@ for (const key of [
   ...Object.keys(startupApis2),
   ...Object.keys(startupApis3),
   ...Object.keys(startupApis4),
+  ...Object.keys(startupApis5),
   ...Object.keys(systemApis),
   ...Object.keys(systemApis2),
   ...Object.keys(systemApis3),
@@ -89,7 +105,31 @@ for (const key of [
   if (!API_NAMES[dll].includes(name)) API_NAMES[dll].push(name);
 }
 
+
 export const importKey = (dll, name) => `${dll.toLowerCase()}!${name}`;
+
+// The versioned CRT names belong to the module graph's DLL table, which is read
+// before any Runtime exists, so publish the full union here at module load. The
+// handler map is filled by createWin32ApiProvider from the same name list.
+for (const alias of CRT_ALIAS_DLLS) {
+  if (API_NAMES[alias]?.length) continue;
+  API_NAMES[alias] = [...new Set([...API_NAMES['msvcrt.dll'], ...VERSIONED_CRT_EXPORT_NAMES])];
+}
+
+// The alias name lists are populated as soon as the provider map exists, which
+// happens below at module load: the module graph consults API_NAMES before any
+// runtime is constructed, so a lazily registered alias would be reported as a
+// missing DLL.
+export function registerCrtAliases(provider, names) {
+  for (const alias of CRT_ALIAS_DLLS) {
+    for (const symbol of names[alias] ?? []) {
+      const key = `${alias}!${symbol}`;
+      if (provider.has(key)) continue;
+      const handler = provider.get(`msvcrt.dll!${symbol}`);
+      if (handler) provider.set(key, handler);
+    }
+  }
+}
 
 function success(result = 0, argc = 0) {
   return { result, argc };
@@ -359,7 +399,7 @@ function closeHandle(runtime, argument) {
 
 /** Provide the explicitly supported Win32 imports for a single Runtime. */
 export function createWin32ApiProvider() {
-  return new Map([
+  const provider = new Map([
     ...Object.entries(processApis),
     ...Object.entries(fileMetadataApis),
     ...Object.entries(fileSectionApis),
@@ -386,6 +426,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(startupApis2),
     ...Object.entries(startupApis3),
     ...Object.entries(startupApis4),
+    ...Object.entries(startupApis5),
     ...Object.entries(systemApis),
     ...Object.entries(systemApis2),
     ...Object.entries(systemApis3),
@@ -414,4 +455,6 @@ export function createWin32ApiProvider() {
     ['user32.dll!MessageBoxA', messageBox],
     ['user32.dll!MessageBoxW', (r, a) => messageBox(r, a, true)],
   ]);
+  registerCrtAliases(provider, API_NAMES);
+  return provider;
 }

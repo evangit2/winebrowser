@@ -9,6 +9,7 @@ import {
   MSVCRT_CDECL_EXPORTS,
   MSVCRT_DATA_EXPORTS,
 } from './msvcrt-exports.js';
+import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 // x86 argument passing: a double occupies two DWORDs on the stack, low half
@@ -680,6 +681,61 @@ const NAMES = {
     r.data.set(sorted, base);
     return ok(0, 4);
   },
+  // MSVC's internal pointer encoding: a pointer is stored offset by a per-
+  // module cookie to make naive overwrites fail. Without a cookie the identity
+  // transform is the documented behaviour for a NULL cookie.
+  _encode_pointer: (r, a) => {
+    const pointer = a(0) >>> 0;
+    if (!pointer) return ok(0, 1);
+    const cookie = r.crtPointerCookie ?? 0;
+    if (!cookie) return ok(pointer, 1);
+    return ok((((pointer ^ cookie) >>> 8) + (cookie & 0xff)) >>> 0, 1);
+  },
+  _decode_pointer: (r, a) => {
+    const encoded = a(0) >>> 0;
+    if (!encoded) return ok(0, 1);
+    const cookie = r.crtPointerCookie ?? 0;
+    if (!cookie) return ok(encoded, 1);
+    return ok((((((encoded - (cookie & 0xff)) >>> 0) ^ cookie)) >>> 0), 1);
+  },
+  _invoke_watson: (r, a) => {
+    // The CRT's fatal handler. Reporting the reason is more useful than
+    // exiting silently, and it still stops the process.
+    const expression = a(0) ? r.string(a(0)) : '';
+    throw Error(`CRT fatal error: ${expression || 'invalid parameter'}`);
+  },
+  _crt_debugger_hook: () => ok(0, 1),
+  _configthreadlocale: (r, a) => {
+    const previous = r.crtThreadLocale ?? 0;
+    if (a(0)) r.crtThreadLocale = a(0) | 0;
+    return ok(previous, 1);
+  },
+  _setmbcp: (r, a) => {
+    const previous = r.crtMbCodePage ?? 0;
+    if (a(0)) r.crtMbCodePage = a(0) | 0;
+    return ok(previous, 1);
+  },
+  _getmbcp: (r) => ok(r.crtMbCodePage ?? 0, 0),
+  // The C++ runtime's operator new/delete, keyed by their mangled names.
+  '??2@YAPAXI@Z': (r, a) => {
+    const size = a(0) >>> 0;
+    if (!size) return ok(r.allocate(16), 1);
+    if (size > 16 * 1024 * 1024) throw Error('operator new size limit exceeded');
+    return ok(r.allocate(size), 1);
+  },
+  '??3@YAXPAX@Z': (r, a) => {
+    if (a(0)) r.free(a(0));
+    return ok(0, 1);
+  },
+  '_set_new_handler': (r, a) => {
+    const previous = r.crtNewHandler ?? 0;
+    r.crtNewHandler = a(0) >>> 0;
+    return ok(previous, 1);
+  },
+  // A C++ destructor Wine stubs in its own spec; the runtime has no C++ runtime
+  // object model, so this is the documented no-op.
+  '?_type_info_dtor_internal_method@type_info@@QAEXXZ': () => ok(0, 0),
+  '?_type_info_dtor_internal_method@type_info@@QAAXXZ': () => ok(0, 0),
   _strdup: (r, a) => {
     const length = ansiLength(r, a).result;
     const copy = r.allocate(length + 1);
@@ -939,6 +995,18 @@ for (const name of Object.keys(DATA_EXPORTS)) {
 // a silent success. Imported (IAT) entries cannot trap usefully, so they are
 // only registered for GetProcAddress lookups; the loader still fails an
 // unreachable import loudly through the normal missing-import path.
+// The versioned CRT DLLs export a superset of msvcrt; register the extra names so an
+// import against msvcr80..msvcr120 resolves, with a trap where unimplemented.
+export const MSVCRT_VERSIONED_TRAPS = new Set();
+for (const name of VERSIONED_CRT_EXPORT_NAMES) {
+  const key = `msvcrt.dll!${name}`;
+  if (msvcrtApis[key]) continue;
+  MSVCRT_VERSIONED_TRAPS.add(key);
+  msvcrtApis[key] = () => {
+    throw Error(`Unimplemented versioned CRT entry point ${name}`);
+  };
+}
+
 export const MSVCRT_TRAP_EXPORTS = new Set();
 for (const name of MSVCRT_EXPORT_NAMES) {
   const key = `msvcrt.dll!${name}`;

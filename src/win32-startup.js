@@ -712,6 +712,58 @@ function unhandledExceptionFilter(r, a) {
   return ok(1, 1);
 }
 
+// ---------------------------------------------------------------------------
+// Process-introspection queries the runtime can answer from its own model.
+function isDebuggerPresent() {
+  return ok(0, 0); // WineBrowser is not a debugger.
+}
+function setThreadAffinityMask(r, a) {
+  const thread = r.threads.records.get(a(0) >>> 0) ?? r.threads.current;
+  if (!thread) return fail(r, 6, 2);
+  const previous = thread.affinity ?? 1;
+  const mask = a(1) >>> 0;
+  if (!mask) return fail(r, 87, 2);
+  thread.affinity = mask;
+  return ok(previous, 2);
+}
+function getMonitorInfo(r, a, wide) {
+  // MONITORINFO is a 40-byte structure: cbSize, rcMonitor, rcWork, dwFlags.
+  const monitor = a(0) >>> 0,
+    out = a(1);
+  if (!out) return fail(r, 87, 2);
+  const size = r.read32(out);
+  if (size !== 40) return fail(r, 87, 2);
+  const display = r.windows?.display ?? { width: 640, height: 480 };
+  r.check(out, 40, true);
+  r.data.fill(0, out, out + 40);
+  r.write32(out, 40);
+  for (const offset of [4, 16]) {
+    r.write32(out + offset, 0);
+    r.write32(out + offset + 4, 0);
+    r.write32(out + offset + 8, display.width);
+    r.write32(out + offset + 12, display.height);
+  }
+  r.write32(out + 36, 1); // MONITORINFOF_PRIMARY
+  return ok(1, 2);
+}
+
+export const startupApis5 = {
+  'kernel32.dll!IsDebuggerPresent': isDebuggerPresent,
+  'kernel32.dll!CheckRemoteDebuggerPresent': (r, a) => {
+    if (a(1)) {
+      r.check(a(1), 4, true);
+      r.write32(a(1), 0);
+    }
+    return ok(1, 2);
+  },
+  'kernel32.dll!SetThreadAffinityMask': setThreadAffinityMask,
+  'kernel32.dll!GetCurrentProcessorNumber': () => ok(0, 0),
+  'user32.dll!GetMonitorInfoA': (r, a) => getMonitorInfo(r, a, false),
+  'user32.dll!GetMonitorInfoW': (r, a) => getMonitorInfo(r, a, true),
+  'user32.dll!MonitorFromWindow': (r, a) => ok(0x10001, 2),
+  'user32.dll!MonitorFromPoint': (r, a) => ok(0x10001, 3),
+  'user32.dll!MonitorFromRect': (r, a) => ok(0x10001, 2),
+};
 export const startupApis2 = {
   'kernel32.dll!VirtualAlloc': virtualAlloc,
   'kernel32.dll!VirtualFree': virtualFree,
