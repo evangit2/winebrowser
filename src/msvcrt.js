@@ -4,7 +4,11 @@
 // computation over guest memory; no host libc is involved. `$I10_OUTPUT` is
 // Wine's own algorithm: it converts the ext80 to a double and formats that, so
 // this reproduces the same digits by the same route.
-import { MSVCRT_EXPORT_NAMES, MSVCRT_EXPORT_ALIASES } from './msvcrt-exports.js';
+import {
+  MSVCRT_EXPORT_NAMES,
+  MSVCRT_CDECL_EXPORTS,
+  MSVCRT_DATA_EXPORTS,
+} from './msvcrt-exports.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 
@@ -345,6 +349,191 @@ msvcrtApis['msvcrt.dll!__wgetmainargs'] = (r, a) => {
   }
   return ok(0, 5);
 };
+// ---------------------------------------------------------------------------
+// Compiler intrinsics. These are emitted inline by MSVC but exported by msvcrt
+// so that a module without inline trns can call them; each one therefore has
+// exact x87 semantics rather than an approximation.
+msvcrtApis['msvcrt.dll!_ftol'] = (r) => ok(r.cpu.x87.truncateToInt32(), 0);
+msvcrtApis['msvcrt.dll!_ftol2'] = msvcrtApis['msvcrt.dll!_ftol'];
+msvcrtApis['msvcrt.dll!_ftol2_sse'] = (r) => {
+  // _ftol2_sse takes the double in XMM0 rather than ST(0).
+  const register = r.cpu.simd.registers[0];
+  const value = new DataView(register.buffer).getFloat64(0, true);
+  return ok(Math.trunc(value) | 0, 0);
+};
+// The CRT's _CI* intrinsics: the x87 argument(s) are popped, the computation
+// happens in binary64, and the double result is pushed. This is exactly what
+// Wine's msvcrt does, so a guest that calls them sees the same stack effect.
+const FPU_MATH = {
+  _CIacos: [1, (a) => Math.acos(a)],
+  _CIasin: [1, (a) => Math.asin(a)],
+  _CIatan: [1, (a) => Math.atan(a)],
+  _CIatan2: [2, (a, b) => Math.atan2(a, b)],
+  _CIcos: [1, (a) => Math.cos(a)],
+  _CIcosh: [1, (a) => Math.cosh(a)],
+  _CIexp: [1, (a) => Math.exp(a)],
+  _CIfmod: [2, (a, b) => a % b],
+  _CIlog: [1, (a) => Math.log(a)],
+  _CIlog10: [1, (a) => Math.log10(a)],
+  _CIpow: [2, (a, b) => a ** b],
+  _CIsin: [1, (a) => Math.sin(a)],
+  _CIsinh: [1, (a) => Math.sinh(a)],
+  _CIsqrt: [1, (a) => Math.sqrt(a)],
+  _CItan: [1, (a) => Math.tan(a)],
+  _CItanh: [1, (a) => Math.tanh(a)],
+};
+for (const [name, [count, compute]] of Object.entries(FPU_MATH)) {
+  msvcrtApis[`msvcrt.dll!${name}`] = (r) => {
+    const x87 = r.cpu.x87;
+    const args = [];
+    for (let i = 0; i < count; i++) args.push(x87.doubleOperand(i));
+    const result = compute(...args);
+    // _CIatan2 and _CIfmod pop both operands and push one result.
+    for (let i = 0; i < count; i++) x87.popDouble();
+    x87.pushDouble(result);
+    return ok(0, 0);
+  };
+}
+// ---------------------------------------------------------------------------
+// Floating-point control. MSVC's float.h uses a different bit layout from the
+// raw x87 control word: the exception-mask bits are reversed, rounding control
+// sits at bits 8-9, precision control at 16-17 and the infinity control at 18.
+// Reproducing Wine's own translation is what lets a guest's _control87 call
+// leave the FPU in the state its compiled code expects.
+const MSVC_MASK = {
+  INVALID: 0x00000010,
+  DENORMAL: 0x00080000,
+  ZERODIVIDE: 0x00000008,
+  OVERFLOW: 0x00000004,
+  UNDERFLOW: 0x00000002,
+  INEXACT: 0x00000001,
+};
+const MSVC_MCW_EM = 0x0008001f,
+  MSVC_MCW_RC = 0x00000300,
+  MSVC_MCW_PC = 0x00030000,
+  MSVC_MCW_IC = 0x00040000;
+// x87 control-word bit -> MSVC flag, in the order Wine's _setfp reads them.
+const CW_TO_MSVC = [
+  [0x01, MSVC_MASK.INVALID],
+  [0x02, MSVC_MASK.DENORMAL],
+  [0x04, MSVC_MASK.ZERODIVIDE],
+  [0x08, MSVC_MASK.OVERFLOW],
+  [0x10, MSVC_MASK.UNDERFLOW],
+  [0x20, MSVC_MASK.INEXACT],
+];
+function msvcControl(state) {
+  const cw = state.control;
+  let flags = 0;
+  for (const [bit, value] of CW_TO_MSVC) if (cw & bit) flags |= value;
+  switch (cw & 0xc00) {
+    case 0xc00:
+      flags |= 0x300; // _RC_UP | _RC_DOWN (chop)
+      break;
+    case 0x800:
+      flags |= 0x200; // _RC_UP
+      break;
+    case 0x400:
+      flags |= 0x100; // _RC_DOWN
+      break;
+  }
+  switch (cw & 0x300) {
+    case 0x000:
+      flags |= 0x20000; // _PC_24
+      break;
+    case 0x200:
+      flags |= 0x10000; // _PC_53
+      break;
+  }
+  if (cw & 0x1000) flags |= MSVC_MCW_IC;
+  return flags;
+}
+function applyMsvcControl(state, newval, mask) {
+  let cw = state.control;
+  cw &= ~0x1f3f;
+  let invalid = false;
+  if ((mask & MSVC_MASK.INVALID) && newval & MSVC_MASK.INVALID) {
+    // An unmasked invalid operation is what the guest asked for; the runtime's
+    // explicit exception boundary would stop the run, so the mask bit is
+    // honored exactly as written.
+    invalid = true;
+  }
+  for (const [bit, value] of CW_TO_MSVC) {
+    if (!(mask & value)) {
+      // Preserve the existing bit when the mask does not cover it.
+      if (cw & bit) cw |= bit;
+      continue;
+    }
+    if (newval & value) cw |= bit;
+  }
+  if (mask & MSVC_MCW_RC) {
+    if (newval & 0x300) cw |= newval & 0x200 ? ((newval & 0x100) ? 0xc00 : 0x800) : 0x400;
+  } else cw |= state.control & 0xc00;
+  if (mask & MSVC_MCW_PC) {
+    const pc = newval & MSVC_MCW_PC;
+    cw |= pc === 0x20000 ? 0x000 : pc === 0x10000 ? 0x200 : 0x300;
+  } else cw |= state.control & 0x300;
+  if (mask & MSVC_MCW_IC) {
+    if (newval & MSVC_MCW_IC) cw |= 0x1000;
+  } else cw |= state.control & 0x1000;
+  state.control = (state.control & ~0xffff) | (cw & 0xffff);
+  return invalid;
+}
+function control87(r, a) {
+  const newval = a(0) >>> 0,
+    mask = (a(1) >>> 0) & (MSVC_MCW_EM | MSVC_MCW_RC | MSVC_MCW_PC | MSVC_MCW_IC);
+  const previous = msvcControl(r.cpu.x87);
+  if (mask) applyMsvcControl(r.cpu.x87, newval, mask);
+  return ok(previous, 2);
+}
+msvcrtApis['msvcrt.dll!_control87'] = control87;
+msvcrtApis['msvcrt.dll!_controlfp'] = (r, a) => {
+  const newval = a(0) >>> 0,
+    mask = (a(1) >>> 0) & ~MSVC_MASK.DENORMAL;
+  return control87(r, (index) => (index === 0 ? newval : mask));
+};
+msvcrtApis['msvcrt.dll!_set_controlfp'] = msvcrtApis['msvcrt.dll!_controlfp'];
+msvcrtApis['msvcrt.dll!_controlfp_s'] = (r, a) => {
+  const out = control87(r, (index) => (index === 0 ? a(0) >>> 0 : a(1) >>> 0));
+  if (a(2)) {
+    r.check(a(2), 4, true);
+    r.write32(a(2), msvcControl(r.cpu.x87));
+  }
+  return ok(0, 3);
+};
+msvcrtApis['msvcrt.dll!__control87_2'] = (r, a) => {
+  const previous = msvcControl(r.cpu.x87);
+  const mask = (a(1) >>> 0) & (MSVC_MCW_EM | MSVC_MCW_RC | MSVC_MCW_PC | MSVC_MCW_IC);
+  if (mask) applyMsvcControl(r.cpu.x87, a(0) >>> 0, mask);
+  for (const index of [2, 3]) {
+    if (!a(index)) continue;
+    r.check(a(index), 4, true);
+    r.write32(a(index), index === 2 ? previous : 0);
+  }
+  return ok(1, 4);
+};
+msvcrtApis['msvcrt.dll!_clearfp'] = (r) => {
+  const previous = r.cpu.x87.status & 0x3f;
+  r.cpu.x87.status &= ~0x3f;
+  return ok(previous, 0);
+};
+msvcrtApis['msvcrt.dll!_statusfp'] = (r) => ok(r.cpu.x87.status & 0x3f, 0);
+msvcrtApis['msvcrt.dll!_fpreset'] = (r) => {
+  r.cpu.x87.reset();
+  return ok(0, 0);
+};
+msvcrtApis['msvcrt.dll!_chkesp'] = () => ok(0, 0);
+msvcrtApis['msvcrt.dll!_resetstkoflw'] = () => ok(1, 0);
+msvcrtApis['msvcrt.dll!_global_unwind2'] = () => ok(0, 1);
+msvcrtApis['msvcrt.dll!_local_unwind2'] = () => ok(0, 2);
+msvcrtApis['msvcrt.dll!_abnormal_termination'] = () => ok(0, 0);
+msvcrtApis['msvcrt.dll!__seh_longjmp_unwind'] = () => ok(0, 2);
+msvcrtApis['msvcrt.dll!__seh_longjmp_unwind4'] = () => ok(0, 2);
+msvcrtApis['msvcrt.dll!__CxxQueryExceptionSize'] = () => ok(0, 0);
+msvcrtApis['msvcrt.dll!__CxxRegisterExceptionObject'] = () => ok(0, 2);
+msvcrtApis['msvcrt.dll!__CxxUnregisterExceptionObject'] = () => ok(0, 3);
+msvcrtApis['msvcrt.dll!__DestructExceptionObject'] = () => ok(0, 1);
+msvcrtApis['msvcrt.dll!__CxxDetectRethrow'] = () => ok(0, 1);
+msvcrtApis['msvcrt.dll!__CppXcptFilter'] = () => ok(1, 2);
 msvcrtApis['msvcrt.dll!_XcptFilter'] = () => ok(1, 2);
 msvcrtApis['msvcrt.dll!__CxxFrameHandler'] = () => ok(1, 4);
 msvcrtApis['msvcrt.dll!__CxxFrameHandler2'] = () => ok(1, 4);
@@ -570,12 +759,21 @@ for (const name of MSVCRT_EXPORT_NAMES) {
     throw Error(`Unimplemented msvcrt entry point ${name}`);
   };
 }
-// A name Wine aliases to a different implementation resolves to that
-// implementation's handler when the runtime has one.
-for (const [name, alias] of Object.entries(MSVCRT_EXPORT_ALIASES)) {
+
+// The i386 CRT uses cdecl: the CALLER pops the arguments. A handler that also
+// pops them (the runtime's default stdcall) would remove each argument twice and
+// corrupt the caller's stack, so every cdecl entry is wrapped to declare its
+// convention. Data exports are not called at all; GetProcAddress returns their
+// address through the dedicated path.
+export const MSVCRT_CDECL = new Set();
+for (const name of MSVCRT_CDECL_EXPORTS) {
   const key = `msvcrt.dll!${name}`;
-  const target = msvcrtApis[`msvcrt.dll!${alias}`];
-  if (!target) continue;
-  MSVCRT_TRAP_EXPORTS.delete(key);
-  msvcrtApis[key] = target;
+  if (MSVCRT_DATA_EXPORTS.has(name)) continue;
+  const handler = msvcrtApis[key];
+  if (!handler) continue;
+  MSVCRT_CDECL.add(key);
+  msvcrtApis[key] = async (r, a) => {
+    const response = await handler(r, a);
+    return { ...response, convention: 'cdecl' };
+  };
 }

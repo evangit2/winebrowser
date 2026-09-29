@@ -392,6 +392,36 @@ export class X87State {
     return this.sf.HEAPU8.slice(this.p + 24, this.p + 24 + width);
   }
 
+  // The CRT's _CI* intrinsics move their x87 arguments to binary64, call the
+  // corresponding host math function, and push the double result back. The
+  // argument order matches the st(i) numbering: the first argument is ST(0).
+  doubleOperand(st) {
+    const bytes = this.#value(st);
+    const value = this.#convertTo(bytes, 'f64', 8);
+    return new DataView(value.buffer, value.byteOffset, 8).getFloat64(0, true);
+  }
+  popDouble() {
+    const value = this.doubleOperand(0);
+    this.#pop();
+    return value;
+  }
+  pushDouble(value) {
+    const bytes = new Uint8Array(8);
+    new DataView(bytes.buffer).setFloat64(0, value, true);
+    return this.#push(this.#convertFrom(bytes, 'f64'));
+  }
+
+  // The CRT's _ftol intrinsic truncates ST(0) toward zero to int32 and pops
+  // it, leaving the x87 stack exactly as the compiler expects. The SoftFloat
+  // conversion already implements the documented out-of-range result.
+  truncateToInt32() {
+    if (!this.sf) throw Error('x87 SoftFloat runtime is not initialized');
+    const bytes = this.#convertTo(this.#value(0), 'i32', 4, 1);
+    const value = new DataView(bytes.buffer, bytes.byteOffset, 4).getInt32(0, true);
+    this.#pop();
+    return value | 0;
+  }
+
   execute(op, a, b, address, width, options) {
     if (!this.sf) throw Error('x87 SoftFloat runtime is not initialized');
     if (op === X87Op.wait || op === X87Op.free) {
