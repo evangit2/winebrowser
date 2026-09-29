@@ -153,6 +153,16 @@
   padding: 1px 4px;
   white-space: nowrap;
   overflow: hidden;
+  /* BS_LEFT/BS_RIGHT/BS_CENTER and BS_TOP/BS_BOTTOM/BS_VCENTER place the
+     caption inside the rectangle; the desktop sets justify/align per window. */
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* BS_PUSHLIKE renders a checkbox or radio with the push-button frame. */
+.virtual-desktop-control-pushlike {
+  white-space: nowrap;
 }
 
 /* A checkbox, radio button or three-state button: the native control draws its

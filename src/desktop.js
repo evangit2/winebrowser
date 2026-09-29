@@ -530,6 +530,23 @@ export class VirtualDesktop {
         control.element.classList.toggle('virtual-desktop-control-checked', checked);
       }
       control.element.classList.toggle('virtual-desktop-control-flat', !!style.flat);
+      // A BS_PUSHLIKE checkbox/radio renders (and behaves) like a push button.
+      control.pushLike = !!style.pushLike;
+      if (control.pushLike) control.element.classList.add('virtual-desktop-control-pushlike');
+      // BS_LEFT/BS_RIGHT/BS_CENTER and BS_TOP/BS_BOTTOM/BS_VCENTER control where
+      // the caption sits inside the button rectangle.
+      const horizontal = style.horizontalAlign;
+      const vertical = style.verticalAlign;
+      if (horizontal === 'left' || horizontal === 'right' || horizontal === 'center')
+        control.element.style.justifyContent =
+          horizontal === 'left' ? 'flex-start' : horizontal === 'right' ? 'flex-end' : 'center';
+      if (vertical === 'top' || vertical === 'bottom' || vertical === 'center')
+        control.element.style.alignItems =
+          vertical === 'top' ? 'flex-start' : vertical === 'bottom' ? 'flex-end' : 'center';
+      // BS_MULTILINE lets a long caption wrap instead of being clipped.
+      control.multilineCaption = !!style.multilineCaption;
+      if (control.multilineCaption) control.element.style.whiteSpace = 'normal';
+      else if (style.multilineCaption === false) control.element.style.whiteSpace = '';
     }
     const textAlign = state.textAlign ?? controlStyle.textAlign ?? controlStyle.alignment;
     if (textAlign !== undefined) control.element.style.textAlign = textAlign ?? '';

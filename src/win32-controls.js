@@ -42,8 +42,16 @@ export function controlStyle(kind, style, extended) {
   ]);
   const buttonType = kind === 'button' ? BUTTON_TYPES.get(local & 0xf) : null;
   if (kind === 'button' && !buttonType) throw Error('Unsupported BUTTON style');
-  if (kind === 'button' && local & ~(0xf | 0x8000))
-    throw Error('Only BS_FLAT is supported among the BUTTON modifier bits');
+  // BS_TYPEMASK selects the kind; the remaining documented modifier bits change
+  // only layout and notification, so they are honoured rather than rejected:
+  // LEFT/RIGHT/CENTER (0x300), TOP/BOTTOM/VCENTER (0xc00), LEFTTEXT/RIGHTBUTTON
+  // (0x20), PUSHLIKE (0x1000), MULTILINE (0x2000), NOTIFY (0x4000), FLAT
+  // (0x8000), TEXT (0), ICON (0x40) and BITMAP (0x80).
+  const BUTTON_MODIFIERS = 0xffe0;
+  if (kind === 'button' && local & ~(0xf | BUTTON_MODIFIERS))
+    throw Error('Unsupported BUTTON modifier bits');
+  if (kind === 'button' && (local & 0xc0) === 0xc0)
+    throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
   if (kind === 'static' && (local & ~0x83 || (local & 3) === 3))
     throw Error('Unsupported STATIC style');
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
@@ -66,6 +74,19 @@ export function controlStyle(kind, style, extended) {
     // current BM_GETCHECK value.
     buttonType,
     flat: kind === 'button' && !!(local & 0x8000),
+    // Layout modifiers a dialog author may rely on for appearance.
+    leftText: kind === 'button' && !!(local & 0x20),
+    // BS_LEFT(0x100) / BS_RIGHT(0x200) / BS_CENTER(0x300) share the 0x300
+    // field: 0 is left, 0x100 is right, and 0x200 and the combined 0x300 both
+    // mean centred. BS_TOP(0x400) / BS_BOTTOM(0x800) / BS_VCENTER(0xc00) share
+    // 0xc00 the same way with 0 meaning top.
+    horizontalAlign: kind === 'button' ? ['left', 'right', 'center', 'center'][(local & 0x300) >> 8] : 'left',
+    verticalAlign: kind === 'button' ? ['top', 'top', 'bottom', 'center'][(local & 0xc00) >> 10] : 'top',
+    pushLike: kind === 'button' && !!(local & 0x1000),
+    multilineCaption: kind === 'button' && !!(local & 0x2000),
+    notify: kind === 'button' && !!(local & 0x4000),
+    icon: kind === 'button' && !!(local & 0x40),
+    bitmap: kind === 'button' && !!(local & 0x80),
     toggle: kind === 'button' && ['checkbox', 'auto-checkbox', 'radio', 'auto-radio'].includes(buttonType),
     triState: kind === 'button' && ['three-state', 'auto-three-state'].includes(buttonType),
     automatic: kind === 'button' && buttonType?.startsWith('auto') === true,

@@ -481,10 +481,82 @@ test('the BUTTON family models check state, radio groups and group boxes', async
   const published = emitted.find((event) => event.type === 'window')?.window;
   assert.equal(published.controlStyle.groupBox, true);
   assert.equal(published.controlStyle.buttonType, 'group-box');
-  // An unknown BUTTON style and a modifier bit other than BS_FLAT are rejected.
+  // An unknown BUTTON style and an undocumented modifier bit are rejected.
   await assert.rejects(create(0xf, 'Bad', 68), /Unsupported BUTTON style/);
-  await assert.rejects(create(0x100, 'Bad', 69), /Only BS_FLAT/);
+  await assert.rejects(create(0x10, 'Bad', 69), /Unsupported BUTTON modifier bits/);
+  // BS_ICON and BS_BITMAP share one drawing slot, so the OS rejects both.
+  await assert.rejects(create(0xc0, 'Bad', 90), /mutually exclusive/);
   // BS_FLAT is accepted.
   const flat = await create(0x8000, 'Flat', 70);
   assert.ok(flat.result);
+});
+
+test('BUTTON layout and notification modifiers are published to the desktop', async (t) => {
+  const harness = await makeHarness(t);
+  const { runtime, parentId } = harness;
+  runtime.windows.windows.get(parentId).visible = true;
+  const create = (style) =>
+    createChild(runtime, parentId, { className: 'BUTTON', title: 'Caption', style: WS_CHILD | WS_VISIBLE | style });
+  const publish = (id) => {
+    const emitted = [];
+    const originalEmit = runtime.emit;
+    runtime.emit = (event) => emitted.push(event);
+    runtime.windows.emit(runtime.windows.windows.get(id));
+    runtime.emit = originalEmit;
+    return emitted.find((event) => event.type === 'window')?.window.controlStyle;
+  };
+
+  // Every documented modifier bit is accepted and round-trips.
+  const modifiers = [0x20, 0x100, 0x200, 0x300, 0x400, 0x800, 0xc00, 0x1000, 0x2000, 0x4000, 0x8000];
+  for (const bit of modifiers) {
+    const control = await create(bit);
+    assert.ok(control.result, `BUTTON style 0x${bit.toString(16)} is accepted`);
+    assert.ok(publish(control.result), 'the modifier is republished');
+  }
+
+  // BS_RIGHTBUTTON/BS_LEFTTEXT (0x20) swaps the caption and the glyph.
+  assert.equal(publish((await create(0x20)).result).leftText, true);
+  assert.equal(publish((await create(0)).result).leftText, false);
+
+  // The 0x300 field picks the horizontal alignment; the 0xc00 field the vertical.
+  const horizontal = new Map([
+    [0x000, 'left'],
+    [0x100, 'right'],
+    [0x200, 'center'],
+    [0x300, 'center'],
+  ]);
+  for (const [bits, expected] of horizontal) {
+    assert.equal(publish((await create(bits)).result).horizontalAlign, expected, `0x${bits.toString(16)}`);
+  }
+  const vertical = new Map([
+    [0x000, 'top'],
+    [0x400, 'top'],
+    [0x800, 'bottom'],
+    [0xc00, 'center'],
+  ]);
+  for (const [bits, expected] of vertical) {
+    assert.equal(publish((await create(bits)).result).verticalAlign, expected, `0x${bits.toString(16)}`);
+  }
+
+  // BS_PUSHLIKE renders a checkbox as a push button; BS_MULTILINE wraps; and
+  // BS_NOTIFY asks the parent for BN_* messages it would not otherwise get.
+  const pushLike = await create(0x3 | 0x1000);
+  assert.equal(publish(pushLike.result).pushLike, true);
+  assert.equal(publish(pushLike.result).buttonType, 'auto-checkbox');
+  assert.equal(publish((await create(0x1000)).result).pushLike, true);
+  const multiline = await create(0x2000);
+  assert.equal(publish(multiline.result).multilineCaption, true);
+  const notify = await create(0x4000);
+  assert.equal(publish(notify.result).notify, true);
+  // BS_ICON / BS_BITMAP are accepted individually and mutually exclusive together.
+  const icon = await create(0x40);
+  assert.equal(publish(icon.result).icon, true);
+  assert.equal(publish(icon.result).bitmap, false);
+  const bitmap = await create(0x80);
+  assert.equal(publish(bitmap.result).bitmap, true);
+  assert.equal(publish(bitmap.result).icon, false);
+  // A push button's default alignment is preserved when no bits are set.
+  const plain = publish((await create(0)).result);
+  assert.equal(plain.horizontalAlign, 'left');
+  assert.equal(plain.verticalAlign, 'top');
 });
