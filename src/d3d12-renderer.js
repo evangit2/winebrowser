@@ -50,6 +50,31 @@ export class D3D12Renderer {
     return this.compiler.validateRootSignature(bytes);
   }
 
+  /**
+   * Serializes an application-declared root signature from the flattened
+   * description the frontend parsed out of the guest structure.
+   */
+  async buildRootSignature(words) {
+    return this.compiler.buildRootSignature(words);
+  }
+
+  /**
+   * Parses a serialized root signature into its structured form plus the raw
+   * inspection words, which the frontend keeps to resolve bindings at draw
+   * time and to derive the canonical WebGPU layout.
+   */
+  async inspectRootSignature(bytes) {
+    return this.compiler.inspectRootSignature(bytes);
+  }
+
+  /**
+   * Enumerates the D3D descriptors a compiled shader declares, so a pipeline
+   * can be compiled against the canonical bindings its root signature implies.
+   */
+  async scanShader(bytes) {
+    return this.compiler.scanDescriptors(bytes);
+  }
+
   async createSwapChain({ id, windowId, width, height, bufferIds }) {
     if (
       !integer(id, 1, 0xffffffff) ||

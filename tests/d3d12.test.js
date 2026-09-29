@@ -61,6 +61,21 @@ function fixture() {
         events.push({ type: 'validate', raw: [...raw] });
         return raw[4];
       },
+      async buildRootSignature(words) {
+        events.push({ type: 'build', words: Array.from(words) });
+        // Echo a DXBC-tagged container carrying the flattened parameter,
+        // sampler and flag words so the test can assert both the description
+        // that reached the backend and the blob the frontend publishes.
+        return Uint8Array.of(0x44, 0x58, 0x42, 0x43, words[2] ?? 0, words[0] ?? 0, words[1] ?? 0, 0);
+      },
+      async inspectRootSignature(raw) {
+        events.push({ type: 'inspect', raw: [...raw] });
+        return { flags: raw[4] ?? 0, words: Uint32Array.of(0, 0, 0, 0, 11, 0) };
+      },
+      async scanShader(raw) {
+        events.push({ type: 'scan', raw: [...raw] });
+        return [];
+      },
       async createSwapChain(args) {
         events.push({ type: 'swapchain', ...args });
       },
@@ -189,7 +204,14 @@ test('native PE32 D3D12 triangle sequence records, executes, presents, and signa
   const blob = r.read32(out),
     blobPtr = (await call(blob, 3)).result,
     blobSize = (await call(blob, 4)).result;
-  assert.deepEqual([...r.data.subarray(blobPtr, blobPtr + blobSize)], [0x44, 0x58, 0x42, 0x43, 1]);
+  // The empty guest description (no parameters, no samplers, flag 1) must
+  // reach the backend as the flattened words and come back as its blob.
+  assert.deepEqual([...r.data.subarray(blobPtr, blobPtr + blobSize)], [0x44, 0x58, 0x42, 0x43, 1, 0, 0, 0]);
+  assert.deepEqual(
+    events.filter((event) => event.type === 'build').at(-1).words,
+    [0, 0, 1, 0, 11, 0],
+    'the guest root signature description was flattened before the build',
+  );
   const root = await create(dev, 16, [0, blobPtr, blobSize], 'root');
   const vs = alloc(8),
     ps = alloc(8);

@@ -7,6 +7,7 @@ import {
   parseCommittedResourceDescriptor,
   parsePipelineDescriptor,
   parseResourceRange,
+  parseRootSignatureDescriptor,
 } from './d3d12-descriptors.js';
 
 const S_OK = 0;
@@ -118,7 +119,10 @@ function requireBackend(r) {
     !g?.execute ||
     !g?.present ||
     !g?.serializeRootSignature ||
-    !g?.validateRootSignature
+    !g?.validateRootSignature ||
+    !g?.buildRootSignature ||
+    !g?.inspectRootSignature ||
+    !g?.scanShader
   )
     throw Error('D3D12 graphics backend is unavailable');
   return g;
@@ -2084,11 +2088,20 @@ export const d3d12Apis = {
     if (err) output(r, err);
     const p = number(a(0));
     r.check(p, 20);
-    if (number(a(1)) !== 1 || u32(r, p) || u32(r, p, 4) || u32(r, p, 8) || u32(r, p, 12))
-      return { result: E_INVALIDARG, argc: 4 };
+    // The application's own description is honoured: parse the guest
+    // D3D12_ROOT_SIGNATURE_DESC into the flattened layout the shader bridge
+    // builds, then serialize that into a real DXBC container.
+    if (number(a(1)) !== 1) return { result: E_INVALIDARG, argc: 4 };
     requireBackend(r);
     state(r);
-    const raw = await r.graphics12.serializeRootSignature(u32(r, p, 16));
+    const words = parseRootSignatureDescriptor({
+      check: r.check.bind(r),
+      read32: r.read32.bind(r),
+      readFloat32: (pointer) => r.view.getFloat32(r.check(pointer, 4), true),
+      pointer: p,
+    });
+    if (!words) return { result: E_INVALIDARG, argc: 4 };
+    const raw = await r.graphics12.buildRootSignature(words);
     if (!(raw instanceof Uint8Array) || !raw.length || raw.length > MAX_BYTES)
       throw Error('D3D12 backend returned invalid root signature blob');
     r.write32(out, createBlob(r, raw).pointer);
