@@ -1,0 +1,1454 @@
+{
+  "oracle": "Python Fraction exact-product oracle with an independently written ext80 rounding routine, SoftFloat NaN precedence and hardware-checked ST(1) truncation; precision control is ignored and rounding control is honored",
+  "vectors": [
+    {
+      "name": "one-scaled-by-one",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000800040",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-two",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "00000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "two-scaled-by-half",
+      "a": "00000000000000800040",
+      "b": "0000000000000080fe3f",
+      "control": 895,
+      "output": "00000000000000800040",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-one",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "0000000000000080fe3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-two-and-a-half",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000a00040",
+      "control": 895,
+      "output": "00000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-two-and-a-half",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000a000c0",
+      "control": 895,
+      "output": "0000000000000080fd3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-two-and-three-quarters",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000b00040",
+      "control": 895,
+      "output": "00000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-one-and-a-half",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000c0ffbf",
+      "control": 895,
+      "output": "0000000000000080fe3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-three-quarters",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000c0fe3f",
+      "control": 895,
+      "output": "0000000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-three-quarters",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000c0febf",
+      "control": 895,
+      "output": "0000000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-half",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000080febf",
+      "control": 895,
+      "output": "0000000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-subnormal",
+      "a": "0000000000000080ff3f",
+      "b": "01000000000000000000",
+      "control": 895,
+      "output": "0000000000000080ff3f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-largest-subnormal",
+      "a": "0000000000000080ff3f",
+      "b": "ffffffffffffff7f0000",
+      "control": 895,
+      "output": "0000000000000080ff3f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-subnormal-negative",
+      "a": "0000000000000080ff3f",
+      "b": "01000000000000000080",
+      "control": 895,
+      "output": "0000000000000080ff3f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "lowbit-scaled-up-one",
+      "a": "0100000000000080ff3f",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "01000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "lowbit-scaled-down-one",
+      "a": "0100000000000080ff3f",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "0100000000000080fe3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-lowbit-scaled-down-one",
+      "a": "0100000000000080ffbf",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "0100000000000080febf",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "lowbit-scaled-up-twenty",
+      "a": "0100000000000080ff3f",
+      "b": "00000000000000800a40",
+      "control": 895,
+      "output": "0100000000000080ff47",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "lowbit-scaled-down-twenty",
+      "a": "0100000000000080ff3f",
+      "b": "0000000000000080f63f",
+      "control": 895,
+      "output": "0100000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "lowbit-scaled-down-sixty-two",
+      "a": "0100000000000080ff3f",
+      "b": "0000000000000080c13f",
+      "control": 895,
+      "output": "0100000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc037f-lowbit-up",
+      "a": "0100000000000080ff3f",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "01000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc037f-lowbit-down",
+      "a": "0100000000000080ff3f",
+      "b": "0000000000000080f63f",
+      "control": 895,
+      "output": "0100000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc037f-subnormal-inexact",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "02000000000000000000",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "pc027f-lowbit-up",
+      "a": "0100000000000080ff3f",
+      "b": "00000000000000800040",
+      "control": 639,
+      "output": "01000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc027f-lowbit-down",
+      "a": "0100000000000080ff3f",
+      "b": "0000000000000080f63f",
+      "control": 639,
+      "output": "0100000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc027f-subnormal-inexact",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 639,
+      "output": "02000000000000000000",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "pc007f-lowbit-up",
+      "a": "0100000000000080ff3f",
+      "b": "00000000000000800040",
+      "control": 127,
+      "output": "01000000000000800140",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc007f-lowbit-down",
+      "a": "0100000000000080ff3f",
+      "b": "0000000000000080f63f",
+      "control": 127,
+      "output": "0100000000000080ff3f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "pc007f-subnormal-inexact",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 127,
+      "output": "02000000000000000000",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "rc0-subnormal-tie-even",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "02000000000000000000",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "rc0-negative-subnormal-tie-even",
+      "a": "03000000000000000080",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "02000000000000000080",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "rc0-subnormal-exact",
+      "a": "05000000000000000000",
+      "b": "0000000000000080febf",
+      "control": 895,
+      "output": "05000000000000000000",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "rc0-underflow-to-zero",
+      "a": "01000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc0-overflow-max",
+      "a": "fffffffffffffffffe7f",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "rc0-overflow-negative-max",
+      "a": "fffffffffffffffffeff",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "0000000000000080ffff",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "rc0-tininess-tie",
+      "a": "01000000000000800100",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "00000000000000400000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "rc1-subnormal-tie-even",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 1919,
+      "output": "01000000000000000000",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc1-negative-subnormal-tie-even",
+      "a": "03000000000000000080",
+      "b": "0000000000000080ffbf",
+      "control": 1919,
+      "output": "02000000000000000080",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "rc1-subnormal-exact",
+      "a": "05000000000000000000",
+      "b": "0000000000000080febf",
+      "control": 1919,
+      "output": "05000000000000000000",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "rc1-underflow-to-zero",
+      "a": "01000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 1919,
+      "output": "00000000000000000000",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc1-overflow-max",
+      "a": "fffffffffffffffffe7f",
+      "b": "00000000000000800040",
+      "control": 1919,
+      "output": "fffffffffffffffffe7f",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "rc1-overflow-negative-max",
+      "a": "fffffffffffffffffeff",
+      "b": "00000000000000800040",
+      "control": 1919,
+      "output": "0000000000000080ffff",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "rc1-tininess-tie",
+      "a": "01000000000000800100",
+      "b": "0000000000000080ffbf",
+      "control": 1919,
+      "output": "00000000000000400000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "rc2-subnormal-tie-even",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 2943,
+      "output": "02000000000000000000",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "rc2-negative-subnormal-tie-even",
+      "a": "03000000000000000080",
+      "b": "0000000000000080ffbf",
+      "control": 2943,
+      "output": "01000000000000000080",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc2-subnormal-exact",
+      "a": "05000000000000000000",
+      "b": "0000000000000080febf",
+      "control": 2943,
+      "output": "05000000000000000000",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "rc2-underflow-to-zero",
+      "a": "01000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 2943,
+      "output": "01000000000000000000",
+      "flags": 50,
+      "roundedUp": true
+    },
+    {
+      "name": "rc2-overflow-max",
+      "a": "fffffffffffffffffe7f",
+      "b": "00000000000000800040",
+      "control": 2943,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "rc2-overflow-negative-max",
+      "a": "fffffffffffffffffeff",
+      "b": "00000000000000800040",
+      "control": 2943,
+      "output": "fffffffffffffffffeff",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "rc2-tininess-tie",
+      "a": "01000000000000800100",
+      "b": "0000000000000080ffbf",
+      "control": 2943,
+      "output": "01000000000000400000",
+      "flags": 48,
+      "roundedUp": true
+    },
+    {
+      "name": "rc3-subnormal-tie-even",
+      "a": "03000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 3967,
+      "output": "01000000000000000000",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc3-negative-subnormal-tie-even",
+      "a": "03000000000000000080",
+      "b": "0000000000000080ffbf",
+      "control": 3967,
+      "output": "01000000000000000080",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc3-subnormal-exact",
+      "a": "05000000000000000000",
+      "b": "0000000000000080febf",
+      "control": 3967,
+      "output": "05000000000000000000",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "rc3-underflow-to-zero",
+      "a": "01000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 3967,
+      "output": "00000000000000000000",
+      "flags": 50,
+      "roundedUp": false
+    },
+    {
+      "name": "rc3-overflow-max",
+      "a": "fffffffffffffffffe7f",
+      "b": "00000000000000800040",
+      "control": 3967,
+      "output": "fffffffffffffffffe7f",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "rc3-overflow-negative-max",
+      "a": "fffffffffffffffffeff",
+      "b": "00000000000000800040",
+      "control": 3967,
+      "output": "fffffffffffffffffeff",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "rc3-tininess-tie",
+      "a": "01000000000000800100",
+      "b": "0000000000000080ffbf",
+      "control": 3967,
+      "output": "00000000000000400000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "min-normal-scaled-down-one",
+      "a": "00000000000000800100",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "00000000000000400000",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "min-normal-scaled-down-two",
+      "a": "00000000000000800100",
+      "b": "0000000000000080febf",
+      "control": 895,
+      "output": "00000000000000800100",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "min-normal-scaled-up-one",
+      "a": "00000000000000800100",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "00000000000000800300",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "max-normal-scaled-up-one",
+      "a": "fffffffffffffffffe7f",
+      "b": "00000000000000800040",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "denormal-scaled-to-normal",
+      "a": "01000000000000000000",
+      "b": "00000000000000800e40",
+      "control": 895,
+      "output": "0000000000000080c27f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "denormal-scaled-by-one",
+      "a": "01000000000000000000",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "02000000000000000000",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "denormal-scaled-near-boundary",
+      "a": "ffffffffffffff7f0100",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "normal-scaled-into-subnormal",
+      "a": "01000000000000800100",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "00000000000000400000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-32766",
+      "a": "0000000000000080ff3f",
+      "b": "000000000000fcff0d40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-32767",
+      "a": "0000000000000080ff3f",
+      "b": "000000000000feff0d40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-32768",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000800e40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-65535",
+      "a": "0000000000000080ff3f",
+      "b": "000000000000ffff0e40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-65536",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000800f40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-100000",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000050c30f40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-2147483647",
+      "a": "0000000000000080ff3f",
+      "b": "00000000feffffff1d40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "one-scaled-by-minus-32768",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000800ec0",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-65536",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000800fc0",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-minus-200000",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000050c310c0",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "max-normal-scaled-by-32767",
+      "a": "fffffffffffffffffe7f",
+      "b": "000000000000feff0d40",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "min-normal-scaled-by-minus-32767",
+      "a": "00000000000000800100",
+      "b": "000000000000feff0dc0",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "zero-scaled-by-one",
+      "a": "00000000000000000000",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-zero-scaled-by-one",
+      "a": "00000000000000000080",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000000080",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "zero-scaled-by-minus-one",
+      "a": "00000000000000000000",
+      "b": "0000000000000080ffbf",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "zero-scaled-by-infinity",
+      "a": "00000000000000000000",
+      "b": "0000000000000080ff7f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "zero-scaled-by-negative-infinity",
+      "a": "00000000000000000000",
+      "b": "0000000000000080ffff",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-zero-scaled-by-negative-infinity",
+      "a": "00000000000000000080",
+      "b": "0000000000000080ffff",
+      "control": 895,
+      "output": "00000000000000000080",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-infinity",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000080ff7f",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-negative-infinity",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000080ffff",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "infinity-scaled-by-one",
+      "a": "0000000000000080ff7f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-infinity-scaled-by-one",
+      "a": "0000000000000080ffff",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "0000000000000080ffff",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "infinity-scaled-by-infinity",
+      "a": "0000000000000080ff7f",
+      "b": "0000000000000080ff7f",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "infinity-scaled-by-negative-infinity",
+      "a": "0000000000000080ff7f",
+      "b": "0000000000000080ffff",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-infinity-scaled-by-infinity",
+      "a": "0000000000000080ffff",
+      "b": "0000000000000080ff7f",
+      "control": 895,
+      "output": "0000000000000080ffff",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-infinity-scaled-by-negative-infinity",
+      "a": "0000000000000080ffff",
+      "b": "0000000000000080ffff",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "infinity-scaled-by-subnormal",
+      "a": "0000000000000080ff7f",
+      "b": "01000000000000000000",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "infinity-scaled-by-negative-subnormal",
+      "a": "0000000000000080ff7f",
+      "b": "01000000000000000080",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-quiet-nan",
+      "a": "0000000000000080ff3f",
+      "b": "00000000000000c0ff7f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "one-scaled-by-signaling-nan",
+      "a": "0000000000000080ff3f",
+      "b": "0100000000000080ff7f",
+      "control": 895,
+      "output": "01000000000000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "quiet-nan-scaled-by-one",
+      "a": "00000000000000c0ff7f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "signaling-nan-scaled-by-one",
+      "a": "0100000000000080ff7f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "01000000000000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-quiet-nan-scaled-by-one",
+      "a": "00000000000000c0ffff",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "negative-signaling-nan-scaled-by-one",
+      "a": "0100000000000080ffff",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "01000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "both-signaling-nan",
+      "a": "0100000000000080ff7f",
+      "b": "0200000000000080ff7f",
+      "control": 895,
+      "output": "02000000000000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "quiet-nan-then-signaling-nan",
+      "a": "00000000000000c0ff7f",
+      "b": "0100000000000080ff7f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "signaling-nan-then-quiet-nan",
+      "a": "0100000000000080ff7f",
+      "b": "00000000000000c0ff7f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "quiet-nan-then-quiet-nan",
+      "a": "00000000000000c0ff7f",
+      "b": "7700000000000080ff7f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "payload-quiet-nan-scaled-by-one",
+      "a": "8967452301000080ff7f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "89674523010000c0ff7f",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "nan-scaled-by-infinity",
+      "a": "00000000000000c0ff7f",
+      "b": "0000000000000080ff7f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "infinity-scaled-by-nan",
+      "a": "0000000000000080ff7f",
+      "b": "00000000000000c0ff7f",
+      "control": 895,
+      "output": "00000000000000c0ff7f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "unsupported-a",
+      "a": "0000000000000040ff3f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "unsupported-b",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000040ff3f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "pseudo-infinity-a",
+      "a": "0000000000000000ff7f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "pseudo-infinity-b",
+      "a": "0000000000000080ff3f",
+      "b": "0000000000000000ff7f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "pseudo-nan-a",
+      "a": "0100000000000000ff7f",
+      "b": "0000000000000080ff3f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "pseudo-nan-b",
+      "a": "0000000000000080ff3f",
+      "b": "0100000000000000ff7f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "unsupported-scaled-by-unsupported",
+      "a": "0000000000000040ff3f",
+      "b": "0000000000000040ff3f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-0",
+      "a": "7ef86836bf76e6dfa63c",
+      "b": "85b17ceb038f448b7adc",
+      "control": 3967,
+      "output": "00000000000000000000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "random-1",
+      "a": "72cd722b996f5df86553",
+      "b": "15b5efaaf403c2d3ac60",
+      "control": 3967,
+      "output": "fffffffffffffffffe7f",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "random-2",
+      "a": "8debfd61c8824c932d07",
+      "b": "6f4cc762ef84defb0140",
+      "control": 1919,
+      "output": "8debfd61c8824c933407",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-3",
+      "a": "1c247ca8d6f5d3f99be8",
+      "b": "f57e81441f9bff143939",
+      "control": 1919,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-4",
+      "a": "10af39d8468448cd8dbe",
+      "b": "3a067cbaac6b03679301",
+      "control": 1919,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-5",
+      "a": "76a48fbcdb24d9cbebab",
+      "b": "03595083468713890340",
+      "control": 2943,
+      "output": "76a48fbcdb24d9cbfcab",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-6",
+      "a": "9d7213f6e7e04aee442e",
+      "b": "21597bc755bd6ace7b5e",
+      "control": 895,
+      "output": "0000000000000080ff7f",
+      "flags": 40,
+      "roundedUp": true
+    },
+    {
+      "name": "random-7",
+      "a": "93badf7e1aa395ee41f2",
+      "b": "8773a6ef0b26f05a0000",
+      "control": 2943,
+      "output": "93badf7e1aa395ee41f2",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-8",
+      "a": "2223f9add28d758759b3",
+      "b": "338e5b06b0467c2f0000",
+      "control": 3967,
+      "output": "2223f9add28d758759b3",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-9",
+      "a": "d125f953f429d683c061",
+      "b": "078035c924fd7015548e",
+      "control": 1919,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-10",
+      "a": "b634559bccaefadcd9a4",
+      "b": "e7e2f30626171ef1ea79",
+      "control": 2943,
+      "output": "fffffffffffffffffeff",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "random-11",
+      "a": "14e80159a36c51d6ddc6",
+      "b": "ba4c79f2c7d6f6136092",
+      "control": 1919,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-12",
+      "a": "a057768c015f89c63d90",
+      "b": "c7ee2c07917100530000",
+      "control": 3967,
+      "output": "a057768c015f89c63d90",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-13",
+      "a": "23e45255b170c5b7d8a1",
+      "b": "93b96715bb6e7b83aaa0",
+      "control": 2943,
+      "output": "23e45255b170c5b7d8a1",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-14",
+      "a": "c6ca22f1553149d4050c",
+      "b": "fdfeed74bce72875e9b6",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-15",
+      "a": "0944cf49301db58f773d",
+      "b": "4d92fb32f9731b75581c",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-16",
+      "a": "ccba5259092362d2ee2a",
+      "b": "530cb1121419058a0d40",
+      "control": 3967,
+      "output": "ccba5259092362d2f06f",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-17",
+      "a": "0dae641e1a0dfdf87d3b",
+      "b": "c183e2bde590c0390000",
+      "control": 895,
+      "output": "0dae641e1a0dfdf87d3b",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-18",
+      "a": "b6917369e6049af97876",
+      "b": "8a9361dde41866d8299d",
+      "control": 895,
+      "output": "b6917369e6049af97876",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-19",
+      "a": "7b581676b2bd4dd0b79d",
+      "b": "0099953d0cd57406b134",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-20",
+      "a": "9028cffae4edcbe97d73",
+      "b": "696ebd252a7d5d8cff3f",
+      "control": 895,
+      "output": "9028cffae4edcbe97e73",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-21",
+      "a": "fc46ad073fab9fe06e02",
+      "b": "cfb946f1cdba4dcd6cd3",
+      "control": 895,
+      "output": "00000000000000000000",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "random-22",
+      "a": "0c69bc16b0b5e6d0bb14",
+      "b": "dce677c00038a89c0033",
+      "control": 1919,
+      "output": "0c69bc16b0b5e6d0bb14",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-23",
+      "a": "b619c3ab2e194a8d2fbe",
+      "b": "30144d699789c3630080",
+      "control": 2943,
+      "output": "b619c3ab2e194a8d2fbe",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-24",
+      "a": "1f0e2ce0a38b96d65f67",
+      "b": "9b971b254fc59d66eeb3",
+      "control": 2943,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-25",
+      "a": "f81d587c16c1e4f56bad",
+      "b": "2fe14d4e48b055837513",
+      "control": 2943,
+      "output": "f81d587c16c1e4f56bad",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-26",
+      "a": "eac7e7ca12720686e5b3",
+      "b": "456096fa1aa88c48840f",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-27",
+      "a": "cbc185e141c7f7f1d3a3",
+      "b": "8542f7e997783bc11d47",
+      "control": 2943,
+      "output": "fffffffffffffffffeff",
+      "flags": 40,
+      "roundedUp": false
+    },
+    {
+      "name": "random-28",
+      "a": "3e79a7200f00f2b98c5b",
+      "b": "43eed94512df08bc0a40",
+      "control": 3967,
+      "output": "3e79a7200f00f2b94c67",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-29",
+      "a": "7ff03432dcc952e1e735",
+      "b": "a13ab8e24468e8e509c0",
+      "control": 3967,
+      "output": "7ff03432dcc952e1b82e",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-30",
+      "a": "4b2fe871ca3a96ac36ef",
+      "b": "22ef0d81403d254a0080",
+      "control": 1919,
+      "output": "4b2fe871ca3a96ac36ef",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-31",
+      "a": "13320da15ce497c16382",
+      "b": "847f425bb7f63c4e33af",
+      "control": 895,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-32",
+      "a": "867993cf00e3a9ff1e95",
+      "b": "dba4ba2bfe668b390000",
+      "control": 1919,
+      "output": "867993cf00e3a9ff1e95",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-33",
+      "a": "6bbc7f0a24e05ce0cd13",
+      "b": "53cee07698cdf965ca15",
+      "control": 2943,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-34",
+      "a": "6ecf567f8ba83abea1a4",
+      "b": "55ada0eb4057a7dfeac9",
+      "control": 2943,
+      "output": "00000000000000000080",
+      "flags": 48,
+      "roundedUp": false
+    },
+    {
+      "name": "random-35",
+      "a": "5ba15ab525ba23cbc65f",
+      "b": "af3a8f5a588ba6090080",
+      "control": 1919,
+      "output": "5ba15ab525ba23cbc65f",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-36",
+      "a": "e84d98b466a049cb40a0",
+      "b": "4a62d3e0223983eac095",
+      "control": 895,
+      "output": "e84d98b466a049cb40a0",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-37",
+      "a": "95de7b918f13a9a07148",
+      "b": "7499d6118893ad9b0a40",
+      "control": 2943,
+      "output": "95de7b918f13a9a02b52",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-38",
+      "a": "12be5a07407867fde6b9",
+      "b": "d7cdc7e801f0e04c5981",
+      "control": 1919,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-39",
+      "a": "ac5bacd5c6b579a49962",
+      "b": "3e82e2a701b05c8200c0",
+      "control": 895,
+      "output": "ac5bacd5c6b579a49762",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-40",
+      "a": "8906ab3b3bd1a6d865fb",
+      "b": "868b3a968efd099bff3f",
+      "control": 2943,
+      "output": "8906ab3b3bd1a6d866fb",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-41",
+      "a": "b2545a22798957a9baba",
+      "b": "70633f153cc5e3c60ac0",
+      "control": 3967,
+      "output": "b2545a22798957a94cae",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-42",
+      "a": "69a7289417982fcf8b0d",
+      "b": "c3eb88ec442c50c81905",
+      "control": 1919,
+      "output": "69a7289417982fcf8b0d",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-43",
+      "a": "e99a02772b4290e84237",
+      "b": "e87721bd507ae8748130",
+      "control": 2943,
+      "output": "00000000000000c0ffff",
+      "flags": 1,
+      "roundedUp": false
+    },
+    {
+      "name": "random-44",
+      "a": "f37a95088dfeb7de118d",
+      "b": "ced4af8518362a863587",
+      "control": 895,
+      "output": "f37a95088dfeb7de118d",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-45",
+      "a": "6814e6129427b98e0576",
+      "b": "cabb8511add689f10440",
+      "control": 1919,
+      "output": "6814e6129427b98e4176",
+      "flags": 0,
+      "roundedUp": false
+    },
+    {
+      "name": "random-46",
+      "a": "aa7cf4aa6c548eb7522b",
+      "b": "811818062778310c0000",
+      "control": 895,
+      "output": "aa7cf4aa6c548eb7522b",
+      "flags": 2,
+      "roundedUp": false
+    },
+    {
+      "name": "random-47",
+      "a": "8a12f91de35151aec353",
+      "b": "f7b459df645819cd480d",
+      "control": 895,
+      "output": "8a12f91de35151aec353",
+      "flags": 0,
+      "roundedUp": false
+    }
+  ]
+}

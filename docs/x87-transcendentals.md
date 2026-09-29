@@ -84,3 +84,30 @@ Instruction and exception semantics follow Intel's
 [Software Developer's Manual](https://cdrdv2-public.intel.com/868137/325462-089-sdm-vol-1-2abcd-3abcd-4.pdf#page=1111),
 Volume 2A, FYL2X, and Volume 1's x87 rounding/precision and transcendental-accuracy
 discussion. Interval bounds and the Decimal oracle are repository-owned code.
+
+## FSCALE
+
+`FSCALE` multiplies `ST(0)` by `2^trunc(ST(1))`, truncating the scale toward
+zero. Alignment is exact and exponent-only, so the implementation shifts the
+operand's unbounded significand by the truncated scale and feeds the result
+through the same dyadic rounding used by the other instructions. Precision
+control does not apply; rounding control does, including the C1 direction and
+the shared #O/#U/#P accounting. The scale count is saturated at 2^15 because a
+larger count has already overflowed or underflowed every finite operand, which
+reproduces the instruction's own bounded exponent add for `|scale| >= 2^16`.
+
+Special cases follow the documented FSCALE table: unsigned zeros and infinities
+per `ST(1)` class, quieted NaNs with SoftFloat `propagateNaNExtF80UI`
+precedence, and the indefinite result for unsupported encodings or a
+zero-times-infinite product.
+
+`scripts/generate-x87-scale-vectors.py` is an independent oracle that forms the
+exact rational product, truncates `ST(1)` with Python integer arithmetic and
+rounds with its own extended-format routine. Its 161 vectors cover both scale
+directions, fractional and subnormal scales, gradual underflow, overflow,
+directed rounding, ordinary and signaling NaNs, unsupported encodings and exact
+low-bit preservation. The native `tests/fixtures/x87/scale.exe` executes those
+vectors through real x87 opcodes and compares bytes, exception bits, C1 and the
+stack top. Rebuild with `npm run build:x87-scale`; `npm run test:x87-scale`
+runs the isolated Chromium check and writes
+`evidence/x87-scale-browser-results.json`.

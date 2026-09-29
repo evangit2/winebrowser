@@ -1,15 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { fyl2x, f2xm1 } from '../src/x87-transcendentals.js';
+import { fyl2x, f2xm1, fscale } from '../src/x87-transcendentals.js';
 import iced from 'iced-x86';
 import { probeX87Log } from '../scripts/lib/x87-log-probe.js';
 import { probeX87Exp } from '../scripts/lib/x87-exp-probe.js';
+import { probeX87Scale } from '../scripts/lib/x87-scale-probe.js';
+const scaleVectors = JSON.parse(
+  await readFile(new URL('./fixtures/x87-scale-vectors.json', import.meta.url)),
+).vectors;
 const expVectors = JSON.parse(
   await readFile(new URL('./fixtures/x87-exp-vectors.json', import.meta.url)),
 ).vectors;
 
 const decode = (hex) => Uint8Array.from(Buffer.from(hex, 'hex'));
+const one80 = '0000000000000080ff3f',
+  two80 = '00000000000000800040';
 const encode = (bytes) => Buffer.from(bytes).toString('hex');
 const { vectors } = JSON.parse(
   await readFile(new URL('./fixtures/x87-log-vectors.json', import.meta.url)),
@@ -201,4 +207,64 @@ test('F2XM1 returns 2^0-1 = 0, exact endpoints, and #IA outside [-1, 1]', () => 
   assert.equal(quieted.flags, 1, 'SNaN raises #IA');
   assert.equal(encode(f2xm1(decode(qnan), 0).bytes), qnan);
   assert.equal(f2xm1(decode(qnan), 0).flags, 0);
+});
+
+test('FSCALE matches an independent exact-rational oracle across scale, rounding and NaN cases', () => {
+  for (const v of scaleVectors) {
+    const result = fscale(decode(v.a), decode(v.b), (v.control >>> 10) & 3);
+    const label = `${v.name}, control 0x${v.control.toString(16)}`;
+    assert.equal(encode(result.bytes), v.output, label);
+    assert.equal(result.flags, v.flags, label + ' exceptions');
+    assert.equal(result.roundedUp, v.roundedUp, label + ' C1');
+  }
+});
+
+test('native PE32 FSCALE loop executes every exact-rational vector through translated x86', async () => {
+  const bytes = new Uint8Array(
+    await readFile(new URL('./fixtures/x87/scale.exe', import.meta.url)),
+  );
+  const result = await probeX87Scale(iced, { files: new Map([['scale.exe', bytes]]) });
+  assert.equal(result.status, 'passed', result.failure);
+});
+
+test('FSCALE truncates ST(1) toward zero and scales by exact powers of two', () => {
+  // Multipliers strictly between 0 and 1 and between -1 and 0 truncate to zero,
+  // including the largest subnormal and the smallest denormal.
+  for (const b of [
+    '0000000000000080fe3f',
+    '0000000000000080febf',
+    'fffffffffffffffffe3f',
+    'fffffffffffffffffebf',
+    '01000000000000000000',
+    '00000000000000800000',
+  ])
+    assert.equal(encode(fscale(decode(one80), decode(b), 0).bytes), one80, `scale ${b}`);
+  // The whole significand shifts with the exponent, so the low bit survives a
+  // doubling exactly; no precision-control narrowing applies to FSCALE.
+  const lowbit = '0100000000000080ff3f';
+  assert.equal(encode(fscale(decode(lowbit), decode(one80), 0).bytes), '01000000000000800040');
+  assert.equal(encode(fscale(decode(lowbit), decode(two80), 0).bytes), '01000000000000800140');
+  assert.equal(
+    encode(fscale(decode(lowbit), decode('0000000000000080ffbf'), 0).bytes),
+    '0100000000000080fe3f',
+  );
+});
+
+test('FSCALE drives signed zeros and infinities per the scale table', () => {
+  const negzero = '00000000000000000080',
+    inf = '0000000000000080ff7f',
+    ninf = '0000000000000080ffff',
+    indefinite = '00000000000000c0ffff';
+  assert.equal(encode(fscale(decode(one80), decode(inf), 0).bytes), inf);
+  assert.equal(encode(fscale(decode(one80), decode(ninf), 0).bytes), '0'.repeat(20));
+  assert.equal(encode(fscale(decode(negzero), decode(inf), 0).bytes), indefinite);
+  assert.equal(encode(fscale(decode(negzero), decode(ninf), 0).bytes), negzero);
+  assert.equal(encode(fscale(decode(inf), decode(ninf), 0).bytes), indefinite);
+  assert.equal(encode(fscale(decode(inf), decode(inf), 0).bytes), inf);
+  assert.equal(encode(fscale(decode(ninf), decode(inf), 0).bytes), ninf);
+  // Overflow and underflow keep the shared #O/#U and C1 accounting.
+  const overflow = fscale(decode('fffffffffffffffffe7f'), decode(one80), 0);
+  assert.equal(encode(overflow.bytes), inf);
+  assert.equal(overflow.flags, 0x28);
+  assert.equal(overflow.roundedUp, true);
 });

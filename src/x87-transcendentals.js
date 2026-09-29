@@ -503,6 +503,10 @@ export function fpatan(yBytes, xBytes, rounding) {
   throw Error('x87 arctangent rounding could not be resolved within the precision bound');
 }
 
+// Ordering used when two quiet NaNs meet: the larger exponent wins, then the
+// larger significand; exact ties keep the second operand, as SoftFloat does.
+const isLargerNaN = (a, b) => a.exponent > b.exponent || (a.exponent === b.exponent && a.sig > b.sig);
+
 // Signed interval helpers for outward-rounded rational evaluation.
 const min2 = (a, b) => (a < b ? a : b);
 const max2 = (a, b) => (a > b ? a : b);
@@ -570,4 +574,55 @@ export function f2xm1(xBytes, rounding) {
     if (sameResult(lower, upper)) return lower;
   }
   throw Error('x87 exponential rounding could not be resolved within the precision bound');
+}
+
+// FSCALE: ST(0) * 2^trunc(ST(1)). Truncation toward zero, plain exponent
+// addition, precision control ignored (QEMU raises floatx80_precision_x here).
+// The scale is saturated at +-2^15 because any larger count already overflows
+// or underflows the extended range, which keeps the exponent arithmetic inside
+// a bounded window and reproduces the indefinite result for |scale| >= 2^16.
+export function fscale(aBytes, bBytes, rounding) {
+  const a = unpack(aBytes),
+    b = unpack(bBytes);
+  if (a.invalid || b.invalid) return invalid();
+  const denormal = a.denormal || b.denormal ? 0x2 : 0;
+  // FSCALE combines NaNs the way SoftFloat's propagateNaNExtF80UI does: a
+  // signaling NaN always raises #IA, a signaling operand yields the other NaN
+  // when it exists, and two quiet NaNs keep the larger magnitude.
+  if (a.nan || b.nan) {
+    const signaling = a.signaling || b.signaling;
+    let chosen;
+    if (signaling) chosen = a.signaling ? (b.nan ? b : a) : a.nan ? a : b;
+    else chosen = isLargerNaN(a, b) ? a : b;
+    return answer(pack(chosen.sig | Q, 0x7fff, chosen.negative), (signaling ? 1 : 0) | denormal);
+  }
+  // An infinity in ST(0) survives a positive infinite scale; a negative infinite
+  // scale (equivalently an infinite ST(1) below one) is an invalid operation.
+  if (a.infinity) return b.infinity && b.negative ? invalid() : answer(aBytes, denormal);
+  if (b.infinity) {
+    if (a.zero) return b.negative ? answer(aBytes, denormal) : invalid();
+    return b.negative
+      ? answer(pack(0n, 0, a.negative), denormal)
+      : infinity(a.negative, denormal);
+  }
+  if (a.zero) return answer(aBytes, denormal);
+  // |ST(1)| < 1 truncates to a zero scale, and a subnormal ST(1) normalizes to
+  // a value far below one, so both leave ST(0) untouched.
+  let scale = 0;
+  if (b.exponent >= 0x3fff) {
+    // Above 0x400e the truncated scale already exceeds 2^15 in magnitude, which
+    // overflows or underflows every possible ST(0); saturate past the shift
+    // range so the shared rounding still reports the correct infinity or zero.
+    scale =
+      b.exponent > 0x400e
+        ? (b.negative ? -0x10000 : 0x10000)
+        : Number(b.sig >> BigInt(0x403e - b.exponent)) * (b.negative ? -1 : 1);
+  }
+  // The exact product is the unbounded significand shifted by this exponent;
+  // feeding it through the standard dyadic rounding handles normal, subnormal,
+  // directed and half-even results with the shared C1/#O/#U/#P accounting.
+  const shift = (a.exponent || 1) - 16383 - 63 + scale,
+    result = roundDyadic(a.negative ? -a.sig : a.sig, shift, rounding);
+  result.flags |= denormal;
+  return result;
 }
