@@ -1,0 +1,46 @@
+{
+  "scope": "D3D12 root-constants cube (32-bit-constants root parameter, canonical shader bindings) on the EXE-upload and hosted-ZIP paths",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "154.0.8037.58",
+  "exeSha256": "fbfe8e5058a01e6f3f93aae76607bde6b7fc6defb7a8cedf04c1bee60dd27a53",
+  "zipSha256": "6cd5c25c3893c41da75cd90f4eec52cf899c3ba9d4e16fa630d2b9f02a4ccc67",
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "firstFourFramesMs": 486,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "colored": 286352,
+        "colors": 5,
+        "hash": "2181910ee7ec24ddffe95816e45447d30c2a3c7fccee278b2af99c3fdc809b0a"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "colored": 92177,
+        "colors": 3,
+        "hash": "2ab640edd7e99092adcad2be8f35457fa760a66238e17b040f4a653ad64574c1"
+      }
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 396,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "colored": 298968,
+        "colors": 5,
+        "hash": "1a72d7958a81e5225ebee318ec3e18b26dd515d95ab4e009df0aaf560383cb1d"
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "colored": 94206,
+        "colors": 4,
+        "hash": "5d8876a001af80a446b427f1df7d9c6149900a7e7ebb3a6c9745d251a2cf676f"
+      }
+    }
+  ],
+  "errors": []
+}

@@ -553,7 +553,9 @@ export class D3D12Renderer {
     for (const binding of bindings) {
       const resource = this.bindingResource(binding, drawIndex);
       if (!resource) throw Error('D3D12 binding has no bound resource');
-      entries.get(binding.group).push({ binding: binding.binding, resource });
+      const list = entries.get(binding.group);
+      if (!list) throw Error(`D3D12 binding group ${binding.group} is outside the canonical groups`);
+      list.push({ binding: binding.binding, resource: resource.resource });
     }
     const groups = [null, null, null];
     for (const [group, list] of entries) {

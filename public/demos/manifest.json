@@ -132,6 +132,15 @@
       "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms and per-vertex lighting during execution. Complete source and rebuild materials included.",
       "exeSha256": "a1e8a16ea357fad42243cd3527ef77707c88d932c58445c6eb746c3d4e3be1bd",
       "zipSha256": "aeab708d6ca5b688c26e1a30070c464b54a0f52ec7614056c9e73caafa4d8689"
+    },
+    {
+      "name": "d3d12-constants",
+      "description": "Native Direct3D 12 root-constants cube: the per-frame transform reaches the vertex shader as 32-bit root constants, so nothing is re-uploaded. Close the window to exit.",
+      "exe": "d3d12-constants/d3d12-constants.exe",
+      "zip": "d3d12-constants.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 root constants and canonical descriptor bindings.",
+      "exeSha256": "fbfe8e5058a01e6f3f93aae76607bde6b7fc6defb7a8cedf04c1bee60dd27a53",
+      "zipSha256": "6cd5c25c3893c41da75cd90f4eec52cf899c3ba9d4e16fa630d2b9f02a4ccc67"
     }
   ]
 }

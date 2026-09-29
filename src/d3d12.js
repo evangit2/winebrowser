@@ -366,9 +366,12 @@ function bindingSnapshot(r, o, resolved) {
   if (placement.kind === 'static-sampler')
     return { ...common, kind: 'sampler', sampler: staticSamplerDescription(value) };
   if (placement.kind === 'inline-constants') {
-    const bytes = Math.max(16, Math.ceil(value.length / 4) * 4);
+    // Each staged value is one 32-bit constant; WebGPU uniform bindings need a
+    // 16-byte multiple, so a shorter parameter is zero-padded.
+    const bytes = Math.max(16, Math.ceil((value.length * 4) / 16) * 16);
     const data = new Uint8Array(bytes);
-    for (let i = 0; i < value.length; i++) view32(data).setUint32(i * 4, value[i] >>> 0, true);
+    const view = view32(data);
+    for (let i = 0; i < value.length; i++) view.setUint32(i * 4, (value[i] ?? 0) >>> 0, true);
     return { ...common, kind: 'uniform', bytes: data };
   }
   if (placement.kind === 'root-descriptor')
@@ -777,9 +780,11 @@ function listMethods() {
     36: {
       argc: 5,
       invoke(r, a, o) {
+        // SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet,
+        //                               pSrcData, DestOffsetIn32BitValues)
         const index = number(a(1)),
-          valuePtr = number(a(2)),
-          count = number(a(3)),
+          count = number(a(2)),
+          valuePtr = number(a(3)),
           offset = number(a(4));
         const root = o.state.root;
         if (!root) throw Error('D3D12 root constants require a root signature');
@@ -1519,13 +1524,13 @@ function deviceMethods() {
         if (number(a(1)) !== 0) return E_INVALIDARG;
         const raw = bytes(r, number(a(2)), number(a(3)));
         const backend = requireBackend(r);
-        const flags = await backend.validateRootSignature(raw);
-        // Keep the inspected structure so the command list can resolve each
-        // shader descriptor's register to a root parameter, and so the pipeline
-        // can derive a canonical WebGPU binding layout from it.
+        // Inspecting both validates the container and yields the structure the
+        // command list needs to resolve each shader descriptor's register to a
+        // root parameter, and that the pipeline needs to derive its canonical
+        // WebGPU binding layout. The signature may be any version 1.0 shape.
         const inspected = await backend.inspectRootSignature(raw);
         const plan = planRootSignature(decodeRootSignatureWords(inspected.words));
-        const item = make(r, 'root', {}, { device: dev, flags, plan }, dev);
+        const item = make(r, 'root', {}, { device: dev, flags: inspected.flags, plan }, dev);
         r.write32(out, item.pointer);
         return S_OK;
       },
