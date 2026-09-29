@@ -52,6 +52,22 @@ for name in DEST.iterdir():
     if name.is_file():
         name.unlink()
 shutil.copyfile(SOURCE, DEST / 'DynamicBranching.zip')
+# Publish the demo's own executable next to the archive as well, so the catalog
+# entry that names it can be fetched directly. The bytes come from the pinned
+# archive, are verified against EXE_SHA, and are written verbatim; the demo
+# keeps its relative Textures/ and Models/ references because the playable
+# package is still the upstream ZIP.
+with zipfile.ZipFile(SOURCE) as archive:
+    member = next(
+        (name for name in archive.namelist() if name.lower().endswith('dynamicbranching.exe')),
+        None,
+    )
+    if member is None:
+        raise SystemExit('Upstream archive has no DynamicBranching.exe')
+    exe_bytes = archive.read(member)
+if hashlib.sha256(exe_bytes).hexdigest() != EXE_SHA:
+    raise SystemExit('Upstream DynamicBranching.exe hash mismatch')
+(DEST / 'DynamicBranching.exe').write_bytes(exe_bytes)
 (DEST / 'PROVENANCE.md').write_text(PROVENANCE)
 
 # The playable package is the upstream archive exactly as downloaded, so its
@@ -65,7 +81,7 @@ entries.append({
         'Unchanged Humus "Dynamic Branching" Direct3D 9 demo: a stencil-shadow '
         'pillar room with programmable shaders and DXT textures. F1 opens settings.'
     ),
-    'exe': f'{NAME}/DynamicBranching/DynamicBranching.exe',
+    'exe': f'{NAME}/DynamicBranching.exe',
     'exeSha256': EXE_SHA,
     'zip': f'{NAME}/DynamicBranching.zip',
     'zipSha256': ARCHIVE_SHA,

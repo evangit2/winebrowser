@@ -129,7 +129,13 @@ export class Runtime {
     this.shutdownState = 'idle';
     this.dirty = new Set();
     this.calls = 0;
+    // The first 2048 interceptions in order, for tracing call sequences, and a
+    // complete deduplicated set of every API/COM method the guest reached.
+    // A real application makes far more than 2048 calls, so the bounded trace
+    // alone cannot answer "which APIs did this program use?". The set is what
+    // diagnostics and compatibility reporting read.
     this.apiTrace = [];
+    this.apiNames = new Set();
     this.blocks = 0;
     this.apiProvider = createWin32ApiProvider();
     this.threads = new GuestThreads(this);
@@ -173,6 +179,7 @@ export class Runtime {
     if (entry.kind === 'wine-nt') response = await dispatchWineNt(this, entry);
     else if (entry.kind === 'com' || entry.kind === 'wine-loader') {
       this.calls++;
+      this.apiNames.add(entry.name);
       if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);
       try {
         response = await entry.invoke(this, argument);
@@ -189,6 +196,7 @@ export class Runtime {
       const handler = this.apiProvider.get(importKey(entry.dll, entry.name));
       if (!handler) throw Error(`Unimplemented import ${importKey(entry.dll, entry.name)}`);
       this.calls++;
+      this.apiNames.add(importKey(entry.dll, entry.name));
       if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
       response = await handler(this, argument);
     }
@@ -643,6 +651,7 @@ export class Runtime {
       exitCode: this.exitCode,
       modules: this.graph.describe(),
       apiTrace: this.apiTrace,
+      apiNames: [...this.apiNames],
       blocks: this.blocks,
       instructions: this.cpu.instructions,
       compiledBlocks: this.cpu.cache.size,

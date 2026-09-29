@@ -384,6 +384,7 @@ export async function dispatchWineNt(runtime, entry) {
   const stack = runtime.cpu.r[4].value >>> 0;
   const argument = (index) => runtime.read32(stack + 8 + index * 4);
   runtime.calls++;
+  runtime.apiNames.add('ntdll.dll!' + service.name);
   if (runtime.apiTrace.length < 2048) runtime.apiTrace.push('ntdll.dll!' + service.name);
   return { result: await provider.call(runtime, argument), argc: 0 };
 }
