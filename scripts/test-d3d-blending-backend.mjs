@@ -42,7 +42,9 @@ try {
       type: 'clear',
       clearColor: true,
       clearDepth: true,
+      clearStencil: false,
       depth: 1,
+      stencil: 0,
       color: argb(background),
     };
     const make = (blend = {}, colors = [source], extra = {}) => {
@@ -157,6 +159,7 @@ try {
         width: 32,
         height: 32,
         depth: true,
+        depthFormat: 'depth16unorm',
         colorFormat: f,
         swapEffect,
       });

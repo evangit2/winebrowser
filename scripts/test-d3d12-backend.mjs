@@ -61,11 +61,13 @@ try {
           height: 128,
           format: 'depth16unorm',
         });
-        const inputLayout = [0, 1].map((index) => ({
-          shaderLocation: index,
-          offset: index * 16,
-          format: 'float32x4',
-        }));
+        // Mirror what parseInputLayout emits for the cube input: each element
+        // carries the application's declared semantic, which createPipeline
+        // matches against the vertex shader's reflected input signature.
+        const inputLayout = [
+          { semanticName: 'POSITION', semanticIndex: 0, offset: 0, format: 'float32x4' },
+          { semanticName: 'COLOR', semanticIndex: 0, offset: 16, format: 'float32x4' },
+        ];
         const pipeline = {
           vertex: Uint8Array.from(vertex),
           pixel: Uint8Array.from(pixel),
@@ -75,7 +77,12 @@ try {
         await renderer.createPipeline({
           ...pipeline,
           id: 5,
-          depth: { format: 'depth16unorm', writeEnabled: true, compare: 'less-equal' },
+          depth: {
+            format: 'depth16unorm',
+            writeEnabled: true,
+            testEnabled: true,
+            compare: 'less-equal',
+          },
         });
         await renderer.createPipeline({ ...pipeline, id: 6 });
         const vertices = (z, color, firstVertex = 0) => {

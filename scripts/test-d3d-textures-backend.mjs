@@ -91,8 +91,10 @@ try {
       type: 'clear',
       clearColor: true,
       clearDepth: false,
+      clearStencil: false,
       color: 0xff102030,
       depth: 1,
+      stencil: 0,
     };
     const check = (name, expected, tolerance = 1) => {
       const data = context.getImageData(0, 0, 64, 64).data;

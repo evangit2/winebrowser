@@ -469,6 +469,9 @@ export class D3D12Renderer {
     for (const command of commands) {
       const resource = this.resources.get(command.target);
       if (!resource) throw Error('D3D12 command uses a released resource');
+      // Swap-chain images carry their extents on the chain; a render texture
+      // carries them on the resource itself.
+      const extent = resource.chain ?? resource;
       if (command.type === 'clear-depth') {
         if (
           resource.kind !== 'depth' ||
@@ -535,15 +538,15 @@ export class D3D12Renderer {
           v.y < 0 ||
           v.width <= 0 ||
           v.height <= 0 ||
-          v.x + v.width > resource.chain.width ||
-          v.y + v.height > resource.chain.height ||
+          v.x + v.width > extent.width ||
+          v.y + v.height > extent.height ||
           v.minDepth < 0 ||
           v.maxDepth > 1 ||
           v.minDepth > v.maxDepth ||
-          !integer(s.left, 0, resource.chain.width) ||
-          !integer(s.right, s.left, resource.chain.width) ||
-          !integer(s.top, 0, resource.chain.height) ||
-          !integer(s.bottom, s.top, resource.chain.height) ||
+          !integer(s.left, 0, extent.width) ||
+          !integer(s.right, s.left, extent.width) ||
+          !integer(s.top, 0, extent.height) ||
+          !integer(s.bottom, s.top, extent.height) ||
           (!indexed && !integer(command.vertexCount, 0, 0x7fffffff)) ||
           !integer(command.instanceCount, 0, 1024) ||
           (!indexed && !integer(command.firstVertex, 0, 0x7fffffff - command.vertexCount)) ||
@@ -685,6 +688,7 @@ export class D3D12Renderer {
   }
 
   async execute({ commands }) {
+    this.validateCommands(commands);
     await this.initialize();
     if (this.graphics.failure) throw Error(this.graphics.failure);
     this.device.pushErrorScope('validation');

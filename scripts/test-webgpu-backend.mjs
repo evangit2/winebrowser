@@ -71,8 +71,10 @@ try {
       type: 'clear',
       clearColor: true,
       clearDepth: true,
+      clearStencil: false,
       color: 0x00252d41, // Guest window presentation is opaque despite clear alpha.
       depth: 1,
+      stencil: 0,
     };
     const legacyShader = async (path) =>
       new Uint8Array(await (await fetch('/tests/fixtures/shaders/legacy/' + path)).arrayBuffer());
@@ -113,7 +115,14 @@ try {
       };
     };
     try {
-      await renderer.createDevice({ id: 1, windowId: 1, width: 130, height: 128, depth: true });
+      await renderer.createDevice({
+        id: 1,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: true,
+        depthFormat: 'depth16unorm',
+      });
       await renderer.present({
         id: 1,
         commands: [clear, draw(0.25, 0xffff0000), draw(0.75, 0xff0000ff)],
@@ -195,7 +204,14 @@ try {
       });
       const quantizedDraw = frames.splice(0);
       renderer.destroyDevice({ id: 4 });
-      await renderer.createDevice({ id: 5, windowId: 1, width: 130, height: 128, depth: true });
+      await renderer.createDevice({
+        id: 5,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: true,
+        depthFormat: 'depth16unorm',
+      });
       const rasterCases = [];
       const shaderDraw = await programmable();
       for (const path of ['fixed', 'programmable']) {
@@ -402,6 +418,7 @@ try {
           width: 130,
           height: 128,
           depth: true,
+          depthFormat: 'depth16unorm',
           colorFormat,
           swapEffect: 3,
         });
@@ -496,6 +513,7 @@ try {
         width: 130,
         height: 128,
         depth: true,
+        depthFormat: 'depth16unorm',
         colorFormat: 23,
         swapEffect: 2,
       });
@@ -525,6 +543,7 @@ try {
         width: 130,
         height: 128,
         depth: true,
+        depthFormat: 'depth16unorm',
         colorFormat: 23,
         swapEffect: 3,
       });
