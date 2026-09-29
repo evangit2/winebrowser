@@ -1,3 +1,6 @@
+// textureSnapshot is a run-time (not module-init) dependency; the circular
+// import with d3d9-textures.js is safe because both bindings are used lazily.
+import { textureSnapshot } from './d3d9-textures.js';
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_SHADER_BYTES = 1024 * 1024;
@@ -381,7 +384,7 @@ function programmableAttributes(state, stride) {
 
 // Shared with the buffered and indexed draw paths: they gather vertex bytes
 // before calling here, so only memory consumption stays pointer-based.
-export function programmableDrawFromVertices(state, vertices, stride, vertexCount) {
+export function programmableDrawFromVertices(state, vertices, stride, vertexCount, runtime) {
   const vertex = state.vertexShader;
   const pixel = state.pixelShader;
   const declaration = state.vertexDeclaration;
@@ -396,11 +399,24 @@ export function programmableDrawFromVertices(state, vertices, stride, vertexCoun
     if (attribute.d3dColor)
       for (let offset = attribute.offset; offset < vertices.length; offset += stride)
         [vertices[offset], vertices[offset + 2]] = [vertices[offset + 2], vertices[offset]];
+  // Legacy sampler registers 0..15 bind both a texture and its sampler state.
+  // The guest textures are snapshotted here so the worker owns immutable bytes;
+  // textureSnapshot decodes any compressed level into RGBA.
+  const textures = new Map();
+  for (const [register, texture] of state.textures.entries()) {
+    if (!texture) continue;
+    if (texture.state.pool >= 2) throw Error('System-memory D3D textures cannot be sampled');
+    textures.set(register, {
+      snapshot: textureSnapshot(runtime, texture),
+      sampler: { ...state.samplers[register] },
+    });
+  }
   return {
     type: 'draw-programmable',
     vertices,
     vertexCount,
     stride,
+    textures,
     attributes: attributes.map(({ d3dColor: _ignored, size: _size, ...attribute }) => attribute),
     vertexShader: vertex.state.bytes.slice(),
     pixelShader: pixel.state.bytes.slice(),

@@ -238,6 +238,79 @@ export class D3DTextureRenderer {
       ],
     });
   }
+  // A programmable shader samples its guest textures through the same decoded
+  // snapshot cache the fixed-function path uses. Legacy sampler registers map
+  // one-to-one onto the vkd3d binding layout: SRV at 16 + 2*register and its
+  // sampler at 17 + 2*register.
+  programmableBindings(surface, textures, expected) {
+    // The programmable pipeline uses an automatic layout, so the entries must
+    // match exactly the bindings that group declared. expected is the set of
+    // binding numbers the translated shaders use.
+    const entries = [];
+    const view = (snapshot) => {
+      const key = snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white';
+      surface.textures ??= new Map();
+      let cached = surface.textures.get(key);
+      if (!cached) {
+        const levels = snapshot?.levels ?? [
+          { width: 1, height: 1, rgba: new Uint8Array([255, 255, 255, 255]) },
+        ];
+        const texture = this.owner.device.createTexture({
+          size: [levels[0].width, levels[0].height],
+          mipLevelCount: levels.length,
+          format: 'rgba8unorm',
+          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        });
+        levels.forEach((l, i) =>
+          this.owner.device.queue.writeTexture(
+            { texture, mipLevel: i },
+            l.rgba,
+            { bytesPerRow: l.width * 4, rowsPerImage: l.height },
+            [l.width, l.height],
+          ),
+        );
+        cached = { texture, views: new Map() };
+        surface.textures.set(key, cached);
+      }
+      if (!cached.views.has(0))
+        cached.views.set(
+          0,
+          cached.texture.createView({ baseMipLevel: 0, mipLevelCount: snapshot?.levels.length ?? 1 }),
+        );
+      return cached.views.get(0);
+    };
+    for (const binding of expected) {
+      const register = (binding - 16) >> 1;
+      const entry = textures.get(register);
+      if (binding % 2 === 0)
+        entries.push({ binding, resource: view(entry?.snapshot) });
+      else
+        entries.push({
+          binding,
+          resource: this.sampler(
+            this.programmableSampler(entry?.sampler ?? { 1: 1, 2: 1, 5: 1, 6: 1, 7: 0 }),
+          ),
+        });
+    }
+    return entries;
+  }
+
+
+  // D3D's separate minification, magnification and mip filters map directly
+  // onto WebGPU's sampler fields; address modes and the LOD clamp do too.
+  programmableSampler(state) {
+    const descriptor = {
+      addressModeU: ADDRESS[state[1]],
+      addressModeV: ADDRESS[state[2]],
+      minFilter: state[5] === 2 ? 'linear' : 'nearest',
+      magFilter: state[6] === 2 ? 'linear' : 'nearest',
+      mipmapFilter: state[7] === 2 ? 'linear' : 'nearest',
+      lodMinClamp: 0,
+      lodMaxClamp: state[7] ? 16 : 0,
+    };
+    return descriptor;
+  }
+
   sampler(descriptor) {
     const key = JSON.stringify(descriptor);
     if (!this.samplers.has(key)) {

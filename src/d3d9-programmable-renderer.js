@@ -7,6 +7,33 @@ import { ShaderCompiler } from './shader-compiler.js';
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 const CONSTANT_BYTES = { vertex: 256 * 16, pixel: 224 * 16 };
 
+// A draw's sampler-register map holds one immutable texture snapshot plus the
+// sampler state for each bound register.
+function validTextures(textures) {
+  if (textures === undefined) return true;
+  if (!(textures instanceof Map) || textures.size > 16) return false;
+  for (const [register, binding] of textures) {
+    if (!integer(register, 0, 15) || !binding || typeof binding !== 'object') return false;
+    const { snapshot, sampler } = binding;
+    if (
+      !snapshot ||
+      !Array.isArray(snapshot.levels) ||
+      !snapshot.levels.length ||
+      snapshot.levels.some(
+        (l) =>
+          !integer(l.width, 1, 2048) ||
+          !integer(l.height, 1, 2048) ||
+          !(l.rgba instanceof Uint8Array) ||
+          l.rgba.length !== l.width * l.height * 4,
+      )
+    )
+      return false;
+    if (!sampler || typeof sampler !== 'object') return false;
+    for (const key of [1, 2, 5, 6, 7]) if (!integer(sampler[key], 0, 8)) return false;
+  }
+  return true;
+}
+
 export class D3D9ProgrammableRenderer {
   constructor(owner) {
     this.owner = owner;
@@ -41,6 +68,7 @@ export class D3D9ProgrammableRenderer {
             attribute.format,
           ),
       ) ||
+      !validTextures(command.textures) ||
       !validRasterState(command) ||
       !validStencil(command) ||
       !validAlphaTest(command) ||
@@ -81,16 +109,48 @@ export class D3D9ProgrammableRenderer {
       command.pixelShader,
     );
     const pixelShader = alphaTestShader(translated.pixel.wgsl, 'main', command);
-    const resources = [translated.vertex.wgsl, pixelShader].flatMap((wgsl) =>
-      [...wgsl.matchAll(/@group\((\d+)\)\s+@binding\((\d+)\)/g)].map((match) => [
-        Number(match[1]),
-        Number(match[2]),
-      ]),
+    // Capture each binding's declared resource kind straight from the WGSL so
+    // the bind group entries always match the automatic layout.
+    const declared = [translated.vertex.wgsl, pixelShader].flatMap((wgsl) =>
+      [
+        ...wgsl.matchAll(
+          /@group\((\d+)\)\s+@binding\((\d+)\)\s+var(?:<[^>]*>)?\s+(\w+)\s*:\s*([^;]+);/g,
+        ),
+      ].map((match) => ({
+        group: Number(match[1]),
+        binding: Number(match[2]),
+        kind: match[4].trim(),
+      })),
     );
-    if (resources.some(([group, binding]) => group > 1 || binding !== 0))
-      throw Error('D3D9 integer, boolean, texture, and sampler shader resources are unsupported');
-    const usesVertexConstants = resources.some(([group]) => group === 0);
-    const usesPixelConstants = resources.some(([group]) => group === 1);
+    const resources = declared.map((entry) => [entry.group, entry.binding]);
+    // vkd3d assigns CBVs to the register number (float=0, int=1, bool=2) and
+    // textures/samplers to 16 + 2*register / 17 + 2*register in the stage's
+    // group. Anything outside that layout is an unimplemented resource type.
+    const constantBindings = resources.filter(([, binding]) => binding <= 2);
+    if (resources.some(([group, binding]) => group > 1 || (binding > 2 && binding < 16)))
+      throw Error('D3D9 unsupported programmable shader resource binding');
+    const usesVertexConstants = constantBindings.some(([group]) => group === 0);
+    const usesPixelConstants = constantBindings.some(([group]) => group === 1);
+    const integerOrBoolean = new Set(
+      constantBindings.filter(([, binding]) => binding !== 0).map(([group]) => group),
+    );
+    // Which groups declare image/sampler bindings; the prepare path fills them
+    // from the draw's sampler registers.
+    const textureGroups = new Map(),
+      textureTypes = new Map();
+    for (const [group, binding] of resources)
+      if (binding >= 16) {
+        if (binding > 31) throw Error('D3D9 shader sampler register exceeds 7');
+        const groupBindings = textureGroups.get(group) ?? new Set();
+        groupBindings.add(binding);
+        textureGroups.set(group, groupBindings);
+        const types = textureTypes.get(group) ?? new Map();
+        const declaredKind = declared.find(
+          (entry) => entry.group === group && entry.binding === binding,
+        )?.kind;
+        types.set(binding, declaredKind);
+        textureTypes.set(group, types);
+      }
     this.owner.device.pushErrorScope('validation');
     let pipeline;
     try {
@@ -133,7 +193,23 @@ export class D3D9ProgrammableRenderer {
     }
     const validation = await this.owner.device.popErrorScope();
     if (validation) throw Error('Programmable D3D9 pipeline failed: ' + validation.message);
-    cached = { pipeline, usesVertexConstants, usesPixelConstants };
+    const pipelineGroupCount = Math.max(1, ...resources.map(([group]) => group + 1));
+    const groupBindings = new Map();
+    for (const [group, binding] of resources) {
+      const set = groupBindings.get(group) ?? new Set();
+      set.add(binding);
+      groupBindings.set(group, set);
+    }
+    cached = {
+      pipeline,
+      usesVertexConstants,
+      usesPixelConstants,
+      integerOrBoolean,
+      textureGroups,
+      textureTypes,
+      groupBindings,
+      pipelineGroupCount,
+    };
     this.pipelines.set(key, cached);
     return cached;
   }
@@ -158,25 +234,65 @@ export class D3D9ProgrammableRenderer {
     surface.programmableSlots ??= [];
     const slot = (surface.programmableSlots[index] ??= {});
     const vertex = this.buffer(slot, 'vertex', command.vertices, GPUBufferUsage.VERTEX);
+    // A stage's bind group holds every resource that stage declares: its CBVs
+    // plus any textures and samplers. Build each group once, entries together,
+    // because an automatic layout requires an exact binding-for-binding match.
     const groups = [];
-    for (const [group, used, constants] of [
-      [0, compiled.usesVertexConstants, command.vertexConstants],
-      [1, compiled.usesPixelConstants, command.pixelConstants],
-    ]) {
-      if (!used) continue;
-      const uniform = this.buffer(slot, `constants${group}`, constants, GPUBufferUsage.UNIFORM);
-      groups.push([
-        group,
-        this.owner.device.createBindGroup({
-          layout: compiled.pipeline.getBindGroupLayout(group),
-          entries: [{ binding: 0, resource: { buffer: uniform } }],
-        }),
-      ]);
+    for (let group = 0; group < compiled.pipelineGroupCount; group++) {
+      const entries = [];
+      for (const binding of compiled.groupBindings.get(group) ?? []) {
+        if (binding === 0) {
+          const constants = group === 0 ? command.vertexConstants : command.pixelConstants;
+          entries.push({
+            binding,
+            resource: {
+              buffer: this.buffer(slot, `constants${group}`, constants, GPUBufferUsage.UNIFORM),
+            },
+          });
+        } else if (binding === 1 || binding === 2) {
+          // Integer and boolean constants: D3D9 programs do not write them, so
+          // bind a zeroed block that satisfies the declared size.
+          entries.push({
+            binding,
+            resource: {
+              buffer: this.buffer(
+                slot,
+                `constants${group}_${binding}`,
+                new Float32Array(256),
+                GPUBufferUsage.UNIFORM,
+              ),
+            },
+          });
+        }
+      }
+      const textures = compiled.textureGroups.get(group);
+      if (textures)
+        entries.push(
+          ...this.owner.textures.programmableBindings(
+            surface,
+            command.textures ?? new Map(),
+            textures,
+          ),
+        );
+      if (!entries.length) continue;
+      this.owner.device.pushErrorScope('validation');
+      const bindGroup = this.owner.device.createBindGroup({
+        layout: compiled.pipeline.getBindGroupLayout(group),
+        entries,
+      });
+      const groupError = await this.owner.device.popErrorScope();
+      if (groupError)
+        throw Error(
+          `Programmable D3D9 bind group ${group} failed: ${groupError.message} ` +
+            `(entries ${entries.map((e) => e.binding).join(',')})`,
+        );
+      groups.push([group, bindGroup]);
     }
     const feedback = needsBlendFeedback(surface, command);
     if (feedback) {
       // Automatic layouts have empty intervening groups when a guest shader
-      // omits constants. Bind those groups as required by the group-2 layout.
+      // omits resources. Bind those groups so the feedback group at index 2
+      // always lines up.
       for (let i = 0; i < 2; i++)
         if (!groups.some(([n]) => n === i))
           groups.push([

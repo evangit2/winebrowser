@@ -144,10 +144,18 @@ export async function probeWineTarget(
       emit: (message) => {
         if (message.type === 'frame') {
           report.frames++;
-          const pending = sampleFrame(message).catch((error) => {
-            report.requests.push({ kind: 'frame-sample-error', text: error.message });
-          });
-          report.pendingSamples.push(pending);
+          // A render loop presents indefinitely; keep the sample set bounded
+          // (and await it exactly once) so a long run cannot grow the report.
+          if (report.frameSamples.length < 3 && report.pendingSamples.length < 3) {
+            const pending = sampleFrame(message)
+              .then(() => {
+                report.pendingSamples.splice(report.pendingSamples.indexOf(pending), 1);
+              })
+              .catch((error) => {
+                report.requests.push({ kind: 'frame-sample-error', text: error.message });
+              });
+            report.pendingSamples.push(pending);
+          }
         }
         message.bitmap?.close();
       },
@@ -246,7 +254,10 @@ export async function probeWineTarget(
         const hot = locate(ip);
         const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
         report.blockHistogram[hotKey] = (report.blockHistogram[hotKey] ?? 0) + 1;
-        if (report.blockHistogram.size > 200000) report.blockHistogram.clear();
+        // A long-running guest (a render loop) visits unbounded distinct blocks,
+        // so the histogram is a plain object and must be size-checked by its
+        // own key count rather than Map.size, which does not exist here.
+        if (Object.keys(report.blockHistogram).length > 200000) report.blockHistogram = {};
         // Snapshot the runtime bytes of very hot blocks. Packed images
         // self-modify, so static disassembly of those regions is unusable.
         const HOT_SAMPLE_THRESHOLD = 20000;

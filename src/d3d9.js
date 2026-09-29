@@ -249,6 +249,7 @@ function bufferedDraw(runtime, state, source, primitive, primitiveCount) {
     expanded.vertices,
     stride,
     expanded.vertexCount,
+    runtime,
   );
   if (programmable) {
     if (primitive !== D3DPT.TRIANGLELIST) throw Error('Unsupported programmable D3D9 draw state');
@@ -664,6 +665,7 @@ function deviceMethods(version = 9) {
           expanded.vertices,
           stride,
           expanded.vertexCount,
+          runtime,
         );
         if (programmable) {
           if (primitive !== D3DPT.TRIANGLELIST)
