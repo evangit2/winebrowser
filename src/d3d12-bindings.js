@@ -424,7 +424,13 @@ export function resolveDrawBindings({ bindings, plan, bound, resolve }) {
     if (placement.kind === 'root-descriptor') {
       if (entry.kind !== 'root-descriptor')
         throw Error('D3D12 root parameter is not bound as a root descriptor');
-      return { binding, placement, value: entry.resource };
+      // A root descriptor names a GPU virtual address inside the bound buffer,
+      // so both the resource and the address reach the caller.
+      return {
+        binding,
+        placement,
+        value: { resource: entry.resource, address: entry.address },
+      };
     }
     // inline-constants
     if (entry.kind !== 'constants') throw Error('D3D12 root parameter is not bound as constants');

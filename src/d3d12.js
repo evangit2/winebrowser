@@ -391,8 +391,20 @@ function bindingSnapshot(r, o, resolved) {
     for (let i = 0; i < value.length; i++) view.setUint32(i * 4, (value[i] ?? 0) >>> 0, true);
     return { ...common, kind: 'uniform', bytes: data };
   }
-  if (placement.kind === 'root-descriptor')
-    return { ...common, ...resourceSnapshot(r, value, 0, value.state.size) };
+  if (placement.kind === 'root-descriptor') {
+    // A root descriptor names a GPU virtual address inside the resource, so the
+    // view starts at that offset and runs to the end of the buffer. A caller
+    // that binds the buffer's own address gets the whole buffer, as before.
+    const storage = value.resource.state.storage,
+      size = value.resource.state.size;
+    const offset = value.address - storage;
+    if (!Number.isInteger(offset) || offset < 0 || offset > size)
+      throw Error('D3D12 root descriptor address is outside its resource');
+    return {
+      ...common,
+      ...resourceSnapshot(r, value.resource, offset, size - offset),
+    };
+  }
   // Descriptor table: the slot holds the view the creator recorded.
   if (value.kind === 'cbv')
     return { ...common, ...resourceSnapshot(r, value.resource, value.offset, value.size) };

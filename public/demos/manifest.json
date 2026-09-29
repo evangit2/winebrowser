@@ -134,6 +134,15 @@
       "zipSha256": "aeab708d6ca5b688c26e1a30070c464b54a0f52ec7614056c9e73caafa4d8689"
     },
     {
+      "name": "d3d12-rootcbv",
+      "description": "Native Direct3D 12 root constant buffer view: the per-frame transform is bound by GPU virtual address with SetGraphicsRootConstantBufferView, using no descriptor heap or table at all. Close the window to exit.",
+      "exe": "d3d12-rootcbv/d3d12-rootcbv.exe",
+      "zip": "d3d12-rootcbv.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 root CBV descriptors.",
+      "exeSha256": "2d6cd1a275d72f3cd114ecddf9d1a6e0a3e295c4f9a048fdf36c7942368ecee3",
+      "zipSha256": "cfd6d5d4710a01ec30c9ced027ab5ec2889c051d3f9a195c1155ad1a37a746aa"
+    },
+    {
       "name": "d3d12-constbuffer",
       "description": "Native Direct3D 12 cube driven by a constant buffer bound through a CBV descriptor table (the HelloConstBuffers shape). Close the window to exit.",
       "exe": "d3d12-constbuffer/d3d12-constbuffer.exe",
