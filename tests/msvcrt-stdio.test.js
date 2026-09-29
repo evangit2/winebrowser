@@ -125,3 +125,38 @@ test('_initterm calls every initializer; only _initterm_e stops on a failure', a
   assert.equal((await api('_initterm_e', table, table + 12)).result, 1);
   assert.deepEqual(ran, [first], '_initterm_e stops at the first non-zero result');
 });
+
+test('the CRT argument accessors describe the real process vector, not an unset property', async () => {
+  // The runtime stores the argument list as `args`; the CRT accessors used to
+  // read a never-set `arguments` property, so every MSVC program saw argc 0 and
+  // an empty argv. They now share the process command-line helpers.
+  const r = new Runtime(iced, {
+    files: new Map([['console.exe', exe]]),
+    exe: 'console.exe',
+    args: ['alpha', 'beta gamma'],
+  });
+  const call = async (name, ...args) =>
+    await r.apiProvider.get(`msvcrt.dll!${name}`)(r, (i) => args[i] ?? 0);
+  const argcCell = r.allocate(4),
+    argvCell = r.allocate(4);
+  assert.equal((await call('__getmainargs', argcCell, argvCell, 0, 0, 0)).result, 0);
+  assert.equal(r.read32(argcCell), 3, 'argv[0] plus two arguments');
+  const argv = r.read32(argvCell) >>> 0;
+  const strings = [];
+  for (let i = 0; i < 4; i++) {
+    const pointer = r.read32(argv + i * 4) >>> 0;
+    if (!pointer) break;
+    strings.push(r.string(pointer));
+  }
+  assert.deepEqual(strings, ['console.exe', 'alpha', 'beta gamma']);
+  // The vector is NUL-terminated.
+  assert.equal(r.read32(argv + 3 * 4), 0);
+  // __argc and _acmdln agree with the same vector and the quoted command line.
+  assert.equal(r.read32((await call('__argc')).result >>> 0), 3);
+  const commandLineCell = (await call('__p__acmdln')).result >>> 0;
+  assert.equal(r.string(r.read32(commandLineCell) >>> 0), 'console.exe alpha "beta gamma"');
+  const wideArgv = r.read32((await call('__p___wargv')).result >>> 0) >>> 0;
+  assert.equal(r.wideString(r.read32(wideArgv + 4) >>> 0), 'alpha');
+  r.windows.dispose();
+  r.cpu.dispose();
+});

@@ -12,6 +12,7 @@ import {
 import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { touchFile } from './file-metadata.js';
+import { processCommandLine, processArguments } from './command-line.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 // x86 argument passing: a double occupies two DWORDs on the stack, low half
@@ -327,7 +328,8 @@ msvcrtApis['msvcrt.dll!_controlfp_s'] = (r, a) => {
 };
 msvcrtApis['msvcrt.dll!__getmainargs'] = (r, a) => {
   // __getmainargs(int *argc, char ***argv, char ***envp, int expand, _startupinfo *)
-  for (const [index, value] of [[0, (r.arguments ?? []).length]]) {
+  // argc/argv describe the whole process vector, so argv[0] is the executable.
+  for (const [index, value] of [[0, processArguments(r).length]]) {
     if (a(index)) {
       r.check(a(index), 4, true);
       r.write32(a(index), value);
@@ -346,7 +348,7 @@ msvcrtApis['msvcrt.dll!__getmainargs'] = (r, a) => {
 msvcrtApis['msvcrt.dll!__wgetmainargs'] = (r, a) => {
   if (a(0)) {
     r.check(a(0), 4, true);
-    r.write32(a(0), (r.arguments ?? []).length);
+    r.write32(a(0), processArguments(r).length);
   }
   if (a(1)) {
     r.check(a(1), 4, true);
@@ -993,6 +995,18 @@ function integerCell(value) {
     return address;
   };
 }
+// The CRT declares several data symbols as pointer *variables*: `_acmdln` is a
+// `char*`, `_pgmptr` a `char*`, `__argv` a `char**`. The exported address is the
+// address of that variable, so the guest reads the value with one load, and the
+// matching `__p_*` accessor returns the variable's address too. A cell holding
+// the pointer is therefore the correct shape, not the string or table address.
+function pointerCell(resolve) {
+  return (r) => {
+    const cell = r.allocate(4, true);
+    r.write32(cell, resolve(r));
+    return cell;
+  };
+}
 // A FILE structure in the MSVC layout; _iob is stdin/stdout/stderr.
 function iobArray(r) {
   const base = r.allocate(32 * 3, true);
@@ -1002,12 +1016,16 @@ function iobArray(r) {
   }
   return base;
 }
+// _acmdln/_wcmdln are the raw command line the process was started with, which
+// is the same string GetCommandLineA/W returns: the executable path followed by
+// the arguments, each quoted the way the Windows CRT quotes one.
 function commandLinePointer(r, wide) {
-  return r.allocString((r.arguments ?? []).join(' '), wide);
+  return r.allocString(processCommandLine(r), wide);
 }
+// __argv/__wargv are a NUL-terminated vector of NUL-terminated strings, one per
+// process argument, with argv[0] naming the executable.
 function argvPointer(r, wide) {
-  const args = r.arguments?.length ? r.arguments : [''];
-  const strings = args.map((argument) => r.allocString(argument, wide));
+  const strings = processArguments(r).map((argument) => r.allocString(argument, wide));
   const table = r.allocate((strings.length + 1) * 4, true);
   strings.forEach((address, index) => r.write32(table + index * 4, address));
   return table;
@@ -1018,10 +1036,10 @@ function programPointer(r, wide) {
 // Each data symbol keeps one stable address for the process lifetime.
 const DATA_EXPORTS = {
   _iob: iobArray,
-  _acmdln: (r) => commandLinePointer(r, false),
-  _wcmdln: (r) => commandLinePointer(r, true),
-  _pgmptr: (r) => programPointer(r, false),
-  _wpgmptr: (r) => programPointer(r, true),
+  _acmdln: pointerCell((r) => commandLinePointer(r, false)),
+  _wcmdln: pointerCell((r) => commandLinePointer(r, true)),
+  _pgmptr: pointerCell((r) => programPointer(r, false)),
+  _wpgmptr: pointerCell((r) => programPointer(r, true)),
   _environ: (r) => integerCell(0)(r),
   _wenviron: (r) => integerCell(0)(r),
   _fmode: (r) => integerCell(0)(r),
@@ -1036,9 +1054,9 @@ const DATA_EXPORTS = {
   _dstbias: (r) => integerCell(0)(r),
   _sys_nerr: (r) => integerCell(0)(r),
   __mb_cur_max: (r) => integerCell(1)(r),
-  __argc: (r) => integerCell((r.arguments ?? []).length)(r),
-  __argv: (r) => argvPointer(r, false),
-  __wargv: (r) => argvPointer(r, true),
+  __argc: (r) => integerCell(processArguments(r).length)(r),
+  __argv: pointerCell((r) => argvPointer(r, false)),
+  __wargv: pointerCell((r) => argvPointer(r, true)),
   __initenv: (r) => integerCell(0)(r),
   _winitenv: (r) => integerCell(0)(r),
 };
