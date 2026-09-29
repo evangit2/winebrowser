@@ -1,6 +1,7 @@
 import { blendKey, colorTarget, needsBlendFeedback, usesBlendConstant } from './d3d-blending.js';
-import { rgb565Shader } from './d3d-presentation.js';
+import { rgb565Shader, alphaTestShader } from './d3d-presentation.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
+import { validStencil, validAlphaTest, stencilState } from './d3d-stencil.js';
 import { ShaderCompiler } from './shader-compiler.js';
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
@@ -41,9 +42,12 @@ export class D3D9ProgrammableRenderer {
           ),
       ) ||
       !validRasterState(command) ||
+      !validStencil(command) ||
+      !validAlphaTest(command) ||
       typeof command.depthTest !== 'boolean' ||
       typeof command.depthWrite !== 'boolean' ||
-      ((command.depthTest || command.depthWrite) && !surface.depthTexture)
+      ((command.depthTest || command.depthWrite) && !surface.depthTexture) ||
+      (stencilState(command)[52] && surface.depthFormat !== 'depth24plus-stencil8')
     )
       throw Error('Unsupported or invalid programmable D3D9 draw command');
   }
@@ -66,6 +70,8 @@ export class D3D9ProgrammableRenderer {
       command.cullMode,
       surface.colorFormat,
       !!command.dither,
+      JSON.stringify(stencilState(command)),
+      JSON.stringify(command.alphaTest ?? null),
     ].join('|');
     let cached = this.pipelines.get(key);
     if (cached) return cached;
@@ -74,7 +80,8 @@ export class D3D9ProgrammableRenderer {
       command.vertexShader,
       command.pixelShader,
     );
-    const resources = [translated.vertex.wgsl, translated.pixel.wgsl].flatMap((wgsl) =>
+    const pixelShader = alphaTestShader(translated.pixel.wgsl, 'main', command);
+    const resources = [translated.vertex.wgsl, pixelShader].flatMap((wgsl) =>
       [...wgsl.matchAll(/@group\((\d+)\)\s+@binding\((\d+)\)/g)].map((match) => [
         Number(match[1]),
         Number(match[2]),
@@ -105,25 +112,19 @@ export class D3D9ProgrammableRenderer {
             code:
               surface.colorFormat === 23
                 ? rgb565Shader(
-                    translated.pixel.wgsl,
+                    pixelShader,
                     'main',
                     command.dither,
                     needsBlendFeedback(surface, command) ? command : null,
                   )
-                : translated.pixel.wgsl,
+                : pixelShader,
           }),
           entryPoint: 'main',
           targets: [colorTarget(surface, command, this.owner.format)],
         },
         primitive: primitiveState(command.cullMode),
         ...(surface.depthTexture
-          ? {
-              depthStencil: {
-                format: surface.depthFormat,
-                depthWriteEnabled: command.depthTest && command.depthWrite,
-                depthCompare: command.depthTest ? (command.depthCompare ?? 'less-equal') : 'always',
-              },
-            }
+          ? { depthStencil: this.owner.depthStencil(surface, command) }
           : {}),
       });
     } catch (error) {

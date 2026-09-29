@@ -1,6 +1,7 @@
 import { fvfLayout } from './d3d-fvf.js';
 import { lightingStruct, lightingFields, lightingCode } from './d3d-lighting.js';
 import { validSamplerValue, validStageValue, floatState } from './d3d-texture-state.js';
+import { alphaTestCode } from './d3d-stencil.js';
 const ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
 export function validateTexturing(t) {
   if (!t) return 0;
@@ -124,6 +125,7 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
   }
 
   let color = ${output};
+  ${alphaTestCode('color.a', command)}
   return ${command.specularEnable ? 'vec4(clamp(color.rgb + input.specular.rgb,vec3(0.0),vec3(1.0)),color.a)' : 'color'};
 }`;
 }

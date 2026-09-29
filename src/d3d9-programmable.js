@@ -401,6 +401,8 @@ export function programmableDrawFromVertices(state, vertices, stride, vertexCoun
     depthCompare: state.depthCompare,
     dither: state.dither,
     blend: { ...state.blendState },
+    stencil: { ...state.stencil },
+    alphaTest: { ...state.alphaTest },
     viewport: { ...state.viewport },
     cullMode: state.cullMode,
     payloadBytes:

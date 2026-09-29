@@ -1,4 +1,5 @@
 import { feedbackShader } from './d3d-blending.js';
+import { alphaTestState, alphaTestCode } from './d3d-stencil.js';
 // RGB565 storage uses expanded UNORM8 values because WebGPU has no RGB565
 // attachment. Convert each write, preserving earlier pixels across draws/flips.
 export function clearColor(argb, format) {
@@ -6,6 +7,45 @@ export function clearColor(argb, format) {
     format === 23 ? Math.round((v * (i === 1 ? 63 : 31)) / 255) / (i === 1 ? 63 : 31) : v / 255,
   );
   return { r: rgb[0], g: rgb[1], b: rgb[2], a: format === 23 ? 1 : (argb >>> 24) / 255 };
+}
+
+// Names for the fragment input arguments and the color/output member of the
+// entry point's return type. Shared by the RGB565 and alpha-test wrappers so
+// both see the same canonical Naga shape.
+function fragmentShape(wgsl, entryPoint) {
+  const match = new RegExp(`@fragment\\s+fn\\s+${entryPoint}\\s*\\(`).exec(wgsl);
+  if (!match) throw Error(`Shader has no fragment entry point ${entryPoint}`);
+  let close = match.index + match[0].length,
+    nesting = 1;
+  const start = close;
+  while (close < wgsl.length && nesting) {
+    if (wgsl[close] === '(') nesting++;
+    if (wgsl[close] === ')') nesting--;
+    close++;
+  }
+  const body = wgsl.indexOf('{', close);
+  if (nesting || body < 0) throw Error('Invalid fragment signature');
+  const result = wgsl
+    .slice(close, body)
+    .trim()
+    .replace(/^->\s*/, '');
+  const type = stripBindings(result);
+  let output = '';
+  if (!/^@location\(0\)\s+vec4<f32>$/.test(result)) {
+    const members = structBody(wgsl, type);
+    const locations = [...members.matchAll(/@location\((\d+)\)/g)];
+    const field = /@location\(0\)\s+(\w+)\s*:\s*vec4<f32>/.exec(members);
+    if (locations.length !== 1 || !field) throw Error('Unsupported fragment color outputs');
+    output = '.' + field[1];
+  }
+  const args = splitArguments(wgsl.slice(start, close - 1));
+  const plain = args.map(stripBindings);
+  const names = plain.map((a) => {
+    const found = /^(\w+)\s*:/.exec(a);
+    if (!found) throw Error('Invalid fragment input');
+    return found[1];
+  });
+  return { match, body, args, plain, names, type, result, output };
 }
 
 function splitArguments(text) {
@@ -26,6 +66,35 @@ function splitArguments(text) {
 const stripBindings = (text) => text.replace(/@\w+(?:\([^)]*\))?\s*/g, '').trim();
 function structBody(wgsl, type) {
   return new RegExp(`\\bstruct\\s+${type}\\s*\\{([^}]+)\\}`).exec(wgsl)?.[1] ?? '';
+}
+
+// Wrap the guest's fragment entry point so its alpha output is tested against
+// D3D's ALPHAREF before anything is written, discarding fragments that fail.
+// This mirrors the fixed-function path's injected comparison.
+export function alphaTestShader(wgsl, entryPoint, command) {
+  if (!alphaTestState(command)[15]) return wgsl;
+  const shape = fragmentShape(wgsl, entryPoint);
+  const prefix = uniquePrefix(wgsl, 'winebrowser_alpha_');
+  const original =
+    wgsl.slice(0, shape.match.index) +
+    `fn ${prefix}guest(${shape.plain.join(', ')}) -> ${shape.type} ` +
+    wgsl.slice(shape.body);
+  const discard = alphaTestCode(`${prefix}value${shape.output}.a`, command);
+  return (
+    original +
+    `
+@fragment fn ${entryPoint}(${shape.args.join(', ')}) -> ${shape.result} {
+  var ${prefix}value = ${prefix}guest(${shape.names.join(', ')});
+  ${discard}
+  return ${prefix}value;
+}
+`
+  );
+}
+function uniquePrefix(wgsl, base) {
+  let prefix = base;
+  while (wgsl.includes(prefix)) prefix += 'x';
+  return prefix;
 }
 
 // Wrap Naga's canonical WGSL entry point, leaving all original shader logic

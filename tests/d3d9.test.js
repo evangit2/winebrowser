@@ -144,8 +144,10 @@ test('Clear and DrawPrimitiveUP snapshot colored 3D vertices and transformed sta
     type: 'clear',
     color: 0xff123456,
     depth: 1,
+    stencil: 0,
     clearColor: true,
     clearDepth: true,
+    clearStencil: false,
     regions: [{ x: 0, y: 0, width: 640, height: 480 }],
   });
   assert.equal(frame.commands[1].vertexCount, 3);
@@ -878,7 +880,10 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 14 * 4), 0x4208);
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
-    for (const index of [17, 18, 34, 47]) assert.equal(runtime.read32(p + index * 4), 0);
+    // StencilCaps advertises exactly the D3DSTENCILOP operations the WebGPU
+    // renderer maps; cube/volume texture and stream caps stay unadvertised.
+    assert.equal(runtime.read32(p + 34 * 4), 0xff);
+    for (const index of [17, 18, 47]) assert.equal(runtime.read32(p + index * 4), 0);
     // The programmable path compiles VS 1.1 and PS 2.0, so those versions are
     // advertised while other shader models stay unadvertised.
     assert.equal(runtime.read32(p + 49 * 4), 0xfffe0101);
@@ -1623,22 +1628,25 @@ for (const version of [8, 9]) {
 }
 
 for (const version of [8, 9]) {
-  test(`D3D${version} disabled effects are queryable without claiming enabled rendering`, async () => {
+  test(`D3D${version} alpha test and stencil render state round-trip and validate`, async () => {
     const { runtime: r, call, create, output } = fixture(version),
       d = await create();
     const set = version === 8 ? 50 : 57,
       get = version === 8 ? 51 : 58;
-    for (const state of [15, 28, 52]) {
+    // Alpha test and stencil are implemented, so enabling them succeeds.
+    for (const state of [15, 52]) {
       await call(d, get, state, output);
       assert.equal(r.read32(output), 0);
+      assert.equal((await call(d, set, state, 1)).result, 0);
+      await call(d, get, state, output);
+      assert.equal(r.read32(output), 1);
       assert.equal((await call(d, set, state, 0)).result, 0);
-      await assert.rejects(() => call(d, set, state, 1), new RegExp(`Unsupported.*${state}=1`));
-      await call(d, get, state, output);
-      assert.equal(r.read32(output), 0);
     }
-    for (const [state, value] of [
-      [24, 0x123456ab],
-      [25, 5],
+    // Fog is still tracked without claiming the rendering path.
+    await assert.rejects(() => call(d, set, 28, 1), /Unsupported.*28=1/);
+    const cases = [
+      [24, 0xab], // ALPHAREF is a 0-255 byte.
+      [25, 5, [25]],
       [34, 0x10203040],
       [35, 3],
       [36, 0x7fc01234],
@@ -1646,23 +1654,26 @@ for (const version of [8, 9]) {
       [38, 0x3e800000],
       [48, 1],
       [140, 2],
-      [53, 3],
-      [54, 4],
-      [55, 8],
-      [56, 7],
+      [53, 3, [53]],
+      [54, 4, [54]],
+      [55, 8, [55]],
+      [56, 7, [56]],
       [57, 0x12345678],
       [58, 0xffffff00],
       [59, 0xff00ffff],
-    ]) {
+    ];
+    for (const [state, value, compares] of cases) {
       assert.equal((await call(d, set, state, value)).result, 0);
       await call(d, get, state, output);
       assert.equal(r.read32(output), value);
-      if ([25, 53, 54, 55, 56].includes(state)) {
+      if (compares) {
         assert.equal((await call(d, set, state, 9)).result, 0x8876086c);
         await call(d, get, state, output);
         assert.equal(r.read32(output), value);
       }
     }
+    // ALPHAREF rejects anything above a byte.
+    assert.equal((await call(d, set, 24, 0x123456ab)).result, 0x8876086c);
     await call(d, 2);
   });
 }

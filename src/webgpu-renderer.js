@@ -8,6 +8,7 @@ import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
 import { clearColor, rgb565Shader } from './d3d-presentation.js';
 import { defaultViewport, validViewport, validRegion } from './d3d-viewport.js';
 import { D3DClearRenderer } from './d3d-clear-renderer.js';
+import { validStencil, validAlphaTest, stencilFace, stencilState } from './d3d-stencil.js';
 
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
@@ -17,6 +18,13 @@ const MAX_DIMENSION = 2048;
 const MAX_COMMANDS = 256;
 const MAX_FRAME_BYTES = 8 * 1024 * 1024;
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
+// A disabled stencil test passes every fragment and changes nothing.
+const PASS_THROUGH_STENCIL = Object.freeze({
+  compare: 'always',
+  failOp: 'keep',
+  depthFailOp: 'keep',
+  passOp: 'keep',
+});
 const matrix = (value) =>
   (Array.isArray(value) || value instanceof Float32Array) &&
   value.length === 16 &&
@@ -86,7 +94,7 @@ export class WebGPURenderer {
       !integer(width, 1, MAX_DIMENSION) ||
       !integer(height, 1, MAX_DIMENSION) ||
       typeof depth !== 'boolean' ||
-      (depth ? !['depth16unorm', 'depth24plus'].includes(depthFormat) : depthFormat !== null) ||
+      (depth ? !['depth16unorm', 'depth24plus-stencil8'].includes(depthFormat) : depthFormat !== null) ||
       ![21, 22, 23].includes(colorFormat) ||
       ![1, 2, 3].includes(swapEffect) ||
       ![0, 1, 0x80000000].includes(interval)
@@ -192,7 +200,10 @@ export class WebGPURenderer {
           command.depth > 1 ||
           typeof command.clearColor !== 'boolean' ||
           typeof command.clearDepth !== 'boolean' ||
+          typeof command.clearStencil !== 'boolean' ||
+          !integer(command.stencil, 0, 0xff) ||
           (command.clearDepth && !surface.depthTexture) ||
+          (command.clearStencil && surface.depthFormat !== 'depth24plus-stencil8') ||
           (command.regions !== undefined &&
             (!Array.isArray(command.regions) ||
               command.regions.length > 256 ||
@@ -232,9 +243,12 @@ export class WebGPURenderer {
           !matrix(command.view) ||
           !matrix(command.projection) ||
           !validRasterState(command) ||
+          !validStencil(command) ||
+          !validAlphaTest(command) ||
           typeof command.depthTest !== 'boolean' ||
           typeof command.depthWrite !== 'boolean' ||
-          (command.depthTest && !surface.depthTexture)
+          (command.depthTest && !surface.depthTexture) ||
+          (stencilState(command)[52] && surface.depthFormat !== 'depth24plus-stencil8')
         )
           throw Error('Unsupported or invalid graphics draw command');
         bytes += command.vertices.length;
@@ -268,6 +282,8 @@ export class WebGPURenderer {
       JSON.stringify(command.texturing?.stage),
       !!command.texturing?.texture,
       !!command.texturing?.sampler[7],
+      JSON.stringify(stencilState(command)),
+      JSON.stringify(command.alphaTest ?? null),
     ].join(':');
     if (!this.pipelines.has(key)) {
       if (command.texturing) this.textures.initialize();
@@ -318,21 +334,33 @@ export class WebGPURenderer {
             targets: [colorTarget(surface, command, this.format)],
           },
           primitive: primitiveState(command.cullMode),
-          ...(surface.depthTexture
-            ? {
-                depthStencil: {
-                  format: surface.depthFormat,
-                  depthWriteEnabled: command.depthTest && command.depthWrite,
-                  depthCompare: command.depthTest
-                    ? (command.depthCompare ?? 'less-equal')
-                    : 'always',
-                },
-              }
-            : {}),
+          ...(surface.depthTexture ? { depthStencil: this.depthStencil(surface, command) } : {}),
         }),
       );
     }
     return this.pipelines.get(key);
+  }
+
+  // WebGPU carries D3D's stencil comparison, three operations and reference
+  // mask directly. Both faces share one D3D state because two-sided stencil is
+  // not advertised.
+  depthStencil(surface, command) {
+    const descriptor = {
+      format: surface.depthFormat,
+      depthWriteEnabled: command.depthTest && command.depthWrite,
+      depthCompare: command.depthTest ? (command.depthCompare ?? 'less-equal') : 'always',
+    };
+    if (surface.depthFormat !== 'depth24plus-stencil8') return descriptor;
+    const s = stencilState(command),
+      face = stencilFace(command),
+      enabled = !!s[52];
+    // A disabled stencil test still writes nothing and always passes, which is
+    // exactly what the WebGPU comparison ALWAYS plus KEEP operations express.
+    descriptor.stencilFront = enabled ? face : PASS_THROUGH_STENCIL;
+    descriptor.stencilBack = enabled ? face : PASS_THROUGH_STENCIL;
+    descriptor.stencilWriteMask = enabled ? s[59] & 0xff : 0;
+    descriptor.stencilReadMask = enabled ? s[58] & 0xff : 0xff;
+    return descriptor;
   }
 
   upload(surface, index, command) {
@@ -425,6 +453,14 @@ export class WebGPURenderer {
                   depthLoadOp: clear?.clearDepth || !surface.depthInitialized ? 'clear' : 'load',
                   depthStoreOp: 'store',
                   depthClearValue: clear?.clearDepth ? clear.depth : 1,
+                  ...(surface.depthFormat === 'depth24plus-stencil8'
+                    ? {
+                        stencilLoadOp:
+                          clear?.clearStencil || !surface.depthInitialized ? 'clear' : 'load',
+                        stencilStoreOp: 'store',
+                        stencilClearValue: clear?.clearStencil ? clear.stencil : 0,
+                      }
+                    : {}),
                 },
               }
             : {}),
@@ -439,6 +475,9 @@ export class WebGPURenderer {
             { x: 0, y: 0, width: surface.width, height: surface.height },
           ];
           if (
+            // D3D ignores pRects for a stencil clear, so a whole-attachment
+            // clear is the only faithful path for one.
+            command.clearStencil ||
             regions.some(
               (r) =>
                 r.x === 0 && r.y === 0 && r.width === surface.width && r.height === surface.height,
@@ -465,6 +504,10 @@ export class WebGPURenderer {
           pass.setViewport(v.x, v.y, v.width, v.height, v.minZ, v.maxZ);
           pass.setScissorRect(0, 0, surface.width, surface.height);
           pass.setBlendConstant(blendConstant(command));
+          // The stencil comparison uses this reference, already clamped to the
+          // guest's 0-255 STENCILREF byte.
+          if (surface.depthFormat === 'depth24plus-stencil8')
+            pass.setStencilReference(stencilState(command)[57] & 0xff);
           if (feedback) pass.setBindGroup(2, feedbackGroup);
           if (prepared) this.programmable.draw(pass, prepared, first, count);
           else {

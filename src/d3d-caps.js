@@ -19,6 +19,10 @@ export function deviceCaps(version) {
   caps[25] = caps[26] = 2048; // Repeat and aspect ratio.
   caps[27] = 1; // No anisotropic filtering.
   caps[35] = 1; // One FVF texture coordinate set.
+  // StencilCaps: KEEP | ZERO | REPLACE | INCRSAT | DECRSAT | INVERT | INCR | DECR,
+  // matching the WebGPU operations the renderer maps them onto. Two-sided
+  // stencil stays unadvertised.
+  caps[34] = 0xff;
   caps[36] = 0x4f; // DISABLE | SELECTARG1/2 | MODULATE | ADD.
   caps[39] = 0x3a; // Material sources, directional/positional lights, local viewer.
   caps[40] = 8; // Active fixed-function lights.
@@ -44,8 +48,8 @@ export function deviceCaps(version) {
     caps[ps20 + 3] = 0; // StaticFlowControlDepth.
     caps[ps20 + 4] = 512; // NumInstructionSlots for ps_2_0.
   }
-  // Cube/volume textures, stencil and indexed streams remain unadvertised
-  // until their corresponding paths are implemented.
+  // Cube/volume textures and indexed streams remain unadvertised until their
+  // corresponding paths are implemented.
   return caps;
 }
 export function writeDeviceCaps(runtime, pointer, version, adapter = 0, type = 1) {

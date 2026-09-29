@@ -1,4 +1,10 @@
 import { INACTIVE_EFFECT_DEFAULTS, setInactiveEffect } from './d3d-inactive-effects.js';
+import {
+  defaultStencil,
+  defaultAlphaTest,
+  setStencilState,
+  setAlphaTestState,
+} from './d3d-stencil.js';
 import { blendDefaults, setBlendState } from './d3d-blending.js';
 import { fvfLayout } from './d3d-fvf.js';
 import {
@@ -218,6 +224,8 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
       depthCompare: state.depthCompare,
       dither: state.dither,
       blend: { ...state.blendState },
+      stencil: { ...state.stencil },
+      alphaTest: { ...state.alphaTest },
       cullMode: state.cullMode,
     },
     size,
@@ -517,13 +525,17 @@ function deviceMethods(version = 9) {
         const rects = argument(2) >>> 0;
         const flags = argument(3) >>> 0;
         const depth = floatFromBits(argument(5));
+        const stencil = argument(6) >>> 0;
+        // D3D ignores pRects for a stencil clear, so requiring a zero rectangle
+        // keeps the code honest rather than silently partial-clearing.
         if (
-          argument(6) ||
           !flags ||
-          flags & ~3 ||
+          flags & ~7 ||
           !Number.isFinite(depth) ||
           depth < 0 ||
-          depth > 1
+          depth > 1 ||
+          stencil > 0xff ||
+          (flags & 4 && (!object.state.stencil || count))
         )
           throw Error('Unsupported IDirect3DDevice9.Clear parameters');
         if (flags & 2 && !object.state.hasDepth) return D3DERR_INVALIDCALL;
@@ -535,8 +547,10 @@ function deviceMethods(version = 9) {
             type: 'clear',
             color: argument(4) >>> 0,
             depth,
+            stencil,
             clearColor: !!(flags & 1),
             clearDepth: !!(flags & 2),
+            clearStencil: !!(flags & 4),
             regions,
           },
           regions.length * 16,
@@ -576,6 +590,8 @@ function deviceMethods(version = 9) {
         const value = argument(2) >>> 0;
         // The current fixed-function path already uses perspective Gouraud
         // interpolation; other shade modes need their own interpolation path.
+        if (state in object.state.stencil) return setStencilState(object.state, state, value);
+        if (state in object.state.alphaTest) return setAlphaTestState(object.state, state, value);
         if (state in object.state.inactiveEffects)
           return setInactiveEffect(object.state, state, value, version);
         if (state in object.state.blendState)
@@ -610,6 +626,8 @@ function deviceMethods(version = 9) {
           22: CULL_MODE.indexOf(s.cullMode),
           23: DEPTH_COMPARE.indexOf(s.depthCompare),
           26: Number(s.dither),
+          ...s.stencil,
+          ...s.alphaTest,
           ...s.inactiveEffects,
           ...s.lightState,
           ...s.blendState,
@@ -852,9 +870,9 @@ function createDevice(runtime, argument, version) {
     read(32) > 1 ||
     (!windowed &&
       (!read(0) || !read(4) || !fullscreenMode || runtime.d3dFullscreen || window?.parentId)) ||
-    // The shared renderer supplies depth-only attachments. D16 maps to a
-    // depth16unorm texture and D24S8 to depth24plus; guest stencil operations
-    // are not implemented, so any other depth format is rejected.
+    // The shared renderer supplies the attachments the guest asked for: D16
+    // maps to a depth16unorm texture and D24S8 to a combined
+    // depth24plus-stencil8 attachment that carries the guest stencil buffer.
     (depth ? ![75, 80].includes(autoDepthFormat) : autoDepthFormat !== 0) ||
     read(44) ||
     (windowed ? read(48) !== 0 : ![0, 60].includes(read(48))) ||
@@ -866,7 +884,12 @@ function createDevice(runtime, argument, version) {
     width,
     height,
     depth,
-    depthFormat: depth ? (autoDepthFormat === 75 ? 'depth24plus' : 'depth16unorm') : null,
+    depthFormat: depth
+      ? autoDepthFormat === 75
+        ? 'depth24plus-stencil8'
+        : 'depth16unorm'
+      : null,
+    stencil: depth && autoDepthFormat === 75,
     windowed,
     colorFormat: format || displayFormat(currentDisplayMode(runtime)),
     swapEffect: read(24),
@@ -910,6 +933,8 @@ function factoryMethods(version = 9) {
           ...initLighting(),
           blendState: blendDefaults(version),
           inactiveEffects: { ...INACTIVE_EFFECT_DEFAULTS },
+          stencil: defaultStencil(),
+          alphaTest: defaultAlphaTest(),
           shadeMode: 2,
           fillMode: 3,
           clipping: true,
@@ -996,10 +1021,10 @@ function factoryMethods(version = 9) {
             state.depthSurface = createDeviceSurface(runtime, object, {
               width: options.width,
               height: options.height,
-              format: options.depthFormat === 'depth24plus' ? 75 : 80,
+              format: options.depthFormat === 'depth24plus-stencil8' ? 75 : 80,
               pool: 0,
               usage: 2,
-              bpp: options.depthFormat === 'depth24plus' ? 4 : 2,
+              bpp: options.depthFormat === 'depth24plus-stencil8' ? 4 : 2,
             });
             if (!state.depthSurface) throw Error('D3D depth-stencil allocation failed');
             state.depthStencil = state.depthSurface;
