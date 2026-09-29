@@ -63,6 +63,9 @@ export const Host = Object.freeze({
   doubleShift: 24,
   doubleShiftStore: 25,
   cmpxchg8b: 26,
+  // BT/BTS/BTR/BTC with a memory bit base: address + signed bit offset /
+  // operand width selects the enclosing unit across the whole bit string.
+  bitMemory: 27,
 });
 const signatures = [
   [2, 1],
@@ -92,6 +95,7 @@ const signatures = [
   [5, 1],
   [6, 0],
   [1, 0],
+  [4, 0],
 ];
 const hostNames = Object.keys(Host);
 export function moduleBytes(code) {

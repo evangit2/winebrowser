@@ -174,6 +174,23 @@ export class CPU {
       bitTest: (value, index, width) => {
         this.f.cf = (value >>> (index & (width - 1))) & 1;
       },
+      // BT/BTS/BTR/BTC with a memory bit base. The signed bit offset is
+      // divided by the operand width to select the enclosing unit; the
+      // remainder picks the bit inside it. CF receives the previous bit.
+      bitMemory: (address, offset, width, operation) => {
+        const unitBytes = width >>> 3;
+        const shift = width === 32 ? 5 : 4;
+        const signed = offset | 0;
+        const unit = signed >> shift;
+        const bit = signed & (width - 1);
+        const target = (address + unit * unitBytes) >>> 0;
+        const value = this.host.load(this.checkMemory(target, unitBytes, operation !== 0), unitBytes);
+        this.f.cf = (value >>> bit) & 1;
+        if (operation === 0) return;
+        const mask = 1 << bit;
+        const next = operation === 1 ? value | mask : operation === 2 ? value & ~mask : value ^ mask;
+        this.host.store(target, next, unitBytes);
+      },
       simd: (op, dst, src, address, immediate) =>
         this.simd.execute(op, dst, src, address, immediate),
       x87: (op, a, b, address, width, options) =>
@@ -770,6 +787,9 @@ export class CPU {
               M.Cmpxchg8b,
               M.Cmpxchg16b,
               M.Xadd,
+              M.Bts,
+              M.Btr,
+              M.Btc,
             ].includes(m);
             const memoryDestination = i.opCount > 0 && i.opKind(0) === K.Memory;
             const memoryXchg =
@@ -1083,24 +1103,52 @@ export class CPU {
               ]),
             );
           } else if ([M.Bt, M.Bts, M.Btr, M.Btc].includes(m)) {
-            if (i.opCount !== 2 || i.opKind(0) !== K.Register)
-              throw Error('Memory bitstring operations unsupported');
-            const bits = width(i, 0);
-            if (![16, 32].includes(bits)) throw Error('BT register operand must be 16 or 32 bits');
-            const indexKind = i.opKind(1);
-            if (!((indexKind === K.Register && width(i, 1) === bits) || indexKind === K.Immediate8))
-              throw Error('BT bit index must be a same-width register or imm8');
-            code.push(...operand(i, 0), ...operand(i, 1), ...constant(bits), ...call(Host.bitTest));
-            if (m !== M.Bt) {
-              const mask = [...constant(1), ...operand(i, 1), ...constant(bits - 1), 0x71, 0x74];
-              const value =
-                m === M.Bts
-                  ? [...operand(i, 0), ...mask, 0x72]
-                  : m === M.Btr
-                    ? [...operand(i, 0), ...mask, ...constant(-1), 0x73, 0x71]
-                    : [...operand(i, 0), ...mask, 0x73];
-              code.push(...write(i, 0, value));
-            }
+            const operation = m === M.Bts ? 1 : m === M.Btr ? 2 : m === M.Btc ? 3 : 0;
+            if (i.opCount !== 2) throw Error('BT requires a bit base and index');
+            if (i.opKind(0) === K.Memory) {
+              // The memory operand's size sets the enclosing unit; the bit
+              // index may be any register or an imm8, and the effective
+              // address can move backwards for a signed register index.
+              const bits = MemorySizeExt.size(i.memorySize) * 8;
+              if (![16, 32].includes(bits))
+                throw Error('Memory bit operand must be 16 or 32 bits');
+              const indexKind = i.opKind(1);
+              if (indexKind !== K.Register && indexKind !== K.Immediate8)
+                throw Error('Memory bit index must be a register or imm8');
+              if (i.hasLockPrefix && operation === 0)
+                throw Error('LOCK BT without a memory write is unsupported');
+              const offset =
+                indexKind === K.Immediate8
+                  ? constant(i.immediate8)
+                  : readReg(i.opRegister(1));
+              code.push(
+                ...addr(i),
+                ...offset,
+                ...constant(bits),
+                ...constant(operation),
+                ...call(Host.bitMemory),
+              );
+            } else if (i.opKind(0) === K.Register) {
+              const bits = width(i, 0);
+              if (![16, 32].includes(bits))
+                throw Error('BT register operand must be 16 or 32 bits');
+              const indexKind = i.opKind(1);
+              if (
+                !((indexKind === K.Register && width(i, 1) === bits) || indexKind === K.Immediate8)
+              )
+                throw Error('BT bit index must be a same-width register or imm8');
+              code.push(...operand(i, 0), ...operand(i, 1), ...constant(bits), ...call(Host.bitTest));
+              if (m !== M.Bt) {
+                const mask = [...constant(1), ...operand(i, 1), ...constant(bits - 1), 0x71, 0x74];
+                const value =
+                  m === M.Bts
+                    ? [...operand(i, 0), ...mask, 0x72]
+                    : m === M.Btr
+                      ? [...operand(i, 0), ...mask, ...constant(-1), 0x73, 0x71]
+                      : [...operand(i, 0), ...mask, 0x73];
+                code.push(...write(i, 0, value));
+              }
+            } else throw Error('BT requires a register or memory bit base');
           } else if (m === M.Xchg) {
             const memoryIndex = i.opKind(0) === K.Memory ? 0 : i.opKind(1) === K.Memory ? 1 : -1;
             if (memoryIndex !== -1) code.push(...addr(i), 0x21, 2);
