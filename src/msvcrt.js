@@ -259,9 +259,13 @@ async function endThreadEx(r, a) {
   return { result: 0, argc: 1 };
 }
 // _initterm / _initterm_e walk a table of function pointers and call each
-// non-null entry, the same way the CRT runs static initializers. _initterm_e
-// stops at the first initializer that returns non-zero and propagates it.
-async function initTerm(r, a) {
+// non-null entry, the same way the CRT runs static initializers. The two differ
+// in one respect that matters: `_initterm_e` stops at the first initializer that
+// returns non-zero and reports it, while plain `_initterm` calls **every** entry
+// and ignores the return values. Stopping early on `_initterm` leaves later C++
+// static constructors unrun, which shows up as zero-initialised globals — an
+// iostream `cout` file pointer, for example — that the program then uses.
+async function initTerm(r, a, stopOnFailure) {
   const begin = a(0) >>> 0,
     end = a(1) >>> 0;
   if (end < begin || (end - begin) % 4) return ok(0, 2);
@@ -276,12 +280,12 @@ async function initTerm(r, a) {
         `CRT initializer table entry 0x${routine.toString(16)} at 0x${pointer.toString(16)} is not executable`,
       );
     const result = await r.callGuest(routine, []);
-    if (result) return ok(result >>> 0, 2);
+    if (stopOnFailure && result) return ok(result >>> 0, 2);
   }
   return ok(0, 2);
 }
-msvcrtApis['msvcrt.dll!_initterm'] = initTerm;
-msvcrtApis['msvcrt.dll!_initterm_e'] = initTerm;
+msvcrtApis['msvcrt.dll!_initterm'] = (r, a) => initTerm(r, a, false);
+msvcrtApis['msvcrt.dll!_initterm_e'] = (r, a) => initTerm(r, a, true);
 // _onexit/atexit register shutdown handlers; the runtime runs them in reverse
 // order during process shutdown.
 function registerExit(r, a, argc) {

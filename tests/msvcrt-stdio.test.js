@@ -92,3 +92,36 @@ test('the _iob data export is the stdio array and its stdout element is marked o
   assert.equal((await api('__p__iob')).result >>> 0, iob);
   assert.equal((await api('__iob_func')).result >>> 0, iob);
 });
+
+test('_initterm calls every initializer; only _initterm_e stops on a failure', async (t) => {
+  const { r } = setup(t);
+  const api = async (name, ...args) =>
+    await r.apiProvider.get(`msvcrt.dll!${name}`)(r, (index) => args[index] >>> 0);
+  const ran = [];
+  const originalCall = r.callGuest.bind(r);
+  // Both entries must land in mapped executable memory: the runtime rejects a
+  // table entry it cannot decode, which is a malformed-image guard, not the
+  // return-value rule under test. The fixture maps console.exe's code.
+  const first = r.cpu.ranges[0][0] >>> 0;
+  const second = (first + 16) >>> 0;
+  r.callGuest = async (address) => {
+    ran.push(address >>> 0);
+    // The first initializer reports failure, the second succeeds.
+    return address === first ? 1 : 0;
+  };
+  t.after(() => {
+    r.callGuest = originalCall;
+  });
+  const table = r.allocate(12);
+  r.write32(table, first);
+  r.write32(table + 4, 0); // null entries are skipped
+  r.write32(table + 8, second);
+
+  ran.length = 0;
+  assert.equal((await api('_initterm', table, table + 12)).result, 0);
+  assert.deepEqual(ran, [first, second], '_initterm runs every non-null entry');
+
+  ran.length = 0;
+  assert.equal((await api('_initterm_e', table, table + 12)).result, 1);
+  assert.deepEqual(ran, [first], '_initterm_e stops at the first non-zero result');
+});
