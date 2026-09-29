@@ -95,7 +95,12 @@ static int run(void)
             (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW) ||
         caps.ZCmpCaps != 0xff || !(caps.RasterCaps & D3DPRASTERCAPS_DITHER) ||
         caps.MaxPrimitiveCount != 21845 || caps.MaxVertexW <= 0 ||
-        caps.MaxTextureWidth != 2048 || caps.MaxSimultaneousTextures != 1 || caps.StencilCaps) return 36;
+        // The runtime implements stencil KEEP/ZERO/REPLACE/INCRSAT/DECRSAT/INVERT/
+        // INCR/DECR but not two-sided stencil, and one fixed-function stage.
+        caps.MaxTextureWidth != 2048 || caps.MaxSimultaneousTextures != 1 ||
+        caps.StencilCaps != (D3DSTENCILCAPS_KEEP | D3DSTENCILCAPS_ZERO | D3DSTENCILCAPS_REPLACE |
+            D3DSTENCILCAPS_INCRSAT | D3DSTENCILCAPS_DECRSAT | D3DSTENCILCAPS_INVERT |
+            D3DSTENCILCAPS_INCR | D3DSTENCILCAPS_DECR)) return 36;
     D3DDISPLAYMODE desktop = {0}, enumerated = {0};
     if (FAILED(IDirect3D9_GetAdapterDisplayMode(d3d, 0, &desktop)) ||
             desktop.Width != (UINT)GetSystemMetrics(SM_CXSCREEN) ||

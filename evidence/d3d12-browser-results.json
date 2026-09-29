@@ -1,16 +1,16 @@
 {
   "demo": "d3d12-triangle",
   "scope": "Native PE32 D3D12 fixture with SM5 shaders, empty root signature, RTV descriptors, command lists, barriers, swapchain and completed fences; not broad D3D12/game compatibility",
-  "date": "2026-09-26T02:43:48.529Z",
+  "date": "2026-09-29T11:04:23.235Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
-  "browser": "154.0.8037.57",
+  "browser": "154.0.8037.58",
   "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
   "browserCompilation": true,
   "browserShaderCompilation": true,
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFourFramesMs": 458,
+      "firstFourFramesMs": 546,
       "first": {
         "width": 640,
         "height": 480,
@@ -29,7 +29,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 29,
+        "frames": 26,
         "green": 108000,
         "colored": 108000,
         "colors": 1,
@@ -39,20 +39,20 @@
           48,
           255
         ],
-        "hash": "fcf8f5a38c96842c7e8807b8f0395b384e48d5c0298e8d72850b50530f3ecee9"
+        "hash": "fea1f763c054eed2422545f9b068b8d88d22990ea61b4a8ed101268607c28fc5"
       },
       "exitCode": 0,
       "compiledBlocks": 141,
-      "instructions": 10991,
-      "apiCalls": 759
+      "instructions": 10394,
+      "apiCalls": 702
     },
     {
       "mode": "hosted-zip",
-      "firstFourFramesMs": 331,
+      "firstFourFramesMs": 332,
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 5,
+        "frames": 4,
         "green": 108000,
         "colored": 108000,
         "colors": 1,
@@ -67,7 +67,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 29,
+        "frames": 27,
         "green": 108000,
         "colored": 108000,
         "colors": 1,

@@ -1,5 +1,5 @@
 {
-  "date": "2026-09-28T23:58:18.503Z",
+  "date": "2026-09-29T11:14:00.668Z",
   "url": "http://127.0.0.1:4193/winebrowser/",
   "browser": "154.0.8037.58",
   "nativeGame": "d3d8-cube",
@@ -8,11 +8,11 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "b08b81321368d7f62b65dbceb042b2dfe4159b62a2d867a1fd085009a3cefbd6",
+      "exeSha256": "f0c46b5cfa9012c3e58cc3238e6146ab40bf2f36ba71ecf18176d7f5c762d3a8",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 4,
+        "frames": 5,
         "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
         "corner": [
           23,
@@ -29,7 +29,7 @@
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 17,
+        "frames": 16,
         "hash": "cd7a20799ad1b1602e0927d685913a1109117f63ee65a2c19c3ead13cf4c96dc",
         "corner": [
           23,
@@ -43,13 +43,13 @@
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 173,
-      "instructions": 3608,
-      "apiCalls": 276
+      "compiledBlocks": 174,
+      "instructions": 3512,
+      "apiCalls": 267
     },
     {
       "mode": "hosted-zip",
-      "exeSha256": "b08b81321368d7f62b65dbceb042b2dfe4159b62a2d867a1fd085009a3cefbd6",
+      "exeSha256": "f0c46b5cfa9012c3e58cc3238e6146ab40bf2f36ba71ecf18176d7f5c762d3a8",
       "first": {
         "width": 640,
         "height": 480,
@@ -85,8 +85,8 @@
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 173,
-      "instructions": 3414,
+      "compiledBlocks": 174,
+      "instructions": 3415,
       "apiCalls": 258
     }
   ],
