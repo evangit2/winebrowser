@@ -783,6 +783,171 @@ unsupported:
     return 0;
 }
 
+/* Build and serialize a root signature from the same flattened word layout
+ * that wb_root_signature_inspect emits. D3D12SerializeRootSignature takes a
+ * guest D3D12_ROOT_SIGNATURE_DESC, which the browser frontend flattens; this
+ * turns that description into the real DXBC container vkd3d-shader produces,
+ * so an application-declared signature is honoured rather than replaced.
+ *
+ * Ranges are indexed by a single running cursor in declaration order, and each
+ * descriptor-table parameter stores the absolute index of its first range. */
+int wb_root_signature_build(const uint32_t *words, unsigned int word_count)
+{
+    struct vkd3d_shader_root_parameter parameters[WB_MAX_ROOT_PARAMETERS];
+    struct vkd3d_shader_descriptor_range ranges[WB_MAX_ROOT_RANGES];
+    struct vkd3d_shader_static_sampler_desc samplers[WB_MAX_ROOT_SAMPLERS];
+    struct vkd3d_shader_versioned_root_signature_desc desc;
+    unsigned int parameter_count, sampler_count, range_cursor, sampler_start;
+    unsigned int i, r, range_total = 0, sampler_total = 0;
+    char *messages = NULL;
+    int result;
+
+    wb_clear();
+    if (!words || word_count < WB_ROOT_HEADER_WORDS)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Root signature description is truncated");
+        return 0;
+    }
+    parameter_count = words[0];
+    sampler_count = words[1];
+    if (parameter_count > WB_MAX_ROOT_PARAMETERS || sampler_count > WB_MAX_ROOT_SAMPLERS)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Root signature description exceeds the build limits");
+        return 0;
+    }
+    memset(parameters, 0, sizeof(parameters));
+    memset(ranges, 0, sizeof(ranges));
+    memset(samplers, 0, sizeof(samplers));
+    memset(&desc, 0, sizeof(desc));
+
+    range_cursor = WB_ROOT_HEADER_WORDS + parameter_count * WB_ROOT_PARAMETER_WORDS;
+    sampler_start = range_cursor; /* recomputed after the parameter walk */
+    for (i = 0; i < parameter_count; ++i)
+    {
+        const uint32_t *record = &words[WB_ROOT_HEADER_WORDS + i * WB_ROOT_PARAMETER_WORDS];
+        struct vkd3d_shader_root_parameter *parameter = &parameters[i];
+
+        if (record[0] > VKD3D_SHADER_ROOT_PARAMETER_TYPE_UAV)
+        {
+            snprintf(wb_messages, sizeof(wb_messages), "Root parameter %u has an unknown type", i);
+            return 0;
+        }
+        if (record[1] > VKD3D_SHADER_VISIBILITY_PIXEL)
+        {
+            snprintf(wb_messages, sizeof(wb_messages), "Root parameter %u has an unknown visibility", i);
+            return 0;
+        }
+        parameter->parameter_type = record[0];
+        parameter->shader_visibility = record[1];
+        if (record[0] == VKD3D_SHADER_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+        {
+            if (range_total + record[2] > WB_MAX_ROOT_RANGES)
+            {
+                snprintf(wb_messages, sizeof(wb_messages), "Descriptor tables exceed the build limits");
+                return 0;
+            }
+            parameter->u.descriptor_table.descriptor_range_count = record[2];
+            parameter->u.descriptor_table.descriptor_ranges = &ranges[range_total];
+            range_total += record[2];
+        }
+        else if (record[0] == VKD3D_SHADER_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+        {
+            if (!record[5] || record[5] > 64)
+            {
+                snprintf(wb_messages, sizeof(wb_messages), "Root constants %u must hold 1..64 DWORDs", i);
+                return 0;
+            }
+            parameter->u.constants.shader_register = record[3];
+            parameter->u.constants.register_space = record[4];
+            parameter->u.constants.value_count = record[5];
+        }
+        else
+        {
+            parameter->u.descriptor.shader_register = record[3];
+            parameter->u.descriptor.register_space = record[4];
+        }
+    }
+
+    sampler_start = range_cursor + range_total * WB_ROOT_RANGE_WORDS;
+    if (word_count < sampler_start + sampler_count * WB_ROOT_SAMPLER_WORDS)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Root signature range or sampler block is truncated");
+        return 0;
+    }
+
+    range_total = 0;
+    for (i = 0; i < parameter_count; ++i)
+    {
+        const uint32_t *record = &words[WB_ROOT_HEADER_WORDS + i * WB_ROOT_PARAMETER_WORDS];
+        if (record[0] != VKD3D_SHADER_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+            continue;
+        for (r = 0; r < record[2]; ++r)
+        {
+            const uint32_t *source = &words[range_cursor + r * WB_ROOT_RANGE_WORDS];
+            struct vkd3d_shader_descriptor_range *range = &ranges[range_total++];
+            if (source[0] > VKD3D_SHADER_DESCRIPTOR_TYPE_SAMPLER || !source[1])
+            {
+                snprintf(wb_messages, sizeof(wb_messages), "Descriptor range is invalid");
+                return 0;
+            }
+            range->range_type = source[0];
+            range->descriptor_count = source[1];
+            range->base_shader_register = source[2];
+            range->register_space = source[3];
+            range->descriptor_table_offset = source[4];
+        }
+        range_cursor += record[2] * WB_ROOT_RANGE_WORDS;
+    }
+
+    for (i = 0; i < sampler_count; ++i)
+    {
+        const uint32_t *record = &words[sampler_start + i * WB_ROOT_SAMPLER_WORDS];
+        float bias, min_lod, max_lod;
+        uint32_t packed = record[10];
+
+        memcpy(&bias, &record[4], sizeof(bias));
+        memcpy(&min_lod, &record[8], sizeof(min_lod));
+        memcpy(&max_lod, &record[9], sizeof(max_lod));
+        samplers[i].filter = record[0];
+        samplers[i].address_u = record[1];
+        samplers[i].address_v = record[2];
+        samplers[i].address_w = record[3];
+        samplers[i].mip_lod_bias = bias;
+        samplers[i].max_anisotropy = record[5];
+        samplers[i].comparison_func = record[6];
+        samplers[i].border_colour = record[7];
+        samplers[i].min_lod = min_lod;
+        samplers[i].max_lod = max_lod;
+        samplers[i].shader_register = packed & 0xffffu;
+        samplers[i].register_space = (packed >> 16) & 0xffu;
+        samplers[i].shader_visibility = (packed >> 24) & 0xffu;
+        if (samplers[i].shader_visibility > VKD3D_SHADER_VISIBILITY_PIXEL)
+        {
+            snprintf(wb_messages, sizeof(wb_messages), "Static sampler %u has an unknown visibility", i);
+            return 0;
+        }
+    }
+    sampler_total = sampler_count;
+
+    desc.version = VKD3D_SHADER_ROOT_SIGNATURE_VERSION_1_0;
+    desc.u.v_1_0.parameter_count = parameter_count;
+    desc.u.v_1_0.parameters = parameter_count ? parameters : NULL;
+    desc.u.v_1_0.static_sampler_count = sampler_total;
+    desc.u.v_1_0.static_samplers = sampler_total ? samplers : NULL;
+    desc.u.v_1_0.flags = words[2];
+    result = vkd3d_shader_serialize_root_signature(&desc, &wb_result, &messages);
+    wb_capture_messages(messages);
+    if (result < 0 || !wb_result.code || wb_result.size < 32 || wb_result.size > WB_MAX_DXBC)
+    {
+        if (!wb_messages[0]) snprintf(wb_messages, sizeof(wb_messages), "Root signature serialization failed (%d)", result);
+        vkd3d_shader_free_shader_code(&wb_result);
+        memset(&wb_result, 0, sizeof(wb_result));
+        return 0;
+    }
+    wb_root_flags = words[2];
+    return 1;
+}
+
 const uint32_t *wb_root_signature_words(void) { return wb_root_words; }
 unsigned int wb_root_signature_word_count(void) { return wb_root_word_count; }
 

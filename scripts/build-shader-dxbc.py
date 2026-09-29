@@ -210,7 +210,8 @@ def main():
                "_wb_d3dbc_result_ptr", "_wb_d3dbc_result_size",
                "_wb_dxbc_scan", "_wb_dxbc_scan_results", "_wb_dxbc_scan_count",
                "_wb_dxbc_compile_bound", "_wb_root_signature_inspect",
-               "_wb_root_signature_words", "_wb_root_signature_word_count"]
+               "_wb_root_signature_words", "_wb_root_signature_word_count",
+               "_wb_root_signature_build"]
     run("bundle", [emcc, "-O2", "-DNDEBUG", "-DVKD3D_NO_TRACE_MESSAGES",
                    "-DVKD3D_NO_DEBUG_MESSAGES", f"-I{source / 'include'}",
                    f"-I{source / 'include/private'}", f"-I{build / 'include'}", BRIDGE,

@@ -103,6 +103,12 @@ try {
   // original flags, not merely pass validation.
   assert.equal(result.signatureFlags, 1);
   assert.deepEqual(result.signatureWords, [0, 0, 1, 0, 11, 0]);
+  assert.equal(
+    result.signatureRoundTrip.originalBytes,
+    result.signatureRoundTrip.rebuiltBytes,
+    'inspect/build round trip changed the root signature length',
+  );
+  assert.equal(result.signatureRoundTrip.rebuiltEmptyBytes, result.signatureRoundTrip.originalBytes);
 
   // Canonical D3D12 bindings: a shader declaring two constant buffers, a 2D
   // texture, a cube texture and two samplers must scan, plan and recompile to
@@ -166,6 +172,7 @@ try {
           boundWGSLBytes: result.descriptorBindings.boundWGSL.length,
         },
         signatureWords: result.signatureWords,
+        signatureRoundTrip: result.signatureRoundTrip,
         shaders: result.shaders.map(({ spirvBytes, wgsl }) => ({
           spirvBytes,
           wgslBytes: wgsl.length,

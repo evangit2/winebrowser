@@ -70,9 +70,26 @@ onmessage = async ({ data }) => {
       );
 
     // Root-signature inspection must report the serialised structure, not just
-    // accept it: a signature with a descriptor table, constants and a static
-    // sampler has to round-trip into parameters, ranges and samplers.
+    // accept it, and rebuilding from those words must reproduce the exact
+    // container: the same description has to survive a full round trip.
     const signatureWords = await compiler.inspectRootSignature(rootSignatureBlobs[1].bytes);
+    const rebuiltSignature = await compiler.buildRootSignature(signatureWords.words);
+    const original = rootSignatureBlobs[1].bytes;
+    if (
+      rebuiltSignature.length !== original.length ||
+      rebuiltSignature.some((byte, index) => byte !== original[index])
+    )
+      throw Error('Rebuilt root signature differs from the serialized original');
+    // A signature the bridge itself produced from a real description must also
+    // inspect back into the same description.
+    const descriptorTable = await compiler.serializeRootSignature(1);
+    const descriptorInspected = await compiler.inspectRootSignature(descriptorTable);
+    const rebuiltTable = await compiler.buildRootSignature(descriptorInspected.words);
+    if (
+      rebuiltTable.length !== descriptorTable.length ||
+      rebuiltTable.some((byte, index) => byte !== descriptorTable[index])
+    )
+      throw Error('Empty root signature did not survive a build round trip');
 
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw Error('WebGPU adapter unavailable');
@@ -192,6 +209,11 @@ onmessage = async ({ data }) => {
           boundWGSL: bound.wgsl,
         },
         signatureWords: Array.from(signatureWords.words),
+        signatureRoundTrip: {
+          originalBytes: original.length,
+          rebuiltBytes: rebuiltSignature.length,
+          rebuiltEmptyBytes: rebuiltTable.length,
+        },
         signatureFlags: signatureWords.flags,
         shaders: [vertex, fragment].map(({ spirv, wgsl }) => ({ spirvBytes: spirv.length, wgsl })),
         legacy: {

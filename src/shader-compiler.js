@@ -255,6 +255,33 @@ export class ShaderCompiler {
     }
   }
 
+  /**
+   * Serializes a root signature from the same flattened word layout
+   * `inspectRootSignature` produces, so `D3D12SerializeRootSignature` can
+   * honour an application-declared signature instead of only the empty one.
+   */
+  async buildRootSignature(words) {
+    if (!(words instanceof Uint32Array) || words.length < 6 || words.length > 8192)
+      throw Error('Invalid root signature description');
+    await this.initialize();
+    const compiler = this.dxbc;
+    const address = compiler._malloc(words.byteLength);
+    if (!address) throw Error('Root signature build allocation failed');
+    try {
+      compiler.HEAPU8.set(new Uint8Array(words.buffer, words.byteOffset, words.byteLength), address);
+      if (compiler._wb_root_signature_build(address, words.length) !== 1)
+        throw this.diagnostic('Root signature serialization failed');
+      const pointer = compiler._wb_result_ptr(),
+        length = compiler._wb_result_size();
+      if (!pointer || length < 32 || length > MAX_SHADER_BYTES || pointer + length > compiler.HEAPU8.length)
+        throw Error('Invalid serialized root signature');
+      return compiler.HEAPU8.slice(pointer, pointer + length);
+    } finally {
+      compiler._wb_clear();
+      compiler._free(address);
+    }
+  }
+
   #requireDXBC(bytes) {
     if (
       !(bytes instanceof Uint8Array) ||
