@@ -151,3 +151,71 @@ test('output parameters on a newly protected page are rejected before mutation',
   r.write32(pointer + 12, 9);
   assert.equal(r.read32(pointer), IMAGE + 0x1000);
 });
+
+test('NtQueryVirtualMemory reports commit, reserve, free and image regions', async () => {
+  const { ntServices } = await import('../src/wine-nt.js');
+  const query = ntServices.NtQueryVirtualMemory;
+  assert.ok(query, 'NtQueryVirtualMemory is not implemented');
+  const writes = [];
+  const regions = [
+    { start: 0x1000, end: 0x3000, read: true, write: true, exec: false, kind: 'image' },
+  ];
+  const reservations = new Map([
+    [
+      0x5000000,
+      {
+        base: 0x5000000,
+        end: 0x5003000,
+        // First page reserved only, later pages committed read-only.
+        pages: new Map([
+          [0x5000000, null],
+          [0x5001000, 2],
+          [0x5002000, 2],
+        ]),
+      },
+    ],
+  ]);
+  const runtime = {
+    regions,
+    virtualMemory: { reservations },
+    check: (p, n) => p + n <= 0x10000000,
+    read32: (p) => 0,
+    write32: (p, value) => writes.push([p, value >>> 0]),
+    data: { fill: () => {} },
+  };
+  const call = (args) => query.call(runtime, (i) => args[i] ?? 0);
+  const buffer = 0x100000;
+  const sizeOut = 0x100100;
+  // A reserved-but-uncommitted page.
+  writes.length = 0;
+  assert.equal(call([0xffffffff, 0x5000000, 0, buffer, 28, sizeOut]), 0);
+  const reserved = new Map(writes);
+  assert.equal(reserved.get(buffer), 0x5000000);
+  assert.equal(reserved.get(buffer + 12), 0x1000, 'region size is one page');
+  assert.equal(reserved.get(buffer + 16), 0x2000, 'MEM_RESERVE');
+  assert.equal(reserved.get(buffer + 20), 1, 'PAGE_NOACCESS');
+  assert.equal(reserved.get(buffer + 24), 0x20000, 'MEM_PRIVATE');
+  // A committed page, whose run covers both committed pages.
+  writes.length = 0;
+  assert.equal(call([0xffffffff, 0x5001000, 0, buffer, 28, sizeOut]), 0);
+  const committed = new Map(writes);
+  assert.equal(committed.get(buffer + 12), 0x2000, 'two identical pages form one run');
+  assert.equal(committed.get(buffer + 16), 0x1000, 'MEM_COMMIT');
+  assert.equal(committed.get(buffer + 20), 2, 'the recorded protection');
+  assert.equal(committed.get(buffer + 4), 0x5000000, 'allocation base');
+  assert.equal(new Map(writes).get(sizeOut), 28);
+  // A mapped image region.
+  writes.length = 0;
+  assert.equal(call([0xffffffff, 0x1000, 0, buffer, 28, sizeOut]), 0);
+  const image = new Map(writes);
+  assert.equal(image.get(buffer + 16), 0x1000);
+  assert.equal(image.get(buffer + 24), 0x1000000, 'MEM_IMAGE');
+  // Free space, an unknown information class, a short buffer and a bad handle.
+  writes.length = 0;
+  assert.equal(call([0xffffffff, 0x9000000, 0, buffer, 28, sizeOut]), 0);
+  assert.equal(new Map(writes).get(buffer + 16), 0x10000, 'MEM_FREE');
+  assert.equal(call([0xffffffff, 0x1000, 1, buffer, 28, sizeOut]), 0xc0000003);
+  assert.equal(call([0xffffffff, 0x1000, 0, buffer, 4, sizeOut]), 0xc0000004);
+  assert.equal(call([0x1234, 0x1000, 0, buffer, 28, sizeOut]), 0xc0000008);
+  assert.equal(call([0xffffffff, 0x1000, 0, 0, 28, 0]), 0xc0000005);
+});

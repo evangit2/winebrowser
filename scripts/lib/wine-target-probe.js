@@ -22,6 +22,9 @@ export async function probeWineTarget(
     builtinFiles,
     nlsFiles,
     testStaticTLS = false,
+    // How many presented frames count as "it renders". The default proves a
+    // render loop exists; a caller watching long-run behaviour raises it.
+    frameGoal = 3,
     limits = {},
     watchValue,
     watchRange,
@@ -158,9 +161,10 @@ export async function probeWineTarget(
       emit: (message) => {
         if (message.type === 'frame') {
           report.frames++;
-          // A real render loop never returns; once the guest has presented
-          // several frames the diagnostic goal (it renders) is met.
-          if (report.frames >= 3) report.frameGoalReached = true;
+          // A real render loop never returns; once the guest has presented the
+          // requested number of frames the diagnostic goal (it renders) is met.
+          // A caller watching long-run behaviour can raise it.
+          if (report.frames >= frameGoal) report.frameGoalReached = true;
           // A render loop presents indefinitely; keep the sample set bounded
           // (and await it exactly once) so a long run cannot grow the report.
           if (report.frameSamples.length < 3 && report.pendingSamples.length < 3) {

@@ -82,6 +82,7 @@ async function probeInBrowser(root, kind, input) {
             };
             const input = {
               testStaticTLS: data.testStaticTLS,
+              frameGoal: data.frameGoal,
               limits: data.limits,
               watchValue: data.watchValue,
               watchRange: data.watchRange,
@@ -129,6 +130,7 @@ async function probeInBrowser(root, kind, input) {
         byteFields: ['dll', 'executable'].filter((field) => input[field]),
         exe: input.exe,
         testStaticTLS: input.testStaticTLS,
+        frameGoal: input.frameGoal,
         workerTimeoutMs: input.workerTimeoutMs,
         limits: input.limits,
         watchValue: input.watchValue,

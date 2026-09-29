@@ -23,6 +23,7 @@ const { values: options } = parseArgs({
     'max-blocks': { type: 'string' },
     'max-ms': { type: 'string' },
     'frame-png': { type: 'string' },
+    'frame-goal': { type: 'string' },
   },
 });
 const EXE_SHA256 = '3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d';
@@ -51,6 +52,7 @@ const input = {
   exe,
   builtinFiles,
   nlsFiles,
+  ...(options['frame-goal'] ? { frameGoal: Number(options['frame-goal']) } : {}),
   ...(options['worker-timeout'] ? { workerTimeoutMs: Number(options['worker-timeout']) } : {}),
   ...(options['max-blocks'] || options['max-ms']
     ? {
