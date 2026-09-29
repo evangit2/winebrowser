@@ -683,6 +683,12 @@ int wb_root_signature_inspect(const void *bytes, unsigned int length)
     }
 
     cursor = WB_ROOT_HEADER_WORDS;
+    /* Ranges are appended in parameter order starting after the whole
+     * parameter block, so each parameter's range base is a running offset
+     * from the first range slot rather than a fixed distance from the
+     * parameter record. */
+    range_index = WB_ROOT_HEADER_WORDS
+            + desc.u.v_1_0.parameter_count * WB_ROOT_PARAMETER_WORDS;
     for (parameter_index = 0; parameter_index < desc.u.v_1_0.parameter_count; ++parameter_index)
     {
         const struct vkd3d_shader_root_parameter *parameter = &desc.u.v_1_0.parameters[parameter_index];
@@ -699,7 +705,8 @@ int wb_root_signature_inspect(const void *bytes, unsigned int length)
         {
             const struct vkd3d_shader_root_descriptor_table *table = &parameter->u.descriptor_table;
             record[2] = table->descriptor_range_count;
-            record[6] = cursor + WB_ROOT_PARAMETER_WORDS; /* range base for this parameter */
+            record[6] = range_index; /* first range slot for this parameter */
+            range_index += table->descriptor_range_count * WB_ROOT_RANGE_WORDS;
         }
         else if (parameter->parameter_type == VKD3D_SHADER_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
         {
@@ -714,9 +721,10 @@ int wb_root_signature_inspect(const void *bytes, unsigned int length)
         }
         cursor += WB_ROOT_PARAMETER_WORDS;
     }
-    /* Ranges follow the parameter block; re-walk with the range cursor so the
-     * record offsets written above stay valid. */
-    range_index = cursor;
+    /* Ranges follow the parameter block; the offsets written above point at
+     * the first range slot for each descriptor-table parameter. */
+    range_index = WB_ROOT_HEADER_WORDS
+            + desc.u.v_1_0.parameter_count * WB_ROOT_PARAMETER_WORDS;
     for (parameter_index = 0; parameter_index < desc.u.v_1_0.parameter_count; ++parameter_index)
     {
         const struct vkd3d_shader_root_parameter *parameter = &desc.u.v_1_0.parameters[parameter_index];
