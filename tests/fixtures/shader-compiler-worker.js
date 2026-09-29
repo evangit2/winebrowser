@@ -10,11 +10,14 @@ onmessage = async ({ data }) => {
     const legacy = await compiler.compileLegacyPair(data.legacyVertex, data.legacyPixel);
     const compilationMs = performance.now() - start;
     const rootSignatures = [];
+    const rootSignatureBlobs = [];
     for (const flags of [0, 1]) {
       const bytes = await compiler.serializeRootSignature(flags);
       const parsed = await compiler.validateRootSignature(bytes);
       if (parsed !== flags) throw Error('Root signature flags changed during round trip');
       rootSignatures.push({ flags, bytes: bytes.length });
+      // Snapshot before the corruption check below mutates this buffer.
+      rootSignatureBlobs.push({ flags, bytes: bytes.slice() });
       bytes[4] ^= 1;
       let rejected = false;
       try {
@@ -24,6 +27,53 @@ onmessage = async ({ data }) => {
       }
       if (!rejected) throw Error('Corrupt root signature accepted');
     }
+    // Canonical D3D12 bindings: scan a shader that declares constant buffers,
+    // textures and samplers, plan a dense per-kind layout, recompile the shader
+    // against it and confirm the emitted WGSL honours the assigned groups.
+    const descriptorSource = new TextEncoder().encode(
+      [
+        'cbuffer CB0 : register(b0) { float4x4 mvp; };',
+        'cbuffer CB1 : register(b2) { float4 tint; };',
+        'Texture2D tex0 : register(t0);',
+        'TextureCube env : register(t3);',
+        'SamplerState samp0 : register(s0);',
+        'SamplerState samp2 : register(s2);',
+        'struct VSOut { float4 p : SV_Position; float2 uv : TEXCOORD0; };',
+        'float4 main(VSOut i) : SV_Target {',
+        '  return tex0.Sample(samp0, i.uv) * tint',
+        '    + env.Sample(samp2, float3(i.uv, 1)) + mvp[0];',
+        '}',
+      ].join('\n'),
+    );
+    const { bytes: descriptorDXBC } = await compiler.compileHLSL(
+      descriptorSource,
+      'main',
+      'ps_5_0',
+      'bindings.hlsl',
+    );
+    const descriptors = await compiler.scanDescriptors(descriptorDXBC);
+    const module = await import('../../src/d3d12-bindings.js');
+    const plan = module.canonicalBindings(descriptors);
+    const bound = await compiler.compileBound(descriptorDXBC, plan.bindings);
+    // The declared registers must appear with exactly the planned decorations.
+    const decorations = new Map();
+    for (const binding of plan.bindings)
+      decorations.set(`${binding.group}:${binding.binding}`, binding);
+    const observed = [...bound.wgsl.matchAll(/@group\((\d+)\) @binding\((\d+)\)/g)].map((match) =>
+      Number(match[1]) + ':' + Number(match[2]),
+    );
+    const expected = [...decorations.keys()].sort();
+    if (JSON.stringify(observed.sort()) !== JSON.stringify(expected))
+      throw Error(
+        'Bound WGSL groups/bindings do not match the planned layout: ' +
+          JSON.stringify({ observed, expected }),
+      );
+
+    // Root-signature inspection must report the serialised structure, not just
+    // accept it: a signature with a descriptor table, constants and a static
+    // sampler has to round-trip into parameters, ranges and samplers.
+    const signatureWords = await compiler.inspectRootSignature(rootSignatureBlobs[1].bytes);
+
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) throw Error('WebGPU adapter unavailable');
     device = await adapter.requestDevice();
@@ -124,6 +174,25 @@ onmessage = async ({ data }) => {
         compilationMs,
         drawOffsetPreserved,
         rootSignatures,
+        descriptorBindings: {
+          scanned: descriptors.map(({ type, space, register, resourceType, dataType }) => ({
+            type,
+            space,
+            register,
+            resourceType,
+            dataType,
+          })),
+          planned: plan.bindings.map(({ type, space, register, group, binding }) => ({
+            type,
+            space,
+            register,
+            group,
+            binding,
+          })),
+          boundWGSL: bound.wgsl,
+        },
+        signatureWords: Array.from(signatureWords.words),
+        signatureFlags: signatureWords.flags,
         shaders: [vertex, fragment].map(({ spirv, wgsl }) => ({ spirvBytes: spirv.length, wgsl })),
         legacy: {
           vertex: { spirvBytes: legacy.vertex.spirv.length, wgsl: legacy.vertex.wgsl },

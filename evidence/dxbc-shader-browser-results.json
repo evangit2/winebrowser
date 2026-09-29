@@ -1,6 +1,6 @@
 {
   "scope": "Browser-worker DXBC SM5 and licensed Wine VS1.1/PS2.0 token streams -> SPIR-V -> WGSL; WebGPU draw covers SM5 and is separate from Windows EXE acceptance",
-  "browser": "154.0.8037.57",
+  "browser": "154.0.8037.58",
   "sourceHashes": [
     "15514bd251d50567365499ff9e8bb7b8516538e8440d9ede3fd1b63b875cd73a",
     "c94dd3ed71e1f0e8a7f103940d2999b0cccb03f789eb2b4d741a31923f106768",
@@ -8,7 +8,7 @@
     "2a3343269640171fd70fdfe41b052822e086028451cfd1777456d45463f20c53"
   ],
   "type": "shader-result",
-  "compilationMs": 44.90000009536743,
+  "compilationMs": 45.77999997138977,
   "drawOffsetPreserved": true,
   "rootSignatures": [
     {
@@ -20,6 +20,106 @@
       "bytes": 68
     }
   ],
+  "descriptorBindings": {
+    "scanned": [
+      {
+        "type": 2,
+        "space": 0,
+        "register": 0,
+        "resourceType": 1,
+        "dataType": 4
+      },
+      {
+        "type": 2,
+        "space": 0,
+        "register": 2,
+        "resourceType": 1,
+        "dataType": 4
+      },
+      {
+        "type": 3,
+        "space": 0,
+        "register": 0,
+        "resourceType": 0,
+        "dataType": 4
+      },
+      {
+        "type": 3,
+        "space": 0,
+        "register": 2,
+        "resourceType": 0,
+        "dataType": 4
+      },
+      {
+        "type": 0,
+        "space": 0,
+        "register": 0,
+        "resourceType": 3,
+        "dataType": 5
+      },
+      {
+        "type": 0,
+        "space": 0,
+        "register": 3,
+        "resourceType": 6,
+        "dataType": 5
+      }
+    ],
+    "planned": [
+      {
+        "type": 2,
+        "space": 0,
+        "register": 0,
+        "group": 0,
+        "binding": 0
+      },
+      {
+        "type": 2,
+        "space": 0,
+        "register": 2,
+        "group": 0,
+        "binding": 1
+      },
+      {
+        "type": 0,
+        "space": 0,
+        "register": 0,
+        "group": 1,
+        "binding": 0
+      },
+      {
+        "type": 0,
+        "space": 0,
+        "register": 3,
+        "group": 1,
+        "binding": 1
+      },
+      {
+        "type": 3,
+        "space": 0,
+        "register": 0,
+        "group": 2,
+        "binding": 0
+      },
+      {
+        "type": 3,
+        "space": 0,
+        "register": 2,
+        "group": 2,
+        "binding": 1
+      }
+    ],
+    "boundWGSL": "struct cb4_struct {\n    member: array<vec4<f32>, 4>,\n}\n\nstruct cb1_struct {\n    member: array<vec4<f32>, 1>,\n}\n\nvar<private> r0_: vec4<f32>;\nvar<private> r1_: vec4<f32>;\n@group(0) @binding(0) \nvar<uniform> cb0_0_: cb4_struct;\n@group(0) @binding(1) \nvar<uniform> cb2_2_: cb1_struct;\n@group(2) @binding(0) \nvar s0_: sampler;\n@group(2) @binding(1) \nvar s2_: sampler;\n@group(1) @binding(0) \nvar t0_: texture_2d<f32>;\n@group(1) @binding(1) \nvar t3_: texture_cube<f32>;\nvar<private> global: vec4<f32>;\nvar<private> v0_: vec4<f32>;\nvar<private> v1_1: vec2<f32>;\nvar<private> o0_: vec4<f32>;\n\nfn main_1() {\n    let _e18 = global;\n    v0_ = vec4<f32>(_e18.x, _e18.y, _e18.z, (1f / _e18.w));\n    let _e26 = v1_1;\n    let _e29 = textureSample(t0_, s0_, _e26.xyxx.xy);\n    r0_ = _e29;\n    let _e30 = r0_;\n    let _e33 = cb2_2_.member[0u];\n    r0_ = (_e30 * _e33);\n    let _e35 = v1_1;\n    let _e36 = r1_;\n    r1_ = vec4<f32>(_e35.x, _e35.y, _e36.z, _e36.w);\n    r1_[2u] = 1f;\n    let _e43 = r1_;\n    let _e44 = r1_;\n    r1_ = vec4<f32>(_e43.x, _e43.y, _e43.z, _e44.w);\n    let _e50 = r1_;\n    let _e53 = textureSample(t3_, s2_, _e50.xyzx.xyz);\n    r1_ = _e53;\n    let _e54 = r0_;\n    let _e55 = r1_;\n    r0_ = (_e54 + _e55);\n    let _e60 = cb0_0_.member[0u][0u];\n    r1_[0u] = _e60;\n    let _e65 = cb0_0_.member[1u][0u];\n    r1_[1u] = _e65;\n    let _e70 = cb0_0_.member[2u][0u];\n    r1_[2u] = _e70;\n    let _e75 = cb0_0_.member[3u][0u];\n    r1_[3u] = _e75;\n    let _e77 = r1_;\n    r1_ = _e77;\n    let _e78 = r0_;\n    let _e79 = r1_;\n    o0_ = (_e78 + _e79);\n    return;\n}\n\n@fragment \nfn main(@builtin(position) param: vec4<f32>, @location(1) v1_: vec2<f32>) -> @location(0) vec4<f32> {\n    global = param;\n    v1_1 = v1_;\n    main_1();\n    let _e5 = o0_;\n    return _e5;\n}\n"
+  },
+  "signatureWords": [
+    0,
+    0,
+    1,
+    0,
+    11,
+    0
+  ],
+  "signatureFlags": 1,
   "shaders": [
     {
       "spirvBytes": 1680,

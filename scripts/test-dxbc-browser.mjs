@@ -99,6 +99,45 @@ try {
     result.rootSignatures.map((entry) => entry.flags),
     [0, 1],
   );
+  // The empty root signature must inspect as an empty structure with its
+  // original flags, not merely pass validation.
+  assert.equal(result.signatureFlags, 1);
+  assert.deepEqual(result.signatureWords, [0, 0, 1, 0, 11, 0]);
+
+  // Canonical D3D12 bindings: a shader declaring two constant buffers, a 2D
+  // texture, a cube texture and two samplers must scan, plan and recompile to
+  // exactly the planned @group/@binding decorations.
+  const scanned = result.descriptorBindings.scanned;
+  assert.deepEqual(
+    scanned.map(({ type, space, register }) => [type, space, register]).sort((a, b) => a[0] - b[0] || a[2] - b[2]),
+    [
+      [0, 0, 0], // SRV texture2D t0
+      [0, 0, 3], // SRV textureCube t3
+      [2, 0, 0], // CBV b0
+      [2, 0, 2], // CBV b2
+      [3, 0, 0], // sampler s0
+      [3, 0, 2], // sampler s2
+    ],
+  );
+  const planned = result.descriptorBindings.planned;
+  // Constant buffers in group 0, SRVs in group 1, samplers in group 2, each
+  // densely numbered by ascending register; group 3 (draw parameters) unused.
+  assert.deepEqual(
+    planned.map(({ type, register, group, binding }) => [type, register, group, binding]),
+    [
+      [2, 0, 0, 0],
+      [2, 2, 0, 1],
+      [0, 0, 1, 0],
+      [0, 3, 1, 1],
+      [3, 0, 2, 0],
+      [3, 2, 2, 1],
+    ],
+  );
+  assert.ok(
+    planned.every(({ group }) => group !== 3),
+    'no descriptor may occupy the draw-parameter group',
+  );
+  assert.match(result.descriptorBindings.boundWGSL, /@group\(0\) @binding\(0\)/);
   assert.deepEqual(errors, []);
   await mkdir('evidence', { recursive: true });
   await page.locator('canvas').screenshot({ path: 'evidence/dxbc-shader-browser.png' });
@@ -120,6 +159,13 @@ try {
     JSON.stringify(
       {
         ...report,
+        descriptorBindings: {
+          scanned: result.descriptorBindings.scanned.length,
+          planned: result.descriptorBindings.planned.length,
+          groups: [...new Set(result.descriptorBindings.planned.map((entry) => entry.group))].sort(),
+          boundWGSLBytes: result.descriptorBindings.boundWGSL.length,
+        },
+        signatureWords: result.signatureWords,
         shaders: result.shaders.map(({ spirvBytes, wgsl }) => ({
           spirvBytes,
           wgslBytes: wgsl.length,

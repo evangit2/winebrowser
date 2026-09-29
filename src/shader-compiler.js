@@ -117,6 +117,157 @@ export class ShaderCompiler {
     }
   }
 
+  /**
+   * Enumerates the D3D descriptors a compiled DXBC shader declares.
+   *
+   * Returns `{ type, space, register, resourceType, dataType, flags, count }`
+   * per descriptor, in the order vkd3d-shader reports them. `type` is the
+   * vkd3d descriptor type (SRV 0, UAV 1, CBV 2, sampler 3) and `resourceType`
+   * distinguishes a buffer from a texture and its dimension.
+   */
+  async scanDescriptors(bytes) {
+    this.#requireDXBC(bytes);
+    const source = bytes.slice();
+    await this.initialize();
+    const compiler = this.dxbc;
+    const input = compiler._malloc(source.length);
+    if (!input) throw Error('Descriptor scan allocation failed');
+    try {
+      compiler.HEAPU8.set(source, input);
+      if (compiler._wb_dxbc_scan(input, source.length) !== 1)
+        throw this.diagnostic('DXBC descriptor scan failed');
+      const address = compiler._wb_dxbc_scan_results();
+      const count = compiler._wb_dxbc_scan_count();
+      if (!count) return [];
+      if (!address || count > 4096 || address + count * 28 > compiler.HEAPU8.length)
+        throw Error('Invalid DXBC descriptor scan result');
+      const words = new Uint32Array(compiler.HEAPU8.buffer, address, count * 7);
+      const descriptors = [];
+      for (let i = 0; i < count; i++) {
+        const at = i * 7;
+        descriptors.push({
+          type: words[at],
+          space: words[at + 1],
+          register: words[at + 2],
+          resourceType: words[at + 3],
+          dataType: words[at + 4],
+          flags: words[at + 5],
+          count: words[at + 6],
+          comparison: (words[at + 5] & 0x4) !== 0,
+        });
+      }
+      return descriptors;
+    } finally {
+      compiler._wb_clear();
+      compiler._free(input);
+    }
+  }
+
+  /**
+   * Compiles a DXBC shader against an explicit (register -> group/binding)
+   * table. `placements` is one record per descriptor the caller has already
+   * positioned, in the same field order as `scanDescriptors`.
+   */
+  async compileBound(bytes, placements) {
+    this.#requireDXBC(bytes);
+    if (!Array.isArray(placements) || placements.length > 4096)
+      throw Error('Invalid descriptor placement table');
+    const records = new Uint32Array(placements.length * 7);
+    for (const [index, placement] of placements.entries()) {
+      const at = index * 7;
+      records[at] = placement.type;
+      records[at + 1] = placement.space;
+      records[at + 2] = placement.register;
+      records[at + 3] = placement.resourceType;
+      records[at + 4] = placement.group;
+      records[at + 5] = placement.binding;
+      records[at + 6] = placement.count;
+    }
+    const source = bytes.slice();
+    await this.initialize();
+    const compiler = this.dxbc;
+    const input = compiler._malloc(source.length);
+    const table = records.length ? compiler._malloc(records.byteLength) : 0;
+    if (!input || (records.length && !table)) {
+      if (input) compiler._free(input);
+      if (table) compiler._free(table);
+      throw Error('Bound DXBC compiler allocation failed');
+    }
+    try {
+      compiler.HEAPU8.set(source, input);
+      if (records.length)
+        compiler.HEAPU8.set(new Uint8Array(records.buffer, records.byteOffset, records.byteLength), table);
+      if (compiler._wb_dxbc_compile_bound(input, source.length, table, placements.length) !== 1)
+        throw this.diagnostic('Bound DXBC compilation failed');
+      const address = compiler._wb_result_ptr(),
+        length = compiler._wb_result_size();
+      if (
+        !address ||
+        length < 20 ||
+        length > 16 * MAX_SHADER_BYTES ||
+        length % 4 ||
+        address + length > compiler.HEAPU8.length
+      )
+        throw Error('Invalid bound DXBC compiler output');
+      const spirv = compiler.HEAPU8.slice(address, address + length);
+      let wgsl;
+      try {
+        wgsl = this.naga.spirv_to_wgsl(spirv);
+      } catch (error) {
+        throw Error('Bound SPIR-V translation failed: ' + (error.message ?? String(error)));
+      }
+      return { spirv, wgsl };
+    } finally {
+      compiler._wb_clear();
+      compiler._free(input);
+      if (table) compiler._free(table);
+    }
+  }
+
+  /**
+   * Parses a serialized root signature into its structured form (parameters,
+   * descriptor ranges and static samplers) using the same word layout the
+   * bridge emits for wb_root_signature_inspect.
+   */
+  async inspectRootSignature(bytes) {
+    if (!(bytes instanceof Uint8Array) || bytes.length < 32 || bytes.length > MAX_SHADER_BYTES)
+      throw Error('Invalid root signature length');
+    const source = bytes.slice();
+    await this.initialize();
+    const compiler = this.dxbc;
+    const address = compiler._malloc(source.length);
+    if (!address) throw Error('Root signature inspection allocation failed');
+    try {
+      compiler.HEAPU8.set(source, address);
+      if (compiler._wb_root_signature_inspect(address, source.length) !== 1)
+        throw this.diagnostic('Root signature inspection failed');
+      const wordsAddress = compiler._wb_root_signature_words();
+      const count = compiler._wb_root_signature_word_count();
+      if (!wordsAddress || count < 6 || wordsAddress + count * 4 > compiler.HEAPU8.length)
+        throw Error('Invalid root signature inspection result');
+      return {
+        flags: compiler._wb_root_signature_flags(),
+        words: new Uint32Array(compiler.HEAPU8.buffer, wordsAddress, count).slice(),
+      };
+    } finally {
+      compiler._wb_clear();
+      compiler._free(address);
+    }
+  }
+
+  #requireDXBC(bytes) {
+    if (
+      !(bytes instanceof Uint8Array) ||
+      bytes.length < 32 ||
+      bytes.length > MAX_SHADER_BYTES ||
+      bytes[0] !== 0x44 ||
+      bytes[1] !== 0x58 ||
+      bytes[2] !== 0x42 ||
+      bytes[3] !== 0x43
+    )
+      throw Error('Expected a bounded DXBC shader container');
+  }
+
   async compile(bytes) {
     if (
       !(bytes instanceof Uint8Array) ||
