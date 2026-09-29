@@ -9,6 +9,7 @@ import {
   parseResourceRange,
   parseRootSignatureDescriptor,
 } from './d3d12-descriptors.js';
+import { decodeRootSignatureWords, planRootSignature } from './d3d12-bindings.js';
 
 const S_OK = 0;
 const E_INVALIDARG = 0x80070057;
@@ -324,6 +325,35 @@ function scissor(r, ptr) {
     throw Error('Unsupported D3D12 scissor rect');
   return { left, top, right, bottom };
 }
+// The root signature's planned parameters, so a root-parameter index can be
+// validated and interpreted before any binding is recorded.
+function rootDescribedParameter(root, index) {
+  const plan = root.state.plan;
+  const parameter = plan?.parameters?.[index];
+  if (!parameter) throw Error('D3D12 root parameter index is out of range');
+  return parameter;
+}
+
+// Records a root descriptor binding (CBV/SRV/UAV) from a guest GPU virtual
+// address, resolving it to the buffer whose storage contains that address.
+function setRootDescriptor(r, a, o, kind) {
+  const index = number(a(1)),
+    address = number(a(2));
+  const root = o.state.root;
+  if (!root) throw Error('D3D12 root descriptor requires a root signature');
+  const parameter = rootDescribedParameter(root, index);
+  if (parameter.type !== kind)
+    throw Error(`D3D12 root ${kind} index is not a ${kind} parameter`);
+  const resource = uploadAt(r, address, 1, o.state.device);
+  o.state.roots.set(index, {
+    kind: 'root-descriptor',
+    descriptorType: kind,
+    resource,
+    address,
+  });
+  return undefined;
+}
+
 function recordDraw(r, a, o, indexed) {
   const s = o.state;
   const count = number(a(1)),
@@ -428,6 +458,7 @@ function listMethods() {
         o.state.scissor = null;
         o.state.topology = 0;
         o.state.descriptorHeaps = [];
+        o.state.roots = new Map();
         o.state.commands = [];
         o.state.vertexBytes = 0;
         o.state.closed = false;
@@ -576,6 +607,85 @@ function listMethods() {
       argc: 2,
       invoke(r, a, o) {
         o.state.root = object(r, a(1), 'root', o.state.device);
+        // Root bindings belong to the signature they were set against; a new
+        // signature starts with none, matching the D3D12 contract.
+        o.state.roots = new Map();
+        return undefined;
+      },
+    },
+    // SetGraphicsRootDescriptorTable(RootParameterIndex, BaseDescriptor): records
+    // an offset into the currently bound descriptor heap. The handle is a guest
+    // address of a 4-byte slot, so the slot index is derived from the heap base.
+    32: {
+      argc: 3,
+      invoke(r, a, o) {
+        const index = number(a(1)),
+          handle = number(a(2));
+        const root = o.state.root;
+        if (!root) throw Error('D3D12 root descriptor table requires a root signature');
+        const parameter = rootDescribedParameter(root, index);
+        if (parameter.type !== 'descriptor-table')
+          throw Error('D3D12 root descriptor table index is not a table');
+        o.state.roots.set(index, { kind: 'table', handle });
+        return undefined;
+      },
+    },
+    // SetGraphicsRootConstantBufferView / ShaderResourceView / UnorderedAccessView
+    // take a GPU virtual address, which is the guest storage of an upload or
+    // default-heap buffer.
+    38: {
+      argc: 3,
+      invoke: (r, a, o) => setRootDescriptor(r, a, o, 'cbv'),
+    },
+    40: {
+      argc: 3,
+      invoke: (r, a, o) => setRootDescriptor(r, a, o, 'srv'),
+    },
+    42: {
+      argc: 3,
+      invoke: (r, a, o) => setRootDescriptor(r, a, o, 'uav'),
+    },
+    // SetGraphicsRoot32BitConstant(s)(RootParameterIndex, Value(s), DestOffset).
+    // Inline constants are staged by 32-bit constant registers: one DWORD for
+    // setGraphicsRoot32BitConstant, a bounded run for 32BitConstants (#33/#35
+    // are the compute forms the harness shares).
+    34: {
+      argc: 4,
+      invoke(r, a, o) {
+        const index = number(a(1)),
+          value = number(a(2)),
+          offset = number(a(3));
+        const root = o.state.root;
+        if (!root) throw Error('D3D12 root constants require a root signature');
+        const parameter = rootDescribedParameter(root, index);
+        if (parameter.type !== '32-bit-constants')
+          throw Error('D3D12 root constants index is not a constants parameter');
+        if (offset >= parameter.valueCount)
+          throw Error('D3D12 root constant offset exceeds the parameter');
+        const entry = o.state.roots.get(index) ?? { kind: 'constants', values: [] };
+        entry.values[offset] = value >>> 0;
+        o.state.roots.set(index, entry);
+        return undefined;
+      },
+    },
+    36: {
+      argc: 5,
+      invoke(r, a, o) {
+        const index = number(a(1)),
+          valuePtr = number(a(2)),
+          count = number(a(3)),
+          offset = number(a(4));
+        const root = o.state.root;
+        if (!root) throw Error('D3D12 root constants require a root signature');
+        const parameter = rootDescribedParameter(root, index);
+        if (parameter.type !== '32-bit-constants')
+          throw Error('D3D12 root constants index is not a constants parameter');
+        if (!count || offset + count > parameter.valueCount)
+          throw Error('D3D12 root constant range exceeds the parameter');
+        r.check(valuePtr, count * 4);
+        const entry = o.state.roots.get(index) ?? { kind: 'constants', values: [] };
+        for (let i = 0; i < count; i++) entry.values[offset + i] = u32(r, valuePtr, i * 4);
+        o.state.roots.set(index, entry);
         return undefined;
       },
     },
@@ -711,6 +821,7 @@ function listMethods() {
         o.state.scissor = null;
         o.state.topology = 0;
         o.state.descriptorHeaps = [];
+        o.state.roots = new Map();
         return undefined;
       },
     },
@@ -1055,6 +1166,7 @@ function deviceMethods() {
           {
             device: dev,
             root: p.root,
+            plan: p.root.state.plan,
             inputLayout: p.inputLayout,
             vertexStride: p.vertexStride,
             depth: p.depth,
@@ -1063,7 +1175,7 @@ function deviceMethods() {
           async (o) => requireBackend(r).destroyPipeline({ id: o.pointer }),
         );
         try {
-          await requireBackend(r).createPipeline({
+          const created = await requireBackend(r).createPipeline({
             id: item.pointer,
             vertex: p.vertex,
             pixel: p.pixel,
@@ -1072,7 +1184,14 @@ function deviceMethods() {
             depth: p.depth,
             cullMode: p.cullMode,
             frontFace: p.frontFace,
+            // The pipeline's binding layout must follow the root signature the
+            // pipeline state was created against.
+            rootPlan: p.root.state.plan,
           });
+          // Retain the canonical bindings the backend compiled the shaders
+          // against, so each draw can resolve its declared registers to bound
+          // data without rescanning the shader.
+          item.state.bindings = created?.bindings ?? [];
         } catch (error) {
           item.refs = 0;
           dev.refs--;
@@ -1109,6 +1228,7 @@ function deviceMethods() {
             scissor: null,
             topology: 0,
             descriptorHeaps: [],
+            roots: new Map(),
             commands: [],
             vertexBytes: 0,
             closed: false,
@@ -1292,8 +1412,14 @@ function deviceMethods() {
         if (!iid(r, a(4), 'root')) return E_NOINTERFACE;
         if (number(a(1)) !== 0) return E_INVALIDARG;
         const raw = bytes(r, number(a(2)), number(a(3)));
-        const flags = await requireBackend(r).validateRootSignature(raw);
-        const item = make(r, 'root', {}, { device: dev, flags }, dev);
+        const backend = requireBackend(r);
+        const flags = await backend.validateRootSignature(raw);
+        // Keep the inspected structure so the command list can resolve each
+        // shader descriptor's register to a root parameter, and so the pipeline
+        // can derive a canonical WebGPU binding layout from it.
+        const inspected = await backend.inspectRootSignature(raw);
+        const plan = planRootSignature(decodeRootSignatureWords(inspected.words));
+        const item = make(r, 'root', {}, { device: dev, flags, plan }, dev);
         r.write32(out, item.pointer);
         return S_OK;
       },

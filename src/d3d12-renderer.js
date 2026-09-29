@@ -1,8 +1,35 @@
 import { ShaderCompiler } from './shader-compiler.js';
 import { reflectDXBCInputSignature } from './dxbc-signature.js';
 import { validateIndexSnapshot } from './d3d12-indices.js';
+import {
+  canonicalBindings,
+  DRAW_PARAMETER_GROUP,
+  resolveDescriptorPlacement,
+} from './d3d12-bindings.js';
+
+const DESCRIPTOR_KIND_NAMES = ['shader resource view', 'unordered access view', 'constant buffer', 'sampler'];
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
+
+// The binding table a stage must be compiled against. Every declared register
+// is placed at its canonical group/binding; the record keeps the descriptor's
+// own resource kind so the bridge can set the matching binding flag.
+function placementsFor(plan, descriptors) {
+  return descriptors.map((descriptor) => {
+    const assignment = plan.lookup.get(
+      `${descriptor.type}:${descriptor.space}:${descriptor.register}`,
+    );
+    return {
+      type: descriptor.type,
+      space: descriptor.space,
+      register: descriptor.register,
+      resourceType: descriptor.resourceType,
+      count: descriptor.count ?? 1,
+      group: assignment?.group ?? 0,
+      binding: assignment?.binding ?? 0,
+    };
+  });
+}
 const finite = (value) => Number.isFinite(value) && Number.isFinite(Math.fround(value));
 
 // D3D12 owns resources and command recording in the guest API frontend. This
@@ -176,6 +203,7 @@ export class D3D12Renderer {
     depth = null,
     cullMode = 'none',
     frontFace = 'cw',
+    rootPlan = null,
   }) {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
       throw Error('D3D12 pipeline limit exceeded');
@@ -230,14 +258,44 @@ export class D3D12Renderer {
       };
     });
     await this.initialize();
-    const vs = await this.compiler.compile(vertex);
-    const ps = await this.compiler.compile(pixel);
+    // When the root signature declares any root parameter, the pipeline's two
+    // stages may reference constant buffers, textures or samplers. Scan both
+    // for their declared registers, give each register one canonical
+    // (group, binding), and compile each stage against that layout so the
+    // emitted SPIR-V matches the explicit pipeline layout built below. A root
+    // signature with no parameters keeps the long-standing empty-layout path.
+    const declaresResources = !!rootPlan && rootPlan.parameterCount > 0;
+    let plan = null;
+    if (declaresResources) {
+      const scanned = [
+        ...(await this.compiler.scanDescriptors(vertex)),
+        ...(await this.compiler.scanDescriptors(pixel)),
+      ];
+      plan = canonicalBindings(scanned);
+      // Every register the shaders use must be reachable through the
+      // signature; an unreachable one would silently read nothing at draw time.
+      for (const binding of plan.bindings) {
+        if (!resolveDescriptorPlacement(rootPlan, binding))
+          throw Error(
+            `D3D12 root signature does not declare ${DESCRIPTOR_KIND_NAMES[binding.type]}` +
+              ` register ${binding.register}, space ${binding.space}`,
+          );
+      }
+    }
+    const descriptors = plan ? plan.bindings : [];
+    const vs = plan
+      ? await this.compiler.compileBound(vertex, placementsFor(plan, descriptors))
+      : await this.compiler.compile(vertex);
+    const ps = plan
+      ? await this.compiler.compileBound(pixel, placementsFor(plan, descriptors))
+      : await this.compiler.compile(pixel);
+    const layout = plan ? this.pipelineLayout(plan) : this.layout;
     this.device.pushErrorScope('validation');
     let pipeline, failure;
     try {
       pipeline = await this.device.createRenderPipelineAsync({
         label: 'D3D12 translated DXBC pipeline',
-        layout: this.layout,
+        layout,
         vertex: {
           module: this.device.createShaderModule({ code: vs.wgsl }),
           entryPoint: 'main',
@@ -264,11 +322,43 @@ export class D3D12Renderer {
     }
     const validation = await this.device.popErrorScope();
     if (failure || validation) throw failure ?? Error(validation.message);
-    this.pipelines.set(id, { pipeline, vertexStride, depth, cullMode, frontFace });
+    this.pipelines.set(id, {
+      pipeline,
+      vertexStride,
+      depth,
+      cullMode,
+      frontFace,
+      plan,
+      bindings: plan?.bindings ?? [],
+    });
     this.graphics.emit({
       type: 'log',
-      text: 'D3D12 DXBC shaders compiled to WGSL in the browser worker',
+      text: plan
+        ? `D3D12 DXBC shaders compiled to WGSL with ${plan.bindings.length} canonical bindings`
+        : 'D3D12 DXBC shaders compiled to WGSL in the browser worker',
     });
+    return { bindings: plan?.bindings ?? [] };
+  }
+
+  // The pipeline layout implied by a canonical binding plan. Groups 0..2 carry
+  // the constant buffers, SRVs/UAVs and samplers; group 3 stays the draw
+  // parameter uniform vkd3d-shader emits for base vertex/instance.
+  pipelineLayout(plan) {
+    const keys = plan.layouts.map(
+      (entry) => `${entry.group}:${entry.entries.map((e) => e.binding).join(',')}`,
+    );
+    const cacheKey = keys.join('|');
+    const cached = this.canonicalLayouts?.get(cacheKey);
+    if (cached) return cached;
+    const layouts = plan.layouts.map((entry) =>
+      entry.entries.length ? this.device.createBindGroupLayout({ entries: entry.entries }) : this.emptyLayout,
+    );
+    const layout = this.device.createPipelineLayout({
+      bindGroupLayouts: [...layouts.slice(0, DRAW_PARAMETER_GROUP), this.drawLayout],
+    });
+    this.canonicalLayouts ??= new Map();
+    this.canonicalLayouts.set(cacheKey, layout);
+    return layout;
   }
 
   validateCommands(commands) {
