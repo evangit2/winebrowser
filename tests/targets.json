@@ -615,7 +615,7 @@
       "workingDirectory": ".cache/targets/DynamicBranching",
       "args": [],
       "expected": "opens the Dynamic Branching room scene, renders its shader variants and lighting, accepts camera/settings input, and closes cleanly",
-      "statusNote": "The unchanged upstream EXE now runs to its render loop in the browser: after source-built Wine loader registration, guest DLL attach, window creation and Direct3DCreate9(31), it creates its DXT1/DXT3 textures and 512x512 L8 font, compiles its shaders, and plays the Dynamic Branching scene with stencil shadow volumes and alpha-tested silhouettes. The browser probe presents three 798x570 frames of 39 draws each with differing pixel hashes, and the captured frame decodes to a coherent pillar-room scene lit by the demo's five coloured lights (25,770 distinct colours, mean luminance 27.6). Camera and settings input are not yet wired to the in-app browser harness, so the report does not claim full interactive parity."
+      "statusNote": "The unchanged upstream EXE runs its scene in the in-app browser harness: after guest DLL attach, window creation and Direct3DCreate9, it creates its DXT1/DXT3/L8 textures, compiles its shaders and renders the Dynamic Branching pillar room with stencil shadow volumes and alpha-tested silhouettes. Two frames sampled five seconds apart differ in 278,406 of 454,760 lit pixels at 798x570. It also reaches the same render loop through the diagnostic probe with the source-built Wine closure. Camera and menu input are not wired to the browser harness, so full interactive parity is not claimed. evidence/humus-dynamic-branching-live.json and evidence/wine-target-humus-dynamic-branching-browser.json record both runs."
     },
     {
       "id": "humus-inferno-d3d10-x86",

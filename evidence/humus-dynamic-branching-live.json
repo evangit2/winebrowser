@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-29T07:48:27.460Z",
+  "harness": "in-app browser (interactive worker, host API providers, published example package)",
+  "targetId": "humus-dynamic-branching-d3d9-x86",
+  "exeSha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "status": "renders",
+  "frames": {
+    "width": 798,
+    "height": 570,
+    "nonBackground": 454760,
+    "distinctColors": 32,
+    "firstFrameSha256": "ba57c25a2ee11f1b3a8df42587efd2c2001e2f0b3ebd370da5d05e31beb7b6e6",
+    "secondFrameSha256": "7ce1156e04c0016ba91d38e3dc47fe92f15719b5cfff1f518d889043297a21c9",
+    "changedPixels": 278406
+  },
+  "scope": "The unchanged Humus Dynamic Branching demo selected from the published example list, run through the interactive worker with only the host API providers. It creates its window, textures and shaders and then renders an animated 798x570 scene: two frames sampled five seconds apart differ in 278,406 of their 454,760 lit pixels. The screenshots are evidence/humus-dynamic-branching-live.png (gitignored, reproduced by the run above)."
+}

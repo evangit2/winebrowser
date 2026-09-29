@@ -558,9 +558,11 @@ function virtualAlloc(r, a) {
     protect = a(3) >>> 0;
   if (!size) return fail(r, 87, 4);
   if (!(type & (MEM_COMMIT | MEM_RESERVE))) return fail(r, 87, 4);
-  // MEM_RESERVE without MEM_COMMIT maps to a protection of PAGE_NOACCESS.
-  const ntProtect = type & MEM_COMMIT ? PROTECT_TO_NT[protect] : 0;
-  if (ntProtect === undefined || (type & MEM_COMMIT && !ntProtect)) return fail(r, 87, 4);
+  // The requested protection is carried even for a reserve-only call: the
+  // allocator records it on the reservation and applies it when the guest
+  // commits. A protection the runtime does not model fails up front.
+  const ntProtect = PROTECT_TO_NT[protect];
+  if (!ntProtect) return fail(r, 87, 4);
   const ntType = (type & MEM_RESERVE ? 0x2000 : 0) | (type & MEM_COMMIT ? 0x1000 : 0);
   const result = r.virtualMemory.allocate(address, size, ntType, ntProtect);
   if (result.status) return fail(r, 8, 4);
