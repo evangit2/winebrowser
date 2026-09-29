@@ -33,6 +33,10 @@ const call = (n) => [0x10, n];
 // General registers occupy global indices 0..7. FS follows the active guest
 // context so compiled blocks remain reusable across thread switches.
 export const FS_BASE_GLOBAL = 8;
+// The guest address of the instruction currently executing. Memory-touching
+// instructions record it before their access, so a checked access fault can be
+// attributed to one guest instruction and offered to the exception chain.
+export const INSTRUCTION_IP_GLOBAL = 9;
 // Numeric indices are shared with the CPU lowering code. Guest memory is accessed
 // through checked host calls rather than exposing the decoder's Wasm memory.
 export const Host = Object.freeze({
@@ -108,6 +112,7 @@ export function moduleBytes(code) {
   const imports = hostNames.map((name, i) => [...str('h'), ...str(name), 0, i]);
   for (let i = 0; i < 8; i++) imports.push([...str('h'), ...str('r' + i), 3, 0x7f, 1]);
   imports.push([...str('h'), ...str('fsBase'), 3, 0x7f, 1]);
+  imports.push([...str('h'), ...str('instructionIp'), 3, 0x7f, 1]);
   const body = [1, 3, 0x7f, ...code, 0x0b];
   return new Uint8Array([
     0,

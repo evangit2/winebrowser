@@ -24,6 +24,7 @@ import { canonicalHostSymbol } from './host-export-ordinals.js';
 import { GuestThreads } from './guest-threads.js';
 import { THUNK_BASE, THUNK_END } from './thunk-addresses.js';
 import { yieldToHost, yieldToTimer } from './host-yield.js';
+import { GuestUnwind, deliverGuestException, isGuestFault, unwindExceptionChain } from './seh.js';
 
 export { API_NAMES };
 
@@ -242,11 +243,32 @@ export class Runtime {
       // map lookup entirely.
       const thunk = ip >= THUNK_BASE && ip < THUNK_END ? this.thunks.get(ip) : undefined;
       if (thunk) {
-        ip = await this.api(thunk);
+        try {
+          ip = await this.api(thunk);
+        } catch (error) {
+          if (!(error instanceof GuestUnwind)) throw error;
+          // RtlUnwind never returns: walk the chain, then resume at the frame
+          // that accepted the exception with its return value in EAX.
+          await this.unwindGuest(error);
+          // RtlUnwind's TargetIp, when non-zero, is where control resumes. The
+          // CRT passes 0 and relies on the accepting frame's own stack instead,
+          // which the unwind walk has already restored.
+          ip = error.targetIp || (this.cpu.r[0].value >>> 0);
+        }
       } else {
         const preparation = this.cpu.prepare(ip);
         if (preparation) await preparation;
-        ip = this.cpu.step(ip);
+        try {
+          ip = this.cpu.step(ip);
+        } catch (error) {
+          if (!isGuestFault(error)) throw error;
+          // A guest access fault may be the signal an application's own
+          // __try/__except is waiting for. Offer it to the registration chain
+          // at fs:[0]; only an unhandled fault still stops the run.
+          const delivered = await this.deliverException(error);
+          if (!delivered.handled) throw error;
+          ip = delivered.resume;
+        }
       }
       if (this.blocks % 2048 === 0) {
         flushGdi(this);
@@ -272,6 +294,60 @@ export class Runtime {
     }
     return ip;
   }
+  /**
+   * Offers a guest fault to the exception registration chain at fs:[0].
+   *
+   * Each handler is invoked as a guest function with the cdecl convention, and
+   * a handler that returns ExceptionContinueExecution resumes the faulting
+   * thread at the (possibly repaired) context EIP. A fault with no chain, or
+   * one every handler declines, is reported as unhandled so the caller stops
+   * the run exactly as it did before.
+   */
+  async deliverException(fault) {
+    const faultEip = this.cpu.instructionIp;
+    fault.faultEip = faultEip;
+    const result = await deliverGuestException({
+      read32: (pointer) => this.guestMemory.read32(pointer),
+      write32: (pointer, value) => this.guestMemory.write32(pointer, value),
+      cpu: this.cpu,
+      fsBase: this.cpu.fsBase,
+      allocate: (bytes) => this.allocate(bytes),
+      callHandler: (handler, args) => this.callGuest(handler, args, 'cdecl'),
+      fault,
+    });
+    this.emit({
+      type: 'log',
+      text:
+        `Guest fault at 0x${(fault.faultEip >>> 0).toString(16)}: ` +
+        `${result.frames} exception frame(s) walked, handled=${result.handled}`,
+    });
+    return result;
+  }
+
+  /** Performs the RtlUnwind walk a guest handler requested. */
+  async unwindGuest(unwind) {
+    // The walk runs from the chain head to the frame whose __finally is
+    // executing. Once it completes, that frame continues with the return value
+    // RtlUnwind was given, on the stack its own caller left.
+    const result = await unwindExceptionChain({
+      read32: (pointer) => this.guestMemory.read32(pointer),
+      write32: (pointer, value) => this.guestMemory.write32(pointer, value),
+      cpu: this.cpu,
+      fsBase: this.cpu.fsBase,
+      allocate: (bytes) => this.allocate(bytes),
+      callHandler: (handler, args) => this.callGuest(handler, args, 'cdecl'),
+      endFrame: unwind.endFrame,
+      resumeEsp: this.cpu.r[4].value >>> 0,
+      retval: unwind.retval,
+      faultEip: unwind.faultEip,
+    });
+    this.emit({
+      type: 'log',
+      text: `Guest structured unwind: ${result.delivered} handler(s) walked`,
+    });
+    return result;
+  }
+
   async callGuest(address, args = [], convention = 'stdcall') {
     if (++this.callDepth > 32) throw Error('Guest callback depth exceeded');
     // Host-driven callbacks isolate CPU state, including the x87 stack.

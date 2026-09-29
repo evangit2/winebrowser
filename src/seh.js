@@ -63,10 +63,16 @@ export const EXCEPTION_CODE = Object.freeze({
   STACK_OVERFLOW: 0xc00000fd,
 });
 
-// Handler return values the dispatcher acts on. Any other value means the
-// handler ran its own __except body and the search continues.
-export const EXCEPTION_CONTINUE_EXECUTION = -1;
-export const EXCEPTION_CONTINUE_SEARCH = 0;
+// The value a registered frame handler RETURNS is EXCEPTION_DISPOSITION, not
+// the filter constants. Windows and Wine both define:
+//   ExceptionContinueExecution 0  resume at the (repaired) context
+//   ExceptionContinueSearch    1  the next frame decides
+//   ExceptionNestedException   2  a nested exception is in progress
+//   ExceptionCollidedUnwind    3  an unwind collided with this frame
+export const ExceptionContinueExecution = 0;
+export const ExceptionContinueSearch = 1;
+export const ExceptionNestedException = 2;
+export const ExceptionCollidedUnwind = 3;
 
 /**
  * A guest access fault carrying the information exception delivery needs. It is
@@ -82,6 +88,24 @@ export class GuestFault extends Error {
     this.sehAddress = address >>> 0;
     this.sehWrite = !!write;
     this.sehSize = size >>> 0;
+  }
+}
+
+/**
+ * Signals that RtlUnwind was called and the guest stack must be unwound.
+ *
+ * `RtlUnwind` never returns to its caller; it walks the chain and resumes the
+ * accepting frame. The runtime cannot do that from inside an API handler, so
+ * the handler throws this signal and the dispatcher performs the walk.
+ */
+export class GuestUnwind extends Error {
+  constructor({ endFrame, targetIp, retval, faultEip }) {
+    super('Guest requested a structured unwind');
+    this.name = 'GuestUnwind';
+    this.endFrame = endFrame >>> 0;
+    this.targetIp = targetIp >>> 0;
+    this.retval = retval >>> 0;
+    this.faultEip = faultEip >>> 0;
   }
 }
 
@@ -166,6 +190,71 @@ export function readRegistrationChain(read32, fsBase, limit = MAX_FRAMES) {
   return frames;
 }
 
+// EXCEPTION_UNWINDING / EXCEPTION_EXIT_UNWIND, set on every record an unwind
+// walk delivers so a handler can tell an unwind from a first-chance search.
+export const EXCEPTION_UNWINDING = 0x2;
+export const EXCEPTION_EXIT_UNWIND = 0x4;
+// A record raised with this flag set may not be resumed with ContinueExecution.
+export const EXCEPTION_NONCONTINUABLE = 0x1;
+
+/**
+ * Walks the registration chain from fs:[0] to `endFrame`, calling each handler
+ * with EXCEPTION_UNWINDING set, then reports where the walk stopped.
+ *
+ * This is the i386 RtlUnwind contract (Wine's __regs_RtlUnwind records the same
+ * behaviour): the handler return value is ignored except for
+ * ExceptionCollidedUnwind, and the caller resumes at `targetIp` with the record
+ * in EAX. Handlers invoked this way run their __finally bodies and pop their own
+ * frames, which is why the walk reads each frame's `next` before calling it.
+ *
+ * The caller supplies the record so the same one the search used is delivered.
+ */
+export async function unwindExceptionChain({
+  read32,
+  write32,
+  cpu,
+  fsBase,
+  allocate,
+  callHandler,
+  endFrame = 0,
+  resumeEsp = 0,
+  retval = 0,
+  faultEip = 0,
+}) {
+  const chain = readRegistrationChain(read32, fsBase);
+  const stop = endFrame >>> 0;
+  const record = allocate(EXCEPTION_RECORD_BYTES);
+  const context = allocate(CONTEXT_BYTES);
+  if (!record || !context) throw Error('SEH unwind staging allocation failed');
+  // A record with no search behind it is STATUS_UNWIND (0xc0000027), exactly
+  // what RtlUnwind builds when its caller passes no record.
+  writeExceptionRecord(write32, record, {
+    code: 0xc0000027,
+    faultEip,
+    faultAddress: 0,
+    write: false,
+  });
+  let delivered = 0;
+  for (const entry of chain) {
+    // The walk stops at the frame that accepted the exception: its own
+    // __finally body is what RtlUnwind is leaving, so it is not re-entered.
+    if (stop && entry.frame === stop) break;
+    if (!entry.handler) continue;
+    const flags = read32(record + 4) >>> 0;
+    write32(record + 4, flags | EXCEPTION_UNWINDING | (stop ? 0 : EXCEPTION_EXIT_UNWIND));
+    writeContext(write32, context, cpu, faultEip, fsBase);
+    // A handler entered for unwinding runs on the caller's stack, which is
+    // where control returns once RtlUnwind is done.
+    write32(context + CONTEXT_OFFSETS.Esp, resumeEsp >>> 0);
+    const action = await callHandler(entry.handler, [record, entry.frame, context, 0]);
+    delivered++;
+    if (![ExceptionContinueSearch, ExceptionCollidedUnwind].includes(action))
+      throw Error('Invalid disposition from an unwind handler: ' + action);
+  }
+  cpu.r[0].value = retval | 0;
+  return { delivered, frames: chain.length };
+}
+
 /**
  * Offers a fault to the registration chain at fs:[0].
  *
@@ -204,7 +293,7 @@ export async function deliverGuestException({
     if (!entry.handler) continue;
     writeContext(write32, context, cpu, fault.faultEip, fsBase);
     const action = await callHandler(entry.handler, [record, entry.frame, context, 0]);
-    if (action === EXCEPTION_CONTINUE_EXECUTION) {
+    if (action === ExceptionContinueExecution) {
       const resume = read32((context + CONTEXT_OFFSETS.Eip) >>> 0) >>> 0;
       readContext(read32, context, cpu);
       return { handled: true, resume, frames: frames.length };

@@ -4,8 +4,8 @@ import {
   CONTEXT_BYTES,
   CONTEXT_OFFSETS,
   EXCEPTION_CODE,
-  EXCEPTION_CONTINUE_EXECUTION,
-  EXCEPTION_CONTINUE_SEARCH,
+  ExceptionContinueExecution,
+  ExceptionContinueSearch,
   EXCEPTION_MAXIMUM_PARAMETERS,
   EXCEPTION_RECORD_BYTES,
   GuestFault,
@@ -184,7 +184,7 @@ test('the first handler that continues execution wins and its context is applied
       // Repair EAX and resume after the faulting instruction.
       m.write32(0x900 + CONTEXT_OFFSETS.Eax, 0x1234);
       m.write32(0x900 + CONTEXT_OFFSETS.Eip, 0x402000);
-      return EXCEPTION_CONTINUE_EXECUTION;
+      return ExceptionContinueExecution;
     },
     fault: new GuestFault('Guest read violation', {
       address: 0xdeadbeef,
@@ -218,9 +218,9 @@ test('a handler that searches moves to the next frame in the chain', async () =>
     allocate: (bytes) => (bytes === EXCEPTION_RECORD_BYTES ? 0x400 : 0x500),
     callHandler: async (handler) => {
       seen.push(handler);
-      if (handler === 0x8000) return EXCEPTION_CONTINUE_SEARCH;
+      if (handler === 0x8000) return ExceptionContinueSearch;
       m.write32(0x500 + CONTEXT_OFFSETS.Eip, 0x403000);
-      return EXCEPTION_CONTINUE_EXECUTION;
+      return ExceptionContinueExecution;
     },
     fault: new GuestFault('x', { address: 0x10, faultEip: 0x1000 }),
   });
@@ -239,8 +239,141 @@ test('every handler declining reports not handled with the frame count', async (
     cpu: { r: registers() },
     fsBase: FS_BASE,
     allocate: (bytes) => (bytes === EXCEPTION_RECORD_BYTES ? 0x400 : 0x500),
-    callHandler: async () => EXCEPTION_CONTINUE_SEARCH,
+    callHandler: async () => ExceptionContinueSearch,
     fault: new GuestFault('x', { address: 0x10, faultEip: 0x1000 }),
   });
   assert.deepEqual(result, { handled: false, frames: 1 });
+});
+
+// End-to-end delivery through a real CPU: a block that faults on an unmapped
+// address must name the faulting instruction and be offered to the chain.
+test('a real faulting instruction is offered to the chain with its address', async () => {
+  const { CPU } = await import('../src/cpu.js');
+  const { GuestMemory } = await import('../src/memory.js');
+  const iced = (await import('iced-x86')).default;
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  // mov eax, [0x2000] (mov eax,[disp32]); the address is unmapped, so the
+  // checked host load raises a GuestFault that records this instruction's IP.
+  const code = [0xa1, 0x00, 0x20, 0x00, 0x00];
+  new Uint8Array(memory.buffer).set([...code, 0xeb, 0], 0x1000);
+  const regions = [
+    { start: 0x1000, end: 0x2000, exec: true, read: true },
+    { start: 0x8000, end: 0x9000, write: true, read: true },
+  ];
+  const guest = new GuestMemory(memory, regions);
+  const cpu = new CPU(iced, {
+    memory,
+    stackTop: 0x9000,
+    executableRanges: [[0x1000, 0x1000 + code.length + 2]],
+    read32: (a) => guest.read32(a),
+    write32: (a, v) => guest.write32(a, v),
+    read: (a, w) => guest.read(a, w),
+    write: (a, v, w) => guest.write(a, v, w),
+    check: (a, n, write) => guest.check(a, n, write),
+  });
+  assert.throws(() => cpu.step(0x1000), (error) => {
+    assert.equal(isGuestFault(error), true);
+    assert.equal(error.sehCode, EXCEPTION_CODE.ACCESS_VIOLATION);
+    return true;
+  });
+  // The faulting instruction's own address was recorded before the access, so
+  // the exception record can name it rather than the block's start.
+  assert.equal(cpu.instructionIp, 0x1000);
+});
+
+test('an instruction without memory operands does not clobber the fault address', async () => {
+  const { CPU } = await import('../src/cpu.js');
+  const { GuestMemory } = await import('../src/memory.js');
+  const iced = (await import('iced-x86')).default;
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  // mov eax, [0x2000] faults; nop; add eax, ecx; ret
+  const code = [0xa1, 0x00, 0x20, 0x00, 0x00, 0x90, 0x01, 0xc8, 0xc3];
+  new Uint8Array(memory.buffer).set(code, 0x1000);
+  const regions = [
+    { start: 0x1000, end: 0x2000, exec: true, read: true },
+    { start: 0x8000, end: 0x9000, write: true, read: true },
+  ];
+  const guest = new GuestMemory(memory, regions);
+  const cpu = new CPU(iced, {
+    memory,
+    stackTop: 0x9000,
+    executableRanges: [[0x1000, 0x1000 + code.length + 2]],
+    read32: (a) => guest.read32(a),
+    write32: (a, v) => guest.write32(a, v),
+    read: (a, w) => guest.read(a, w),
+    write: (a, v, w) => guest.write(a, v, w),
+    check: (a, n, write) => guest.check(a, n, write),
+  });
+  // Seed a plausible previous IP; a register-only block must not change it, so
+  // a fault reported later still names the memory instruction that faulted.
+  cpu.instructionIpGlobal.value = 0x1234;
+  let faulted = false;
+  try {
+    cpu.step(0x1000);
+  } catch (error) {
+    faulted = true;
+    assert.equal(isGuestFault(error), true);
+  }
+  assert.equal(faulted, true);
+  assert.equal(cpu.instructionIp, 0x1000);
+});
+
+test('an unwind walk reaches the accepting frame with EXCEPTION_UNWINDING set', async () => {
+  const { unwindExceptionChain, EXCEPTION_UNWINDING } = await import('../src/seh.js');
+  const m = memory(8192);
+  m.write32(FS_BASE, 0x200);
+  m.write32(0x200, 0x220);
+  m.write32(0x204, 0x8000); // inner frame, the one being left
+  m.write32(0x220, 0xffffffff);
+  m.write32(0x224, 0x9000); // outer frame, not reached
+  const cpu = { r: registers({ 0: 0x9, 4: 0x5000 }) };
+  const seen = [];
+  const result = await unwindExceptionChain({
+    read32: m.read32,
+    write32: m.write32,
+    cpu,
+    fsBase: FS_BASE,
+    allocate: (bytes) => (bytes === EXCEPTION_RECORD_BYTES ? 0x400 : 0x600),
+    callHandler: async (handler, args) => {
+      seen.push({ handler, flags: m.read32(0x404), esp: m.read32(0x600 + CONTEXT_OFFSETS.Esp) });
+      return ExceptionContinueSearch;
+    },
+    // RtlUnwind unwinds every frame between the chain head and (but not
+    // including) end_frame, so passing the outer frame walks the inner one.
+    endFrame: 0x220,
+    resumeEsp: 0x7000,
+    retval: 0x42,
+    faultEip: 0x401000,
+  });
+  // Only the inner frame is walked; the walk stops at the accepting frame.
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].handler, 0x8000);
+  assert.equal((seen[0].flags & EXCEPTION_UNWINDING) !== 0, true);
+  assert.equal(seen[0].esp, 0x7000, 'the handler runs on the caller resume stack');
+  assert.equal(m.read32(0x400), 0xc0000027, 'a record-less unwind is STATUS_UNWIND');
+  assert.equal(cpu.r[0].value, 0x42, 'RtlUnwind puts retval in EAX');
+  assert.deepEqual(result, { delivered: 1, frames: 2 });
+});
+
+test('an unwind handler returning a bad disposition is rejected', async () => {
+  const { unwindExceptionChain } = await import('../src/seh.js');
+  const m = memory(8192);
+  m.write32(FS_BASE, 0x200);
+  m.write32(0x200, 0xffffffff);
+  m.write32(0x204, 0x8000);
+  await assert.rejects(
+    unwindExceptionChain({
+      read32: m.read32,
+      write32: m.write32,
+      cpu: { r: registers() },
+      fsBase: FS_BASE,
+      allocate: (bytes) => (bytes === EXCEPTION_RECORD_BYTES ? 0x400 : 0x600),
+      callHandler: async () => ExceptionContinueExecution,
+      endFrame: 0,
+      resumeEsp: 0x7000,
+      retval: 0,
+      faultEip: 0,
+    }),
+    /Invalid disposition from an unwind handler/,
+  );
 });

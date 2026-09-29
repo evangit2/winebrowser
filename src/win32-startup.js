@@ -6,6 +6,7 @@
 import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
 import { encodeAnsi } from './encoding.js';
 import { guestProcessorFeaturePresent } from './processor-features.js';
+import { GuestUnwind } from './seh.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -776,10 +777,22 @@ export const startupApis2 = {
   'kernel32.dll!SetUnhandledExceptionFilter': setUnhandledExceptionFilter,
   'kernel32.dll!UnhandledExceptionFilter': unhandledExceptionFilter,
   'kernel32.dll!SetHandleCount': (r, a) => ok(a(0), 1),
-  // WineBrowser has no SEH frame chain to unwind; the CRT only calls RtlUnwind
-  // while leaving a handler, which never happens here.
+  // RtlUnwind(EndFrame, TargetIp, ExceptionRecord, ReturnValue) is __stdcall and
+  // never returns: it walks the fs:[0] chain calling each handler with
+  // EXCEPTION_UNWINDING set, then hands control to the frame that accepted the
+  // exception with ReturnValue in EAX. The unwind itself must run as guest code,
+  // so the dispatcher performs it and replaces the continuation; a throw here
+  // unwinds the runtime rather than the guest.
   'kernel32.dll!RtlUnwind': (r, a) => {
-    throw Error(`Guest attempted a structured unwind from 0x${(a(0) >>> 0).toString(16)}`);
+    const endFrame = a(0) >>> 0;
+    const targetIp = a(1) >>> 0;
+    const retval = a(3) >>> 0;
+    throw new GuestUnwind({
+      endFrame,
+      targetIp,
+      retval,
+      faultEip: r.cpu.instructionIp,
+    });
   },
   'user32.dll!OpenClipboard': openClipboard,
   'user32.dll!EmptyClipboard': emptyClipboard,

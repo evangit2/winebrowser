@@ -1,5 +1,15 @@
 // Direct x86 basic-block -> WebAssembly emitter. iced decodes; it does not execute.
-import { moduleBytes, constant, get, set, local, call, Host, FS_BASE_GLOBAL } from './wasm.js';
+import {
+  moduleBytes,
+  constant,
+  get,
+  set,
+  local,
+  call,
+  Host,
+  FS_BASE_GLOBAL,
+  INSTRUCTION_IP_GLOBAL,
+} from './wasm.js';
 import { classifySse, SIMDState } from './simd.js';
 import { classifyX87, X87State } from './x87.js';
 import { guestCpuid } from './processor-features.js';
@@ -32,6 +42,10 @@ export class CPU {
     this.iced = iced;
     this.memory = memory;
     this.fsBaseGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
+    // Guest address of the instruction currently executing. Memory-touching
+    // blocks store it immediately before their checked access, so a fault can
+    // name the exact instruction to offer to the exception chain.
+    this.instructionIpGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
     this.fsBase = fsBase;
     this.df = 0;
     this.stringRestart = null;
@@ -396,6 +410,11 @@ export class CPU {
     };
     this.r.forEach((r, i) => (this.host['r' + i] = r));
     this.host.fsBase = this.fsBaseGlobal;
+    this.host.instructionIp = this.instructionIpGlobal;
+  }
+  /** The guest address of the instruction that is currently executing. */
+  get instructionIp() {
+    return this.instructionIpGlobal.value >>> 0;
   }
   get fsBase() {
     return this.fsBaseGlobal.value >>> 0;
@@ -717,6 +736,13 @@ export class CPU {
         a.push(...get(reg(i.memoryIndex)), ...constant(i.memoryIndexScale), 0x6c, 0x6a);
       return a;
     };
+    // True when any operand addresses memory, including an implicit stack
+    // access. Only these instructions record their guest address, so the
+    // register-only hot path pays nothing.
+    const touchesMemory = (i) => {
+      for (let n = 0; n < i.opCount; n++) if (i.opKind(n) === K.Memory) return true;
+      return i.isStackInstruction;
+    };
     const operand = (i, n) => {
       const k = i.opKind(n);
       if (k === K.Register) return readReg(i.opRegister(n));
@@ -767,6 +793,10 @@ export class CPU {
           end = next;
           count++;
           if (i.isInvalid || next > range[1]) throw Error('Invalid or truncated x86 instruction');
+          // Record this instruction's guest address before any checked memory
+          // access, so a fault inside the block can name the instruction that
+          // caused it and be offered to the exception chain.
+          if (touchesMemory(i)) code.push(...constant(at), ...set(INSTRUCTION_IP_GLOBAL));
           const m = i.mnemonic;
           const simd = classifySse(i, this.iced);
           const x87 = classifyX87(i, this.iced);
