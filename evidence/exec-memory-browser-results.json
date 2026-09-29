@@ -1,0 +1,27 @@
+{
+  "fixture": "exec-memory",
+  "scope": "A native PE32 program maps private PAGE_EXECUTE_READWRITE memory, emits x86, drops to PAGE_EXECUTE_READ, calls the emitted bytes, rewrites them and calls again. This is the loader-stub/packer/JIT shape; it is not a general executable-memory or W^X claim.",
+  "date": "2026-09-29T21:43:03.456Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "153.0.8010.12",
+  "browserCompilation": true,
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "exeSha256": "f0b52bd0ea32c41a136c8ba29f5cea0e4da90bb654f63df8f22cd06c2978252a",
+      "output": "old=0x00000040\r\nfirst=0x00000065\r\nsecond=0x000000c9\r\nfreed=1\r\n",
+      "exitCode": 0,
+      "instructions": 722,
+      "compiledBlocks": 41
+    },
+    {
+      "mode": "zip-upload",
+      "exeSha256": "f0b52bd0ea32c41a136c8ba29f5cea0e4da90bb654f63df8f22cd06c2978252a",
+      "output": "old=0x00000040\r\nfirst=0x00000065\r\nsecond=0x000000c9\r\nfreed=1\r\n",
+      "exitCode": 0,
+      "instructions": 722,
+      "compiledBlocks": 41
+    }
+  ],
+  "errors": []
+}
