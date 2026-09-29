@@ -9,7 +9,11 @@ import {
   parseResourceRange,
   parseRootSignatureDescriptor,
 } from './d3d12-descriptors.js';
-import { decodeRootSignatureWords, planRootSignature } from './d3d12-bindings.js';
+import {
+  decodeRootSignatureWords,
+  planRootSignature,
+  resolveDrawBindings,
+} from './d3d12-bindings.js';
 
 const S_OK = 0;
 const E_INVALIDARG = 0x80070057;
@@ -334,6 +338,88 @@ function rootDescribedParameter(root, index) {
   return parameter;
 }
 
+// Resolves a descriptor-table slot. The table's bound handle is a guest address
+// of a 4-byte descriptor slot; `heapSlot` is the range offset within the table,
+// so the address is the handle advanced that many descriptors.
+function descriptorTableEntry(r, o, entry, heapSlot) {
+  const heap = o.state.descriptorHeaps.find((candidate) =>
+    entry.handle >= candidate.state.base &&
+    entry.handle < candidate.state.base + candidate.state.count * 4,
+  );
+  if (!heap) throw Error('D3D12 root descriptor table is not backed by a bound heap');
+  const base = entry.handle + heapSlot * 4;
+  if (base + 4 > heap.state.base + heap.state.count * 4)
+    throw Error('D3D12 descriptor table range exceeds the bound heap');
+  const descriptor = state(r).descriptors.get(base);
+  if (!descriptor || !descriptor.heap.refs) throw Error('D3D12 descriptor table slot is empty');
+  if (!descriptor.resource) throw Error('D3D12 descriptor table slot has no resource');
+  return descriptor;
+}
+
+// Captures the bytes a draw needs for one resolved binding. Buffer-backed
+// bindings copy the guest storage the view covers; inline constants copy the
+// staged words. Textures and samplers carry their descriptors instead of bytes,
+// because the backend owns GPU storage for them.
+function bindingSnapshot(r, o, resolved) {
+  const { binding, placement, value } = resolved;
+  const common = { group: binding.group, binding: binding.binding, type: binding.type };
+  if (placement.kind === 'static-sampler')
+    return { ...common, kind: 'sampler', sampler: staticSamplerDescription(value) };
+  if (placement.kind === 'inline-constants') {
+    const bytes = Math.max(16, Math.ceil(value.length / 4) * 4);
+    const data = new Uint8Array(bytes);
+    for (let i = 0; i < value.length; i++) view32(data).setUint32(i * 4, value[i] >>> 0, true);
+    return { ...common, kind: 'uniform', bytes: data };
+  }
+  if (placement.kind === 'root-descriptor')
+    return { ...common, ...resourceSnapshot(r, value, 0, value.state.size) };
+  // Descriptor table: the slot holds the view the creator recorded.
+  if (value.kind === 'cbv')
+    return { ...common, ...resourceSnapshot(r, value.resource, value.offset, value.size) };
+  if (value.kind === 'srv' || value.kind === 'uav')
+    return { ...common, kind: 'texture-view', descriptor: value };
+  if (value.kind === 'sampler')
+    return { ...common, kind: 'sampler', sampler: dynamicSamplerDescription(value.sampler) };
+  throw Error('Unsupported D3D12 descriptor table slot kind');
+}
+function view32(bytes) {
+  return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+}
+function resourceSnapshot(r, resource, offset, size) {
+  if (resource.state.kind !== 'buffer') return { kind: 'texture-resource', resource };
+  if (!size || offset + size > resource.state.size)
+    throw Error('D3D12 buffer view exceeds its resource');
+  return {
+    kind: 'uniform',
+    bytes: r.data.slice(resource.state.storage + offset, resource.state.storage + offset + size),
+  };
+}
+// A static sampler declared by the root signature.
+function staticSamplerDescription(sampler) {
+  return {
+    filter: sampler.filter,
+    addressU: sampler.addressU,
+    addressV: sampler.addressV,
+    addressW: sampler.addressW,
+    maxAnisotropy: sampler.maxAnisotropy,
+    comparison: !!sampler.comparisonFunc,
+  };
+}
+// A sampler created through CreateSampler: 52 bytes beginning with
+// D3D12_FILTER, the three D3D12_TEXTURE_ADDRESS_MODEs, MipLODBias,
+// MaxAnisotropy, ComparisonFunc, BorderColor[4], MinLOD and MaxLOD.
+function dynamicSamplerDescription(bytes) {
+  const data = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return {
+    filter: data.getUint32(0, true),
+    addressU: data.getUint32(4, true),
+    addressV: data.getUint32(8, true),
+    addressW: data.getUint32(12, true),
+    maxAnisotropy: data.getUint32(20, true),
+    comparison: data.getUint32(24, true) !== 0,
+  };
+}
+
 // Records a root descriptor binding (CBV/SRV/UAV) from a guest GPU virtual
 // address, resolving it to the buffer whose storage contains that address.
 function setRootDescriptor(r, a, o, kind) {
@@ -406,8 +492,28 @@ function recordDraw(r, a, o, indexed) {
   const snapshotBytes = (vertexView?.size ?? 0) + (indexView?.size ?? 0);
   if (s.vertexBytes + snapshotBytes > MAX_RESOURCE_BYTES)
     throw Error('D3D12 command list upload snapshot limit exceeded');
+  // Resolve each canonical binding the pipeline's shaders declare against what
+  // the command list bound, and capture its data, so the draw is self-contained
+  // even though the guest may overwrite the source storage before execution.
+  const pipelineBindings = pipeline.bindings ?? [];
+  let bindings = null;
+  if (pipelineBindings.length) {
+    const rootPlan = s.root.state.plan;
+    const resolved = resolveDrawBindings({
+      bindings: pipelineBindings,
+      plan: rootPlan,
+      bound: s.roots,
+      resolve: { table: (entry, heapSlot) => descriptorTableEntry(r, o, entry, heapSlot) },
+    });
+    bindings = resolved.map((entry) => bindingSnapshot(r, o, entry));
+    for (const entry of bindings)
+      if (entry.kind === 'uniform' && entry.bytes) s.vertexBytes += entry.bytes.length;
+    if (s.vertexBytes > MAX_RESOURCE_BYTES)
+      throw Error('D3D12 binding snapshot limit exceeded');
+  }
   add(o, {
     type: 'draw',
+    bindings,
     target: s.target.pointer,
     pipeline: s.pipeline.pointer,
     viewport: { ...s.viewport },

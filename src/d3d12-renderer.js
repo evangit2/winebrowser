@@ -11,6 +11,37 @@ const DESCRIPTOR_KIND_NAMES = ['shader resource view', 'unordered access view', 
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 
+// D3D12_FILTER -> WebGPU min/mag/mip filter and anisotropy. The equality and
+// comparison filters are unsupported (the backend has no shadow sampler path),
+// which is reported rather than silently changed to a filtering sampler.
+const D3D12_ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
+function toSamplerDescriptor(sampler) {
+  if (sampler.comparison) throw Error('Unsupported D3D12 comparison sampler');
+  const filter = sampler.filter;
+  if (!Number.isInteger(filter) || filter > 0x155) throw Error('Unsupported D3D12 sampler filter');
+  const point = (value) => (value ? 'nearest' : 'linear');
+  const anisotropic = (filter & 0x55) === 0x55 && (filter & 0xf) !== 0;
+  const mag = point(filter & 0x4);
+  const min = point(filter & 0x10);
+  const mip = point(filter & 0x100);
+  const address = (mode) => {
+    const mapped = D3D12_ADDRESS[mode];
+    if (!mapped) throw Error('Unsupported D3D12 sampler address mode ' + mode);
+    return mapped;
+  };
+  return {
+    magFilter: mag,
+    minFilter: min,
+    mipmapFilter: mip,
+    addressModeU: address(sampler.addressU),
+    addressModeV: address(sampler.addressV),
+    addressModeW: address(sampler.addressW),
+    ...(anisotropic && sampler.maxAnisotropy > 1
+      ? { maxAnisotropy: Math.min(16, sampler.maxAnisotropy) }
+      : {}),
+  };
+}
+
 // The binding table a stage must be compiled against. Every declared register
 // is placed at its canonical group/binding; the record keeps the descriptor's
 // own resource kind so the bridge can set the matching binding flag.
@@ -289,7 +320,8 @@ export class D3D12Renderer {
     const ps = plan
       ? await this.compiler.compileBound(pixel, placementsFor(plan, descriptors))
       : await this.compiler.compile(pixel);
-    const layout = plan ? this.pipelineLayout(plan) : this.layout;
+    const canonical = plan ? this.pipelineLayout(plan) : null;
+    const layout = canonical?.layout ?? this.layout;
     this.device.pushErrorScope('validation');
     let pipeline, failure;
     try {
@@ -330,6 +362,7 @@ export class D3D12Renderer {
       frontFace,
       plan,
       bindings: plan?.bindings ?? [],
+      groupLayouts: canonical?.groupLayouts ?? null,
     });
     this.graphics.emit({
       type: 'log',
@@ -344,21 +377,26 @@ export class D3D12Renderer {
   // the constant buffers, SRVs/UAVs and samplers; group 3 stays the draw
   // parameter uniform vkd3d-shader emits for base vertex/instance.
   pipelineLayout(plan) {
-    const keys = plan.layouts.map(
-      (entry) => `${entry.group}:${entry.entries.map((e) => e.binding).join(',')}`,
-    );
-    const cacheKey = keys.join('|');
-    const cached = this.canonicalLayouts?.get(cacheKey);
+    const entriesKey = plan.layouts
+      .map((entry) => `${entry.group}:${entry.entries.map((e) => e.binding).join(',')}`)
+      .join('|');
+    this.canonicalLayouts ??= new Map();
+    const cached = this.canonicalLayouts.get(entriesKey);
     if (cached) return cached;
-    const layouts = plan.layouts.map((entry) =>
-      entry.entries.length ? this.device.createBindGroupLayout({ entries: entry.entries }) : this.emptyLayout,
+    // One bind group layout per canonical group. These exact objects are reused
+    // to build the draw-time bind groups, because WebGPU requires a bind group's
+    // layout to be equivalent to the pipeline layout's group.
+    const groupLayouts = plan.layouts.map((entry) =>
+      entry.entries.length
+        ? this.device.createBindGroupLayout({ entries: entry.entries })
+        : this.emptyLayout,
     );
     const layout = this.device.createPipelineLayout({
-      bindGroupLayouts: [...layouts.slice(0, DRAW_PARAMETER_GROUP), this.drawLayout],
+      bindGroupLayouts: [...groupLayouts.slice(0, DRAW_PARAMETER_GROUP), this.drawLayout],
     });
-    this.canonicalLayouts ??= new Map();
-    this.canonicalLayouts.set(cacheKey, layout);
-    return layout;
+    const record = { layout, groupLayouts };
+    this.canonicalLayouts.set(entriesKey, record);
+    return record;
   }
 
   validateCommands(commands) {
@@ -498,6 +536,78 @@ export class D3D12Renderer {
     return slot.group;
   }
 
+  /**
+   * Builds one WebGPU bind group per canonical group from a draw's resolved
+   * bindings. Uniform (constant buffer and inline constant) data is uploaded to
+   * a reused per-slot buffer; samplers and texture views bind the resources the
+   * backend created for them.
+   */
+  bindingGroups(bindings, drawIndex, groupLayouts) {
+    if (!bindings?.length) return null;
+    if (!groupLayouts) throw Error('D3D12 pipeline has no bind group layouts');
+    const entries = new Map([
+      [0, []],
+      [1, []],
+      [2, []],
+    ]);
+    for (const binding of bindings) {
+      const resource = this.bindingResource(binding, drawIndex);
+      if (!resource) throw Error('D3D12 binding has no bound resource');
+      entries.get(binding.group).push({ binding: binding.binding, resource });
+    }
+    const groups = [null, null, null];
+    for (const [group, list] of entries) {
+      // Every group the pipeline declares is bound, even when empty, so the
+      // pipeline's layout and the bound groups stay aligned.
+      const layout = groupLayouts[group];
+      const expected = layout === this.emptyLayout ? [] : list;
+      groups[group] = this.device.createBindGroup({ layout, entries: expected });
+    }
+    return groups;
+  }
+
+  /**
+   * The concrete WebGPU resource for one resolved binding, or null when the
+   * binding carries no drawable data. Uniform bytes go through a per-slot
+   * staging buffer so a later upload cannot change an already-recorded draw.
+   */
+  bindingResource(binding, drawIndex) {
+    if (binding.kind === 'sampler') {
+      const cache = (this.samplerCache ??= new Map());
+      const key = JSON.stringify(binding.sampler);
+      let sampler = cache.get(key);
+      if (!sampler) {
+        sampler = this.device.createSampler(toSamplerDescriptor(binding.sampler));
+        cache.set(key, sampler);
+      }
+      return { layout: { sampler: { type: binding.sampler.comparison ? 'comparison' : 'filtering' } }, resource: sampler };
+    }
+    if (binding.kind === 'uniform') {
+      const slot = this.uniformSlot(drawIndex, binding.group, binding.binding);
+      this.device.queue.writeBuffer(slot.buffer, 0, binding.bytes);
+      return {
+        layout: { buffer: { type: 'uniform' } },
+        resource: { buffer: slot.buffer, offset: 0, size: binding.bytes.length },
+      };
+    }
+    if (binding.kind === 'texture-view') {
+      const view = this.textureBindingResource(binding.descriptor);
+      if (view) return view;
+    }
+    return null;
+  }
+
+  uniformSlot(drawIndex, group, binding) {
+    const key = `${drawIndex}:${group}:${binding}`;
+    let slot = this.uniformSlots?.get(key);
+    if (!slot) {
+      slot = { buffer: this.device.createBuffer({ size: 65536, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }) };
+      this.uniformSlots ??= new Map();
+      this.uniformSlots.set(key, slot);
+    }
+    return slot;
+  }
+
   async execute({ commands }) {
     this.validateCommands(commands);
     await this.initialize();
@@ -551,8 +661,14 @@ export class D3D12Renderer {
                 GPUBufferUsage.VERTEX,
               ),
             );
-          for (let group = 0; group < 3; group++) pass.setBindGroup(group, this.emptyGroup);
-          pass.setBindGroup(3, this.drawParameters(draws++, command));
+          const groups = this.bindingGroups(
+            command.bindings,
+            draws++,
+            this.pipelines.get(command.pipeline)?.groupLayouts,
+          );
+          for (let group = 0; group < 3; group++)
+            pass.setBindGroup(group, groups[group] ?? this.emptyGroup);
+          pass.setBindGroup(3, this.drawParameters(draws - 1, command));
           pass.setViewport(v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth);
           pass.setScissorRect(s.left, s.top, s.right - s.left, s.bottom - s.top);
           if (command.indexCount !== undefined) {
@@ -680,6 +796,9 @@ export class D3D12Renderer {
     for (const slot of this.drawSlots) slot.buffer.destroy();
     for (const slot of this.vertexSlots) slot.buffer.destroy();
     for (const slot of this.indexSlots) slot.buffer.destroy();
+    for (const slot of this.uniformSlots?.values() ?? []) slot.buffer.destroy();
+    this.uniformSlots?.clear();
+    this.samplerCache?.clear();
     this.drawSlots.length = 0;
     this.vertexSlots.length = 0;
     this.indexSlots.length = 0;

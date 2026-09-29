@@ -228,15 +228,34 @@ export function parseCommittedResourceDescriptor({
       width > 2048 ||
       uint16(28) !== 1 ||
       uint16(30) !== 1 ||
-      u32(read32, descriptor, 32) !== 55 ||
       u32(read32, descriptor, 36) !== 1 ||
       u32(read32, descriptor, 40) ||
-      u32(read32, descriptor, 44) ||
-      u32(read32, descriptor, 48) !== 2 ||
-      initialState !== 0x10 ||
-      !clearValue
+      u32(read32, descriptor, 44)
     )
       return null;
+    const format = u32(read32, descriptor, 32);
+    if (format === 55) {
+      // A D16_UNORM depth attachment: one mip, one array slice, DEPTH_WRITE
+      // state and an explicit depth clear value are all required.
+      if (
+        u32(read32, descriptor, 48) !== 2 ||
+        initialState !== 0x10 ||
+        !clearValue
+      )
+        return null;
+    } else {
+      // An ordinary sampled 2D texture: R8G8B8A8_UNORM, one mip, one slice,
+      // no clear value, and an initial state the renderer can copy into.
+      const bpp = TEXTURE_FORMAT_BYTES[format];
+      if (
+        !bpp ||
+        u32(read32, descriptor, 48) ||
+        clearValue ||
+        !SAMPLED_TEXTURE_STATES.has(initialState)
+      )
+        return null;
+      return { kind: 'texture', width, height, format, bytesPerPixel: bpp, state: initialState };
+    }
     check(clearValue, 20);
     const depth = readFloat32(clearValue + 4);
     if (
@@ -281,6 +300,11 @@ const MAX_CONSTANT_WORDS = 64;
  * `ShaderCompiler.buildRootSignature` accepts. Returns a Uint32Array, or null
  * for a structurally invalid description (the caller reports E_INVALIDARG).
  */
+// DXGI formats the D3D12 texture path models, with their bytes per pixel.
+const TEXTURE_FORMAT_BYTES = { 28: 4, 87: 4, 49: 2, 61: 1 };
+// A sampled texture may start in COMMON, COPY_DEST or PIXEL_SHADER_RESOURCE.
+const SAMPLED_TEXTURE_STATES = new Set([0, 0x400, 0x40]);
+
 export function parseRootSignatureDescriptor({ check, read32, readFloat32, pointer }) {
   const u32 = (at) => read32(at) >>> 0;
   if (!pointer) return null;

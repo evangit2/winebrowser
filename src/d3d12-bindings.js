@@ -385,3 +385,49 @@ export function resolveDescriptorPlacement(plan, descriptor) {
   }
   return null;
 }
+
+/**
+ * Resolves every canonical binding of a pipeline to the data the command list
+ * has bound for it. `bindings` is the pipeline's canonical binding list, `plan`
+ * the root signature plan, and `bound` the list's recorded root-parameter
+ * bindings (index -> { kind, ... }).
+ *
+ * `resolve` maps a placement to a concrete binding entry:
+ *   table            -> { heapSlot, ... } read from the bound descriptor heap
+ *   root-descriptor  -> the buffer the GPU address resolved to
+ *   inline-constants -> the staged 32-bit constant words
+ *   static-sampler   -> the sampler the signature declares
+ *
+ * Returns one `{ binding, group, placement, value }` per canonical binding, or
+ * throws when a register's data was never bound. Every canonical binding must
+ * be resolvable: a shader register with no backing root binding would read
+ * nothing, so it is an error rather than a silently empty input.
+ */
+export function resolveDrawBindings({ bindings, plan, bound, resolve }) {
+  if (!Array.isArray(bindings)) throw Error('Invalid D3D12 binding list');
+  if (!plan) throw Error('D3D12 draw requires a planned root signature');
+  return bindings.map((binding) => {
+    const placement = resolveDescriptorPlacement(plan, binding);
+    if (!placement)
+      throw Error(
+        `D3D12 root signature does not declare register ${binding.register} ` +
+          `(space ${binding.space}) of type ${binding.type}`,
+      );
+    if (placement.kind === 'static-sampler')
+      return { binding, placement, value: placement.sampler };
+    const entry = bound.get(placement.parameter);
+    if (!entry) throw Error('D3D12 root parameter was never bound before the draw');
+    if (placement.kind === 'table') {
+      if (entry.kind !== 'table') throw Error('D3D12 root parameter is not bound as a table');
+      return { binding, placement, value: resolve.table(entry, placement.heapSlot) };
+    }
+    if (placement.kind === 'root-descriptor') {
+      if (entry.kind !== 'root-descriptor')
+        throw Error('D3D12 root parameter is not bound as a root descriptor');
+      return { binding, placement, value: entry.resource };
+    }
+    // inline-constants
+    if (entry.kind !== 'constants') throw Error('D3D12 root parameter is not bound as constants');
+    return { binding, placement, value: entry.values ?? [] };
+  });
+}
