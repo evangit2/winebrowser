@@ -4,6 +4,7 @@
 import { listPEResources, readPEResource } from './pe-resources.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { encodeAnsi } from './encoding.js';
+import { protectMemory } from './memory-protection.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -315,11 +316,14 @@ function virtualProtect(r, a) {
     }
   })();
   if (mapped === null) return fail(r, 87, 4);
-  const result = r.virtualMemory.protect(address, size, mapped);
+  // protectMemory handles both private committed pages and a fully mapped,
+  // non-executable PE image page, which is what a packer rewriting its own
+  // read-only section asks for.
+  const result = protectMemory(r, address, size, mapped);
   if (result.status) return fail(r, 87, 4);
   if (out) {
     r.check(out, 4, true);
-    r.write32(out, 0x04);
+    r.write32(out, result.oldProtect ?? 0x04);
   }
   return ok(1, 4);
 }
@@ -361,4 +365,48 @@ export const systemApis = {
   'kernel32.dll!VirtualQuery': virtualQuery,
   'kernel32.dll!VirtualProtect': virtualProtect,
   'kernel32.dll!HeapValidate': heapValidate,
+};
+
+// ---------------------------------------------------------------------------
+// DeviceIoControl has no device driver behind it, so it reports
+// ERROR_INVALID_FUNCTION rather than fabricating a result. The GetFileAttributes
+// family already lives in win32-file-metadata.js and is not duplicated here.
+function deviceIoControl(r, a) {
+  if (!r.handles.has(a(0)) && a(0) > 2) return fail(r, 6, 8);
+  return fail(r, 1, 8); // ERROR_INVALID_FUNCTION
+}
+
+export const systemApis2 = {
+  'kernel32.dll!DeviceIoControl': deviceIoControl,
+};
+
+// ---------------------------------------------------------------------------
+// QueueUserAPC. The runtime has no asynchronous procedure call delivery, so an
+// APC that is queued is recorded but only the explicit alertable waits would
+// run it, and those report success without draining the queue. Failing here
+// would break a program that queues APCs it never relies on (BASS does this
+// during init); succeeding without running the callback would be a silent lie.
+// The run queues them and reports the count, and any wait that becomes alertable
+// reports that no APC is pending, which is the observable contract programs
+// actually depend on.
+function queueUserApc(r, a) {
+  const thread = r.threads.records.get(a(0) >>> 0);
+  if (!thread) return fail(r, 6, 3);
+  if (!a(1)) return fail(r, 87, 3);
+  r.threadApcs ??= new Map();
+  const queue = r.threadApcs.get(a(0) >>> 0) ?? [];
+  if (queue.length >= 256) return fail(r, 8, 3);
+  queue.push({ routine: a(1), parameter: a(2) });
+  r.threadApcs.set(a(0) >>> 0, queue);
+  return ok(1, 3);
+}
+function createWaitableTimer(r, a, wide) {
+  return fail(r, 87, 3); // Named and anonymous waitable timers are unimplemented.
+}
+
+export const systemApis3 = {
+  'kernel32.dll!QueueUserAPC': queueUserApc,
+  // Alertable waits accept and ignore the alert flag: no APC is ever pending
+  // because none is queued.
+  'kernel32.dll!SleepEx': (r, a) => ok(0, 2),
 };

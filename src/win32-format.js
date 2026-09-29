@@ -1,6 +1,6 @@
 // Keep formatting semantics in Wine guest code. These adapters only translate
 // the caller's x86 varargs stack to Wine's va_list entry point and preserve ABI.
-async function format(r, a, wide, variadic) {
+export async function format(r, a, wide, variadic) {
   const args = [a(0), a(1), variadic ? (r.cpu.r[4].value >>> 0) + 12 : a(2)];
   const symbol = `wvsprintf${wide ? 'W' : 'A'}`;
   r.wineFormatExports ??= new Map();
@@ -26,3 +26,11 @@ for (const wide of [false, true]) {
   formatApis[`user32.dll!wsprintf${suffix}`] = (r, a) => format(r, a, wide, true);
   formatApis[`user32.dll!wvsprintf${suffix}`] = (r, a) => format(r, a, wide, false);
 }
+
+// The msvcrt printf family shares the same real Wine wvsprintf body. sprintf
+// and vsprintf take the format in argument 1, so the varargs pointer sits at
+// the same stack offset wsprintf uses.
+formatApis['msvcrt.dll!sprintf'] = (r, a) => format(r, a, false, true);
+formatApis['msvcrt.dll!vsprintf'] = (r, a) => format(r, a, false, false);
+formatApis['msvcrt.dll!swprintf'] = (r, a) => format(r, a, true, true);
+formatApis['msvcrt.dll!vswprintf'] = (r, a) => format(r, a, true, false);

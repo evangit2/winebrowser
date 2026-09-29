@@ -23,7 +23,7 @@ import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
 import { startupApis, startupApis2, startupApis3, startupApis4 } from './win32-startup.js';
-import { systemApis } from './win32-system.js';
+import { systemApis, systemApis2, systemApis3 } from './win32-system.js';
 import { ws2Apis, WS2_NAMES } from './ws2_32.js';
 import { msvcrtApis, msacmApis } from './msvcrt.js';
 
@@ -70,6 +70,8 @@ for (const key of [
   ...Object.keys(startupApis3),
   ...Object.keys(startupApis4),
   ...Object.keys(systemApis),
+  ...Object.keys(systemApis2),
+  ...Object.keys(systemApis3),
   ...Object.keys(ws2Apis),
   ...Object.keys(msvcrtApis),
   ...Object.keys(msacmApis),
@@ -372,6 +374,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(acceleratorApis),
     ...Object.entries(displayApis),
     ...Object.entries(iconApis),
+    ...Object.entries(msvcrtApis),
     ...Object.entries(formatApis),
     ...Object.entries(nativeForwarderApis),
     ...Object.entries(registryApis),
@@ -386,8 +389,9 @@ export function createWin32ApiProvider() {
     ...Object.entries(startupApis3),
     ...Object.entries(startupApis4),
     ...Object.entries(systemApis),
+    ...Object.entries(systemApis2),
+    ...Object.entries(systemApis3),
     ...Object.entries(ws2Apis),
-    ...Object.entries(msvcrtApis),
     ...Object.entries(msacmApis),
     ['kernel32.dll!ExitProcess', exitProcess],
     ['kernel32.dll!GetStdHandle', getStdHandle],

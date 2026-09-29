@@ -1,8 +1,11 @@
+// msvcrt.dll. Real handlers where the runtime implements the entry point;
 // Minimal MSVCRT surface for the entry points native applications import when
 // they statically link a CRT or load one indirectly. Everything here is pure
 // computation over guest memory; no host libc is involved. `$I10_OUTPUT` is
 // Wine's own algorithm: it converts the ext80 to a double and formats that, so
 // this reproduces the same digits by the same route.
+import { MSVCRT_EXPORT_NAMES, MSVCRT_EXPORT_ALIASES } from './msvcrt-exports.js';
+
 const ok = (result = 0, argc = 0) => ({ result, argc });
 
 // struct _I10_OUTPUT_DATA { short pos; char sign; BYTE len; char str[22]; }
@@ -209,6 +212,159 @@ function crtCalloc(r, a) {
 }
 
 export const msvcrtApis = {};
+// _beginthreadex / _beginthread / _endthreadex wrap the CRT's per-thread
+// bookkeeping around CreateThread. The runtime's scheduler already owns the
+// guest thread record, so the wrapper creates the thread with the caller's
+// start routine and passes the CRT's own thunk through unchanged.
+function beginThreadEx(r, a) {
+  // _beginthreadex(security, stack, start, arglist, flags, pThreadId)
+  const created = r.threads.create({
+    start: a(2),
+    parameter: a(3),
+    commit: a(1) & 0x00ffffff,
+    suspended: !!(a(4) & 4),
+  });
+  if (created.status) {
+    r.lastError = 8; // ERROR_NOT_ENOUGH_MEMORY
+    return ok(0, 6, 0);
+  }
+  if (a(5)) r.write32(a(5), created.thread.id);
+  // The CRT thread handle is the same kernel handle the scheduler opened.
+  return ok(created.handle, 6);
+}
+function beginThread(r, a) {
+  // _beginthread(start, stack, arglist) returns a handle with its own refcount.
+  const created = r.threads.create({ start: a(0), parameter: a(2), commit: a(1) });
+  if (created.status) {
+    r.lastError = 8;
+    return ok(0xffffffff, 3);
+  }
+  return ok(created.handle, 3);
+}
+async function endThreadEx(r, a) {
+  // _endthreadex never returns: the guest thread finishes with this code and
+  // control goes back to the scheduler.
+  await r.threads.exitHost(a(0) | 0);
+  return { result: 0, argc: 1 };
+}
+// _initterm / _initterm_e walk a table of function pointers and call each
+// non-null entry, the same way the CRT runs static initializers. _initterm_e
+// stops at the first initializer that returns non-zero and propagates it.
+async function initTerm(r, a) {
+  const begin = a(0) >>> 0,
+    end = a(1) >>> 0;
+  if (end < begin || (end - begin) % 4) return ok(0, 2);
+  if (end > begin) r.check(begin, end - begin);
+  for (let pointer = begin; pointer < end; pointer += 4) {
+    const routine = r.read32(pointer) >>> 0;
+    if (!routine) continue;
+    // A table entry pointing outside mapped code is a malformed image, not a
+    // routine the runtime can run; report it rather than jumping to garbage.
+    if (!r.cpu.ranges.some(([lo, hi]) => routine >= lo && routine < hi) && !r.thunks.has(routine))
+      throw Error(
+        `CRT initializer table entry 0x${routine.toString(16)} at 0x${pointer.toString(16)} is not executable`,
+      );
+    const result = await r.callGuest(routine, []);
+    if (result) return ok(result >>> 0, 2);
+  }
+  return ok(0, 2);
+}
+msvcrtApis['msvcrt.dll!_initterm'] = initTerm;
+msvcrtApis['msvcrt.dll!_initterm_e'] = initTerm;
+// _onexit/atexit register shutdown handlers; the runtime runs them in reverse
+// order during process shutdown.
+function registerExit(r, a, argc) {
+  if (!a(0)) return ok(0, argc);
+  r.crtExitHandlers ??= [];
+  if (r.crtExitHandlers.length >= 256) return ok(0, argc);
+  r.crtExitHandlers.push(a(0) >>> 0);
+  return ok(a(0) >>> 0, argc);
+}
+msvcrtApis['msvcrt.dll!_onexit'] = (r, a) => registerExit(r, a, 1);
+msvcrtApis['msvcrt.dll!atexit'] = (r, a) => registerExit(r, a, 1);
+msvcrtApis['msvcrt.dll!__dllonexit'] = (r, a) => registerExit(r, a, 3);
+// _exit / _cexit terminate without returning.
+async function crtExit(r, a) {
+  r.exitCode = a(0) | 0;
+  await r.shutdownProcess();
+  r.threads.terminateProcess(r.exitCode);
+  return { result: 0, argc: 1 };
+}
+msvcrtApis['msvcrt.dll!_exit'] = crtExit;
+msvcrtApis['msvcrt.dll!_c_exit'] = (r, a) => crtExit(r, a);
+msvcrtApis['msvcrt.dll!exit'] = crtExit;
+msvcrtApis['msvcrt.dll!_cexit'] = (r) => ok(0, 0);
+msvcrtApis['msvcrt.dll!_amsg_exit'] = (r, a) => crtExit(r, { 0: () => a(0) });
+msvcrtApis['msvcrt.dll!_set_app_type'] = (r, a) => {
+  r.crtAppType = a(0) | 0;
+  return ok(0, 1);
+};
+msvcrtApis['msvcrt.dll!__set_app_type'] = msvcrtApis['msvcrt.dll!_set_app_type'];
+msvcrtApis['msvcrt.dll!__setusermatherr'] = () => ok(0, 1);
+msvcrtApis['msvcrt.dll!_controlfp'] = (r, a) => ok(0x0008001f, 2);
+msvcrtApis['msvcrt.dll!_control87'] = (r, a) => ok(0x0008001f, 2);
+msvcrtApis['msvcrt.dll!_controlfp_s'] = (r, a) => {
+  if (a(2)) {
+    r.check(a(2), 4, true);
+    r.write32(a(2), 0x0008001f);
+  }
+  return ok(0, 3);
+};
+msvcrtApis['msvcrt.dll!__getmainargs'] = (r, a) => {
+  // __getmainargs(int *argc, char ***argv, char ***envp, int expand, _startupinfo *)
+  for (const [index, value] of [
+    [0, (r.arguments ?? []).length],
+  ]) {
+    if (a(index)) {
+      r.check(a(index), 4, true);
+      r.write32(a(index), value);
+    }
+  }
+  if (a(1)) {
+    r.check(a(1), 4, true);
+    r.write32(a(1), argvPointer(r, false));
+  }
+  if (a(2)) {
+    r.check(a(2), 4, true);
+    r.write32(a(2), 0);
+  }
+  return ok(0, 5);
+};
+msvcrtApis['msvcrt.dll!__wgetmainargs'] = (r, a) => {
+  if (a(0)) {
+    r.check(a(0), 4, true);
+    r.write32(a(0), (r.arguments ?? []).length);
+  }
+  if (a(1)) {
+    r.check(a(1), 4, true);
+    r.write32(a(1), argvPointer(r, true));
+  }
+  if (a(2)) {
+    r.check(a(2), 4, true);
+    r.write32(a(2), 0);
+  }
+  return ok(0, 5);
+};
+msvcrtApis['msvcrt.dll!_XcptFilter'] = () => ok(1, 2);
+msvcrtApis['msvcrt.dll!__CxxFrameHandler'] = () => ok(1, 4);
+msvcrtApis['msvcrt.dll!__CxxFrameHandler2'] = () => ok(1, 4);
+msvcrtApis['msvcrt.dll!__CxxFrameHandler3'] = () => ok(1, 4);
+msvcrtApis['msvcrt.dll!_except_handler4_common'] = () => ok(1, 5);
+msvcrtApis['msvcrt.dll!_except_handler3'] = () => ok(1, 4);
+msvcrtApis['msvcrt.dll!_except_handler2'] = () => ok(1, 4);
+msvcrtApis['msvcrt.dll!__crt_debugger_hook'] = () => ok(0, 0);
+msvcrtApis['msvcrt.dll!_invalid_parameter'] = () => ok(0, 5);
+msvcrtApis['msvcrt.dll!_invalid_parameter_noinfo'] = () => ok(0, 0);
+msvcrtApis['msvcrt.dll!_purecall'] = () => {
+  throw Error('Pure virtual call');
+};
+msvcrtApis['msvcrt.dll!_CxxThrowException'] = (r, a) => {
+  throw Error('C++ exception thrown from 0x' + (a(0) >>> 0).toString(16));
+};
+msvcrtApis['msvcrt.dll!_beginthreadex'] = beginThreadEx;
+msvcrtApis['msvcrt.dll!_beginthread'] = beginThread;
+msvcrtApis['msvcrt.dll!_endthreadex'] = endThreadEx;
+
 // Names are matched case-insensitively by the import resolver, so both the
 // decorated `_foo` spellings and the plain ones are registered.
 const NAMES = {
@@ -234,6 +390,22 @@ const NAMES = {
   _free: crtFree,
   _realloc: crtRealloc,
   _calloc: crtCalloc,
+  memchr: (r, a) => {
+    const byte = a(1) & 0xff,
+      count = a(2) >>> 0;
+    r.check(a(0), count);
+    for (let i = 0; i < count; i++) if (r.data[a(0) + i] === byte) return ok(a(0) + i, 3);
+    return ok(0, 3);
+  },
+  memicmp: (r, a) => {
+    const count = a(2) >>> 0;
+    for (let i = 0; i < count; i++) {
+      const left = (r.data[a(0) + i] | 0x20) & 0xff,
+        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      if (left !== right) return ok(left < right ? -1 : 1, 3);
+    }
+    return ok(0, 3);
+  },
   '$I10_OUTPUT': i10Output,
 };
 for (const [name, handler] of Object.entries(NAMES)) msvcrtApis[`msvcrt.dll!${name}`] = handler;
@@ -274,3 +446,136 @@ const ACM_NAMES = {
   acmStreamConvert: (r, a) => ok(a(0) ? MMSYSERR_NOTENABLED : MMSYSERR_INVALHANDLE, 3),
 };
 for (const [name, handler] of Object.entries(ACM_NAMES)) msacmApis[`msacm32.dll!${name}`] = handler;
+
+// ---------------------------------------------------------------------------
+// CRT data symbols. Real msvcrt exports these as addresses, so a program that
+// resolves one by name (a packer walking its own import table does) must
+// receive a stable guest pointer, not a code thunk.
+function integerCell(value) {
+  return (r) => {
+    const address = r.allocate(16, true);
+    r.write32(address, value | 0);
+    return address;
+  };
+}
+// A FILE structure in the MSVC layout; _iob is stdin/stdout/stderr.
+function iobArray(r) {
+  const base = r.allocate(32 * 3, true);
+  for (let i = 0; i < 3; i++) {
+    r.write32(base + i * 32 + 12, i === 0 ? 0x0002 : 0x0001);
+    r.write32(base + i * 32 + 16, i);
+  }
+  return base;
+}
+function commandLinePointer(r, wide) {
+  return r.allocString((r.arguments ?? []).join(' '), wide);
+}
+function argvPointer(r, wide) {
+  const args = r.arguments?.length ? r.arguments : [''];
+  const strings = args.map((argument) => r.allocString(argument, wide));
+  const table = r.allocate((strings.length + 1) * 4, true);
+  strings.forEach((address, index) => r.write32(table + index * 4, address));
+  return table;
+}
+function programPointer(r, wide) {
+  return r.allocString(r.exe.replace(/\//g, '\\'), wide);
+}
+// Each data symbol keeps one stable address for the process lifetime.
+const DATA_EXPORTS = {
+  _iob: iobArray,
+  _acmdln: (r) => commandLinePointer(r, false),
+  _wcmdln: (r) => commandLinePointer(r, true),
+  _pgmptr: (r) => programPointer(r, false),
+  _wpgmptr: (r) => programPointer(r, true),
+  _environ: (r) => integerCell(0)(r),
+  _wenviron: (r) => integerCell(0)(r),
+  _fmode: (r) => integerCell(0)(r),
+  _commode: (r) => integerCell(0)(r),
+  _adjust_fdiv: (r) => integerCell(0)(r),
+  _osver: (r) => integerCell(0x0a28)(r),
+  _winver: (r) => integerCell(0x0a28)(r),
+  _winmajor: (r) => integerCell(6)(r),
+  _winminor: (r) => integerCell(2)(r),
+  _timezone: (r) => integerCell(0)(r),
+  _daylight: (r) => integerCell(1)(r),
+  _dstbias: (r) => integerCell(0)(r),
+  _sys_nerr: (r) => integerCell(0)(r),
+  __mb_cur_max: (r) => integerCell(1)(r),
+  __argc: (r) => integerCell((r.arguments ?? []).length)(r),
+  __argv: (r) => argvPointer(r, false),
+  __wargv: (r) => argvPointer(r, true),
+  __initenv: (r) => integerCell(0)(r),
+  _winitenv: (r) => integerCell(0)(r),
+};
+function dataAddress(r, name) {
+  r.msvcrtData ??= new Map();
+  if (!r.msvcrtData.has(name)) r.msvcrtData.set(name, DATA_EXPORTS[name](r));
+  return r.msvcrtData.get(name);
+}
+// The __p_* accessors return the address of the corresponding cell.
+const POINTER_ACCESSORS = {
+  __p__iob: '_iob',
+  __p___argc: '__argc',
+  __p___argv: '__argv',
+  __p___wargv: '__wargv',
+  __p__acmdln: '_acmdln',
+  __p__wcmdln: '_wcmdln',
+  __p__environ: '_environ',
+  __p__wenviron: '_wenviron',
+  __p__fmode: '_fmode',
+  __p__commode: '_commode',
+  __p__pgmptr: '_pgmptr',
+  __p__wpgmptr: '_wpgmptr',
+  __p__osver: '_osver',
+  __p__winver: '_winver',
+  __p__winmajor: '_winmajor',
+  __p__winminor: '_winminor',
+  __p__timezone: '_timezone',
+  __p__daylight: '_daylight',
+  __p__dstbias: '_dstbias',
+  __p__mbctype: '_mbctype',
+  __p__pctype: '_pctype',
+  __p__pwctype: '_pwctype',
+};
+for (const [accessor, target] of Object.entries(POINTER_ACCESSORS)) {
+  msvcrtApis[`msvcrt.dll!${accessor}`] = (r) => {
+    if (!DATA_EXPORTS[target]) {
+      // The ctype tables are plain zeroed arrays: the runtime models a
+      // single-byte code page, so every character maps to itself.
+      r.msvcrtData ??= new Map();
+      if (!r.msvcrtData.has(target)) r.msvcrtData.set(target, r.allocate(target === '_pwctype' ? 1024 : 512, true));
+      return { result: r.msvcrtData.get(target), argc: 0 };
+    }
+    return { result: dataAddress(r, target), argc: 0 };
+  };
+}
+msvcrtApis['msvcrt.dll!__iob_func'] = msvcrtApis['msvcrt.dll!__p__iob'];
+for (const name of Object.keys(DATA_EXPORTS)) {
+  msvcrtApis[`msvcrt.dll!${name}`] = (r) => ({ result: dataAddress(r, name), argc: 0 });
+}
+
+// ---------------------------------------------------------------------------
+// Completing the export surface. The generated list is Wine's real msvcrt
+// export set, so every name a program can resolve resolves here too. Names
+// without an implementation get an explicit trap that reports the symbol, never
+// a silent success. Imported (IAT) entries cannot trap usefully, so they are
+// only registered for GetProcAddress lookups; the loader still fails an
+// unreachable import loudly through the normal missing-import path.
+export const MSVCRT_TRAP_EXPORTS = new Set();
+for (const name of MSVCRT_EXPORT_NAMES) {
+  const key = `msvcrt.dll!${name}`;
+  if (msvcrtApis[key]) continue;
+  MSVCRT_TRAP_EXPORTS.add(key);
+  msvcrtApis[key] = () => {
+    throw Error(`Unimplemented msvcrt entry point ${name}`);
+  };
+}
+// A name Wine aliases to a different implementation resolves to that
+// implementation's handler when the runtime has one.
+for (const [name, alias] of Object.entries(MSVCRT_EXPORT_ALIASES)) {
+  const key = `msvcrt.dll!${name}`;
+  const target = msvcrtApis[`msvcrt.dll!${alias}`];
+  if (!target) continue;
+  MSVCRT_TRAP_EXPORTS.delete(key);
+  msvcrtApis[key] = target;
+}

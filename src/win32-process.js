@@ -7,6 +7,7 @@ import { callWineHeap } from './wine-process.js';
 import { normalizePath } from './package.js';
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
 import { listPEResources } from './pe-resources.js';
+import { isHostDataExport } from './host-export-ordinals.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
   r.lastError = error;
@@ -36,7 +37,14 @@ async function procAddress(r, a) {
   if (!module) return fail(r, 6, 2);
   const symbol = a(1) < 65536 ? a(1) : r.string(a(1));
   try {
-    return ok(await r.resolveExport(module, symbol), 2);
+    const address = await r.resolveExport(module, symbol);
+    // A host data export's handler materializes the storage and returns its
+    // address, so an ordinary function export's thunk address must not be
+    // handed back for one. Calling the thunk executes the handler (harmless for
+    // these: each returns the pointer it created) and yields the address.
+    if (module.host && !module.exportRvas && isHostDataExport(module.name, symbol))
+      return ok(await r.callGuest(address, []), 2);
+    return ok(address, 2);
   } catch (error) {
     if (!error.win32Error) throw error;
     return fail(r, error.win32Error, 2);
