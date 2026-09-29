@@ -196,6 +196,19 @@ export async function probeWineTarget(
       // diagnostic budget large enough to observe their eventual API calls.
       maxBlocks: report.diagnosticLimits.maxBlocks,
       emit: (message) => {
+        if (message.type === 'progress') {
+          // Track the worker's own heap so a long guest run can be checked for
+          // unbounded growth independently of the host harness.
+          report.heap ??= [];
+          if (report.heap.length < 600)
+            report.heap.push([
+              Math.round(performance.now()),
+              message.instructions ?? 0,
+              typeof performance.memory === 'object'
+                ? Math.round(performance.memory.usedJSHeapSize / 1048576)
+                : -1,
+            ]);
+        }
         if (message.type === 'stdout') report.output.push(message.text);
         if (message.type === 'window' && message.operation === 'create') {
           const { id, title, width, height, icon } = message.window;
