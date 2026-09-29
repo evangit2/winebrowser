@@ -23,7 +23,7 @@ import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
 import { startupApis, startupApis2, startupApis3, startupApis4 } from './win32-startup.js';
-import { systemApis, systemApis2, systemApis3 } from './win32-system.js';
+import { systemApis, systemApis2, systemApis3, systemApis4 } from './win32-system.js';
 import { ws2Apis, WS2_NAMES } from './ws2_32.js';
 import { msvcrtApis, msacmApis } from './msvcrt.js';
 
@@ -72,6 +72,7 @@ for (const key of [
   ...Object.keys(systemApis),
   ...Object.keys(systemApis2),
   ...Object.keys(systemApis3),
+  ...Object.keys(systemApis4),
   ...Object.keys(ws2Apis),
   ...Object.keys(msvcrtApis),
   ...Object.keys(msacmApis),
@@ -150,7 +151,11 @@ async function beep(runtime, argument) {
 // describe placement the browser desktop already controls, so they are accepted
 // and simply carried through for the caller to ignore.
 const MB_ICONS = new Set([0, 0x10, 0x20, 0x30, 0x40]),
-  MB_STYLE = 0x1000 | 0x2000 | 0x4000 | 0x8000 | 0x10000 | 0x20000 | 0x40000 | 0x80000 | 0x100000;
+  // Modality, foreground, topmost, right-align and RTL are placement hints the
+  // browser desktop already controls; MB_SERVICE_NOTIFICATION appears in
+  // ordinary MessageBoxA calls from CRT and installer code.
+  MB_STYLE =
+    0x1000 | 0x2000 | 0x4000 | 0x8000 | 0x10000 | 0x20000 | 0x40000 | 0x80000 | 0x100000 | 0x200000;
 async function messageBox(runtime, argument, wide = false) {
   const owner = argument(0);
   const options = argument(3);
@@ -158,12 +163,7 @@ async function messageBox(runtime, argument, wide = false) {
     icon = options & 0x70,
     defButton = options & 0xf00,
     style = options & MB_STYLE;
-  if (
-    (options & ~(7 | 0x70 | 0xf00 | MB_STYLE)) ||
-    buttons !== 0 || // Only MB_OK's single button is rendered today.
-    !MB_ICONS.has(icon) ||
-    defButton > 0x300
-  )
+  if ((options & ~(7 | 0x70 | 0xf00 | MB_STYLE)) || buttons !== 0 || !MB_ICONS.has(icon) || defButton > 0x300)
     throw Error(
       'MessageBox flags 0x' + options.toString(16) + ' unsupported: only MB_OK with a standard icon is rendered',
     );
@@ -221,18 +221,16 @@ function createFile(runtime, argument, wide = false) {
       throw Error('CreateFile SECURITY_ATTRIBUTES is outside guest memory');
     }
   }
-  if (
-    share > 7 ||
-    flags & ~(0x80 | 0x40000000 | 0x8000000 | 0x80000000 | 0x01000000) ||
-    argument(6) ||
-    !CREATE_DISPOSITION.has(mode)
-  )
+  if (share > 7 || argument(6) || !CREATE_DISPOSITION.has(mode))
     throw Error(
-      'Unsupported CreateFile flags/share/disposition: ' +
-        [argument(2), mode, flags, argument(6)].join(','),
+      'Unsupported CreateFile share/disposition/template: ' +
+        [argument(2), mode, argument(6)].join(','),
     );
-  // FILE_FLAG_OVERLAPPED is not implemented; the I/O entry points reject any
-  // OVERLAPPED structure, so accepting the flag here would be a silent lie.
+  // The flags word mixes FILE_ATTRIBUTE_* with FILE_FLAG_* hints about caching,
+  // access pattern and reparse behaviour. The virtual filesystem is
+  // memory-backed, so those hints describe nothing to do and are accepted.
+  // FILE_FLAG_OVERLAPPED is the one exception: the read/write entry points
+  // reject any OVERLAPPED structure, so accepting the flag would be a lie.
   if (flags & 0x40000000) throw Error('Overlapped CreateFile is unsupported');
   let access = 0;
   if (requested & (FILE_GENERIC_READ | ACCESS_MASK_READ)) access |= FILE_GENERIC_READ;
@@ -391,6 +389,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(systemApis),
     ...Object.entries(systemApis2),
     ...Object.entries(systemApis3),
+    ...Object.entries(systemApis4),
     ...Object.entries(ws2Apis),
     ...Object.entries(msacmApis),
     ['kernel32.dll!ExitProcess', exitProcess],

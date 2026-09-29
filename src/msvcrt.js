@@ -11,6 +11,29 @@ import {
 } from './msvcrt-exports.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
+// A double argument/result passed by value on the x86 stack. The runtime reads
+// the argument slot as two DWORDs and writes the result into eax:edx.
+function doubleArg(r, a, index) {
+  const low = a(index) >>> 0,
+    high = a(index + 1) >>> 0;
+  return new DataView(new Uint32Array([low, high]).buffer).getFloat64(0, true);
+}
+function doubleResult(compute, r, a) {
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setFloat64(0, compute(doubleArg(r, a, 0)), true);
+  const low = bytes.getUint32(0, true),
+    high = bytes.getUint32(4, true);
+  return { result: low | 0, resultHigh: high | 0, argc: 2 };
+}
+function doubleResult2(compute, r, a) {
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setFloat64(0, compute(doubleArg(r, a, 0), doubleArg(r, a, 2)), true);
+  return {
+    result: bytes.getUint32(0, true) | 0,
+    resultHigh: bytes.getUint32(4, true) | 0,
+    argc: 4,
+  };
+}
 
 // struct _I10_OUTPUT_DATA { short pos; char sign; BYTE len; char str[22]; }
 const DATA_STR = 4,
@@ -585,6 +608,126 @@ const NAMES = {
     r.check(a(0), count);
     for (let i = 0; i < count; i++) if (r.data[a(0) + i] === byte) return ok(a(0) + i, 3);
     return ok(0, 3);
+  },
+  // The C math library, in binary64, matching the CRT's own double-precision
+  // entry points (the x87 _CI* wrappers are separate).
+  floor: (r, a) => doubleResult(Math.floor, r, a),
+  ceil: (r, a) => doubleResult(Math.ceil, r, a),
+  sqrt: (r, a) => doubleResult(Math.sqrt, r, a),
+  fabs: (r, a) => doubleResult(Math.abs, r, a),
+  sin: (r, a) => doubleResult(Math.sin, r, a),
+  cos: (r, a) => doubleResult(Math.cos, r, a),
+  tan: (r, a) => doubleResult(Math.tan, r, a),
+  asin: (r, a) => doubleResult(Math.asin, r, a),
+  acos: (r, a) => doubleResult(Math.acos, r, a),
+  atan: (r, a) => doubleResult(Math.atan, r, a),
+  atan2: (r, a) => doubleResult2(Math.atan2, r, a),
+  exp: (r, a) => doubleResult(Math.exp, r, a),
+  log: (r, a) => doubleResult(Math.log, r, a),
+  log10: (r, a) => doubleResult(Math.log10, r, a),
+  pow: (r, a) => doubleResult2((x, y) => x ** y, r, a),
+  fmod: (r, a) => doubleResult2((x, y) => x % y, r, a),
+  cosh: (r, a) => doubleResult(Math.cosh, r, a),
+  sinh: (r, a) => doubleResult(Math.sinh, r, a),
+  tanh: (r, a) => doubleResult(Math.tanh, r, a),
+  atan2f: (r, a) => doubleResult2(Math.atan2, r, a),
+  fabsf: (r, a) => doubleResult(Math.abs, r, a),
+  sqrtf: (r, a) => doubleResult(Math.sqrt, r, a),
+  powf: (r, a) => doubleResult2((x, y) => x ** y, r, a),
+  _strdup: (r, a) => {
+    const length = ansiLength(r, a).result;
+    const copy = r.allocate(length + 1);
+    r.data.copyWithin(copy, a(0), a(0) + length + 1);
+    return ok(copy, 1);
+  },
+  _wcsdup: (r, a) => {
+    const length = wideLength(r, a).result;
+    const copy = r.allocate((length + 1) * 2);
+    for (let i = 0; i <= length; i++)
+      r.guestMemory.write(copy + i * 2, r.guestMemory.read(a(0) + i * 2, 2), 2);
+    return ok(copy, 1);
+  },
+  _stricmp: (r, a) => {
+    for (let i = 0; ; i++) {
+      const left = (r.data[a(0) + i] | 0x20) & 0xff,
+        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      if (left !== right) return ok(left < right ? -1 : 1, 2);
+      if (!left) return ok(0, 2);
+    }
+  },
+  _strnicmp: (r, a) => {
+    const count = a(2) >>> 0;
+    for (let i = 0; i < count; i++) {
+      const left = (r.data[a(0) + i] | 0x20) & 0xff,
+        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      if (left !== right) return ok(left < right ? -1 : 1, 3);
+      if (!left) break;
+    }
+    return ok(0, 3);
+  },
+  _strlwr: (r, a) => {
+    for (let i = 0; r.data[a(0) + i]; i++) {
+      const c = r.data[a(0) + i];
+      if (c >= 0x41 && c <= 0x5a) r.data[a(0) + i] = c + 0x20;
+    }
+    return ok(a(0), 1);
+  },
+  _strupr: (r, a) => {
+    for (let i = 0; r.data[a(0) + i]; i++) {
+      const c = r.data[a(0) + i];
+      if (c >= 0x61 && c <= 0x7a) r.data[a(0) + i] = c - 0x20;
+    }
+    return ok(a(0), 1);
+  },
+  _strrev: (r, a) => {
+    const length = ansiLength(r, a).result;
+    for (let i = 0, j = length - 1; i < j; i++, j--) {
+      const tmp = r.data[a(0) + i];
+      r.data[a(0) + i] = r.data[a(0) + j];
+      r.data[a(0) + j] = tmp;
+    }
+    return ok(a(0), 1);
+  },
+  strchr: (r, a) => {
+    const byte = a(1) & 0xff;
+    for (let i = 0; ; i++) {
+      if (r.data[a(0) + i] === byte) return ok(a(0) + i, 2);
+      if (!r.data[a(0) + i]) return ok(0, 2);
+    }
+  },
+  strrchr: (r, a) => {
+    const byte = a(1) & 0xff;
+    let found = 0;
+    for (let i = 0; ; i++) {
+      if (r.data[a(0) + i] === byte) found = a(0) + i;
+      if (!r.data[a(0) + i]) return ok(found, 2);
+    }
+  },
+  strstr: (r, a) => {
+    const haystack = ansiLength(r, a).result,
+      needle = ansiLength(r, { 0: () => a(1) }).result;
+    if (!needle) return ok(a(0), 2);
+    for (let i = 0; i + needle <= haystack; i++) {
+      let match = true;
+      for (let j = 0; j < needle; j++)
+        if (r.data[a(0) + i + j] !== r.data[a(1) + j]) { match = false; break; }
+      if (match) return ok(a(0) + i, 2);
+    }
+    return ok(0, 2);
+  },
+  strspn: (r, a) => {
+    const set = [];
+    for (let i = 0; r.data[a(1) + i]; i++) set.push(r.data[a(1) + i]);
+    let count = 0;
+    while (r.data[a(0) + count] && set.includes(r.data[a(0) + count])) count++;
+    return ok(count, 2);
+  },
+  strcspn: (r, a) => {
+    const set = [];
+    for (let i = 0; r.data[a(1) + i]; i++) set.push(r.data[a(1) + i]);
+    let count = 0;
+    while (r.data[a(0) + count] && !set.includes(r.data[a(0) + count])) count++;
+    return ok(count, 2);
   },
   memicmp: (r, a) => {
     const count = a(2) >>> 0;

@@ -482,10 +482,31 @@ function createWaitableTimer(r, a, wide) {
   return fail(r, 87, 3); // Named and anonymous waitable timers are unimplemented.
 }
 
-export const systemApis3 = {
-  'user32.dll!GetLastActivePopup': getLastActivePopup,
+// ---------------------------------------------------------------------------
+// Window stations and desktops. The runtime has exactly one interactive window
+// station with one desktop, so these return stable pseudo-handles for it.
+// Interactive checks answer true, matching the single visible desktop.
+const WINSTA_HANDLE = 0x1000,
+  DESKTOP_HANDLE = 0x1004;
+function getProcessWindowStation() {
+  return ok(WINSTA_HANDLE, 0);
+}
+function getThreadDesktop() {
+  return ok(DESKTOP_HANDLE, 1);
+}
+function isWindowVisible(r, a) {
+  const window = r.windows.windows.get(a(0) >>> 0);
+  return ok(window && window.visible !== false ? 1 : 0, 1);
+}
+export const systemApis4 = {
+  'user32.dll!GetProcessWindowStation': getProcessWindowStation,
+  'user32.dll!GetThreadDesktop': getThreadDesktop,
+  'user32.dll!IsWindowVisible': isWindowVisible,
   'user32.dll!GetUserObjectInformationA': (r, a) => getUserObjectInformation(r, a, false),
   'user32.dll!GetUserObjectInformationW': (r, a) => getUserObjectInformation(r, a, true),
+};
+export const systemApis3 = {
+  'user32.dll!GetLastActivePopup': getLastActivePopup,
   'kernel32.dll!QueueUserAPC': queueUserApc,
   // Alertable waits accept and ignore the alert flag: no APC is ever pending
   // because none is queued.

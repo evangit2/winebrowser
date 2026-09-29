@@ -1642,8 +1642,15 @@ for (const version of [8, 9]) {
       assert.equal(r.read32(output), 1);
       assert.equal((await call(d, set, state, 0)).result, 0);
     }
-    // Fog is still tracked without claiming the rendering path.
-    await assert.rejects(() => call(d, set, 28, 1), /Unsupported.*28=1/);
+    // Fog is implemented: enabling it and setting its modes round-trips.
+    for (const state of [28, 48]) {
+      assert.equal((await call(d, set, state, 1)).result, 0);
+      await call(d, get, state, output);
+      assert.equal(r.read32(output), 1);
+      assert.equal((await call(d, set, state, 0)).result, 0);
+    }
+    for (const state of [35, 140])
+      assert.equal((await call(d, set, state, 4)).result, 0x8876086c);
     const cases = [
       [24, 0xab], // ALPHAREF is a 0-255 byte.
       [25, 5, [25]],

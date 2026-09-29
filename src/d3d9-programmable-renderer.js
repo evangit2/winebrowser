@@ -2,6 +2,7 @@ import { blendKey, colorTarget, needsBlendFeedback, usesBlendConstant } from './
 import { rgb565Shader, alphaTestShader } from './d3d-presentation.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { validStencil, validAlphaTest, stencilState } from './d3d-stencil.js';
+import { validFog } from './d3d-fog.js';
 import { ShaderCompiler } from './shader-compiler.js';
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
@@ -72,6 +73,7 @@ export class D3D9ProgrammableRenderer {
       !validRasterState(command) ||
       !validStencil(command) ||
       !validAlphaTest(command) ||
+      !validFog(command.fog) ||
       typeof command.depthTest !== 'boolean' ||
       typeof command.depthWrite !== 'boolean' ||
       ((command.depthTest || command.depthWrite) && !surface.depthTexture) ||

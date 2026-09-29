@@ -84,6 +84,9 @@ function globalFree(r, a) {
 // switch at explicit yield points, so a critical section that never blocks is
 // still correct for single-threaded and cooperatively scheduled guests; the
 // storage is a real 24-byte RTL_CRITICAL_SECTION with an owned debug field.
+// The RTL_CRITICAL_SECTION initializer. `argc` is the stdcall argument count
+// so the caller's stack is restored; the return value is 1 for success because
+// the CALLERS that check a result (AndSpinCount, Ex) require nonzero.
 function criticalSection(r, a, argc) {
   const pointer = a(0);
   if (!pointer) return fail(r, 87, argc);
@@ -97,7 +100,7 @@ function criticalSection(r, a, argc) {
   r.write32(pointer + 12, 0);
   r.write32(pointer + 16, 0);
   r.write32(pointer + 20, 0);
-  return ok(0, argc);
+  return ok(1, argc);
 }
 // Enter/Leave/Delete return void; the runtime still needs the stdcall argument
 // count so the caller's stack is restored.
@@ -479,15 +482,19 @@ export const startupApis = {
   'kernel32.dll!GlobalLock': (r, a) => (r.customHeaps?.has(a(0)) ? ok(0, 1) : ok(a(0), 1)),
   'kernel32.dll!GlobalUnlock': (r, a) => ok(1, 1),
   'kernel32.dll!InitializeCriticalSection': (r, a) => criticalSection(r, a, 1),
+  // Both ...AndSpinCount and ...Ex return BOOL: nonzero means initialized. The
+  // plain InitializeCriticalSection returns void, so it stays with ok(0).
   'kernel32.dll!InitializeCriticalSectionAndSpinCount': (r, a) => {
     const initialized = criticalSection(r, a, 2);
-    if (initialized.result) r.write32(a(0) + 20, a(1));
-    return ok(initialized.result, 2);
+    if (!initialized.result) return ok(0, 2);
+    r.write32(a(0) + 20, a(1));
+    return ok(1, 2);
   },
   'kernel32.dll!InitializeCriticalSectionEx': (r, a) => {
     const initialized = criticalSection(r, a, 3);
-    if (initialized.result) r.write32(a(0) + 20, a(1));
-    return ok(initialized.result, 3);
+    if (!initialized.result) return ok(0, 3);
+    r.write32(a(0) + 20, a(1));
+    return ok(1, 3);
   },
   'kernel32.dll!EnterCriticalSection': (r, a) => criticalSectionCall(r, a, 'enter'),
   'kernel32.dll!LeaveCriticalSection': (r, a) => criticalSectionCall(r, a, 'leave'),

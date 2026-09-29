@@ -1,6 +1,7 @@
 // textureSnapshot is a run-time (not module-init) dependency; the circular
 // import with d3d9-textures.js is safe because both bindings are used lazily.
 import { textureSnapshot } from './d3d9-textures.js';
+import { fogSnapshot } from './d3d-fog.js';
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_SHADER_BYTES = 1024 * 1024;
@@ -431,6 +432,7 @@ export function programmableDrawFromVertices(state, vertices, stride, vertexCoun
     blend: { ...state.blendState },
     stencil: { ...state.stencil },
     alphaTest: { ...state.alphaTest },
+    fog: fogSnapshot(state),
     viewport: { ...state.viewport },
     cullMode: state.cullMode,
     payloadBytes:

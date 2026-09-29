@@ -6,6 +6,7 @@ import {
   setAlphaTestState,
 } from './d3d-stencil.js';
 import { blendDefaults, setBlendState } from './d3d-blending.js';
+import { FOG_STATES, validFogValue, fogSnapshot } from './d3d-fog.js';
 import { fvfLayout } from './d3d-fvf.js';
 import {
   initLighting,
@@ -226,6 +227,7 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
       blend: { ...state.blendState },
       stencil: { ...state.stencil },
       alphaTest: { ...state.alphaTest },
+      fog: fogSnapshot(state),
       cullMode: state.cullMode,
     },
     size,
@@ -593,6 +595,11 @@ function deviceMethods(version = 9) {
         // interpolation; other shade modes need their own interpolation path.
         if (state in object.state.stencil) return setStencilState(object.state, state, value);
         if (state in object.state.alphaTest) return setAlphaTestState(object.state, state, value);
+        if (state in object.state.fog) {
+          if (!validFogValue(state, value)) return D3DERR_INVALIDCALL;
+          object.state.fog[state] = value;
+          return D3D_OK;
+        }
         if (state in object.state.inactiveEffects)
           return setInactiveEffect(object.state, state, value, version);
         if (state in object.state.blendState)
@@ -629,6 +636,7 @@ function deviceMethods(version = 9) {
           26: Number(s.dither),
           ...s.stencil,
           ...s.alphaTest,
+          ...s.fog,
           ...s.inactiveEffects,
           ...s.lightState,
           ...s.blendState,
@@ -937,6 +945,7 @@ function factoryMethods(version = 9) {
           inactiveEffects: { ...INACTIVE_EFFECT_DEFAULTS },
           stencil: defaultStencil(),
           alphaTest: defaultAlphaTest(),
+          fog: { ...FOG_STATES },
           shadeMode: 2,
           fillMode: 3,
           clipping: true,

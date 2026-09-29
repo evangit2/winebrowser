@@ -2,6 +2,7 @@ import { fvfLayout } from './d3d-fvf.js';
 import { lightingStruct, lightingFields, lightingCode } from './d3d-lighting.js';
 import { validSamplerValue, validStageValue, floatState } from './d3d-texture-state.js';
 import { alphaTestCode } from './d3d-stencil.js';
+import { fogCode } from './d3d-fog.js';
 const ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
 export function validateTexturing(t) {
   if (!t) return 0;
@@ -79,8 +80,10 @@ ${
     : ''
 }
 ${command.lighting ? lightingCode(command, layout) : ''}
+${command.fog ? fogCode(command.fog).factor : ''}
 struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: vec4<f32>,
   @location(2) specular: vec4<f32>,
+  ${command.fog ? '@location(5) viewDepth: f32,' : ''}
   ${t ? '@location(1) uv: vec2<f32>,' : ''} }
 @vertex fn vertexMain(@location(0) position: ${layout.rhw ? 'vec4<f32>' : 'vec3<f32>'}
   ${layout.diffuse !== null ? ', @location(1) bgra: vec4<f32>' : ''}
@@ -107,6 +110,7 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
       : 'output.color=color1;output.specular=color2;'
   }
   ${t ? `output.uv = ${uv && stage[11] === 0 ? 'uv' : 'vec2(0.0)'};` : ''}
+  ${command.fog ? 'output.viewDepth = output.position.w;' : ''}
   return output;
 }
 @fragment fn fragmentMain(input: VertexOut) -> @location(0) vec4<f32> {
@@ -126,7 +130,11 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
 
   let color = ${output};
   ${alphaTestCode('color.a', command)}
-  return ${command.specularEnable ? 'vec4(clamp(color.rgb + input.specular.rgb,vec3(0.0),vec3(1.0)),color.a)' : 'color'};
+  let lit = ${command.specularEnable ? 'vec4(clamp(color.rgb + input.specular.rgb,vec3(0.0),vec3(1.0)),color.a)' : 'color'};
+  ${command.fog ? `// D3D fog replaces toward the fog colour by (1 - fog): Wine's own GLSL
+  // mixes fogColor with the fragment by the clamped factor.
+  let fog = clamp(winebrowser_fogFactor(input.viewDepth), 0.0, 1.0);
+  return vec4(mix(${fogCode(command.fog).color}, lit.rgb, fog), lit.a);` : 'return lit;'}
 }`;
 }
 export class D3DTextureRenderer {

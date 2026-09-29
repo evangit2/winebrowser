@@ -9,6 +9,7 @@ import { clearColor, rgb565Shader } from './d3d-presentation.js';
 import { defaultViewport, validViewport, validRegion } from './d3d-viewport.js';
 import { D3DClearRenderer } from './d3d-clear-renderer.js';
 import { validStencil, validAlphaTest, stencilFace, stencilState } from './d3d-stencil.js';
+import { validFog } from './d3d-fog.js';
 
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
@@ -245,6 +246,7 @@ export class WebGPURenderer {
           !validRasterState(command) ||
           !validStencil(command) ||
           !validAlphaTest(command) ||
+          !validFog(command.fog) ||
           typeof command.depthTest !== 'boolean' ||
           typeof command.depthWrite !== 'boolean' ||
           (command.depthTest && !surface.depthTexture) ||
@@ -284,6 +286,7 @@ export class WebGPURenderer {
       !!command.texturing?.sampler[7],
       JSON.stringify(stencilState(command)),
       JSON.stringify(command.alphaTest ?? null),
+      JSON.stringify(command.fog ?? null),
     ].join(':');
     if (!this.pipelines.has(key)) {
       if (command.texturing) this.textures.initialize();
