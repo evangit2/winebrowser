@@ -775,3 +775,22 @@ export const startupApis3 = {
   'shell32.dll!SHGetSpecialFolderPathA': (r, a) => getSpecialFolderPath(r, a, false),
   'shell32.dll!SHGetSpecialFolderPathW': (r, a) => getSpecialFolderPath(r, a, true),
 };
+
+// ---------------------------------------------------------------------------
+// ShellExecuteA. Launching another process is not implemented, so every call
+// reports SE_ERR_ACCESSDENIED with ERROR_ACCESS_DENIED rather than pretending a
+// document opened. The verb and file are still read so the failure can be
+// traced to the exact request.
+function shellExecute(r, a, wide) {
+  const operation = a(1) ? (wide ? r.wideString(a(1)) : r.string(a(1))) : 'open';
+  const file = a(2) ? (wide ? r.wideString(a(2)) : r.string(a(2))) : '';
+  r.emit({ type: 'stdout', text: `ShellExecute(${operation}, ${file}) is not implemented\n` });
+  return fail(r, 5, 6, 5); // SE_ERR_ACCESSDENIED
+}
+
+export const startupApis4 = {
+  'shell32.dll!ShellExecuteA': (r, a) => shellExecute(r, a, false),
+  'shell32.dll!ShellExecuteW': (r, a) => shellExecute(r, a, true),
+  'shell32.dll!ShellExecuteExA': (r, a) => fail(r, 5, 1, 0),
+  'shell32.dll!ShellExecuteExW': (r, a) => fail(r, 5, 1, 0),
+};

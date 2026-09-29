@@ -22,7 +22,10 @@ import { fileMetadataApis } from './win32-file-metadata.js';
 import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
 import { splitGuestCounter } from './guest-clock.js';
-import { startupApis, startupApis2, startupApis3 } from './win32-startup.js';
+import { startupApis, startupApis2, startupApis3, startupApis4 } from './win32-startup.js';
+import { systemApis } from './win32-system.js';
+import { ws2Apis, WS2_NAMES } from './ws2_32.js';
+import { msvcrtApis, msacmApis } from './msvcrt.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
@@ -65,6 +68,11 @@ for (const key of [
   ...Object.keys(startupApis),
   ...Object.keys(startupApis2),
   ...Object.keys(startupApis3),
+  ...Object.keys(startupApis4),
+  ...Object.keys(systemApis),
+  ...Object.keys(ws2Apis),
+  ...Object.keys(msvcrtApis),
+  ...Object.keys(msacmApis),
   ...Object.keys(registryApis),
   ...Object.keys(comApis),
   ...Object.keys(d3d9Apis),
@@ -376,6 +384,11 @@ export function createWin32ApiProvider() {
     ...Object.entries(startupApis),
     ...Object.entries(startupApis2),
     ...Object.entries(startupApis3),
+    ...Object.entries(startupApis4),
+    ...Object.entries(systemApis),
+    ...Object.entries(ws2Apis),
+    ...Object.entries(msvcrtApis),
+    ...Object.entries(msacmApis),
     ['kernel32.dll!ExitProcess', exitProcess],
     ['kernel32.dll!GetStdHandle', getStdHandle],
     ['kernel32.dll!WriteFile', writeFile],

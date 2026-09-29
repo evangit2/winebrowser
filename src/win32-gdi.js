@@ -833,6 +833,128 @@ function textOut(runtime, argument, wide) {
   return success(1, 5);
 }
 
+// DrawText/DrawTextEx: lay a string out inside a client rectangle using the
+// same font rasterizer as TextOut. Straightforward formatting flags are acted
+// on; a flag whose effect is not modeled makes the call fail instead of
+// silently mis-formatting the text.
+const DT_CENTER = 0x1,
+  DT_RIGHT = 0x2,
+  DT_VCENTER = 0x4,
+  DT_BOTTOM = 0x8,
+  DT_WORDBREAK = 0x10,
+  DT_SINGLELINE = 0x20,
+  DT_EXPANDTABS = 0x40,
+  DT_TABSTOP = 0x80,
+  DT_NOCLIP = 0x100,
+  DT_CALCRECT = 0x400,
+  DT_NOPREFIX = 0x800,
+  DT_INTERNAL = 0x1000,
+  DT_EDITCONTROL = 0x2000,
+  DT_PATH_ELLIPSIS = 0x4000,
+  DT_END_ELLIPSIS = 0x8000,
+  DT_MODIFYSTRING = 0x10000,
+  DT_RTLREADING = 0x20000,
+  DT_WORD_ELLIPSIS = 0x40000,
+  DT_NOFULLWIDTHCHARBREAK = 0x80000,
+  DT_HIDEPREFIX = 0x100000,
+  DT_PREFIXONLY = 0x200000;
+const DT_MODELED =
+  DT_CENTER | DT_RIGHT | DT_VCENTER | DT_BOTTOM | DT_WORDBREAK | DT_SINGLELINE |
+  DT_EXPANDTABS | DT_NOCLIP | DT_CALCRECT | DT_NOPREFIX | DT_END_ELLIPSIS |
+  DT_PATH_ELLIPSIS | DT_MODIFYSTRING | DT_RTLREADING | DT_WORD_ELLIPSIS |
+  DT_NOFULLWIDTHCHARBREAK | DT_HIDEPREFIX | DT_PREFIXONLY | DT_INTERNAL | DT_EDITCONTROL;
+
+function drawText(runtime, argument, wide, extended) {
+  const argc = extended ? 6 : 5;
+  const dcHandle = argument(0),
+    textPointer = argument(1),
+    count = signed(argument(2)),
+    rectPointer = argument(3),
+    flags = argument(extended ? 5 : 4) >>> 0;
+  if (!dcHandle || !textPointer || !rectPointer || flags & ~DT_MODELED)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, argc);
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, dcHandle);
+  if (!dc) return failure(runtime, ERROR_INVALID_HANDLE, 0, argc);
+  runtime.check(rectPointer, 16, true);
+  const rect = {
+    left: signed(runtime.read32(rectPointer)),
+    top: signed(runtime.read32(rectPointer + 4)),
+    right: signed(runtime.read32(rectPointer + 8)),
+    bottom: signed(runtime.read32(rectPointer + 12)),
+  };
+  let text;
+  try {
+    if (count < 0) text = wide ? runtime.wideString(textPointer) : runtime.string(textPointer);
+    else {
+      text = '';
+      for (let i = 0; i < count; i++) {
+        const code = wide
+          ? runtime.guestMemory.read(textPointer + i * 2, 2)
+          : runtime.guestMemory.read(textPointer + i, 1);
+        if (!code) break;
+        text += String.fromCharCode(code);
+      }
+    }
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, argc);
+  }
+  if (!(flags & DT_NOPREFIX)) text = text.replace(/&/g, '');
+  if (flags & DT_EXPANDTABS) text = text.replace(/\t/g, '        ');
+  const font = dc.font ? getFont(state, dc.font) : null;
+  if (dc.font && !font) return failure(runtime, ERROR_INVALID_HANDLE, 0, argc);
+  const descriptor = font ?? DEFAULT_GDI_FONT;
+  const width = Math.max(0, rect.right - rect.left),
+    height = Math.max(0, rect.bottom - rect.top);
+  const lineHeight = descriptor.height + (descriptor.externalLeading ?? 0);
+  const lines = text.split('\n').map((line) => line.replace(/\r$/, ''));
+  const wrapped = [];
+  if (flags & DT_SINGLELINE) wrapped.push(lines.join(' '));
+  else
+    for (const line of lines) {
+      if (!(flags & DT_WORDBREAK) || !width || !line.trim()) {
+        wrapped.push(line);
+        continue;
+      }
+      let current = '';
+      for (const word of line.split(/(\s+)/)) {
+        const candidate = current + word;
+        if (current && descriptor.measure(candidate) > width) {
+          wrapped.push(current.replace(/\s+$/, ''));
+          current = word.replace(/^\s+/, '');
+        } else current = candidate;
+      }
+      wrapped.push(current.replace(/\s+$/, ''));
+    }
+  if (flags & DT_CALCRECT) {
+    let maxWidth = 0;
+    for (const line of wrapped) maxWidth = Math.max(maxWidth, descriptor.measure(line));
+    runtime.write32(rectPointer + 8, rect.left + maxWidth);
+    runtime.write32(rectPointer + 12, rect.top + wrapped.length * lineHeight);
+    return success(0, argc);
+  }
+  let y = rect.top;
+  if (flags & DT_VCENTER && flags & DT_SINGLELINE)
+    y = rect.top + Math.max(0, (height - lineHeight) >> 1);
+  else if (flags & DT_BOTTOM && flags & DT_SINGLELINE)
+    y = rect.top + Math.max(0, height - lineHeight);
+  let painted = 0;
+  for (const line of wrapped) {
+    const lineWidth = descriptor.measure(line);
+    let x = rect.left;
+    if (flags & DT_CENTER) x = rect.left + Math.max(0, (width - lineWidth) >> 1);
+    else if (flags & DT_RIGHT) x = rect.left + Math.max(0, width - lineWidth);
+    const result = rasterizeGdiText(runtime, line, descriptor);
+    if (result.error === 'backend') return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, argc);
+    if (result.error) return failure(runtime, ERROR_INVALID_PARAMETER, 0, argc);
+    paintGdiText(dc.surface, dc, x, y, result.mask, descriptor);
+    y += lineHeight;
+    painted++;
+  }
+  // DrawText returns the height of the drawn text; DT_CALCRECT already returned.
+  return success(painted * lineHeight, argc);
+}
+
 /** A read-only, cloned descriptor for DOM control font propagation. */
 export function describeGdiFont(runtime, handle) {
   if (handle >>> 0 === 0) return { ...DEFAULT_GDI_FONT };
@@ -853,6 +975,10 @@ export const gdiApis = {
   'gdi32.dll!CreateFont': (runtime, argument) => createFont(runtime, argument, false),
   'gdi32.dll!CreateFontA': (runtime, argument) => createFont(runtime, argument, false),
   'gdi32.dll!CreateFontW': (runtime, argument) => createFont(runtime, argument, true),
+  'user32.dll!DrawTextA': (runtime, argument) => drawText(runtime, argument, false, false),
+  'user32.dll!DrawTextW': (runtime, argument) => drawText(runtime, argument, true, false),
+  'user32.dll!DrawTextExA': (runtime, argument) => drawText(runtime, argument, false, true),
+  'user32.dll!DrawTextExW': (runtime, argument) => drawText(runtime, argument, true, true),
   'gdi32.dll!TextOut': (runtime, argument) => textOut(runtime, argument, false),
   'gdi32.dll!TextOutA': (runtime, argument) => textOut(runtime, argument, false),
   'gdi32.dll!TextOutW': (runtime, argument) => textOut(runtime, argument, true),

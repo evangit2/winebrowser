@@ -1,0 +1,276 @@
+// Minimal MSVCRT surface for the entry points native applications import when
+// they statically link a CRT or load one indirectly. Everything here is pure
+// computation over guest memory; no host libc is involved. `$I10_OUTPUT` is
+// Wine's own algorithm: it converts the ext80 to a double and formats that, so
+// this reproduces the same digits by the same route.
+const ok = (result = 0, argc = 0) => ({ result, argc });
+
+// struct _I10_OUTPUT_DATA { short pos; char sign; BYTE len; char str[22]; }
+const DATA_STR = 4,
+  DATA_SIZE = 4 + 22;
+const I10_MAX_PREC = 21;
+
+function unpackExt80(r, address) {
+  const sig = r.view.getBigUint64(address, true),
+    field = r.view.getUint16(address + 8, true);
+  const exponent = field & 0x7fff,
+    negative = !!(field & 0x8000);
+  const invalid = exponent !== 0 && !(sig & (1n << 63n));
+  const nan = exponent === 0x7fff && !!(sig & ((1n << 63n) - 1n));
+  return { sig, exponent, negative, invalid, nan, infinity: exponent === 0x7fff && sig === 1n << 63n };
+}
+
+// $I10_OUTPUT (_LDOUBLE ld80, int prec, int flag, struct _I10_OUTPUT_DATA *data)
+function i10Output(r, a) {
+  const prec = a(1) | 0;
+  let flag = a(2) | 0;
+  const data = a(3) >>> 0;
+  if (data) r.check(data, DATA_SIZE, true);
+  const value = unpackExt80(r, a(0));
+  let text;
+  if (value.invalid || value.nan || value.infinity) {
+    text =
+      value.invalid || value.nan
+        ? value.sig & (1n << 62n)
+          ? '1#QNAN'
+          : '1#SNAN'
+        : '1#INF';
+    if (data) {
+      r.guestMemory.write(data, 1, 2);
+      r.data[data + 2] = value.negative ? 0x2d : 0x20;
+      r.data[data + 3] = text.length;
+      for (let i = 0; i < text.length; i++) r.data[data + DATA_STR + i] = text.charCodeAt(i);
+      r.data[data + DATA_STR + text.length] = 0;
+    }
+    return ok(0, 4);
+  }
+  // Decode to a double exactly as Wine's fpnum_double does.
+  let d = Number(value.sig) * 2 ** ((value.exponent || 1) - 16383 - 63);
+  if (value.negative) d = -d;
+  if (!Number.isFinite(d)) d = 0;
+  const sign = d < 0 ? '-' : ' ';
+  if (d < 0) d = -d;
+  if (flag & 1) {
+    const exponent = d ? 1 + Math.floor(Math.log10(d)) : 1;
+    let adjusted = prec + exponent;
+    if (exponent < 0) adjusted--;
+    flag = adjusted;
+  }
+  let digits = (flag | 0) - 1;
+  if (digits + 1 > I10_MAX_PREC) digits = I10_MAX_PREC - 1;
+  else if (digits < 0) {
+    d = 0;
+    digits = 0;
+  }
+  const buf = d.toExponential(digits);
+  // The C code shifts the buffer so index 1 holds the first digit; reproduce
+  // that layout on the "d.dddde+X" string to keep the index arithmetic exact.
+  const shifted = ' ' + buf;
+  const position = Number.parseInt(shifted.slice(digits + 3), 10);
+  let pos = position;
+  if (shifted[1] !== '0') pos++;
+  let end = digits + 1;
+  while (end > 1 && shifted[end] === '0') end--;
+  const length = end;
+  const output = shifted.slice(1, 1 + length);
+  if (data) {
+    r.guestMemory.write(data, pos & 0xffff, 2);
+    r.data[data + 2] = sign.charCodeAt(0);
+    r.data[data + 3] = length & 0xff;
+    for (let i = 0; i < output.length; i++) r.data[data + DATA_STR + i] = output.charCodeAt(i);
+    r.data[data + DATA_STR + length] = 0;
+    const tail = digits - length + 1;
+    if (shifted[1] !== '0' && tail > 0)
+      for (let i = 0; i < tail; i++)
+        r.data[data + DATA_STR + length + 1 + i] = shifted.charCodeAt(length + 1 + i) ?? 0x30;
+  }
+  return ok(1, 4);
+}
+
+// The CRT's common string and memory routines, implemented over guest memory.
+function copy(r, a, width) {
+  const count = a(2) >>> 0;
+  if (!count) return ok(a(0), 3);
+  r.check(a(0), count * width, true);
+  r.check(a(1), count * width);
+  r.data.copyWithin(a(0), a(1), a(1) + count * width);
+  return ok(a(0), 3);
+}
+function move(r, a, width) {
+  const count = a(2) >>> 0;
+  if (!count) return ok(a(0), 3);
+  const size = count * width;
+  r.check(a(0), size, true);
+  r.check(a(1), size);
+  const snapshot = r.data.slice(a(1), a(1) + size);
+  r.data.set(snapshot, a(0));
+  return ok(a(0), 3);
+}
+function fill(r, a, width) {
+  const count = a(2) >>> 0;
+  if (!count) return ok(a(0), 3);
+  const bytes = width === 1 ? a(1) & 0xff : width === 2 ? [a(1) & 0xff, (a(1) >>> 8) & 0xff] : null;
+  r.check(a(0), count * width, true);
+  if (width === 4) {
+    for (let i = 0; i < count; i++) r.write32(a(0) + i * 4, a(1));
+  } else if (width === 2) {
+    for (let i = 0; i < count * 2; i++) r.data[a(0) + i] = bytes[i & 1];
+  } else r.data.fill(a(1) & 0xff, a(0), a(0) + count);
+  return ok(a(0), 3);
+}
+function compare(r, a, width) {
+  const count = a(2) >>> 0;
+  r.check(a(0), count * width);
+  r.check(a(1), count * width);
+  for (let i = 0; i < count; i++) {
+    const left = width === 1 ? r.data[a(0) + i] : r.guestMemory.read(a(0) + i * width, width);
+    const right = width === 1 ? r.data[a(1) + i] : r.guestMemory.read(a(1) + i * width, width);
+    if (left !== right) return ok(left < right ? -1 : 1, 3);
+  }
+  return ok(0, 3);
+}
+function ansiLength(r, a) {
+  let length = 0;
+  while (length < 0x1000000) {
+    if (!r.data[a(0) + length]) break;
+    length++;
+  }
+  return ok(length, 1);
+}
+function ansiCopy(r, a) {
+  const length = ansiLength(r, a).result;
+  r.check(a(0), length + 1, true);
+  r.data.copyWithin(a(0), a(1), a(1) + length + 1);
+  return ok(a(0), 2);
+}
+function ansiCat(r, a) {
+  const leftLength = ansiLength(r, a).result;
+  const rightLength = ansiLength(r, { 0: () => a(1) }).result;
+  r.check(a(0), leftLength + rightLength + 1, true);
+  for (let i = 0; i <= rightLength; i++) r.data[a(0) + leftLength + i] = r.data[a(1) + i];
+  return ok(a(0), 2);
+}
+function ansiCompareN(r, a) {
+  const count = a(2) >>> 0;
+  for (let i = 0; i < count; i++) {
+    const left = r.data[a(0) + i],
+      right = r.data[a(1) + i];
+    if (left !== right) return ok(left < right ? -1 : 1, 3);
+    if (!left) break;
+  }
+  return ok(0, 3);
+}
+function wideLength(r, a) {
+  let length = 0;
+  while (length < 0x1000000) {
+    if (!r.guestMemory.read(a(0) + length * 2, 2)) break;
+    length++;
+  }
+  return ok(length, 1);
+}
+function wideCopy(r, a) {
+  const length = wideLength(r, a).result;
+  r.check(a(0), (length + 1) * 2, true);
+  for (let i = 0; i <= length; i++)
+    r.guestMemory.write(a(0) + i * 2, r.guestMemory.read(a(1) + i * 2, 2), 2);
+  return ok(a(0), 2);
+}
+
+// malloc/free/realloc/calloc go to the same guest heap HeapAlloc uses, so a
+// pointer from malloc is a valid HeapFree target only through CRT functions,
+// which is what the CRT itself guarantees.
+function crtMalloc(r, a) {
+  const size = a(0) >>> 0;
+  if (!size) return ok(r.allocate(16), 1);
+  if (size > 16 * 1024 * 1024) return ok(0, 1);
+  return ok(r.allocate(size), 1);
+}
+function crtFree(r, a) {
+  if (a(0)) r.free(a(0));
+  return ok(0, 1);
+}
+function crtRealloc(r, a) {
+  const pointer = a(0) >>> 0,
+    size = a(1) >>> 0;
+  if (!pointer) return crtMalloc(r, a);
+  if (!size) {
+    r.free(pointer);
+    return ok(0, 2);
+  }
+  const moved = r.reallocate(pointer, size, false);
+  return ok(moved ?? 0, 2);
+}
+function crtCalloc(r, a) {
+  const count = a(0) >>> 0,
+    size = a(1) >>> 0;
+  if (!count || !size) return ok(r.allocate(16), 2);
+  if (count * size > 16 * 1024 * 1024) return ok(0, 2);
+  return ok(r.allocate(count * size, true), 2);
+}
+
+export const msvcrtApis = {};
+// Names are matched case-insensitively by the import resolver, so both the
+// decorated `_foo` spellings and the plain ones are registered.
+const NAMES = {
+  memcpy: (r, a) => copy(r, a, 1),
+  memmove: (r, a) => move(r, a, 1),
+  memset: (r, a) => fill(r, a, 1),
+  memcmp: (r, a) => compare(r, a, 1),
+  strlen: ansiLength,
+  strcpy: ansiCopy,
+  strcat: ansiCat,
+  strncmp: ansiCompareN,
+  strcmp: (r, a) => {
+    const count = Math.max(ansiLength(r, a).result, ansiLength(r, { 0: () => a(1) }).result) + 1;
+    return ansiCompareN(r, { 0: () => a(0), 1: () => a(1), 2: () => count });
+  },
+  wcslen: wideLength,
+  wcscpy: wideCopy,
+  malloc: crtMalloc,
+  free: crtFree,
+  realloc: crtRealloc,
+  calloc: crtCalloc,
+  _malloc: crtMalloc,
+  _free: crtFree,
+  _realloc: crtRealloc,
+  _calloc: crtCalloc,
+  '$I10_OUTPUT': i10Output,
+};
+for (const [name, handler] of Object.entries(NAMES)) msvcrtApis[`msvcrt.dll!${name}`] = handler;
+// Ordinal 1 is $I10_OUTPUT; registering the ordinal key lets an import that
+// resolves by number reach the same handler.
+msvcrtApis['msvcrt.dll!#1'] = i10Output;
+
+// ---------------------------------------------------------------------------
+// MSACM32. The ACM converts between audio formats; BASS imports acmStreamSize
+// to probe a conversion before it opens one. With no codec driver loaded, the
+// honest answer is MMSYSERR_NOTENABLED, so a caller takes its own fallback
+// rather than receiving a fabricated size.
+const MMSYSERR_NOTENABLED = 11,
+  MMSYSERR_INVALHANDLE = 5,
+  MMSYSERR_INVALPARAM = 11;
+export const msacmApis = {};
+const ACM_NAMES = {
+  acmMetrics: (r, a) => {
+    if (a(1) & ~0x7f) return ok(MMSYSERR_INVALPARAM, 3);
+    if (a(2)) r.check(a(2), 4, true);
+    return ok(MMSYSERR_NOTENABLED, 3);
+  },
+  acmStreamOpen: (r, a) => {
+    if (a(0)) r.check(a(0), 4, true);
+    return ok(MMSYSERR_NOTENABLED, 8);
+  },
+  acmStreamClose: (r, a) => ok(a(0) ? MMSYSERR_INVALHANDLE : MMSYSERR_INVALHANDLE, 2),
+  acmStreamSize: (r, a) => {
+    // acmStreamSize(HACMSTREAM has, DWORD input, LPDWORD output, DWORD flags)
+    if (!a(0)) return ok(MMSYSERR_INVALHANDLE, 4);
+    if (!a(2)) return ok(MMSYSERR_INVALPARAM, 4);
+    r.check(a(2), 4, true);
+    r.write32(a(2), 0);
+    return ok(MMSYSERR_NOTENABLED, 4);
+  },
+  acmStreamPrepareHeader: (r, a) => ok(a(0) ? MMSYSERR_NOTENABLED : MMSYSERR_INVALHANDLE, 3),
+  acmStreamUnprepareHeader: (r, a) => ok(a(0) ? MMSYSERR_NOTENABLED : MMSYSERR_INVALHANDLE, 3),
+  acmStreamConvert: (r, a) => ok(a(0) ? MMSYSERR_NOTENABLED : MMSYSERR_INVALHANDLE, 3),
+};
+for (const [name, handler] of Object.entries(ACM_NAMES)) msacmApis[`msacm32.dll!${name}`] = handler;
