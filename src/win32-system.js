@@ -5,6 +5,7 @@ import { listPEResources, readPEResource } from './pe-resources.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { encodeAnsi } from './encoding.js';
 import { protectMemory } from './memory-protection.js';
+import { PROCESS_LAYOUT } from './process-layout.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -70,52 +71,95 @@ function freeResource(r, a) {
 }
 
 // ---------------------------------------------------------------------------
-// Dynamic thread-local storage. Slots live in the per-thread TEB's TLS array,
-// which createThread already publishes at fs:[0x2c]. A slot number follows the
-// documented 0..1088 range and index into that array.
-const TLS_MINIMUM_AVAILABLE = 1088,
-  TLS_OUT_OF_INDEXES = 0xffffffff;
-function tlsVector(r) {
-  const vector = r.read32(r.cpu.fsBase + 0x2c);
-  if (vector) return vector;
-  // A process with no static TLS still needs a vector for dynamic slots; the
-  // scheduler installs one for every thread, so allocate on first use.
-  const created = r.allocate(TLS_MINIMUM_AVAILABLE * 4);
-  r.dynamicTlsVector = created;
-  r.write32(r.cpu.fsBase + 0x2c, created);
-  return created;
+// Dynamic thread-local storage, matching the documented i386 TEB layout Wine's
+// kernelbase uses:
+//   TEB.TlsSlots[64]           fs:[0xe10]  slots 0..63
+//   TEB.TlsExpansionSlots      fs:[0xf94]  pointer to 1024 more slots
+//   PEB.TlsBitmapBits[2]       peb+0x44    allocation bits for the fixed slots
+//   PEB.TlsExpansionBitmapBits peb+0x154   allocation bits for the expansion
+// The static image TLS vector is a *different* field (TEB at fs:[0x2c]); writing
+// dynamic slots there would clobber every module's __declspec(thread) data.
+const TLS_MINIMUM_AVAILABLE = 64,
+  TLS_EXPANSION_SLOTS = 1024,
+  TLS_OUT_OF_INDEXES = 0xffffffff,
+  TEB_TLS_SLOTS = 0xe10,
+  TEB_TLS_EXPANSION = 0xf94,
+  PEB_TLS_BITMAP_BITS = 0x44,
+  PEB_TLS_EXPANSION_BITS = 0x154;
+const bitSet = (r, address, index) => (r.read32(address + (index >> 5) * 4) >>> (index & 31)) & 1;
+function setBit(r, address, index, value) {
+  const word = address + (index >> 5) * 4,
+    mask = 1 << (index & 31),
+    current = r.read32(word) >>> 0;
+  r.write32(word, (value ? current | mask : current & ~mask) >>> 0);
 }
 function tlsAlloc(r) {
-  r.dynamicTlsSlots ??= new Set();
-  for (let index = 0; index < TLS_MINIMUM_AVAILABLE; index++)
-    if (!r.dynamicTlsSlots.has(index)) {
-      r.dynamicTlsSlots.add(index);
-      return ok(index + 1, 0); // Reserved first slot shared with static TLS.
-    }
+  // The fixed 64 slots come first, then the 1024 slot expansion table.
+  for (let index = 0; index < TLS_MINIMUM_AVAILABLE + TLS_EXPANSION_SLOTS; index++) {
+    const inExpansion = index >= TLS_MINIMUM_AVAILABLE,
+      bit = inExpansion ? index - TLS_MINIMUM_AVAILABLE : index,
+      address = PROCESS_LAYOUT.peb + (inExpansion ? PEB_TLS_EXPANSION_BITS : PEB_TLS_BITMAP_BITS);
+    if (bitSet(r, address, bit)) continue;
+    setBit(r, address, bit, 1);
+    // A newly allocated slot is cleared in the calling thread, as documented.
+    if (inExpansion) {
+      const slots = expansionSlots(r, true);
+      r.write32(slots + (index - TLS_MINIMUM_AVAILABLE) * 4, 0);
+    } else r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, 0);
+    return ok(index, 0);
+  }
+  r.lastError = 18; // ERROR_NO_MORE_ITEMS
   return ok(TLS_OUT_OF_INDEXES, 0);
 }
-function tlsIndex(r, a) {
-  const index = a(0) >>> 0;
-  if (index === 0 || index > TLS_MINIMUM_AVAILABLE) return null;
-  return index - 1;
+// The expansion array is a lazily allocated block of 1024 pointers.
+function expansionSlots(r, create) {
+  const pointer = r.read32(r.cpu.fsBase + TEB_TLS_EXPANSION);
+  if (pointer || !create) return pointer;
+  const created = r.allocate(TLS_EXPANSION_SLOTS * 4, true);
+  r.write32(r.cpu.fsBase + TEB_TLS_EXPANSION, created);
+  r.dynamicTlsAllocations ??= new Set();
+  r.dynamicTlsAllocations.add(created);
+  return created;
+}
+function tlsIndex(r, index) {
+  return index < TLS_MINIMUM_AVAILABLE + TLS_EXPANSION_SLOTS ? index : null;
 }
 function tlsFree(r, a) {
-  const index = tlsIndex(r, a);
-  if (index === null || !r.dynamicTlsSlots?.delete(index)) return fail(r, 87, 1);
+  const index = tlsIndex(r, a(0) >>> 0);
+  if (index === null) return fail(r, 87, 1);
+  const inExpansion = index >= TLS_MINIMUM_AVAILABLE,
+    bit = inExpansion ? index - TLS_MINIMUM_AVAILABLE : index,
+    address = PROCESS_LAYOUT.peb + (inExpansion ? PEB_TLS_EXPANSION_BITS : PEB_TLS_BITMAP_BITS);
+  if (!bitSet(r, address, bit)) return fail(r, 87, 1);
+  setBit(r, address, bit, 0);
+  // Freeing clears the slot in every thread's array, which Wine does through
+  // NtSetInformationThread(ThreadZeroTlsCell).
+  if (!inExpansion) r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, 0);
+  else {
+    const slots = expansionSlots(r, false);
+    if (slots) r.write32(slots + (index - TLS_MINIMUM_AVAILABLE) * 4, 0);
+  }
   return ok(1, 1);
 }
 function tlsSetValue(r, a) {
-  const index = tlsIndex(r, a);
+  const index = tlsIndex(r, a(0) >>> 0);
   if (index === null) return fail(r, 87, 2);
-  r.write32(tlsVector(r) + index * 4, a(1) >>> 0);
+  if (index < TLS_MINIMUM_AVAILABLE) r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, a(1) >>> 0);
+  else {
+    const slots = expansionSlots(r, true);
+    r.write32(slots + (index - TLS_MINIMUM_AVAILABLE) * 4, a(1) >>> 0);
+  }
   return ok(1, 2);
 }
 function tlsGetValue(r, a) {
-  const index = tlsIndex(r, a);
+  const index = tlsIndex(r, a(0) >>> 0);
   if (index === null) return fail(r, 87, 1);
-  // A slot that was never written reads as zero, as the API documents.
+  // A slot that was never written reads as zero, and GetLastError is cleared.
   r.lastError = 0;
-  return ok(r.read32(tlsVector(r) + index * 4) >>> 0, 1);
+  if (index < TLS_MINIMUM_AVAILABLE)
+    return ok(r.read32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4) >>> 0, 1);
+  const slots = expansionSlots(r, false);
+  return ok(slots ? r.read32(slots + (index - TLS_MINIMUM_AVAILABLE) * 4) >>> 0 : 0, 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -376,6 +420,40 @@ function deviceIoControl(r, a) {
   return fail(r, 1, 8); // ERROR_INVALID_FUNCTION
 }
 
+// ---------------------------------------------------------------------------
+// GetLastActivePopup and GetUserObjectInformationA are resolved by name by
+// ordinary dialog code and by installers' shell helpers. The runtime's window
+// manager tracks activation, so the popup query answers from it.
+function getLastActivePopup(r, a) {
+  const window = r.windows.windows.get(a(0) >>> 0);
+  if (!window) return fail(r, 1400, 1, 0);
+  // The runtime has no owned popups; the window itself is the last active one.
+  return ok(a(0) >>> 0, 1);
+}
+const USER_OBJECT_INFO = new Set([1, 2, 3]); // UOI_FLAGS, UOI_NAME, UOI_TYPE
+function getUserObjectInformation(r, a, wide) {
+  const index = a(1) >>> 0,
+    out = a(2),
+    length = a(3) | 0,
+    needed = a(4);
+  if (!USER_OBJECT_INFO.has(index)) return fail(r, 87, 5);
+  const value = index === 2 ? 'WineBrowser' : index === 3 ? 'Window' : '';
+  const bytes = wide ? value.length * 2 : value.length;
+  if (needed) {
+    r.check(needed, 4, true);
+    r.write32(needed, bytes + (wide ? 2 : 1));
+  }
+  if (!out || length < bytes + (wide ? 2 : 1)) return fail(r, 122, 5);
+  r.check(out, bytes + (wide ? 2 : 1), true);
+  for (let i = 0; i < value.length; i++) {
+    if (wide) r.guestMemory.write(out + i * 2, value.charCodeAt(i), 2);
+    else r.data[out + i] = value.charCodeAt(i);
+  }
+  if (wide) r.guestMemory.write(out + value.length * 2, 0, 2);
+  else r.data[out + value.length] = 0;
+  return ok(1, 5);
+}
+
 export const systemApis2 = {
   'kernel32.dll!DeviceIoControl': deviceIoControl,
 };
@@ -405,6 +483,9 @@ function createWaitableTimer(r, a, wide) {
 }
 
 export const systemApis3 = {
+  'user32.dll!GetLastActivePopup': getLastActivePopup,
+  'user32.dll!GetUserObjectInformationA': (r, a) => getUserObjectInformation(r, a, false),
+  'user32.dll!GetUserObjectInformationW': (r, a) => getUserObjectInformation(r, a, true),
   'kernel32.dll!QueueUserAPC': queueUserApc,
   // Alertable waits accept and ignore the alert flag: no APC is ever pending
   // because none is queued.
