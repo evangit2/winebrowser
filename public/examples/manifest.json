@@ -2,6 +2,15 @@
   "format": 1,
   "interactive": [
     {
+      "name": "humus-dynamic-branching",
+      "description": "Unchanged Humus \"Dynamic Branching\" Direct3D 9 demo: a stencil-shadow pillar room with programmable shaders and DXT textures. F1 opens settings.",
+      "exe": "humus-dynamic-branching/DynamicBranching/DynamicBranching.exe",
+      "exeSha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
+      "zip": "humus-dynamic-branching/DynamicBranching.zip",
+      "zipSha256": "8063039867fb69e4c58c6bad90f4aad80e43d0eb5c33818e1ba5a9c2be57077a",
+      "provenance": "Freeware, Emil Persson (Humus); upstream readme permits redistribution with the readme included. Unchanged upstream archive."
+    },
+    {
       "name": "tetris",
       "description": "Unchanged wesmar/Tetris x86 release: arrows move/rotate, Space drops, P pauses, F2 restarts.",
       "exe": "tetris/tetris.exe",
