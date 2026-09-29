@@ -166,8 +166,177 @@ async function freeUnused(r) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// OLE Automation string and VARIANT services. These are the small BSTR/VARIANT
+// primitives a plain Win32 program links against oleaut32 for; they need no
+// automation marshaller and no type library.
+//
+// A BSTR is a length-prefixed wide string: the pointer a caller holds points at
+// the first character and the DWORD byte count sits immediately before it. The
+// bytes live in ordinary guest memory, so the layout is the real one.
+const VT_EMPTY = 0,
+  VT_NULL = 1,
+  VT_I4 = 3,
+  VT_BSTR = 8,
+  VT_DISPATCH = 9,
+  VT_UNKNOWN = 13;
+const DISP_E_TYPEMISMATCH = 0x80020005;
+// VARIANT is 16 bytes on i386: vt at 0, three reserved WORDs, then the union.
+const VARIANT_SIZE = 16;
+
+function strlenW(r, pointer, limit = 0x100000) {
+  let count = 0;
+  while (count < limit && r.guestMemory.read(pointer + count * 2, 2)) count++;
+  return count;
+}
+// Allocates a BSTR of exactly `count` characters from `source` (or zeroes).
+function allocateBstr(r, source, count) {
+  if (count > 0x100000) throw Error('BSTR length limit exceeded');
+  const base = r.allocate((count + 1) * 2 + 4);
+  r.write32(base, count * 2); // byte length, excluding the terminator
+  const text = base + 4;
+  for (let i = 0; i < count; i++)
+    r.guestMemory.write(text + i * 2, source ? r.guestMemory.read(source + i * 2, 2) : 0, 2);
+  r.guestMemory.write(text + count * 2, 0, 2);
+  (r.bstrAllocations ??= new Map()).set(text, base);
+  return text;
+}
+function freeBstr(r, text) {
+  const base = r.bstrAllocations?.get(text);
+  if (base === undefined) return;
+  r.bstrAllocations.delete(text);
+  r.free(base);
+}
+
+function sysAllocString(r, a) {
+  const source = a(0);
+  return ok(source ? allocateBstr(r, source, strlenW(r, source)) : 0, 1);
+}
+function sysAllocStringLen(r, a) {
+  return ok(allocateBstr(r, a(0), a(1) >>> 0), 2);
+}
+function sysFreeString(r, a) {
+  if (a(0)) freeBstr(r, a(0) >>> 0);
+  return ok(0, 1);
+}
+function sysStringLen(r, a) {
+  const text = a(0) >>> 0;
+  return ok(text ? (r.read32(text - 4) >>> 0) / 2 : 0, 1);
+}
+function sysReAllocString(r, a) {
+  const holder = a(0) >>> 0;
+  const source = a(1) >>> 0;
+  if (!holder) return ok(0, 2);
+  const previous = r.read32(holder) >>> 0;
+  if (!source) {
+    if (previous) freeBstr(r, previous);
+    r.write32(holder, 0);
+    return ok(1, 2);
+  }
+  const count = strlenW(r, source);
+  // Reuse the block when it is large enough, exactly as OleAut32 does.
+  if (previous && (r.read32(previous - 4) >>> 0) / 2 >= count) {
+    for (let i = 0; i <= count; i++)
+      r.guestMemory.write(
+        previous + i * 2,
+        i === count ? 0 : r.guestMemory.read(source + i * 2, 2),
+        2,
+      );
+    r.write32(previous - 4, count * 2);
+    return ok(1, 2);
+  }
+  if (previous) freeBstr(r, previous);
+  r.write32(holder, allocateBstr(r, source, count));
+  return ok(1, 2);
+}
+function sysReAllocStringLen(r, a) {
+  const holder = a(0) >>> 0;
+  const source = a(1) >>> 0;
+  const count = a(2) >>> 0;
+  if (!holder) return ok(0, 3);
+  const previous = r.read32(holder) >>> 0;
+  // The source may legitimately be NULL for a zero-initialised result.
+  if (previous && (r.read32(previous - 4) >>> 0) / 2 >= count) {
+    for (let i = 0; i < count; i++)
+      r.guestMemory.write(previous + i * 2, source ? r.guestMemory.read(source + i * 2, 2) : 0, 2);
+    r.guestMemory.write(previous + count * 2, 0, 2);
+    r.write32(previous - 4, count * 2);
+    return ok(1, 3);
+  }
+  if (previous) freeBstr(r, previous);
+  r.write32(holder, allocateBstr(r, source, count));
+  return ok(1, 3);
+}
+
+function variantInit(r, a) {
+  const pointer = a(0) >>> 0;
+  if (pointer) {
+    r.check(pointer, VARIANT_SIZE, true);
+    r.data.fill(0, pointer, pointer + VARIANT_SIZE);
+  }
+  return ok(0, 1);
+}
+function variantClear(r, a) {
+  const pointer = a(0) >>> 0;
+  if (!pointer) return ok(0, 1);
+  r.check(pointer, VARIANT_SIZE, true);
+  const vt = r.guestMemory.read(pointer, 2);
+  if (vt === VT_BSTR) {
+    const text = r.read32(pointer + 8) >>> 0;
+    if (text) freeBstr(r, text);
+  } else if (![VT_EMPTY, VT_NULL, VT_I4].includes(vt)) {
+    // Releasing an interface pointer needs that object's own Release, which a
+    // synchronous handler cannot perform as a guest call; report the type
+    // mismatch rather than dropping the reference silently.
+    return ok(DISP_E_TYPEMISMATCH, 1);
+  }
+  r.data.fill(0, pointer, pointer + VARIANT_SIZE);
+  return ok(0, 1);
+}
+function variantCopy(r, a) {
+  const destination = a(0) >>> 0,
+    source = a(1) >>> 0;
+  if (!destination || !source) return ok(0x80070057, 2); // E_INVALIDARG
+  r.check(destination, VARIANT_SIZE, true);
+  r.check(source, VARIANT_SIZE, false);
+  const vt = r.guestMemory.read(source, 2);
+  if (![VT_EMPTY, VT_NULL, VT_I4, VT_BSTR].includes(vt)) return ok(DISP_E_TYPEMISMATCH, 2);
+  // Clear the destination before writing so its old BSTR is not leaked.
+  const previousType = r.guestMemory.read(destination, 2);
+  if (previousType === VT_BSTR) {
+    const text = r.read32(destination + 8) >>> 0;
+    if (text) freeBstr(r, text);
+  }
+  r.data.fill(0, destination, destination + VARIANT_SIZE);
+  r.guestMemory.write(destination, vt, 2);
+  if (vt === VT_BSTR) {
+    const text = r.read32(source + 8) >>> 0;
+    r.write32(destination + 8, text ? allocateBstr(r, text, strlenW(r, text)) : 0);
+  } else {
+    // VT_EMPTY, VT_NULL and VT_I4 are plain values with no owned resource.
+    r.write32(destination + 4, r.read32(source + 4) >>> 0);
+    r.write32(destination + 8, r.read32(source + 8) >>> 0);
+    r.write32(destination + 12, r.read32(source + 12) >>> 0);
+  }
+  return ok(0, 2);
+}
+
+export const oleautApis = {
+  'oleaut32.dll!SysAllocString': sysAllocString,
+  'oleaut32.dll!SysAllocStringLen': sysAllocStringLen,
+  'oleaut32.dll!SysReAllocString': sysReAllocString,
+  'oleaut32.dll!SysReAllocStringLen': sysReAllocStringLen,
+  'oleaut32.dll!SysFreeString': sysFreeString,
+  'oleaut32.dll!SysStringLen': sysStringLen,
+  'oleaut32.dll!SysStringByteLen': (r, a) => ok(a(0) ? r.read32(a(0) - 4) >>> 0 : 0, 1),
+  'oleaut32.dll!VariantInit': variantInit,
+  'oleaut32.dll!VariantClear': variantClear,
+  'oleaut32.dll!VariantCopy': variantCopy,
+};
+
 export const comApis = {
   ...guidApis,
+  ...oleautApis,
   'ole32.dll!CoInitialize': (r, a) => initialize(r, a(0), 2, 1),
   'ole32.dll!CoInitializeEx': (r, a) => initialize(r, a(0), a(1) >>> 0, 2),
   'ole32.dll!CoUninitialize': async (r) => {

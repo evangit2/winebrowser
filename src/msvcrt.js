@@ -10,6 +10,8 @@ import {
   MSVCRT_DATA_EXPORTS,
 } from './msvcrt-exports.js';
 import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
+import { resolveGuestPath } from './guest-paths.js';
+import { touchFile } from './file-metadata.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 // x86 argument passing: a double occupies two DWORDs on the stack, low half
@@ -962,6 +964,8 @@ const POINTER_ACCESSORS = {
   __p___wargv: '__wargv',
   __p__acmdln: '_acmdln',
   __p__wcmdln: '_wcmdln',
+  __p___initenv: '__initenv',
+  __p___winitenv: '_winitenv',
   __p__environ: '_environ',
   __p__wenviron: '_wenviron',
   __p__fmode: '_fmode',
@@ -996,6 +1000,388 @@ msvcrtApis['msvcrt.dll!__iob_func'] = msvcrtApis['msvcrt.dll!__p__iob'];
 for (const name of Object.keys(DATA_EXPORTS)) {
   msvcrtApis[`msvcrt.dll!${name}`] = (r) => ({ result: dataAddress(r, name), argc: 0 });
 }
+
+// ---------------------------------------------------------------------------
+// The stdio FILE* layer. A FILE* a guest holds is an address in guest memory
+// that names one of these stream objects, so the pointer is a real guest
+// address (the runtime only dereferences it through its own table). Streams
+// backed by the virtual filesystem read and write the same bytes the Win32 file
+// APIs do; the three standard streams are the console (stdout/stderr) and an
+// empty stdin.
+//
+// FILE's MSVC i386 layout is 32 bytes; only the fields a caller can observe are
+// meaningful. _iob names the three standard streams and __p__iob/__iob_func
+// return its address.
+const STDIO_STRUCT_BYTES = 32; // FILE's MSVC i386 size; _iob is three of them.
+const stdioStreams = new WeakMap();
+
+function stdioState(r) {
+  let state = stdioStreams.get(r);
+  if (!state) {
+    state = { byAddress: new Map(), nextAddress: 0, standard: null };
+    stdioStreams.set(r, state);
+  }
+  return state;
+}
+// The three standard streams exist before any fopen. Their addresses are stable
+// for the process so _iob and the __p__* accessors agree.
+function standardStreams(r) {
+  const state = stdioState(r);
+  if (state.standard) return state.standard;
+  // The three standard streams are the block the data exports name, so _iob,
+  // __p__iob/__iob_func and a FILE* a program passes back to fputs/fwrite all
+  // refer to one set of addresses. Allocating a separate block here would make
+  // a guest's stdout pointer unknown to the stream table.
+  const base = dataAddress(r, '_iob');
+  state.standard = { base, addresses: [base, base + 32, base + 64] };
+  for (let i = 0; i < 3; i++) {
+    const address = base + i * 32;
+    state.byAddress.set(address, {
+      address,
+      path: null,
+      standard: i === 0 ? 'stdin' : i === 1 ? 'stdout' : 'stderr',
+      position: 0,
+      mode: i === 0 ? 'r' : 'w',
+      open: true,
+      error: false,
+      eof: false,
+    });
+    // FILE._flag at offset 12 and _file at 16, matching the iobArray model.
+    r.write32(address + 12, i === 0 ? 0x0002 : 0x0001);
+    r.write32(address + 16, i);
+  }
+  return state.standard;
+}
+function streamFor(r, pointer) {
+  const state = stdioState(r);
+  // A stream handed out before any standard stream was named still works, so
+  // the standard block is created first to keep its addresses stable.
+  standardStreams(r);
+  return state.byAddress.get(pointer >>> 0);
+}
+
+// fopen(filename, mode): creates or opens the virtual file in the requested
+// mode. Both A and W forms resolve a guest path in the package volume.
+function openStream(r, a, wide) {
+  const name = wide ? r.wideString(a(0)) : r.string(a(0));
+  const mode = r.string(a(1));
+  let resolved;
+  try {
+    resolved = resolveGuestPath(name, r.cwd);
+  } catch {
+    return ok(0, 2);
+  }
+  const allowed = /^[rwa](\+?)(b?)$/.exec(mode);
+  if (!allowed) return ok(0, 2);
+  const reading = mode[0] === 'r' || allowed[1] === '+';
+  const writing = mode[0] !== 'r' || allowed[1] === '+';
+  const exists = r.files.has(resolved);
+  if (mode[0] === 'r' && !exists) return ok(0, 2);
+  if (mode[0] === 'w') {
+    if (!r.files.has(resolved) && r.files.size >= 4096)
+      throw Error('Virtual file count limit exceeded');
+    r.files.set(resolved, new Uint8Array());
+    r.fileSections?.fileChanged(resolved);
+    r.dirty.add(resolved);
+    touchFile(r, resolved, { created: !exists, write: true });
+  }
+  if (mode[0] === 'a') {
+    if (!exists) {
+      r.files.set(resolved, new Uint8Array());
+      touchFile(r, resolved, { created: true, write: true });
+    }
+    r.dirty.add(resolved);
+  }
+  if (!r.files.has(resolved)) return ok(0, 2);
+  const state = stdioState(r);
+  if (state.byAddress.size >= 256) throw Error('stdio stream limit exceeded');
+  const address = r.allocate(STDIO_STRUCT_BYTES, true);
+  const bytes = r.files.get(resolved);
+  const stream = {
+    address,
+    path: resolved,
+    position: mode[0] === 'a' ? bytes.length : 0,
+    mode,
+    reading,
+    writing,
+    append: mode[0] === 'a',
+    open: true,
+    error: false,
+    eof: false,
+  };
+  state.byAddress.set(address, stream);
+  r.write32(address + 12, 0x0001);
+  r.write32(address + 16, 0);
+  return ok(address, 2);
+}
+function fclose(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream || !stream.open) return ok(0xffffffff, 1);
+  if (stream.writing && stream.path) r.dirty.add(stream.path);
+  stream.open = false;
+  stdioState(r).byAddress.delete(stream.address);
+  return ok(0, 1);
+}
+function flush(r, a) {
+  const pointer = a(0);
+  if (pointer) {
+    const stream = streamFor(r, pointer);
+    if (!stream || !stream.open) return ok(0xffffffff, 1);
+    if (stream.writing && stream.path) r.dirty.add(stream.path);
+  } else {
+    // fflush(NULL) flushes every open output stream.
+    for (const stream of stdioState(r).byAddress.values())
+      if (stream.open && stream.writing && stream.path) r.dirty.add(stream.path);
+  }
+  return ok(0, 1);
+}
+// Writes one byte run to whatever the stream names. Console streams become the
+// runtime's stdout channel; file streams update the virtual filesystem.
+function writeStream(r, stream, bytes) {
+  if (stream.standard === 'stdout' || stream.standard === 'stderr') {
+    r.stdoutBytes = (r.stdoutBytes || 0) + bytes.length;
+    if (r.stdoutBytes > 1024 * 1024) throw Error('Console output limit exceeded');
+    if (bytes.length)
+      r.emit({ type: 'stdout', text: new TextDecoder('windows-1252').decode(bytes) });
+    return bytes.length;
+  }
+  if (!stream.writing) {
+    stream.error = true;
+    return 0;
+  }
+  const previous = r.files.get(stream.path) ?? new Uint8Array();
+  if (stream.append) stream.position = Math.max(stream.position, previous.length);
+  const end = stream.position + bytes.length;
+  if (end > 16 * 1024 * 1024) throw Error('Virtual file size limit exceeded');
+  const updated = new Uint8Array(Math.max(previous.length, end));
+  updated.set(previous);
+  updated.set(bytes, stream.position);
+  r.files.set(stream.path, updated);
+  r.fileSections?.fileChanged(stream.path);
+  stream.position = end;
+  stream.append = false;
+  touchFile(r, stream.path, { write: true });
+  r.dirty.add(stream.path);
+  return bytes.length;
+}
+function fwrite(r, a) {
+  const stream = streamFor(r, a(3));
+  if (!stream || !stream.open) return ok(0, 4);
+  const size = a(1) >>> 0;
+  const count = a(2) >>> 0;
+  const total = size * count;
+  if (!total) return ok(0, 4);
+  if (total > 16 * 1024 * 1024) throw Error('fwrite exceeds per-call limit');
+  r.check(a(0), total);
+  const written = writeStream(r, stream, r.data.slice(a(0), a(0) + total));
+  return ok(size ? Math.floor(written / size) : 0, 4);
+}
+function fread(r, a) {
+  const stream = streamFor(r, a(3));
+  if (!stream || !stream.open) return ok(0, 4);
+  const size = a(1) >>> 0;
+  const count = a(2) >>> 0;
+  const total = size * count;
+  if (!total) return ok(0, 4);
+  r.check(a(0), total, true);
+  let available;
+  if (stream.standard === 'stdin') available = new Uint8Array();
+  else {
+    const bytes = r.files.get(stream.path) ?? new Uint8Array();
+    available = bytes.subarray(stream.position, Math.min(bytes.length, stream.position + total));
+  }
+  r.data.fill(0, a(0), a(0) + total);
+  r.data.set(available, a(0));
+  stream.position += available.length;
+  if (available.length < total) stream.eof = true;
+  if (available.length) touchFile(r, stream.path, { read: true });
+  return ok(size ? Math.floor(available.length / size) : 0, 4);
+}
+function fputc(r, a) {
+  const stream = streamFor(r, a(1));
+  if (!stream || !stream.open) return ok(0xffffffff, 2);
+  const byte = Uint8Array.of(a(0) & 0xff);
+  return ok(writeStream(r, stream, byte) ? byte[0] : 0xffffffff, 2);
+}
+function fgetc(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream || !stream.open) return ok(0xffffffff, 1);
+  if (stream.standard === 'stdin') {
+    stream.eof = true;
+    return ok(0xffffffff, 1);
+  }
+  const bytes = r.files.get(stream.path) ?? new Uint8Array();
+  if (stream.position >= bytes.length) {
+    stream.eof = true;
+    return ok(0xffffffff, 1);
+  }
+  const byte = bytes[stream.position++];
+  touchFile(r, stream.path, { read: true });
+  return ok(byte, 1);
+}
+// fputs(string, stream) writes NUL-terminated bytes and returns a non-negative
+// value; unlike puts it does not append a newline.
+function fputs(r, a) {
+  const stream = streamFor(r, a(1));
+  if (!stream || !stream.open) return ok(0xffffffff, 2);
+  const pointer = a(0);
+  if (!pointer) return ok(0xffffffff, 2);
+  const bytes = [];
+  for (let i = 0; i < 0x1000000; i++) {
+    const byte = r.guestMemory.read(pointer + i, 1);
+    if (!byte) break;
+    bytes.push(byte);
+  }
+  const written = writeStream(r, stream, Uint8Array.from(bytes));
+  return ok(written >= 0 ? written : 0xffffffff, 2);
+}
+function fgets(r, a) {
+  const buffer = a(0);
+  const capacity = a(1) | 0;
+  const stream = streamFor(r, a(2));
+  if (!stream || !stream.open || !buffer || capacity <= 0) return ok(0, 3);
+  r.check(buffer, capacity, true);
+  if (stream.standard === 'stdin') {
+    stream.eof = true;
+    return ok(0, 3);
+  }
+  const bytes = r.files.get(stream.path) ?? new Uint8Array();
+  let written = 0;
+  while (written < capacity - 1 && stream.position < bytes.length) {
+    const byte = bytes[stream.position++];
+    r.data[buffer + written++] = byte;
+    if (byte === 0x0a) break;
+  }
+  r.data[buffer + written] = 0;
+  if (!written) {
+    stream.eof = true;
+    return ok(0, 3);
+  }
+  touchFile(r, stream.path, { read: true });
+  return ok(buffer, 3);
+}
+function feof(r, a) {
+  const stream = streamFor(r, a(0));
+  return ok(stream?.eof ? 1 : 0, 1);
+}
+function ferror(r, a) {
+  const stream = streamFor(r, a(0));
+  return ok(stream?.error ? 1 : 0, 1);
+}
+function clearerr(r, a) {
+  const stream = streamFor(r, a(0));
+  if (stream) {
+    stream.error = false;
+    stream.eof = false;
+  }
+  return ok(0, 1);
+}
+function fseek(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream || !stream.open) return ok(0xffffffff, 3);
+  const offset = a(1) | 0;
+  const origin = a(2) | 0;
+  const bytes = stream.path ? (r.files.get(stream.path)?.length ?? 0) : 0;
+  const base = origin === 0 ? 0 : origin === 1 ? stream.position : bytes;
+  const next = base + offset;
+  if (next < 0) return ok(0xffffffff, 3);
+  stream.position = next;
+  stream.eof = false;
+  return ok(0, 3);
+}
+function ftell(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream || !stream.open) return ok(0xffffffff, 1);
+  return ok(stream.position, 1);
+}
+// puts writes the string and a newline to stdout; putchar writes one byte.
+function puts(r, a) {
+  const stdout = standardStreams(r).addresses[1];
+  fputs(r, (index) => (index === 0 ? a(0) : stdout), 2);
+  writeStream(r, streamFor(r, stdout), Uint8Array.of(0x0a));
+  return ok(0, 1);
+}
+function putchar(r, a) {
+  const stdout = standardStreams(r).addresses[1];
+  return fputc(r, (index) => (index === 0 ? a(0) : stdout), 2);
+}
+function fgetcharFn(r, a) {
+  const stdin = standardStreams(r).addresses[0];
+  return fgetc(r, (index) => (index === 0 ? stdin : 0), 1);
+}
+function fileno(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream) return ok(0xffffffff, 1);
+  return ok(stream.standard === 'stdin' ? 0 : stream.standard ? 1 : 0, 1);
+}
+function fflushStream(r, a) {
+  return flush(r, a, 1);
+}
+
+// Register the FILE* entry points and the _iob data block. The data exports
+// _iob/__p__iob already exist; their cell must be the real stream array, so
+// DATA_EXPORTS['_iob'] is left as-is and this function only adds the calls.
+function registerStdio() {
+  const add = (name, handler) => {
+    if (msvcrtApis[`msvcrt.dll!${name}`]) return;
+    msvcrtApis[`msvcrt.dll!${name}`] = handler;
+  };
+  add('fopen', (r, a) => openStream(r, a, false));
+  add('fopen_s', (r, a) => {
+    const out = a(0);
+    if (!out) return ok(22, 3);
+    r.check(out, 4, true);
+    const opened = openStream(r, (index) => a(index + 1), false);
+    r.write32(out, opened.result);
+    return ok(opened.result ? 0 : 2, 3);
+  });
+  add('freopen', (r, a) => {
+    if (a(0) >>> 0 === 0) return openStream(r, a, false);
+    const stream = streamFor(r, a(0));
+    if (stream?.open) fclose(r, (index) => (index === 0 ? stream.address : 0), 1);
+    const opened = openStream(r, a, false);
+    if (opened.result) {
+      // freopen keeps the same FILE object when it can; the new stream points
+      // at the reopened file either way.
+      return ok(opened.result, 3);
+    }
+    return ok(0, 3);
+  });
+  add('fclose', fclose);
+  add('fflush', fflushStream);
+  add('fwrite', fwrite);
+  add('fread', fread);
+  add('fputc', fputc);
+  add('fgetc', fgetc);
+  add('fputs', fputs);
+  add('fgets', fgets);
+  add('feof', feof);
+  add('ferror', ferror);
+  add('clearerr', clearerr);
+  add('fseek', fseek);
+  add('ftell', ftell);
+  add('puts', puts);
+  add('putchar', putchar);
+  add('fgetchar', fgetcharFn);
+  add('fileno', fileno);
+  add('_fileno', fileno);
+  // The *_nolock forms share behaviour: the runtime executes one guest thread
+  // at a time, so there is no other thread to lock against.
+  add('_fwrite_nolock', fwrite);
+  add('_fread_nolock', fread);
+  add('_fflush_nolock', fflushStream);
+  add('_fputc_nolock', fputc);
+  add('_fgetc_nolock', fgetc);
+  add('_fclose_nolock', fclose);
+  add('_fputs_nolock', fputs);
+  // The real buffer-fill/flush primitives are internal, but a program that
+  // calls them gets the equivalent refresh.
+  add('_filbuf', (r, a) => fgetc(r, a));
+  add('_flsbuf', fputc);
+  // _iob and __p__iob must name the real stream array rather than a zero cell.
+  add('_iob', (r, a) => ok(standardStreams(r).base, 0));
+}
+registerStdio();
 
 // ---------------------------------------------------------------------------
 // Completing the export surface. The generated list is Wine's real msvcrt

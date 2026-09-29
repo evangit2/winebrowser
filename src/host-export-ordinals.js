@@ -1,6 +1,20 @@
 // Published Windows ordinals, matching Wine's dsound.spec. Keep unsupported
 // exports absent: an ordinal mapping alone does not advertise an API service.
 export const HOST_EXPORT_ORDINALS = {
+  // OLE Automation's published ordinals (Wine's oleaut32.spec lists the same
+  // numbering). 7zr imports SysAllocString, SysAllocStringLen, SysFreeString,
+  // SysStringLen, VariantClear and VariantCopy by ordinal.
+  'oleaut32.dll': {
+    SysAllocString: 2,
+    SysReAllocString: 3,
+    SysAllocStringLen: 4,
+    SysReAllocStringLen: 5,
+    SysFreeString: 6,
+    SysStringLen: 7,
+    VariantInit: 8,
+    VariantClear: 9,
+    VariantCopy: 10,
+  },
   'dsound.dll': {
     DirectSoundCreate: 1,
     DirectSoundEnumerateA: 2,

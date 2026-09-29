@@ -2,8 +2,9 @@
 // Win32 applications import. Everything answers from the runtime's own model:
 // mapped guest modules, the virtual filesystem, and the per-thread TEB.
 import { listPEResources, readPEResource } from './pe-resources.js';
-import { resolveGuestPath } from './guest-paths.js';
+import { resolveGuestPath, packageDosPath } from './guest-paths.js';
 import { encodeAnsi } from './encoding.js';
+import { fileMetadata } from './file-metadata.js';
 import { protectMemory } from './memory-protection.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
 
@@ -392,6 +393,40 @@ export const systemApis = {
   'kernel32.dll!GetWindowsDirectoryW': (r, a) => getWindowsDirectory(r, a, true),
   'kernel32.dll!SetErrorMode': setErrorMode,
   'kernel32.dll!GetSystemTimeAsFileTime': getSystemTimeAsFileTime,
+  'kernel32.dll!SetFileAttributesA': (r, a) => setFileAttributes(r, a, false),
+  'kernel32.dll!SetFileAttributesW': (r, a) => setFileAttributes(r, a, true),
+  'kernel32.dll!RemoveDirectoryA': (r, a) => removeDirectory(r, a, false),
+  'kernel32.dll!RemoveDirectoryW': (r, a) => removeDirectory(r, a, true),
+  'kernel32.dll!MoveFileA': (r, a) => moveFile(r, a, false, false),
+  'kernel32.dll!MoveFileW': (r, a) => moveFile(r, a, true, false),
+  'kernel32.dll!MoveFileWithProgressW': (r, a) => moveFileWithProgress(r, a, true),
+  'kernel32.dll!CreateHardLinkW': (r, a) => createHardLink(r, a, true),
+  'kernel32.dll!GetCurrentDirectoryA': (r, a) => getCurrentDirectory(r, a, false),
+  'kernel32.dll!GetCurrentDirectoryW': (r, a) => getCurrentDirectory(r, a, true),
+  'kernel32.dll!SetCurrentDirectoryA': (r, a) => setCurrentDirectory(r, a, false),
+  'kernel32.dll!SetCurrentDirectoryW': (r, a) => setCurrentDirectory(r, a, true),
+  'kernel32.dll!GetTempPathA': (r, a) => getTempPath(r, a, false),
+  'kernel32.dll!GetTempPathW': (r, a) => getTempPath(r, a, true),
+  'kernel32.dll!GetDiskFreeSpaceExW': getDiskFreeSpaceEx,
+  'kernel32.dll!GetDiskFreeSpaceExA': getDiskFreeSpaceEx,
+  'kernel32.dll!GetDiskFreeSpaceW': getDiskFreeSpace,
+  'kernel32.dll!GetDiskFreeSpaceA': getDiskFreeSpace,
+  'kernel32.dll!GetLogicalDriveStringsW': (r, a) => getLogicalDriveStrings(r, a, true),
+  'kernel32.dll!GetLogicalDriveStringsA': (r, a) => getLogicalDriveStrings(r, a, false),
+  'kernel32.dll!GetFileInformationByHandle': getFileInformationByHandle,
+  'kernel32.dll!SetFileTime': setFileTime,
+  'kernel32.dll!FileTimeToSystemTime': fileTimeToSystemTime,
+  'kernel32.dll!FileTimeToLocalFileTime': fileTimeToLocalFileTime,
+  'kernel32.dll!FileTimeToDosDateTime': fileTimeToDosDateTime,
+  'kernel32.dll!CompareFileTime': compareFileTime,
+  'kernel32.dll!GetConsoleMode': getConsoleMode,
+  'kernel32.dll!SetConsoleMode': setConsoleMode,
+  'kernel32.dll!GetConsoleScreenBufferInfo': getConsoleScreenBufferInfo,
+  'kernel32.dll!SetConsoleCtrlHandler': setConsoleCtrlHandler,
+  'kernel32.dll!SetFileApisToOEM': setFileApisToOem,
+  'kernel32.dll!GlobalMemoryStatus': globalMemoryStatus,
+  'kernel32.dll!GetProcessTimes': getProcessTimes,
+  'kernel32.dll!InterlockedIncrement': interlockedIncrement,
   'kernel32.dll!VirtualQuery': virtualQuery,
   'kernel32.dll!VirtualProtect': virtualProtect,
   'kernel32.dll!HeapValidate': heapValidate,
@@ -498,3 +533,467 @@ export const systemApis3 = {
   // because none is queued.
   'kernel32.dll!SleepEx': (r, a) => ok(0, 2),
 };
+
+// ---------------------------------------------------------------------------
+// Directory/volume, file-time and console queries. A console archiver drives
+// these to walk its input tree, stamp the files it writes, and describe the
+// volume it extracts into. They answer from the runtime's own virtual
+// filesystem, so no host path or device is implied.
+
+// SetFileAttributesW/SetFileAttributesA: the virtual volume stores one
+// attribute per file (directory or regular), which is what fileMetadata
+// reports, so a request to set the read-only/hidden/system bits is accepted for
+// an existing name and the fixed directory/regular value is kept.
+function setFileAttributes(r, a, wide) {
+  let resolved;
+  try {
+    resolved = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd);
+  } catch {
+    return fail(r, 3, 2);
+  }
+  if (!r.files.has(resolved) && !r.virtualDirectories?.has(resolved + '/')) return fail(r, 2, 2);
+  return ok(1, 2);
+}
+
+function removeDirectory(r, a, wide) {
+  let resolved;
+  try {
+    resolved = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd);
+  } catch {
+    return fail(r, 3, 2);
+  }
+  const key = resolved + '/';
+  if ([...r.files.keys()].some((name) => name.startsWith(key))) return fail(r, 145, 1); // ERROR_DIR_NOT_EMPTY
+  if (!r.virtualDirectories?.delete(key)) return fail(r, 2, 1);
+  return ok(1, 1);
+}
+
+// MoveFileW is rename within one volume: the bytes change keys and the
+// destination must not exist (MoveFile fails with ERROR_ALREADY_EXISTS rather
+// than replacing, unlike MoveFileEx with MOVEFILE_REPLACE_EXISTING).
+function moveFile(r, a, wide, replace) {
+  let from, to;
+  try {
+    from = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd);
+    to = resolveGuestPath(wide ? r.wideString(a(1)) : r.string(a(1)), r.cwd);
+  } catch {
+    return fail(r, 3, 2);
+  }
+  const bytes = r.files.get(from);
+  if (bytes === undefined) return fail(r, 2, 2);
+  if (r.files.has(to) && !replace) return fail(r, 183, 2);
+  if (r.fileSections?.canResize(from, 0) === false) return fail(r, 5, 2);
+  r.files.delete(from);
+  r.files.set(to, bytes);
+  const times = r.fileTimes?.get(from);
+  if (times) {
+    r.fileTimes.delete(from);
+    r.fileTimes.set(to, times);
+  }
+  r.dirty.add(from);
+  r.dirty.add(to);
+  return ok(1, 2);
+}
+function moveFileWithProgress(r, a, wide) {
+  // MOVEFILE_WRITE_THROUGH is the only flag this volume has any meaning for
+  // (there is no cache to flush). A move here is instantaneous, so there is no
+  // interval to report: the optional progress routine is not called, which is
+  // what a caller that waits for MOVEFILE_FINISH would observe as a completed
+  // operation. The routine pointer is still validated when non-zero.
+  const flags = a(2) >>> 0;
+  if (flags & ~0x1f) return fail(r, 87, 5);
+  if (a(3)) {
+    try {
+      r.check(a(3), 1);
+    } catch {
+      return fail(r, 87, 5);
+    }
+  }
+  return { ...moveFile(r, a, wide, !!(flags & 0x1)), argc: 5 };
+}
+
+// CreateHardLinkW: the isolated volume has no inode table, so a "hard link" is
+// a second name for the same bytes. The destination must be a new name in an
+// existing directory.
+function createHardLink(r, a, wide) {
+  let target, link;
+  try {
+    link = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd);
+    target = resolveGuestPath(wide ? r.wideString(a(1)) : r.string(a(1)), r.cwd);
+  } catch {
+    return fail(r, 3, 3);
+  }
+  if (!r.files.has(target)) return fail(r, 2, 3);
+  if (r.files.has(link)) return fail(r, 183, 3);
+  const bytes = r.files.get(target);
+  r.files.set(link, bytes);
+  r.fileHardLinks ??= new Map();
+  const set = r.fileHardLinks.get(target) ?? new Set([target]);
+  set.add(link);
+  for (const name of set) r.fileHardLinks.set(name, set);
+  return ok(1, 3);
+}
+
+// Current-directory handling. The runtime tracks one process working
+// directory, relative to the package volume root.
+function getCurrentDirectory(r, a, wide) {
+  const value = packageDosPath(r.cwd);
+  const buffer = a(0);
+  if (!buffer) return fail(r, 87, 2);
+  const capacity = a(1) | 0;
+  if (wide) {
+    if (capacity < value.length + 1) return fail(r, 122, 2);
+    r.check(buffer, (value.length + 1) * 2, true);
+    for (let i = 0; i <= value.length; i++)
+      r.guestMemory.write(buffer + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
+  } else {
+    const bytes = encodeAnsi(text).bytes;
+    if (capacity < bytes.length + 1) return fail(r, 122, 2);
+    r.check(buffer, bytes.length + 1, true);
+    r.data.set(bytes, buffer);
+    r.data[buffer + bytes.length] = 0;
+  }
+  return ok(value.length, 2);
+}
+function setCurrentDirectory(r, a, wide) {
+  let resolved;
+  try {
+    resolved = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd, {
+      allowRoot: true,
+    });
+  } catch {
+    return fail(r, 3, 1);
+  }
+  // The directory must exist: the empty root always does, and any other name
+  // must be a virtual directory or a parent of a packaged file.
+  if (
+    resolved &&
+    !virtualNames(r, directoryPrefix(resolved)).size &&
+    !r.virtualDirectories?.has(resolved + '/')
+  )
+    return fail(r, 3, 1);
+  r.cwd = resolved ? resolved + '/' : '';
+  return ok(1, 1);
+}
+
+// GetTempPathW/GetTempPathA: the isolated volume has a writable temp directory.
+// The directory is created on demand so a later CreateFile there succeeds.
+function getTempPath(r, a, wide) {
+  const value = packageDosPath('temp', true);
+  const buffer = a(0);
+  if (!buffer) return fail(r, 87, 2);
+  const capacity = a(1) | 0;
+  if (wide) {
+    if (capacity < value.length + 1) return fail(r, 122, 2);
+    r.check(buffer, (value.length + 1) * 2, true);
+    for (let i = 0; i <= value.length; i++)
+      r.guestMemory.write(buffer + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
+  } else {
+    const bytes = encodeAnsi(value).bytes;
+    if (capacity < bytes.length + 1) return fail(r, 122, 2);
+    r.check(buffer, bytes.length + 1, true);
+    r.data.set(bytes, buffer);
+    r.data[buffer + bytes.length] = 0;
+  }
+  r.virtualDirectories ??= new Set();
+  r.virtualDirectories.add('temp/');
+  return ok(value.length, 2);
+}
+
+// GetDiskFreeSpaceExW/GetDiskFreeSpaceW report a bounded in-memory volume. The
+// guest filesystem allows 128 MiB of content, so the free figures reflect what
+// is actually left rather than a fabricated disk size.
+const VOLUME_BYTES = 256 * 1024 * 1024;
+function volumeUsage(r) {
+  let used = 0;
+  for (const bytes of r.files.values()) used += bytes.length;
+  return { total: VOLUME_BYTES, free: Math.max(0, VOLUME_BYTES - used) };
+}
+function getDiskFreeSpaceEx(r, a) {
+  const { free, total } = volumeUsage(r);
+  // (lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes)
+  if (a(0)) {
+    r.check(a(0), 8, true);
+    r.view.setBigUint64(a(0), BigInt(free), true);
+  }
+  if (a(1)) {
+    r.check(a(1), 8, true);
+    r.view.setBigUint64(a(1), BigInt(total), true);
+  }
+  if (a(2)) {
+    r.check(a(2), 8, true);
+    r.view.setBigUint64(a(2), BigInt(free), true);
+  }
+  return ok(1, 3);
+}
+function getDiskFreeSpace(r, a) {
+  const { free, total } = volumeUsage(r);
+  const sectorsPerCluster = 8,
+    bytesPerSector = 512;
+  const cluster = sectorsPerCluster * bytesPerSector;
+  if (a(0)) {
+    r.check(a(0), 4, true);
+    r.write32(a(0), sectorsPerCluster);
+  }
+  if (a(1)) {
+    r.check(a(1), 4, true);
+    r.write32(a(1), bytesPerSector);
+  }
+  if (a(2)) {
+    r.check(a(2), 4, true);
+    r.write32(a(2), Math.floor(free / cluster));
+  }
+  if (a(3)) {
+    r.check(a(3), 4, true);
+    r.write32(a(3), Math.floor(total / cluster));
+  }
+  return ok(1, 4);
+}
+
+// GetLogicalDriveStringsW names the single package volume.
+function getLogicalDriveStrings(r, a, wide) {
+  const value = 'C:\\';
+  const buffer = a(0);
+  const capacity = a(1) | 0;
+  if (!buffer) return ok(value.length * (wide ? 2 : 1) + (wide ? 2 : 1), 2);
+  const unit = wide ? 2 : 1;
+  const bytes = wide ? null : encodeAnsi(value).bytes;
+  const length = value.length + 1; // trailing NUL, then a second NUL terminator
+  const needed = (length + 1) * unit;
+  if (capacity < needed) return fail(r, 122, 2);
+  r.check(buffer, needed, true);
+  for (let i = 0; i < length; i++) {
+    const code = i === value.length ? 0 : value.charCodeAt(i);
+    if (wide) r.guestMemory.write(buffer + i * 2, code, 2);
+    else r.data[buffer + i] = bytes[i];
+  }
+  r.data.fill(0, buffer + length * unit, buffer + needed);
+  return ok(length * unit, 2);
+}
+
+// GetFileInformationByHandle fills BY_HANDLE_FILE_INFORMATION (52 bytes).
+function getFileInformationByHandle(r, a) {
+  const handle = r.handles.get(a(0));
+  const out = a(1);
+  if (!handle) return fail(r, 6, 2);
+  if (!out) return fail(r, 87, 2);
+  r.check(out, 52, true);
+  const metadata = fileMetadata(r, handle.path);
+  r.data.fill(0, out, out + 52);
+  r.write32(out, metadata.attributes ?? 0x20);
+  const writeTime = (offset, value) => {
+    r.write32(offset, value & 0xffffffff);
+    r.write32(offset + 4, (value / 0x100000000) | 0);
+  };
+  writeTime(4, metadata.creation ?? 0);
+  writeTime(12, metadata.access ?? 0);
+  writeTime(20, metadata.write ?? 0);
+  r.write32(out + 28, 0);
+  r.write32(out + 32, metadata.size >>> 0);
+  r.write32(out + 36, 0); // nFileSizeHigh (files here are under 4 GiB)
+  r.write32(out + 40, 1); // nNumberOfLinks
+  r.write32(out + 44, handle.path.length); // synthetic file index
+  r.write32(out + 48, 0);
+  return ok(1, 2);
+}
+
+// SetFileTime(handle, creation, access, write): update the virtual file's
+// metadata only for the FILETIMEs the caller supplies.
+function setFileTime(r, a) {
+  const handle = r.handles.get(a(0));
+  if (!handle) return fail(r, 6, 4);
+  const read = (pointer, fallback) => {
+    if (!pointer) return fallback;
+    r.check(pointer, 8, false);
+    const low = r.read32(pointer) >>> 0;
+    const high = r.read32(pointer + 4) >>> 0;
+    return high * 0x100000000 + low;
+  };
+  const current = r.fileTimes?.get(handle.path) ?? {
+    creation: r.packageFileTime,
+    access: r.packageFileTime,
+    write: r.packageFileTime,
+    change: r.packageFileTime,
+  };
+  const next = {
+    ...current,
+    creation: read(a(1), current.creation),
+    access: read(a(2), current.access),
+    write: read(a(3), current.write),
+  };
+  if (next.creation & 0x8000000000000000) throw Error('Unsupported FILETIME value');
+  r.fileTimes ??= new Map();
+  r.fileTimes.set(handle.path, next);
+  return ok(1, 4);
+}
+
+// File-time conversion and comparison. FILETIME counts 100 ns units since
+// 1601-01-01; the conversions below are the documented Win32 arithmetic and use
+// the runtime's virtual clock only as the "now" source.
+const FILE_TIME_EPOCH_DIFFERENCE = 116444736000000000n; // 1601 -> 1970 in 100 ns.
+function fileTimeValue(r, pointer) {
+  r.check(pointer, 8, false);
+  const low = r.read32(pointer) >>> 0;
+  const high = r.read32(pointer + 4) >>> 0;
+  const value = Number(BigInt(high) * 0x100000000n + BigInt(low));
+  if (!Number.isFinite(value)) throw Error('Unsupported FILETIME value');
+  return value;
+}
+function fileTimeToSystemTime(r, a) {
+  const value = fileTimeValue(r, a(0));
+  const out = a(1);
+  r.check(out, 16, true);
+  const milliseconds = Math.floor(value / 10000) - Number(FILE_TIME_EPOCH_DIFFERENCE / 10000n);
+  const date = new Date(milliseconds);
+  const year = date.getUTCFullYear();
+  const write = [
+    year,
+    date.getUTCMonth() + 1,
+    date.getUTCDay(),
+    date.getUTCDate(),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+    date.getUTCMilliseconds(),
+  ];
+  // SYSTEMTIME: wYear, wMonth, wDayOfWeek, wDay, wHour, wMinute, wSecond, wMilliseconds
+  for (let i = 0; i < 8; i++) {
+    r.check(out + i * 2, 2, true);
+    r.guestMemory.write(out + i * 2, write[i] & 0xffff, 2);
+  }
+  return ok(1, 2);
+}
+function fileTimeToLocalFileTime(r, a) {
+  // The runtime's timezone answer is UTC, so local equals system time.
+  const value = fileTimeValue(r, a(0));
+  r.check(a(1), 8, true);
+  r.write32(a(1), (value % 0x100000000) >>> 0);
+  r.write32(a(1) + 4, Math.floor(value / 0x100000000) >>> 0);
+  return ok(1, 2);
+}
+function fileTimeToDosDateTime(r, a) {
+  const value = fileTimeValue(r, a(0));
+  const outDate = a(1),
+    outTime = a(2);
+  r.check(outDate, 2, true);
+  r.check(outTime, 2, true);
+  const milliseconds = Math.floor(value / 10000) - Number(FILE_TIME_EPOCH_DIFFERENCE / 10000n);
+  const date = new Date(milliseconds);
+  const year = Math.max(1980, date.getUTCFullYear());
+  const dosDate = ((year - 1980) << 9) | ((date.getUTCMonth() + 1) << 5) | date.getUTCDate();
+  const dosTime =
+    (date.getUTCHours() << 11) | (date.getUTCMinutes() << 5) | Math.floor(date.getUTCSeconds() / 2);
+  r.guestMemory.write(outDate, dosDate & 0xffff, 2);
+  r.guestMemory.write(outTime, dosTime & 0xffff, 2);
+  return ok(1, 3);
+}
+function compareFileTime(r, a) {
+  const left = fileTimeValue(r, a(0));
+  const right = fileTimeValue(r, a(1));
+  return ok(left < right ? 0xffffffff : left > right ? 1 : 0, 2);
+}
+
+// Console queries. The guest's standard output is a byte stream with no window,
+// so the console reports a plain 80x25 text buffer, accepts a mode without
+// enabling the processed-input flags the runtime does not implement, and
+// records a Ctrl handler without ever invoking it.
+function getConsoleMode(r, a) {
+  const handle = a(0);
+  const out = a(1);
+  if (![0, 1, 2].includes(handle) && !r.stdHandles?.has(handle | 0)) return fail(r, 6, 2);
+  if (!out) return fail(r, 87, 2);
+  r.check(out, 4, true);
+  // ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT for an output handle,
+  // ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT for an input handle.
+  r.write32(out, handle === 0 ? 0x6 : 0x3);
+  return ok(1, 2);
+}
+function setConsoleMode(r, a) {
+  const handle = a(0);
+  const mode = a(1) >>> 0;
+  if (![0, 1, 2].includes(handle) && !r.stdHandles?.has(handle | 0)) return fail(r, 6, 2);
+  // Only the flags the runtime models are accepted; a request to enable
+  // processed input (mouse/window events) fails rather than claiming support.
+  if (mode & 0x10) return fail(r, 87, 2); // ENABLE_MOUSE_INPUT
+  if (mode & 0x200) return fail(r, 87, 2); // ENABLE_WINDOW_INPUT
+  return ok(1, 2);
+}
+function getConsoleScreenBufferInfo(r, a) {
+  const handle = a(0);
+  const out = a(1);
+  if (![0, 1, 2].includes(handle) && !r.stdHandles?.has(handle | 0)) return fail(r, 6, 2);
+  if (!out) return fail(r, 87, 2);
+  // CONSOLE_SCREEN_BUFFER_INFO: COORD size, COORD cursor, WORD attributes,
+  // SMALL_RECT window.
+  r.check(out, 22, true);
+  r.data.fill(0, out, out + 22);
+  r.guestMemory.write(out, 80, 2);
+  r.guestMemory.write(out + 2, 25, 2);
+  r.guestMemory.write(out + 4, 0, 2);
+  r.guestMemory.write(out + 6, 0, 2);
+  r.guestMemory.write(out + 8, 0x7, 2);
+  r.guestMemory.write(out + 10, 0, 2);
+  r.guestMemory.write(out + 12, 0, 2);
+  r.guestMemory.write(out + 14, 79, 2);
+  r.guestMemory.write(out + 16, 24, 2);
+  return ok(1, 2);
+}
+function setConsoleCtrlHandler(r, a) {
+  const handler = a(0) >>> 0;
+  const add = a(1) >>> 0;
+  r.consoleCtrlHandlers ??= [];
+  if (add) {
+    if (handler && !r.consoleCtrlHandlers.includes(handler)) r.consoleCtrlHandlers.push(handler);
+  } else r.consoleCtrlHandlers = r.consoleCtrlHandlers.filter((entry) => entry !== handler);
+  return ok(1, 2);
+}
+function setFileApisToOem() {
+  // The virtual filesystem has no ANSI/OEM split; both names resolve the same.
+  return ok(0, 0);
+}
+
+// GlobalMemoryStatus answers MEMORYSTATUS (i386) from the runtime's fixed
+// 256 MiB guest address space rather than the host's memory.
+function globalMemoryStatus(r, a) {
+  const out = a(0);
+  if (!out) return ok(0, 1);
+  r.check(out, 32, true);
+  const total = 256 * 1024 * 1024;
+  const available = 192 * 1024 * 1024;
+  r.data.fill(0, out, out + 32);
+  r.write32(out, Math.round(((total - available) / total) * 100));
+  r.write32(out + 4, total);
+  r.write32(out + 8, available);
+  r.write32(out + 12, total * 2);
+  r.write32(out + 16, available * 2);
+  return ok(0, 1);
+}
+
+// GetProcessTimes fills creation/exit/kernel/user FILETIMEs. The runtime uses
+// its virtual clock, so kernel and user time derive from the guest's elapsed
+// time rather than host scheduling.
+function getProcessTimes(r, a) {
+  const out = a(1);
+  if (!out) return fail(r, 87, 5);
+  r.check(out, 32, true);
+  const now = systemFileTime(r.systemNow());
+  const elapsed = Number(r.performanceClock.read() / 1000000n) * 10000; // ms -> 100 ns
+  const write = (offset, value) => {
+    r.write32(out + offset, value & 0xffffffff);
+    r.write32(out + offset + 4, Math.floor(value / 0x100000000) >>> 0);
+  };
+  write(0, r.processCreationTime ?? now);
+  write(8, 0);
+  write(16, Math.floor(elapsed * 0.25));
+  write(24, elapsed - Math.floor(elapsed * 0.25));
+  return ok(1, 5);
+}
+
+// InterlockedIncrement is an atomic read-modify-write through checked memory.
+function interlockedIncrement(r, a) {
+  const pointer = a(0) >>> 0;
+  const current = r.read32(pointer) >>> 0;
+  const next = (current + 1) >>> 0;
+  r.write32(pointer, next);
+  return ok(next, 1, next);
+}

@@ -3,7 +3,7 @@ import { resolveGuestPath } from './guest-paths.js';
 import { importKey } from './win32.js';
 import { registerThunk } from './thunk-addresses.js';
 import { hostModuleImage } from './host-module-image.js';
-import { canonicalHostSymbol } from './host-export-ordinals.js';
+import { canonicalHostSymbol, isHostDataExport } from './host-export-ordinals.js';
 import { resolveApiSet } from './api-sets.js';
 
 const dllName = (name) => {
@@ -304,8 +304,21 @@ export class ModuleGraph {
       }
     }
     const view = new DataView(memory.buffer);
-    for (const { module, entry, target } of pending)
+    // A host data export (msvcrt's _iob and the other CRT globals) is a value,
+    // not a function: its IAT slot must hold the storage address, never a thunk
+    // or an export stub. The storage can only be materialized once the runtime
+    // heap exists, which is later than mapping, so the slots are recorded here
+    // and the Runtime rewrites them after it constructs the heap.
+    this.hostDataSlots = [];
+    for (const { module, entry, target } of pending) {
+      if (target.host && isHostDataExport(target.module.name, target.symbol))
+        this.hostDataSlots.push({
+          iat: module.base + entry.iatRva,
+          dll: target.module.name,
+          symbol: target.symbol,
+        });
       view.setUint32(module.base + entry.iatRva, this.address(target), true);
+    }
     for (const module of this.modules.values()) if (!module.host) module.importsPatched = true;
   }
   address(target) {

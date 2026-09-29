@@ -85,6 +85,10 @@ export class Runtime {
     this.systemNow = systemNow;
     this.packageFileTime = systemFileTime(systemNow());
     this.graph = new ModuleGraph(this.files, exe, API_NAMES, builtinFiles, { hostModuleImages });
+    // A host export that is data (msvcrt's _iob and the other CRT globals) must
+    // reach the guest as the address of that storage, not as the address of the
+    // thunk that would create it. The import patch records those IAT slots; the
+    // addresses are written once the heap and API provider exist, below.
     // 256 MiB of guest address space. Real Windows programs and self-unpacking
     // libraries reserve far more than the original 64 MiB budget, and a PE32
     // process has room for it; the TEB/heap/stack keep their fixed low layout
@@ -141,6 +145,16 @@ export class Runtime {
     this.apiRing = [];
     this.blocks = 0;
     this.apiProvider = createWin32ApiProvider();
+    // Now that the heap and provider exist, point every host data-export IAT
+    // slot at the storage its handler materializes (the CRT globals).
+    for (const slot of this.graph.hostDataSlots ?? []) {
+      const handler = this.apiProvider.get(importKey(slot.dll, slot.symbol));
+      if (!handler) continue;
+      // The import table lives in a read-only image section and the loader has
+      // already patched it, so this write goes through the raw view exactly like
+      // the loader's own IAT patching, not through the checked guest path.
+      this.view.setUint32(slot.iat, handler(this).result >>> 0, true);
+    }
     this.threads = new GuestThreads(this);
     // Module transactions may await guest callbacks. Keep their graph/TLS
     // mutations serialized even when another thread becomes runnable.
@@ -170,7 +184,12 @@ export class Runtime {
         break;
       }
     }
-    this.apiRing.push({ name, args });
+    // The caller's address, read from the stack slot the thunk is about to pop.
+    // Without it a call's arguments cannot be tied back to the site that made
+    // it, which is what a packed or statically-linked image needs.
+    const stack = this.cpu.r[4].value >>> 0;
+    const caller = this.guestMemory.read32(stack);
+    this.apiRing.push({ name, args, caller: '0x' + (caller >>> 0).toString(16) });
     if (this.apiRing.length > 64) this.apiRing.shift();
   }
 

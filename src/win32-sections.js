@@ -53,7 +53,25 @@ function map(r, a, extended = false) {
   });
   return result(r, mapped.status, mapped.base, argc);
 }
+// OpenFileMappingW(access, inherit, name). The runtime creates only unnamed
+// sections, so a named open cannot succeed; it reports ERROR_FILE_NOT_FOUND
+// rather than inventing a mapping. The arguments are still validated so a
+// caller sees a real error instead of a fault.
+function openNamed(r, a, argc) {
+  const name = a(2);
+  if (name) {
+    try {
+      r.wideString(name);
+    } catch {
+      return result(r, S.FAULT, 0, argc);
+    }
+  }
+  return result(r, S.HANDLE, 0, argc);
+}
+
 export const fileSectionApis = {
+  'kernel32.dll!OpenFileMappingA': (r, a) => openNamed(r, a, 3),
+  'kernel32.dll!OpenFileMappingW': (r, a) => openNamed(r, a, 3),
   'kernel32.dll!CreateFileMappingA': create,
   'kernel32.dll!CreateFileMappingW': create,
   'kernel32.dll!MapViewOfFile': (r, a) => map(r, a),

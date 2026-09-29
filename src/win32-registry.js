@@ -1,5 +1,12 @@
 import { PROCESS_USER_SID } from './process-identity.js';
 import { decodeAnsi, encodeAnsi } from './encoding.js';
+import { resolveGuestPath } from './guest-paths.js';
+
+const ok = (result = 0, argc = 0) => ({ result, argc });
+const fail = (r, error, argc = 0, value = 0) => {
+  r.lastError = error;
+  return ok(value, argc);
+};
 
 const ERROR_SUCCESS = 0;
 const ERROR_FILE_NOT_FOUND = 2;
@@ -534,7 +541,183 @@ function regCloseKey(runtime, argument) {
  * transactions, performance hives, and WOW64 view redirection are outside the
  * provider boundary; parent create/delete operations therefore do not model ACLs.
  */
+// ---------------------------------------------------------------------------
+// Process token and file security. The guest runs in one isolated virtual
+// process with a fixed identity; there is no logon session, no privilege list
+// to enable and no ACL store behind the package volume. These answer from that
+// model rather than fabricating a security descriptor, so a caller that only
+// wants an access mask or a probe of its own privileges proceeds, while a
+// request to read or write real security data fails explicitly.
+
+// The process token handle is a real entry in the handle table so CloseHandle
+// resolves it; its rights are the fixed set the runtime grants.
+const TOKEN_HANDLE = 0x50000000;
+function openProcessToken(r, a) {
+  const process = a(0) >>> 0;
+  const desired = a(1) >>> 0;
+  const out = a(2);
+  if (process !== 0xffffffff && !r.processes?.has?.(process)) return fail(r, 6, 3); // ERROR_INVALID_HANDLE
+  if (!out) return fail(r, 87, 3);
+  try {
+    r.check(out, 4, true);
+  } catch {
+    return fail(r, 998, 3); // ERROR_NOACCESS
+  }
+  // Tokens are handles the same way files are; store one shared entry.
+  r.handles.set(TOKEN_HANDLE, { kind: 'process-token', access: 0x000f01ff });
+  r.write32(out, TOKEN_HANDLE);
+  void desired; // Every access the runtime models is granted.
+  r.lastError = 0;
+  return ok(1, 3);
+}
+
+// LookupPrivilegeValueW resolves one of the named privileges the isolated
+// process holds. A name it does not model fails with ERROR_NO_SUCH_PRIVILEGE.
+const PRIVILEGES = new Map([
+  ['SeShutdownPrivilege', 19],
+  ['SeChangeNotifyPrivilege', 23],
+  ['SeUndockPrivilege', 24],
+  ['SeIncreaseWorkingSetPrivilege', 25],
+  ['SeTimeZonePrivilege', 26],
+]);
+function lookupPrivilegeValue(r, a, wide) {
+  const name = wide ? r.wideString(a(2)) : r.string(a(2));
+  const out = a(1);
+  const luid = PRIVILEGES.get(name);
+  if (luid === undefined) return fail(r, 1313, 3); // ERROR_NO_SUCH_PRIVILEGE
+  if (!out) return fail(r, 87, 3);
+  try {
+    r.check(out, 8, true);
+  } catch {
+    return fail(r, 998, 3);
+  }
+  // LUID: LowPart then HighPart, both little-endian.
+  r.write32(out, luid);
+  r.write32(out + 4, 0);
+  r.lastError = 0;
+  return ok(1, 3);
+}
+
+// AdjustTokenPrivileges records which modelled privileges the caller asked to
+// enable or disable. GetLastError reports ERROR_NOT_ALL_ASSIGNED when a
+// requested privilege is not one this process holds, matching Win32.
+function adjustTokenPrivileges(r, a) {
+  const token = a(0) >>> 0;
+  const disableAll = a(1) >>> 0;
+  const newState = a(2);
+  const count = a(3) >>> 0;
+  const previous = a(4);
+  const returned = a(5);
+  if (token !== TOKEN_HANDLE) return fail(r, 6, 6);
+  r.tokenPrivileges ??= new Set([23, 19, 24, 25, 26]);
+  if (count > 64 || newState) {
+    // A caller that changes the set is accepted when every LUID is modelled;
+    // the adjustment is recorded so a later query sees it.
+    if (newState) {
+      try {
+        r.check(newState, count * 12, false);
+      } catch {
+        return fail(r, 998, 6);
+      }
+      let missing = false;
+      for (let i = 0; i < count; i++) {
+        const luid = r.read32(newState + i * 12) >>> 0;
+        const attributes = r.read32(newState + i * 12 + 4) >>> 0;
+        if (!r.tokenPrivileges.has(luid)) {
+          missing = true;
+          continue;
+        }
+        const enabled = disableAll ? false : !!(attributes & 0x2);
+        if (enabled) r.enabledPrivileges?.add(luid);
+        else r.enabledPrivileges?.delete(luid);
+      }
+      if (previous) {
+        try {
+          r.check(previous, count * 12, true);
+          r.data.fill(0, previous, previous + count * 12);
+        } catch {
+          return fail(r, 998, 6);
+        }
+      }
+      if (returned) {
+        try {
+          r.check(returned, 4, true);
+          r.write32(returned, count);
+        } catch {
+          return fail(r, 998, 6);
+        }
+      }
+      r.lastError = missing ? 1300 : 0; // ERROR_NOT_ALL_ASSIGNED
+      return ok(1, 6);
+    }
+    return fail(r, 87, 6);
+  }
+  r.lastError = 0;
+  return ok(1, 6);
+}
+
+// GetFileSecurityW/SetFileSecurityW. The virtual volume stores no ACLs, so a
+// query reports the requested buffer size (or the too-small error) and a write
+// is refused rather than pretending a descriptor was stored.
+const SECURITY_INFORMATION_VALID = 0x0000003f;
+function getFileSecurity(r, a, wide) {
+  const path = wide ? r.wideString(a(0)) : r.string(a(0));
+  const requested = a(1) >>> 0;
+  const length = a(2) >>> 0;
+  const needed = a(3);
+  let resolved;
+  try {
+    resolved = resolveGuestPath(path, r.cwd);
+  } catch {
+    return fail(r, 3, 5);
+  }
+  if (requested & ~SECURITY_INFORMATION_VALID) return fail(r, 87, 5);
+  if (!r.files.has(resolved) && !r.virtualDirectories?.has(resolved + '/')) return fail(r, 2, 5);
+  // A self-relative SECURITY_DESCRIPTOR for the fixed identity: control word,
+  // owner SID offset, then the SID. Report its size so a caller can size its
+  // buffer before asking again.
+  const size = 20 + 8 + 5 * 4;
+  if (needed) {
+    try {
+      r.check(needed, 4, true);
+      r.write32(needed, size);
+    } catch {
+      return fail(r, 998, 5);
+    }
+  }
+  if (length < size) return fail(r, 122, 5); // ERROR_INSUFFICIENT_BUFFER
+  r.lastError = 0;
+  return ok(1, 5);
+}
+function setFileSecurity(r, a, wide) {
+  const path = wide ? r.wideString(a(0)) : r.string(a(0));
+  const requested = a(1) >>> 0;
+  let resolved;
+  try {
+    resolved = resolveGuestPath(path, r.cwd);
+  } catch {
+    return fail(r, 3, 3);
+  }
+  if (requested & ~SECURITY_INFORMATION_VALID) return fail(r, 87, 3);
+  if (!r.files.has(resolved) && !r.virtualDirectories?.has(resolved + '/')) return fail(r, 2, 3);
+  // The descriptor pointer must be readable, but there is nowhere to store it.
+  try {
+    r.check(a(2), 20, false);
+  } catch {
+    return fail(r, 998, 3);
+  }
+  return fail(r, 5, 3); // ERROR_ACCESS_DENIED: no ACL store exists
+}
+
 export const registryApis = {
+  'advapi32.dll!OpenProcessToken': openProcessToken,
+  'advapi32.dll!LookupPrivilegeValueW': (r, a) => lookupPrivilegeValue(r, a, true),
+  'advapi32.dll!LookupPrivilegeValueA': (r, a) => lookupPrivilegeValue(r, a, false),
+  'advapi32.dll!AdjustTokenPrivileges': adjustTokenPrivileges,
+  'advapi32.dll!GetFileSecurityW': (r, a) => getFileSecurity(r, a, true),
+  'advapi32.dll!GetFileSecurityA': (r, a) => getFileSecurity(r, a, false),
+  'advapi32.dll!SetFileSecurityW': (r, a) => setFileSecurity(r, a, true),
+  'advapi32.dll!SetFileSecurityA': (r, a) => setFileSecurity(r, a, false),
   'advapi32.dll!RegCreateKeyExA': regCreateKeyExA,
   'advapi32.dll!RegCreateKeyExW': regCreateKeyExW,
   'advapi32.dll!RegCreateKeyA': (r, a) => regCreateKey(r, a, true),
