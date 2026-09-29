@@ -288,6 +288,11 @@ export class Runtime {
           ip = this.cpu.step(ip);
         } catch (error) {
           if (!isGuestFault(error)) throw error;
+          // The register file and the operands it points at describe the fault
+          // itself, but the exception search runs guest handlers that clobber
+          // them. Snapshot both here, before any handler can run.
+          error.faultRegisters ??= this.cpu.r.map((register) => register.value >>> 0);
+          error.faultMemory ??= this.captureFaultMemory(error.faultRegisters);
           // A guest access fault may be the signal an application's own
           // __try/__except is waiting for. Offer it to the registration chain
           // at fs:[0]; only an unhandled fault still stops the run.
@@ -361,6 +366,7 @@ export class Runtime {
    */
   describeFault(error, delivered) {
     const hex = (value) => '0x' + (value >>> 0).toString(16);
+    const registers = error.faultRegisters ?? this.cpu.r.map((register) => register.value >>> 0);
     const locate = (address) => {
       const found = this.graph.modules
         ? [...this.graph.modules.values()].find(
@@ -412,14 +418,14 @@ export class Runtime {
         }
       })(),
       registers: {
-        eax: hex(this.cpu.r[0].value),
-        ebx: hex(this.cpu.r[3].value),
-        ecx: hex(this.cpu.r[1].value),
-        edx: hex(this.cpu.r[2].value),
-        esi: hex(this.cpu.r[6].value),
-        edi: hex(this.cpu.r[7].value),
-        ebp: hex(this.cpu.r[5].value),
-        esp: hex(this.cpu.r[4].value),
+        eax: hex(registers[0]),
+        ebx: hex(registers[3]),
+        ecx: hex(registers[1]),
+        edx: hex(registers[2]),
+        esi: hex(registers[6]),
+        edi: hex(registers[7]),
+        ebp: hex(registers[5]),
+        esp: hex(registers[4]),
       },
       // Oldest first: the execution path that reached the fault.
       recentBlocks: this.cpu.recentPath().map((address) => locate(address)),
@@ -428,21 +434,7 @@ export class Runtime {
       vmOperations: (this.virtualMemory.ops ?? []).slice(-64),
       // Raw bytes at the addresses the faulting instruction actually used, so a
       // bad index or table entry is visible without a second reproduction.
-      memory: ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi'].reduce((windows, name) => {
-        const register = ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'].indexOf(name);
-        const address = this.cpu.r[register].value >>> 0;
-        try {
-          windows[name] = {
-            address: '0x' + address.toString(16),
-            bytes: [...this.guestMemory.data.slice(address - 16, address + 48)].map((b) =>
-              b.toString(16).padStart(2, '0'),
-            ),
-          };
-        } catch {
-          // An unmapped register value is itself informative; omit it.
-        }
-        return windows;
-      }, {}),
+      memory: error.faultMemory ?? null,
       // The last OS calls the guest made, oldest first.
       recentApiCalls: this.apiRing.slice(-24),
       modules: this.graph.describe ? this.graph.describe() : [],
@@ -450,6 +442,38 @@ export class Runtime {
       framesWalked: delivered?.frames ?? 0,
       instructions: this.cpu.instructions,
     };
+  }
+
+  /**
+   * Reads the bytes around each register the faulting instruction used, at the
+   * moment of the fault. A packed image's tables are frequently rewritten
+   * between runs, so a later read would not show what the instruction saw.
+   */
+  captureFaultMemory(registers) {
+    const windows = {};
+    for (const [name, index] of [
+      ['eax', 0],
+      ['ecx', 1],
+      ['edx', 2],
+      ['ebx', 3],
+      ['esp', 4],
+      ['ebp', 5],
+      ['esi', 6],
+      ['edi', 7],
+    ]) {
+      const address = registers[index] >>> 0;
+      try {
+        windows[name] = {
+          address: '0x' + address.toString(16),
+          bytes: [...this.guestMemory.data.slice(address - 16, address + 48)].map((byte) =>
+            byte.toString(16).padStart(2, '0'),
+          ),
+        };
+      } catch {
+        // An unmapped register value is itself informative; omit it.
+      }
+    }
+    return windows;
   }
 
   /** Performs the RtlUnwind walk a guest handler requested. */

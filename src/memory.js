@@ -167,6 +167,31 @@ export class GuestMemory {
     mapping.refresh?.(offset, size);
     return mapping.bytes.slice(offset, offset + size);
   }
+  /**
+   * Applies the runtime's code-write rule to a byte range a bulk operation is
+   * about to overwrite in place.
+   *
+   * memcpy/memmove/memset, heap reallocation and page commits write through
+   * `data` directly (that is what makes them fast), so they never pass through
+   * checkLinear and would otherwise leave translated blocks for the old bytes
+   * cached. A packed or self-decrypting image rewrites its own code exactly
+   * this way, so the omission is observable as execution of stale translation.
+   */
+  noteCodeWrite(address, size) {
+    address >>>= 0;
+    size >>>= 0;
+    if (!size || !this.onCodeWrite) return;
+    const end = address + size;
+    for (const region of this.regions) {
+      if (!region.exec || !region.write) continue;
+      if (region.start < end && region.end > address)
+        this.onCodeWrite(
+          Math.max(address, region.start),
+          Math.min(end, region.end) - Math.max(address, region.start),
+        );
+    }
+  }
+
   write(address, value, width = 4) {
     this.check(address, width, true);
     if (width === 1) this.view.setUint8(address, value);

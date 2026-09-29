@@ -180,3 +180,27 @@ test('writable code keeps a block across memory reads but stops at a memory writ
   assert.equal(cpu.step(0x130e), 0x1315);
   assert.equal(cpu.r[3].value, 7);
 });
+
+test('a bulk memory write invalidates the translated blocks it overwrites', () => {
+  const { cpu, guest } = machine();
+  // A block that a packed image decrypts in place: memcpy/memmove/memset reach
+  // the destination through the linear buffer, so they must apply the same
+  // code-write rule a single store does or the stale translation keeps running.
+  guest.data.set([0xb8, 1, 0, 0, 0, 0xeb, 0], 0x1100);
+  cpu.step(0x1100);
+  assert.equal(cpu.r[0].value, 1);
+  assert.equal(cpu.cache.has(0x1100), true);
+
+  guest.noteCodeWrite(0x1100, 6);
+  assert.equal(cpu.cache.has(0x1100), false, 'bulk write invalidates the block');
+
+  // The same rule is independent of the destination: a bulk write outside
+  // executable memory must not disturb cached blocks.
+  guest.data.set([0xb8, 2, 0, 0, 0, 0xeb, 0], 0x1100);
+  cpu.step(0x1100);
+  const kept = cpu.cache.get(0x1100);
+  const before = cpu.compilations;
+  guest.noteCodeWrite(0x8000, 16);
+  assert.equal(cpu.cache.get(0x1100), kept);
+  assert.equal(cpu.compilations, before);
+});

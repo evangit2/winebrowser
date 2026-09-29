@@ -100,6 +100,7 @@ function copy(r, a, width) {
   if (!count) return ok(a(0), 3);
   r.check(a(0), count * width, true);
   r.check(a(1), count * width);
+  r.guestMemory.noteCodeWrite(a(0), count * width);
   r.data.copyWithin(a(0), a(1), a(1) + count * width);
   return ok(a(0), 3);
 }
@@ -109,6 +110,7 @@ function move(r, a, width) {
   const size = count * width;
   r.check(a(0), size, true);
   r.check(a(1), size);
+  r.guestMemory.noteCodeWrite(a(0), size);
   const snapshot = r.data.slice(a(1), a(1) + size);
   r.data.set(snapshot, a(0));
   return ok(a(0), 3);
@@ -119,10 +121,13 @@ function fill(r, a, width) {
   const bytes = width === 1 ? a(1) & 0xff : width === 2 ? [a(1) & 0xff, (a(1) >>> 8) & 0xff] : null;
   r.check(a(0), count * width, true);
   if (width === 4) {
+    // write32 already applies the code-write rule per store.
     for (let i = 0; i < count; i++) r.write32(a(0) + i * 4, a(1));
-  } else if (width === 2) {
-    for (let i = 0; i < count * 2; i++) r.data[a(0) + i] = bytes[i & 1];
-  } else r.data.fill(a(1) & 0xff, a(0), a(0) + count);
+  } else {
+    r.guestMemory.noteCodeWrite(a(0), count * width);
+    if (width === 2) for (let i = 0; i < count * 2; i++) r.data[a(0) + i] = bytes[i & 1];
+    else r.data.fill(a(1) & 0xff, a(0), a(0) + count);
+  }
   return ok(a(0), 3);
 }
 function compare(r, a, width) {
