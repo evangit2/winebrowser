@@ -347,26 +347,10 @@ function virtualProtect(r, a) {
     size = a(1) >>> 0,
     protect = a(2) >>> 0,
     out = a(3);
-  const mapped = (() => {
-    switch (protect) {
-      case 0x01:
-        return 1;
-      case 0x02:
-      case 0x04:
-      case 0x08:
-      case 0x10:
-      case 0x20:
-      case 0x40:
-        return 4;
-      default:
-        return null;
-    }
-  })();
-  if (mapped === null) return fail(r, 87, 4);
-  // protectMemory handles both private committed pages and a fully mapped,
-  // non-executable PE image page, which is what a packer rewriting its own
-  // read-only section asks for.
-  const result = protectMemory(r, address, size, mapped);
+  // The requested page protection passes through unchanged: the allocator
+  // stores the real value, so PAGE_EXECUTE_* is honoured for private memory
+  // instead of being flattened to read/write.
+  const result = protectMemory(r, address, size, protect);
   if (result.status) return fail(r, 87, 4);
   if (out) {
     r.check(out, 4, true);

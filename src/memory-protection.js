@@ -1,7 +1,18 @@
-import { NTSTATUS, VirtualMemoryConstants as VM } from './virtual-memory.js';
+import { NTSTATUS, VirtualMemoryConstants as VM, protectionAccess } from './virtual-memory.js';
 
 const NOT_SUPPORTED = 0xc00000bb;
-const protection = (region) => (region.read === false ? 1 : region.write ? 4 : 2);
+const protection = (region) =>
+  region.exec
+    ? region.write
+      ? 0x40
+      : region.read === false
+        ? 0x10
+        : 0x20
+    : region.read === false
+      ? 1
+      : region.write
+        ? 4
+        : 2;
 
 /** Change only committed private VM or fully mapped, non-executable PE pages.
  * Immutable section snapshots, code, process layout and image gaps retain their
@@ -12,15 +23,28 @@ export function protectMemory(runtime, base, size, newProtect) {
   const fail = (status) => ({ status, base, size });
   if (!runtime.virtualMemory.validInput(base, size) || !size || base + size > 0x100000000)
     return fail(NTSTATUS.INVALID_PARAMETER);
-  if (![1, 2, 4].includes(newProtect)) return fail(NTSTATUS.INVALID_PAGE_PROTECTION);
+  const access = protectionAccess(newProtect);
+  if (!access) return fail(NTSTATUS.INVALID_PAGE_PROTECTION);
   const start = Math.floor(base / VM.pageSize) * VM.pageSize;
   const end = Math.ceil((base + size) / VM.pageSize) * VM.pageSize;
-  if (runtime.virtualMemory.containingReservation(start, end))
-    return runtime.virtualMemory.protect(base, size, newProtect);
+  if (runtime.virtualMemory.containingReservation(start, end)) {
+    const result = runtime.virtualMemory.protect(base, size, newProtect);
+    // Entering or leaving executable memory (and changing code bytes through a
+    // writable executable page) changes what the decoder may execute and what
+    // translated blocks are still valid, so the code ranges and cache must
+    // follow the protection change.
+    if (!result.status) runtime.onMemoryProtectionChanged?.(start, end - start, access);
+    return result;
+  }
   const reservation = runtime.regions.find(
     (region) => region.kind === 'image-reservation' && start >= region.start && end <= region.end,
   );
   if (!reservation) return fail(NOT_SUPPORTED);
+  // Executable protections for a mapped image are still refused: the image's
+  // own code pages keep the access the loader gave them, and a data page that
+  // becomes code would need the loader's section bookkeeping, not just a
+  // region flag. Private committed memory (below) does support them.
+  if (access.exec) return fail(NOT_SUPPORTED);
   const imageRegions = runtime.regions.filter(
     (region) =>
       region.module === reservation.module &&
@@ -51,12 +75,14 @@ export function protectMemory(runtime, base, size, newProtect) {
       ...region,
       start: Math.max(start, region.start),
       end: Math.min(end, region.end),
-      read: newProtect !== 1,
-      write: newProtect === 4,
+      read: access.read,
+      write: access.write,
+      exec: access.exec,
     });
     if (region.end > end) replacement.push({ ...region, start: end });
   }
   runtime.regions.splice(0, runtime.regions.length, ...replacement);
+  runtime.onMemoryProtectionChanged?.(start, end - start, access);
   return { status: NTSTATUS.SUCCESS, base: start, size: end - start, oldProtect };
 }
 

@@ -107,7 +107,13 @@ test('image code, gaps, cross-image ranges and immutable section views fail with
     [IMAGE + 10, 4, 4, 0xc00000bb],
     [IMAGE + 0x5000, 4, 4, 0xc000002d],
     [IMAGE + 0x4000, 0x2001, 4, 0xc00000bb],
-    [IMAGE + 0x1000, 4, 0x40, 0xc0000045],
+    // PAGE_EXECUTE_* is a valid protection, but a mapped image's data pages
+    // cannot become code: the loader owns those sections, and admitting code
+    // there needs its section bookkeeping. STATUS_NOT_SUPPORTED is the accurate
+    // result now that private executable memory is modelled elsewhere.
+    [IMAGE + 0x1000, 4, 0x40, 0xc00000bb],
+    // An unknown protection value is still rejected as invalid.
+    [IMAGE + 0x1000, 4, 0x41, 0xc0000045],
     [IMAGE + 0x1000, 0, 4, 0xc000000d],
     [0xffffffff, 2, 4, 0xc000000d],
   ])
@@ -218,4 +224,32 @@ test('NtQueryVirtualMemory reports commit, reserve, free and image regions', asy
   assert.equal(call([0xffffffff, 0x1000, 0, buffer, 4, sizeOut]), 0xc0000004);
   assert.equal(call([0x1234, 0x1000, 0, buffer, 28, sizeOut]), 0xc0000008);
   assert.equal(call([0xffffffff, 0x1000, 0, 0, 28, 0]), 0xc0000005);
+});
+
+test('private executable memory becomes real code and refreshes the decoder ranges', () => {
+  const r = createRuntime();
+  // A loader maps a fresh executable section, writes the decrypted bytes, then
+  // drops write access — the shape a packer or a JIT produces.
+  const { base } = r.virtualMemory.allocate(0, 0x1000, 0x3000, 0x40);
+  r.refreshCodeRanges();
+  const range = r.cpu.ranges.find(([start, end]) => start <= base && base < end);
+  assert.ok(range, 'a writable executable page is a decoder range');
+  assert.equal(range[2], true, 'the range is reported writable');
+  // mov eax,7; ret — real machine code executed from private memory. The block
+  // returns what the guest RET pops, so seed a return address on the stack.
+  r.data.set([0xb8, 7, 0, 0, 0, 0xc3], base);
+  const returnIp = 0x0cafe000;
+  r.cpu.push(returnIp);
+  assert.equal(r.cpu.step(base) >>> 0, returnIp);
+  assert.equal(r.cpu.r[0].value, 7);
+  assert.equal(r.cpu.cache.has(base), true);
+  // Removing write access is a protection change; the block that described the
+  // writable page is dropped and the range is no longer writable.
+  assert.equal(nativeCall(r, base, 0x1000, 0x20).status, 0);
+  assert.equal(r.cpu.cache.has(base), false, 'protection change drops the block');
+  const readOnly = r.cpu.ranges.find(([start, end]) => start <= base && base < end);
+  assert.equal(readOnly[2], false);
+  r.cpu.push(returnIp);
+  assert.equal(r.cpu.step(base) >>> 0, returnIp);
+  assert.equal(r.cpu.r[0].value, 7);
 });

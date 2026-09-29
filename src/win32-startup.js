@@ -558,7 +558,21 @@ const MEM_COMMIT = 0x1000,
   MEM_RESERVE = 0x2000,
   MEM_RELEASE = 0x8000,
   MEM_DECOMMIT = 0x4000;
-const PROTECT_TO_NT = { 0x01: 1, 0x02: 2, 0x04: 4, 0x40: 4, 0x08: 4, 0x10: 4, 0x20: 4, 0x80: 4 };
+// NT memory-protection constants share their numeric values with the Win32
+// PAGE_* constants, and the allocator now stores the full set (including
+// PAGE_EXECUTE_*, which real loaders, packers and JITs request), so the guest's
+// requested protection passes through rather than being flattened to
+// read/write. An unrecognised value is still rejected before any allocation.
+const VALID_PROTECT = {
+  0x01: true,
+  0x02: true,
+  0x04: true,
+  0x08: true,
+  0x10: true,
+  0x20: true,
+  0x40: true,
+  0x80: true,
+};
 function virtualAlloc(r, a) {
   const address = a(0) >>> 0,
     size = a(1) >>> 0,
@@ -569,10 +583,9 @@ function virtualAlloc(r, a) {
   // The requested protection is carried even for a reserve-only call: the
   // allocator records it on the reservation and applies it when the guest
   // commits. A protection the runtime does not model fails up front.
-  const ntProtect = PROTECT_TO_NT[protect];
-  if (!ntProtect) return fail(r, 87, 4);
+  if (!VALID_PROTECT[protect]) return fail(r, 87, 4);
   const ntType = (type & MEM_RESERVE ? 0x2000 : 0) | (type & MEM_COMMIT ? 0x1000 : 0);
-  const result = r.virtualMemory.allocate(address, size, ntType, ntProtect);
+  const result = r.virtualMemory.allocate(address, size, ntType, protect);
   if (result.status) return fail(r, 8, 4);
   return ok(result.base, 4);
 }

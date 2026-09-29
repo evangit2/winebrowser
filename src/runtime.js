@@ -231,6 +231,21 @@ export class Runtime {
   refreshCodeRanges() {
     this.cpu.ranges = this.regions.filter((r) => r.exec).map((r) => [r.start, r.end, !!r.write]);
   }
+
+  /**
+   * A page's access changed between readable/writable and executable.
+   *
+   * The decoder's address ranges and the translated-block cache are derived
+   * from `regions`, and both go stale: bytes that just became executable have
+   * no blocks yet and rights that just disappeared must stop running, while a
+   * writable-executable page can have had its code replaced in place. Refreshing
+   * the ranges plus dropping the blocks that overlap the changed pages keeps
+   * execution consistent with the new protection.
+   */
+  onMemoryProtectionChanged(start, size, access) {
+    this.refreshCodeRanges();
+    if (access.exec || this.cpu?.cache.size === 0) this.cpu?.invalidateRange(start, size);
+  }
   allocate(size, zero = true) {
     return this.heap.allocate(size, zero);
   }

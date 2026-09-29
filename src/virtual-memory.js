@@ -19,7 +19,39 @@ export const VirtualMemoryConstants = Object.freeze({
   PAGE_NOACCESS: 0x01,
   PAGE_READONLY: 0x02,
   PAGE_READWRITE: 0x04,
+  PAGE_WRITECOPY: 0x08,
+  PAGE_EXECUTE: 0x10,
+  PAGE_EXECUTE_READ: 0x20,
+  PAGE_EXECUTE_READWRITE: 0x40,
+  PAGE_EXECUTE_WRITECOPY: 0x80,
 });
+
+// The Win32 page-protection values this allocator stores per page. Executable
+// protections were previously rejected because the interpreter needed a real
+// executable-memory lifecycle (translated blocks must be invalidated when code
+// appears or changes and the decoder's address ranges must be refreshed), which
+// `protectionAccess` plus the Runtime's bookkeeping now provides.
+export function protectionAccess(value) {
+  switch (value) {
+    case 0x01:
+      return { read: false, write: false, exec: false };
+    case 0x02:
+    case 0x08:
+      return { read: true, write: false, exec: false };
+    case 0x04:
+      return { read: true, write: true, exec: false };
+    case 0x10:
+      return { read: false, write: false, exec: true };
+    case 0x20:
+      return { read: true, write: false, exec: true };
+    case 0x40:
+    case 0x80:
+      return { read: true, write: true, exec: true };
+    default:
+      return null;
+  }
+}
+export const PAGE_PROTECTIONS = Object.freeze([0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80]);
 
 export const NTSTATUS = Object.freeze({
   SUCCESS: 0x00000000,
@@ -60,7 +92,7 @@ export class VirtualMemory {
         base,
         size,
       });
-    if (![1, 2, 4].includes(protect))
+    if (!protectionAccess(protect))
       return this.#logged('allocate', base, size, `type=${type}`, {
         status: NTSTATUS.INVALID_PAGE_PROTECTION,
         base,
@@ -220,7 +252,7 @@ export class VirtualMemory {
   protect(base, size, protection) {
     if (!this.validInput(base, size) || base === 0 || size === 0 || base + size > 0x100000000)
       return { status: NTSTATUS.INVALID_PARAMETER, base, size };
-    if (![1, 2, 4].includes(protection))
+    if (!protectionAccess(protection))
       return { status: NTSTATUS.INVALID_PAGE_PROTECTION, base, size };
     const start = alignDown(base, PAGE_SIZE);
     const end = alignUp(base + size, PAGE_SIZE);
@@ -314,13 +346,17 @@ export class VirtualMemory {
     const pages = [];
     for (const reservation of this.reservations.values())
       for (let page = reservation.base; page < reservation.end; page += PAGE_SIZE) {
-        const protect = reservation.pages.get(page);
+        const access = protectionAccess(reservation.pages.get(page)) ?? {
+          read: false,
+          write: false,
+          exec: false,
+        };
         pages.push({
           start: page,
           end: page + PAGE_SIZE,
-          read: protect === 2 || protect === 4,
-          write: protect === 4,
-          exec: false,
+          read: access.read,
+          write: access.write,
+          exec: access.exec,
           kind: 'virtual',
         });
       }
@@ -328,7 +364,13 @@ export class VirtualMemory {
     const merged = [];
     for (const page of pages) {
       const last = merged.at(-1);
-      if (last && last.end === page.start && last.read === page.read && last.write === page.write) {
+      if (
+        last &&
+        last.end === page.start &&
+        last.read === page.read &&
+        last.write === page.write &&
+        last.exec === page.exec
+      ) {
         last.end = page.end;
       } else merged.push(page);
     }

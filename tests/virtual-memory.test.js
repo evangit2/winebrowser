@@ -157,8 +157,19 @@ test('protect rejects any uncommitted page atomically and never changes other re
     NTSTATUS.MEMORY_NOT_ALLOCATED,
   );
   assert.equal(vm.protect(base, 0, C.PAGE_READWRITE).status, NTSTATUS.INVALID_PARAMETER);
-  assert.equal(vm.protect(base, 1, 0x20).status, NTSTATUS.INVALID_PAGE_PROTECTION);
+  assert.equal(vm.protect(base, 1, 0x21).status, NTSTATUS.INVALID_PAGE_PROTECTION);
   assert.equal(regionAt(regions, base).write, false);
+  // The read-only first page can be made executable; neighbouring pages keep
+  // their own access.
+  assert.deepEqual(vm.protect(base, 1, C.PAGE_EXECUTE_READ), {
+    status: NTSTATUS.SUCCESS,
+    base,
+    size: C.pageSize,
+    oldProtect: C.PAGE_READONLY,
+  });
+  assert.equal(regionAt(regions, base).exec, true);
+  assert.equal(regionAt(regions, base).write, false);
+  assert.equal(regionAt(regions, base + 0x2000).write, true);
 });
 
 test('release requires exact allocation base and zero size, then permits address reuse', () => {
@@ -184,7 +195,35 @@ test('release requires exact allocation base and zero size, then permits address
   assert.equal(vm.allocate(0, 1, C.MEM_RESERVE, C.PAGE_NOACCESS).base, allocated.base);
 });
 
-test('rejects unsupported flags, executable protections, overflow, and ranges outside the arena', () => {
+test('accepts executable private memory and rejects unknown protections', () => {
+  const { memory, regions, vm } = allocator();
+  // Writable executable pages are only writable when the runtime can tell its
+  // translator that code changed; the real runtime always supplies this.
+  const guest = new GuestMemory(memory, regions, { onCodeWrite: () => {} });
+  // Private executable memory is how a loader maps a section a packer
+  // produced, a JIT emits code, or a protector re-protects decrypted bytes.
+  const executable = vm.allocate(0, 0x2000, C.MEM_RESERVE | C.MEM_COMMIT, C.PAGE_EXECUTE_READWRITE);
+  assert.equal(executable.status, NTSTATUS.SUCCESS);
+  const region = regionAt(regions, executable.base);
+  assert.equal(region.exec, true);
+  assert.equal(region.write, true);
+  assert.equal(guest.read32(executable.base), 0);
+  guest.write32(executable.base, 0xc3); // A real store into the new code page.
+  assert.equal(guest.read32(executable.base), 0xc3);
+  // Dropping write access keeps it executable and readable, like VirtualProtect
+  // once an image has finished writing its code.
+  assert.equal(vm.protect(executable.base, 1, C.PAGE_EXECUTE_READ).status, NTSTATUS.SUCCESS);
+  assert.equal(regionAt(regions, executable.base).exec, true);
+  assert.equal(regionAt(regions, executable.base).write, false);
+  assert.equal(guest.read32(executable.base), 0xc3);
+  assert.throws(() => guest.write32(executable.base, 0), /write violation/);
+  // PAGE_WRITECOPY and PAGE_EXECUTE_WRITECOPY are accepted as their base
+  // access, matching the Win32 values a program may pass.
+  assert.equal(vm.protect(executable.base, 1, 0x08).status, NTSTATUS.SUCCESS);
+  assert.equal(regionAt(regions, executable.base).write, false);
+});
+
+test('rejects unsupported flags, unknown protections, overflow, and ranges outside the arena', () => {
   const { vm } = allocator();
   assert.equal(
     vm.allocate(0, 0, C.MEM_RESERVE, C.PAGE_READWRITE).status,
@@ -194,11 +233,8 @@ test('rejects unsupported flags, executable protections, overflow, and ranges ou
     vm.allocate(0, 1, C.MEM_RESERVE | 0x80000, C.PAGE_READWRITE).status,
     NTSTATUS.INVALID_PARAMETER,
   );
-  assert.equal(vm.allocate(0, 1, C.MEM_RESERVE, 0x20).status, NTSTATUS.INVALID_PAGE_PROTECTION);
-  assert.equal(
-    vm.allocate(C.arenaStart, 0x1000, C.MEM_RESERVE | C.MEM_COMMIT, 0x20).status,
-    NTSTATUS.INVALID_PAGE_PROTECTION,
-  );
+  assert.equal(vm.allocate(0, 1, C.MEM_RESERVE, 0x21).status, NTSTATUS.INVALID_PAGE_PROTECTION);
+  assert.equal(vm.allocate(0, 1, C.MEM_RESERVE, 0x00).status, NTSTATUS.INVALID_PAGE_PROTECTION);
   assert.equal(
     vm.allocate(C.arenaEnd - 1, 2, C.MEM_RESERVE, C.PAGE_READWRITE).status,
     NTSTATUS.NO_MEMORY,
