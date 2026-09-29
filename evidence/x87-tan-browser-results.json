@@ -1,0 +1,12 @@
+{
+  "date": "2026-09-29T04:04:54.004Z",
+  "exeSha256": "c26660f036d258050c9cc3d31478dc8cd69561cb6259a2a53e5b75a1e119e69d",
+  "status": "passed",
+  "exitCode": 0,
+  "instructions": 22687,
+  "scope": "Native PE32 FPTAN against 220 independently generated high-precision Decimal tangent vectors covering all rounding modes, tiny and subnormal arguments, exact zero, near-pi cancellation, large in-range arguments and the C2 out-of-range case; tangent bytes, exception bits, C1/C2, the pushed 1.0 and the stack top are checked.",
+  "worker": true,
+  "crossOriginIsolated": true,
+  "browser": "154.0.8037.58",
+  "outboundRequests": []
+}

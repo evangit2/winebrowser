@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { fyl2x, f2xm1, fscale } from '../src/x87-transcendentals.js';
+import { fyl2x, f2xm1, fscale, fptan } from '../src/x87-transcendentals.js';
 import iced from 'iced-x86';
 import { probeX87Log } from '../scripts/lib/x87-log-probe.js';
 import { probeX87Exp } from '../scripts/lib/x87-exp-probe.js';
 import { probeX87Scale } from '../scripts/lib/x87-scale-probe.js';
+import { probeX87Tan } from '../scripts/lib/x87-tan-probe.js';
+const tanVectors = JSON.parse(
+  await readFile(new URL('./fixtures/x87-tan-vectors.json', import.meta.url)),
+);
 const scaleVectors = JSON.parse(
   await readFile(new URL('./fixtures/x87-scale-vectors.json', import.meta.url)),
 ).vectors;
@@ -267,4 +271,52 @@ test('FSCALE drives signed zeros and infinities per the scale table', () => {
   assert.equal(encode(overflow.bytes), inf);
   assert.equal(overflow.flags, 0x28);
   assert.equal(overflow.roundedUp, true);
+});
+
+test('FPTAN matches an independent high-precision Decimal oracle across all rounding modes', () => {
+  for (const v of tanVectors.vectors) {
+    const result = fptan(decode(v.x), v.mode);
+    const label = `${v.name}, mode ${v.mode}`;
+    assert.equal(encode(result.bytes), v.output, label);
+    assert.equal(result.flags, v.flags, label + ' exceptions');
+    assert.equal(result.roundedUp, v.roundedUp, label + ' C1');
+  }
+});
+
+test('native PE32 FPTAN loop executes every Decimal vector through translated x86', async () => {
+  const bytes = new Uint8Array(
+    await readFile(new URL('./fixtures/x87/tangent.exe', import.meta.url)),
+  );
+  const result = await probeX87Tan(iced, { files: new Map([['tangent.exe', bytes]]) });
+  assert.equal(result.status, 'passed', result.failure);
+});
+
+test('FPTAN treats zero, infinities, NaNs and out-of-range arguments per the SDM', () => {
+  const zero = '00000000000000000000',
+    negzero = '00000000000000000080',
+    indefinite = '00000000000000c0ffff',
+    qnan = '00000000000000c0ff7f',
+    snan = '0100000000000080ff7f';
+  // tan(+/-0) is the same signed zero and raises nothing.
+  assert.equal(encode(fptan(decode(zero), 0).bytes), zero);
+  assert.equal(encode(fptan(decode(negzero), 0).bytes), negzero);
+  assert.equal(fptan(decode(zero), 0).flags, 0);
+  // Infinities are invalid; a quiet NaN propagates and a signaling one raises.
+  assert.equal(encode(fptan(decode('0000000000000080ff7f'), 0).bytes), indefinite);
+  assert.equal(fptan(decode('0000000000000080ff7f'), 0).flags, 1);
+  assert.equal(fptan(decode('0000000000000080ff7f'), 0).nan, true);
+  assert.equal(encode(fptan(decode(qnan), 0).bytes), qnan);
+  assert.equal(fptan(decode(qnan), 0).nan, true);
+  // Quieting a signaling NaN keeps its payload, so only the quiet bit changes.
+  assert.equal(encode(fptan(decode(snan), 0).bytes), '01000000000000c0ff7f');
+  assert.equal(fptan(decode(snan), 0).flags, 1);
+  // |x| >= 2^63 exceeds the reduction range and is reported for C2 handling.
+  for (const value of tanVectors.outOfRange.map(([, bytes]) => bytes))
+    assert.equal(fptan(decode(value), 0).outOfRange, true);
+  // An unsupported encoding (exponent present, integer bit clear) is invalid
+  // and, like a NaN, is pushed into both registers.
+  const unsupported = fptan(decode('0100000000000000ff3f'), 0);
+  assert.equal(encode(unsupported.bytes), indefinite);
+  assert.equal(unsupported.flags, 1);
+  assert.equal(unsupported.nan, true);
 });

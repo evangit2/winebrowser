@@ -576,6 +576,97 @@ export function f2xm1(xBytes, rounding) {
   throw Error('x87 exponential rounding could not be resolved within the precision bound');
 }
 
+// ---------------------------------------------------------------------------
+// FPTAN: tan(ST(0)), then push 1.0 so the tangent lands in ST(0) and one in
+// ST(1). The sine and cosine are bounded independently by the trigonometric
+// interval reduction above; the tangent is the quotient of that interval pair,
+// bounded by its monotone corner values. Like FSIN/FCOS this targets
+// mathematical tangent, not a physical processor's finite-pi reduction.
+
+// Exact min and max of a/b over a in [a0,a1] and b in [b0,b1], where b never
+// straddles zero. Denominators are normalized positive before comparison.
+function quotientCorners(a, b) {
+  const corners = [];
+  for (const [n, d] of [
+    [a[0], b[0]],
+    [a[0], b[1]],
+    [a[1], b[0]],
+    [a[1], b[1]],
+  ]) {
+    const sign = d < 0n ? -1n : 1n;
+    corners.push([n * sign, d * sign]);
+  }
+  let min = corners[0],
+    max = corners[0];
+  for (const corner of corners) {
+    if (corner[0] * min[1] < min[0] * corner[1]) min = corner;
+    if (corner[0] * max[1] > max[0] * corner[1]) max = corner;
+  }
+  return [min, max];
+}
+
+function tanInterval(x, precision) {
+  const bounds = trigInterval(x, precision);
+  if (!bounds) return null;
+  const { sine, cosine } = bounds;
+  // A cosine interval that spans zero makes the quotient unbounded; a higher
+  // precision tightens it around the true cos(x) instead.
+  if (cosine[0] <= 0n && cosine[1] >= 0n) return null;
+  const scale = 1n << BigInt(precision);
+  const [min, max] = quotientCorners(sine, cosine);
+  return [floorDiv(min[0] * scale, min[1]), ceilDiv(max[0] * scale, max[1])];
+}
+
+// For |x| < 2^-64 the cubic term of tan(x) = x + x^3/3 is far below the
+// extended-format ulp. The tangent magnitude grows with |x|, so truncation and
+// round-to-nearest keep |x| exactly while a directed mode that rounds away from
+// zero adds a single ulp.
+function tinyTan(x, rounding) {
+  const away = (rounding === 1 && x.negative) || (rounding === 2 && !x.negative);
+  // The magnitude sits on the subnormal grid, so the one-ulp increment carries
+  // exactly like a binary counter. A significand that reaches the integer bit
+  // becomes the smallest normal (exponent field 1), never a pseudo-denormal.
+  let exponent = x.exponent || 1,
+    sig = x.sig;
+  if (away) {
+    sig++;
+    if (sig >= 2n * J) {
+      sig >>= 1n;
+      exponent++;
+    }
+  }
+  const field = sig >= J ? exponent : 0;
+  return answer(
+    pack(sig, field, x.negative),
+    0x20 | (x.denormal ? 0x2 : 0) | (!field ? 0x10 : 0),
+    away,
+  );
+}
+
+export function fptan(xBytes, rounding) {
+  const x = unpack(xBytes),
+    nan = specialNaN(x);
+  if (nan) return { ...nan, nan: true };
+  if (x.infinity) return { ...invalid(), nan: true };
+  const denormal = x.denormal ? 0x2 : 0;
+  // tan(+/-0) is the same signed zero and raises nothing.
+  if (x.zero) return answer(pack(0n, 0, x.negative), denormal);
+  // |x| >= 2^63 exceeds the reduction range: C2 is set and the stack is left
+  // exactly as it was.
+  if (x.exponent >= 16383 + 63) return { outOfRange: true };
+  if (x.exponent < 16383 - 64) return tinyTan(x, rounding);
+  for (let precision = 192; precision <= 6144; precision *= 2) {
+    const bounds = tanInterval(x, precision);
+    if (!bounds) continue;
+    const lower = roundDyadic(bounds[0], -precision, rounding),
+      upper = roundDyadic(bounds[1], -precision, rounding);
+    lower.flags |= 0x20 | denormal;
+    upper.flags |= 0x20 | denormal;
+    if (sameResult(lower, upper)) return lower;
+  }
+  throw Error('x87 tangent rounding could not be resolved within the precision bound');
+}
+
 // FSCALE: ST(0) * 2^trunc(ST(1)). Truncation toward zero, plain exponent
 // addition, precision control ignored (QEMU raises floatx80_precision_x here).
 // The scale is saturated at +-2^15 because any larger count already overflows

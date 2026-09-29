@@ -111,3 +111,29 @@ vectors through real x87 opcodes and compares bytes, exception bits, C1 and the
 stack top. Rebuild with `npm run build:x87-scale`; `npm run test:x87-scale`
 runs the isolated Chromium check and writes
 `evidence/x87-scale-browser-results.json`.
+
+## FPTAN
+
+`FPTAN` replaces `ST(0)` with `tan(ST(0))` and then pushes the exact constant
+1.0, so the tangent ends up in `ST(1)` and one in `ST(0)`. The tangent is formed
+as the quotient of the sine and cosine intervals already used by `FSIN`/`FCOS`,
+bounded by the monotone corner values of that interval pair; when the cosine
+interval straddles zero the precision is doubled instead of dividing. A cosine
+exactly equal to zero would need the reduction point itself, which no binary
+ext80 argument can produce.
+
+`|x| < 2^-64` uses a direct one-ulp bound because the cubic term lies below the
+extended-format significand; the largest subnormal carries into the smallest
+normal rather than a pseudo-denormal. `|x| >= 2^63` sets C2 and leaves the stack
+untouched, matching the documented out-of-range response. Infinities, NaNs and
+unsupported encodings follow the same rules as the other transcendental
+opcodes, and a NaN result is pushed into both registers.
+
+`scripts/generate-x87-tan-vectors.py` is an independent oracle: it builds the
+tangent from its own Taylor sine and cosine with a Chudnovsky pi at 420+ decimal
+digits. Its 220 vectors cover all rounding modes, signed zeros, tiny and
+subnormal arguments, near-pi cancellation, large in-range arguments and the C2
+case. `tests/fixtures/x87/tangent.exe` executes every vector through real x87
+opcodes, checking tangent bytes, exceptions, C1/C2, the pushed constant and the
+stack top. Rebuild with `npm run build:x87-tan`; `npm run test:x87-tan` runs the
+isolated Chromium check and writes `evidence/x87-tan-browser-results.json`.

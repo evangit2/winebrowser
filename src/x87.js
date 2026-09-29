@@ -1,6 +1,6 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
-import { fyl2x, fpatan, sincos, f2xm1, fscale } from './x87-transcendentals.js';
+import { fyl2x, fpatan, sincos, f2xm1, fscale, fptan } from './x87-transcendentals.js';
 import { roundedMagnitudeUp } from './x87-rounding.js';
 export const X87Op = Object.freeze({
   loadFloat: 0,
@@ -32,6 +32,7 @@ export const X87Op = Object.freeze({
   loadState: 26,
   exponential: 27,
   scale: 28,
+  tangent: 29,
 });
 
 const POP = 1,
@@ -136,6 +137,8 @@ export function classifyX87(i, iced) {
   if (m === M.Fpatan) return result(X87Op.arctangent);
   if (m === M.Fsin || m === M.Fcos || m === M.Fsincos)
     return result(X87Op.trigonometric, m === M.Fsin ? 0 : m === M.Fcos ? 1 : 2);
+  // FPTAN: tan(ST(0)), then push 1.0 so ST(0) holds the tangent and ST(1) one.
+  if (m === M.Fptan) return result(X87Op.tangent);
   if (m === M.Fxam) return result(X87Op.examine);
   // FCMOVcc moves ST(i) into ST(0) only when the matching integer condition
   // holds; otherwise the instruction is a no-op and raises no exception.
@@ -654,6 +657,28 @@ export class X87State {
         this.#set(0, result.sine.bytes);
         this.#push(result.cosine.bytes);
       } else this.#set(0, selected.bytes);
+      return;
+    }
+    if (op === X87Op.tangent) {
+      const result = fptan(this.#value(0), (this.control >>> 10) & 3);
+      if (result.outOfRange) {
+        this.status = (this.status & ~0x200) | 0x400;
+        return;
+      }
+      this.status &= ~0x600;
+      if (this.tags[(this.top - 1) & 7] !== 3) {
+        // The push of the trailing 1.0 overflows the stack.
+        this.#exception(0x241, true);
+        this.#set(0, INDEFINITE);
+        this.#push(INDEFINITE);
+        return;
+      }
+      if (result.flags) this.#exception(result.flags, false);
+      if (result.roundedUp) this.status |= 0x200;
+      // A NaN result (from an invalid, infinite or NaN argument) is pushed into
+      // both registers; a finite tangent is followed by the exact 1.0.
+      this.#set(0, result.bytes);
+      this.#push(result.nan ? result.bytes.slice() : CONSTANTS[1]);
       return;
     }
     if (op === X87Op.compare) {

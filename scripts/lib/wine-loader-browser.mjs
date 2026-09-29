@@ -10,6 +10,7 @@ const probes = {
   x87log: { script: 'x87-log-probe.js', entry: 'probeX87Log' },
   x87exp: { script: 'x87-exp-probe.js', entry: 'probeX87Exp' },
   x87scale: { script: 'x87-scale-probe.js', entry: 'probeX87Scale' },
+  x87tan: { script: 'x87-tan-probe.js', entry: 'probeX87Tan' },
   com: { script: 'com-probe.js', entry: 'probeCom' },
   drivers: { script: 'driver-probe.js', entry: 'probeDrivers' },
   winmm: { script: 'winmm-probe.js', entry: 'probeWinmm' },
@@ -154,6 +155,7 @@ export const probeDriversInBrowser = (root, input) => probeInBrowser(root, 'driv
 export const probeX87LogInBrowser = (root, input) => probeInBrowser(root, 'x87log', input);
 export const probeX87ExpInBrowser = (root, input) => probeInBrowser(root, 'x87exp', input);
 export const probeX87ScaleInBrowser = (root, input) => probeInBrowser(root, 'x87scale', input);
+export const probeX87TanInBrowser = (root, input) => probeInBrowser(root, 'x87tan', input);
 export const probeX87TrigInBrowser = (root, input) => probeInBrowser(root, 'x87trig', input);
 export const probeScalarSseInBrowser = (root, input) => probeInBrowser(root, 'scalarSse', input);
 
