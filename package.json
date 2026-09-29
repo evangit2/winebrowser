@@ -65,6 +65,8 @@
     "predev": "node scripts/prepare-decoder.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "probe:characters": "node scripts/probe-wine-target.mjs tests/fixtures/characters",
+    "probe:hamsterball": "node scripts/probe-hamsterball.mjs",
+    "probe:humus-d3d9": "node scripts/probe-wine-target.mjs humus-dynamic-branching-d3d9-x86",
     "probe:wine-crt": "node scripts/probe-wine-crt.mjs",
     "probe:wine-loader": "node scripts/probe-wine-loader.mjs",
     "probe:wine-loader-crt": "node scripts/probe-wine-loader-crt.mjs",
