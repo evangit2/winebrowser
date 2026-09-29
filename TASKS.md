@@ -389,6 +389,14 @@ D3D10/11 and broader D3D12 support are still required.
 - [ ] Run more unchanged desktop targets, starting with Minesweeper (32 unresolved imports at the last inspection); implement reusable dialog/menu/common-control/GDI services where Wine reuse is feasible.
 - [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
+- [x] Model private executable memory. `VirtualAlloc`/`VirtualProtect` now honour
+      the full `PAGE_EXECUTE*` set for committed private pages instead of
+      flattening it to read-write, and a protection change refreshes the
+      decoder's ranges and drops the translated blocks overlapping the changed
+      pages. Executable code a guest maps and writes — a packer's decrypted
+      section, a JIT buffer, a loader's stub — therefore runs. Executable
+      protections on PE image data pages stay refused (that needs the loader's
+      section bookkeeping). 684 unit tests pass.
 - [ ] Build tested graphics paths for OpenGL/WGL and DirectX/WineD3D/WebGPU. These APIs do not work generally today. The native D3D9 cube passes a bounded bootstrap frontend. The unchanged third-party Humus Dynamic Branching D3D9 demo now runs its own scene through the ordinary host-API path and is checked on both the published-example and dropped-ZIP routes by `npm run test:humus-d3d9`; it uses vertex and index buffers, DXT textures, its own VS 1.1/PS 2.0 shaders, sampler states and indexed draws. It still opens no menu or camera input, and broad API coverage (OpenGL, D3D10/11, more D3D9 state) remains. See [graphics handoff](docs/graphics-handoff.md).
 - [x] Broaden the D3D12 path from the empty-root-signature bootstrap to the
       ordinary descriptor flow. A root signature is now inspected, not merely
