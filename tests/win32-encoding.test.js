@@ -55,3 +55,86 @@ test('Get/SetWindowText cross the ANSI WndProc boundary without corrupting UTF-1
   assert.equal(r.wideString(output), 'New');
   r.windows.dispose();
 });
+
+test('the special code pages resolve to the ANSI and OEM tables GetACP/GetOEMCP report', () => {
+  const { r, call } = setup(),
+    input = r.allocate(4),
+    output = r.allocate(16);
+  // CP_OEMCP is 1, CP_ACP is 0 and CP_THREAD_ACP is 3; none of them is a
+  // literal code page number, so a conversion that passes one must resolve it
+  // the same way GetACP/GetOEMCP name it instead of failing.
+  assert.equal(call('kernel32.dll!GetACP').result, 1252);
+  assert.equal(call('kernel32.dll!GetOEMCP').result, 437);
+  r.data.set([0x80, 0], input);
+  // Byte 0x80 is the euro sign in CP1252 but a C-cedilla in CP437. An explicit
+  // count of 1 converts just that byte, without its terminator.
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 0, 0, input, 1, output, 8).result, 1);
+  assert.equal(r.guestMemory.read(output, 2), 0x20ac);
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 3, 0, input, 1, output, 8).result, 1);
+  assert.equal(r.guestMemory.read(output, 2), 0x20ac);
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 1, 0, input, 1, output, 8).result, 1);
+  assert.equal(r.guestMemory.read(output, 2), 0x00c7, 'CP_OEMCP maps 0x80 to U+00C7');
+});
+
+test('wide-to-multi conversion honours CP_OEMCP and the UTF-8 invalid-character flag', () => {
+  const { r, call } = setup(),
+    input = r.allocate(8),
+    output = r.allocate(8);
+  // U+00C7 -> 0x80 in CP437, but not representable as 0x80 in CP1252 (where
+  // 0x80 is the euro sign), so the two code pages must differ.
+  r.guestMemory.write(input, 0x00c7, 2);
+  assert.equal(call('kernel32.dll!WideCharToMultiByte', 1, 0, input, 1, output, 8, 0, 0).result, 1);
+  assert.equal(r.data[output], 0x80, 'CP_OEMCP emits the CP437 byte');
+  assert.equal(
+    call('kernel32.dll!WideCharToMultiByte', 1252, 0, input, 1, output, 8, 0, 0).result,
+    1,
+  );
+  assert.equal(r.data[output], 0xc7, 'CP1252 emits the ANSI byte');
+  // WC_ERR_INVALID_CHARS (0x80) is accepted for UTF-8 and rejects an unpaired
+  // surrogate instead of silently emitting a replacement.
+  r.guestMemory.write(input, 0xd800, 2);
+  assert.equal(
+    call('kernel32.dll!WideCharToMultiByte', 65001, 0x80, input, 1, output, 8, 0, 0).result,
+    0,
+  );
+  assert.equal(r.lastError, 1113);
+  // A code page the runtime does not model still fails with a real error
+  // rather than raising, so a caller sees ERROR_INVALID_PARAMETER.
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 932, 0, input, 1, output, 8).result, 0);
+  assert.equal(r.lastError, 87);
+});
+
+test('GetCurrentDirectory/GetTempPath use the (nBufferLength, lpBuffer) argument order', () => {
+  const { r, call } = setup();
+  // 7zr passes the length first. Reading them in the other order writes to
+  // whatever small number happened to be in the buffer slot, which faults.
+  const buffer = r.allocate(64);
+  const getcwd = (name, wide) => call(name, 32, buffer).result;
+  assert.ok(getcwd('kernel32.dll!GetCurrentDirectoryW', true) > 0);
+  assert.equal(r.wideString(buffer), 'C:\\winebrowser\\');
+  assert.ok(getcwd('kernel32.dll!GetCurrentDirectoryA', false) > 0);
+  assert.equal(r.string(buffer), 'C:\\winebrowser\\');
+  // An undersized buffer reports the required length and ERROR_INSUFFICIENT_BUFFER.
+  assert.equal(call('kernel32.dll!GetCurrentDirectoryW', 4, buffer).result, 0);
+  assert.equal(r.lastError, 122);
+  // GetTempPath names the temp directory of the same volume.
+  assert.ok(call('kernel32.dll!GetTempPathW', 32, buffer).result > 0);
+  assert.match(r.wideString(buffer), /temp\\$/i);
+  assert.ok(r.virtualDirectories?.has('temp/'));
+});
+
+test('FindFirstFileW lists the package tree instead of throwing on an undefined path', () => {
+  const { r, call } = setup();
+  // The prefix helper used to be declared as (r, path) while every caller
+  // passed the path alone, so any directory enumeration raised instead of
+  // returning matches.
+  r.files.set('pkg/notes.txt', new Uint8Array([1, 2, 3]));
+  r.cwd = 'pkg/';
+  const pattern = r.allocString('*.txt', true);
+  const data = r.allocate(592);
+  const handle = call('kernel32.dll!FindFirstFileW', pattern, data).result >>> 0;
+  assert.notEqual(handle, 0, 'a matching entry returns a search handle');
+  assert.equal(r.read32(data) & 0x10, 0, 'the match is a file, not a directory');
+  assert.equal(r.wideString(data + 44), 'notes.txt');
+  assert.equal(call('kernel32.dll!FindClose', handle).result, 1);
+});

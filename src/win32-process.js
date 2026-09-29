@@ -1,6 +1,6 @@
 import { processCommandLine } from './command-line.js';
 export { quoteArgument } from './command-line.js';
-import { encodeAnsi, decodeAnsi } from './encoding.js';
+import { encodeAnsi, decodeAnsi, encodeOem, decodeOem, resolveCodePage } from './encoding.js';
 // Browser host services needed by ordinary PE startup and Wine's guest helpers.
 // This file owns no guest instruction execution or PE parsing.
 import { callWineHeap } from './wine-process.js';
@@ -136,14 +136,20 @@ function moduleFilename(r, a, wide) {
   return ok(size, 3);
 }
 function wideToMulti(r, a) {
-  const cp = a(0),
+  const cp = resolveCodePage(a(0)),
     flags = a(1),
     input = a(2),
     count = a(3) | 0,
     out = a(4),
     capacity = a(5);
-  if (![0, 1252, 65001].includes(cp) || flags)
-    throw Error('Unsupported WideCharToMultiByte codepage/flags');
+  // WC_COMPOSITECHECK and the separator flags describe normalization, which a
+  // one-to-one single-byte table does not change; WC_ERR_INVALID_CHARS is only
+  // meaningful for UTF-8, where the encoder rejects an unpaired surrogate.
+  const allowedFlags = cp === UTF8_CODE_PAGE ? 0x80 : 0;
+  if ((!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== UTF8_CODE_PAGE) || flags & ~allowedFlags) {
+    if (!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== UTF8_CODE_PAGE) return fail(r, 87, 8);
+    throw Error(`Unsupported WideCharToMultiByte cp=${cp} flags=${flags}`);
+  }
   if (count === 0 || count < -1) return fail(r, 87, 8);
   if (count > 1048576) throw Error('WideCharToMultiByte input limit');
   let value;
@@ -155,11 +161,15 @@ function wideToMulti(r, a) {
   }
   let bytes,
     used = false;
-  if (cp === 65001) {
-    if (a(6) || a(7)) return fail(r, 87, 8);
+  if (cp === UTF8_CODE_PAGE) {
+    if (a(6)) return fail(r, 87, 8);
+    if (flags & 0x80 && /[\uD800-\uDFFF]/.test(value)) return fail(r, 1113, 8);
     bytes = new TextEncoder().encode(value);
   } else {
-    const converted = encodeAnsi(value, a(6) ? r.guestMemory.read(a(6), 1) : 63);
+    // Each single-byte page has its own table; CP437 is the OEM page
+    // GetOEMCP names, so it must not fall through to the ANSI table.
+    const encoder = cp === 437 ? encodeOem : encodeAnsi;
+    const converted = encoder(value, a(6) ? r.guestMemory.read(a(6), 1) : 63);
     bytes = converted.bytes;
     used = converted.usedDefault;
   }
@@ -170,12 +180,16 @@ function wideToMulti(r, a) {
   r.data.set(bytes, out);
   return ok(bytes.length, 8);
 }
-// CP_ACP (0), the two single-byte code pages the runtime models, and UTF-8
-// (65001). A code page outside that set fails with ERROR_INVALID_PARAMETER
-// rather than silently decoding as Latin-1.
-const SINGLE_BYTE_CODE_PAGES = new Set([0, 437, 850, 1252]);
+// The single-byte code pages the runtime models, plus UTF-8. A "special" code
+// page is one the system resolves rather than a literal number: CP_ACP is the
+// ANSI code page (1252 here), CP_OEMCP the OEM one (437, what GetOEMCP
+// reports), and CP_THREAD_ACP the calling thread's ANSI page. A program that
+// passes CP_OEMCP is asking for the same table GetOEMCP named, so resolving it
+// keeps the two consistent instead of failing a valid call.
+const SINGLE_BYTE_CODE_PAGES = new Set([437, 850, 1252]);
+const UTF8_CODE_PAGE = 65001;
 function multiToWide(r, a) {
-  const cp = a(0),
+  const cp = resolveCodePage(a(0)),
     flags = a(1),
     input = a(2),
     count = a(3) | 0;
@@ -185,9 +199,9 @@ function multiToWide(r, a) {
   // does not change the one-to-one mapping of a single-byte code page. UTF-8
   // additionally accepts MB_ERR_INVALID_CHARS (8), which the TextDecoder
   // fatal option already implements.
-  const allowedFlags = cp === 65001 ? 8 : 3;
-  if ((!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== 65001) || flags & ~allowedFlags) {
-    if (!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== 65001) return fail(r, 87, 6);
+  const allowedFlags = cp === UTF8_CODE_PAGE ? 8 : 3;
+  if ((!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== UTF8_CODE_PAGE) || flags & ~allowedFlags) {
+    if (!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== UTF8_CODE_PAGE) return fail(r, 87, 6);
     throw Error(`Unsupported MultiByteToWideChar cp=${cp} flags=${flags}`);
   }
   if (!input || count === 0 || count < -1 || capacity < 0 || (capacity && !output))
@@ -205,9 +219,11 @@ function multiToWide(r, a) {
   let value;
   try {
     value =
-      cp === 65001
+      cp === UTF8_CODE_PAGE
         ? new TextDecoder('utf-8', { fatal: !!flags, ignoreBOM: true }).decode(bytes)
-        : decodeAnsi(bytes);
+        : cp === 437
+          ? decodeOem(bytes)
+          : decodeAnsi(bytes);
   } catch {
     return fail(r, 1113, 6);
   }

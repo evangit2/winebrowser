@@ -582,6 +582,93 @@ const NAMES = {
   },
   wcslen: wideLength,
   wcscpy: wideCopy,
+  wcsncpy: (r, a) => {
+    const count = a(2) >>> 0;
+    r.check(a(0), count * 2, true);
+    let i = 0;
+    for (; i < count; i++) {
+      const code = r.guestMemory.read(a(1) + i * 2, 2);
+      r.guestMemory.write(a(0) + i * 2, code, 2);
+      if (!code) break;
+    }
+    for (; i < count; i++) r.guestMemory.write(a(0) + i * 2, 0, 2);
+    return ok(a(0), 3);
+  },
+  wcscat: (r, a) => {
+    const left = wideLength(r, a).result;
+    const right = wideLength(r, { 0: () => a(1) }).result;
+    r.check(a(0), (left + right + 1) * 2, true);
+    for (let i = 0; i <= right; i++)
+      r.guestMemory.write(a(0) + (left + i) * 2, r.guestMemory.read(a(1) + i * 2, 2), 2);
+    return ok(a(0), 2);
+  },
+  // wcscmp/wcsncmp compare UTF-16 code units, exactly as the CRT does; a
+  // difference in either the value or the terminating NUL decides the result.
+  wcscmp: (r, a) => {
+    for (let i = 0; i < 0x1000000; i++) {
+      const left = r.guestMemory.read(a(0) + i * 2, 2);
+      const right = r.guestMemory.read(a(1) + i * 2, 2);
+      if (left !== right) return ok(left < right ? -1 : 1, 2);
+      if (!left) break;
+    }
+    return ok(0, 2);
+  },
+  wcsncmp: (r, a) => {
+    const count = a(2) >>> 0;
+    for (let i = 0; i < count; i++) {
+      const left = r.guestMemory.read(a(0) + i * 2, 2);
+      const right = r.guestMemory.read(a(1) + i * 2, 2);
+      if (left !== right) return ok(left < right ? -1 : 1, 3);
+      if (!left) break;
+    }
+    return ok(0, 3);
+  },
+  wcschr: (r, a) => {
+    const needle = a(1) & 0xffff;
+    for (let i = 0; i < 0x1000000; i++) {
+      const code = r.guestMemory.read(a(0) + i * 2, 2);
+      if (code === needle) return ok(a(0) + i * 2, 2);
+      if (!code) break;
+    }
+    return ok(0, 2);
+  },
+  wcsrchr: (r, a) => {
+    const needle = a(1) & 0xffff;
+    let found = 0;
+    for (let i = 0; i < 0x1000000; i++) {
+      const code = r.guestMemory.read(a(0) + i * 2, 2);
+      if (code === needle) found = a(0) + i * 2;
+      if (!code) break;
+    }
+    return ok(found, 2);
+  },
+  // wcsstr finds the first occurrence of `needle` inside `haystack`, returning
+  // the haystack when the needle is empty (the CRT's documented behaviour).
+  wcsstr: (r, a) => {
+    const needleLength = wideLength(r, { 0: () => a(1) }).result;
+    if (!needleLength) return ok(a(0), 2);
+    outer: for (let start = 0; start < 0x1000000; start++) {
+      const head = r.guestMemory.read(a(0) + start * 2, 2);
+      if (!head) break;
+      for (let i = 0; i < needleLength; i++) {
+        const left = r.guestMemory.read(a(0) + (start + i) * 2, 2);
+        const right = r.guestMemory.read(a(1) + i * 2, 2);
+        if (left !== right) continue outer;
+      }
+      return ok(a(0) + start * 2, 2);
+    }
+    return ok(0, 2);
+  },
+  wcscspn: (r, a) => {
+    const set = wideLength(r, { 0: () => a(1) }).result;
+    for (let i = 0; i < 0x1000000; i++) {
+      const code = r.guestMemory.read(a(0) + i * 2, 2);
+      if (!code) return ok(i, 2);
+      for (let j = 0; j < set; j++)
+        if (r.guestMemory.read(a(1) + j * 2, 2) === code) return ok(i, 2);
+    }
+    return ok(0, 2);
+  },
   malloc: crtMalloc,
   free: crtFree,
   realloc: crtRealloc,
@@ -1386,6 +1473,212 @@ function registerStdio() {
   add('_iob', (r, a) => ok(standardStreams(r).base, 0));
 }
 registerStdio();
+
+// ---------------------------------------------------------------------------
+// The low-level CRT file-descriptor layer (_open/_read/_write/_close/_lseek and
+// friends). MSVC's descriptors 0-2 are the standard streams; every other
+// descriptor is backed by a real Win32 handle from this runtime's file API, so
+// `_get_osfhandle` returns a handle the rest of the program can pass back to
+// Win32, and sharing, metadata and dirty tracking stay in one place.
+const CRT_FD_FIRST = 3;
+function crtFdState(r) {
+  r.crtFds ??= new Map(); // descriptor -> Win32 handle
+  r.crtFdNext ??= CRT_FD_FIRST;
+  return r.crtFds;
+}
+// CRT <fcntl.h> flags.
+const O_RDONLY = 0x0000,
+  O_WRONLY = 0x0001,
+  O_RDWR = 0x0002,
+  O_APPEND = 0x0008,
+  O_CREAT = 0x0100,
+  O_TRUNC = 0x0200,
+  O_EXCL = 0x0400,
+  O_TEXT = 0x4000,
+  O_BINARY = 0x8000;
+const WIN32_ACCESS = { [O_RDONLY]: 0x80000000, [O_WRONLY]: 0x40000000, [O_RDWR]: 0xc0000000 };
+// Win32 creation dispositions.
+const CREATE_NEW = 1,
+  CREATE_ALWAYS = 2,
+  OPEN_EXISTING = 3,
+  OPEN_ALWAYS = 4,
+  TRUNCATE_EXISTING = 5;
+
+function win32Handler(r, name) {
+  return r.apiProvider.get(`kernel32.dll!${name}`);
+}
+
+async function openDescriptor(r, a) {
+  const path = r.string(a(0));
+  const flags = a(1) >>> 0;
+  const accessBits = flags & 0x3;
+  const access = WIN32_ACCESS[accessBits];
+  if (access === undefined) return ok(0xffffffff, 3);
+  // Derive the disposition the way the CRT does: O_TRUNC implies a write.
+  let disposition = OPEN_EXISTING;
+  if (flags & O_CREAT) disposition = flags & O_EXCL ? CREATE_NEW : OPEN_ALWAYS;
+  if (flags & O_TRUNC) {
+    if (flags & O_CREAT) disposition = CREATE_ALWAYS;
+    else disposition = TRUNCATE_EXISTING;
+  }
+  const pointer = r.allocString(path, true);
+  const create = win32Handler(r, 'CreateFileW');
+  const response = await create(
+    r,
+    (index) =>
+      [pointer, access, 1, 0, disposition, flags & O_APPEND ? 0x4000000 : 0, 0][index] ?? 0,
+  );
+  const handle = response.result >>> 0;
+  if (handle === 0xffffffff) return ok(0xffffffff, 3);
+  const fds = crtFdState(r);
+  if (fds.size >= 512) throw Error('CRT descriptor limit exceeded');
+  let descriptor = r.crtFdNext++;
+  while (fds.has(descriptor) || descriptor < CRT_FD_FIRST) descriptor = r.crtFdNext++;
+  fds.set(descriptor, handle);
+  return ok(descriptor, 3);
+}
+function closeDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const fds = crtFdState(r);
+  if (!fds.has(descriptor)) return ok(0xffffffff, 1);
+  const handle = fds.get(descriptor);
+  fds.delete(descriptor);
+  const close = win32Handler(r, 'CloseHandle');
+  return close(r, (index) => (index === 0 ? handle : 0));
+}
+async function readDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const buffer = a(1) >>> 0,
+    count = a(2) >>> 0;
+  if (count > 16 * 1024 * 1024) throw Error('_read exceeds per-call limit');
+  // Descriptors 0-2 are the standard streams; only stdin (0) is an input.
+  const handle = descriptor === 0 ? 0 : crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(0xffffffff, 3);
+  const read = win32Handler(r, 'ReadFile');
+  const bytesRead = r.allocate(4);
+  const response = await read(r, (index) => [handle, buffer, count, bytesRead, 0][index] ?? 0);
+  return response.result ? ok(r.read32(bytesRead) >>> 0, 3) : ok(0xffffffff, 3);
+}
+async function writeDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const buffer = a(1) >>> 0,
+    count = a(2) >>> 0;
+  if (count > 16 * 1024 * 1024) throw Error('_write exceeds per-call limit');
+  const handle = descriptor === 1 || descriptor === 2 ? descriptor : crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(0xffffffff, 3);
+  const write = win32Handler(r, 'WriteFile');
+  const bytesWritten = r.allocate(4);
+  const response = await write(r, (index) => [handle, buffer, count, bytesWritten, 0][index] ?? 0);
+  return response.result ? ok(r.read32(bytesWritten) >>> 0, 3) : ok(0xffffffff, 3);
+}
+async function seekDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const handle = crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(0xffffffff, 3);
+  const seek = win32Handler(r, 'SetFilePointer');
+  const response = await seek(
+    r,
+    (index) => [handle, a(1) >>> 0, 0, a(2) >>> 0 === 1 ? 1 : a(2) >>> 0 === 2 ? 2 : 0][index] ?? 0,
+  );
+  const position = response.result >>> 0;
+  return position === 0xffffffff ? ok(0xffffffff, 3) : ok(position, 3);
+}
+async function fileLengthDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const handle = crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(0xffffffff, 1);
+  const size = win32Handler(r, 'GetFileSize');
+  const response = await size(r, (index) => [handle, 0][index] ?? 0);
+  return response.result >>> 0 === 0xffffffff ? ok(0xffffffff, 1) : ok(response.result >>> 0, 1);
+}
+// _chsize truncates or extends; both need the descriptor positioned at the new
+// length first, then SetEndOfFile.
+async function changeSizeDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const handle = crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(0xffffffff, 2);
+  const length = a(1) >>> 0;
+  const seek = win32Handler(r, 'SetFilePointer');
+  const moved = await seek(r, (index) => [handle, length, 0, 0][index] ?? 0);
+  if (moved.result >>> 0 === 0xffffffff && length !== 0) return ok(0xffffffff, 2);
+  const end = win32Handler(r, 'SetEndOfFile');
+  const response = await end(r, (index) => (index === 0 ? handle : 0));
+  return ok(response.result ? 0 : 0xffffffff, 2);
+}
+async function commitDescriptor(r, a) {
+  const descriptor = a(0) >>> 0;
+  const handle = crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(0xffffffff, 1);
+  const flush = win32Handler(r, 'FlushFileBuffers');
+  const response = await flush(r, (index) => (index === 0 ? handle : 0));
+  return ok(response.result ? 0 : 0xffffffff, 1);
+}
+// _get_osfhandle(fd) hands back the Win32 handle. The standard descriptors are
+// the console handles the runtime's own ReadFile/WriteFile already accept.
+function getOsfHandle(r, a) {
+  const descriptor = a(0) >>> 0;
+  if (descriptor <= 2) return ok(descriptor, 1);
+  const handle = crtFdState(r).get(descriptor);
+  return ok(handle === undefined ? 0xffffffff : handle, 1);
+}
+function isatty(r, a) {
+  const descriptor = a(0) >>> 0;
+  // Only the standard streams are character devices; everything else is a file.
+  return ok(descriptor <= 2 ? 1 : 0, 1);
+}
+// _setmode sets the descriptor's translation mode and returns the previous one.
+function setMode(r, a) {
+  const descriptor = a(0) >>> 0;
+  const mode = a(1) >>> 0;
+  if (![O_TEXT, O_BINARY].includes(mode) || (descriptor > 2 && !crtFdState(r).has(descriptor)))
+    return ok(0xffffffff, 2);
+  r.crtModes ??= new Map();
+  const previous = r.crtModes.get(descriptor) ?? O_TEXT;
+  r.crtModes.set(descriptor, mode);
+  return ok(previous, 2);
+}
+// _fdopen wraps an existing descriptor in a FILE*.
+function fdOpen(r, a) {
+  const descriptor = a(0) >>> 0;
+  const state = stdioState(r);
+  if (state.byAddress.size >= 256) throw Error('stdio stream limit exceeded');
+  const stream = {
+    address: r.allocate(STDIO_STRUCT_BYTES, true),
+    descriptor,
+    position: 0,
+    mode: r.string(a(1)),
+    open: true,
+    error: false,
+    eof: false,
+    reading: true,
+    writing: true,
+  };
+  state.byAddress.set(stream.address, stream);
+  return ok(stream.address, 2);
+}
+function registerCrtDescriptors() {
+  const add = (name, handler) => {
+    if (msvcrtApis[`msvcrt.dll!${name}`]) return;
+    msvcrtApis[`msvcrt.dll!${name}`] = handler;
+  };
+  add('_open', openDescriptor);
+  add('_sopen', openDescriptor);
+  add('_wopen', openDescriptor);
+  add('_close', closeDescriptor);
+  add('_read', readDescriptor);
+  add('_write', writeDescriptor);
+  add('_lseek', seekDescriptor);
+  add('_filelength', fileLengthDescriptor);
+  add('_filelengthi64', fileLengthDescriptor);
+  add('_chsize', changeSizeDescriptor);
+  add('_chsize_s', changeSizeDescriptor);
+  add('_commit', commitDescriptor);
+  add('_get_osfhandle', getOsfHandle);
+  add('_isatty', isatty);
+  add('_setmode', setMode);
+  add('_fdopen', fdOpen);
+}
+registerCrtDescriptors();
 
 // ---------------------------------------------------------------------------
 // Completing the export surface. The generated list is Wine's real msvcrt

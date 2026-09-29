@@ -167,7 +167,12 @@ function tlsGetValue(r, a) {
 // ---------------------------------------------------------------------------
 // Directory and file system queries answer from the virtual filesystem, which
 // is the package's own tree plus anything the guest created at run time.
-function directoryPrefix(r, path) {
+// The directory part of a resolved guest path, with a trailing slash so the
+// file tree can be matched by prefix. The path is already normalized by
+// resolveGuestPath, so only a trailing separator has to be removed; a path that
+// is already a directory prefix keeps its single slash.
+function directoryPrefix(path) {
+  if (typeof path !== 'string') throw Error('directoryPrefix requires a path');
   const normalized = path.replace(/[\\/]+$/, '');
   return normalized ? normalized + '/' : '';
 }
@@ -209,6 +214,45 @@ function writeFindData(r, address, name, directory, size, time) {
   for (let i = 0; i < name.length && i < 13; i++)
     r.guestMemory.write(address + 304 + i, name.charCodeAt(i), 1);
 }
+// DOS wildcard matching, the rule CreateFile/FindFirstFile use: `*` matches any
+// run of characters (including none), `?` matches exactly one, and both stop at
+// the end of the component. Matching is case-insensitive because guest paths are
+// normalized to lower case.
+function matchWildcard(pattern, name) {
+  const lowerName = name.toLowerCase();
+  const sources = pattern.toLowerCase();
+  // Classic two-pointer backtracking: no regex means no pathological compile
+  // cost on a long name, and `*` never needs a greedy rewrite.
+  let p = 0,
+    n = 0,
+    star = -1,
+    resume = 0;
+  while (n < lowerName.length) {
+    if (p < sources.length && (sources[p] === '?' || sources[p] === lowerName[n])) {
+      p++;
+      n++;
+    } else if (p < sources.length && sources[p] === '*') {
+      star = p++;
+      resume = n;
+    } else if (star >= 0) {
+      p = star + 1;
+      n = ++resume;
+    } else return false;
+  }
+  while (p < sources.length && sources[p] === '*') p++;
+  return p === sources.length;
+}
+
+// Splits a search pattern into the directory to enumerate and the wildcard to
+// match. A name with no wildcard is the exact-name case, where the file itself
+// must exist and be returned as the single match.
+function searchPattern(resolved) {
+  const slash = resolved.lastIndexOf('/');
+  const directory = slash < 0 ? '' : resolved.slice(0, slash + 1);
+  const pattern = slash < 0 ? resolved : resolved.slice(slash + 1);
+  return { directory, pattern };
+}
+
 function findFirstFile(r, a, wide) {
   let resolved;
   try {
@@ -216,12 +260,25 @@ function findFirstFile(r, a, wide) {
   } catch {
     return fail(r, 3, 2);
   }
-  const prefix = directoryPrefix(resolved);
-  const names = virtualNames(r, prefix);
+  // A search only ever names one directory level, so take the prefix from the
+  // pattern's last separator rather than treating the whole path as a prefix.
+  const { directory, pattern } = searchPattern(resolved);
+  const prefix = directoryPrefix(directory);
+  // Every entry of the directory is a candidate; a wildcard narrows it by name
+  // (DOS wildcards match directories too, which is what `dir` relies on), and a
+  // pattern with no wildcard selects the one exact name.
+  const available = virtualNames(r, prefix);
+  const wildcard = pattern.includes('*') || pattern.includes('?');
+  let names;
+  if (wildcard) names = new Map([...available].filter(([name]) => matchWildcard(pattern, name)));
+  else names = available.has(pattern) ? new Map([[pattern, available.get(pattern)]]) : new Map();
   if (!names.size) return fail(r, 2, 2);
   r.findHandles ??= new Map();
   const nextId = (r.nextFindHandle = (r.nextFindHandle ?? 0x51000000) + 4);
-  const entries = [...names].map(([name, directory]) => ({ name, directory }));
+  const entries = [...names].map(([name, directoryEntry]) => ({
+    name,
+    directory: directoryEntry,
+  }));
   const first = entries[0];
   const metadata = r.fileMetadata?.get?.(prefix + first.name);
   if (wide) {
@@ -634,26 +691,34 @@ function createHardLink(r, a, wide) {
   return ok(1, 3);
 }
 
-// Current-directory handling. The runtime tracks one process working
-// directory, relative to the package volume root.
-function getCurrentDirectory(r, a, wide) {
-  const value = packageDosPath(r.cwd);
-  const buffer = a(0);
-  if (!buffer) return fail(r, 87, 2);
-  const capacity = a(1) | 0;
+// Writes a NUL-terminated string into a caller buffer using the Win32
+// (nBufferLength, lpBuffer) argument order these queries share. The character
+// count returned excludes the terminator; an undersized buffer reports how many
+// characters are needed instead, exactly as the API does.
+function writeCountedString(r, rLength, lpBuffer, value, wide, argc) {
+  const buffer = lpBuffer >>> 0;
+  const capacity = rLength | 0;
+  if (!buffer) return fail(r, 87, argc);
   if (wide) {
-    if (capacity < value.length + 1) return fail(r, 122, 2);
+    if (capacity < value.length + 1) return fail(r, 122, argc);
     r.check(buffer, (value.length + 1) * 2, true);
     for (let i = 0; i <= value.length; i++)
       r.guestMemory.write(buffer + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
   } else {
-    const bytes = encodeAnsi(text).bytes;
-    if (capacity < bytes.length + 1) return fail(r, 122, 2);
+    const bytes = encodeAnsi(value).bytes;
+    if (capacity < bytes.length + 1) return fail(r, 122, argc);
     r.check(buffer, bytes.length + 1, true);
     r.data.set(bytes, buffer);
     r.data[buffer + bytes.length] = 0;
   }
-  return ok(value.length, 2);
+  return ok(value.length, argc);
+}
+
+// Current-directory handling. The runtime tracks one process working
+// directory, relative to the package volume root. GetCurrentDirectory is
+// (nBufferLength, lpBuffer).
+function getCurrentDirectory(r, a, wide) {
+  return writeCountedString(r, a(0), a(1), packageDosPath(r.cwd), wide, 2);
 }
 function setCurrentDirectory(r, a, wide) {
   let resolved;
@@ -676,28 +741,13 @@ function setCurrentDirectory(r, a, wide) {
   return ok(1, 1);
 }
 
-// GetTempPathW/GetTempPathA: the isolated volume has a writable temp directory.
-// The directory is created on demand so a later CreateFile there succeeds.
+// GetTempPathW/GetTempPathA is (nBufferLength, lpBuffer). The isolated volume
+// has a writable temp directory, created on demand so a later CreateFile there
+// succeeds.
 function getTempPath(r, a, wide) {
-  const value = packageDosPath('temp', true);
-  const buffer = a(0);
-  if (!buffer) return fail(r, 87, 2);
-  const capacity = a(1) | 0;
-  if (wide) {
-    if (capacity < value.length + 1) return fail(r, 122, 2);
-    r.check(buffer, (value.length + 1) * 2, true);
-    for (let i = 0; i <= value.length; i++)
-      r.guestMemory.write(buffer + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
-  } else {
-    const bytes = encodeAnsi(value).bytes;
-    if (capacity < bytes.length + 1) return fail(r, 122, 2);
-    r.check(buffer, bytes.length + 1, true);
-    r.data.set(bytes, buffer);
-    r.data[buffer + bytes.length] = 0;
-  }
   r.virtualDirectories ??= new Set();
   r.virtualDirectories.add('temp/');
-  return ok(value.length, 2);
+  return writeCountedString(r, a(0), a(1), packageDosPath('temp', true), wide, 2);
 }
 
 // GetDiskFreeSpaceExW/GetDiskFreeSpaceW report a bounded in-memory volume. The
