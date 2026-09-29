@@ -245,6 +245,186 @@ unsigned int wb_d3dbc_result_size(unsigned int stage)
     return stage < WB_LEGACY_STAGES ? (unsigned int)wb_legacy_results[stage].size : 0;
 }
 
+/* Descriptor scanning and explicit target bindings for SM4/SM5 DXBC.
+ *
+ * vkd3d-shader assigns target bindings itself when no interface is supplied:
+ * every variable lands in set 0 with sequential binding indices ordered by
+ * first use. That order is not knowable before compilation, so a D3D12 root
+ * signature cannot be mapped onto it. These entry points first scan a shader
+ * for its declared D3D registers, then compile it again with an explicit
+ * (register -> set/binding) table so the caller controls the layout.
+ *
+ * Entry layout, 7 uint32 per record, shared by both calls:
+ *   0 type              vkd3d_shader_descriptor_type
+ *   1 register_space    HLSL register space
+ *   2 register_index    HLSL register number
+ *   3 resource_type     vkd3d_shader_resource_type (scan only; drives flags)
+ *   4 resource_data_type / target set
+ *   5 flags             / target binding
+ *   6 count             descriptor array length (1 when not an array)
+ */
+#define WB_MAX_SCAN_DESCRIPTORS 4096u
+#define WB_DESCRIPTOR_RECORD 7u
+
+static uint32_t wb_descriptor_results[WB_MAX_SCAN_DESCRIPTORS * WB_DESCRIPTOR_RECORD];
+static unsigned int wb_descriptor_count;
+
+int wb_dxbc_scan(const void *bytes, unsigned int length)
+{
+    struct vkd3d_shader_scan_descriptor_info descriptor_info = {0};
+    struct vkd3d_shader_compile_info info = {0};
+    uint32_t magic = 0;
+    char *messages = NULL;
+    unsigned int i;
+    int result;
+
+    wb_messages[0] = '\0';
+    wb_descriptor_count = 0;
+    if (!bytes || length < 32 || length > WB_MAX_DXBC)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "DXBC scan length must be 32..%u bytes", WB_MAX_DXBC);
+        return 0;
+    }
+    memcpy(&magic, bytes, sizeof(magic));
+    if (magic != 0x43425844u)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "DXBC container signature is missing");
+        return 0;
+    }
+
+    descriptor_info.type = VKD3D_SHADER_STRUCTURE_TYPE_SCAN_DESCRIPTOR_INFO;
+    info.type = VKD3D_SHADER_STRUCTURE_TYPE_COMPILE_INFO;
+    info.next = &descriptor_info;
+    info.source.code = bytes;
+    info.source.size = length;
+    info.source_type = VKD3D_SHADER_SOURCE_DXBC_TPF;
+    info.target_type = VKD3D_SHADER_TARGET_SPIRV_BINARY;
+    info.log_level = VKD3D_SHADER_LOG_WARNING;
+    result = vkd3d_shader_scan(&info, &messages);
+    wb_capture_messages(messages);
+    if (result < 0)
+    {
+        if (!wb_messages[0]) snprintf(wb_messages, sizeof(wb_messages), "DXBC descriptor scan failed (%d)", result);
+        return 0;
+    }
+    if (descriptor_info.descriptor_count > WB_MAX_SCAN_DESCRIPTORS)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "DXBC descriptor count exceeds %u", WB_MAX_SCAN_DESCRIPTORS);
+        vkd3d_shader_free_scan_descriptor_info(&descriptor_info);
+        return 0;
+    }
+    for (i = 0; i < descriptor_info.descriptor_count; ++i)
+    {
+        const struct vkd3d_shader_descriptor_info *descriptor = &descriptor_info.descriptors[i];
+        uint32_t *record = &wb_descriptor_results[i * WB_DESCRIPTOR_RECORD];
+
+        record[0] = descriptor->type;
+        record[1] = descriptor->register_space;
+        record[2] = descriptor->register_index;
+        record[3] = descriptor->resource_type;
+        record[4] = descriptor->resource_data_type;
+        record[5] = descriptor->flags;
+        record[6] = descriptor->count;
+    }
+    wb_descriptor_count = descriptor_info.descriptor_count;
+    vkd3d_shader_free_scan_descriptor_info(&descriptor_info);
+    return 1;
+}
+
+const uint32_t *wb_dxbc_scan_results(void) { return wb_descriptor_results; }
+unsigned int wb_dxbc_scan_count(void) { return wb_descriptor_count; }
+
+static unsigned int wb_binding_flag_for_resource_type(unsigned int resource_type)
+{
+    if (resource_type == VKD3D_SHADER_RESOURCE_BUFFER)
+        return VKD3D_SHADER_BINDING_FLAG_BUFFER;
+    if (resource_type == VKD3D_SHADER_RESOURCE_NONE)
+        return 0;
+    return VKD3D_SHADER_BINDING_FLAG_IMAGE;
+}
+
+int wb_dxbc_compile_bound(const void *bytes, unsigned int length,
+        const uint32_t *records, unsigned int record_count)
+{
+    const struct vkd3d_shader_compile_option options[] =
+    {
+        {VKD3D_SHADER_COMPILE_OPTION_WRITE_TESS_GEOM_POINT_SIZE, 0},
+    };
+    struct vkd3d_shader_resource_binding bindings[WB_MAX_SCAN_DESCRIPTORS];
+    struct vkd3d_shader_interface_info interface = {0};
+    struct vkd3d_shader_spirv_target_info target = {0};
+    struct vkd3d_shader_compile_info info = {0};
+    uint32_t magic = 0;
+    char *messages = NULL;
+    unsigned int i;
+    int result;
+
+    wb_clear();
+    if (!bytes || length < 32 || length > WB_MAX_DXBC)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Bound DXBC length must be 32..%u bytes", WB_MAX_DXBC);
+        return 0;
+    }
+    if (record_count > WB_MAX_SCAN_DESCRIPTORS)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Bound descriptor count exceeds %u", WB_MAX_SCAN_DESCRIPTORS);
+        return 0;
+    }
+    memcpy(&magic, bytes, sizeof(magic));
+    if (magic != 0x43425844u)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "DXBC container signature is missing");
+        return 0;
+    }
+    for (i = 0; i < record_count; ++i)
+    {
+        const uint32_t *record = &records[i * WB_DESCRIPTOR_RECORD];
+        struct vkd3d_shader_resource_binding *binding = &bindings[i];
+
+        if (record[0] > VKD3D_SHADER_DESCRIPTOR_TYPE_SAMPLER || !record[6])
+        {
+            snprintf(wb_messages, sizeof(wb_messages), "Bound descriptor record %u is invalid", i);
+            return 0;
+        }
+        memset(binding, 0, sizeof(*binding));
+        binding->type = record[0];
+        binding->register_space = record[1];
+        binding->register_index = record[2];
+        binding->shader_visibility = VKD3D_SHADER_VISIBILITY_ALL;
+        binding->flags = wb_binding_flag_for_resource_type(record[3]);
+        binding->binding.set = record[4];
+        binding->binding.binding = record[5];
+        binding->binding.count = record[6];
+    }
+
+    interface.type = VKD3D_SHADER_STRUCTURE_TYPE_INTERFACE_INFO;
+    interface.bindings = record_count ? bindings : NULL;
+    interface.binding_count = record_count;
+    target.type = VKD3D_SHADER_STRUCTURE_TYPE_SPIRV_TARGET_INFO;
+    target.next = &interface;
+    target.entry_point = "main";
+    target.environment = VKD3D_SHADER_SPIRV_ENVIRONMENT_VULKAN_1_0;
+    info.type = VKD3D_SHADER_STRUCTURE_TYPE_COMPILE_INFO;
+    info.next = &target;
+    info.source.code = bytes;
+    info.source.size = length;
+    info.source_type = VKD3D_SHADER_SOURCE_DXBC_TPF;
+    info.target_type = VKD3D_SHADER_TARGET_SPIRV_BINARY;
+    info.options = options;
+    info.option_count = sizeof(options) / sizeof(options[0]);
+    info.log_level = VKD3D_SHADER_LOG_WARNING;
+    result = vkd3d_shader_compile(&info, &wb_result, &messages);
+    wb_capture_messages(messages);
+    if (result < 0 || !wb_result.code || wb_result.size < 20 || wb_result.size > WB_MAX_SPIRV || wb_result.size % 4)
+    {
+        if (!wb_messages[0]) snprintf(wb_messages, sizeof(wb_messages), "Bound DXBC compile failed (%d)", result);
+        vkd3d_shader_free_shader_code(&wb_result);
+        memset(&wb_result, 0, sizeof(wb_result));
+        return 0;
+    }
+    return 1;
+}
+
 /* Compile application-provided HLSL in the browser, without shader substitution. */
 int wb_hlsl_compile(const void *bytes, unsigned int length, const char *entry,
         const char *profile, const char *source_name)

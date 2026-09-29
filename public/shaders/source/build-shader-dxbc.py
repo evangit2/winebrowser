@@ -83,6 +83,20 @@ def header_manifest(source_bundle):
     }
 
 
+def _extract_and_patch(archive, source):
+    """Extract the pinned archive into the cache tree (already hash-verified)."""
+    with tarfile.open(archive, "r:xz") as package:
+        for member in package.getmembers():
+            target = (source.parent / member.name).resolve()
+            if not target.is_relative_to(source.parent.resolve()):
+                raise RuntimeError("Pinned source archive has an unsafe path")
+        if hasattr(tarfile, "data_filter"):
+            package.extractall(source.parent, filter="data")
+        else:
+            # The exact SHA-256 has already been verified before extraction.
+            package.extractall(source.parent)
+
+
 def main():
     sibling = ROOT.parent / "directwebgpu-wined3d/vendor"
     emsdk_default = ROOT.parent / "directxbrowser/vendor/emsdk"
@@ -91,6 +105,9 @@ def main():
                         help="Use a local copy of the pinned archive instead of downloading it")
     parser.add_argument("--source-only", action="store_true",
                         help="Publish source/relink materials and refresh manifest without rebuilding Wasm")
+    parser.add_argument("--relink", action="store_true",
+                        help="Relink the Wasm bundle from the existing configured build tree; "
+                             "skips download, extraction, patch and configure")
     parser.add_argument("--emsdk", type=pathlib.Path,
                         default=pathlib.Path(os.environ.get("EMSDK", emsdk_default)))
     parser.add_argument("--spirv-headers", type=pathlib.Path,
@@ -143,26 +160,26 @@ def main():
     version = subprocess.check_output([str(emcc), "--version"], text=True).splitlines()[0]
 
     source = CACHE / "source/vkd3d-2.1"
-    if source.parent.exists():
-        shutil.rmtree(source.parent)
-    source.parent.mkdir()
-    with tarfile.open(archive, "r:xz") as package:
-        for member in package.getmembers():
-            target = (source.parent / member.name).resolve()
-            if not target.is_relative_to(source.parent.resolve()):
-                raise RuntimeError("Pinned source archive has an unsafe path")
-        if hasattr(tarfile, "data_filter"):
-            package.extractall(source.parent, filter="data")
-        else:
-            # The exact SHA-256 has already been verified before extraction.
-            package.extractall(source.parent)
+    build = CACHE / "build"
+    if args.relink:
+        # Relinking reuses the pinned, already-patched source tree and the
+        # configured build artifacts. Only the bridge and bundle flags change.
+        if not (source / "configure").is_file() or not (build / ".libs/libvkd3d-shader.a").is_file():
+            raise RuntimeError("--relink needs an existing configured build tree; "
+                               "run a full build first")
+    else:
+        if source.parent.exists():
+            shutil.rmtree(source.parent)
+        source.parent.mkdir()
+        _extract_and_patch(archive, source)
     if not (source / "configure").is_file():
         raise RuntimeError("Pinned vkd3d archive has no configure script")
-    run("patch", ["patch", "-p1", "-i", VKD3D_PATCH], source, dict(os.environ))
-    build = CACHE / "build"
-    if build.exists():
-        shutil.rmtree(build)
-    build.mkdir()
+    if not args.relink:
+        run("patch", ["patch", "-p1", "-i", VKD3D_PATCH], source, dict(os.environ))
+    if not args.relink:
+        if build.exists():
+            shutil.rmtree(build)
+        build.mkdir()
     # Autoconf executes Emscripten's extensionless Node conftest scripts. This
     # repository is ESM, so give only the ignored build directory CJS scope.
     (build / "package.json").write_text('{"type":"commonjs"}\n')
@@ -176,18 +193,23 @@ def main():
     env["CPPFLAGS"] = f"-I{spirv / 'include'} -I{vulkan / 'include'}"
     env["PTHREAD_LIBS"] = "-pthread"
     env["SONAME_LIBVULKAN"] = "libvulkan.so"
-    run("configure", [emconfigure, source / "configure", "--disable-demos", "--disable-tests",
-                      "--without-opengl", "--without-ncurses", "--without-xcb",
-                      "--without-spirv-tools", "WIDL=no"], build, env)
-    run("version-header", [emmake, "make", "include/private/vkd3d_version.h"], build, env)
-    run("library", [emmake, "make", "-j4", "libvkd3d-shader.la"], build, env)
+    if not args.relink:
+        run("configure", [emconfigure, source / "configure", "--disable-demos", "--disable-tests",
+                          "--without-opengl", "--without-ncurses", "--without-xcb",
+                          "--without-spirv-tools", "WIDL=no"], build, env)
+        run("version-header", [emmake, "make", "include/private/vkd3d_version.h"], build, env)
+        run("library", [emmake, "make", "-j4", "libvkd3d-shader.la"], build, env)
+    elif not (build / "include/private/vkd3d_version.h").is_file():
+        raise RuntimeError("--relink needs the generated version header; run a full build first")
 
     output = PUBLIC / "vkd3d-shader.js"
     exports = ["_malloc", "_free", "_wb_hlsl_compile", "_wb_dxbc_compile", "_wb_result_ptr",
                "_wb_result_size", "_wb_messages_ptr", "_wb_clear",
                "_wb_root_signature_serialize", "_wb_root_signature_validate",
                "_wb_root_signature_flags", "_wb_d3dbc_compile_pair",
-               "_wb_d3dbc_result_ptr", "_wb_d3dbc_result_size"]
+               "_wb_d3dbc_result_ptr", "_wb_d3dbc_result_size",
+               "_wb_dxbc_scan", "_wb_dxbc_scan_results", "_wb_dxbc_scan_count",
+               "_wb_dxbc_compile_bound"]
     run("bundle", [emcc, "-O2", "-DNDEBUG", "-DVKD3D_NO_TRACE_MESSAGES",
                    "-DVKD3D_NO_DEBUG_MESSAGES", f"-I{source / 'include'}",
                    f"-I{source / 'include/private'}", f"-I{build / 'include'}", BRIDGE,
