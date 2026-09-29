@@ -379,14 +379,28 @@ export class VirtualDesktop {
 
     let element;
     if (controlType === 'button') {
-      element = document.createElement('button');
-      element.type = 'button';
-      element.className = 'virtual-desktop-control virtual-desktop-control-button';
-      element.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (!element.disabled && !element.hidden)
-          this.#emit(control.id, 'command', { notification: 0 });
-      });
+      const buttonType = state.controlStyle?.buttonType ?? 'push';
+      // A group box is a labelled frame, not a clickable control.
+      if (buttonType === 'group-box') {
+        element = document.createElement('fieldset');
+        element.className = 'virtual-desktop-control virtual-desktop-control-groupbox';
+        const legend = document.createElement('legend');
+        element.append(legend);
+        control.legend = legend;
+      } else {
+        const toggling = !!state.controlStyle?.toggle || !!state.controlStyle?.triState;
+        element = document.createElement('button');
+        element.type = 'button';
+        element.className =
+          'virtual-desktop-control virtual-desktop-control-button' +
+          (toggling ? ' virtual-desktop-control-toggle' : '');
+        if (state.controlStyle?.flat) element.classList.add('virtual-desktop-control-flat');
+        element.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (!element.disabled && !element.hidden)
+            this.#emit(control.id, 'command', { notification: 0 });
+        });
+      }
     } else if (controlType === 'edit') {
       // ES_MULTILINE needs a text area; a single-line edit is an input. The
       // element is chosen at creation because the style cannot change later.
@@ -459,6 +473,12 @@ export class VirtualDesktop {
       if (control.controlType === 'edit') {
         // Avoid disrupting caret selection during incremental WM_SETTEXT echo.
         if (control.element.value !== control.titleText) control.element.value = control.titleText;
+      } else if (control.legend) {
+        // A group box shows its caption in the legend, not as body text.
+        control.legend.textContent =
+          (noPrefix ?? control.noPrefix ?? false)
+            ? control.titleText
+            : stripCaptionMnemonics(control.titleText);
       } else {
         control.element.textContent =
           (noPrefix ?? control.noPrefix ?? false)
@@ -492,6 +512,25 @@ export class VirtualDesktop {
           : '0';
     }
     const controlStyle = state.controlStyle ?? {};
+    if (control.controlType === 'button' && state.controlStyle) {
+      const style = state.controlStyle;
+      control.buttonType = style.buttonType ?? control.buttonType;
+      control.toggle = !!style.toggle || !!style.triState;
+      control.triState = !!style.triState;
+      // The native control reports a three-state button's indeterminate state
+      // through aria-checked="mixed"; a checkbox uses the checked attribute.
+      if (control.toggle) {
+        const checked = (style.checkState ?? state.checkState ?? 0) === 1;
+        control.element.setAttribute('aria-checked', checked ? 'true' : 'false');
+        if (control.triState)
+          control.element.setAttribute(
+            'aria-checked',
+            (style.checkState ?? state.checkState ?? 0) === 2 ? 'mixed' : checked ? 'true' : 'false',
+          );
+        control.element.classList.toggle('virtual-desktop-control-checked', checked);
+      }
+      control.element.classList.toggle('virtual-desktop-control-flat', !!style.flat);
+    }
     const textAlign = state.textAlign ?? controlStyle.textAlign ?? controlStyle.alignment;
     if (textAlign !== undefined) control.element.style.textAlign = textAlign ?? '';
     const readOnly = state.readOnly ?? controlStyle.readOnly;

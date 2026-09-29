@@ -405,3 +405,86 @@ test('multiline, password and case-filtered EDIT styles are modelled', async (t)
   runtime.windows.input({ type: 'text', windowId: single.result, text: 'x\ny' });
   assert.equal(runtime.windows.windows.get(single.result).title, 'xy');
 });
+
+test('the BUTTON family models check state, radio groups and group boxes', async (t) => {
+  const harness = await makeHarness(t);
+  const { runtime, parentId, callbacks } = harness;
+  runtime.windows.windows.get(parentId).visible = true;
+  const create = (style, title, controlId) =>
+    createChild(runtime, parentId, {
+      className: 'BUTTON',
+      title,
+      controlId,
+      style: WS_CHILD | WS_VISIBLE | style,
+    });
+  const send = (id, message, wp = 0, lp = 0) =>
+    call(runtime, 'user32.dll!SendMessageA', [id, message, wp, lp]);
+  // SendMessageA resolves asynchronously, so the result must be awaited before
+  // its `result` field is read.
+  const check = async (id) => (await send(id, 0xf0)).result;
+
+  // An automatic checkbox toggles on BM_CLICK and notifies its parent.
+  const box = await create(0x3, 'Auto', 60);
+  assert.equal(await check(box.result), 0);
+  callbacks.length = 0;
+  await send(box.result, 0xf5);
+  assert.equal(await check(box.result), 1, 'BM_CLICK checks an automatic checkbox');
+  assert.equal(callbacks.filter((a) => a[1] === WM_COMMAND).length, 1);
+  await send(box.result, 0xf5);
+  assert.equal(await check(box.result), 0, 'a second click unchecks it');
+
+  // A manual checkbox changes state only through BM_SETCHECK.
+  const manual = await create(0x2, 'Manual', 61);
+  await send(manual.result, 0xf5);
+  assert.equal(await check(manual.result), 0, 'a click does not toggle a manual checkbox');
+  assert.equal((await send(manual.result, 0xf1, 1)).result, 0);
+  assert.equal(await check(manual.result), 1);
+
+  // A two-state button cannot hold the indeterminate state.
+  assert.equal(await check(manual.result), 1);
+  await send(manual.result, 0xf1, 2);
+  assert.equal(await check(manual.result), 1, 'indeterminate is rejected on a two-state button');
+
+  // A three-state button cycles unchecked -> checked -> indeterminate.
+  const three = await create(0x6, 'Tri', 62);
+  assert.equal(await check(three.result), 0);
+  await send(three.result, 0xf5);
+  assert.equal(await check(three.result), 1);
+  await send(three.result, 0xf5);
+  assert.equal(await check(three.result), 2);
+  await send(three.result, 0xf5);
+  assert.equal(await check(three.result), 0);
+
+  // Radio buttons in one group are mutually exclusive, and checking one clears
+  // the others, so a dialog reading the group sees exactly one selection.
+  const group = await create(0x7, 'Group', 63);
+  const radioA = await create(0x9, 'A', 64);
+  const radioB = await create(0x9, 'B', 65);
+  await send(radioA.result, 0xf5);
+  assert.equal(await check(radioA.result), 1);
+  await send(radioB.result, 0xf5);
+  assert.equal(await check(radioB.result), 1);
+  assert.equal(await check(radioA.result), 0, 'the previously checked radio was cleared');
+  // A group box after them starts a new group.
+  const second = await create(0x7, 'Second', 66);
+  const radioC = await create(0x9, 'C', 67);
+  await send(radioC.result, 0xf5);
+  assert.equal(await check(radioB.result), 1, 'the earlier group is unaffected');
+  assert.equal(await check(radioC.result), 1);
+  assert.ok(group.result && second.result);
+  // A group box publishes its caption through the legend, not as body text.
+  const emitted = [];
+  const originalEmit = runtime.emit;
+  runtime.emit = (event) => emitted.push(event);
+  runtime.windows.emit(runtime.windows.windows.get(group.result));
+  runtime.emit = originalEmit;
+  const published = emitted.find((event) => event.type === 'window')?.window;
+  assert.equal(published.controlStyle.groupBox, true);
+  assert.equal(published.controlStyle.buttonType, 'group-box');
+  // An unknown BUTTON style and a modifier bit other than BS_FLAT are rejected.
+  await assert.rejects(create(0xf, 'Bad', 68), /Unsupported BUTTON style/);
+  await assert.rejects(create(0x100, 'Bad', 69), /Only BS_FLAT/);
+  // BS_FLAT is accepted.
+  const flat = await create(0x8000, 'Flat', 70);
+  assert.ok(flat.result);
+});

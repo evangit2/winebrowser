@@ -155,6 +155,29 @@
   overflow: hidden;
 }
 
+/* A checkbox, radio button or three-state button: the native control draws its
+   state inside the same rectangle as the caption. */
+.virtual-desktop-control-toggle {
+  text-align: left;
+}
+
+/* A flat button (BS_FLAT) has no raised border. */
+.virtual-desktop-control-flat {
+  border: 1px solid #888;
+}
+
+.virtual-desktop-control-groupbox {
+  margin: 0;
+  padding: 2px;
+  border: 1px solid #888;
+  text-align: left;
+}
+
+.virtual-desktop-control-groupbox > legend {
+  padding: 0 3px;
+  font: inherit;
+}
+
 .virtual-desktop-control-edit {
   margin: 0;
   padding: 2px 3px;

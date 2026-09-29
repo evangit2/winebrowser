@@ -22,7 +22,28 @@ export function builtinControlClass(name, wide) {
 export function controlStyle(kind, style, extended) {
   const local = style & 0xffff;
   if (extended & ~0x204) throw Error('Unsupported child-control extended style');
-  if (kind === 'button' && ![0, 1].includes(local)) throw Error('Only push buttons are supported');
+  // BUTTON styles: BS_PUSHBUTTON (0), DEFPUSHBUTTON (1), CHECKBOX (2),
+  // AUTOCHECKBOX (3), RADIOBUTTON (4), 3STATE (5), AUTO3STATE (6), GROUPBOX (7),
+  // USERBUTTON (8, undocumented), AUTORADIOBUTTON (9), PUSHBOX (0xa),
+  // OWNERDRAW (0xb). BS_TYPEMASK isolates the kind; the remaining bits are
+  // modifiers, and BS_FLAT (0x8000) is the only one this backend honours.
+  const BUTTON_TYPES = new Map([
+    [0x0, 'push'],
+    [0x1, 'default-push'],
+    [0x2, 'checkbox'],
+    [0x3, 'auto-checkbox'],
+    [0x4, 'radio'],
+    [0x5, 'three-state'],
+    [0x6, 'auto-three-state'],
+    [0x7, 'group-box'],
+    [0x9, 'auto-radio'],
+    [0xa, 'push-box'],
+    [0xb, 'owner-draw'],
+  ]);
+  const buttonType = kind === 'button' ? BUTTON_TYPES.get(local & 0xf) : null;
+  if (kind === 'button' && !buttonType) throw Error('Unsupported BUTTON style');
+  if (kind === 'button' && local & ~(0xf | 0x8000))
+    throw Error('Only BS_FLAT is supported among the BUTTON modifier bits');
   if (kind === 'static' && (local & ~0x83 || (local & 3) === 3))
     throw Error('Unsupported STATIC style');
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
@@ -40,6 +61,16 @@ export function controlStyle(kind, style, extended) {
   }
   return {
     controlBorder: extended & 0x200 ? 2 : style & 0x800000 ? 1 : 0,
+    // BUTTON family. The desktop uses `buttonType` to pick an element and
+    // `toggle`/`triState` to decide what a click does; `checkState` is the
+    // current BM_GETCHECK value.
+    buttonType,
+    flat: kind === 'button' && !!(local & 0x8000),
+    toggle: kind === 'button' && ['checkbox', 'auto-checkbox', 'radio', 'auto-radio'].includes(buttonType),
+    triState: kind === 'button' && ['three-state', 'auto-three-state'].includes(buttonType),
+    automatic: kind === 'button' && buttonType?.startsWith('auto') === true,
+    groupBox: buttonType === 'group-box',
+    checkState: 0,
     readOnly: kind === 'edit' && !!(local & 0x800),
     noPrefix: kind === 'static' && !!(local & 0x80),
     textAlign: kind === 'button' ? 'center' : (['left', 'center', 'right'][local & 3] ?? 'left'),
@@ -67,6 +98,57 @@ async function notify(r, window, notification) {
   if (r.windows.windows.has(window.parentId))
     await r.windows.send(window.parentId, 0x111, command(window, notification), window.id);
 }
+
+/**
+ * Cycles a button's check state the way the native control does, then returns
+ * whether the state changed. Only automatic buttons (and push boxes) change
+ * state on their own; a manual checkbox changes state only through BM_SETCHECK,
+ * so a click just notifies.
+ */
+function activateButton(r, window) {
+  const before = window.checkState ?? 0;
+  if (window.triState) {
+    // 3-state buttons cycle unchecked -> checked -> indeterminate.
+    window.checkState = (before + 1) % 3;
+  } else if (window.toggle && window.automatic) {
+    window.checkState = before ? 0 : 1;
+  }
+  if (window.checkState !== before) r.windows.emit(window);
+  return window.checkState !== before;
+}
+
+/**
+ * A radio button being checked clears every other radio button in the same
+ * group: the buttons after the preceding group box, up to the next one. This is
+ * the documented behaviour and is what a dialog relies on to read a selection.
+ */
+function clearRadioGroup(r, window) {
+  if (!window.toggle || !window.automatic) return;
+  if (window.buttonType !== 'auto-radio' && window.buttonType !== 'radio') return;
+  const siblings = [...r.windows.windows.values()].filter(
+    (other) => other.parentId === window.parentId && other.controlType === 'button',
+  );
+  siblings.sort((a, b) => a.zOrder - b.zOrder || a.id - b.id);
+  let inGroup = false;
+  for (const other of siblings) {
+    if (other.id === window.id) {
+      inGroup = true;
+      continue;
+    }
+    if (other.groupBox) {
+      if (inGroup) break;
+      continue;
+    }
+    if (!inGroup) continue;
+    if (
+      (other.buttonType === 'auto-radio' || other.buttonType === 'radio') &&
+      other.checkState
+    ) {
+      other.checkState = 0;
+      r.windows.emit(other);
+    }
+  }
+}
 export async function controlMessage(r, window, message, wp, lp, fallback) {
   if (message === 0x30) {
     // WM_SETFONT
@@ -83,9 +165,27 @@ export async function controlMessage(r, window, message, wp, lp, fallback) {
   if (message === 0x31) return window.fontHandle;
   if (message === 0x87)
     return window.controlType === 'edit' ? 0x89 : window.controlType === 'button' ? 0x2000 : 0x100;
+  if (window.controlType === 'button' && message === 0xf0) return window.checkState ?? 0;
+  if (window.controlType === 'button' && message === 0xf1) {
+    // BM_SETCHECK: the state is one of unchecked, checked or indeterminate, and
+    // a two-state button cannot hold the third.
+    const state = wp >>> 0;
+    if (state > 2 || (state === 2 && !window.triState)) {
+      if (state > 2) throw Error('Unsupported BM_SETCHECK state');
+      return 0;
+    }
+    window.checkState = state;
+    if (state) clearRadioGroup(r, window);
+    r.windows.emit(window);
+    return 0;
+  }
   if (window.controlType === 'button' && message === 0xf5) {
-    // BM_CLICK
-    if (window.enabled) await notify(r, window, 0);
+    // BM_CLICK: a checked radio clears its group, then the parent is notified.
+    if (window.enabled) {
+      activateButton(r, window);
+      if (window.checkState) clearRadioGroup(r, window);
+      await notify(r, window, 0);
+    }
     return 0;
   }
   if (message === 7 || message === 8) {
@@ -115,7 +215,13 @@ function applyEditFilters(window, text) {
 export function controlInput(r, window, event) {
   if (!window.controlType || !window.enabled) return false;
   if (event.type === 'command' && window.controlType === 'button') {
-    r.windows.post(window.parentId, 0x111, command(window, 0), window.id);
+    // A click on an automatic button changes its state before the parent is
+    // told, so a handler reading BM_GETCHECK sees the new value.
+    if (window.enabled) {
+      activateButton(r, window);
+      if (window.checkState) clearRadioGroup(r, window);
+      r.windows.post(window.parentId, 0x111, command(window, 0), window.id);
+    }
     return true;
   }
   if (event.type === 'text' && window.controlType === 'edit') {
