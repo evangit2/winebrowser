@@ -15,6 +15,29 @@
 #define WB_MAX_LEGACY_BINDINGS 64u
 #define WB_MAX_LEGACY_VARYINGS 12u
 
+/*
+ * Descriptor scanning and canonical D3D12 binding support. These tables are
+ * declared here so wb_clear() can reset them; the entry points that fill them
+ * are defined further down, next to the root-signature inspection code.
+ */
+#define WB_MAX_SCAN_DESCRIPTORS 4096u
+#define WB_DESCRIPTOR_RECORD 7u
+#define WB_MAX_ROOT_PARAMETERS 64u
+#define WB_MAX_ROOT_RANGES 128u
+#define WB_MAX_ROOT_SAMPLERS 64u
+#define WB_ROOT_HEADER_WORDS 6u
+#define WB_ROOT_PARAMETER_WORDS 7u
+#define WB_ROOT_RANGE_WORDS 5u
+#define WB_ROOT_SAMPLER_WORDS 11u
+
+static uint32_t wb_descriptor_results[WB_MAX_SCAN_DESCRIPTORS * WB_DESCRIPTOR_RECORD];
+static unsigned int wb_descriptor_count;
+static uint32_t wb_root_words[WB_ROOT_HEADER_WORDS
+        + WB_MAX_ROOT_PARAMETERS * WB_ROOT_PARAMETER_WORDS
+        + WB_MAX_ROOT_RANGES * WB_ROOT_RANGE_WORDS
+        + WB_MAX_ROOT_SAMPLERS * WB_ROOT_SAMPLER_WORDS];
+static unsigned int wb_root_word_count;
+
 static struct vkd3d_shader_code wb_result;
 static struct vkd3d_shader_code wb_legacy_results[WB_LEGACY_STAGES];
 static struct vkd3d_shader_scan_signature_info wb_legacy_signatures[WB_LEGACY_STAGES];
@@ -48,6 +71,8 @@ void wb_clear(void)
     }
     wb_messages[0] = '\0';
     wb_root_flags = 0;
+    wb_descriptor_count = 0;
+    wb_root_word_count = 0;
 }
 
 static int wb_legacy_validate(unsigned int stage, const void *bytes, unsigned int length)
@@ -263,12 +288,26 @@ unsigned int wb_d3dbc_result_size(unsigned int stage)
  *   5 flags             / target binding
  *   6 count             descriptor array length (1 when not an array)
  */
-#define WB_MAX_SCAN_DESCRIPTORS 4096u
-#define WB_DESCRIPTOR_RECORD 7u
-
-static uint32_t wb_descriptor_results[WB_MAX_SCAN_DESCRIPTORS * WB_DESCRIPTOR_RECORD];
-static unsigned int wb_descriptor_count;
-
+/* Parsed root-signature shape, flattened into a single word array so the
+ * caller can build a canonical binding table without re-parsing the blob.
+ *
+ * Header, 6 words:
+ *   0 parameter count          1 static sampler count
+ *   2 flags                    3 root constants total (DWORDs)
+ *   4 static sampler word count (record width x count)
+ *   5 reserved
+ * Parameters, 7 words each:
+ *   0 parameter type   1 visibility   2 descriptor range count
+ *   3 shader register  4 register space   5 value count / ignored
+ *   6 range record offset (relative to range base)
+ * Ranges, 5 words each:
+ *   0 range type   1 descriptor count   2 base shader register
+ *   3 register space   4 table offset
+ * Static samplers, 11 words each:
+ *   0 filter   1-3 address u/v/w   4 mip lod bias (float bits)
+ *   5 max anisotropy   6 comparison func   7 border colour
+ *   8 min lod   9 max lod   10 (register | space << 16 | visibility << 24)
+ */
 int wb_dxbc_scan(const void *bytes, unsigned int length)
 {
     struct vkd3d_shader_scan_descriptor_info descriptor_info = {0};
@@ -587,6 +626,157 @@ int wb_root_signature_validate(const void *bytes, unsigned int length)
 }
 
 unsigned int wb_root_signature_flags(void) { return wb_root_flags; }
+
+/* Parse a serialized root signature and expose its structure. The empty
+ * version 1.0 signature has always been accepted; this additionally reports
+ * parameters, descriptor ranges and static samplers so the backend can map a
+ * shader's HLSL registers onto canonical, signature-derived bindings. */
+int wb_root_signature_inspect(const void *bytes, unsigned int length)
+{
+    struct vkd3d_shader_versioned_root_signature_desc desc = {0};
+    struct vkd3d_shader_code dxbc;
+    char *messages = NULL;
+    uint32_t magic = 0;
+    unsigned int parameter_index, range_index, sampler_index, cursor;
+    unsigned int total_ranges = 0, total_constants = 0;
+    int result;
+
+    wb_messages[0] = '\0';
+    wb_root_flags = 0;
+    wb_root_word_count = 0;
+    if (!bytes || length < 32 || length > WB_MAX_DXBC)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Root signature length must be 32..%u bytes", WB_MAX_DXBC);
+        return 0;
+    }
+    memcpy(&magic, bytes, sizeof(magic));
+    if (magic != 0x43425844u)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Root signature DXBC container signature is missing");
+        return 0;
+    }
+    dxbc.code = bytes;
+    dxbc.size = length;
+    result = vkd3d_shader_parse_root_signature(&dxbc, &desc, &messages);
+    wb_capture_messages(messages);
+    if (result < 0)
+    {
+        if (!wb_messages[0]) snprintf(wb_messages, sizeof(wb_messages), "Root signature parse failed (%d)", result);
+        return 0;
+    }
+    if (desc.version != VKD3D_SHADER_ROOT_SIGNATURE_VERSION_1_0)
+        goto unsupported;
+
+    for (parameter_index = 0; parameter_index < desc.u.v_1_0.parameter_count; ++parameter_index)
+    {
+        const struct vkd3d_shader_root_parameter *parameter = &desc.u.v_1_0.parameters[parameter_index];
+        if (parameter->parameter_type == VKD3D_SHADER_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+            total_constants += parameter->u.constants.value_count;
+        else if (parameter->parameter_type == VKD3D_SHADER_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+            total_ranges += parameter->u.descriptor_table.descriptor_range_count;
+    }
+    if (desc.u.v_1_0.parameter_count > WB_MAX_ROOT_PARAMETERS || total_ranges > WB_MAX_ROOT_RANGES
+            || desc.u.v_1_0.static_sampler_count > WB_MAX_ROOT_SAMPLERS)
+    {
+        snprintf(wb_messages, sizeof(wb_messages), "Root signature exceeds the inspection limits");
+        goto unsupported;
+    }
+
+    cursor = WB_ROOT_HEADER_WORDS;
+    for (parameter_index = 0; parameter_index < desc.u.v_1_0.parameter_count; ++parameter_index)
+    {
+        const struct vkd3d_shader_root_parameter *parameter = &desc.u.v_1_0.parameters[parameter_index];
+        uint32_t *record = &wb_root_words[cursor];
+
+        record[0] = parameter->parameter_type;
+        record[1] = parameter->shader_visibility;
+        record[2] = 0;
+        record[3] = 0;
+        record[4] = 0;
+        record[5] = 0;
+        record[6] = 0;
+        if (parameter->parameter_type == VKD3D_SHADER_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+        {
+            const struct vkd3d_shader_root_descriptor_table *table = &parameter->u.descriptor_table;
+            record[2] = table->descriptor_range_count;
+            record[6] = cursor + WB_ROOT_PARAMETER_WORDS; /* range base for this parameter */
+        }
+        else if (parameter->parameter_type == VKD3D_SHADER_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+        {
+            record[3] = parameter->u.constants.shader_register;
+            record[4] = parameter->u.constants.register_space;
+            record[5] = parameter->u.constants.value_count;
+        }
+        else
+        {
+            record[3] = parameter->u.descriptor.shader_register;
+            record[4] = parameter->u.descriptor.register_space;
+        }
+        cursor += WB_ROOT_PARAMETER_WORDS;
+    }
+    /* Ranges follow the parameter block; re-walk with the range cursor so the
+     * record offsets written above stay valid. */
+    range_index = cursor;
+    for (parameter_index = 0; parameter_index < desc.u.v_1_0.parameter_count; ++parameter_index)
+    {
+        const struct vkd3d_shader_root_parameter *parameter = &desc.u.v_1_0.parameters[parameter_index];
+        unsigned int r;
+        if (parameter->parameter_type != VKD3D_SHADER_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+            continue;
+        for (r = 0; r < parameter->u.descriptor_table.descriptor_range_count; ++r)
+        {
+            const struct vkd3d_shader_descriptor_range *range = &parameter->u.descriptor_table.descriptor_ranges[r];
+            uint32_t *record = &wb_root_words[range_index];
+            record[0] = range->range_type;
+            record[1] = range->descriptor_count;
+            record[2] = range->base_shader_register;
+            record[3] = range->register_space;
+            record[4] = range->descriptor_table_offset;
+            range_index += WB_ROOT_RANGE_WORDS;
+        }
+    }
+    for (sampler_index = 0; sampler_index < desc.u.v_1_0.static_sampler_count; ++sampler_index)
+    {
+        const struct vkd3d_shader_static_sampler_desc *sampler = &desc.u.v_1_0.static_samplers[sampler_index];
+        uint32_t *record = &wb_root_words[range_index];
+        float bias = sampler->mip_lod_bias, min_lod = sampler->min_lod, max_lod = sampler->max_lod;
+
+        record[0] = sampler->filter;
+        record[1] = sampler->address_u;
+        record[2] = sampler->address_v;
+        record[3] = sampler->address_w;
+        memcpy(&record[4], &bias, sizeof(bias));
+        record[5] = sampler->max_anisotropy;
+        record[6] = sampler->comparison_func;
+        record[7] = sampler->border_colour;
+        memcpy(&record[8], &min_lod, sizeof(min_lod));
+        memcpy(&record[9], &max_lod, sizeof(max_lod));
+        record[10] = (sampler->shader_register & 0xffffu)
+                | ((sampler->register_space & 0xffu) << 16)
+                | ((sampler->shader_visibility & 0xffu) << 24);
+        range_index += WB_ROOT_SAMPLER_WORDS;
+    }
+
+    wb_root_words[0] = desc.u.v_1_0.parameter_count;
+    wb_root_words[1] = desc.u.v_1_0.static_sampler_count;
+    wb_root_words[2] = desc.u.v_1_0.flags;
+    wb_root_words[3] = total_constants;
+    wb_root_words[4] = WB_ROOT_SAMPLER_WORDS;
+    wb_root_words[5] = 0;
+    wb_root_word_count = range_index;
+    wb_root_flags = desc.u.v_1_0.flags;
+    vkd3d_shader_free_root_signature(&desc);
+    return 1;
+
+unsupported:
+    snprintf(wb_messages, sizeof(wb_messages),
+            "Root signature version/structure is outside the bounded inspection subset");
+    vkd3d_shader_free_root_signature(&desc);
+    return 0;
+}
+
+const uint32_t *wb_root_signature_words(void) { return wb_root_words; }
+unsigned int wb_root_signature_word_count(void) { return wb_root_word_count; }
 
 const void *wb_result_ptr(void) { return wb_result.code; }
 unsigned int wb_result_size(void) { return (unsigned int)wb_result.size; }
