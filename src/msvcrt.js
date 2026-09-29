@@ -408,8 +408,10 @@ const FPU_MATH = {
 for (const [name, [count, compute]] of Object.entries(FPU_MATH)) {
   msvcrtApis[`msvcrt.dll!${name}`] = (r) => {
     const x87 = r.cpu.x87;
+    // Wine's CREATE_FPU_FUNC* thunks store ST(0) into the highest C argument
+    // slot and ST(1) into the one below it, so the first C argument is ST(1).
     const args = [];
-    for (let i = 0; i < count; i++) args.push(x87.doubleOperand(i));
+    for (let i = 0; i < count; i++) args.push(x87.doubleOperand(count - 1 - i));
     const result = compute(...args);
     // _CIatan2 and _CIfmod pop both operands and push one result.
     for (let i = 0; i < count; i++) x87.popDouble();
