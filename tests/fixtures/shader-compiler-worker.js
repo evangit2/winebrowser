@@ -69,6 +69,69 @@ onmessage = async ({ data }) => {
           JSON.stringify({ observed, expected }),
       );
 
+    // A guest D3D12_ROOT_SIGNATURE_DESC (as D3D12HelloTexture declares it: an
+    // SRV descriptor table, a pixel static sampler and a root CBV) must parse
+    // into the flattened description, build into a real DXBC container and
+    // inspect back into the same shape. This is the exact path
+    // D3D12SerializeRootSignature takes for a non-empty signature.
+    const memory = new Uint8Array(512);
+    const memoryView = new DataView(memory.buffer);
+    let alloc = memory.length;
+    const reserve = (bytes) => (alloc = (alloc - bytes) & ~3);
+    const put32 = (at, value, offset = 0) =>
+      memoryView.setUint32(at + offset, value >>> 0, true);
+    const putFloat = (at, value, offset = 0) => memoryView.setFloat32(at + offset, value, true);
+    const rangeArray = reserve(20);
+    put32(rangeArray, 0); // D3D12_DESCRIPTOR_RANGE_TYPE_SRV
+    put32(rangeArray, 1, 4);
+    put32(rangeArray, 0, 8);
+    put32(rangeArray, 0, 12);
+    put32(rangeArray, 0, 16);
+    const parameters = reserve(40);
+    put32(parameters, 0); // D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE
+    put32(parameters, 1, 4);
+    put32(parameters, rangeArray, 8);
+    put32(parameters, 5, 16); // D3D12_SHADER_VISIBILITY_PIXEL
+    put32(parameters, 2, 20); // D3D12_ROOT_PARAMETER_TYPE_CBV
+    put32(parameters, 0, 24);
+    put32(parameters, 0, 28);
+    put32(parameters, 1, 36); // D3D12_SHADER_VISIBILITY_VERTEX
+    const samplerArray = reserve(52);
+    put32(samplerArray, 21); // MIN_MAG_MIP_LINEAR
+    put32(samplerArray, 3, 4);
+    put32(samplerArray, 3, 8);
+    put32(samplerArray, 3, 12);
+    putFloat(samplerArray, 0, 16);
+    put32(samplerArray, 1, 20);
+    putFloat(samplerArray, 0, 32);
+    putFloat(samplerArray, 3.4028234663852886e38, 36);
+    put32(samplerArray, 0, 40);
+    put32(samplerArray, 0, 44);
+    put32(samplerArray, 5, 48);
+    const description = reserve(20);
+    put32(description, 2);
+    put32(description, parameters, 4);
+    put32(description, 1, 8);
+    put32(description, samplerArray, 12);
+    put32(description, 1, 16);
+    const descriptorParser = await import('../../src/d3d12-descriptors.js');
+    const flattened = descriptorParser.parseRootSignatureDescriptor({
+      check: (pointer, length) => {
+        if (!Number.isInteger(pointer) || pointer < 0 || pointer + length > memory.length)
+          throw Error('out of bounds');
+        return pointer;
+      },
+      read32: (pointer) => memoryView.getUint32(pointer, true),
+      readFloat32: (pointer) => memoryView.getFloat32(pointer, true),
+      pointer: description,
+    });
+    if (!flattened) throw Error('Guest root signature description was rejected');
+    const builtTable = await compiler.buildRootSignature(flattened);
+    const inspectedTable = await compiler.inspectRootSignature(builtTable);
+    if (inspectedTable.words.length !== flattened.length ||
+        inspectedTable.words.some((word, index) => word !== flattened[index]))
+      throw Error('Application root signature did not round trip through the bridge');
+
     // Root-signature inspection must report the serialised structure, not just
     // accept it, and rebuilding from those words must reproduce the exact
     // container: the same description has to survive a full round trip.
@@ -209,6 +272,11 @@ onmessage = async ({ data }) => {
           boundWGSL: bound.wgsl,
         },
         signatureWords: Array.from(signatureWords.words),
+        applicationSignature: {
+          flattened: Array.from(flattened),
+          builtBytes: builtTable.length,
+          roundTripWords: inspectedTable.words.length,
+        },
         signatureRoundTrip: {
           originalBytes: original.length,
           rebuiltBytes: rebuiltSignature.length,

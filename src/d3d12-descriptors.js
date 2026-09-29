@@ -252,3 +252,141 @@ export function parseCommittedResourceDescriptor({
   }
   return null;
 }
+
+// D3D12_ROOT_SIGNATURE_DESC and its nested records, decoded into the flattened
+// word layout the shader bridge consumes. Offsets are the 32-bit (i686) ABI:
+//   root signature   NumParameters 0, pParameters 4, NumStaticSamplers 8,
+//                    pStaticSamplers 12, Flags 16        (20 bytes)
+//   parameter        ParameterType 0, union 4..15, ShaderVisibility 16 (20)
+//   descriptor range RangeType 0, NumDescriptors 4, BaseShaderRegister 8,
+//                    RegisterSpace 12, OffsetInDescriptorsFromTableStart 16 (20)
+//   static sampler   Filter 0, AddressU/V/W 4/8/12, MipLODBias 16,
+//                    MaxAnisotropy 20, ComparisonFunc 24, BorderColor 28,
+//                    MinLOD 32, MaxLOD 36, ShaderRegister 40,
+//                    RegisterSpace 44, ShaderVisibility 48    (52 bytes)
+const ROOT_HEADER_WORDS = 6;
+const PARAMETER_WORDS = 7;
+const RANGE_WORDS = 5;
+const SAMPLER_WORDS = 11;
+const MAX_PARAMETERS = 64;
+const MAX_RANGES = 128;
+const MAX_SAMPLERS = 64;
+const ROOT_PARAMETER_TYPES = 5;
+const DESCRIPTOR_RANGE_TYPES = 4;
+const MAX_VISIBILITY = 5;
+const MAX_CONSTANT_WORDS = 64;
+
+/**
+ * Reads a guest D3D12_ROOT_SIGNATURE_DESC into the flattened layout
+ * `ShaderCompiler.buildRootSignature` accepts. Returns a Uint32Array, or null
+ * for a structurally invalid description (the caller reports E_INVALIDARG).
+ */
+export function parseRootSignatureDescriptor({ check, read32, readFloat32, pointer }) {
+  const u32 = (at) => read32(at) >>> 0;
+  if (!pointer) return null;
+  check(pointer, 20);
+  const parameterCount = u32(pointer);
+  const parameters = u32(pointer + 4);
+  const samplerCount = u32(pointer + 8);
+  const samplers = u32(pointer + 12);
+  const flags = u32(pointer + 16);
+  if (parameterCount > MAX_PARAMETERS || samplerCount > MAX_SAMPLERS) return null;
+  if (flags & ~0x7f) return null;
+  if (parameterCount && !parameters) return null;
+  if (samplerCount && !samplers) return null;
+
+  const rangeBlockStart = ROOT_HEADER_WORDS + parameterCount * PARAMETER_WORDS;
+  // Count ranges first: they follow the whole parameter block in one array.
+  let totalRanges = 0;
+  for (let i = 0; i < parameterCount; i++) {
+    const at = parameters + i * 20;
+    check(at, 20);
+    if (u32(at) === 0) {
+      const count = u32(at + 4);
+      if (count > MAX_RANGES) return null;
+      totalRanges += count;
+    }
+  }
+  if (totalRanges > MAX_RANGES) return null;
+  const samplerStart = rangeBlockStart + totalRanges * RANGE_WORDS;
+  const words = new Uint32Array(samplerStart + samplerCount * SAMPLER_WORDS);
+  words[0] = parameterCount;
+  words[1] = samplerCount;
+  words[2] = flags;
+  words[4] = SAMPLER_WORDS;
+
+  let rangeCursor = rangeBlockStart;
+  for (let i = 0; i < parameterCount; i++) {
+    const at = parameters + i * 20;
+    const type = u32(at);
+    const visibility = u32(at + 16);
+    if (type >= ROOT_PARAMETER_TYPES || visibility > MAX_VISIBILITY) return null;
+    const base = ROOT_HEADER_WORDS + i * PARAMETER_WORDS;
+    words[base] = type;
+    words[base + 1] = visibility;
+    if (type === 0) {
+      const count = u32(at + 4);
+      const ranges = u32(at + 8);
+      // D3D12 requires at least one range per descriptor table.
+      if (!count || count > MAX_RANGES) return null;
+      words[base + 2] = count;
+      if (!ranges) return null;
+      for (let r = 0; r < count; r++) {
+        const record = ranges + r * 20;
+        check(record, 20);
+        const rangeType = u32(record);
+        const descriptors = u32(record + 4);
+        const source = rangeCursor + r * RANGE_WORDS;
+        if (rangeType >= DESCRIPTOR_RANGE_TYPES || !descriptors) return null;
+        words[base + 6] = rangeCursor; // absolute index of this table's first range
+        words[source] = rangeType;
+        words[source + 1] = descriptors;
+        words[source + 2] = u32(record + 8);
+        words[source + 3] = u32(record + 12);
+        words[source + 4] = u32(record + 16);
+      }
+      rangeCursor += count * RANGE_WORDS;
+    } else if (type === 1) {
+      const shaderRegister = u32(at + 4);
+      const registerSpace = u32(at + 8);
+      const valueCount = u32(at + 12);
+      if (!valueCount || valueCount > MAX_CONSTANT_WORDS) return null;
+      words[base + 3] = shaderRegister;
+      words[base + 4] = registerSpace;
+      words[base + 5] = valueCount;
+      words[3] += valueCount;
+    } else {
+      words[base + 3] = u32(at + 4);
+      words[base + 4] = u32(at + 8);
+    }
+  }
+
+  for (let i = 0; i < samplerCount; i++) {
+    const at = samplers + i * 52;
+    check(at, 52);
+    const visibility = u32(at + 48);
+    if (visibility > MAX_VISIBILITY) return null;
+    const base = samplerStart + i * SAMPLER_WORDS;
+    words[base] = u32(at);
+    words[base + 1] = u32(at + 4);
+    words[base + 2] = u32(at + 8);
+    words[base + 3] = u32(at + 12);
+    const bias = readFloat32(at + 16);
+    const minLod = readFloat32(at + 32);
+    const maxLod = readFloat32(at + 36);
+    const view = new DataView(new ArrayBuffer(4));
+    const bits = (value) => {
+      view.setFloat32(0, value, true);
+      return view.getUint32(0, true);
+    };
+    words[base + 4] = bits(bias);
+    words[base + 5] = u32(at + 20);
+    words[base + 6] = u32(at + 24);
+    words[base + 7] = u32(at + 28);
+    words[base + 8] = bits(minLod);
+    words[base + 9] = bits(maxLod);
+    words[base + 10] =
+      (u32(at + 40) & 0xffff) | ((u32(at + 44) & 0xff) << 16) | ((visibility & 0xff) << 24);
+  }
+  return words;
+}

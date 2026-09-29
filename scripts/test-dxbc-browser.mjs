@@ -109,6 +109,15 @@ try {
     'inspect/build round trip changed the root signature length',
   );
   assert.equal(result.signatureRoundTrip.rebuiltEmptyBytes, result.signatureRoundTrip.originalBytes);
+  // An application-declared signature (descriptor table + static sampler +
+  // root CBV) must parse, build into DXBC and inspect back identically.
+  const application = result.applicationSignature;
+  // The serialized container is a real DXBC blob with the expected header.
+  assert.ok(application.builtBytes > 100 && application.builtBytes % 4 === 0);
+  assert.equal(application.roundTripWords, application.flattened.length);
+  assert.equal(application.flattened[0], 2, 'two root parameters');
+  assert.equal(application.flattened[1], 1, 'one static sampler');
+  assert.equal(application.flattened[4], 11, 'sampler record width');
 
   // Canonical D3D12 bindings: a shader declaring two constant buffers, a 2D
   // texture, a cube texture and two samplers must scan, plan and recompile to

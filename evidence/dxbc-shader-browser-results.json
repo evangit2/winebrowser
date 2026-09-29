@@ -8,7 +8,7 @@
     "2a3343269640171fd70fdfe41b052822e086028451cfd1777456d45463f20c53"
   ],
   "type": "shader-result",
-  "compilationMs": 50.19000005722046,
+  "compilationMs": 44.8050000667572,
   "drawOffsetPreserved": true,
   "rootSignatures": [
     {
@@ -119,6 +119,48 @@
     11,
     0
   ],
+  "applicationSignature": {
+    "flattened": [
+      2,
+      1,
+      1,
+      0,
+      11,
+      0,
+      0,
+      5,
+      1,
+      0,
+      0,
+      0,
+      20,
+      2,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      21,
+      3,
+      3,
+      3,
+      0,
+      1,
+      0,
+      0,
+      0,
+      2139095039,
+      83886080
+    ],
+    "builtBytes": 180,
+    "roundTripWords": 36
+  },
   "signatureRoundTrip": {
     "originalBytes": 68,
     "rebuiltBytes": 68,
