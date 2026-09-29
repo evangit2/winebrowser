@@ -40,44 +40,51 @@ def spec_text(supplied):
 
 
 def names(text):
-    """Ordered, de-duplicated export names, C entry points only."""
+    """Ordered, de-duplicated export names, C entry points only.
+
+    A declaration is ``@ <convention> [-modifiers] <name> [(args)] [alias]``.
+    ``extern`` marks a data symbol whose real (decorated) name follows it. The
+    convention marker and every -modifier are removed first, then the public
+    symbol is the leading identifier; a trailing identifier after the argument
+    list is the real name Wine implements it with.
+    """
     result = []
     seen = set()
     for line in text.split("\n"):
         raw = line.strip()
         if not raw or raw.startswith("#"):
             continue
-        if raw.startswith("@"):
-            raw = raw[1:].strip()
-        else:
-            match = re.match(r"^\d+\s+(.*)$", raw)
-            if not match:
-                continue
-            raw = match.group(1)
-        raw = re.sub(r"^(cdecl|stdcall|thiscall)\s+", "", raw)
-        while True:
-            match = re.match(r"^(-[\w=]+|-arch=\w+)\s+", raw)
-            if not match:
-                break
-            raw = raw[match.end():]
-        extern = re.match(r"^extern\s+(\S+)\s+(\S+)$", raw)
-        if extern:
-            name, alias = extern.group(1), extern.group(2)
-        else:
-            match = re.match(r"^(\S+?)(?:\(|$)", raw)
-            if not match:
-                continue
-            name, alias = match.group(1), None
-        # C++ mangled names are never resolved by a C program or by the
-        # packers these probes exercise, and Wine exports them at the same
-        # ordinals as the C names they decorate.
-        if name.startswith("?") or not name or len(name) > 96:
+        m = re.match(r"^(?:\d+\s+|@\s+)(.*)$", raw)
+        if not match_body(m):
             continue
+        body = strip_convention(m.group(1))
+        # The public symbol is the first whitespace-delimited token; an argument
+        # list, when present, is attached to it.
+        token = body.split()[0] if body.split() else ""
+        name = token.split("(")[0]
+        if name.startswith("?") or not name or len(name) > 120:
+            continue  # C++ mangled names are never resolved by a C program.
         if name in seen:
             continue
         seen.add(name)
-        result.append((name, alias))
+        result.append((name, None))
     return result
+
+
+def match_body(m):
+    return m is not None
+
+
+def strip_convention(body):
+    body = re.sub(
+        r"^(?:cdecl|stdcall|thiscall|varargs|extern)(?=\s|\()", "", body
+    ).strip()
+    while True:
+        m = re.match(r"^(-[\w=]+)\s+", body)
+        if not m:
+            break
+        body = body[m.end():]
+    return body
 
 
 text, source = spec_text(sys.argv[1] if len(sys.argv) > 1 else None)
