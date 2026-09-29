@@ -1,0 +1,22 @@
+{
+  "scope": "Native PE32 fixture installing a real fs:[0] frame, faulting on an unmapped read and resuming from its filter",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "154.0.8037.58",
+  "exeSha256": "2a1d1baf9fec6387ae3c431456715d84530a140b41debe0aa7d5c38805883970",
+  "expected": {
+    "code": "0xc0000005",
+    "address": "0x7fff0000",
+    "parameters": 2,
+    "eip": "0x00401164"
+  },
+  "observed": {
+    "handler_calls": "0x00000001",
+    "code": "0xc0000005",
+    "address": "0x7fff0000",
+    "parameters": "0x00000002",
+    "eip": "0x00401164",
+    "unwound": "0x00000000"
+  },
+  "output": "before\r\nafter\r\nhandler_calls=0x00000001\r\ncode=0xc0000005\r\naddress=0x7fff0000\r\nparameters=0x00000002\r\neip=0x00401164\r\nunwound=0x00000000\r\n",
+  "errors": []
+}
