@@ -274,7 +274,10 @@ export class Runtime {
           // __try/__except is waiting for. Offer it to the registration chain
           // at fs:[0]; only an unhandled fault still stops the run.
           const delivered = await this.deliverException(error);
-          if (!delivered.handled) throw error;
+          if (!delivered.handled) {
+            error.guestDiagnostic = this.describeFault(error, delivered);
+            throw error;
+          }
           ip = delivered.resume;
         }
       }
@@ -330,6 +333,78 @@ export class Runtime {
         `${result.frames} exception frame(s) walked, handled=${result.handled}`,
     });
     return result;
+  }
+
+  /**
+   * Attaches reproducible context to an unhandled guest fault: the failing
+   * instruction, the guest call stack, the register file and the faulting
+   * access. Without it a stop is only an address; with it the same location can
+   * be re-inspected (and reproduced) instead of guessed at.
+   */
+  describeFault(error, delivered) {
+    const hex = (value) => '0x' + (value >>> 0).toString(16);
+    const locate = (address) => {
+      const found = this.graph.modules
+        ? [...this.graph.modules.values()].find(
+            (module) => address >= module.base && address < module.base + module.pe.imageSize,
+          )
+        : null;
+      return found
+        ? { module: found.name, offset: hex(address - found.base), address: hex(address) }
+        : { address: hex(address) };
+    };
+    const frames = [];
+    try {
+      let frame = this.read32(this.cpu.fsBase) >>> 0;
+      for (let n = 0; frame && frame !== 0xffffffff && n < 32; n++) {
+        const next = this.read32(frame) >>> 0;
+        const handler = this.read32(frame + 4) >>> 0;
+        frames.push({ frame: hex(frame), handler: hex(handler), ...locate(handler) });
+        if (next === frame) break;
+        frame = next;
+      }
+    } catch {
+      // A broken chain is itself worth reporting; keep what was read.
+    }
+    return {
+      message: error.message,
+      code: hex(error.sehCode ?? 0),
+      access: {
+        address: hex(error.sehAddress ?? 0),
+        write: !!error.sehWrite,
+        size: error.sehSize ?? 0,
+      },
+      eip: locate(error.faultEip ?? this.cpu.instructionIp ?? 0),
+      // The bytes around the faulting instruction. Packed images decrypt their
+      // own code, so the file on disk cannot show what actually executes here.
+      code: (() => {
+        try {
+          const at = (error.faultEip ?? this.cpu.instructionIp ?? 0) >>> 0;
+          const start = (at - 32) >>> 0;
+          return [...this.guestMemory.data.slice(start, at + 32)].map((b) =>
+            b.toString(16).padStart(2, '0'),
+          );
+        } catch {
+          return null;
+        }
+      })(),
+      registers: {
+        eax: hex(this.cpu.r[0].value),
+        ebx: hex(this.cpu.r[3].value),
+        ecx: hex(this.cpu.r[1].value),
+        edx: hex(this.cpu.r[2].value),
+        esi: hex(this.cpu.r[6].value),
+        edi: hex(this.cpu.r[7].value),
+        ebp: hex(this.cpu.r[5].value),
+        esp: hex(this.cpu.r[4].value),
+      },
+      // Oldest first: the execution path that reached the fault.
+      recentBlocks: this.cpu.recentPath().map((address) => locate(address)),
+      modules: this.graph.describe ? this.graph.describe() : [],
+      exceptionFrames: frames,
+      framesWalked: delivered?.frames ?? 0,
+      instructions: this.cpu.instructions,
+    };
   }
 
   /** Performs the RtlUnwind walk a guest handler requested. */

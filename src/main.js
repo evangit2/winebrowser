@@ -149,6 +149,11 @@ function createWorker() {
     }
     if (message.type === 'error') {
       stopAudio(false);
+      if (message.diagnostic) {
+        const text = JSON.stringify(message.diagnostic);
+        log('Guest fault diagnostic: ' + text);
+        globalThis.__lastFaultDiagnostic = message.diagnostic;
+      }
       log(message.text);
       $('output').textContent += `\n${message.text}`;
       status('Stopped: unsupported or invalid program', 'ERROR');

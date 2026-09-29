@@ -91,6 +91,12 @@ export class CPU {
     // translation-cache eviction pressure on large/packed images.
     this.compilations = 0;
     this.instructions = 0;
+    // A small ring of the most recent block entry IPs. It costs one array
+    // store per dispatch and lets an unhandled guest fault report the path that
+    // reached it, which packed/self-decrypting images need because their code
+    // cannot be disassembled statically.
+    this.recentIps = new Uint32Array(64);
+    this.recentIpCount = 0;
     this.f = { cf: 0, zf: 0, sf: 0, of: 0, pf: 0 };
     this.af = 0;
     this.controlFlags = 0; // NT, AC and ID; CPL3/IOPL0, IF enabled, no VM/RF.
@@ -1453,6 +1459,7 @@ export class CPU {
     }
   }
   step(ip) {
+    this.recentIps[this.recentIpCount++ & 63] = ip >>> 0;
     if (this.stringRestart && this.stringRestart.at !== ip) this.stringRestart = null;
     // prepare() may have resolved the block already; reuse it so the common
     // dispatch path performs a single cache lookup per block.
@@ -1496,6 +1503,13 @@ export class CPU {
     this.cache.clear();
     this.cachePages.clear();
     this.pendingBlock = undefined;
+  }
+  /** The most recent block entry addresses, oldest first. */
+  recentPath(limit = 64) {
+    const out = [];
+    const count = Math.min(this.recentIpCount, 64);
+    for (let n = count; n > 0; n--) out.push(this.recentIps[(this.recentIpCount - n) & 63]);
+    return out.slice(-limit);
   }
   removeBlock(ip) {
     const block = this.cache.get(ip);

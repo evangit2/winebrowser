@@ -124,7 +124,14 @@ onmessage = async ({ data }) => {
       emit({ type: 'done', ...result });
     }
   } catch (e) {
-    emit({ type: 'error', text: e.message });
+    // A guest fault that no handler accepted stops the run. The runtime keeps
+    // the location and the guest call stack on the error, which is what makes
+    // the stop reproducible instead of just a bare address.
+    emit({
+      type: 'error',
+      text: e.message,
+      ...(e.guestDiagnostic ? { diagnostic: e.guestDiagnostic } : {}),
+    });
   } finally {
     busy = false;
   }
