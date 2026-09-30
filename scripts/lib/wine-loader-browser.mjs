@@ -66,6 +66,11 @@ async function probeInBrowser(root, kind, input) {
       } else await route.continue();
     });
     const page = await context.newPage();
+    // A worker's console output does not reach the test process on its own;
+    // forwarding it is what makes a diagnostic switch observable.
+    if (process.env.WINEBROWSER_WORKER_LOG) {
+      page.on('console', (message) => process.stderr.write(`[worker] ${message.text()}\n`));
+    }
     await page.goto(origin + '/tests/fixtures/desktop-controls.html');
     const result = await page.evaluate(
       async (payload) => {
@@ -88,6 +93,7 @@ async function probeInBrowser(root, kind, input) {
               watchRange: data.watchRange,
               watchAnyRange: data.watchAnyRange,
             };
+
             for (const [field, entries] of Object.entries(data.descriptors))
               input[field] = new Map(await Promise.all(entries.map(async ([name,key]) => [name,await fetchBytes(key)])));
             for (const field of data.byteFields) input[field] = await fetchBytes(field);

@@ -58,6 +58,8 @@ export async function probeWineTarget(
       maxExecutionMs: limits.maxExecutionMs ?? 45_000,
     },
   };
+  // A temporary switch for diagnosing a rejected description; set by the caller.
+
   const restore = new Map();
   const recentBlocks = [];
   let blockHistogramKeys = 0;
@@ -690,7 +692,9 @@ export async function probeWineTarget(
         // structure and fills another, and knowing what the runtime handed back
         // is what explains the guest's arithmetic afterwards.
         const pointers = [];
-        for (let i = 0; i < 4; i++) {
+        // A create call's description is often not the first argument (the
+        // device is), so a wider window is scanned.
+        for (let i = 0; i < 6; i++) {
           try {
             const value = a(i) >>> 0;
             if (value >= 0x1000 && value + 64 <= runtime.data.length) pointers.push([i, value]);
@@ -873,6 +877,8 @@ export async function probeWineTarget(
           : {}),
       };
   } finally {
+    report.textureAttempts = runtime?.d3d10TextureAttempts ?? [];
+    report.viewAttempts = runtime?.d3d10ViewAttempts ?? [];
     report.threadsAtStop =
       runtime &&
       [...runtime.threads.records.values()].map((t) => ({

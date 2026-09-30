@@ -88,7 +88,17 @@ const SHADER_RESOURCE_FORMATS = {
   49: 'r16unorm',
   61: 'r8unorm',
 };
-const DEPTH_FORMATS = { 55: 'depth16unorm' };
+// The DXGI depth formats and the WebGPU attachment each maps to. D16_UNORM and
+// D32_FLOAT are stored directly; the combined depth-stencil formats become the
+// depth24plus-stencil8 attachment WebGPU guarantees, which carries the same
+// 24-bit depth with the stencil plane alongside it. Accepting only D16 refused
+// every application that picks the more precise target.
+const DEPTH_FORMATS = {
+  55: 'depth16unorm',
+  40: 'depth32float',
+  45: 'depth24plus-stencil8',
+  20: 'depth24plus-stencil8',
+};
 // DXGI_ADAPTER / DXGI object identities reused from the DXGI model.
 const IUNKNOWN = '00000000-0000-0000-c000-000000000046';
 const DXGI_OBJECT = 'aec22fb8-76f9-463b-9ef9-28e6eb54df88';
@@ -887,7 +897,9 @@ async function ensurePipeline(r, o, target) {
     throw Error('D3D10 depth testing requires a depth-stencil view');
   const depth = depthEnabled
     ? {
-        format: 'depth16unorm',
+        // The depth attachment's own format decides the pipeline's, so a D32
+        // target is described as D32 rather than silently narrowed to D16.
+        format: DEPTH_FORMATS[s.depthStencil.state.resource.state.format],
         testEnabled: true,
         writeEnabled: depthState.state.depthWriteMask === 1,
         compare: DEPTH_COMPARE[depthState.state.depthFunc],
@@ -1160,6 +1172,23 @@ function texture2dParse(r, a) {
   const desc = number(a(1));
   if (!desc) return E_INVALIDARG;
   r.check(desc, 44);
+  // Every description the frontend is asked to create is retained (bounded), so
+  // a rejected one can be reported with the values that decided it.
+  if ((r.d3d10TextureAttempts ??= []).length < 32)
+    r.d3d10TextureAttempts.push({
+      width: u32(r, desc),
+      height: u32(r, desc, 4),
+      mipLevels: u32(r, desc, 8),
+      arraySize: u32(r, desc, 12),
+      format: u32(r, desc, 16),
+      sampleCount: u32(r, desc, 20),
+      sampleQuality: u32(r, desc, 24),
+      usage: u32(r, desc, 28),
+      bindFlags: `0x${u32(r, desc, 32).toString(16)}`,
+      cpuAccess: `0x${u32(r, desc, 36).toString(16)}`,
+      misc: `0x${u32(r, desc, 40).toString(16)}`,
+      initialData: `0x${number(a(2)).toString(16)}`,
+    });
   const width = u32(r, desc),
     height = u32(r, desc, 4);
   const format = u32(r, desc, 16);
@@ -1183,7 +1212,25 @@ function texture2dParse(r, a) {
     // this bounded frontend does not model; UpdateSubresource covers the rest.
     number(a(2))
   )
-    return E_INVALIDARG;
+    if (globalThis.__winebrowserTraceTextureDesc)
+      throw Error(
+        'CreateTexture2D rejected ' +
+          JSON.stringify({
+            width,
+            height,
+            mipLevels: u32(r, desc, 8),
+            arraySize: u32(r, desc, 12),
+            format,
+            sampleCount: u32(r, desc, 20),
+            sampleQuality: u32(r, desc, 24),
+            usage,
+            bindFlags: `0x${bindFlags.toString(16)}`,
+            cpuAccess: `0x${cpuAccess.toString(16)}`,
+            misc: `0x${u32(r, desc, 40).toString(16)}`,
+            initialData: `0x${number(a(2)).toString(16)}`,
+          }),
+      );
+    else return E_INVALIDARG;
   const depthBound = !!(bindFlags & BIND.DEPTH);
   const renderBound = !!(bindFlags & BIND.RT);
   const shaderBound = !!(bindFlags & BIND.SRV);
@@ -1228,21 +1275,86 @@ function texture2dParse(r, a) {
 
 const VIEW_DIMENSION = { texture1d: 0, texture2d: 3, depth: 3 };
 
-function viewParse(r, a, device) {
+// The three view kinds number their dimensions differently, which the headers
+// show directly: value 3 is TEXTURE2D for a depth-stencil view but
+// TEXTURE1DARRAY for a shader-resource or render-target view, and only a
+// render-target view can address a buffer or a 3D texture.
+const VIEW_DIMENSIONS = {
+  shaderResourceView: {
+    1: 'buffer',
+    2: 'texture1d',
+    3: 'texture1darray',
+    4: 'texture2d',
+    5: 'texture2darray',
+    6: 'texture2dms',
+    7: 'texture2dmsarray',
+    8: 'texture3d',
+    9: 'texturecube',
+    10: 'texturecubearray',
+    11: 'bufferex',
+  },
+  renderTargetView: {
+    1: 'buffer',
+    2: 'texture1d',
+    3: 'texture1darray',
+    4: 'texture2d',
+    5: 'texture2darray',
+    6: 'texture2dms',
+    7: 'texture2dmsarray',
+    8: 'texture3d',
+  },
+  depthStencilView: {
+    1: 'texture1d',
+    2: 'texture1darray',
+    3: 'texture2d',
+    4: 'texture2darray',
+    5: 'texture2dms',
+    6: 'texture2dmsarray',
+  },
+};
+
+// The dimension each view kind reports when the caller passes no description,
+// which is the interface's own default view of a one-mip, one-element texture.
+const DEFAULT_VIEW_DIMENSION = {
+  shaderResourceView: 4, // D3D_SRV_DIMENSION_TEXTURE2D
+  renderTargetView: 4, // D3D10_RTV_DIMENSION_TEXTURE2D
+  depthStencilView: 3, // D3D10_DSV_DIMENSION_TEXTURE2D
+};
+
+// The shapes each resource kind can expose, in the dimension vocabulary above.
+const RESOURCE_SHAPES = {
+  depth: ['texture2d', 'texture2darray', 'texture2dms', 'texture2dmsarray'],
+  buffer: ['buffer', 'bufferex'],
+};
+
+function viewParse(r, a, device, viewKind) {
   const resource = checkDeviceChild(r, a(1), device);
   const desc = number(a(2));
+  let dimension = DEFAULT_VIEW_DIMENSION[viewKind];
   if (desc) {
     r.check(desc, 20);
-    const dimension = u32(r, desc, 4);
-    const expected = resource.state.kind === 'depth' ? 3 : 4;
-    if (u32(r, desc) || dimension !== expected || u32(r, desc, 8) || u32(r, desc, 12))
-      return E_INVALIDARG;
+    // A zero format means "the resource's own format", which is the documented
+    // default and what a framework passes when it has nothing to convert.
+    const format = u32(r, desc);
+    if (format && format !== resource.state.format) return E_INVALIDARG;
+    const shape = VIEW_DIMENSIONS[viewKind][u32(r, desc, 4)];
+    const allowed = RESOURCE_SHAPES[resource.state.kind] ?? [
+      'texture1d',
+      'texture1darray',
+      'texture2d',
+      'texture2darray',
+      'texture3d',
+      'texturecube',
+    ];
+    if (!shape || !allowed.includes(shape)) return E_INVALIDARG;
+    // The union members a dimension does not use are still the caller's stack
+    // and may hold anything, so they are deliberately not read.
+    dimension = u32(r, desc, 4);
   }
-  void VIEW_DIMENSION;
   return {
     resource,
     format: resource.state.format,
-    viewDimension: resource.state.kind === 'depth' ? 3 : 4,
+    viewDimension: dimension,
     descBuffer: 0,
   };
 }
@@ -1799,9 +1911,24 @@ function deviceMethods() {
         return E_INVALIDARG;
       },
     },
-    75: creator('shaderResourceView', 4, viewParse, viewMethods(true)),
-    76: creator('renderTargetView', 4, viewParse, viewMethods(true)),
-    77: creator('depthStencilView', 4, viewParse, viewMethods(true)),
+    75: creator(
+      'shaderResourceView',
+      4,
+      (r, a, d) => viewParse(r, a, d, 'shaderResourceView'),
+      viewMethods(true),
+    ),
+    76: creator(
+      'renderTargetView',
+      4,
+      (r, a, d) => viewParse(r, a, d, 'renderTargetView'),
+      viewMethods(true),
+    ),
+    77: creator(
+      'depthStencilView',
+      4,
+      (r, a, d) => viewParse(r, a, d, 'depthStencilView'),
+      viewMethods(true),
+    ),
     78: creator('inputLayout', 6, inputLayoutParse, {}),
     79: creator('vertexShader', 4, shaderParse, {}),
     80: creator('geometryShader', 4, shaderParse, {}),

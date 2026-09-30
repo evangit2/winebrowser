@@ -45,6 +45,15 @@ const TEXTURE_STATES = new Set([0, 0x400, 0x40, 0x80]);
 const RENDER_TEXTURE_STATES = new Set([0, 4, 0x40, 0x80]);
 // DXGI_FORMAT -> WebGPU format for the sampled textures this path uploads.
 const WEBGPU_FORMAT = { 28: 'rgba8unorm', 87: 'bgra8unorm', 49: 'r16unorm', 61: 'r8unorm' };
+// DXGI depth formats and the WebGPU format each maps to. D24_UNORM_S8_UINT has
+// no WebGPU counterpart with the same precision, so it becomes the combined
+// 24-bit depth + 8-bit stencil attachment WebGPU does guarantee.
+const DEPTH_WEBGPU_FORMAT = {
+  55: 'depth16unorm',
+  40: 'depth32float',
+  45: 'depth24plus-stencil8',
+  20: 'depth24plus-stencil8',
+};
 // DXGI_FORMAT byte sizes for the texture formats the bounded path models.
 const TEXTURE_FORMAT_BYTES = {
   2: 16,
@@ -2524,7 +2533,12 @@ function deviceMethods() {
               kind: info.kind,
               width: info.width,
               height: info.height,
-              format: info.kind === 'depth' ? info.format : WEBGPU_FORMAT[info.format],
+              // The backend maps a depth resource's DXGI format to the WebGPU
+              // attachment format it hosts (D32_FLOAT, D24S8 or D16_UNORM).
+              format:
+                info.kind === 'depth'
+                  ? DEPTH_WEBGPU_FORMAT[info.format]
+                  : WEBGPU_FORMAT[info.format],
             });
           }
         } catch (error) {

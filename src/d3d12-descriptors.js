@@ -10,6 +10,15 @@ export function parseResourceRange({ check, read32, pointer, size }) {
   if (begin > end || end > size) throw Error('Invalid D3D12 resource range');
 }
 
+// The depth formats a D3D12_CLEAR_VALUE may name, and whether each carries a
+// stencil plane (which the WebGPU attachment format then has to include).
+const DEPTH_CLEAR_FORMATS = {
+  55: { combined: false }, // D16_UNORM
+  40: { combined: false }, // D32_FLOAT
+  45: { combined: true }, // D24_UNORM_S8_UINT
+  20: { combined: true }, // D32_FLOAT_S8X24_UINT
+};
+
 // D3D12_INPUT_ELEMENT_DESC subset for the POSITION/COLOR interleaved layout the
 // Microsoft samples use. `semantics` lists the accepted names in element order
 // with the WebGPU location and float width each maps to.
@@ -348,16 +357,21 @@ export function parseCommittedResourceDescriptor({
     }
     check(clearValue, 20);
     const depth = readFloat32(clearValue + 4);
-    if (
-      u32(read32, clearValue) !== 55 ||
-      !Number.isFinite(depth) ||
-      depth < 0 ||
-      depth > 1 ||
-      data[clearValue + 8] ||
-      data.subarray(clearValue + 9, clearValue + 20).some((value) => value !== 0)
-    )
+    // D3D12_CLEAR_VALUE carries a typed union whose first word names the format.
+    // D16_UNORM, D32_FLOAT, D24_UNORM_S8_UINT and D32_FLOAT_S8X24_UINT are the
+    // depth formats the backend can host; the stencil word is only meaningful
+    // for the combined ones.
+    const clearFormat = u32(read32, clearValue);
+    if (!DEPTH_CLEAR_FORMATS[clearFormat] || !Number.isFinite(depth) || depth < 0 || depth > 1)
       return null;
-    return { kind: 'depth', width, height, format: 'depth16unorm', state: initialState };
+    if (!DEPTH_CLEAR_FORMATS[clearFormat].combined && data[clearValue + 8]) return null;
+    return {
+      kind: 'depth',
+      width,
+      height,
+      format: clearFormat,
+      state: initialState,
+    };
   }
   return null;
 }

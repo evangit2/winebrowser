@@ -53,6 +53,9 @@ const DXGI_TEXTURE_FORMATS = {
   61: { format: 'r8unorm', sampleType: 'float' },
 };
 const TEXTURE_FORMAT_BYTES = { 28: 4, 87: 4, 49: 2, 61: 1 };
+// The depth attachment formats WebGPU guarantees, in the precision order a
+// D3D application names them: D16_UNORM, D32_FLOAT and D24_UNORM_S8_UINT.
+const DEPTH_FORMATS = ['depth16unorm', 'depth32float', 'depth24plus-stencil8'];
 function sampleTypeForFormat(format) {
   return DXGI_TEXTURE_FORMATS[format]?.sampleType ?? 'float';
 }
@@ -326,7 +329,9 @@ export class D3D12Renderer {
       typeof format !== 'string'
     )
       throw Error('Unsupported D3D12 texture resource');
-    if (kind === 'depth' && format !== 'depth16unorm')
+    // WebGPU guarantees both depth formats; a D32_FLOAT request is as
+    // expressible as a D16_UNORM one, so refusing it would be arbitrary.
+    if (kind === 'depth' && !DEPTH_FORMATS.includes(format))
       throw Error('Unsupported D3D12 depth resource');
     await this.initialize();
     this.device.pushErrorScope('validation');
@@ -402,7 +407,7 @@ export class D3D12Renderer {
       throw Error('Unsupported D3D12 input layout');
     if (
       depth &&
-      (depth.format !== 'depth16unorm' ||
+      (!DEPTH_FORMATS.includes(depth.format) ||
         typeof depth.writeEnabled !== 'boolean' ||
         typeof depth.testEnabled !== 'boolean' ||
         typeof depth.compare !== 'string')
