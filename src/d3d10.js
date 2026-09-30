@@ -1218,23 +1218,6 @@ function texture2dParse(r, a) {
   const width = u32(r, desc),
     height = u32(r, desc, 4);
   const format = u32(r, desc, 16);
-  // A rejected description is retained with its values, because the return code
-  // alone does not say which field the frontend refused.
-  if ((r.d3d10TextureAttempts ??= []).length < 32)
-    r.d3d10TextureAttempts.push({
-      width,
-      height,
-      mipLevels: u32(r, desc, 8),
-      arraySize: u32(r, desc, 12),
-      format,
-      sampleCount: u32(r, desc, 20),
-      sampleQuality: u32(r, desc, 24),
-      usage: u32(r, desc, 28),
-      bindFlags: `0x${u32(r, desc, 32).toString(16)}`,
-      cpuAccess: `0x${u32(r, desc, 36).toString(16)}`,
-      misc: `0x${u32(r, desc, 40).toString(16)}`,
-      initialData: `0x${number(a(2)).toString(16)}`,
-    });
   const usage = u32(r, desc, 28);
   const bindFlags = u32(r, desc, 32);
   const cpuAccess = u32(r, desc, 36);
@@ -1276,7 +1259,7 @@ function texture2dParse(r, a) {
   // also the shape the backend uploads.
   const compressed = !depthBound && !renderBound && isCompressedFormat(format);
   const storageBytes = compressed
-    ? Math.ceil(width / 4) * Math.ceil(height / 4) * (format === 71 || format === 70 ? 8 : 16)
+    ? Math.ceil(width / 4) * Math.ceil(height / 4) * compressedBytesPerBlock(format)
     : width * height * 4;
   // A D3D10_SUBRESOURCE_DATA for the one mip level: pSysMem names the bytes,
   // SysMemPitch the row (or block-row) stride. A texture whose data the caller

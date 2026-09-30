@@ -888,7 +888,6 @@ export async function probeWineTarget(
   } finally {
     // The file names the guest asked for and whether each resolved, which is
     // what separates a path-resolution defect from a missing asset.
-    report.textureAttempts = runtime?.d3d10TextureAttempts ?? [];
     report.threadsAtStop =
       runtime &&
       [...runtime.threads.records.values()].map((t) => ({

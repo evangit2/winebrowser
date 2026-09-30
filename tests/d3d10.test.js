@@ -69,6 +69,9 @@ function fixture() {
       async createResource(args) {
         events.push({ type: 'resource', ...args });
       },
+      async uploadTexture(args) {
+        events.push({ type: 'uploadTexture', ...args });
+      },
       async destroyResource(args) {
         events.push({ type: 'destroyResource', ...args });
       },
@@ -618,4 +621,84 @@ test('GetMonitorInfo writes both RECTs at the offsets the header declares', asyn
     'rcWork is an RECT at offset 20',
   );
   assert.equal(word(36), 1, 'MONITORINFOF_PRIMARY');
+});
+
+test('ID3D10Resource.GetType writes through its out-parameter', async () => {
+  // `void GetType(D3D10_RESOURCE_DIMENSION *rType)` is an out-parameter call,
+  // not a value-returning getter. Answering in EAX left the caller's variable
+  // uninitialized, so a framework's own resource dispatch reported "Unsupported
+  // type" for a texture it had just created.
+  const f = fixture(),
+    { runtime: r, call, api, guid, alloc } = f;
+  const swapOut = alloc(4),
+    devOut = alloc(4);
+  assert.equal(
+    (await api('D3D10CreateDeviceAndSwapChain', 0, 0, 0, 0, 29, swapDesc(r), swapOut, devOut))
+      .result,
+    0,
+  );
+  const device = r.read32(devOut);
+  const kindOut = alloc(4);
+  // A buffer answers D3D10_RESOURCE_DIMENSION_BUFFER (1).
+  const bufferOut = alloc(4);
+  const initial = alloc(12);
+  r.write32(initial, alloc(64));
+  await call(device, 71, bufferDesc(r, 64, 0x1, 1), initial, bufferOut);
+  const buffer = r.read32(bufferOut);
+  r.write32(kindOut, 0xdeadbeef);
+  assert.equal((await call(buffer, 7, kindOut)).result, undefined);
+  assert.equal(r.read32(kindOut), 1, 'a buffer reports dimension 1');
+
+  // A sampled texture answers D3D10_RESOURCE_DIMENSION_TEXTURE2D (3). The
+  // backend role a texture serves is not its D3D dimension, so the mapping has
+  // to cover the roles rather than only the literal kind names.
+  const textureOut = alloc(4);
+  const textureDesc = alloc(44);
+  r.write32(textureDesc, 32);
+  r.write32(textureDesc + 4, 32);
+  r.write32(textureDesc + 8, 1);
+  r.write32(textureDesc + 12, 1);
+  r.write32(textureDesc + 16, 28);
+  r.write32(textureDesc + 20, 1);
+  r.write32(textureDesc + 32, 0x8);
+  assert.equal((await call(device, 73, textureDesc, 0, textureOut)).result, 0);
+  const texture = r.read32(textureOut);
+  r.write32(kindOut, 0xdeadbeef);
+  assert.equal((await call(texture, 7, kindOut)).result, undefined);
+  assert.equal(r.read32(kindOut), 3, 'a sampled texture reports dimension 3');
+  // A null out-parameter is a caller error, not a silent success.
+  await assert.rejects(call(texture, 7, 0), /output pointer/);
+});
+
+test('a block-compressed texture accepts an initial upload', async () => {
+  // BC1/BC2/BC3 are what a game's assets are stored in. The texture's storage
+  // and the upload both follow the 4x4 block footprint rather than the pixel
+  // count, and the descriptor must be accepted for a shader-resource bind.
+  const f = fixture(),
+    { runtime: r, events, call, api, alloc } = f;
+  const swapOut = alloc(4),
+    devOut = alloc(4);
+  await api('D3D10CreateDeviceAndSwapChain', 0, 0, 0, 0, 29, swapDesc(r), swapOut, devOut);
+  const device = r.read32(devOut);
+  // A 256x256 BC2 texture is 64x64 blocks of 16 bytes.
+  const source = alloc(64 * 64 * 16);
+  for (let i = 0; i < 64 * 64 * 16; i++) r.data[source + i] = i & 0xff;
+  const initial = alloc(12);
+  r.write32(initial, source);
+  const desc = alloc(44);
+  r.write32(desc, 256);
+  r.write32(desc + 4, 256);
+  r.write32(desc + 8, 1);
+  r.write32(desc + 12, 1);
+  r.write32(desc + 16, 74); // DXGI_FORMAT_BC2_UNORM
+  r.write32(desc + 20, 1);
+  r.write32(desc + 32, 0x8);
+  const out = alloc(4);
+  assert.equal((await call(device, 73, desc, initial, out)).result, 0);
+  const created = events.filter((event) => event.type === 'resource').at(-1);
+  assert.equal(created.format, 'bc2-rgba-unorm');
+  const upload = events.filter((event) => event.type === 'uploadTexture').at(-1);
+  assert.equal(upload.bytesPerRow, 64 * 16, 'a block row is 64 blocks of 16 bytes');
+  assert.equal(upload.rows.length, 64 * 16 * 64, 'and there are 64 block rows');
+  assert.equal(upload.rows[0], 0);
 });
