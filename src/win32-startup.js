@@ -165,10 +165,16 @@ function getVersionEx(r, a, wide) {
 
 // GetStartupInfo fills the structure CRT startup inspects; STARTF_USESTDHANDLES
 // is deliberately clear so the default handles stay the console's.
+// STARTUPINFOA and STARTUPINFOW are both 68 bytes on i386: every member is a
+// DWORD or a pointer and the two pointer-valued strings are CHAR*/WCHAR*, so
+// the wide form does not grow the structure. Writing a larger block would
+// overflow the caller's frame and clobber the saved return address.
+const STARTUPINFO_BYTES = 68;
 function getStartupInfo(r, a, wide) {
   const pointer = a(0);
-  const size = wide ? 104 : 68;
+  const size = STARTUPINFO_BYTES;
   if (!pointer) return ok(0, 1);
+  void wide;
   r.check(pointer, size, true);
   r.data.fill(0, pointer, pointer + size);
   r.write32(pointer, size);

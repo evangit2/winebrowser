@@ -135,3 +135,25 @@ test('SearchPath finds a packaged file and reports the required length otherwise
   );
   assert.equal(r.lastError, 2, 'a missing file reports ERROR_FILE_NOT_FOUND');
 });
+
+// STARTUPINFOA and STARTUPINFOW are both 68 bytes on i386; the wide form does
+// not grow the structure because every member is a DWORD or a pointer. Writing
+// a larger block overflows the caller's stack frame and clobbers its saved
+// return address, which makes the procedure return to an arbitrary address.
+test('GetStartupInfoA/W writes exactly the 68-byte STARTUPINFO', (t) => {
+  const { r, call } = setup(t);
+  for (const name of ['kernel32.dll!GetStartupInfoA', 'kernel32.dll!GetStartupInfoW']) {
+    // A guard word follows the structure; it must survive the call.
+    const buffer = r.allocate(68 + 32);
+    r.data.fill(0xcc, buffer, buffer + 100);
+    const guard = buffer + 68;
+    const before = [...r.data.subarray(guard, guard + 32)];
+    assert.equal(call(name, buffer).result, 0);
+    assert.equal(r.read32(buffer), 68, `${name} reports cb = 68`);
+    assert.deepEqual(
+      [...r.data.subarray(guard, guard + 32)],
+      before,
+      `${name} must not write past the structure`,
+    );
+  }
+});
