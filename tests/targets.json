@@ -637,7 +637,7 @@
     },
     {
       "id": "wesmar-minesweeper-2026-02-x86",
-      "status": "blocked",
+      "status": "partial",
       "path": ".cache/targets/wesmar-minesweeper-x86.exe",
       "bytes": 29696,
       "sha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
@@ -667,7 +667,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens a playable Minesweeper window and responds to mouse input",
-      "statusNote": "Static inspection reports 32 unresolved imports, including COMCTL32, DWMAPI, ADVAPI32, dialog/menu/control, and drawing APIs. Browser gameplay has not been tested. The release ZIP contains x64 and x86 executables; no separate asset is required."
+      "statusNote": "The unchanged EXE now resolves every import through the ordinary browser harness: it opens its Minesweeper window (240x310 client area), runs its own message loop and paints a 75-colour dialog (classic #c8c8d2 face, white client, black grid/text, red accents). Reaching that required window-class extra data and class menus, standard MENU resource parsing, Wine's LoadString block arithmetic, the full GetSystemMetrics table, menu-aware AdjustWindowRect and a CreateFont that accepts the charset/quality/pitch hints applications pass. Interactive play (menu commands, cell clicks) is not yet driven by a test, so this is a window-and-paint result, not a compatibility claim. See evidence/minesweeper-browser-results.json."
     }
   ]
 }
