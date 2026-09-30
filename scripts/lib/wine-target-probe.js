@@ -759,6 +759,8 @@ export async function probeWineTarget(
           stack: (error instanceof Error ? error.stack : `non-Error: ${String(error)}`)
             ?.split('\n')
             .slice(0, 18),
+          // A fault's own stack frame holds the argument the instruction read,
+          // so the captured words are the evidence for which value was null.
           // The runtime tracks the exact instruction that faulted; `lastIP` is
           // the start of the block it belongs to, which can be many instructions
           // earlier. Locating the instruction is what makes a fault actionable

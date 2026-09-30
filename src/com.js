@@ -86,6 +86,7 @@ export class ComObjects {
               const stack = runtime.cpu.r[4].value >>> 0;
               runtime.queryTrace.push({
                 name,
+                pointer: '0x' + (object.pointer >>> 0).toString(16),
                 requested,
                 // The argument words and the caller's return address say
                 // whether the request is well formed: an identity read from a
