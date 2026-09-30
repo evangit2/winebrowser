@@ -635,6 +635,12 @@ export async function probeWineTarget(
           phase,
           threadId: runtime.threads.current?.id,
           message: error.message,
+          // A defect in the runtime itself (rather than a guest fault) is only
+          // actionable with its host stack: the message alone does not name
+          // which handler mis-parsed its own arguments.
+          stack: (error instanceof Error ? error.stack : `non-Error: ${String(error)}`)
+            ?.split('\n')
+            .slice(0, 18),
           ip: locate(lastIP),
           faultContext: faultContext(runtime, error.message),
           faultMemory: faultMemory(runtime, error.message),
@@ -746,6 +752,13 @@ export async function probeWineTarget(
       report.firstFailure ??= {
         phase,
         message: error.message,
+        thrownType: error?.constructor?.name ?? typeof error,
+        // A defect in the runtime itself (as opposed to a guest fault) is only
+        // actionable with its host stack: the message alone does not name which
+        // handler mis-parsed its own arguments.
+        stack: (error instanceof Error ? error.stack : `non-Error thrown: ${String(error)}`)
+          ?.split('\n')
+          .slice(0, 18),
         ...(runtime
           ? {
               ip: locate(lastIP),

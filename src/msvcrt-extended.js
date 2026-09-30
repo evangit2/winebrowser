@@ -687,7 +687,7 @@ function getdcwdImpl(r, a, wide) {
     setErrno(r, EACCES);
     return ok(0, 3);
   }
-  return getcwdImpl(r, { 0: () => a(1), 1: () => a(2) }, wide);
+  return getcwdImpl(r, accessor([a(1), a(2)]), wide);
 }
 function chdirImpl(r, a, wide) {
   let resolved;
@@ -718,7 +718,7 @@ function fullpathImpl(r, a, wide) {
   const destination = a(0);
   const relative = wide ? r.wideString(a(1)) : r.string(a(1));
   let size = a(2) >>> 0;
-  if (!relative) return getcwdImpl(r, { 0: () => destination, 1: () => size }, wide);
+  if (!relative) return getcwdImpl(r, accessor([destination, size]), wide);
   let resolved;
   try {
     resolved = resolveGuestPath(relative, r.cwd, { allowRoot: true });
@@ -2212,6 +2212,13 @@ const MONTH_NAMES = [
 // place but before the trap tables, so a name that already has a handler keeps
 // it and everything else gets the implementation here.
 export function registerCrtExtended(apis, deps = {}) {
+  // A host API handler receives its arguments as an accessor *function*: the
+  // dispatcher supplies `(index) => word`. A helper that forwards a constructed
+  // argument list must therefore build a function too. An object literal with
+  // numeric properties looks similar at a glance but is not callable, and the
+  // callee's first `a(0)` throws instead of running the operation.
+  const accessor = (values) => (index) => values[index] ?? 0;
+
   const add = (name, handler) => {
     const key = `msvcrt.dll!${name}`;
     if (apis[key]) return;
@@ -2433,7 +2440,7 @@ export function registerCrtExtended(apis, deps = {}) {
   add('strncat_s', strncatS);
 
   // Wide strings.
-  add('wcscat', (r, a) => wideCatN(r, { 0: () => a(0), 1: () => a(1), 2: () => 0xffffffff }, 2));
+  add('wcscat', (r, a) => wideCatN(r, accessor([a(0), a(1), 0xffffffff]), 2));
   add('wcsncat', wideCatN);
   add('wcscmp', (r, a) => wideCompare(r, a, 0xffffffff));
   add('wcsncmp', (r, a) => wideCompare(r, a, a(2) >>> 0));
@@ -2680,7 +2687,7 @@ export function registerCrtExtended(apis, deps = {}) {
     // _fpclassf takes a binary32 argument and classifies the same way.
     const bits = new Uint32Array([a(0) >>> 0]);
     const value = new DataView(bits.buffer).getFloat32(0, true);
-    return ok(fpclassImpl(r, { 0: () => value, 1: () => 0 }, 1).result, 1);
+    return ok(fpclassImpl(r, accessor([value, 0]), 1).result, 1);
   });
   add('_finite', (r, a) => ok(Number.isFinite(doubleArg(r, a, 0)) ? 1 : 0, 2));
   add('_isnan', (r, a) => ok(Number.isNaN(doubleArg(r, a, 0)) ? 1 : 0, 2));
@@ -2918,38 +2925,28 @@ export function registerCrtExtended(apis, deps = {}) {
   add('wctob', (r, a) => ok((a(0) & 0xffff) < 0x80 ? a(0) & 0xff : -1, 1));
   add('mblen', (r, a) => ok(a(0) ? 1 : 0, 2));
   add('mbtowc', (r, a) => mbtowcImpl(r, a, 3));
-  add('mbrlen', (r, a) =>
-    ok(mbtowcImpl(r, { 0: () => 0, 1: () => a(0), 2: () => a(1) }, 3).result, 3),
-  );
+  add('mbrlen', (r, a) => ok(mbtowcImpl(r, accessor([0, a(0), a(1)]), 3).result, 3));
   add('mbrtowc', (r, a) => {
     const source = a(1) >>> 0,
       count = a(2) >>> 0;
     if (!source || !count) return ok(0, 4);
-    const result = mbtowcImpl(r, { 0: () => a(0), 1: () => source, 2: () => count }, 4);
+    const result = mbtowcImpl(r, accessor([a(0), source, count]), 4);
     return ok(result.result === 1 ? 1 : result.result, 4);
   });
   add('wctomb', (r, a) => wctombImpl(r, a, 2));
-  add('wcrtomb', (r, a) => wctombImpl(r, { 0: () => a(0), 1: () => a(1) }, 3));
+  add('wcrtomb', (r, a) => wctombImpl(r, accessor([a(0), a(1)]), 3));
   add('mbstowcs', (r, a) => mbstowcsImpl(r, a, 3));
   add('wcstombs', (r, a) => wcstombsImpl(r, a, 3));
-  add('_mbstowcs_s', (r, a) =>
-    mbstowcsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
-  );
-  add('mbstowcs_s', (r, a) =>
-    mbstowcsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
-  );
-  add('_wcstombs_s', (r, a) =>
-    wcstombsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
-  );
-  add('wcstombs_s', (r, a) =>
-    wcstombsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
-  );
+  add('_mbstowcs_s', (r, a) => mbstowcsImpl(r, accessor([a(1), a(3), a(4), a(0)]), 5));
+  add('mbstowcs_s', (r, a) => mbstowcsImpl(r, accessor([a(1), a(3), a(4), a(0)]), 5));
+  add('_wcstombs_s', (r, a) => wcstombsImpl(r, accessor([a(1), a(3), a(4), a(0)]), 5));
+  add('wcstombs_s', (r, a) => wcstombsImpl(r, accessor([a(1), a(3), a(4), a(0)]), 5));
   add('wctomb_s', (r, a) => {
     const out = a(0),
       buffer = a(1),
       size = a(2) >>> 0,
       code = a(3) & 0xffff;
-    const result = wctombImpl(r, { 0: () => buffer, 1: () => code }, 4);
+    const result = wctombImpl(r, accessor([buffer, code]), 4);
     if (out) r.write32(out, result.result < 0 ? 0xffffffff : result.result);
     void size;
     return ok(result.result < 0 ? 22 : 0, 4);
@@ -2959,7 +2956,7 @@ export function registerCrtExtended(apis, deps = {}) {
       buffer = a(1),
       size = a(2) >>> 0,
       code = a(3) & 0xffff;
-    const result = wctombImpl(r, { 0: () => buffer, 1: () => code }, 5);
+    const result = wctombImpl(r, accessor([buffer, code]), 5);
     if (out) r.write32(out, result.result < 0 ? 0xffffffff : result.result);
     void size;
     return ok(result.result < 0 ? 22 : 0, 5);
@@ -3217,10 +3214,10 @@ export function registerCrtExtended(apis, deps = {}) {
   add('_lock', () => ok(0, 1));
   add('_unlock', () => ok(0, 1));
   add('_mbtowc_l', (r, a) => {
-    const result = mbtowcImpl(r, { 0: () => a(0), 1: () => a(1), 2: () => a(2) }, 4);
+    const result = mbtowcImpl(r, accessor([a(0), a(1), a(2)]), 4);
     return result;
   });
-  add('_wctomb_l', (r, a) => wctombImpl(r, { 0: () => a(0), 1: () => a(1) }, 3));
+  add('_wctomb_l', (r, a) => wctombImpl(r, accessor([a(0), a(1)]), 3));
 
   // Aligned allocation and heap queries.
   add('_aligned_malloc', (r, a) => ok(alignedMallocImpl(r, a(0) >>> 0, a(1) >>> 0, 0), 2));

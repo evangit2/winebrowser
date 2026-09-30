@@ -17,6 +17,7 @@ import {
 } from './d3d12-bindings.js';
 
 const S_OK = 0;
+const DXGI_ERROR_INVALID_CALL = 0x887a0001;
 const E_INVALIDARG = 0x80070057;
 const E_NOINTERFACE = 0x80004002;
 const DXGI_ERROR_NOT_FOUND = 0x887a0002;
@@ -117,6 +118,7 @@ const iids = {
   factory3: '25483823-cd46-4c7d-86ca-47aa95b837bd',
   factory4: '1bc6ea02-ef36-464f-bf0c-21ca39e5168a',
   adapter: '29038f61-3839-4626-91fd-086879011a05',
+  output: 'ae02eedb-c735-4690-8d52-5a8dc20213aa', // IDXGIOutput
   swapchain: '310d36a0-d2e7-4c0a-aa04-6a9d23b8886a',
   swapchain1: '790a45f7-0d42-4876-983a-0a55cfe6f4aa',
   swapchain2: 'a8be2ac4-199f-4946-b331-79599fb98de7',
@@ -137,6 +139,7 @@ const names = {
   resource: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Map Unmap GetDesc GetGPUVirtualAddress WriteToSubresource ReadFromSubresource GetHeapProperties`,
   factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent IsWindowedStereoEnabled CreateSwapChainForHwnd CreateSwapChainForCoreWindow GetSharedResourceAdapterLuid RegisterStereoStatusWindow RegisterStereoStatusEvent UnregisterStereoStatus RegisterOcclusionStatusWindow RegisterOcclusionStatusEvent UnregisterOcclusionStatus CreateSwapChainForComposition GetCreationFlags EnumAdapterByLuid EnumWarpAdapter`,
   adapter: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1`,
+  output: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDesc GetDisplayModeList FindClosestMatchingMode WaitForVBlank TakeOwnership ReleaseOwnership GetGammaControlCapabilities SetGammaControl GetGammaControl SetDisplaySurface GetDisplaySurfaceData GetFrameStatistics`,
   swapchain: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDevice Present GetBuffer SetFullscreenState GetFullscreenState GetDesc ResizeBuffers ResizeTarget GetContainingOutput GetFrameStatistics GetLastPresentCount GetDesc1 GetFullscreenDesc GetHwnd GetCoreWindow Present1 IsTemporaryMonoSupported GetRestrictToOutput SetBackgroundColor GetBackgroundColor SetRotation GetRotation SetSourceSize GetSourceSize SetMaximumFrameLatency GetMaximumFrameLatency GetFrameLatencyWaitableObject SetMatrixTransform GetMatrixTransform GetCurrentBackBufferIndex CheckColorSpaceSupport SetColorSpace1 ResizeBuffers1`,
 };
 const name = {
@@ -154,6 +157,7 @@ const name = {
   signature: 'ID3D12CommandSignature',
   factory: 'IDXGIFactory1',
   adapter: 'IDXGIAdapter1',
+  output: 'IDXGIOutput',
   swapchain: 'IDXGISwapChain',
 };
 const number = (value) => value >>> 0;
@@ -212,6 +216,7 @@ function extraIids(kind, parent) {
   if (kind === 'adapter' || kind === 'swapchain')
     return kind === 'swapchain' ? [iids.swapchain1, iids.swapchain2, iids.swapchain3] : [];
   if (kind === 'device') return [OBJECT];
+  if (kind === 'output') return [];
   if (!parent) return [];
   return [
     OBJECT,
@@ -3724,15 +3729,169 @@ function factoryMethods() {
   };
 }
 
+// IDXGIOutput describes the display the virtual adapter drives. The mode list
+// is the desktop the runtime presents to, reported through the 28-byte
+// DXGI_MODE_DESC the callers expect.
+function outputMethods() {
+  const display = (r) => r.windows?.display ?? { width: 640, height: 480 };
+  const writeMode = (r, pointer, width, height) => {
+    r.check(pointer, 28, true);
+    r.data.fill(0, pointer, pointer + 28);
+    r.write32(pointer, width);
+    r.write32(pointer + 4, height);
+    r.write32(pointer + 8, 60); // RefreshRate.Numerator
+    r.write32(pointer + 12, 1); // RefreshRate.Denominator
+    r.write32(pointer + 16, 28); // DXGI_FORMAT_R8G8B8A8_UNORM
+    r.write32(pointer + 20, 1); // ScanlineOrdering: progressive
+    r.write32(pointer + 24, 0); // Scaling: stretch
+  };
+  return {
+    6: getParentMethod(),
+    // GetDesc writes the 92-byte DXGI_OUTPUT_DESC: WCHAR DeviceName[32], RECT
+    // DesktopCoordinates, BOOL AttachedToDesktop, ROTATION, HMONITOR.
+    7: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        r.check(out, 92, true);
+        r.data.fill(0, out, out + 92);
+        for (const [i, ch] of [...'\\\\.\\DISPLAY1'].entries())
+          r.view.setUint16(out + i * 2, ch.charCodeAt(0), true);
+        const { width, height } = display(r);
+        // DesktopCoordinates: the output's top-left is the desktop origin.
+        r.write32(out + 76, width);
+        r.write32(out + 84, height);
+        r.write32(out + 88, 1); // AttachedToDesktop
+        // Rotation stays DXGI_MODE_ROTATION_IDENTITY.
+        return undefined;
+      },
+    },
+    // GetDisplayModeList(Format, Flags, UINT *pNumModes, DXGI_MODE_DESC *pDesc):
+    // with a null description the count is published, otherwise the caller's
+    // array is filled up to its declared capacity.
+    8: {
+      argc: 5,
+      invoke(r, a) {
+        const format = number(a(1)),
+          flags = number(a(2));
+        const countPointer = number(a(3)),
+          list = number(a(4));
+        if (format !== 28 || flags & ~0x2) throw Error('Unsupported DXGI display mode query');
+        r.check(countPointer, 4, true);
+        const modes = DISPLAY_MODES(r);
+        if (!list) {
+          r.write32(countPointer, modes.length);
+          return undefined;
+        }
+        const capacity = r.read32(countPointer) >>> 0;
+        r.check(list, capacity * 28, true);
+        const written = Math.min(capacity, modes.length);
+        for (let i = 0; i < written; i++) writeMode(r, list + i * 28, modes[i][0], modes[i][1]);
+        r.write32(countPointer, written);
+        return undefined;
+      },
+    },
+    // FindClosestMatchingMode(ModeToMatch, ClosestMatch, UnusedDevice): the
+    // request is honoured directly, which is already the closest match.
+    9: {
+      argc: 4,
+      invoke(r, a) {
+        const requested = number(a(1)),
+          out = number(a(2));
+        r.check(requested, 28);
+        r.check(out, 28, true);
+        r.data.copyWithin(out, requested, requested + 28);
+        const { width, height } = display(r);
+        if (!r.read32(out) || !r.read32(out + 4)) writeMode(r, out, width, height);
+        return S_OK;
+      },
+    },
+    10: { argc: 1, invoke: () => S_OK }, // WaitForVBlank: presentation is synchronous.
+    11: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        // The virtual desktop has no exclusive-mode owner to hand over.
+        return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+      },
+    },
+    12: { argc: 1, invoke: () => S_OK },
+    13: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        r.check(out, 20, true);
+        r.data.fill(0, out, out + 20);
+        return S_OK;
+      },
+    },
+    14: { argc: 2, invoke: () => S_OK },
+    15: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        r.check(out, 20, true);
+        r.data.fill(0, out, out + 20);
+        return S_OK;
+      },
+    },
+    16: {
+      argc: 2,
+      invoke: () => DXGI_ERROR_INVALID_CALL,
+    },
+    17: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return DXGI_ERROR_INVALID_CALL;
+      },
+    },
+    18: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        r.check(out, 32, true);
+        r.data.fill(0, out, out + 32);
+        return S_OK;
+      },
+    },
+  };
+}
+
+// The modes the virtual display reports: the desktop it presents at, plus the
+// common sizes a fullscreen request is clamped to.
+function DISPLAY_MODES(r) {
+  const { width, height } = r.windows?.display ?? { width: 640, height: 480 };
+  const modes = [[width, height]];
+  for (const [w, h] of [
+    [640, 480],
+    [800, 600],
+    [1024, 768],
+    [1280, 720],
+    [1280, 1024],
+    [1920, 1080],
+  ])
+    if (w !== width || h !== height) modes.push([w, h]);
+  return modes;
+}
+
 function adapterMethods() {
   return {
     6: getParentMethod(),
     7: {
-      // EnumOutputs(Output, IDXGIOutput **) — no outputs on the virtual adapter.
+      // EnumOutputs(Output, IDXGIOutput **): the virtual adapter has exactly one
+      // output, the display its swap chains present to. A framework that finds
+      // no output refuses to start, so this reports the real display rather
+      // than an empty list.
       argc: 3,
-      invoke: (r, a) => {
-        output(r, number(a(2)));
-        return DXGI_ERROR_NOT_FOUND;
+      invoke(r, a, self) {
+        const out = number(a(2));
+        output(r, out);
+        // One output: index 0 is the display, every later index ends the loop.
+        if (number(a(1))) return DXGI_ERROR_NOT_FOUND;
+        const item = make(r, 'output', outputMethods(), {}, self);
+        r.write32(out, item.pointer);
+        return S_OK;
       },
     },
     8: {

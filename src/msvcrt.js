@@ -169,7 +169,7 @@ function ansiCopy(r, a) {
 }
 function ansiCat(r, a) {
   const leftLength = ansiLength(r, a).result;
-  const rightLength = ansiLength(r, { 0: () => a(1) }).result;
+  const rightLength = ansiLength(r, (index) => (index === 0 ? a(1) : 0)).result;
   r.check(a(0), leftLength + rightLength + 1, true);
   for (let i = 0; i <= rightLength; i++) r.data[a(0) + leftLength + i] = r.data[a(1) + i];
   return ok(a(0), 2);
@@ -319,7 +319,7 @@ msvcrtApis['msvcrt.dll!_exit'] = crtExit;
 msvcrtApis['msvcrt.dll!_c_exit'] = (r, a) => crtExit(r, a);
 msvcrtApis['msvcrt.dll!exit'] = crtExit;
 msvcrtApis['msvcrt.dll!_cexit'] = (r) => ok(0, 0);
-msvcrtApis['msvcrt.dll!_amsg_exit'] = (r, a) => crtExit(r, { 0: () => a(0) });
+msvcrtApis['msvcrt.dll!_amsg_exit'] = (r, a) => crtExit(r, accessor([a(0)]));
 msvcrtApis['msvcrt.dll!_set_app_type'] = (r, a) => {
   r.crtAppType = a(0) | 0;
   return ok(0, 1);
@@ -652,8 +652,10 @@ const NAMES = {
   strcat: ansiCat,
   strncmp: ansiCompareN,
   strcmp: (r, a) => {
-    const count = Math.max(ansiLength(r, a).result, ansiLength(r, { 0: () => a(1) }).result) + 1;
-    return ansiCompareN(r, { 0: () => a(0), 1: () => a(1), 2: () => count });
+    const count =
+      Math.max(ansiLength(r, a).result, ansiLength(r, (index) => (index === 0 ? a(1) : 0)).result) +
+      1;
+    return ansiCompareN(r, accessor([a(0), a(1), count]));
   },
   wcslen: wideLength,
   wcscpy: wideCopy,
@@ -671,7 +673,7 @@ const NAMES = {
   },
   wcscat: (r, a) => {
     const left = wideLength(r, a).result;
-    const right = wideLength(r, { 0: () => a(1) }).result;
+    const right = wideLength(r, (index) => (index === 0 ? a(1) : 0)).result;
     r.check(a(0), (left + right + 1) * 2, true);
     for (let i = 0; i <= right; i++)
       r.guestMemory.write(a(0) + (left + i) * 2, r.guestMemory.read(a(1) + i * 2, 2), 2);
@@ -720,7 +722,7 @@ const NAMES = {
   // wcsstr finds the first occurrence of `needle` inside `haystack`, returning
   // the haystack when the needle is empty (the CRT's documented behaviour).
   wcsstr: (r, a) => {
-    const needleLength = wideLength(r, { 0: () => a(1) }).result;
+    const needleLength = wideLength(r, (index) => (index === 0 ? a(1) : 0)).result;
     if (!needleLength) return ok(a(0), 2);
     outer: for (let start = 0; start < 0x1000000; start++) {
       const head = r.guestMemory.read(a(0) + start * 2, 2);
@@ -735,7 +737,7 @@ const NAMES = {
     return ok(0, 2);
   },
   wcscspn: (r, a) => {
-    const set = wideLength(r, { 0: () => a(1) }).result;
+    const set = wideLength(r, (index) => (index === 0 ? a(1) : 0)).result;
     for (let i = 0; i < 0x1000000; i++) {
       const code = r.guestMemory.read(a(0) + i * 2, 2);
       if (!code) return ok(i, 2);
@@ -992,7 +994,7 @@ const NAMES = {
   },
   strstr: (r, a) => {
     const haystack = ansiLength(r, a).result,
-      needle = ansiLength(r, { 0: () => a(1) }).result;
+      needle = ansiLength(r, (index) => (index === 0 ? a(1) : 0)).result;
     if (!needle) return ok(a(0), 2);
     for (let i = 0; i + needle <= haystack; i++) {
       let match = true;
@@ -1104,6 +1106,13 @@ function iobArray(r) {
 // _acmdln/_wcmdln are the raw command line the process was started with, which
 // is the same string GetCommandLineA/W returns: the executable path followed by
 // the arguments, each quoted the way the Windows CRT quotes one.
+// A host API handler receives its arguments as an accessor *function*: the
+// dispatcher supplies `(index) => word`. A helper that forwards a constructed
+// argument list must therefore build a function too. An object literal with
+// numeric properties looks similar at a glance but is not callable, and the
+// callee's first `a(0)` throws instead of running the operation.
+const accessor = (values) => (index) => values[index] ?? 0;
+
 function commandLinePointer(r, wide) {
   return r.allocString(processCommandLine(r), wide);
 }

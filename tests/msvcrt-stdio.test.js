@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
+import { createWin32ApiProvider, importKey } from '../src/win32.js';
 
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
 
@@ -230,4 +231,55 @@ test('the wide stream forms operate on the same byte streams', async (t) => {
   const wide = r2.allocString('hi', true);
   assert.ok((await api2('fputws', wide, iob + 32)).result >= 0);
   assert.equal(stdout.join(''), 'Bhi');
+});
+
+test('string helpers that forward a built argument list call it as an accessor', async () => {
+  // `a` is an accessor function, not a table. A helper that passes
+  // `{ 0: () => a(1) }` hands the callee a plain object, and the callee's first
+  // `a(0)` throws before the operation runs. strcmp is the one that reached a
+  // real program first, so it is pinned here alongside the other forwarders.
+  const provider = createWin32ApiProvider();
+  const buffer = new Uint8Array(0x10000);
+  const view = new DataView(buffer.buffer);
+  let next = 0x1000;
+  const runtime = {
+    data: buffer,
+    view,
+    view: view,
+    guestMemory: {
+      read: (address, width) => (width === 1 ? buffer[address] : view.getUint16(address, true)),
+      write: (address, value, width) => {
+        if (width === 1) buffer[address] = value;
+        else view.setUint16(address, value, true);
+      },
+    },
+    check: (p, n) => p,
+    read32: (p) => view.getUint32(p, true),
+    write32: (p, v) => view.setUint32(p, v >>> 0, true),
+    allocate: (n) => {
+      const p = next;
+      next = (next + n + 3) & ~3;
+      return p;
+    },
+    free: () => true,
+    cpu: { r: Array.from({ length: 8 }, () => ({ value: 0 })), x87: {} },
+  };
+  const put = (text) => {
+    const p = runtime.allocate(text.length + 1);
+    for (let i = 0; i < text.length; i++) buffer[p + i] = text.charCodeAt(i);
+    return p;
+  };
+  const call = async (name, ...args) =>
+    provider.get(importKey('msvcrt.dll', name))(runtime, (i) => args[i] ?? 0);
+
+  const apple = put('apple'),
+    banana = put('banana'),
+    apple2 = put('apple');
+  assert.equal((await call('strcmp', apple, apple2)).result, 0);
+  assert.equal((await call('strcmp', apple, banana)).result, -1);
+  assert.equal((await call('strcmp', banana, apple)).result, 1);
+  assert.equal((await call('strncmp', apple, banana, 1)).result, -1); // 'a' < 'b'
+  // _getcwd and _fullpath reach the same helper through an argument list.
+  const cwd = runtime.allocate(260);
+  assert.equal((await call('_getcwd', cwd, 260)).result, cwd);
 });
