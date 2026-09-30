@@ -49,5 +49,14 @@
       "instructions": 52771
     }
   ],
-  "errors": []
+  "errors": [],
+  "pages": {
+    "url": "https://evangit2.github.io/winebrowser/",
+    "verifiedAt": "2026-09-30",
+    "note": "The published GitHub Pages build serves the d3d10-cube catalog entry and both its EXE and ZIP; the demo renders lit, animating frames there with no page errors.",
+    "frames": 55,
+    "draws": 55,
+    "bright": 19770,
+    "colors": 728
+  }
 }
