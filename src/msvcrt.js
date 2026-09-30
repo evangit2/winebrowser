@@ -1433,6 +1433,207 @@ function fflushStream(r, a) {
 // Register the FILE* entry points and the _iob data block. The data exports
 // _iob/__p__iob already exist; their cell must be the real stream array, so
 // DATA_EXPORTS['_iob'] is left as-is and this function only adds the calls.
+
+// ---------------------------------------------------------------------------
+// Stream-position, temporary-file and wide-stream entry points. They extend the
+// FILE* layer above with the same stream records, so a position saved by
+// fgetpos, a rewind, or a wide read all act on the one stream object a program
+// also passes to fread/fwrite.
+function fgetpos(r, a) {
+  const stream = streamFor(r, a(0));
+  const position = a(1);
+  if (!stream || !stream.open || !position) return ok(-1, 2);
+  r.check(position, 8, true);
+  // fpos_t is a 64-bit value on i386 MSVC.
+  r.view.setBigInt64(position, BigInt(stream.position), true);
+  return ok(0, 2);
+}
+function fsetpos(r, a) {
+  const stream = streamFor(r, a(0));
+  const position = a(1);
+  if (!stream || !stream.open || !position) return ok(-1, 2);
+  r.check(position, 8);
+  const value = Number(r.view.getBigInt64(position, true));
+  if (value < 0) return ok(-1, 2);
+  stream.position = value;
+  stream.eof = false;
+  return ok(0, 2);
+}
+// rewind returns nothing and, unlike fseek, clears the error indicator.
+function rewindStream(r, a) {
+  const stream = streamFor(r, a(0));
+  if (stream && stream.open) {
+    stream.position = 0;
+    stream.eof = false;
+    stream.error = false;
+  }
+  return ok(0, 1);
+}
+// _fseeki64/_ftelli64 are the 64-bit position forms. The offset spans two stack
+// slots and the position comes back in EAX:EDX.
+function seekStream64(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream || !stream.open) return ok(-1, 3);
+  const offset = Number(BigInt(a(1)) | (BigInt(a(2)) << 32n));
+  const origin = a(3) | 0;
+  const bytes = stream.path ? (r.files.get(stream.path)?.length ?? 0) : 0;
+  const base = origin === 0 ? 0 : origin === 1 ? stream.position : bytes;
+  const next = base + offset;
+  if (next < 0) return ok(-1, 3);
+  stream.position = next;
+  stream.eof = false;
+  return ok(0, 3);
+}
+function tellStream64(r, a) {
+  const stream = streamFor(r, a(0));
+  if (!stream || !stream.open) return ok(-1, 1);
+  const position = BigInt(stream.position);
+  return {
+    result: Number(BigInt.asUintN(32, position)),
+    resultHigh: Number(BigInt.asIntN(32, position >> 32n)),
+    argc: 1,
+  };
+}
+// _lseeki64 is the descriptor form of the same 64-bit seek.
+async function seekDescriptor64(r, a) {
+  const descriptor = a(0) >>> 0;
+  const handle = crtFdState(r).get(descriptor);
+  if (handle === undefined) return ok(-1, 3);
+  const seek = win32Handler(r, 'SetFilePointer');
+  const response = await seek(
+    r,
+    (index) =>
+      [handle, a(1) >>> 0, a(2) >>> 0, a(3) >>> 0 === 1 ? 1 : a(3) >>> 0 === 2 ? 2 : 0][index] ?? 0,
+  );
+  const low = response.result >>> 0;
+  if (low === 0xffffffff) return ok(0xffffffff, 3);
+  return { result: low, resultHigh: r.cpu.r[2].value | 0, argc: 3 };
+}
+// Allocate and register one stream record, the shape every opener in this file
+// already uses.
+function createStream(r, fields) {
+  const state = stdioState(r);
+  if (state.byAddress.size >= 256) throw Error('stdio stream limit exceeded');
+  const address = r.allocate(STDIO_STRUCT_BYTES, true);
+  const stream = {
+    address,
+    path: null,
+    position: 0,
+    mode: 'r',
+    reading: true,
+    writing: true,
+    append: false,
+    open: true,
+    error: false,
+    eof: false,
+    ...fields,
+  };
+  state.byAddress.set(address, stream);
+  r.write32(address + 12, 0x0001);
+  r.write32(address + 16, 0);
+  return stream;
+}
+// tmpfile creates a uniquely named file in the volume's temp directory and
+// wraps it in a "w+b" stream, the CRT's own contract.
+function tmpfileImpl(r) {
+  r.virtualDirectories ??= new Set();
+  r.virtualDirectories.add('temp/');
+  r.crtTempCounter = (r.crtTempCounter ?? 0) + 1;
+  const path = `temp/tmp${r.crtTempCounter.toString(36)}.tmp`;
+  r.files.set(path, new Uint8Array());
+  r.dirty.add(path);
+  touchFile(r, path, { created: true, write: true });
+  const stream = createStream(r, { path, mode: 'w+b', temporary: true });
+  return ok(stream.address, 0);
+}
+function tmpfileS(r, a) {
+  const out = a(0);
+  if (!out) {
+    r.write32(errnoCell(r, 'errno'), EINVAL);
+    return ok(EINVAL, 1);
+  }
+  const created = tmpfileImpl(r);
+  r.write32(out, created.result);
+  return ok(created.result ? 0 : 12, 1);
+}
+// tmpnam/tmpnam_s produce a unique name "s<counter>" the caller can open. The
+// caller owns the buffer; the non-_s form allocates one when handed NULL.
+function tmpnamImpl(r, a, wide, withSize) {
+  const separator = process.env.WINEBROWSER_TMPDIR || '\\';
+  const text = `${separator}${separator === '\\' ? '' : ''}s${(r.crtTempCounter = (r.crtTempCounter ?? 0) + 1).toString(36)}`;
+  const buffer = a(withSize ? 1 : 0);
+  if (buffer) {
+    const size = withSize ? a(2) >>> 0 : undefined;
+    if (size !== undefined && text.length + 1 > size) {
+      r.write32(errnoCell(r, 'errno'), ERANGE);
+      return ok(ERANGE, 3);
+    }
+    r.check(buffer, (text.length + 1) * (wide ? 2 : 1), true);
+    if (wide) {
+      for (let i = 0; i <= text.length; i++)
+        r.guestMemory.write(buffer + i * 2, i === text.length ? 0 : text.charCodeAt(i), 2);
+    } else {
+      for (let i = 0; i <= text.length; i++)
+        r.data[buffer + i] = i === text.length ? 0 : text.charCodeAt(i) & 0xff;
+    }
+    return ok(withSize ? 0 : buffer, withSize ? 3 : 1);
+  }
+  return ok(r.allocString(text, wide), withSize ? 3 : 1);
+}
+// The wide single-character and string stream forms read and write the same
+// byte streams; a UTF-16 unit below 0x80 maps to its byte.
+function fgetwcImpl(r, a) {
+  const result = fgetc(r, a).result >>> 0;
+  return ok(result === 0xffffffff ? 0xffff : result, 1);
+}
+function fputwcImpl(r, a) {
+  return fputc(r, a);
+}
+function fgetwsImpl(r, a) {
+  const buffer = a(0),
+    capacity = a(1) | 0;
+  const stream = streamFor(r, a(2));
+  if (!stream || !stream.open || !buffer || capacity <= 0) return ok(0, 3);
+  if (stream.standard === 'stdin') {
+    stream.eof = true;
+    return ok(0, 3);
+  }
+  const bytes = r.files.get(stream.path) ?? new Uint8Array();
+  let written = 0;
+  while (written < capacity - 1 && stream.position < bytes.length) {
+    const byte = bytes[stream.position++];
+    r.guestMemory.write(buffer + written * 2, byte, 2);
+    written++;
+    if (byte === 0x0a) break;
+  }
+  r.guestMemory.write(buffer + written * 2, 0, 2);
+  if (!written) {
+    stream.eof = true;
+    return ok(0, 3);
+  }
+  touchFile(r, stream.path, { read: true });
+  return ok(buffer, 3);
+}
+function fputwsImpl(r, a) {
+  const pointer = a(0);
+  const stream = streamFor(r, a(1));
+  if (!stream || !stream.open || !pointer) return ok(0xffff, 2);
+  const bytes = [];
+  for (let i = 0; i < 0x1000000; i++) {
+    const code = r.guestMemory.read(pointer + i * 2, 2);
+    if (!code) break;
+    bytes.push(code & 0xff);
+  }
+  const written = writeStream(r, stream, Uint8Array.from(bytes));
+  return ok(written >= 0 ? written : 0xffff, 2);
+}
+// _fsopen/_wfsopen open with an explicit sharing mode; the runtime's virtual
+// filesystem is process-local and already permits the default sharing, so the
+// extra argument is validated and ignored.
+function fsopenImpl(r, a, wide) {
+  return openStream(r, a, wide);
+}
+
 function registerStdio() {
   const add = (name, handler) => {
     if (msvcrtApis[`msvcrt.dll!${name}`]) return;
@@ -1492,6 +1693,48 @@ function registerStdio() {
   add('_flsbuf', fputc);
   // _iob and __p__iob must name the real stream array rather than a zero cell.
   add('_iob', (r, a) => ok(standardStreams(r).base, 0));
+
+  // Stream position, temporary files and the wide stream forms. These act on the
+  // same stream records fread/fwrite use.
+  add('fgetpos', fgetpos);
+  add('fsetpos', fsetpos);
+  add('rewind', rewindStream);
+  add('_fseeki64', seekStream64);
+  add('_ftelli64', tellStream64);
+  add('_lseeki64', seekDescriptor64);
+  add('tmpfile', tmpfileImpl);
+  add('tmpfile_s', tmpfileS);
+  add('tmpnam', (r, a) => tmpnamImpl(r, a, false, false));
+  add('_tempnam', (r, a) => tmpnamImpl(r, a, false, false));
+  add('_wtmpnam', (r, a) => tmpnamImpl(r, a, true, false));
+  add('tmpnam_s', (r, a) => tmpnamImpl(r, a, false, true));
+  add('_wtmpnam_s', (r, a) => tmpnamImpl(r, a, true, true));
+  add('fgetwc', fgetwcImpl);
+  add('_fgetwc_nolock', fgetwcImpl);
+  add('fputwc', fputwcImpl);
+  add('_fputwc_nolock', fputwcImpl);
+  add('getwc', fgetwcImpl);
+  add('putwc', fputwcImpl);
+  add('fgetws', fgetwsImpl);
+  add('fputws', fputwsImpl);
+  add('_fsopen', (r, a) => fsopenImpl(r, a, false));
+  add('_wfsopen', (r, a) => fsopenImpl(r, a, true));
+  add('_wfopen', (r, a) => openStream(r, a, true));
+  add('_wfreopen', (r, a) => {
+    if (a(0) >>> 0 === 0) return openStream(r, a, true);
+    const stream = streamFor(r, a(0));
+    if (stream?.open) fclose(r, (index) => (index === 0 ? stream.address : 0), 1);
+    return openStream(r, a, true);
+  });
+  add('_wfopen_s', (r, a) => {
+    const out = a(0);
+    if (!out) return ok(22, 4);
+    r.check(out, 4, true);
+    const opened = openStream(r, (index) => a(index + 1), true);
+    r.write32(out, opened.result);
+    return ok(opened.result ? 0 : 2, 4);
+  });
+  add('_wfdopen', (r, a) => fdOpen(r, a));
 }
 registerStdio();
 

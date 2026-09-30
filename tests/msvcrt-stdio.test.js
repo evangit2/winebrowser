@@ -160,3 +160,74 @@ test('the CRT argument accessors describe the real process vector, not an unset 
   r.windows.dispose();
   r.cpu.dispose();
 });
+
+test('fgetpos/fsetpos and rewind move the stream position', async (t) => {
+  const { r, api } = setup(t);
+  const stream = (await api('fopen', r.allocString('data.txt'), r.allocString('rb'))).result >>> 0;
+  const position = r.allocate(8);
+  // Read three bytes, then save the position.
+  const buffer = r.allocate(8);
+  assert.equal((await api('fread', buffer, 1, 3, stream)).result, 3);
+  assert.equal((await api('fgetpos', stream, position)).result, 0);
+  assert.equal(Number(r.view.getBigInt64(position, true)), 3);
+  // Move with fseek, then restore with fsetpos.
+  assert.equal((await api('fseek', stream, 5, 0)).result, 0);
+  assert.equal((await api('ftell', stream)).result, 5);
+  assert.equal((await api('fsetpos', stream, position)).result, 0);
+  assert.equal((await api('ftell', stream)).result, 3);
+  assert.equal((await api('fgetc', stream)).result, 108); // 'l' at offset 3
+  // rewind returns to the start and clears the end-of-file indicator.
+  assert.equal((await api('rewind', stream)).result, 0);
+  assert.equal((await api('ftell', stream)).result, 0);
+  assert.equal((await api('feof', stream)).result, 0);
+  assert.equal((await api('fclose', stream)).result, 0);
+});
+
+test('_fseeki64/_ftelli64 use the 64-bit position pair', async (t) => {
+  const { r, api } = setup(t);
+  const stream = (await api('fopen', r.allocString('data.txt'), r.allocString('rb'))).result >>> 0;
+  // _fseeki64(stream, offsetLow, offsetHigh, origin)
+  assert.equal((await api('_fseeki64', stream, 4, 0, 0)).result, 0);
+  const position = await api('_ftelli64', stream);
+  assert.equal(position.result, 4);
+  assert.equal(position.resultHigh, 0);
+  assert.equal((await api('fgetc', stream)).result, 111); // 'o' at offset 4
+  assert.equal((await api('fclose', stream)).result, 0);
+});
+
+test('tmpfile creates a real, writable, temporary stream', async (t) => {
+  const { r, api } = setup(t);
+  const stream = (await api('tmpfile')).result >>> 0;
+  assert.notEqual(stream, 0, 'tmpfile returns a stream');
+  const source = r.allocate(4);
+  r.data.set([9, 8, 7, 6], source);
+  assert.equal((await api('fwrite', source, 1, 4, stream)).result, 4);
+  assert.equal((await api('fseek', stream, 0, 0)).result, 0);
+  const buffer = r.allocate(4);
+  assert.equal((await api('fread', buffer, 1, 4, stream)).result, 4);
+  assert.deepEqual([...r.data.slice(buffer, buffer + 4)], [9, 8, 7, 6]);
+  assert.equal((await api('fclose', stream)).result, 0);
+  // A temp file name is produced and each call is unique.
+  const first = r.string((await api('tmpnam', 0)).result >>> 0);
+  const second = r.string((await api('tmpnam', 0)).result >>> 0);
+  assert.notEqual(first, second);
+});
+
+test('the wide stream forms operate on the same byte streams', async (t) => {
+  const { r, api } = setup(t);
+  const stream = (await api('fopen', r.allocString('data.txt'), r.allocString('rb'))).result >>> 0;
+  // fgetwc maps a byte below 0x80 to the same UTF-16 unit.
+  assert.equal((await api('fgetwc', stream)).result, 104); // 'h'
+  const buffer = r.allocate(16);
+  assert.equal((await api('fgetws', buffer, 8, stream)).result, buffer);
+  assert.equal(r.wideString(buffer), 'ello');
+  assert.equal((await api('fclose', stream)).result, 0);
+
+  // fputwc/fputws write through to stdout.
+  const { r: r2, stdout, api: api2 } = setup(t);
+  const iob = (await api2('_iob')).result >>> 0;
+  assert.ok((await api2('fputwc', 0x42, iob + 32)).result >= 0); // 'B'
+  const wide = r2.allocString('hi', true);
+  assert.ok((await api2('fputws', wide, iob + 32)).result >= 0);
+  assert.equal(stdout.join(''), 'Bhi');
+});
