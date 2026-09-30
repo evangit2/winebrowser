@@ -94,6 +94,72 @@ function setBit(r, address, index, value) {
     current = r.read32(word) >>> 0;
   r.write32(word, (value ? current | mask : current & ~mask) >>> 0);
 }
+
+// ---------------------------------------------------------------------------
+// Fiber-local storage (FLS). A fiber is the unit FLS binds to, and the runtime
+// has one implicit fiber per guest thread, so FLS reuses the TLS slot table plus
+// a per-index destructor the caller registers through FlsAlloc.
+function flsState(r) {
+  r.fls ??= { bitmap: null, destructors: new Map() };
+  if (!r.fls.bitmap) {
+    // FLS_ACCESS_CODE marks the process-wide table; one bit per slot.
+    r.fls.bitmap = r.allocate(8);
+    r.data.fill(0, r.fls.bitmap, r.fls.bitmap + 8);
+  }
+  return r.fls;
+}
+const FLS_OUT_OF_INDEXES = 0xffffffff;
+function flsAlloc(r, a) {
+  const state = flsState(r);
+  const destructor = a(0) >>> 0;
+  for (let index = 0; index < 64; index++) {
+    const byte = state.bitmap + (index >> 3);
+    const mask = 1 << (index & 7);
+    if (r.data[byte] & mask) continue;
+    r.data[byte] |= mask;
+    if (destructor) state.destructors.set(index, destructor);
+    // The slot is cleared in the calling thread, as documented.
+    r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, 0);
+    return ok(index, 1);
+  }
+  r.lastError = 18;
+  return ok(FLS_OUT_OF_INDEXES, 1);
+}
+function flsIndex(r, index) {
+  if (index >= 64) return null;
+  const state = flsState(r);
+  const byte = state.bitmap + (index >> 3);
+  return r.data[byte] & (1 << (index & 7)) ? index : null;
+}
+function flsSetValue(r, a) {
+  const index = flsIndex(r, a(0) >>> 0);
+  if (index === null) return fail(r, 87, 2);
+  r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, a(1) >>> 0);
+  return ok(1, 2);
+}
+function flsGetValue(r, a) {
+  const index = flsIndex(r, a(0) >>> 0);
+  if (index === null) return fail(r, 87, 1);
+  r.lastError = 0;
+  return ok(r.read32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4) >>> 0, 1);
+}
+function flsFree(r, a) {
+  const index = flsIndex(r, a(0) >>> 0);
+  if (index === null) return fail(r, 87, 1);
+  const state = flsState(r);
+  r.data[state.bitmap + (index >> 3)] &= ~(1 << (index & 7));
+  state.destructors.delete(index);
+  r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, 0);
+  return ok(1, 1);
+}
+// FlsSetValue's fiber argument: the runtime has one fiber per thread, so a zero
+// fiber means the calling one and any other value is invalid.
+function flsFiber(r, a, argc) {
+  if (a(0)) return null;
+  void argc;
+  return r.threads?.current ?? null;
+}
+
 function tlsAlloc(r) {
   // The fixed 64 slots come first, then the 1024 slot expansion table.
   for (let index = 0; index < TLS_MINIMUM_AVAILABLE + TLS_EXPANSION_SLOTS; index++) {
@@ -1096,6 +1162,18 @@ export const systemApis = {
   'kernel32.dll!FreeResource': freeResource,
   'kernel32.dll!TlsAlloc': tlsAlloc,
   'kernel32.dll!TlsFree': tlsFree,
+  'kernel32.dll!FlsAlloc': flsAlloc,
+  'kernel32.dll!FlsFree': flsFree,
+  'kernel32.dll!FlsSetValue': flsSetValue,
+  'kernel32.dll!FlsGetValue': flsGetValue,
+  'kernel32.dll!FlsSetValueEx': (r, a) => {
+    const fiber = flsFiber(r, a, 3);
+    if (!fiber) return fail(r, 87, 3);
+    const index = flsIndex(r, a(1) >>> 0);
+    if (index === null) return fail(r, 87, 3);
+    r.write32(r.cpu.fsBase + TEB_TLS_SLOTS + index * 4, a(2) >>> 0);
+    return ok(1, 3);
+  },
   'kernel32.dll!TlsSetValue': tlsSetValue,
   'kernel32.dll!TlsGetValue': tlsGetValue,
   'kernel32.dll!FindFirstFileA': (r, a) => findFirstFile(r, a, false),

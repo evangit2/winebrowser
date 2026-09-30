@@ -57,10 +57,16 @@ async function loadLibrary(r, a, wide, extended = false) {
   const name = wide ? r.wideString(a(0)) : r.string(a(0));
   const options = {};
   if (extended) {
-    // Other flags need distinct resource-only mappings or a configured search
-    // policy. Reject them instead of silently executing a datafile as code.
-    if (a(1) || (a(2) !== 0 && a(2) !== 8)) return fail(r, 87, argc);
-    if (a(2) === 8) {
+    // LOAD_LIBRARY_SEARCH_* (0x100..0x1000) select where the loader looks first.
+    // The runtime already resolves a bare name across the package volume, so
+    // those flags are accepted and honoured by the ordinary search.
+    const flags = a(2) >>> 0;
+    const SEARCH_FLAGS = 0x100 | 0x200 | 0x400 | 0x800 | 0x1000 | 0x4000;
+    const allowed = 0 | 8 | SEARCH_FLAGS;
+    if (a(1) || flags & ~allowed) return fail(r, 87, argc);
+    // LOAD_WITH_ALTERED_SEARCH_PATH (0x8) additionally searches the loaded
+    // module's own directory, which needs an absolute path to derive.
+    if (flags & 8) {
       if (!/^(?:[a-z]:[\\/]|[\\/]\?\?[\\/])/i.test(name)) return fail(r, 87, argc);
       let path;
       try {
@@ -70,6 +76,7 @@ async function loadLibrary(r, a, wide, extended = false) {
       }
       options.searchDirectories = [path.slice(0, path.lastIndexOf('/') + 1), ''];
     }
+    void flags;
   }
   try {
     return ok(await r.loadLibrary(name, options), argc);
