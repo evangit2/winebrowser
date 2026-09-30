@@ -798,3 +798,41 @@ test('the small process accessors report stable cells', async (t) => {
   assert.notEqual((await call('__p__tzname')).result >>> 0, 0);
   assert.equal((await call('_tzset')).result, 0);
 });
+
+test('the __libm_sse2 entry points read and write XMM0/XMM1', async (t) => {
+  const { r, call } = await setup(t);
+  const setXmm = (index, value) => {
+    r.cpu.simd.registers[index].set(new Uint32Array(new Float64Array([value]).buffer));
+  };
+  const getXmm = (index) => {
+    const view = new DataView(r.cpu.simd.registers[index].buffer);
+    return view.getFloat64(0, true);
+  };
+  setXmm(0, 0);
+  await call('__libm_sse2_sin');
+  assert.equal(getXmm(0), 0);
+  setXmm(0, Math.PI / 2);
+  await call('__libm_sse2_cos');
+  assert.ok(Math.abs(getXmm(0) - 6.123233995736766e-17) < 1e-30, 'cos(pi/2) is ~0');
+  // The two-argument forms read XMM0 and XMM1 and leave the result in XMM0.
+  setXmm(0, 2);
+  setXmm(1, 10);
+  await call('__libm_sse2_pow');
+  assert.equal(getXmm(0), 1024);
+  setXmm(0, 3);
+  setXmm(1, 4);
+  await call('__libm_sse2_atan2');
+  assert.ok(Math.abs(getXmm(0) - Math.atan2(3, 4)) < 1e-15);
+  // The binary32 forms use the low lane only.
+  const setXmmF = (index, value) => {
+    new DataView(r.cpu.simd.registers[index].buffer).setFloat32(0, value, true);
+  };
+  const getXmmF = (index) => new DataView(r.cpu.simd.registers[index].buffer).getFloat32(0, true);
+  setXmmF(0, 1);
+  await call('__libm_sse2_expf');
+  assert.ok(Math.abs(getXmmF(0) - Math.E) < 1e-6, 'expf(1) is e');
+  setXmmF(0, 1e30);
+  setXmmF(1, 2);
+  await call('__libm_sse2_powf');
+  assert.equal(getXmmF(0), Infinity);
+});

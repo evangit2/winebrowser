@@ -412,6 +412,62 @@ for (const [name, [count, compute]] of Object.entries(FPU_MATH)) {
     return ok(0, 0);
   };
 }
+// The SSE2 math entry points. Unlike the x87 _CI* intrinsics, these take their
+// arguments in XMM0/XMM1 and return in XMM0, so they need the SIMD register
+// file rather than the x87 stack. The `f` spellings work on binary32.
+function xmmDouble(r, index) {
+  return new DataView(r.cpu.simd.registers[index].buffer).getFloat64(0, true);
+}
+function xmmFloat(r, index) {
+  return new DataView(r.cpu.simd.registers[index].buffer).getFloat32(0, true);
+}
+function setXmmDouble(r, index, value) {
+  new DataView(r.cpu.simd.registers[index].buffer).setFloat64(0, value, true);
+}
+function setXmmFloat(r, index, value) {
+  new DataView(r.cpu.simd.registers[index].buffer).setFloat32(0, value, true);
+}
+const SSE2_MATH = {
+  __libm_sse2_acos: [1, (a) => Math.acos(a)],
+  __libm_sse2_asin: [1, (a) => Math.asin(a)],
+  __libm_sse2_atan: [1, (a) => Math.atan(a)],
+  __libm_sse2_atan2: [2, (a, b) => Math.atan2(a, b)],
+  __libm_sse2_cos: [1, (a) => Math.cos(a)],
+  __libm_sse2_exp: [1, (a) => Math.exp(a)],
+  __libm_sse2_log: [1, (a) => Math.log(a)],
+  __libm_sse2_log10: [1, (a) => Math.log10(a)],
+  __libm_sse2_pow: [2, (a, b) => a ** b],
+  __libm_sse2_sin: [1, (a) => Math.sin(a)],
+  __libm_sse2_tan: [1, (a) => Math.tan(a)],
+};
+const SSE2_MATH_FLOAT = {
+  __libm_sse2_acosf: [1, (a) => Math.acos(a)],
+  __libm_sse2_asinf: [1, (a) => Math.asin(a)],
+  __libm_sse2_atanf: [1, (a) => Math.atan(a)],
+  __libm_sse2_cosf: [1, (a) => Math.cos(a)],
+  __libm_sse2_expf: [1, (a) => Math.exp(a)],
+  __libm_sse2_logf: [1, (a) => Math.log(a)],
+  __libm_sse2_log10f: [1, (a) => Math.log10(a)],
+  __libm_sse2_powf: [2, (a, b) => a ** b],
+  __libm_sse2_sinf: [1, (a) => Math.sin(a)],
+  __libm_sse2_tanf: [1, (a) => Math.tan(a)],
+};
+for (const [name, [count, compute]] of Object.entries(SSE2_MATH)) {
+  msvcrtApis[`msvcrt.dll!${name}`] = (r) => {
+    const args = [];
+    for (let i = 0; i < count; i++) args.push(xmmDouble(r, i));
+    setXmmDouble(r, 0, compute(...args));
+    return ok(0, 0);
+  };
+}
+for (const [name, [count, compute]] of Object.entries(SSE2_MATH_FLOAT)) {
+  msvcrtApis[`msvcrt.dll!${name}`] = (r) => {
+    const args = [];
+    for (let i = 0; i < count; i++) args.push(xmmFloat(r, i));
+    setXmmFloat(r, 0, compute(...args));
+    return ok(0, 0);
+  };
+}
 // ---------------------------------------------------------------------------
 // Floating-point control. MSVC's float.h uses a different bit layout from the
 // raw x87 control word: the exception-mask bits are reversed, rounding control
