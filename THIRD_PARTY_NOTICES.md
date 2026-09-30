@@ -20,6 +20,17 @@ The guest library in `public/runtime/shell32.dll` and `runtime/wine/command-line
 
 `public/coi-serviceworker.js` is the unchanged MIT-licensed coi-serviceworker v0.1.7 by Guido Zuidhof and contributors, pinned to [commit 7b1d2a092d0d2dd2b7270b6f12f13605de26f214](https://github.com/gzuidhof/coi-serviceworker/tree/7b1d2a092d0d2dd2b7270b6f12f13605de26f214). Its full license is distributed beside it in `public/coi-serviceworker-LICENSE.txt`. It supplies COOP/COEP headers through a service worker on static hosts. Our `src/isolation.js` registers its worker branch and waits for control before reloading once on first use; the upstream window-side bootstrap is not loaded. Its scope is the deployed project directory. It fetches resources from the network without caching application uploads.
 
+## Wine msvcrt character-classification tables
+
+`src/msvcrt-ctype.js` contains the two 257-entry WORD tables `MSVCRT__ctype` and
+`MSVCRT__wctype` from Wine 11.0 `dlls/msvcrt/ctype.c` at commit
+`db11d0fe6a169c457e23d007e20404643d067aa8`. The tables are the data msvcrt.dll
+itself exports as `_ctype`/`_wctype`; they are copied, not reimplemented, and
+`scripts/build-msvcrt-ctype.py` re-derives the module from the pinned upstream
+file. Wine's `dlls/msvcrt` sources are LGPL-2.1-or-later, with the full license
+retained at `third_party/wine/COPYING.LIB`. The repository MIT license does not
+replace those terms. No Wine binary is distributed for this data.
+
 ## Wine formatter and GCC runtime helpers
 
 `public/runtime/wine-format.dll` contains the unchanged Wine 11.0 USER32 formatter bodies. The complete pinned source is `third_party/wine/user32-wsprintf.c`, with LGPL-2.1-or-later terms in `third_party/wine/COPYING.LIB`. See `runtime/wine-format/manifest.json` and its README for source hashes, portability adapters, exact imports and rebuild instructions.

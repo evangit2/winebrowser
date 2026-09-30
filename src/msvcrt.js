@@ -13,6 +13,9 @@ import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { touchFile } from './file-metadata.js';
 import { processCommandLine, processArguments } from './command-line.js';
+import { encodeAnsi } from './encoding.js';
+import { fileMetadata } from './file-metadata.js';
+import { crtCtypeCell, registerCrtExtended } from './msvcrt-extended.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 // x86 argument passing: a double occupies two DWORDs on the stack, low half
@@ -1095,12 +1098,11 @@ const POINTER_ACCESSORS = {
 for (const [accessor, target] of Object.entries(POINTER_ACCESSORS)) {
   msvcrtApis[`msvcrt.dll!${accessor}`] = (r) => {
     if (!DATA_EXPORTS[target]) {
-      // The ctype tables are plain zeroed arrays: the runtime models a
-      // single-byte code page, so every character maps to itself.
-      r.msvcrtData ??= new Map();
-      if (!r.msvcrtData.has(target))
-        r.msvcrtData.set(target, r.allocate(target === '_pwctype' ? 1024 : 512, true));
-      return { result: r.msvcrtData.get(target), argc: 0 };
+      // The character-classification symbols (_pctype/_pwctype/_mbctype and the
+      // tables behind them) are built once in msvcrt-extended.js from Wine's own
+      // ctype data, so the accessor returns that address rather than a fresh
+      // zeroed array.
+      return { result: crtCtypeCell(r, target), argc: 0 };
     }
     return { result: dataAddress(r, target), argc: 0 };
   };
@@ -2285,6 +2287,7 @@ export function registerCrtTime() {
   add('strerror_s', strerrorS);
 }
 registerCrtTime();
+registerCrtExtended(msvcrtApis);
 
 // ---------------------------------------------------------------------------
 // Completing the export surface. The generated list is Wine's real msvcrt
