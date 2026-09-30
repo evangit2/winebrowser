@@ -434,6 +434,27 @@ D3D10/11 and broader D3D12 support are still required.
       to the runtime provider for its basename, which is how PuTTY loads
       every optional WinSock, common-control and shell DLL.
       Remaining PuTTY work is networking and its connection UI, not the runtime.
+- [ ] **Direct3D 10 and 11 frontends.** The Humus Inferno target imports only
+      `d3d10.dll` now that every other import resolves, so this is the one
+      remaining gap for it. The groundwork is in place and verified:
+      `D3D12Renderer.planImplicitBindings` derives the canonical (group,
+      binding) layout for a shader pair without a root signature, and
+      `createPipeline` accepts an `implicitBindings` flag, which is exactly the
+      D3D10 binding model (no signature; cb#/t#/s# bound directly). The
+      identified work is a `src/d3d10.js` frontend that: - implements `D3D10CreateDevice`/`D3D10CreateDeviceAndSwapChain` and the
+      98-slot `ID3D10Device` vtable (the exact i686 order is in d3d10.h and
+      was read for this note); - models the view objects (`ID3D10Buffer`, `ID3D10Texture2D`,
+      `ID3D10ShaderResourceView`, `ID3D10RenderTargetView`,
+      `ID3D10DepthStencilView`, the four state objects) at the sizes the
+      compiler reports: buffer desc 20, texture2d desc 44, subresource data 12,
+      SRV desc 24, RTV/DSV desc 20, sampler 52, blend 68, rasterizer 40,
+      depth-stencil 52, input element 28, mapped texture2d 8; - compiles its HLSL through the existing `D3D10CompileShader`
+      (which the shared `d3dcompiler.js` already answers) and feeds the DXBC
+      to the shared renderer.
+      `vs_4_0`/`ps_4_0` now compile through the same vkd3d-shader path as SM5.
+      No D3D10 code is in the tree yet: a frontend with no fixture to run it
+      against would be unverifiable, so it is the next task rather than a
+      committed stub.
 - [ ] Broaden common-control coverage beyond the classes the browser desktop
       renders (list view, tree view, tab, status bar, trackbar, up-down,
       progress and animation controls), and add the OpenGL/WGL path the SGI
