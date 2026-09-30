@@ -359,7 +359,11 @@ export class ShaderCompiler {
   async compileHLSL(bytes, entry, profile, sourceName = 'shader.hlsl') {
     if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > MAX_SHADER_BYTES)
       throw Error('Expected bounded HLSL source');
-    if (!['vs_5_0', 'ps_5_0'].includes(profile)) throw Error('Unsupported HLSL profile');
+    // The SM4.0 profiles (vs_4_0/ps_4_0) compile through the same vkd3d-shader
+    // path as SM5.0: the DXBC container and instruction set are the same, only
+    // the target model differs. D3D10 applications ask for the SM4 spellings.
+    if (!['vs_4_0', 'ps_4_0', 'vs_5_0', 'ps_5_0'].includes(profile))
+      throw Error('Unsupported HLSL profile');
     if (typeof entry !== 'string' || !entry.length || entry.length > 256 || entry.includes('\0'))
       throw Error('Invalid HLSL entry point');
     if (typeof sourceName !== 'string' || sourceName.length > 4096 || sourceName.includes('\0'))
