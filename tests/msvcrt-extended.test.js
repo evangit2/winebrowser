@@ -489,3 +489,64 @@ test('_setjmp records the register file and longjmp restores it', async (t) => {
   const explicit = await call('longjmp', buffer, 7);
   assert.equal(explicit.result, 7);
 });
+
+test('_dup/_dup2 share the descriptor with its original', async (t) => {
+  const { r, call } = await setup(t);
+  // Create a real file through the CRT's own _open so the descriptor table has
+  // an entry backed by a Win32 handle.
+  r.crtFds = new Map();
+  r.crtFdNext = 3;
+  const handle = r.nextHandle++;
+  r.handles.set(handle, { path: 'dup.txt', position: 0, access: 0xc0000000, share: 0 });
+  r.files.set('dup.txt', new Uint8Array(10));
+  r.crtFds.set(3, handle);
+
+  const duplicate = (await call('_dup', 3)).result;
+  assert.equal(duplicate, 4, 'the next free descriptor is returned');
+  assert.equal(r.crtFds.get(4), handle, 'the duplicate names the same Win32 handle');
+
+  // _dup2 copies onto an explicit descriptor.
+  const target = (await call('_dup2', 3, 9)).result;
+  assert.equal(target, 9);
+  assert.equal(r.crtFds.get(9), handle);
+
+  // A descriptor that was never opened is EBADF.
+  assert.equal((await call('_dup', 77)).result, -1);
+  assert.equal(r.read32((await call('_errno')).result >>> 0) | 0, 9);
+
+  // _eof reports the position against the file's length.
+  r.handles.get(handle).position = 10;
+  assert.equal((await call('_eof', 3)).result, 1);
+  r.handles.get(handle).position = 4;
+  assert.equal((await call('_eof', 3)).result, 0);
+
+  // _tell and _telli64 report the same position.
+  assert.equal((await call('_tell', 3)).result, 4);
+  const wide = await call('_telli64', 3);
+  assert.equal(wide.result, 4);
+  assert.equal(wide.resultHigh, 0);
+});
+
+test('the CRT process and console helpers answer from the runtime model', async (t) => {
+  const { r, call } = await setup(t);
+  assert.equal((await call('_umask', 0o22)).result, 0, 'the previous umask');
+  assert.equal((await call('_umask', 0)).result, 0o22, 'and it is remembered');
+  assert.equal((await call('_getdrives')).result, 0b100, 'only C: exists');
+  assert.equal((await call('_get_osplatform', r.allocate(4))).result, 0);
+  // The disk-free figures come from the bounded volume's real usage.
+  const info = r.allocate(20);
+  assert.equal((await call('_getdiskfree', 3, info)).result, 0);
+  assert.equal(r.read32(info), 8, 'sectors per cluster');
+  assert.equal(r.read32(info + 4), 512, 'bytes per sector');
+  assert.ok(r.read32(info + 12) > 0, 'total clusters');
+  // Console input is not interactive: a poll reports no key, a read EOF.
+  assert.equal((await call('_kbhit')).result, 0);
+  assert.equal((await call('_getch')).result | 0, -1);
+  assert.equal((await call('_getw', r.allocate(4))).result | 0, -1);
+  // The new-handler and error-mode accessors round-trip their values.
+  assert.equal((await call('_set_error_mode', 1)).result, 0);
+  assert.equal((await call('_set_error_mode', 2)).result, 1);
+  assert.equal((await call('_set_sbh_threshold', 4096)).result, 0);
+  assert.equal((await call('_get_output_format')).result, 0);
+  assert.equal((await call('_set_output_format', 1)).result, 0);
+});

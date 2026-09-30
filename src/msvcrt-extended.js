@@ -1619,10 +1619,159 @@ function restoreJumpBuffer(r, pointer, retval, argc) {
   // the initial one, exactly as longjmp documents.
   return { result: retval | 0 || 1, argc, convention: 'cdecl', jumpTo: eip };
 }
+// File-descriptor helpers. They operate on r.crtFds, the same descriptor table
+// msvcrt.js's _open/_read/_write use, so a duplicated descriptor names the same
+// Win32 handle and therefore shares its file with the original.
+function fdTable(r) {
+  r.crtFds ??= new Map();
+  r.crtFdNext ??= 3;
+  return r.crtFds;
+}
+function dupDescriptor(r, a, withTarget) {
+  const fds = fdTable(r);
+  const source = a(0) | 0;
+  if (!fds.has(source)) {
+    setErrno(r, 9); // EBADF
+    return ok(-1, withTarget ? 2 : 1);
+  }
+  if (!withTarget) {
+    let descriptor = r.crtFdNext;
+    while (fds.has(descriptor)) descriptor++;
+    r.crtFdNext = descriptor + 1;
+    fds.set(descriptor, fds.get(source));
+    return ok(descriptor, 1);
+  }
+  const target = a(1) | 0;
+  if (target < 0) {
+    setErrno(r, 9);
+    return ok(-1, 2);
+  }
+  fds.set(target, fds.get(source));
+  return ok(target, 2);
+}
+// _eof reports whether the descriptor's position has reached the file's end.
+function eofDescriptor(r, a) {
+  const descriptor = a(0) | 0;
+  const handle = fdTable(r).get(descriptor);
+  const record = handle === undefined ? null : r.handles?.get(handle);
+  if (!record) return ok(-1, 1);
+  const bytes = r.files.get(record.path);
+  return ok(record.position >= (bytes?.length ?? 0) ? 1 : 0, 1);
+}
+// _tell returns the descriptor's position; _telli64 the same in EAX:EDX.
+function tellDescriptor(r, a, wide) {
+  const handle = fdTable(r).get(a(0) | 0);
+  const record = handle === undefined ? null : r.handles?.get(handle);
+  if (!record) return ok(-1, 1);
+  const position = record.position >>> 0;
+  if (!wide) return ok(position, 1);
+  return { result: position, resultLow: undefined, resultHigh: 0, argc: 1 };
+}
+// _chmod records the read-only bit the stat family reads back.
+function chmodImpl(r, a, wide) {
+  const path = resolveQuery(r, a(0), wide);
+  if (path === null) {
+    setErrno(r, ENOENT);
+    return ok(-1, 2);
+  }
+  const info = fileMetadata(r, path);
+  if (info.status) {
+    setErrno(r, ENOENT);
+    return ok(-1, 2);
+  }
+  r.fileAttributes ??= new Map();
+  // _S_IWRITE (0x80) set means writable; cleared means read-only.
+  r.fileAttributes.set(path, a(1) & 0x80 ? 0 : FILE_ATTRIBUTE_READONLY);
+  return ok(0, 2);
+}
+// _umask records the process umask and returns the previous value. The package
+// volume has no permission bits, so only the remembered value is observable.
+function umaskImpl(r, a) {
+  const previous = r.crtUmask ?? 0;
+  r.crtUmask = a(0) | 0;
+  return ok(previous, 1);
+}
+// _getdrives returns a bit per available drive letter; only C: exists.
+function getDrivesImpl() {
+  return ok(0b100, 0);
+}
+// _getdiskfree fills _diskfree_t (sectors per cluster, bytes per sector, free
+// clusters, total clusters) from the bounded volume's own usage figures.
+function guestVolumeUsage(r) {
+  let used = 0;
+  for (const bytes of r.files?.values() ?? []) used += bytes.length;
+  const total = 256 * 1024 * 1024;
+  return { total, free: Math.max(0, total - used) };
+}
+function getDiskFreeImpl(r, a) {
+  const out = a(1) >>> 0;
+  if (!out) return ok(-1, 2);
+  r.check(out, 20, true);
+  const { free, total } = guestVolumeUsage(r);
+  const sectorsPerCluster = 8,
+    bytesPerSector = 512,
+    cluster = sectorsPerCluster * bytesPerSector;
+  r.write32(out, sectorsPerCluster);
+  r.write32(out + 4, bytesPerSector);
+  r.write32(out + 8, Math.floor(free / cluster));
+  r.write32(out + 12, Math.floor(total / cluster));
+  return ok(0, 2);
+}
+// _tempnam allocates a unique temporary name; the isolated volume's temp
+// directory always exists, and GetTempFileName-grade uniqueness is the
+// montonic counter the runtime already uses for guest handles.
+function tempnamImpl(r, a, wide) {
+  const name = `tmp${(r.crtTempCounter = (r.crtTempCounter ?? 0) + 1).toString(36)}`;
+  const path = `C:\\winebrowser\\temp\\${name}`;
+  return ok(r.allocString(wide ? path : path, wide), 2);
+}
+// _rmtmp removes files opened by tmpfile(); the runtime keeps no such list, so
+// there is nothing to remove and the documented count is zero.
+function rmtmpImpl() {
+  return ok(0, 0);
+}
+// _locking implements the CRT's region lock over the file the descriptor names.
+// The virtual filesystem is process-local, so an uncontended lock succeeds and
+// the failure modes are the argument checks the CRT documents.
+function lockingImpl(r, a) {
+  const descriptor = a(0) | 0,
+    mode = a(1) | 0;
+  const handle = fdTable(r).get(descriptor);
+  if (handle === undefined) {
+    setErrno(r, 9);
+    return ok(-1, 3);
+  }
+  // _LK_LOCK/_LK_NBLCK/_LK_UNLCK/_LK_NBRLCK are the four documented modes.
+  if (![1, 2, 0, 4].includes(mode)) {
+    setErrno(r, EINVAL);
+    return ok(-1, 3);
+  }
+  return ok(0, 3);
+}
+// Console input. The runtime has no interactive stdin for a dropped program, so
+// _kbhit reports no key and _getch reports EOF; a program that polls never
+// blocks, which is the behaviour a headless harness needs.
+function kbhitImpl() {
+  return ok(0, 0);
+}
+function getchImpl() {
+  return ok(0xffffffff, 0);
+}
+// _cputs writes a string to the console; _cprintf and _cwprintf format to it.
+function cputsImpl(r, a, deps) {
+  const text = r.string(a(0));
+  deps.writeStream(
+    r,
+    deps.streamFor(r, deps.standardStreams(r).addresses[1]),
+    encodeAnsi(text).bytes,
+  );
+  return ok(0, 1);
+}
+
 // Registration. Called from msvcrt.js after the real implementations are in
 // place but before the trap tables, so a name that already has a handler keeps
 // it and everything else gets the implementation here.
-export function registerCrtExtended(apis) {
+export function registerCrtExtended(apis, deps = {}) {
   const add = (name, handler) => {
     const key = `msvcrt.dll!${name}`;
     if (apis[key]) return;
@@ -2366,7 +2515,6 @@ export function registerCrtExtended(apis) {
     await r.threads.delay(milliseconds);
     return ok(0, 1);
   });
-  add('_get_osplatform', () => ok(2, 0));
   add('_get_osver', (r, a) => {
     if (a(0)) r.write32(a(0), 0x0a280000 | 0x0a28);
     return ok(0, 1);
@@ -2401,6 +2549,101 @@ export function registerCrtExtended(apis) {
   });
   add('raise', () => ok(0, 1));
   add('_fpieee_flt', () => ok(0, 4));
+
+  // File-descriptor and process helpers.
+  add('_dup', (r, a) => dupDescriptor(r, a, false));
+  add('_dup2', (r, a) => dupDescriptor(r, a, true));
+  add('_eof', eofDescriptor);
+  add('_tell', (r, a) => tellDescriptor(r, a, false));
+  add('_telli64', (r, a) => tellDescriptor(r, a, true));
+  add('_chmod', (r, a) => chmodImpl(r, a, false));
+  add('_wchmod', (r, a) => chmodImpl(r, a, true));
+  add('_umask', umaskImpl);
+  add('_umask_s', (r, a) => ok(umaskImpl(r, a).result, 2));
+  add('_getdrives', getDrivesImpl);
+  add('_getdiskfree', (r, a) => getDiskFreeImpl(r, a));
+  add('_tempnam', (r, a) => tempnamImpl(r, a, false));
+  add('_wtempnam', (r, a) => tempnamImpl(r, a, true));
+  add('_rmtmp', rmtmpImpl);
+  add('_locking', lockingImpl);
+  add('_get_osplatform', (r, a) => {
+    if (a(0)) r.write32(a(0), 2);
+    return ok(0, 1);
+  });
+  add('_get_output_format', () => ok(0, 0));
+  add('_set_output_format', (r, a) => {
+    const previous = r.crtOutputFormat ?? 0;
+    r.crtOutputFormat = a(0) | 0;
+    return ok(previous, 1);
+  });
+  add('_set_error_mode', (r, a) => {
+    const previous = r.crtErrorMode ?? 0;
+    r.crtErrorMode = a(0) | 0;
+    return ok(previous, 1);
+  });
+  add('_seterrormode', (r, a) => {
+    const previous = r.crtErrorMode ?? 0;
+    r.crtErrorMode = a(0) | 0;
+    return ok(previous, 1);
+  });
+  add('_set_sbh_threshold', (r, a) => {
+    const previous = r.crtSbhThreshold ?? 0;
+    r.crtSbhThreshold = a(0) >>> 0;
+    return ok(previous, 1);
+  });
+  add('_get_sbh_threshold', () => ok(0, 0));
+  add('_get_heap_handle', (r) => ok(r.heapHandle ?? 0, 0));
+  add('_get_new_handler', (r) => ok(r.crtNewHandler ?? 0, 0));
+  add('_set_new_handler', (r, a) => {
+    const previous = r.crtNewHandler ?? 0;
+    r.crtNewHandler = a(0) >>> 0;
+    return ok(previous, 1);
+  });
+  add('_set_new_mode', (r, a) => {
+    const previous = r.crtNewMode ?? 0;
+    r.crtNewMode = a(0) | 0;
+    return ok(previous, 1);
+  });
+  add('_query_new_mode', (r) => ok(r.crtNewMode ?? 0, 0));
+  add('_callnewh', (r, a) => {
+    const handler = r.crtNewHandler ?? 0;
+    return ok(handler ? 1 : 0, 1);
+  });
+  add('_query_new_handler', (r) => ok(r.crtNewHandler ?? 0, 0));
+  // Console input is not interactive for a dropped program, so a poll reports
+  // "no key" and a read reports EOF rather than blocking the dispatch loop.
+  add('_kbhit', kbhitImpl);
+  add('_getch', getchImpl);
+  add('_getche', (r, a) => {
+    const result = getchImpl(r, a);
+    return result;
+  });
+  add('_getwch', getchImpl);
+  add('_getwche', getchImpl);
+  add('_ungetch', (r, a) => ok(a(0) & 0xff, 1));
+  add('_cputs', (r, a) => cputsImpl(r, a, deps));
+  add('_putw', (r, a) => {
+    const value = a(0) | 0;
+    deps.writeStream(
+      r,
+      deps.streamFor(r, deps.standardStreams(r).addresses[1]),
+      Uint8Array.of(value & 0xff, (value >>> 8) & 0xff),
+    );
+    return ok(value, 2);
+  });
+  add('_getw', (r) => {
+    // No interactive input; report EOF rather than fabricate a value.
+    return ok(0xffffffff, 1);
+  });
+  add('_lock_file', () => ok(0, 1));
+  add('_unlock_file', () => ok(0, 1));
+  add('_lock', () => ok(0, 1));
+  add('_unlock', () => ok(0, 1));
+  add('_mbtowc_l', (r, a) => {
+    const result = mbtowcImpl(r, { 0: () => a(0), 1: () => a(1), 2: () => a(2) }, 4);
+    return result;
+  });
+  add('_wctomb_l', (r, a) => wctombImpl(r, { 0: () => a(0), 1: () => a(1) }, 3));
 
   // setjmp/longjmp. The jump buffer is Win32's i386 _JUMP_BUFFER: Ebp, Ebx,
   // Edi, Esi, Esp, Eip, Registration, TryLevel, Cookie, UnwindFunc, then six

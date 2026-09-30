@@ -2297,7 +2297,11 @@ export function registerCrtTime() {
   add('strerror_s', strerrorS);
 }
 registerCrtTime();
-registerCrtExtended(msvcrtApis);
+registerCrtExtended(msvcrtApis, {
+  streamFor,
+  standardStreams,
+  writeStream,
+});
 
 // ---------------------------------------------------------------------------
 // Completing the export surface. The generated list is Wine's real msvcrt
