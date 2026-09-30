@@ -1699,6 +1699,594 @@ function registerCrtDescriptors() {
 registerCrtDescriptors();
 
 // ---------------------------------------------------------------------------
+// The CRT date/time family. `time_t` is 32-bit on Win32 (so `time`/`_time32`
+// return one register) and 64-bit in the `_time64`/`_localtime64` forms, whose
+// value the runtime returns in EAX:EDX. The runtime's guest clock is a UTC
+// second count, and the runtime already models local time as UTC (the same
+// choice `FileTimeToLocalFileTime` makes), so localtime and gmtime agree.
+//
+// struct tm is 36 bytes on i386 MSVC: nine ints, tm_sec first and tm_isdst last.
+const TM_BYTES = 36;
+const CLOCKS_PER_SEC = 1000; // MSVC's clock() tick is one millisecond.
+const EINVAL = 22;
+const ERANGE = 34;
+const STRUNCATE = 80; // The `s` functions' "destination truncated" result.
+
+function guestSeconds(r) {
+  return Math.floor(r.systemNow() / 1000);
+}
+// A program-visible struct tm lives in guest memory and is read and written
+// field by field; only the documented fields are meaningful.
+function readTm(r, pointer) {
+  const field = (index) => r.read32(pointer + index * 4) | 0;
+  return {
+    sec: field(0),
+    min: field(1),
+    hour: field(2),
+    mday: field(3),
+    mon: field(4),
+    year: field(5),
+    wday: field(6),
+    yday: field(7),
+    isdst: field(8),
+  };
+}
+function writeTm(r, pointer, value) {
+  r.check(pointer, TM_BYTES, true);
+  const order = [value.sec, value.min, value.hour, value.mday, value.mon, value.year];
+  order.forEach((entry, index) => r.write32(pointer + index * 4, entry | 0));
+  r.write32(pointer + 24, value.wday | 0);
+  r.write32(pointer + 28, value.yday | 0);
+  r.write32(pointer + 32, value.isdst | 0);
+}
+// Converts a millisecond epoch value into the calendar fields struct tm holds.
+function tmFromMilliseconds(milliseconds) {
+  const date = new Date(milliseconds);
+  const year = date.getUTCFullYear();
+  const start = Date.UTC(year, 0, 1);
+  return {
+    sec: date.getUTCSeconds(),
+    min: date.getUTCMinutes(),
+    hour: date.getUTCHours(),
+    mday: date.getUTCDate(),
+    mon: date.getUTCMonth(),
+    year: year - 1900,
+    wday: date.getUTCDay(),
+    yday: Math.floor((date.getTime() - start) / 86400000),
+    isdst: 0,
+  };
+}
+// The inverse: the milliseconds an in-range struct tm denotes. Out-of-range
+// fields are normalized the way mktime documents (month 12 rolls the year), so
+// the arithmetic runs on the raw field values before they are clamped back.
+function millisecondsFromTm(tm) {
+  const year = tm.year + 1900,
+    mon = tm.mon,
+    day = tm.mday,
+    hour = tm.hour,
+    min = tm.min,
+    sec = tm.sec;
+  if (![year, mon, day, hour, min, sec].every((value) => Number.isFinite(value))) return Number.NaN;
+  return Date.UTC(year, mon, day, hour, min, sec);
+}
+function timeFromTm(r, pointer) {
+  const milliseconds = millisecondsFromTm(readTm(r, pointer));
+  if (!Number.isFinite(milliseconds)) return null;
+  const seconds = Math.floor(milliseconds / 1000);
+  writeTm(r, pointer, tmFromMilliseconds(seconds * 1000));
+  return seconds;
+}
+// A stable per-process buffer for the functions that return a static pointer.
+function timeBuffer(r, key, size) {
+  r.msvcrtTimeBuffers ??= new Map();
+  if (!r.msvcrtTimeBuffers.has(key)) r.msvcrtTimeBuffers.set(key, r.allocate(size, true));
+  return r.msvcrtTimeBuffers.get(key);
+}
+// The 32-bit time_t: written through an optional pointer, returned in EAX.
+function time32(r, a) {
+  const seconds = guestSeconds(r);
+  if (a(0)) {
+    r.check(a(0), 4, true);
+    r.write32(a(0), seconds);
+  }
+  return ok(seconds, 1);
+}
+// The 64-bit form returns the value in EAX:EDX, so the low half is `result` and
+// the high half `resultHigh`.
+function time64(r, a) {
+  const seconds = guestSeconds(r);
+  if (a(0)) {
+    r.check(a(0), 8, true);
+    r.view.setBigInt64(a(0), BigInt(seconds), true);
+  }
+  return { result: seconds >>> 0, resultHigh: Math.floor(seconds / 0x100000000) | 0, argc: 1 };
+}
+function localtimeImpl(r, a, wide) {
+  const seconds = wide ? Number(r.view.getBigInt64(a(0), true)) : r.read32(a(0)) | 0;
+  writeTm(
+    r,
+    timeBuffer(r, wide ? 'localtime64' : 'localtime', TM_BYTES),
+    tmFromMilliseconds(seconds * 1000),
+  );
+  return ok(timeBuffer(r, wide ? 'localtime64' : 'localtime', TM_BYTES), 1);
+}
+function gmtimeImpl(r, a, wide) {
+  const seconds = wide ? Number(r.view.getBigInt64(a(0), true)) : r.read32(a(0)) | 0;
+  writeTm(
+    r,
+    timeBuffer(r, wide ? 'gmtime64' : 'gmtime', TM_BYTES),
+    tmFromMilliseconds(seconds * 1000),
+  );
+  return ok(timeBuffer(r, wide ? 'gmtime64' : 'gmtime', TM_BYTES), 1);
+}
+function mktimeImpl(r, a, wide) {
+  const seconds = timeFromTm(r, a(0));
+  if (seconds === null) return ok(0xffffffff, 1);
+  if (wide)
+    return { result: seconds >>> 0, resultHigh: Math.floor(seconds / 0x100000000) | 0, argc: 1 };
+  return ok(seconds, 1);
+}
+// "Www Mmm dd hh:mm:ss yyyy\n" — the asctime/ctime layout, always 26 bytes.
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function asctimeText(tm) {
+  const day = DAY_NAMES[((tm.wday % 7) + 7) % 7];
+  const month = MONTH_NAMES[((tm.mon % 12) + 12) % 12];
+  const pad = (value, width) => String(value).padStart(width, '0');
+  return (
+    `${day} ${month} ${pad(tm.mday, 2)} ${pad(tm.hour, 2)}:${pad(tm.min, 2)}:${pad(tm.sec, 2)} ` +
+    `${tm.year + 1900}\n`
+  );
+}
+function writeText(r, pointer, text, capacity, wide) {
+  const unit = wide ? 2 : 1;
+  const count = Math.min(text.length, capacity - 1);
+  for (let i = 0; i < count; i++) {
+    const code = text.charCodeAt(i);
+    if (wide) r.guestMemory.write(pointer + i * 2, code, 2);
+    else r.data[pointer + i] = code & 0xff;
+  }
+  if (wide) r.guestMemory.write(pointer + count * 2, 0, 2);
+  else r.data[pointer + count] = 0;
+  return count;
+}
+function asctimeImpl(r, a, wide) {
+  const text = asctimeText(readTm(r, a(0)));
+  const buffer = timeBuffer(r, wide ? 'asctime_w' : 'asctime', 64);
+  writeText(r, buffer, text, 32, wide);
+  return ok(buffer, 1);
+}
+function ctimeImpl(r, a, wide) {
+  const seconds = a(0)
+    ? wide
+      ? Number(r.view.getBigInt64(a(0), true))
+      : r.read32(a(0)) | 0
+    : guestSeconds(r);
+  const text = asctimeText(tmFromMilliseconds(seconds * 1000));
+  const buffer = timeBuffer(r, wide ? 'ctime_w' : 'ctime', 64);
+  writeText(r, buffer, text, 32, wide);
+  return ok(buffer, 1);
+}
+// difftime returns a double, which on i386 comes back in ST(0) rather than in
+// EAX; the runtime's doubleResponse performs that.
+function difftimeImpl(r, a) {
+  const later = doubleArg(r, a, 0),
+    earlier = doubleArg(r, a, 2);
+  return doubleResponse(r, later - earlier, 4);
+}
+function clockImpl(r) {
+  // clock() reports processor time; the runtime's guest clock is monotonic, so
+  // its elapsed nanoseconds map to the millisecond CLOCKS_PER_SEC tick MSVC uses.
+  return ok(Number(r.performanceClock.read() / 1000000n) | 0, 0);
+}
+// strftime writes at most `max` characters including the terminator and returns
+// the length written excluding it, or 0 when the result does not fit. The
+// runtime has one locale, so the language-dependent specifiers use English.
+function strftimeImpl(r, a, wide) {
+  const buffer = a(0),
+    max = a(1) >>> 0,
+    format = wide ? r.wideString(a(2)) : r.string(a(2)),
+    tm = readTm(r, a(3));
+  if (!buffer || !max) return ok(0, 4);
+  const pad = (value, width) => String(value).padStart(width, '0');
+  const hours12 = tm.hour % 12 === 0 ? 12 : tm.hour % 12;
+  let output = '';
+  for (let i = 0; i < format.length; i++) {
+    if (format[i] !== '%') {
+      if (output.length + 1 >= max) return ok(0, 4);
+      output += format[i];
+      continue;
+    }
+    const code = format[++i];
+    const piece = () => {
+      switch (code) {
+        case 'a':
+          return DAY_NAMES[((tm.wday % 7) + 7) % 7];
+        case 'A':
+          return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+            ((tm.wday % 7) + 7) % 7
+          ];
+        case 'b':
+        case 'h':
+          return MONTH_NAMES[((tm.mon % 12) + 12) % 12];
+        case 'B':
+          return [
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December',
+          ][((tm.mon % 12) + 12) % 12];
+        case 'c':
+          return asctimeText(tm).trimEnd();
+        case 'd':
+          return pad(tm.mday, 2);
+        case 'H':
+          return pad(tm.hour, 2);
+        case 'I':
+          return pad(hours12, 2);
+        case 'j':
+          return pad(tm.yday + 1, 3);
+        case 'm':
+          return pad(tm.mon + 1, 2);
+        case 'M':
+          return pad(tm.min, 2);
+        case 'p':
+          return tm.hour < 12 ? 'AM' : 'PM';
+        case 'S':
+          return pad(tm.sec, 2);
+        case 'U':
+          return pad(Math.floor((tm.yday + 7 - tm.wday) / 7), 2);
+        case 'w':
+          return String(((tm.wday % 7) + 7) % 7);
+        case 'W':
+          return pad(Math.floor((tm.yday + 7 - ((tm.wday + 6) % 7)) / 7), 2);
+        case 'x':
+          return `${pad(tm.mon + 1, 2)}/${pad(tm.mday, 2)}/${pad(tm.year % 100, 2)}`;
+        case 'X':
+          return `${pad(tm.hour, 2)}:${pad(tm.min, 2)}:${pad(tm.sec, 2)}`;
+        case 'y':
+          return pad(((tm.year % 100) + 100) % 100, 2);
+        case 'Y':
+          return String(tm.year + 1900);
+        case 'Z':
+          return 'UTC';
+        case 'z':
+          return '+0000';
+        case '%':
+          return '%';
+        default:
+          return `%${code ?? ''}`;
+      }
+    };
+    const text = piece();
+    if (output.length + text.length >= max) return ok(0, 4);
+    output += text;
+  }
+  writeText(r, buffer, output, max, wide);
+  return ok(output.length, 4);
+}
+// The `_s` forms validate their arguments and write a NUL-terminated result.
+function localtimeS(r, a, wide) {
+  const destination = a(0),
+    source = a(1);
+  if (!destination || !source) return ok(EINVAL, 2);
+  try {
+    r.check(source, wide ? 8 : 4);
+  } catch {
+    return ok(EINVAL, 2);
+  }
+  const seconds = wide ? Number(r.view.getBigInt64(source, true)) : r.read32(source) | 0;
+  writeTm(r, destination, tmFromMilliseconds(seconds * 1000));
+  return ok(0, 2);
+}
+function gmtimeS(r, a, wide) {
+  const destination = a(0),
+    source = a(1);
+  if (!destination || !source) return ok(EINVAL, 2);
+  try {
+    r.check(source, wide ? 8 : 4);
+  } catch {
+    return ok(EINVAL, 2);
+  }
+  const seconds = wide ? Number(r.view.getBigInt64(source, true)) : r.read32(source) | 0;
+  writeTm(r, destination, tmFromMilliseconds(seconds * 1000));
+  return ok(0, 2);
+}
+function ctimeS(r, a, wide) {
+  const buffer = a(0),
+    size = a(1) >>> 0,
+    source = a(2);
+  if (!buffer || size < 26) return ok(EINVAL, 3);
+  try {
+    r.check(buffer, size * (wide ? 2 : 1), true);
+    if (source) r.check(source, wide ? 8 : 4);
+  } catch {
+    return ok(EINVAL, 3);
+  }
+  const seconds = !source
+    ? guestSeconds(r)
+    : wide
+      ? Number(r.view.getBigInt64(source, true))
+      : r.read32(source) | 0;
+  writeText(r, buffer, asctimeText(tmFromMilliseconds(seconds * 1000)), size, wide);
+  return ok(0, 3);
+}
+function asctimeS(r, a, wide) {
+  const buffer = a(0),
+    size = a(1) >>> 0,
+    source = a(2);
+  if (!buffer || size < 26 || !source) return ok(EINVAL, 3);
+  try {
+    r.check(buffer, size * (wide ? 2 : 1), true);
+    r.check(source, TM_BYTES);
+  } catch {
+    return ok(EINVAL, 3);
+  }
+  writeText(r, buffer, asctimeText(readTm(r, source)), size, wide);
+  return ok(0, 3);
+}
+// errno is one process-visible integer. `_errno()` hands back its address, which
+// is how the CRT's own errno macro reaches it, and the accessors read/write the
+// same cell.
+function errnoCell(r, key) {
+  r.msvcrtErrno ??= new Map();
+  if (!r.msvcrtErrno.has(key)) r.msvcrtErrno.set(key, r.allocate(4, true));
+  return r.msvcrtErrno.get(key);
+}
+function setErrno(r, a, key) {
+  r.write32(errnoCell(r, key), a(0) | 0);
+  return ok(0, 1);
+}
+function getErrno(r, a, key) {
+  if (!a(0)) return ok(EINVAL, 1);
+  r.check(a(0), 4, true);
+  r.write32(a(0), r.read32(errnoCell(r, key)) | 0);
+  return ok(0, 1);
+}
+// The bounded ("secure") string and memory functions. Each validates its
+// arguments, writes a NUL-terminated result where the CRT does and reports the
+// documented errno_t code, so a caller's error branch runs instead of the buffer
+// being silently overrun.
+function memcpyS(r, a, move) {
+  const destination = a(0),
+    destinationSize = a(1) >>> 0,
+    source = a(2),
+    count = a(3) >>> 0;
+  if (!destination || destinationSize === 0) return ok(EINVAL, 4);
+  r.check(destination, destinationSize, true);
+  if (!source && count) {
+    r.data.fill(0, destination, destination + destinationSize);
+    return ok(EINVAL, 4);
+  }
+  if (count > destinationSize) {
+    r.data.fill(0, destination, destination + destinationSize);
+    return ok(ERANGE, 4);
+  }
+  try {
+    r.check(source, count);
+  } catch {
+    r.data.fill(0, destination, destination + destinationSize);
+    return ok(EINVAL, 4);
+  }
+  if (move) {
+    const snapshot = r.data.slice(source, source + count);
+    r.data.set(snapshot, destination);
+  } else r.data.copyWithin(destination, source, source + count);
+  // The CRT zeroes whatever follows the copied bytes, which is what makes the
+  // call safe to use on a partially filled buffer.
+  r.data.fill(0, destination + count, destination + destinationSize);
+  return ok(0, 4);
+}
+function strcpyS(r, a) {
+  const destination = a(0),
+    destinationSize = a(1) >>> 0,
+    source = a(2);
+  if (!destination || destinationSize === 0) return ok(EINVAL, 3);
+  r.check(destination, destinationSize, true);
+  if (!source) {
+    r.data[destination] = 0;
+    return ok(EINVAL, 3);
+  }
+  const sourceText = ansiLength(r, (index) => (index === 0 ? source : 0)).result;
+  if (sourceText + 1 > destinationSize) {
+    r.data[destination] = 0;
+    return ok(ERANGE, 3);
+  }
+  r.data.copyWithin(destination, source, source + sourceText + 1);
+  return ok(0, 3);
+}
+function strncpyS(r, a) {
+  const destination = a(0),
+    destinationSize = a(1) >>> 0,
+    source = a(2),
+    count = a(3) | 0;
+  if (!destination || destinationSize === 0) return ok(EINVAL, 4);
+  r.check(destination, destinationSize, true);
+  if (!source) {
+    r.data[destination] = 0;
+    return ok(EINVAL, 4);
+  }
+  const sourceText = ansiLength(r, (index) => (index === 0 ? source : 0)).result;
+  const truncate = count === -1; // _TRUNCATE
+  if (!truncate && count < 0) return ok(EINVAL, 4);
+  const limit = truncate ? destinationSize - 1 : Math.min(count, destinationSize - 1);
+  if (!truncate && count >= destinationSize && sourceText >= destinationSize) {
+    r.data[destination] = 0;
+    return ok(ERANGE, 4);
+  }
+  const copy = Math.min(sourceText, limit);
+  r.data.copyWithin(destination, source, source + copy);
+  r.data[destination + copy] = 0;
+  if (truncate && sourceText > copy) return ok(STRUNCATE, 4);
+  return ok(0, 4);
+}
+function strcatS(r, a) {
+  const destination = a(0),
+    destinationSize = a(1) >>> 0,
+    source = a(2);
+  if (!destination || destinationSize === 0) return ok(EINVAL, 3);
+  r.check(destination, destinationSize, true);
+  if (!source) {
+    r.data[destination] = 0;
+    return ok(EINVAL, 3);
+  }
+  const destinationText = ansiLength(r, a).result;
+  const sourceText = ansiLength(r, (index) => (index === 0 ? source : 0)).result;
+  if (destinationText + sourceText + 1 > destinationSize) {
+    r.data[destination] = 0;
+    return ok(ERANGE, 3);
+  }
+  r.data.copyWithin(destination + destinationText, source, source + sourceText + 1);
+  return ok(0, 3);
+}
+function strncatS(r, a) {
+  const destination = a(0),
+    destinationSize = a(1) >>> 0,
+    source = a(2),
+    count = a(3) | 0;
+  if (!destination || destinationSize === 0) return ok(EINVAL, 4);
+  r.check(destination, destinationSize, true);
+  if (!source && count) {
+    r.data[destination] = 0;
+    return ok(EINVAL, 4);
+  }
+  const destinationText = ansiLength(r, a).result;
+  const sourceText = source ? ansiLength(r, (index) => (index === 0 ? source : 0)).result : 0;
+  const truncate = count === -1;
+  const room = destinationSize - destinationText - 1;
+  const copy = truncate ? Math.min(sourceText, room) : Math.min(sourceText, count, room);
+  if (!truncate && destinationText + copy + 1 > destinationSize) {
+    r.data[destination] = 0;
+    return ok(ERANGE, 4);
+  }
+  if (source) r.data.copyWithin(destination + destinationText, source, source + copy);
+  r.data[destination + destinationText + copy] = 0;
+  if (truncate && sourceText > copy) return ok(STRUNCATE, 4);
+  return ok(0, 4);
+}
+// strtok_s keeps the scan position in a caller-owned context pointer, so
+// successive calls continue one tokenization without CRT-global state.
+function strtokS(r, a) {
+  const string = a(0),
+    delimiters = a(1),
+    context = a(2);
+  if (!delimiters || !context) return ok(0, 3);
+  r.check(context, 4, true);
+  if (!string) return ok(0, 3);
+  const isDelimiter = (byte) => {
+    for (let i = 0; ; i++) {
+      const entry = r.data[delimiters + i];
+      if (!entry) return false;
+      if (entry === byte) return true;
+    }
+  };
+  let cursor = string;
+  while (r.data[cursor] && isDelimiter(r.data[cursor])) cursor++;
+  if (!r.data[cursor]) {
+    r.write32(context, 0);
+    return ok(0, 3);
+  }
+  const start = cursor;
+  while (r.data[cursor] && !isDelimiter(r.data[cursor])) cursor++;
+  if (r.data[cursor]) {
+    r.data[cursor] = 0;
+    r.write32(context, cursor + 1);
+  } else r.write32(context, 0);
+  return ok(start, 3);
+}
+function strerrorS(r, a) {
+  const buffer = a(0),
+    size = a(1) >>> 0,
+    code = a(2) | 0;
+  if (!buffer || size === 0) return ok(EINVAL, 3);
+  r.check(buffer, size, true);
+  const text = code ? `Error ${code}` : 'No error';
+  writeText(r, buffer, text, size, false);
+  return ok(0, 3);
+}
+export function registerCrtTime() {
+  const add = (name, handler) => {
+    if (msvcrtApis[`msvcrt.dll!${name}`]) return;
+    msvcrtApis[`msvcrt.dll!${name}`] = handler;
+  };
+  // time_t forms: the plain names alias the 32-bit ones on Win32.
+  add('time', time32);
+  add('_time32', time32);
+  add('_time64', time64);
+  add('localtime', (r, a) => localtimeImpl(r, a, false));
+  add('_localtime32', (r, a) => localtimeImpl(r, a, false));
+  add('_localtime64', (r, a) => localtimeImpl(r, a, true));
+  add('gmtime', (r, a) => gmtimeImpl(r, a, false));
+  add('_gmtime32', (r, a) => gmtimeImpl(r, a, false));
+  add('_gmtime64', (r, a) => gmtimeImpl(r, a, true));
+  add('mktime', (r, a) => mktimeImpl(r, a, false));
+  add('_mktime32', (r, a) => mktimeImpl(r, a, false));
+  add('_mktime64', (r, a) => mktimeImpl(r, a, true));
+  add('_mkgmtime', (r, a) => mktimeImpl(r, a, false));
+  add('_mkgmtime32', (r, a) => mktimeImpl(r, a, false));
+  add('_mkgmtime64', (r, a) => mktimeImpl(r, a, true));
+  add('ctime', (r, a) => ctimeImpl(r, a, false));
+  add('_ctime32', (r, a) => ctimeImpl(r, a, false));
+  add('_ctime64', (r, a) => ctimeImpl(r, a, true));
+  add('asctime', (r, a) => asctimeImpl(r, a, false));
+  add('difftime', difftimeImpl);
+  add('_difftime32', difftimeImpl);
+  add('_difftime64', difftimeImpl);
+  add('clock', clockImpl);
+  add('strftime', (r, a) => strftimeImpl(r, a, false));
+  add('_strftime', (r, a) => strftimeImpl(r, a, false));
+  // The bounded variants.
+  add('localtime_s', (r, a) => localtimeS(r, a, false));
+  add('_localtime32_s', (r, a) => localtimeS(r, a, false));
+  add('_localtime64_s', (r, a) => localtimeS(r, a, true));
+  add('gmtime_s', (r, a) => gmtimeS(r, a, false));
+  add('_gmtime32_s', (r, a) => gmtimeS(r, a, false));
+  add('_gmtime64_s', (r, a) => gmtimeS(r, a, true));
+  add('ctime_s', (r, a) => ctimeS(r, a, false));
+  add('_ctime32_s', (r, a) => ctimeS(r, a, false));
+  add('_ctime64_s', (r, a) => ctimeS(r, a, true));
+  add('asctime_s', (r, a) => asctimeS(r, a, false));
+  // errno.
+  add('_errno', (r) => ok(errnoCell(r, 'errno'), 0));
+  add('_set_errno', (r, a) => setErrno(r, a, 'errno'));
+  add('_get_errno', (r, a) => getErrno(r, a, 'errno'));
+  add('__doserrno', (r) => ok(errnoCell(r, 'doserrno'), 0));
+  add('_set_doserrno', (r, a) => setErrno(r, a, 'doserrno'));
+  add('_get_doserrno', (r, a) => getErrno(r, a, 'doserrno'));
+  // Bounded strings and memory.
+  add('memcpy_s', (r, a) => memcpyS(r, a, false));
+  add('memmove_s', (r, a) => memcpyS(r, a, true));
+  add('strcpy_s', strcpyS);
+  add('strncpy_s', strncpyS);
+  add('strcat_s', strcatS);
+  add('strncat_s', strncatS);
+  add('strtok_s', strtokS);
+  add('strerror_s', strerrorS);
+}
+registerCrtTime();
+
+// ---------------------------------------------------------------------------
 // Completing the export surface. The generated list is Wine's real msvcrt
 // export set, so every name a program can resolve resolves here too. Names
 // without an implementation get an explicit trap that reports the symbol, never
