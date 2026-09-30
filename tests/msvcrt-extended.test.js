@@ -720,3 +720,81 @@ test('the locale-suffixed and multibyte classifiers share the ctype tables', asy
   // _mbstrlen counts characters, equal to bytes here.
   assert.equal((await call('_mbstrlen', r.allocString('hello'))).result, 5);
 });
+
+test('_ftime fills the timeb structures from the guest clock', async (t) => {
+  const { r, call } = await setup(t);
+  // struct __timeb32 is {time(4), millitm(2), timezone(2), dstflag(2)} = 12 bytes.
+  const small = r.allocate(16);
+  assert.equal((await call('_ftime32', small)).result, 0);
+  const seconds = Math.floor(r.systemNow() / 1000);
+  assert.equal(r.read32(small) | 0, seconds);
+  assert.ok(r.guestMemory.read(small + 4, 2) < 1000, 'millitm is the millisecond part');
+  // struct __timeb64 widens `time` to an 8-aligned int64, so millitm is at 8.
+  const large = r.allocate(24);
+  assert.equal((await call('_ftime64', large)).result, 0);
+  assert.equal(Number(r.view.getBigInt64(large, true)), seconds);
+  assert.ok(r.guestMemory.read(large + 8, 2) < 1000);
+  // The _s forms validate the pointer.
+  assert.equal((await call('_ftime_s', 0)).result, 22, 'EINVAL for a null pointer');
+});
+
+test('_utime/_futime set the file times the stat family reads back', async (t) => {
+  const { r, call } = await setup(t, { 'f.txt': new Uint8Array([1]) });
+  // struct __utimbuf32 {actime(4), modtime(4)}.
+  const times = r.allocate(8);
+  r.write32(times, 1000000);
+  r.write32(times + 4, 2000000);
+  const path = r.allocString('C:\\winebrowser\\f.txt');
+  assert.equal((await call('_utime32', path, times)).result, 0);
+  const stat = r.allocate(64);
+  assert.equal((await call('_stat', path, stat)).result, 0);
+  assert.equal(r.read32(stat + 24) | 0, 1000000, 'st_atime');
+  assert.equal(r.read32(stat + 28) | 0, 2000000, 'st_mtime');
+  // A null buffer means "now".
+  assert.equal((await call('_utime32', path, 0)).result, 0);
+  // _utime64 reads 8-aligned int64 fields.
+  const wideTimes = r.allocate(16);
+  r.view.setBigInt64(wideTimes, 3000000n, true);
+  r.view.setBigInt64(wideTimes + 8, 4000000n, true);
+  assert.equal((await call('_utime64', path, wideTimes)).result, 0);
+  await call('_stat', path, stat);
+  assert.equal(r.read32(stat + 24) | 0, 3000000);
+  assert.equal(r.read32(stat + 28) | 0, 4000000);
+  // A missing file is ENOENT.
+  assert.equal((await call('_utime32', r.allocString('C:\\winebrowser\\nope'), times)).result, -1);
+});
+
+test('__threadid and __wcserror answer from the runtime model', async (t) => {
+  const { r, call } = await setup(t);
+  assert.equal((await call('__threadid')).result, r.threads.current.id | 0);
+  const message = (await call('__wcserror', 42)).result >>> 0;
+  assert.equal(r.wideString(message), 'Error 42');
+  const buffer = r.allocate(64);
+  assert.equal((await call('__wcserror_s', buffer, 32, 7)).result, 0);
+  assert.equal(r.wideString(buffer), 'Error 7');
+  assert.equal((await call('__uncaught_exception')).result, 0);
+});
+
+test('_Getdays/_Getmonths hand back the C locale name tables', async (t) => {
+  const { r, call } = await setup(t);
+  const days = (await call('_Getdays')).result >>> 0;
+  assert.notEqual(days, 0);
+  assert.equal(r.string(r.read32(days)), 'Sunday');
+  const months = (await call('_Getmonths')).result >>> 0;
+  assert.equal(r.string(r.read32(months)), 'January');
+  assert.equal(r.string(r.read32(months + 8 * 4)), 'September');
+  // The wide tables carry the same names.
+  const wideDays = (await call('_W_Getdays')).result >>> 0;
+  assert.equal(r.wideString(r.read32(wideDays + 6 * 4) >>> 0), 'Saturday');
+});
+
+test('the small process accessors report stable cells', async (t) => {
+  const { r, call } = await setup(t);
+  assert.equal((await call('___mb_cur_max_func')).result, 1);
+  const mbCurMax = (await call('__p___mb_cur_max')).result >>> 0;
+  assert.equal(r.read32(mbCurMax), 1);
+  const amblksiz = (await call('__p__amblksiz')).result >>> 0;
+  assert.notEqual(amblksiz, 0);
+  assert.notEqual((await call('__p__tzname')).result >>> 0, 0);
+  assert.equal((await call('_tzset')).result, 0);
+});

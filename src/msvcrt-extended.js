@@ -861,9 +861,12 @@ function makepathUnchecked(r, a, wide) {
 const R_OK = 4,
   W_OK = 2,
   F_OK = 0;
+// 1601 -> 1970 in 100-ns ticks; the epoch every FILETIME conversion shares.
+const FILETIME_UNIX_EPOCH = 116444736000000000n;
 function fileTimeSeconds(value) {
   if (value === undefined || value === null) return 0;
-  const ticks = BigInt(value) - 11644473600000000n;
+  // 1601 -> 1970 is 11644473600 seconds, i.e. 116444736000000000 100-ns ticks.
+  const ticks = BigInt(value) - FILETIME_UNIX_EPOCH;
   return Number(ticks / 10000000n) | 0;
 }
 // Resolve a guest path to the package-relative key, or null when it is outside
@@ -2077,6 +2080,134 @@ function formatGcvt(value, digits) {
   }
   return text.includes('.') ? text.replace(/\.?0+$/, '') || '0' : text;
 }
+
+// ---------------------------------------------------------------------------
+// The _timeb / _utimbuf time family. struct __timeb32 is {time, millitm,
+// timezone, dstflag} — 12 bytes with pack(8); the 64-bit form widens `time` to
+// an 8-aligned int64, giving 16 bytes. struct __utimbuf32 is two 32-bit times
+// (8 bytes) and the 64-bit form two 8-aligned int64s (16 bytes).
+// Guest clock milliseconds -> an explicit FILETIME, so a _utime caller's own
+// timestamps reach the same metadata the Win32 file APIs report.
+function fileTimeFromSeconds(seconds) {
+  return BigInt(seconds) * 10000000n + FILETIME_UNIX_EPOCH;
+}
+function ftimeImpl(r, pointer, wide) {
+  if (!pointer) return ok(0, 1);
+  const size = wide ? 16 : 12;
+  r.check(pointer, size, true);
+  r.data.fill(0, pointer, pointer + size);
+  const now = r.systemNow();
+  const seconds = Math.floor(now / 1000);
+  if (wide) r.view.setBigInt64(pointer, BigInt(seconds), true);
+  else r.write32(pointer, seconds);
+  const millitmOffset = wide ? 8 : 4;
+  r.guestMemory.write(millitmOffset + pointer, now % 1000, 2);
+  // timezone and dstflag: the runtime models local time as UTC.
+  return ok(0, 1);
+}
+function ftimeS(r, a, wide) {
+  const pointer = a(0);
+  if (!pointer) {
+    r.write32(errnoAddress(r), EINVAL);
+    return ok(EINVAL, 1);
+  }
+  ftimeImpl(r, pointer, wide);
+  return ok(0, 1);
+}
+// _utime/_futime set a file's access and modification times from the caller's
+// struct _utimbuf; a NULL buffer means "now".
+// _utime/_futime set a file's access and modification times from the caller's
+// struct _utimbuf; a NULL buffer means "now". Four independent variants exist:
+// the path may be ANSI or wide, the times may be 32- or 64-bit, and _futime
+// names an open descriptor instead of a path.
+function utimeImpl(r, a, { wide, times64, futime }) {
+  let path;
+  const buffer = a(1);
+  if (futime) {
+    const descriptor = a(0) | 0;
+    const handle = r.crtFds?.get(descriptor);
+    const record = handle === undefined ? null : r.handles?.get(handle);
+    if (!record) {
+      r.write32(errnoAddress(r), 9); // EBADF
+      return ok(-1, 2);
+    }
+    path = record.path;
+  } else {
+    path = resolveQuery(r, a(0), wide);
+    if (path === null || !r.files.has(path)) {
+      r.write32(errnoAddress(r), ENOENT);
+      return ok(-1, 2);
+    }
+  }
+  let access = fileTimeFromSeconds(Math.floor(r.systemNow() / 1000));
+  let write = access;
+  if (buffer) {
+    const readTime = (offset) =>
+      times64 ? r.view.getBigInt64(buffer + offset, true) : BigInt(r.read32(buffer + offset) | 0);
+    // struct __utimbuf32 is two 32-bit times; the 64-bit form is two 8-aligned
+    // int64s, so the second field sits at offset 8, not 4.
+    access = fileTimeFromSeconds(Number(readTime(0)));
+    write = fileTimeFromSeconds(Number(readTime(times64 ? 8 : 4)));
+  }
+  r.fileTimes ??= new Map();
+  const previous = r.fileTimes.get(path) ?? {
+    creation: r.packageFileTime,
+    access: r.packageFileTime,
+    write: r.packageFileTime,
+    change: r.packageFileTime,
+  };
+  r.fileTimes.set(path, { ...previous, access, write, change: write });
+  return ok(0, 2);
+}
+// __wcserror/_wcserror_s are the wide forms of strerror.
+function wcserrorImpl(r, a, bounded) {
+  const code = bounded ? a(2) | 0 : a(0) | 0;
+  const message = `Error ${code}`;
+  if (bounded) {
+    const buffer = a(0) >>> 0,
+      size = a(1) >>> 0;
+    if (!buffer || size < message.length + 1) {
+      r.write32(errnoAddress(r), ERANGE);
+      return ok(ERANGE, 3);
+    }
+    r.check(buffer, size * 2, true);
+    writeWideChars(r, buffer, message);
+    return ok(0, 3);
+  }
+  const buffer = cell(r, '_wcserror_buffer', (rt) => rt.allocate(96));
+  writeWideChars(r, buffer, message);
+  return ok(buffer, 1);
+}
+// The day/month name tables _Getdays/_Getmonths hand back are the C locale's
+// own strings; _Gettnames answers with an empty table because the runtime has
+// no alternate time-format locale data.
+function getNamesImpl(r, wide, names) {
+  return ok(
+    cell(r, wide ? `_names_w_${names.length}` : `_names_${names.length}`, (rt) => {
+      const strings = names.map((name) => rt.allocString(name, wide));
+      const table = rt.allocate((strings.length + 1) * 4);
+      strings.forEach((address, index) => rt.write32(table + index * 4, address));
+      return table;
+    }),
+    0,
+  );
+}
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 // Registration. Called from msvcrt.js after the real implementations are in
 // place but before the trap tables, so a name that already has a handler keeps
 // it and everything else gets the implementation here.
@@ -2915,6 +3046,76 @@ export function registerCrtExtended(apis, deps = {}) {
   });
   add('raise', () => ok(0, 1));
   add('_fpieee_flt', () => ok(0, 4));
+
+  // The _timeb / _utimbuf family. _ftime's parameter is `time_t`, which is
+  // 32-bit on this ABI, so the plain name aliases the 32-bit form.
+  add('_ftime', (r, a) => ftimeImpl(r, a(0), false));
+  add('_ftime32', (r, a) => ftimeImpl(r, a(0), false));
+  add('_ftime64', (r, a) => ftimeImpl(r, a(0), true));
+  add('_ftime_s', (r, a) => ftimeS(r, a, false));
+  add('_ftime32_s', (r, a) => ftimeS(r, a, false));
+  add('_ftime64_s', (r, a) => ftimeS(r, a, true));
+  add('ftime', (r, a) => ftimeImpl(r, a(0), false));
+  add('_utime', (r, a) => utimeImpl(r, a, { wide: false, times64: false, futime: false }));
+  add('_utime32', (r, a) => utimeImpl(r, a, { wide: false, times64: false, futime: false }));
+  add('_utime64', (r, a) => utimeImpl(r, a, { wide: false, times64: true, futime: false }));
+  add('utime', (r, a) => utimeImpl(r, a, { wide: false, times64: false, futime: false }));
+  add('_wutime', (r, a) => utimeImpl(r, a, { wide: true, times64: false, futime: false }));
+  add('_wutime32', (r, a) => utimeImpl(r, a, { wide: true, times64: false, futime: false }));
+  add('_wutime64', (r, a) => utimeImpl(r, a, { wide: true, times64: true, futime: false }));
+  add('_futime', (r, a) => utimeImpl(r, a, { wide: false, times64: false, futime: true }));
+  add('_futime32', (r, a) => utimeImpl(r, a, { wide: false, times64: false, futime: true }));
+  add('_futime64', (r, a) => utimeImpl(r, a, { wide: false, times64: true, futime: true }));
+
+  // Thread identity and the wide strerror forms.
+  add('__threadid', (r) => ok(r.threads.current.id | 0, 0));
+  add('__threadhandle', (r) => {
+    // The CRT reports the Win32 thread handle's numeric value, which the
+    // scheduler already assigned when the thread was created.
+    const thread = r.threads.current;
+    return ok((thread.handle ?? 0) | 0, 0);
+  });
+  add('__wcserror', (r, a) => wcserrorImpl(r, a, false));
+  add('__wcserror_s', (r, a) => wcserrorImpl(r, a, true));
+  add('_wcserror', (r, a) => wcserrorImpl(r, a, false));
+  add('_wcserror_s', (r, a) => wcserrorImpl(r, a, true));
+  add('__uncaught_exception', () => ok(0, 0));
+
+  // The C locale's day and month name tables.
+  add('_Getdays', (r) => getNamesImpl(r, false, DAY_NAMES));
+  add('_Getmonths', (r) => getNamesImpl(r, false, MONTH_NAMES));
+  add('_W_Getdays', (r) => getNamesImpl(r, true, DAY_NAMES));
+  add('_W_Getmonths', (r) => getNamesImpl(r, true, MONTH_NAMES));
+
+  // Small process accessors.
+  add('___mb_cur_max_func', () => ok(1, 0));
+  add('__p___mb_cur_max', (r) =>
+    ok(
+      cell(r, '__mb_cur_max_cell', (rt) => {
+        const address = rt.allocate(4);
+        rt.write32(address, 1);
+        return address;
+      }),
+      0,
+    ),
+  );
+  add('__p__amblksiz', (r) =>
+    ok(
+      cell(r, '_amblksiz', (rt) => {
+        const address = rt.allocate(4);
+        rt.write32(address, 8);
+        return address;
+      }),
+      0,
+    ),
+  );
+  add('__p__tzname', (r) =>
+    ok(
+      cell(r, '__tzname', (rt) => rt.allocate(8, true)),
+      0,
+    ),
+  );
+  add('_tzset', () => ok(0, 0));
 
   // Numeric-to-string conversions.
   add('_ecvt', (r, a) => ecvtBase(r, doubleArg(r, a, 0), a(2) | 0, a(3), a(4)));
