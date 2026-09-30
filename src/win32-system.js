@@ -1007,6 +1007,36 @@ function localFileTimeToFileTime(r, a) {
   return ok(1, 2);
 }
 
+// GetOverlappedResult(HANDLE, OVERLAPPED *, DWORD *Transferred, BOOL Wait).
+// Every handle the runtime opens completes synchronously, so a completed
+// operation reports its byte count immediately; waiting on an operation that
+// never started reports ERROR_INVALID_PARAMETER as documented.
+function getOverlappedResult(r, a) {
+  const handle = a(0) >>> 0;
+  const overlapped = a(1);
+  const transferred = a(2);
+  const wait = a(3) >>> 0;
+  if (!r.handles.has(handle) && handle > 2) return fail(r, 6, 4);
+  if (!overlapped) return fail(r, ERROR_INVALID_PARAMETER, 4);
+  r.check(overlapped, 20);
+  if (transferred) {
+    r.check(transferred, 4, true);
+    r.write32(transferred, 0);
+  }
+  void wait;
+  // A synchronous handle has no pending operation, so this reports success with
+  // zero bytes transferred rather than blocking forever.
+  return ok(1, 4);
+}
+// ReadConsoleW reads UTF-16 characters from a console handle. The runtime's
+// console input has no host source (the browser has no stdin), so a read
+// reports failure rather than a fabricated character.
+function readConsole(r, a) {
+  const handle = a(0) >>> 0;
+  if (!r.stdHandles?.has(handle | 0) && handle > 2) return fail(r, 6, 5);
+  return fail(r, 6, 5);
+}
+
 function virtualQuery(r, a) {
   const address = a(0) >>> 0,
     out = a(1),
@@ -1158,6 +1188,9 @@ export const systemApis = {
   'kernel32.dll!GetExitCodeProcess': getExitCodeProcess,
   'kernel32.dll!SetHandleInformation': setHandleInformation,
   'kernel32.dll!GetThreadTimes': getThreadTimes,
+  'kernel32.dll!GetOverlappedResult': getOverlappedResult,
+  'kernel32.dll!ReadConsoleA': readConsole,
+  'kernel32.dll!ReadConsoleW': readConsole,
   'kernel32.dll!LocalFileTimeToFileTime': localFileTimeToFileTime,
   'kernel32.dll!FileTimeToLocalFileTime': localFileTimeToFileTime,
   'kernel32.dll!VirtualQuery': virtualQuery,

@@ -483,7 +483,7 @@
     },
     {
       "id": "putty-0.85-x86",
-      "status": "blocked",
+      "status": "partial",
       "path": ".cache/targets/putty-x86.exe",
       "bytes": 1513624,
       "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
@@ -510,7 +510,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "TLS-directory parsing now succeeds. Static import inspection exposes 250 unresolved imports across GUI, COM, registry, thread and other services; no GUI execution is claimed."
+      "statusNote": "Every import now resolves through the ordinary browser harness. Reaching zero from the original 144 required closing the GDI surface (indirect fonts, bitmaps, ExtTextOut, character widths, GetDIBits, palettes, outline metrics, character placement), the caret/scroll/placement/input-state services, dialog message handling, SystemParametersInfo, the registry enumeration and SID/security helpers, the imm32 IME context, the comdlg32 common dialogs, and the serial/named-pipe APIs. Execution is not yet verified end to end: PuTTY is a socket and serial client, so its remaining prerequisites are networking and the connection UI rather than unresolved imports."
     },
     {
       "id": "sgi-opengl-minimal-x86",

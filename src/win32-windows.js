@@ -1974,6 +1974,7 @@ function iconTitleLogFont(r, size, output, wide) {
   writeLogFont(r, output, wide, 12);
   return result(1, 4);
 }
+
 function adjustRect(r, a, extended) {
   // AdjustWindowRect(Ex) grows a client rectangle into the window rectangle
   // that would produce it. A menu adds the menu-bar height above the client

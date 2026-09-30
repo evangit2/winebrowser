@@ -1180,6 +1180,63 @@ function getCharacterPlacement(runtime, argument) {
   void flags;
 }
 
+// DrawIconEx(HDC, X, Y, HICON, Cx, Cy, Istep, HbrFlickerFree, DiFlags) paints a
+// decoded icon at the requested size. The runtime's icon objects carry RGBA
+// pixels, so this is a straightforward scaled blit; the flicker brush and the
+// animation step only matter for an animated cursor, which the desktop draws
+// itself.
+function drawIconEx(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 9);
+  const x = signed(argument(1));
+  const y = signed(argument(2));
+  const icon = iconForHandle(runtime, argument(3) >>> 0);
+  if (!icon) return failure(runtime, ERROR_INVALID_HANDLE, 0, 9);
+  const flags = argument(8) >>> 0;
+  if (flags & ~0xf) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
+  // DI_NORMAL (0x3) draws the image; DI_MASK/DI_IMAGE select one channel.
+  const drawMaskOnly = flags & 0x1 && !(flags & 0x2);
+  const width = Math.max(1, argument(4) ? Math.abs(signed(argument(4))) : icon.width);
+  const height = Math.max(1, argument(5) ? Math.abs(signed(argument(5))) : icon.height);
+  const surface = dc.surface;
+  for (let py = 0; py < height; py++) {
+    const sy = Math.min(icon.height - 1, Math.floor((py * icon.height) / height));
+    for (let px = 0; px < width; px++) {
+      const sx = Math.min(icon.width - 1, Math.floor((px * icon.width) / width));
+      const source = (sy * icon.width + sx) * 4;
+      const alpha = icon.pixels[source + 3];
+      const targetX = x + px,
+        targetY = y + py;
+      if (targetX < 0 || targetY < 0 || targetX >= surface.width || targetY >= surface.height)
+        continue;
+      const offset = (targetY * surface.width + targetX) * 4;
+      if (drawMaskOnly) {
+        surface.pixels[offset] = 0;
+        surface.pixels[offset + 1] = 0;
+        surface.pixels[offset + 2] = 0;
+        surface.pixels[offset + 3] = 255;
+        continue;
+      }
+      // An icon pixel is composited over whatever the surface already holds,
+      // which is what makes a transparent icon background work.
+      const a = alpha / 255;
+      surface.pixels[offset] = Math.round(
+        icon.pixels[source] * a + surface.pixels[offset] * (1 - a),
+      );
+      surface.pixels[offset + 1] = Math.round(
+        icon.pixels[source + 1] * a + surface.pixels[offset + 1] * (1 - a),
+      );
+      surface.pixels[offset + 2] = Math.round(
+        icon.pixels[source + 2] * a + surface.pixels[offset + 2] * (1 - a),
+      );
+      surface.pixels[offset + 3] = 255;
+    }
+  }
+  surface.dirty = true;
+  return success(1, 9);
+}
+
 function createFont(runtime, argument, wide) {
   const state = stateFor(runtime);
   let descriptor;
@@ -1910,6 +1967,7 @@ function arc(runtime, argument) {
 }
 
 export const gdiApis = {
+  'user32.dll!DrawIconEx': drawIconEx,
   'user32.dll!GetDesktopWindow': getDesktopWindow,
   'user32.dll!GetDC': getDC,
   'user32.dll!ReleaseDC': releaseDC,
