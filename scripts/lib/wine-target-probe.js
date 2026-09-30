@@ -893,7 +893,7 @@ export async function probeWineTarget(
   } finally {
     // The file names the guest asked for and whether each resolved, which is
     // what separates a path-resolution defect from a missing asset.
-    report.queryTrace = runtime?.queryTrace ?? [];
+    if (limits.traceQuery) report.queryTrace = runtime?.queryTrace ?? [];
     report.threadsAtStop =
       runtime &&
       [...runtime.threads.records.values()].map((t) => ({

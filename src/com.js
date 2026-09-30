@@ -79,8 +79,23 @@ export class ComObjects {
             if (!out) return { result: E_POINTER, argc: 3 };
             runtime.check(out, 4, true);
             const requested = readGuid(runtime, argument(1) >>> 0);
+            // A diagnostic switch records which identity each object was asked
+            // for. A request no interface can satisfy is usually a caller that
+            // passed the wrong argument, which the identity alone shows.
             if (runtime.queryTrace) {
-              runtime.queryTrace.push({ name, requested });
+              const stack = runtime.cpu.r[4].value >>> 0;
+              runtime.queryTrace.push({
+                name,
+                requested,
+                // The argument words and the caller's return address say
+                // whether the request is well formed: an identity read from a
+                // stack slot that holds a float is a caller whose argument
+                // count disagrees with the vtable, not a missing interface.
+                caller: '0x' + (runtime.read32(stack) >>> 0).toString(16),
+                args: [1, 2, 3].map(
+                  (i) => '0x' + (runtime.read32(stack + i * 4) >>> 0).toString(16),
+                ),
+              });
               if (runtime.queryTrace.length > 64) runtime.queryTrace.shift();
             }
             const target = queryInterface
