@@ -9,7 +9,11 @@ import {
   MSVCRT_CDECL_EXPORTS,
   MSVCRT_DATA_EXPORTS,
 } from './msvcrt-exports.js';
-import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
+import {
+  VERSIONED_CRT_CDECL_EXPORTS,
+  VERSIONED_CRT_DATA_EXPORTS,
+  VERSIONED_CRT_EXPORT_NAMES,
+} from './msvcrt-versioned-exports.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { touchFile } from './file-metadata.js';
 import { processCommandLine, processArguments } from './command-line.js';
@@ -893,6 +897,18 @@ const NAMES = {
     return ok(r.allocate(size), 1);
   },
   '??3@YAXPAX@Z': (r, a) => {
+    if (a(0)) r.free(a(0));
+    return ok(0, 1);
+  },
+  // The array forms are separate exports with the same contract; a program that
+  // allocates an array through `new[]` reaches this one.
+  '??_U@YAPAXI@Z': (r, a) => {
+    const size = a(0) >>> 0;
+    if (!size) return ok(r.allocate(16), 1);
+    if (size > 16 * 1024 * 1024) throw Error('operator new[] size limit exceeded');
+    return ok(r.allocate(size), 1);
+  },
+  '??_V@YAXPAX@Z': (r, a) => {
     if (a(0)) r.free(a(0));
     return ok(0, 1);
   },
@@ -2671,9 +2687,22 @@ for (const name of MSVCRT_EXPORT_NAMES) {
 // The i386 CRT uses cdecl: the CALLER pops the arguments. A handler that also
 // pops them (the runtime's default stdcall) would remove each argument twice and
 // corrupt the caller's stack, so every cdecl entry is wrapped to declare its
-// convention. Data exports are not called at all; GetProcAddress returns their
-// address through the dedicated path.
+// convention. The versioned runtimes need the same treatment: their decorated
+// C++ names carry no `@<bytes>` suffix, so operator new reads exactly like a
+// stdcall name while being cdecl. Data exports are not called at all;
+// GetProcAddress returns their address through the dedicated path.
 export const MSVCRT_CDECL = new Set();
+for (const name of VERSIONED_CRT_CDECL_EXPORTS) {
+  const key = `msvcrt.dll!${name}`;
+  if (VERSIONED_CRT_DATA_EXPORTS.has(name)) continue;
+  const handler = msvcrtApis[key];
+  if (!handler) continue;
+  MSVCRT_CDECL.add(key);
+  msvcrtApis[key] = async (r, a) => {
+    const response = await handler(r, a);
+    return { ...response, convention: 'cdecl' };
+  };
+}
 for (const name of MSVCRT_CDECL_EXPORTS) {
   const key = `msvcrt.dll!${name}`;
   if (MSVCRT_DATA_EXPORTS.has(name)) continue;

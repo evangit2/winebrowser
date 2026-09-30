@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
+import { createWin32ApiProvider, importKey } from '../src/win32.js';
 
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
 
@@ -835,4 +836,36 @@ test('the __libm_sse2 entry points read and write XMM0/XMM1', async (t) => {
   setXmmF(1, 2);
   await call('__libm_sse2_powf');
   assert.equal(getXmmF(0), Infinity);
+});
+
+test('versioned CRT C++ operators are dispatched cdecl so the caller owns cleanup', async () => {
+  // The decorated C++ names carry no @<bytes> suffix, so nothing in the name
+  // distinguishes cdecl from stdcall. Wine's msvcr80..msvcr120 specs mark
+  // operator new/delete cdecl, and dispatching them stdcall removes four bytes
+  // the caller also removes, corrupting the stack of every C++ program.
+  const provider = createWin32ApiProvider();
+  const runtime = {
+    check: () => 0,
+    read32: () => 0,
+    write32: () => {},
+    allocate: () => 0x10000,
+    free: () => true,
+    cpu: { r: Array.from({ length: 8 }, () => ({ value: 0 })), x87: {} },
+    data: new Uint8Array(0x20000),
+    view: new DataView(new ArrayBuffer(0x20000)),
+  };
+  for (const [dll, name, argc] of [
+    ['msvcr80.dll', '??2@YAPAXI@Z', 1],
+    ['msvcr80.dll', '??3@YAXPAX@Z', 1],
+    ['msvcr80.dll', '??_U@YAPAXI@Z', 1],
+    ['msvcr80.dll', '??_V@YAXPAX@Z', 1],
+    ['msvcr100.dll', '??2@YAPAXI@Z', 1],
+    ['msvcr120.dll', '_except_handler4_common', 5],
+  ]) {
+    const handler = provider.get(importKey(dll, name));
+    assert.ok(handler, `${dll}!${name} is registered`);
+    const response = await handler(runtime, () => 0);
+    assert.equal(response.convention, 'cdecl', `${name} is cdecl`);
+    assert.equal(response.argc, argc, `${name} reports its slot count`);
+  }
 });

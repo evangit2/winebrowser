@@ -22,6 +22,9 @@ const { values: options, positionals } = parseArgs({
     watch: { type: 'string' },
     'watch-range': { type: 'string' },
     'watch-any': { type: 'string' },
+    'trace-blocks': { type: 'string' },
+    'trace-window': { type: 'string' },
+    'trace-imports': { type: 'boolean' },
     'max-blocks': { type: 'string' },
     'max-ms': { type: 'string' },
   },
@@ -76,11 +79,30 @@ const input = {
   ...(options['watch-any']
     ? { watchAnyRange: options['watch-any'].split('-').map((v) => Number.parseInt(v, 16)) }
     : {}),
-  ...(options['max-blocks'] || options['max-ms']
+  ...(options['max-blocks'] ||
+  options['max-ms'] ||
+  options['trace-blocks'] ||
+  options['trace-window'] ||
+  options['trace-imports']
     ? {
         limits: {
           ...(options['max-blocks'] ? { maxBlocks: Number(options['max-blocks']) } : {}),
           ...(options['max-ms'] ? { maxExecutionMs: Number(options['max-ms']) } : {}),
+          ...(options['trace-blocks']
+            ? {
+                traceBlocks: options['trace-blocks']
+                  .split(',')
+                  .map((value) => Number.parseInt(value, 16)),
+              }
+            : {}),
+          ...(options['trace-window']
+            ? {
+                traceWindow: options['trace-window']
+                  .split('-')
+                  .map((value) => Number.parseInt(value, 10)),
+              }
+            : {}),
+          ...(options['trace-imports'] ? { traceImports: true } : {}),
         },
       }
     : {}),

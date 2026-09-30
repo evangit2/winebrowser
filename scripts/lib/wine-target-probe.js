@@ -44,6 +44,8 @@ export async function probeWineTarget(
     memorySampleKeys: new Set(),
     output: [],
     requests: [],
+    blockTrace: [],
+    registerClobbers: [],
     frames: 0,
     nativeLoaderCalls: [],
     firstFailure: null,
@@ -240,9 +242,53 @@ export async function probeWineTarget(
     const pendingLoaderCalls = [];
     const started = performance.now();
     let dispatches = 0;
+    // `traceBlocks` is a diagnostic aid: when a caller names block addresses,
+    // every entry to those blocks is recorded with the register file, which is
+    // what makes a register-clobber fault reproducible instead of a guess.
+    const traceBlocks = new Set((limits.traceBlocks ?? []).map((address) => address >>> 0));
+    // A window is more useful than a set when the question is "what ran between
+    // these two points"; every block entry inside it is recorded in order.
+    const traceWindow = limits.traceWindow ?? null;
+    // A host import must not disturb the guest's register file: a handler that
+    // does is a real defect that breaks any program. When tracing is on, every
+    // host call is bracketed and a change to a callee-saved register is
+    // recorded, which names the offending import directly.
+    const calleeSaved = [3, 5, 6, 7];
+    if (limits.traceImports) {
+      const api = runtime.api.bind(runtime);
+      runtime.api = async (entry) => {
+        const before = runtime.cpu.r.map((register) => register.value >>> 0);
+        const result = await api(entry);
+        const after = runtime.cpu.r.map((register) => register.value >>> 0);
+        const changed = calleeSaved.filter((n) => before[n] !== after[n]);
+        if (changed.length && report.registerClobbers.length < 64)
+          report.registerClobbers.push({
+            name: entry.name,
+            dll: entry.dll,
+            changed: changed.map((n) => ['ebx', 'ebp', 'esi', 'edi'][n - 3]),
+            before: changed.map((n) => hex(before[n])),
+            after: changed.map((n) => hex(after[n])),
+            instructions: runtime.cpu.instructions,
+          });
+        return result;
+      };
+    }
     runtime.cpu.prepare = (ip) => {
       lastIP = ip;
       const dispatch = ++dispatches;
+      const traced =
+        (traceBlocks.size && traceBlocks.has(ip >>> 0)) ||
+        (traceWindow &&
+          runtime.cpu.instructions >= traceWindow[0] &&
+          runtime.cpu.instructions <= traceWindow[1]);
+      if (traced && report.blockTrace.length < 512) {
+        report.blockTrace.push({
+          ip: hex(ip),
+          instructions: runtime.cpu.instructions,
+          stack: hex(runtime.cpu.r[4].value),
+          registers: runtime.cpu.r.map((register) => hex(register.value)),
+        });
+      }
       // A guest render loop presents frames forever, so a presented-frame goal
       // is a successful stop rather than a failure.
       if (report.frameGoalReached) throw Error(FRAME_GOAL);
