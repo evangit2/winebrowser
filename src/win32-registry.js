@@ -508,6 +508,218 @@ function storeValue(state, opened, valueName, type, bytes) {
   return ERROR_SUCCESS;
 }
 
+// RegDeleteKeyA and RegEnumKeyA/W complete the legacy ANSI registry surface
+// PuTTY's configuration code uses. RegDeleteKeyA shares RegDeleteKeyW's
+// semantics with ANSI path decoding; RegEnumKey enumerates subkey names.
+function regDeleteKeyA(runtime, argument) {
+  const state = stateFor(runtime);
+  const parent = keyFor(argument(0), state);
+  if (!parent) return response(ERROR_INVALID_HANDLE, 2);
+  if (parent.node.deletePending) return response(ERROR_KEY_DELETED, 2);
+  const raw = guestString(runtime, argument(1), true);
+  if (!raw) return response(ERROR_INVALID_PARAMETER, 2);
+  let path;
+  try {
+    path = normalizePath(raw).split('/').filter(Boolean);
+  } catch {
+    return response(ERROR_INVALID_PARAMETER, 2);
+  }
+  if (!path.length) return response(ERROR_INVALID_PARAMETER, 2);
+  let current = parent.node;
+  for (let index = 0; index < path.length - 1; index++) {
+    current = childOf(current, path[index]);
+    if (!current || current.deletePending) return response(ERROR_FILE_NOT_FOUND, 2);
+  }
+  const key = childOf(current, path.at(-1));
+  if (!key || key.deletePending) return response(ERROR_FILE_NOT_FOUND, 2);
+  if (key.children.size) return response(ERROR_ACCESS_DENIED, 2);
+  key.deletePending = true;
+  if (key.openHandles === 0) removeDeletedNode(state, key);
+  return response(ERROR_SUCCESS, 2);
+}
+// RegEnumKeyA/W(HKEY, DWORD Index, LPTSTR Name, DWORD NameSize). Only the name
+// is returned; the extended form reports the last-write time on request.
+function regEnumKey(runtime, argument, ansi) {
+  const state = stateFor(runtime);
+  const opened = keyFor(argument(0), state);
+  if (!opened) return response(ERROR_INVALID_HANDLE, 4);
+  if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 4);
+  if (accessDenied(opened, KEY_ENUMERATE_SUB_KEYS)) return response(ERROR_ACCESS_DENIED, 4);
+  const nameAddress = argument(2) >>> 0;
+  const size = argument(3) >>> 0;
+  if (!nameAddress || !size) return response(ERROR_INVALID_PARAMETER, 4);
+  runtime.check(nameAddress, ansi ? size : size * 2, true);
+  const children = [...opened.node.children.values()]
+    .filter((child) => !child.deletePending)
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const child = children[argument(1) >>> 0];
+  if (!child) return response(ERROR_NO_MORE_ITEMS, 4);
+  const encoded = ansi ? encodeAnsi(child.name).bytes : null;
+  const needed = ansi ? encoded.length + 1 : child.name.length + 1;
+  if ((ansi ? size : size) < needed) return response(ERROR_MORE_DATA, 4);
+  if (ansi) {
+    runtime.data.set(encoded, nameAddress);
+    runtime.data[nameAddress + encoded.length] = 0;
+  } else {
+    for (let i = 0; i < child.name.length; i++)
+      runtime.guestMemory.write(nameAddress + i * 2, child.name.charCodeAt(i), 2);
+    runtime.guestMemory.write(nameAddress + child.name.length * 2, 0, 2);
+  }
+  return response(ERROR_SUCCESS, 4);
+}
+function regEnumKeyEx(runtime, argument, ansi) {
+  const status = regEnumKey(runtime, argument, ansi);
+  if (status.result !== ERROR_SUCCESS) return { result: status.result, argc: 9 };
+  // The Ex form's trailing outputs are (class, classSize, lastWriteTime); the
+  // runtime has no per-key class, so the class is empty and the time is the
+  // shared process file time.
+  const classAddress = argument(4) >>> 0;
+  const classSizeAddress = argument(5) >>> 0;
+  const timeAddress = argument(6) >>> 0;
+  if (classSizeAddress) {
+    runtime.check(classSizeAddress, 4, true);
+    runtime.write32(classSizeAddress, 0);
+  }
+  if (classAddress) {
+    runtime.check(classAddress, ansi ? 1 : 2, true);
+    runtime.guestMemory.write(classAddress, 0, 1);
+  }
+  if (timeAddress) {
+    runtime.check(timeAddress, 8, true);
+    runtime.write32(timeAddress, 0);
+    runtime.write32(timeAddress + 4, 0);
+  }
+  return { result: ERROR_SUCCESS, argc: 9 };
+}
+
+// ---------------------------------------------------------------------------
+// The advapi32 security helpers a GUI tool calls when it builds a SID or a
+// security descriptor. The runtime has exactly one guest identity, so these
+// describe that identity precisely instead of fabricating an object.
+// A SID is Revision, SubAuthorityCount, six authority bytes, then the
+// sub-authorities as little-endian DWORDs. AllocateAndInitializeSid builds one
+// from the caller's authority and sub-authority values.
+const SECURITY_NULL_SID_AUTHORITY = 0;
+const SECURITY_NT_SID_AUTHORITY = 5;
+function allocateAndInitializeSid(r, a) {
+  const identifierAuthority = a(0) >>> 0;
+  const subAuthorityCount = a(1) >>> 0;
+  if (subAuthorityCount < 1 || subAuthorityCount > 8) return response(ERROR_INVALID_PARAMETER, 11);
+  const output = a(10);
+  if (!output) return response(ERROR_INVALID_PARAMETER, 11);
+  // A six-byte big-endian authority is read from guest memory.
+  r.check(identifierAuthority, 6);
+  let authority = 0n;
+  for (let i = 0; i < 6; i++)
+    authority = (authority << 8n) | BigInt(r.data[identifierAuthority + i]);
+  r.check(a(2), 12);
+  const subAuthorities = [];
+  for (let i = 0; i < subAuthorityCount; i++) subAuthorities.push(r.read32(a(2) + i * 4) >>> 0);
+  if (authority > 0xffffffffn) return response(ERROR_INVALID_PARAMETER, 11);
+  const size = 8 + subAuthorityCount * 4;
+  const pointer = r.allocate(size);
+  r.data.fill(0, pointer, pointer + 8);
+  r.data[pointer] = 1;
+  r.data[pointer + 1] = subAuthorityCount;
+  const view = new DataView(r.data.buffer, r.data.byteOffset);
+  view.setUint16(pointer + 6, Number(authority), false);
+  subAuthorities.forEach((value, index) => view.setUint32(pointer + 8 + index * 4, value, true));
+  r.check(output, 4, true);
+  r.write32(output, pointer);
+  return response(ERROR_SUCCESS, 11);
+}
+function sidLength(r, a) {
+  const pointer = a(0) >>> 0;
+  if (!pointer) return response(ERROR_INVALID_SID, 1);
+  try {
+    r.check(pointer, 8);
+  } catch {
+    return response(ERROR_INVALID_SID, 1);
+  }
+  const count = r.data[pointer + 1];
+  if (r.data[pointer] !== 1 || count > 15) return response(ERROR_INVALID_SID, 1);
+  return { result: 8 + count * 4, argc: 1 };
+}
+function copySid(r, a) {
+  const length = a(0) >>> 0;
+  const source = a(1) >>> 0;
+  const target = a(2);
+  const measured = sidLength(r, () => source);
+  if (typeof measured !== 'number') return { result: measured.result, argc: 3 };
+  if (length < measured || !target) return response(ERROR_INSUFFICIENT_BUFFER, 3);
+  r.check(source, measured);
+  r.check(target, measured, true);
+  r.data.copyWithin(target, source, source + measured);
+  return response(ERROR_SUCCESS, 3);
+}
+function equalSid(r, a) {
+  const first = a(0) >>> 0,
+    second = a(1) >>> 0;
+  if (!first || !second) return response(ERROR_INVALID_SID, 2);
+  try {
+    r.check(first, 8);
+    r.check(second, 8);
+  } catch {
+    return response(ERROR_INVALID_SID, 2);
+  }
+  const length = r.data[first + 1] * 4 + 8;
+  const other = r.data[second + 1] * 4 + 8;
+  if (length !== other) return { result: 0, argc: 2 };
+  for (let i = 0; i < length; i++)
+    if (r.data[first + i] !== r.data[second + i]) return { result: 0, argc: 2 };
+  return { result: 1, argc: 2 };
+}
+// GetUserNameA/W reports the guest process's own user name, which is the
+// account the isolated registry and SID describe.
+function getUserName(r, a, wide) {
+  const name = processUserName;
+  const buffer = a(0);
+  const sizeAddress = a(1);
+  if (!sizeAddress) return response(ERROR_INVALID_PARAMETER, 2);
+  r.check(sizeAddress, 4, true);
+  const encoded = wide
+    ? Uint8Array.from([...name].flatMap((ch) => [ch.charCodeAt(0) & 0xff, ch.charCodeAt(0) >> 8]))
+    : encodeAnsi(name).bytes;
+  const needed = wide ? (name.length + 1) * 2 : encoded.length + 1;
+  const capacity = r.read32(sizeAddress) >>> 0;
+  if (!buffer || capacity < needed) {
+    r.write32(sizeAddress, needed);
+    return response(ERROR_INSUFFICIENT_BUFFER, 2);
+  }
+  r.check(buffer, needed, true);
+  if (wide) {
+    for (let i = 0; i <= name.length; i++)
+      r.guestMemory.write(buffer + i * 2, i === name.length ? 0 : name.charCodeAt(i), 2);
+  } else {
+    r.data.set(encoded, buffer);
+    r.data[buffer + encoded.length] = 0;
+  }
+  r.write32(sizeAddress, wide ? name.length : encoded.length);
+  return response(ERROR_SUCCESS, 2);
+}
+const processUserName = 'WineBrowser';
+const ERROR_INVALID_SID = 1307;
+// A SECURITY_DESCRIPTOR is Revision, Sbz1, Control, then four DWORD offsets.
+// The runtime models the all-access descriptor an isolated guest owns.
+const SECURITY_DESCRIPTOR_REVISION = 1;
+function initializeSecurityDescriptor(r, a) {
+  const pointer = a(0) >>> 0;
+  const revision = a(1) >>> 0;
+  if (!pointer || revision !== SECURITY_DESCRIPTOR_REVISION)
+    return response(ERROR_INVALID_PARAMETER, 2);
+  r.check(pointer, 20, true);
+  r.data.fill(0, pointer, pointer + 20);
+  r.data[pointer] = SECURITY_DESCRIPTOR_REVISION;
+  return response(ERROR_SUCCESS, 2);
+}
+function securityDescriptorField(r, a, control) {
+  const pointer = a(0) >>> 0;
+  if (!pointer) return response(ERROR_INVALID_PARAMETER, 3);
+  r.check(pointer, 20, true);
+  r.data[pointer + 2] |= control;
+  return response(ERROR_SUCCESS, 3);
+}
+
 function regDeleteKeyW(runtime, argument) {
   const state = stateFor(runtime);
   const parent = keyFor(argument(0), state);
@@ -731,7 +943,21 @@ export const registryApis = {
   'advapi32.dll!RegSetValueExA': regSetValueExA,
   'advapi32.dll!RegSetValueExW': regSetValueExW,
   'advapi32.dll!RegEnumValueA': regEnumValueA,
+  'advapi32.dll!AllocateAndInitializeSid': allocateAndInitializeSid,
+  'advapi32.dll!GetLengthSid': sidLength,
+  'advapi32.dll!CopySid': copySid,
+  'advapi32.dll!EqualSid': equalSid,
+  'advapi32.dll!GetUserNameA': (r, a) => getUserName(r, a, false),
+  'advapi32.dll!GetUserNameW': (r, a) => getUserName(r, a, true),
+  'advapi32.dll!InitializeSecurityDescriptor': initializeSecurityDescriptor,
+  'advapi32.dll!SetSecurityDescriptorDacl': (r, a) => securityDescriptorField(r, a, 0x0004),
+  'advapi32.dll!SetSecurityDescriptorOwner': (r, a) => securityDescriptorField(r, a, 0x0001),
+  'advapi32.dll!RegDeleteKeyA': regDeleteKeyA,
   'advapi32.dll!RegDeleteKeyW': regDeleteKeyW,
+  'advapi32.dll!RegEnumKeyA': (r, a) => regEnumKey(r, a, true),
+  'advapi32.dll!RegEnumKeyW': (r, a) => regEnumKey(r, a, false),
+  'advapi32.dll!RegEnumKeyExA': (r, a) => regEnumKeyEx(r, a, true),
+  'advapi32.dll!RegEnumKeyExW': (r, a) => regEnumKeyEx(r, a, false),
   'advapi32.dll!RegCloseKey': regCloseKey,
 };
 

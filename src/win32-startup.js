@@ -878,6 +878,8 @@ export const startupApis4 = {
   'shell32.dll!ShellExecuteW': (r, a) => shellExecute(r, a, true),
   'shell32.dll!ShellExecuteExA': (r, a) => fail(r, 5, 1, 0),
   'shell32.dll!ShellExecuteExW': (r, a) => fail(r, 5, 1, 0),
+  // SetEnvironmentVariableA/W and GetUserNameA/W are exported by kernel32 as
+  // well as advapi32; the kernel32 implementations live in win32-system.js.
   'shell32.dll!ShellAboutA': (r, a) => shellAbout(r, a, false),
   'shell32.dll!ShellAboutW': (r, a) => shellAbout(r, a, true),
 };
