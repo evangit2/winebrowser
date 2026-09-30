@@ -15,6 +15,8 @@ const IID = {
   pipeline: '765a30f3-f624-4c6f-a828-ace948622445',
   fence: '0a753dcf-c4d8-4b91-adf6-be5a60d95a76',
   query: '0d9658ae-ed45-469e-a61d-970ec583cab4',
+  memory: '6b3b2502-6e51-45b3-90ee-9884265e8df3',
+  signature: 'c36a797c-ec80-4f0a-8985-a7b2475082d1',
 };
 function fixture() {
   const buffer = new ArrayBuffer(2 * 1024 * 1024);
@@ -572,7 +574,14 @@ test('unsupported calls and released COM pointers stay explicit', async () => {
   r.write32(queueDesc + 4, 0);
   r.write32(queueDesc + 8, 1);
   assert.equal((await call(dev, 8, queueDesc, guid(IID.queue), out)).result, 0x80070057);
-  await assert.rejects(call(dev, 28, 0), /Unsupported COM method ID3D12Device.CreateHeap/);
+  // CreateHeap/placed resources are supported; a null descriptor is rejected
+  // explicitly rather than dereferencing the guest's NULL.
+  assert.equal((await call(dev, 28, 0, guid(IID.memory), out)).result, 0x80070057);
+  assert.equal(
+    (await call(dev, 30, 0, 0, 0, guid(IID.resource), out)).result,
+    0x80070057,
+    'CreateReservedResource stays unavailable for tiled resources',
+  );
   // D3D12_DESCRIPTOR_HEAP_DESC is Type, NumDescriptors, Flags, NodeMask. An
   // empty heap, an unknown type and flags beyond SHADER_VISIBLE are rejected;
   // a bounded shader-visible heap is accepted.
@@ -1652,4 +1661,64 @@ test('every COM argc matches the i386 vtable argument count', async () => {
       assert.equal(Number(entry[1]), want, `${fn} slot ${slot}: ${message}`);
     }
   }
+});
+
+test('heap-backed placed resources and command signatures resolve through the device', async () => {
+  const f = fixture(),
+    { runtime: r, call, alloc, guid, create } = f;
+  const out = alloc();
+  await f.api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+
+  // D3D12_HEAP_DESC: SizeInBytes (UINT64), Properties, Alignment, Flags.
+  const heapDesc = alloc(48);
+  r.write32(heapDesc, 0x10000);
+  r.write32(heapDesc + 4, 0);
+  r.write32(heapDesc + 8, 1); // D3D12_HEAP_TYPE_DEFAULT.
+  r.write32(heapDesc + 20, 1); // CreationNodeMask.
+  r.write32(heapDesc + 24, 1); // VisibleNodeMask.
+  const heap = await create(dev, 28, [heapDesc], 'memory');
+  const descOut = alloc(48);
+  r.data.fill(0xcc, descOut, descOut + 48);
+  await call(heap, 8, descOut);
+  assert.equal(r.read32(descOut), 0x10000, 'GetDesc reports the heap size');
+  assert.equal(r.read32(descOut + 8), 1, 'GetDesc reports the heap type');
+
+  // A DEFAULT-heap buffer descriptor, placed at offset 256 inside the heap.
+  const bufferDesc = alloc(56);
+  r.write32(bufferDesc, 1); // BUFFER
+  r.write32(bufferDesc + 16, 512); // width in bytes
+  r.write32(bufferDesc + 24, 1); // height
+  r.view.setUint16(bufferDesc + 28, 1, true); // depthOrArraySize
+  r.view.setUint16(bufferDesc + 30, 1, true); // mipLevels
+  r.write32(bufferDesc + 36, 1); // sample count
+  r.write32(bufferDesc + 44, 1); // row-major
+  const resource = await create(dev, 29, [heap, 256, 0, bufferDesc, 0x400, 0], 'resource');
+  const range = [
+    [0, 0],
+    [512, 512],
+  ];
+  const address = (await call(resource, 11)).result;
+  assert.notEqual(address, 0, 'a placed buffer publishes a GPU virtual address');
+  void range;
+
+  // Placing past the end of the heap is refused instead of aliasing memory.
+  await assert.rejects(
+    call(dev, 29, heap, 0x10000, 0, bufferDesc, 0x400, 0, guid(IID.resource), out),
+    /exceeds its heap/,
+  );
+
+  // CreateCommandSignature keeps a bounded stride/argument count and reports
+  // an identity the guest can release.
+  const signatureDesc = alloc(16);
+  r.write32(signatureDesc, 16); // ByteStride.
+  r.write32(signatureDesc + 4, 1); // NumArgumentDescs.
+  const signature = await create(dev, 41, [signatureDesc, 0], 'signature');
+  assert.equal((await call(signature, 2)).result, 0, 'signature releases');
+  r.write32(signatureDesc, 0);
+  assert.equal(
+    (await call(dev, 41, signatureDesc, 0, guid(IID.signature), out)).result,
+    0x80070057,
+    'a zero stride is rejected',
+  );
 });

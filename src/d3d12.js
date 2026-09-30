@@ -92,6 +92,7 @@ const resourceStates = (kind) =>
         : kind === 'render-texture'
           ? RENDER_TEXTURE_STATES
           : BUFFER_STATES;
+const IUNKNOWN = '00000000-0000-0000-c000-000000000046';
 const OBJECT = 'c4fec28f-7966-4e95-9f94-f431cb56c3b8';
 const CHILD = '905db94b-a00c-4140-9df5-2b64ca9ea357';
 const PAGEABLE = '63ee58fb-1268-4835-86da-f008ce62f0d6';
@@ -107,6 +108,8 @@ const iids = {
   heap: '8efb471d-616c-4f49-90f7-127bb763fa51',
   resource: '696442be-a72e-4059-bc79-5b5c98040fad',
   query: '0d9658ae-ed45-469e-a61d-970ec583cab4', // ID3D12QueryHeap
+  memory: '6b3b2502-6e51-45b3-90ee-9884265e8df3', // ID3D12Heap
+  signature: 'c36a797c-ec80-4f0a-8985-a7b2475082d1', // ID3D12CommandSignature
   factory: '770aae78-f26f-4dba-a829-253c83d1b387', // IDXGIFactory1
   factory1: '770aae78-f26f-4dba-a829-253c83d1b387',
   factoryBase: '7b7166ec-21c7-44ae-b21a-c9ae321ae369',
@@ -129,6 +132,8 @@ const names = {
   fence: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetCompletedValue SetEventOnCompletion Signal`,
   heap: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetDesc GetCPUDescriptorHandleForHeapStart GetGPUDescriptorHandleForHeapStart`,
   query: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice`,
+  memory: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetDesc`,
+  signature: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice`,
   resource: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Map Unmap GetDesc GetGPUVirtualAddress WriteToSubresource ReadFromSubresource GetHeapProperties`,
   factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent IsWindowedStereoEnabled CreateSwapChainForHwnd CreateSwapChainForCoreWindow GetSharedResourceAdapterLuid RegisterStereoStatusWindow RegisterStereoStatusEvent UnregisterStereoStatus RegisterOcclusionStatusWindow RegisterOcclusionStatusEvent UnregisterOcclusionStatus CreateSwapChainForComposition GetCreationFlags EnumAdapterByLuid EnumWarpAdapter`,
   adapter: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1`,
@@ -145,6 +150,8 @@ const name = {
   heap: 'ID3D12DescriptorHeap',
   resource: 'ID3D12Resource',
   query: 'ID3D12QueryHeap',
+  memory: 'ID3D12Heap',
+  signature: 'ID3D12CommandSignature',
   factory: 'IDXGIFactory1',
   adapter: 'IDXGIAdapter1',
   swapchain: 'IDXGISwapChain',
@@ -209,7 +216,17 @@ function extraIids(kind, parent) {
   return [
     OBJECT,
     CHILD,
-    ...(['queue', 'allocator', 'pipeline', 'heap', 'fence', 'resource', 'query'].includes(kind)
+    ...([
+      'queue',
+      'allocator',
+      'pipeline',
+      'heap',
+      'fence',
+      'resource',
+      'query',
+      'memory',
+      'signature',
+    ].includes(kind)
       ? [PAGEABLE]
       : []),
     ...(kind === 'list' ? [COMMAND_LIST] : []),
@@ -221,6 +238,29 @@ function extraIids(kind, parent) {
 // anything: GetPrivateData reports "not found" and the setters succeed.
 // ID3D12DeviceChild.GetDevice is equally common and hands back the owning
 // device with its own reference.
+
+// IDXGIObject.GetParent(this, riid, ppParent): every DXGI object reports its
+// creating object and honours any identity that object really exposes (the
+// factory has no parent, which is DXGI_ERROR_NOT_FOUND, while an adapter's
+// parent also answers IDXGIFactory1..4 through the shared factory vtable).
+function getParentMethod() {
+  return {
+    argc: 3,
+    invoke(r, a, o) {
+      const out = number(a(2));
+      output(r, out);
+      const parent = o.state.parent ?? null;
+      if (!parent || !parent.refs) return DXGI_ERROR_NOT_FOUND;
+      const requested = readGuid(r, number(a(1)));
+      if (requested !== IUNKNOWN && !parent.iids?.has(requested)) return E_NOINTERFACE;
+      if (parent.refs >= 0x7fffffff) throw Error('DXGI parent reference limit exceeded');
+      parent.refs++;
+      r.write32(out, parent.pointer);
+      return S_OK;
+    },
+  };
+}
+
 const DEVICE_CHILD_GET_DEVICE = {
   argc: 3,
   invoke(r, a, o) {
@@ -275,7 +315,7 @@ function make(r, kind, methods, itemState = {}, parent = null, onRelease = null)
       iids: extraIids(kind, parent),
       methodNames,
       methods: table,
-      state: itemState,
+      state: { ...itemState, parent },
       onRelease: async (item) => {
         await onRelease?.(item);
         if (parent) parent.refs--;
@@ -1378,6 +1418,117 @@ function resourceMethods() {
     },
   };
 }
+
+// CreateHeap is a device method that hands back an ID3D12Heap. The heap owns a
+// block of guest memory that placed resources carve windows out of; the real
+// allocation happens only when a resource is placed, so the heap stays cheap.
+// ID3D12Heap.GetDesc reports the 48-byte D3D12_HEAP_DESC the heap was made
+// with, including the alignment and flags the guest supplied.
+function heapMethods() {
+  return {
+    8: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 48, true);
+        r.data.fill(0, out, out + 48);
+        r.write32(out, o.state.size);
+        r.write32(out + 8, o.state.heapType);
+        r.write32(out + 20, 1); // CreationNodeMask.
+        r.write32(out + 24, 1); // VisibleNodeMask.
+        r.write32(out + 40, o.state.flags ?? 0);
+        return undefined;
+      },
+    },
+  };
+}
+
+function createHeap(rt, arg, dev) {
+  const out = number(arg(3));
+  output(rt, out);
+  if (!iid(rt, arg(2), 'memory')) return E_NOINTERFACE;
+  const desc = number(arg(1));
+  if (!desc) return E_INVALIDARG;
+  rt.check(desc, 48);
+  const size = (BigInt(u32(rt, desc, 4)) << 32n) | BigInt(u32(rt, desc));
+  const props = desc + 8;
+  const heapType = u32(rt, props);
+  const flags = u32(rt, desc, 40);
+  const alignment = (BigInt(u32(rt, desc, 36)) << 32n) | BigInt(u32(rt, desc, 32));
+  if (
+    u32(rt, props, 4) ||
+    u32(rt, props, 8) ||
+    u32(rt, props, 12) !== 1 ||
+    u32(rt, props, 16) !== 1 ||
+    ![1, 2, 3].includes(heapType) ||
+    alignment & ~0x70000n ||
+    flags & ~0x7
+  )
+    return E_INVALIDARG;
+  if (size <= 0n || size > BigInt(MAX_RESOURCE_BYTES)) return E_INVALIDARG;
+  const item = make(
+    rt,
+    'memory',
+    heapMethods(),
+    { device: dev, size: Number(size), heapType, alignment: Number(alignment), flags },
+    dev,
+  );
+  rt.write32(out, item.pointer);
+  return S_OK;
+}
+
+// CreatePlacedResource(heap, heap_offset (UINT64), desc, initial_state,
+//                      clear_value, riid, out). For the modeled resources the
+// placement is a guest-memory window inside the heap's own storage so the
+// existing buffer upload/readback paths address the same bytes.
+function createPlacedResource(rt, arg, dev) {
+  // CreatePlacedResource(this, heap, heap_offset (UINT64), desc, initial_state,
+  //                      clear_value, riid, out): the 64-bit offset occupies
+  // arguments 2 and 3, so `desc` is argument 4.
+  const out = number(arg(8));
+  output(rt, out);
+  if (!iid(rt, arg(7), 'resource')) return E_NOINTERFACE;
+  if (number(arg(3))) throw Error('Unsupported 64-bit D3D12 heap offset');
+  if (!number(arg(4))) return E_INVALIDARG;
+  const heap = object(rt, arg(1), 'memory', dev);
+  const offset = number(arg(2));
+  // Reuse the committed-resource descriptor validation with the heap's own
+  // properties so a placed resource is checked exactly like a committed one.
+  const props = rt.allocate(20);
+  rt.data.fill(0, props, props + 20);
+  rt.write32(props, heap.state.heapType);
+  rt.write32(props + 12, 1);
+  rt.write32(props + 16, 1);
+  const parsed = parseCommittedResourceDescriptor({
+    check: rt.check.bind(rt),
+    data: rt.data,
+    read32: rt.read32.bind(rt),
+    readFloat32: (pointer) => rt.view.getFloat32(pointer, true),
+    heap: props,
+    heapFlags: 0,
+    descriptor: number(arg(4)),
+    initialState: number(arg(5)),
+    clearValue: number(arg(6)),
+    maxBytes: MAX_RESOURCE_BYTES,
+  });
+  rt.free(props);
+  if (!parsed) return E_INVALIDARG;
+  if (parsed.kind !== 'buffer') throw Error('Unsupported D3D12 placed non-buffer resource');
+  if ((heap.state.used ?? 0) + offset + parsed.size > heap.state.size)
+    throw Error('D3D12 placed resource exceeds its heap');
+  heap.state.used = (heap.state.used ?? 0) + parsed.size;
+  const item = make(
+    rt,
+    'resource',
+    resourceMethods(),
+    { device: dev, ...parsed, storage: rt.allocate(parsed.size), placed: true },
+    dev,
+    (o) => rt.free(o.state.storage),
+  );
+  rt.write32(out, item.pointer);
+  return S_OK;
+}
+
 function committedResource(r, a) {
   const parsed = parseCommittedResourceDescriptor({
     check: r.check.bind(r),
@@ -1544,6 +1695,44 @@ function deviceMethods() {
         return S_OK;
       },
     },
+    // CreateHeap is the explicit heap object modern engines use with
+    // CreatePlacedResource instead of committed resources.
+    28: {
+      argc: 4,
+      invoke: (r, a, dev) => createHeap(r, a, dev),
+    },
+    29: {
+      argc: 9,
+      invoke: (r, a, dev) => createPlacedResource(r, a, dev),
+    },
+    // CreateReservedResource(desc, state, clear, riid, out): tiled resources
+    // need a tile mapping model this backend does not implement.
+    30: {
+      argc: 6,
+      invoke(r, a) {
+        output(r, number(a(5)));
+        return E_INVALIDARG;
+      },
+    },
+    // CreateCommandSignature(desc, root, riid, out): ExecuteIndirect carries
+    // the command layout itself, so a signature object is only identity here.
+    41: {
+      argc: 5,
+      invoke(r, a, dev) {
+        const out = number(a(4));
+        output(r, out);
+        if (!iid(r, a(3), 'signature')) return E_NOINTERFACE;
+        const desc = number(a(1));
+        if (!desc) return E_INVALIDARG;
+        r.check(desc, 16);
+        const stride = u32(r, desc);
+        const count = u32(r, desc, 4);
+        if (!stride || stride > 256 || !count || count > 4) return E_INVALIDARG;
+        const item = make(r, 'signature', {}, { device: dev, stride, count }, dev);
+        r.write32(out, item.pointer);
+        return S_OK;
+      },
+    },
     // CheckFeatureSupport answers the capability probes real applications make
     // at startup from a fixed, honest profile of the implemented backend.
     13: {
@@ -1638,6 +1827,16 @@ function deviceMethods() {
           default:
             return E_INVALIDARG;
         }
+      },
+    },
+    // CreateComputePipelineState(desc, riid, out): the bounded renderer has no
+    // compute stage, so this reports an explicit failure instead of a fake
+    // pipeline that would silently never run.
+    11: {
+      argc: 4,
+      invoke(r, a) {
+        output(r, number(a(3)));
+        return E_INVALIDARG;
       },
     },
     14: child(
@@ -2650,28 +2849,64 @@ function swapchainDesc(r, ptr) {
     bufferCount,
   };
 }
+// IDXGISwapChain / IDXGISwapChain1 / IDXGISwapChain2 share one vtable prefix.
+// Present and Present1 (and ResizeBuffers and ResizeBuffers1) share these two
+// helpers so every path keeps the same presentation accounting.
+async function presentSwapchain(r, a, o) {
+  if (number(a(1)) > 1 || number(a(2))) throw Error('Unsupported DXGI Present interval/flags');
+  const s = o.state;
+  const res = s.buffers[s.index];
+  if (res.state.state !== 0) throw Error('DXGI Present requires PRESENT resource state');
+  await requireBackend(r).present({ id: o.pointer, index: s.index });
+  s.index = (s.index + 1) % s.buffers.length;
+  s.lastPresentCount++;
+  return S_OK;
+}
+async function resizeSwapchainBuffers(r, a, o) {
+  const s = o.state;
+  const count = number(a(1)) || s.buffers.length;
+  const width = number(a(2)) || s.width;
+  const height = number(a(3)) || s.height;
+  const format = number(a(4));
+  if (number(a(5))) throw Error('Unsupported DXGI swap chain resize flags');
+  if (![2, 3].includes(count) || width > 2048 || height > 2048)
+    throw Error('Unsupported DXGI swap chain resize size/count');
+  if (format && format !== 28 && format !== 87)
+    throw Error('Unsupported DXGI swap chain resize format');
+  const ids = [];
+  for (let i = 0; i < count; i++) {
+    const res = make(
+      r,
+      'resource',
+      {},
+      { device: s.queue.state.device, kind: 'color', swapchain: o, index: i, state: 0 },
+      s.queue.state.device,
+    );
+    ids.push(res.pointer);
+  }
+  await requireBackend(r).resizeSwapChain({ id: o.pointer, width, height, bufferIds: ids });
+  // Release the old back buffers only after the backend accepted the new set,
+  // so a failed resize leaves the chain intact.
+  for (const res of s.buffers) if (!--res.refs) s.queue.state.device.refs--;
+  s.buffers = ids.map((p) => object(r, p, 'resource', s.queue.state.device));
+  s.width = width;
+  s.height = height;
+  s.index = 0;
+  if (format) s.format = format === 87 ? 'bgra8unorm' : 'rgba8unorm';
+  return S_OK;
+}
 function swapchainMethods() {
   return {
-    8: {
-      argc: 3,
-      async invoke(r, a, o) {
-        if (number(a(1)) > 1 || number(a(2)))
-          throw Error('Unsupported DXGI Present interval/flags');
-        const s = o.state;
-        const res = s.buffers[s.index];
-        if (res.state.state !== 0) throw Error('DXGI Present requires PRESENT resource state');
-        await requireBackend(r).present({ id: o.pointer, index: s.index });
-        s.index = (s.index + 1) % 2;
-        return S_OK;
-      },
-    },
+    // IDXGIObject.GetParent reports the creating factory.
+    6: getParentMethod(),
+    8: { argc: 3, invoke: presentSwapchain },
     9: {
       argc: 4,
       invoke(r, a, o) {
         const out = number(a(3));
         output(r, out);
         const i = number(a(1));
-        if (i > 1) return E_INVALIDARG;
+        if (i >= o.state.buffers.length) return E_INVALIDARG;
         if (!iid(r, a(2), 'resource')) return E_NOINTERFACE;
         const res = o.state.buffers[i];
         if (!res.refs) throw Error('Released DXGI back buffer');
@@ -2681,14 +2916,292 @@ function swapchainMethods() {
         return S_OK;
       },
     },
-    36: {
-      argc: 1,
-      invoke(_r, _a, o) {
-        return o.state.index;
+    // SetFullscreenState/GetFullscreenState: the virtual desktop only ever
+    // presents windowed, and reports that honestly.
+    10: {
+      argc: 3,
+      invoke(r, a, o) {
+        if (number(a(1))) throw Error('Unsupported DXGI exclusive fullscreen');
+        if (number(a(2))) {
+          r.check(number(a(2)), 4, true);
+          r.write32(number(a(2)), o.state.windowId);
+        }
+        return S_OK;
       },
     },
+    11: {
+      argc: 3,
+      invoke(r, a, o) {
+        const out = number(a(1)),
+          target = number(a(2));
+        if (out) {
+          r.check(out, 4, true);
+          r.write32(out, 0);
+        }
+        if (target) {
+          r.check(target, 4, true);
+          r.write32(target, o.state.windowId);
+        }
+        return S_OK;
+      },
+    },
+    // GetDesc reconstructs the 60-byte DXGI_SWAP_CHAIN_DESC the chain was made
+    // with; DXGI_MODE_DESC occupies the first 28 bytes.
+    12: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 60, true);
+        r.data.fill(0, out, out + 60);
+        r.write32(out, o.state.width);
+        r.write32(out + 4, o.state.height);
+        r.write32(out + 16, o.state.format === 'bgra8unorm' ? 87 : 28);
+        r.write32(out + 28, 1);
+        r.write32(out + 36, 0x20);
+        r.write32(out + 40, o.state.buffers.length);
+        r.write32(out + 44, o.state.windowId);
+        r.write32(out + 48, 1);
+        r.write32(out + 52, 1);
+        return undefined;
+      },
+    },
+    // ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags):
+    // recreate the back buffers at the new size and count.
+    13: { argc: 6, invoke: resizeSwapchainBuffers },
+    14: { argc: 2, invoke: () => S_OK },
+    15: {
+      argc: 2,
+      invoke(r, a) {
+        output(r, number(a(1)));
+        return DXGI_ERROR_NOT_FOUND;
+      },
+    },
+    // GetFrameStatistics reports the counted presents with a synchronous,
+    // always-available pipeline.
+    16: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 32, true);
+        r.data.fill(0, out, out + 32);
+        const count = o.state.lastPresentCount;
+        r.write32(out, count);
+        r.write32(out + 8, count);
+        r.write32(out + 16, count);
+        return S_OK;
+      },
+    },
+    17: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 4, true);
+        r.write32(out, o.state.lastPresentCount);
+        return S_OK;
+      },
+    },
+    // GetDesc1 is the 48-byte modern descriptor.
+    18: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 48, true);
+        r.data.fill(0, out, out + 48);
+        r.write32(out, o.state.width);
+        r.write32(out + 4, o.state.height);
+        r.write32(out + 8, o.state.format === 'bgra8unorm' ? 87 : 28);
+        r.write32(out + 16, 1);
+        r.write32(out + 20, 0x20);
+        r.write32(out + 28, o.state.buffers.length);
+        r.write32(out + 36, 4); // DXGI_SWAP_EFFECT_FLIP_DISCARD
+        r.write32(out + 44, 0); // DXGI_ALPHA_MODE_IGNORE
+        return S_OK;
+      },
+    },
+    // GetFullscreenDesc reports a windowed, default-refresh mode.
+    19: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 20, true);
+        r.data.fill(0, out, out + 20);
+        r.write32(out, o.state.width);
+        r.write32(out + 4, o.state.height);
+        r.write32(out + 8, 28);
+        r.write32(out + 16, 1); // Windowed.
+        return S_OK;
+      },
+    },
+    20: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 4, true);
+        r.write32(out, o.state.windowId);
+        return S_OK;
+      },
+    },
+    // GetCoreWindow: the desktop model has no CoreWindow, so it reports
+    // E_NOINTERFACE exactly as an HWND-based chain does.
+    21: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return E_NOINTERFACE;
+      },
+    },
+    // Present1(Interval, Flags, const DXGI_PRESENT_PARAMETERS *): the same
+    // presentation path when no dirty rectangles or scroll are requested.
+    22: {
+      argc: 4,
+      async invoke(r, a, o) {
+        const params = number(a(3));
+        if (params) {
+          r.check(params, 20);
+          if (u32(r, params) || u32(r, params, 4) || u32(r, params, 8) || u32(r, params, 12))
+            throw Error('Unsupported DXGI Present1 dirty rectangles');
+        }
+        return presentSwapchain(r, a, o);
+      },
+    },
+    23: { argc: 1, invoke: () => 0 },
+    24: {
+      argc: 2,
+      invoke(r, a) {
+        output(r, number(a(1)));
+        return S_OK;
+      },
+    },
+    // SetBackgroundColor(const FLOAT[4]) / GetBackgroundColor(FLOAT[4]).
+    25: {
+      argc: 2,
+      invoke(r, a, o) {
+        const p = number(a(1));
+        r.check(p, 16);
+        o.state.background = Array.from({ length: 4 }, (_, i) => f32(r, p, i * 4));
+        return undefined;
+      },
+    },
+    26: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 16, true);
+        const color = o.state.background ?? [0, 0, 0, 255];
+        for (let i = 0; i < 4; i++) r.view.setFloat32(out + i * 4, color[i], true);
+        return undefined;
+      },
+    },
+    // SetRotation / GetRotation round-trip the DXGI_MODE_ROTATION value.
+    27: {
+      argc: 2,
+      invoke(r, a, o) {
+        if (number(a(1)) > 3) throw Error('Unsupported DXGI rotation');
+        o.state.rotation = number(a(1));
+        return undefined;
+      },
+    },
+    28: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 4, true);
+        r.write32(out, o.state.rotation ?? 0);
+        return undefined;
+      },
+    },
+    // SetSourceSize / GetSourceSize.
+    29: {
+      argc: 3,
+      invoke(r, a, o) {
+        const width = number(a(1)),
+          height = number(a(2));
+        if (!width && !height) {
+          o.state.sourceSize = null;
+          return undefined;
+        }
+        if (width !== o.state.width || height !== o.state.height)
+          throw Error('Unsupported DXGI source size override');
+        o.state.sourceSize = [width, height];
+        return undefined;
+      },
+    },
+    30: {
+      argc: 3,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 8, true);
+        r.write32(out, o.state.sourceSize?.[0] ?? o.state.width);
+        r.write32(out + 4, o.state.sourceSize?.[1] ?? o.state.height);
+        return undefined;
+      },
+    },
+    31: { argc: 2, invoke: (_r, a) => (number(a(1)) <= 16 ? undefined : E_INVALIDARG) },
+    32: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 4, true);
+        r.write32(out, o.state.maxFrameLatency ?? 1);
+        return undefined;
+      },
+    },
+    // GetFrameLatencyWaitableObject: hand back a real auto-reset event the
+    // guest can wait on; it is signalled on every present.
+    33: {
+      argc: 1,
+      invoke(r, _a, o) {
+        const objects = r.syncObjects;
+        if (!objects) throw Error('D3D12 sync objects are unavailable');
+        o.state.latencyEvent ??= objects.event({ manual: false, signaled: true }).handle;
+        return o.state.latencyEvent;
+      },
+    },
+    // SetMatrixTransform / GetMatrixTransform round-trip the 12 floats.
+    34: {
+      argc: 2,
+      invoke(r, a, o) {
+        const p = number(a(1));
+        r.check(p, 48);
+        o.state.matrixTransform = Array.from({ length: 12 }, (_, i) => f32(r, p, i * 4));
+        return undefined;
+      },
+    },
+    35: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 48, true);
+        const values = o.state.matrixTransform;
+        if (!values) {
+          r.data.fill(0, out, out + 48);
+          return E_INVALIDARG;
+        }
+        for (let i = 0; i < 12; i++) r.view.setFloat32(out + i * 4, values[i], true);
+        return undefined;
+      },
+    },
+    36: {
+      argc: 1,
+      invoke: (_r, _a, o) => o.state.index,
+    },
+    // CheckColorSpaceSupport reports support only for the default sRGB space.
+    37: {
+      argc: 3,
+      invoke(r, a) {
+        const out = number(a(2));
+        r.check(out, 4, true);
+        r.write32(out, number(a(1)) === 0 ? 1 : 0);
+        return S_OK;
+      },
+    },
+    38: { argc: 2, invoke: (_r, a) => (number(a(1)) === 0 ? undefined : E_INVALIDARG) },
+    // ResizeBuffers1 takes the same shape plus node masks and present queues;
+    // it shares the ResizeBuffers path.
+    39: { argc: 8, invoke: resizeSwapchainBuffers },
   };
 }
+
 // DXGI_ADAPTER_DESC1 is 296 bytes on i386: a WCHAR[128] description, four
 // UINT ids, three SIZE_T memory counts, an 8-byte LUID and a flags word.
 function writeAdapterDesc(r, ptr, withFlags, warp) {
@@ -2813,6 +3326,8 @@ function enumAdapter(r, index, out, self) {
 
 function factoryMethods() {
   return {
+    // GetParent on a factory reports DXGI_ERROR_NOT_FOUND (it has no parent).
+    6: getParentMethod(),
     7: {
       argc: 3,
       invoke: (r, a, self) => enumAdapter(r, number(a(1)), number(a(2)), self),
@@ -2843,6 +3358,15 @@ function factoryMethods() {
         return createSwapChain(rt, self, queue, swapchainDesc(rt, number(arg(2))), number(arg(3)));
       },
     },
+    11: {
+      // CreateSoftwareAdapter(HMODULE, IDXGIAdapter **): there is no software
+      // rasterizer to enumerate; the WARP adapter is requested by name.
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+      },
+    },
     12: {
       argc: 3,
       invoke: (r, a, self) => enumAdapter(r, number(a(1)), number(a(2)), self),
@@ -2851,6 +3375,8 @@ function factoryMethods() {
       argc: 1,
       invoke: (_r, _a, self) => (self.state.current === false ? 0 : 1),
     },
+    // IsWindowedStereoEnabled(): the virtual desktop is never stereo.
+    14: { argc: 1, invoke: () => 0 },
     15: {
       argc: 7,
       async invoke(rt, arg, self) {
@@ -2872,6 +3398,23 @@ function factoryMethods() {
       argc: 1,
       invoke: (_r, _a, self) => self.state.creationFlags ?? 0,
     },
+    // EnumAdapterByLuid(LUID, REFIID, void **): only the default adapter's
+    // published LUID matches, and it is handed back through the requested IID.
+    26: {
+      argc: 4,
+      invoke(rt, arg, self) {
+        const out = number(arg(3));
+        output(rt, out);
+        const low = rt.read32(number(arg(1))) >>> 0;
+        const high = rt.read32(number(arg(1)) + 4) >>> 0;
+        if (low !== ADAPTER_LUID >>> 0 || high !== ADAPTER_LUID_HIGH >>> 0)
+          return DXGI_ERROR_NOT_FOUND;
+        if (!iid(rt, arg(2), 'adapter')) return E_NOINTERFACE;
+        const adapter = make(rt, 'adapter', adapterMethods(), {}, self);
+        rt.write32(out, adapter.pointer);
+        return S_OK;
+      },
+    },
     27: {
       // EnumWarpAdapter(IID, void **) — the software adapter is exposed only
       // when explicitly requested, and it carries the software flag.
@@ -2890,6 +3433,7 @@ function factoryMethods() {
 
 function adapterMethods() {
   return {
+    6: getParentMethod(),
     7: {
       // EnumOutputs(Output, IDXGIOutput **) — no outputs on the virtual adapter.
       argc: 3,
