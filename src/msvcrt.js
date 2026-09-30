@@ -2583,6 +2583,13 @@ export function registerCrtTime() {
   add('_ctime32', (r, a) => ctimeImpl(r, a, false));
   add('_ctime64', (r, a) => ctimeImpl(r, a, true));
   add('asctime', (r, a) => asctimeImpl(r, a, false));
+  // The wide string forms: _wctime/_wasctime write UTF-16 into the same
+  // per-process buffer their ANSI twins use. _wctime32/_wctime64 differ only in
+  // the width of the time argument, exactly like _ctime32/_ctime64.
+  add('_wctime', (r, a) => ctimeImpl(r, a, true));
+  add('_wctime32', (r, a) => ctimeImpl(r, a, true));
+  add('_wctime64', (r, a) => ctimeImpl(r, a, true));
+  add('_wasctime', (r, a) => asctimeImpl(r, a, true));
   add('difftime', difftimeImpl);
   add('_difftime32', difftimeImpl);
   add('_difftime64', difftimeImpl);

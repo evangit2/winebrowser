@@ -113,3 +113,35 @@ test('the bounded string and memory functions report errno_t instead of overrunn
   const third = (await call('strtok_s', r.read32(context) >>> 0, delimiters, context)).result >>> 0;
   assert.equal(r.string(third), 'c');
 });
+
+// The wide time-string forms write UTF-16 into the same per-process buffer their
+// ANSI twins use. _wctime was previously an explicit trap, so an application
+// that logged a timestamp through it stopped rather than formatting one.
+test('the wide ctime/asctime forms write UTF-16 with their own time widths', async (t) => {
+  const { r, call } = await setup(t);
+  // 0 seconds since the epoch is 1970-01-01 00:00:00 UTC in this runtime.
+  const seconds32 = r.allocate(4);
+  r.write32(seconds32, 0);
+  const pointer = (await call('_wctime32', seconds32)).result >>> 0;
+  assert.notEqual(pointer, 0);
+  assert.match(r.wideString(pointer), /^[A-Z][a-z]{2} [A-Z][a-z]{2} /);
+  // _wasctime takes a tm* and reports the same shape.
+  // MSVC's tm is { sec, min, hour, mday, mon, year, wday, yday, isdst }.
+  const tm = r.allocate(36);
+  for (const [index, value] of [
+    [3, 1], // tm_mday
+    [4, 0], // tm_mon: January
+    [5, 70], // tm_year: 1970
+  ])
+    r.write32(tm + index * 4, value);
+  const asctime = (await call('_wasctime', tm)).result >>> 0;
+  assert.notEqual(asctime, 0);
+  // The runtime formats asctime the way C does: a two-digit day, and the
+  // weekday taken from tm_wday (zero for Sunday here, which the caller did not
+  // set), so the shape is what matters.
+  assert.match(r.wideString(asctime), /^[A-Z][a-z]{2} Jan 01 00:00:00 1970\n$/);
+  // A 64-bit argument form reads a full FILETIME-width value.
+  const seconds64 = r.allocate(8);
+  new DataView(r.data.buffer, r.data.byteOffset).setBigInt64(seconds64, 0n, true);
+  assert.notEqual((await call('_wctime64', seconds64)).result >>> 0, 0);
+});
