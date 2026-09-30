@@ -599,6 +599,81 @@ function deleteObject(runtime, argument) {
   return success(1, 1);
 }
 
+// Filled/stroked shapes built on the same raster primitives as FillRect and
+// LineTo. A shape is drawn with the DC's selected brush and pen: the brush fills
+// the interior and the pen outlines it, exactly as GDI documents.
+function shapePen(runtime, state, dc) {
+  const pen = getPen(state, dc.pen);
+  return pen ?? null;
+}
+function shapeBrush(runtime, state, dc) {
+  const brush = getBrush(state, dc.brush);
+  return brush ?? null;
+}
+// Scan-converts an implicitly closed polygon using the even-odd rule, which is
+// what GDI's Polygon and Ellipse both use for a single convex outline.
+function fillPolygon(dc, points, brush) {
+  if (!points.length || !brush || brush.null) return false;
+  let minY = Infinity,
+    maxY = -Infinity;
+  for (const [, y] of points) {
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  minY = Math.max(0, Math.floor(minY));
+  maxY = Math.min(dc.surface.height - 1, Math.ceil(maxY));
+  let changed = false;
+  for (let y = minY; y <= maxY; y++) {
+    const crossings = [];
+    for (let i = 0; i < points.length; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[(i + 1) % points.length];
+      if (y1 === y2) continue;
+      if (y >= Math.min(y1, y2) && y < Math.max(y1, y2)) {
+        const t = (y - y1) / (y2 - y1);
+        crossings.push(x1 + t * (x2 - x1));
+      }
+    }
+    crossings.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < crossings.length; i += 2) {
+      if (
+        paintRect(
+          dc.surface,
+          Math.round(crossings[i]),
+          y,
+          Math.round(crossings[i + 1]) + 1,
+          y + 1,
+          brush,
+          'copy',
+          dc,
+        )
+      )
+        changed = true;
+    }
+  }
+  return changed;
+}
+function strokePolygon(dc, points, pen, close) {
+  if (!pen || pen.style === 5 || points.length < 2) return false;
+  let changed = false;
+  for (let i = 0; i + 1 < points.length; i++)
+    if (drawLine(dc.surface, points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], pen))
+      changed = true;
+  if (close && points.length > 2)
+    if (drawLine(dc.surface, points.at(-1)[0], points.at(-1)[1], points[0][0], points[0][1], pen))
+      changed = true;
+  return changed;
+}
+// Reads an array of POINT values from guest memory with a bounded count.
+function readPoints(runtime, pointer, count) {
+  if (!pointer || !count || count > 1024) return null;
+  runtime.check(pointer, count * 8);
+  return Array.from({ length: count }, (_, i) => [
+    signed(runtime.read32(pointer + i * 8)),
+    signed(runtime.read32(pointer + i * 8 + 4)),
+  ]);
+}
+
 function fillRect(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
@@ -808,6 +883,86 @@ function lineTo(runtime, argument) {
   return success(1, 3);
 }
 
+// GetTextExtentPoint32A/W reports the width and height the selected font needs
+// for a string, which layout code uses to size controls and centre text. The
+// rasterizer measures through the same canvas the glyphs come from, so the
+// reported extent matches what TextOut actually paints.
+function getTextExtentPoint32(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 4);
+  let text;
+  try {
+    text = readGdiText(runtime, argument(1), signed(argument(2)), wide);
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
+  }
+  const font = dc.font ? getFont(state, dc.font) : null;
+  if (dc.font && !font) return failure(runtime, ERROR_INVALID_HANDLE, 0, 4);
+  const descriptor = font ?? DEFAULT_GDI_FONT;
+  const measured = rasterizeGdiText(runtime, text, descriptor);
+  // An empty string still reports the font's line height, which lay-out code
+  // relies on for an empty edit control.
+  const width = measured.error ? text.length * 8 : measured.mask.width;
+  const height = measured.error
+    ? descriptor.height
+    : Math.max(descriptor.height, measured.mask.height);
+  const out = argument(3);
+  if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
+  runtime.check(out, 8, true);
+  runtime.write32(out, width);
+  runtime.write32(out + 4, height);
+  return success(1, 4);
+}
+// GetTextExtentPointA/W and GetTextExtentExPointA/W share the measurement above;
+// the "Ex" form additionally reports how many characters fit in a width.
+function getTextExtentExPoint(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 7);
+  let text;
+  try {
+    text = readGdiText(runtime, argument(1), signed(argument(2)), wide);
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
+  }
+  const font = dc.font ? getFont(state, dc.font) : null;
+  if (dc.font && !font) return failure(runtime, ERROR_INVALID_HANDLE, 0, 7);
+  const descriptor = font ?? DEFAULT_GDI_FONT;
+  const measured = rasterizeGdiText(runtime, text, descriptor);
+  const width = measured.error ? text.length * 8 : measured.mask.width;
+  const height = measured.error
+    ? descriptor.height
+    : Math.max(descriptor.height, measured.mask.height);
+  const maxExtent = argument(3) | 0;
+  const fitCount = argument(4);
+  const extents = argument(5);
+  const sizeOut = argument(6);
+  let fits = text.length;
+  if (maxExtent > 0 && width > maxExtent) {
+    // Approximate the per-character advance uniformly: the canvas mask reports
+    // the total, and a uniform split is exact for the monospaced fonts these
+    // extent queries are used with.
+    const per = text.length ? width / text.length : 0;
+    fits = per > 0 ? Math.min(text.length, Math.floor(maxExtent / per)) : 0;
+  }
+  if (fitCount) {
+    runtime.check(fitCount, 4, true);
+    runtime.write32(fitCount, fits);
+  }
+  if (extents) {
+    runtime.check(extents, text.length * 4, true);
+    const per = text.length ? width / text.length : 0;
+    for (let i = 0; i < text.length; i++)
+      runtime.write32(extents + i * 4, Math.round(per * (i + 1)));
+  }
+  if (sizeOut) {
+    runtime.check(sizeOut, 8, true);
+    runtime.write32(sizeOut, width);
+    runtime.write32(sizeOut + 4, height);
+  }
+  return success(1, 7);
+}
 function textOut(runtime, argument, wide) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
@@ -978,6 +1133,76 @@ export function describeGdiFont(runtime, handle) {
   return font ? { ...font } : null;
 }
 
+// Ellipse(hdc, left, top, right, bottom): the bounding box is exclusive of the
+// right/bottom edge, and the outline is drawn with the selected pen.
+function ellipse(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 5);
+  const left = signed(argument(1)),
+    top = signed(argument(2));
+  const right = signed(argument(3)),
+    bottom = signed(argument(4));
+  if (right < left || bottom < top) return success(1, 5);
+  const rx = (right - left) / 2,
+    ry = (bottom - top) / 2;
+  const cx = (left + right) / 2,
+    cy = (top + bottom) / 2;
+  // Sample the perimeter finely enough that neighbouring samples are adjacent.
+  const steps = Math.max(24, Math.min(2048, Math.ceil((rx + ry) * 4) + 8));
+  const points = Array.from({ length: steps }, (_, i) => {
+    const angle = (i / steps) * Math.PI * 2;
+    return [Math.round(cx + rx * Math.cos(angle)), Math.round(cy + ry * Math.sin(angle))];
+  });
+  fillPolygon(dc, points, shapeBrush(runtime, state, dc));
+  strokePolygon(dc, [...points, points[0]], shapePen(runtime, state, dc), false);
+  return success(1, 5);
+}
+// Polygon(hdc, points, count): an implicitly closed shape filled with the
+// current brush and stroked with the current pen.
+function polygon(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 3);
+  const points = readPoints(runtime, argument(1), argument(2) >>> 0);
+  if (!points) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  if (points.length >= 3) {
+    fillPolygon(dc, points, shapeBrush(runtime, state, dc));
+    strokePolygon(dc, [...points, points[0]], shapePen(runtime, state, dc), false);
+  }
+  return success(1, 3);
+}
+// Arc(hdc, left, top, right, bottom, xr1, yr1, xr2, yr2): the ellipse arc
+// between the two radial endpoints, stroked only (GDI never fills an arc).
+function arc(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 9);
+  const pen = shapePen(runtime, state, dc);
+  const left = signed(argument(1)),
+    top = signed(argument(2));
+  const right = signed(argument(3)),
+    bottom = signed(argument(4));
+  const rx = (right - left) / 2,
+    ry = (bottom - top) / 2;
+  const cx = (left + right) / 2,
+    cy = (top + bottom) / 2;
+  if (rx <= 0 || ry <= 0 || !pen || pen.style === 5) return success(1, 9);
+  const angleOf = (x, y) => Math.atan2(signed(y) - cy, signed(x) - cx);
+  const start = angleOf(argument(5), argument(6));
+  const end = angleOf(argument(7), argument(8));
+  let sweep = end - start;
+  // GDI arcs run counter-clockwise from the start ray to the end ray.
+  while (sweep <= 0) sweep += Math.PI * 2;
+  const steps = Math.max(8, Math.min(2048, Math.ceil(((rx + ry) * sweep) / 4) + 4));
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const angle = start + (sweep * i) / steps;
+    return [Math.round(cx + rx * Math.cos(angle)), Math.round(cy + ry * Math.sin(angle))];
+  });
+  strokePolygon(dc, points, pen, false);
+  return success(1, 9);
+}
+
 export const gdiApis = {
   'user32.dll!GetDesktopWindow': getDesktopWindow,
   'user32.dll!GetDC': getDC,
@@ -998,6 +1223,36 @@ export const gdiApis = {
   'gdi32.dll!TextOut': (runtime, argument) => textOut(runtime, argument, false),
   'gdi32.dll!TextOutA': (runtime, argument) => textOut(runtime, argument, false),
   'gdi32.dll!TextOutW': (runtime, argument) => textOut(runtime, argument, true),
+  'gdi32.dll!GetTextExtentPoint32A': (runtime, argument) =>
+    getTextExtentPoint32(runtime, argument, false),
+  'gdi32.dll!GetTextExtentPoint32W': (runtime, argument) =>
+    getTextExtentPoint32(runtime, argument, true),
+  'gdi32.dll!GetTextExtentPointA': (runtime, argument) =>
+    getTextExtentPoint32(runtime, argument, false),
+  'gdi32.dll!GetTextExtentPointW': (runtime, argument) =>
+    getTextExtentPoint32(runtime, argument, true),
+  'gdi32.dll!GetTextExtentExPointA': (runtime, argument) =>
+    getTextExtentExPoint(runtime, argument, false),
+  'gdi32.dll!GetTextExtentExPointW': (runtime, argument) =>
+    getTextExtentExPoint(runtime, argument, true),
+  // Text layout direction: (Get/Set)Layout share one DC flag. RIGHT_TO_LEFT
+  // reverses the mirroring the desktop applies to a run of text.
+  'gdi32.dll!GetLayout': (runtime, argument) => {
+    const state = stateFor(runtime);
+    const dc = getDc(runtime, state, argument(0));
+    if (!dc) return badDc(runtime, 1);
+    return success(dc.layout ?? 0, 1);
+  },
+  'gdi32.dll!SetLayout': (runtime, argument) => {
+    const state = stateFor(runtime);
+    const dc = getDc(runtime, state, argument(0));
+    if (!dc) return badDc(runtime, 2);
+    const value = argument(1) >>> 0;
+    if (value & ~1) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+    const previous = dc.layout ?? 0;
+    dc.layout = value;
+    return success(previous, 2);
+  },
   'gdi32.dll!SetBkMode': setBkMode,
   'gdi32.dll!MoveToEx': moveToEx,
   'gdi32.dll!LineTo': lineTo,
@@ -1011,6 +1266,9 @@ export const gdiApis = {
   'gdi32.dll!DeleteObject': deleteObject,
   'gdi32.dll!PatBlt': patBlt,
   'gdi32.dll!BitBlt': bitBlt,
+  'gdi32.dll!Ellipse': ellipse,
+  'gdi32.dll!Polygon': polygon,
+  'gdi32.dll!Arc': arc,
   'gdi32.dll!SetPixel': setPixel,
   'gdi32.dll!GetPixel': getPixel,
 };

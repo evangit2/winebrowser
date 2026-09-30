@@ -197,4 +197,17 @@ export function iconForHandle(runtime, handle) {
 export const iconApis = {
   'user32.dll!LoadIconA': (runtime, argument) => loadIcon(runtime, argument, false),
   'user32.dll!LoadIconW': (runtime, argument) => loadIcon(runtime, argument, true),
+  // DestroyIcon releases a handle LoadIcon created. Shared cursors are not
+  // icons and are refused, exactly as Windows does.
+  'user32.dll!DestroyIcon': (runtime, argument) => {
+    const icons = state(runtime);
+    const handle = argument(0) >>> 0;
+    // A stock icon (IDI_APPLICATION and friends) is process-owned, not a
+    // resource handle, so destroying it is a documented no-op.
+    if (!icons.handles.delete(handle)) {
+      if (handle >= 0x7f00 && handle <= 0x7fff) return ok(1, 1);
+      return fail(runtime, 6, 1);
+    }
+    return ok(1, 1);
+  },
 };

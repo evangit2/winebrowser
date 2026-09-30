@@ -449,6 +449,32 @@ export const processApis = {
   'kernel32.dll!MultiByteToWideChar': multiToWide,
   'kernel32.dll!IsDBCSLeadByte': () => ok(0, 1),
   'winebrowser-shell32.dll!ExtractIconA': (r, a) => extractIcon(r, a, false),
+  // InitCommonControlsEx registers a set of common controls. The browser
+  // desktop renders the controls it implements already, so this reports that
+  // the requested classes are available and does not allocate a control set.
+  'comctl32.dll!InitCommonControlsEx': (r, a) => {
+    const pointer = a(0);
+    if (!pointer) return ok(0, 1);
+    r.check(pointer, 8);
+    // INITCOMMONCONTROLSEX: dwSize, dwICC. The runtime implements button,
+    // static, edit, list and scroll-bar visuals through its own window classes.
+    return ok(1, 1);
+  },
+  'comctl32.dll!InitCommonControls': () => ok(0, 0),
+  // DwmSetWindowAttribute is a compositor hint; the browser desktop already
+  // composites every window, so the documented DWMWA calls are accepted.
+  'dwmapi.dll!DwmSetWindowAttribute': (r, a) => {
+    if (!r.windows.windows.has(a(0))) return ok(0x80070057, 4);
+    if (a(3)) r.check(a(2), a(3));
+    return ok(0, 4);
+  },
+  'dwmapi.dll!DwmIsCompositionEnabled': (r, a) => {
+    if (!a(0)) return ok(0x80070057, 1);
+    r.check(a(0), 4, true);
+    r.write32(a(0), 1);
+    return ok(0, 1);
+  },
+  'dwmapi.dll!DwmExtendFrameIntoClientArea': () => ok(0, 2),
   'winebrowser-shell32.dll!ExtractIconW': (r, a) => extractIcon(r, a, true),
   'kernel32.dll!lstrlenW': (r, a) => ok(r.wideString(a(0)).length, 1),
   'kernel32.dll!lstrlenA': (r, a) => ok(r.string(a(0)).length, 1),

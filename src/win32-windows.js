@@ -7,6 +7,7 @@ import {
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
+import { describeWindowMenu } from './win32-menus.js';
 import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
@@ -55,6 +56,131 @@ const text = (r, p, wide) => (wide ? r.wideString(p) : r.string(p));
 
 // One guest GUI thread. Browser events only enqueue messages; guest callbacks
 // execute on the existing CPU dispatch stack, never reentrantly from onmessage.
+// ---------------------------------------------------------------------------
+// Rectangle geometry and simple window movement. These are pure helpers that
+// dialog and control code calls constantly; they read and write the 16-byte
+// RECT layout (left, top, right, bottom).
+function readRect(r, pointer) {
+  if (!pointer) return null;
+  r.check(pointer, 16);
+  return [0, 4, 8, 12].map((offset) => r.read32(pointer + offset) | 0);
+}
+function ptInRect(r, a) {
+  const rect = readRect(r, a(1));
+  if (!rect) return result(0, 2);
+  // A POINT is passed by value as a single 32-bit slot (x low, y high), which
+  // is how the i386 ABI marshals a two-short struct.
+  const x = (a(0) << 16) >> 16,
+    y = a(0) >> 16;
+
+  const [left, top, right, bottom] = rect;
+  return result(x >= left && x < right && y >= top && y < bottom ? 1 : 0, 2);
+}
+// InflateRect/OffsetRect/SetRect all report BOOL and write through lprc.
+function inflateRect(r, a) {
+  if (!a(0)) return result(0, 3);
+  const rect = readRect(r, a(0));
+  const dx = a(1) | 0,
+    dy = a(2) | 0;
+  rectangle(r, a(0), [rect[0] - dx, rect[1] - dy, rect[2] + dx, rect[3] + dy]);
+  return result(1, 3);
+}
+function offsetRect(r, a) {
+  if (!a(0)) return result(0, 3);
+  const rect = readRect(r, a(0));
+  const dx = a(1) | 0,
+    dy = a(2) | 0;
+  rectangle(r, a(0), [rect[0] + dx, rect[1] + dy, rect[2] + dx, rect[3] + dy]);
+  return result(1, 3);
+}
+function setRect(r, a) {
+  if (!a(0)) return result(0, 5);
+  rectangle(r, a(0), [a(1) | 0, a(2) | 0, a(3) | 0, a(4) | 0]);
+  return result(1, 5);
+}
+// MapWindowPoints(hwndFrom, hwndTo, points, count) re-expresses POINTs between
+// two windows' client spaces, or between a client space and the screen when a
+// handle is zero/NULL. It returns the packed (x, y) deltas in the high/low
+// words, which is what callers that use the return value expect.
+function mapWindowPoints(r, a) {
+  const from = a(0) >>> 0,
+    to = a(1) >>> 0;
+  const pointer = a(2),
+    count = a(3) >>> 0;
+  if (!count || !pointer) return result(0, 4);
+  if (count > 1024) return r.windows.fail(122, 4);
+  r.check(pointer, count * 8);
+  const originOf = (id) => {
+    if (!id || id === DESKTOP_WINDOW) return [0, 0];
+    const w = r.windows.windows.get(id);
+    if (!w) return null;
+    const [x, y] = r.windows.screenPosition(w);
+    return [x, y];
+  };
+  const fromOrigin = originOf(from);
+  const toOrigin = originOf(to);
+  if (!fromOrigin || !toOrigin) return r.windows.fail(1400, 4);
+  const dx = fromOrigin[0] - toOrigin[0];
+  const dy = fromOrigin[1] - toOrigin[1];
+  for (let i = 0; i < count; i++) {
+    const at = pointer + i * 8;
+    r.write32(at, (r.read32(at) | 0) + dx);
+    r.write32(at + 4, (r.read32(at + 4) | 0) + dy);
+  }
+  return result(((dy & 0xffff) << 16) | (dx & 0xffff), 4);
+}
+// MoveWindow(hwnd, X, Y, Width, Height, Repaint) repositions and resizes in one
+// call. The runtime's window model applies both and reports success.
+async function moveWindow(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 6);
+  await r.windows.setGeometry(window, {
+    x: a(1) | 0,
+    y: a(2) | 0,
+    width: Math.max(0, a(3) | 0),
+    height: Math.max(0, a(4) | 0),
+  });
+  if (a(5)) r.windows.invalidate(window, null, false);
+  return result(1, 6);
+}
+// DrawEdge(hdc, rect, edge, flags) paints the single-pixel 3D border a button
+// or status bar asks for. EDGE_RAISED (0x5) and EDGE_SUNKEN (0xa) are the two
+// compound forms; either can be combined with the inner/outer variants.
+function drawEdge(r, a) {
+  const dc = gdiApis['user32.dll!GetDC'](r, (i) => (i ? 0 : a(0))).result;
+  if (!dc) return result(0, 4);
+  try {
+    const rect = readRect(r, a(1));
+    if (!rect) return result(0, 4);
+    const edge = a(2) >>> 0;
+    if (edge & ~0xf) return result(0, 4);
+    const [left, top, right, bottom] = rect;
+    // EDGE_SUNKEN (0xa) puts the light face on the bottom-right; the raised
+    // form swaps it. A single solid pen is enough to read as a 3D border.
+    const sunken = (edge & 0xa) === 0xa && !(edge & 0x5);
+    const light = sunken ? 0xffffff : 0x808080;
+    const dark = sunken ? 0x808080 : 0xffffff;
+    const state = r.gdiState;
+    const penFor = (color) => gdiApis['gdi32.dll!CreatePen'](r, (i) => [0, 1, color][i]).result;
+    const lightPen = penFor(light),
+      darkPen = penFor(dark);
+    // Top and left edges, then bottom and right.
+    for (const [x1, y1, x2, y2, pen] of [
+      [left, top, right - 1, top, edge & 0x5 ? darkPen : lightPen],
+      [left, top, left, bottom - 1, edge & 0x5 ? darkPen : lightPen],
+      [left, bottom - 1, right - 1, bottom - 1, edge & 0x5 ? lightPen : darkPen],
+      [right - 1, top, right - 1, bottom - 1, edge & 0x5 ? lightPen : darkPen],
+    ]) {
+      void state;
+      gdiApis['gdi32.dll!MoveToEx'](r, (i) => [dc, x1, y1, 0][i]);
+      gdiApis['gdi32.dll!LineTo'](r, (i) => [dc, x2, y2][i]);
+    }
+    return result(1, 4);
+  } finally {
+    gdiApis['user32.dll!ReleaseDC'](r, (i) => [a(0), dc][i]);
+  }
+}
+
 export class WindowManager {
   constructor(runtime) {
     this.runtime = runtime;
@@ -186,6 +312,9 @@ export class WindowManager {
         noPrefix,
         icon:
           parentId || !window.cls?.icon ? undefined : iconForHandle(this.runtime, window.cls.icon),
+        // A top-level window's menu bar, rendered by the desktop. Null when the
+        // window has no menu, so the frame stays as it was.
+        menu: parentId ? undefined : describeWindowMenu(this.runtime, window),
       },
     });
   }
@@ -884,8 +1013,72 @@ async function beginPaint(r, a) {
 }
 
 export const windowApis = { ...cursorApis, ...windowFindApis, ...windowDataApis };
+
+// ---------------------------------------------------------------------------
+// Dialog-item accessors. SetDlgItemText/GetDlgItemText forward WM_SETTEXT and
+// WM_GETTEXT to the control with the given identifier, and the numeric forms
+// convert between the control's text and an integer, exactly like the originals.
+function dlgItem(r, hwnd, id) {
+  return (
+    [...r.windows.windows.values()].find((w) => w.parentId === hwnd && w.controlId === id) ?? null
+  );
+}
+// SetDlgItemText/GetDlgItemText forward WM_SETTEXT and WM_GETTEXT to the
+// control with the given identifier; the numeric forms convert between the
+// control's text and an integer exactly like the originals do.
+async function setDlgItemText(r, a, wide) {
+  const control = dlgItem(r, a(0), a(1));
+  if (!control) return result(0, 3);
+  const value = a(2) ? (wide ? r.wideString(a(2)) : r.string(a(2))) : '';
+  const pointer = r.allocString(value, wide);
+  const changed = await sendWindowMessage(r, control.id, 0xc, 0, pointer, wide);
+  r.free(pointer);
+  return result(changed ? 1 : 0, 3);
+}
+async function getDlgItemText(r, a, wide) {
+  const control = dlgItem(r, a(0), a(1));
+  if (!control || !a(2)) return result(0, 4);
+  return result(await sendWindowMessage(r, control.id, 0xd, a(3), a(2), wide), 4);
+}
+async function setDlgItemInt(r, a) {
+  // SetDlgItemInt(hDlg, nIDDlgItem, uValue, bSigned)
+  const text = a(3) ? String(a(2) | 0) : String(a(2) >>> 0);
+  const control = dlgItem(r, a(0), a(1));
+  if (!control) return result(0, 4);
+  const pointer = r.allocString(text, false);
+  const changed = await sendWindowMessage(r, control.id, 0xc, 0, pointer, false);
+  r.free(pointer);
+  return result(changed ? 1 : 0, 4);
+}
+async function getDlgItemInt(r, a) {
+  const control = dlgItem(r, a(0), a(1));
+  const translated = a(3);
+  if (!control) {
+    if (translated) {
+      r.check(translated, 4, true);
+      r.write32(translated, 0);
+    }
+    return result(0, 4);
+  }
+  const value = (control.title ?? '').trim();
+  // GetDlgItemInt accepts a leading sign only in the signed form, and reports
+  // success through lpTranslated.
+  const pattern = a(2) ? /^-?\\d+$/ : /^\\d+$/;
+  const valid = pattern.test(value);
+  if (translated) {
+    r.check(translated, 4, true);
+    r.write32(translated, valid ? 1 : 0);
+  }
+  if (!valid) return result(0, 4);
+  const number = Number(value);
+  return result(a(2) ? number | 0 : number >>> 0, 4);
+}
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
+  windowApis[`user32.dll!SetDlgItemText${suffix}`] = (r, a) => setDlgItemText(r, a, wide);
+  windowApis[`user32.dll!GetDlgItemText${suffix}`] = (r, a) => getDlgItemText(r, a, wide);
+  windowApis[`user32.dll!SetDlgItemInt`] = setDlgItemInt;
+  windowApis[`user32.dll!GetDlgItemInt`] = getDlgItemInt;
   windowApis[`user32.dll!GetWindowText${suffix}`] = async (r, a) =>
     result(await sendWindowMessage(r, a(0), 0xd, a(2), a(1), wide), 3);
   windowApis[`user32.dll!GetWindowTextLength${suffix}`] = async (r, a) =>
@@ -987,6 +1180,7 @@ Object.assign(windowApis, {
         ?.id ?? 0,
       2,
     ),
+
   'user32.dll!GetClientRect': (r, a) => {
     const w = r.windows.windows.get(a(0));
     if (!w) return r.windows.fail(1400, 2);
@@ -1086,6 +1280,13 @@ Object.assign(windowApis, {
     r.windows.timers.delete(key);
     return result(1, 2);
   },
+  'user32.dll!PtInRect': ptInRect,
+  'user32.dll!InflateRect': inflateRect,
+  'user32.dll!OffsetRect': offsetRect,
+  'user32.dll!SetRect': setRect,
+  'user32.dll!MapWindowPoints': mapWindowPoints,
+  'user32.dll!MoveWindow': moveWindow,
+  'user32.dll!DrawEdge': drawEdge,
   'user32.dll!GetSystemMetrics': (r, a) => {
     const values = { 4: TITLE, 5: BORDER, 6: BORDER };
     const displayValue = virtualSystemMetric(a(0), r);

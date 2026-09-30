@@ -1,5 +1,10 @@
 // ACCEL tables belong to the process; their commands enter the guest WndProc
 // synchronously, using the same callback dispatcher as SendMessage.
+import { readPEResource } from './pe-resources.js';
+
+// RT_ACCELERATOR is a flat array of ACCEL records: a byte of flags, a byte of
+// padding, then the 16-bit key and 16-bit command.
+const RT_ACCELERATOR = 9;
 const result = (value, argc) => ({ result: value >>> 0, argc });
 function fail(r, error, argc) {
   r.lastError = error;
@@ -54,7 +59,46 @@ async function translate(r, a) {
   }
   return result(0, 3);
 }
+// LoadAcceleratorsA/W(HINSTANCE, LPCTSTR) reads the module's own table. The
+// name may be a string or an ordinal, exactly like LoadMenu.
+function loadAccelerators(r, a, wide) {
+  const module = a(0) ? [...r.graph.modules.values()].find((m) => m.base === a(0)) : r.graph.main;
+  if (!module?.bytes) return fail(r, 6, 2);
+  const name = a(1) <= 0xffff ? a(1) : wide ? r.wideString(a(1)) : r.string(a(1));
+  const key = `${module.base}:${typeof name}:${String(name).toLowerCase()}`;
+  r.windows.acceleratorResources ??= new Map();
+  const cached = r.windows.acceleratorResources.get(key);
+  if (cached) return result(cached, 2);
+  let bytes;
+  try {
+    bytes = readPEResource(module.bytes, RT_ACCELERATOR, name);
+  } catch {
+    bytes = null;
+  }
+  if (!bytes) return fail(r, 1414, 2);
+  const count = Math.floor(bytes.length / 8);
+  if (!count || count > 4096) return fail(r, 1414, 2);
+  const entries = [];
+  for (let n = 0; n < count; n++) {
+    const at = n * 8;
+    const flags = bytes[at];
+    if (!(flags & 0x80)) break; // A zero flags byte ends the table.
+    entries.push({
+      flags: bytes[at],
+      key: bytes[at + 2] | (bytes[at + 3] << 8),
+      command: bytes[at + 4] | (bytes[at + 5] << 8),
+    });
+  }
+  if (!entries.length) return fail(r, 1414, 2);
+  const handle = r.windows.nextAccelerator++;
+  r.windows.accelerators.set(handle, entries);
+  r.windows.acceleratorResources.set(key, handle);
+  return result(handle, 2);
+}
+
 export const acceleratorApis = {
+  'user32.dll!LoadAcceleratorsA': (r, a) => loadAccelerators(r, a, false),
+  'user32.dll!LoadAcceleratorsW': (r, a) => loadAccelerators(r, a, true),
   'user32.dll!CreateAcceleratorTableA': create,
   'user32.dll!CreateAcceleratorTableW': create,
   'user32.dll!DestroyAcceleratorTable': (r, a) =>

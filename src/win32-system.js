@@ -504,6 +504,59 @@ function getLogicalDrives() {
   return ok(1 << 2, 0); // A=bit0, so C is bit 2.
 }
 
+// LoadStringA/W(module, uID, lpBuffer, nBufferMax) reads one entry from the
+// module's PE RT_STRING table. String resources are blocked 16 per table, so
+// the identifier selects both the block and the entry inside it.
+const RT_STRING = 6;
+function loadString(r, a, wide) {
+  const module = a(0) ? [...r.graph.modules.values()].find((m) => m.base === a(0)) : r.graph.main;
+  if (!module?.bytes) return fail(r, 6, 4);
+  const id = a(1) >>> 0;
+  const buffer = a(2);
+  const capacity = a(3) | 0;
+  if (!id) return fail(r, 87, 4);
+  const block = (id - 1) >> 4;
+  const index = (id - 1) & 0xf;
+  let value = null;
+  try {
+    const bytes = readPEResource(module.bytes, RT_STRING, block);
+    if (bytes) {
+      // Each entry in the block is a length-prefixed UTF-16 string.
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      let at = 0;
+      for (let i = 0; i <= index; i++) {
+        if (at + 2 > bytes.length) return fail(r, 1814, 4);
+        const length = view.getUint16(at, true);
+        at += 2;
+        if (i === index) {
+          value = '';
+          for (let n = 0; n < length; n++)
+            value += String.fromCharCode(view.getUint16(at + n * 2, true));
+        }
+        at += length * 2;
+      }
+    }
+  } catch {
+    value = null;
+  }
+  if (value === null) return fail(r, 1814, 4);
+  if (!buffer) return ok(value.length, 4);
+  if (capacity <= 0) return ok(0, 4);
+  const count = Math.min(value.length, capacity - 1);
+  if (wide) {
+    if (capacity * 2 < (count + 1) * 2) return fail(r, 122, 4);
+    r.check(buffer, (count + 1) * 2, true);
+    for (let i = 0; i <= count; i++)
+      r.guestMemory.write(buffer + i * 2, i === count ? 0 : value.charCodeAt(i), 2);
+  } else {
+    const bytes = encodeAnsi(value.slice(0, count)).bytes;
+    r.check(buffer, bytes.length + 1, true);
+    r.data.set(bytes, buffer);
+    r.guestMemory.write(buffer + bytes.length, 0, 1);
+    return ok(bytes.length, 4);
+  }
+  return ok(count, 4);
+}
 function virtualQuery(r, a) {
   const address = a(0) >>> 0,
     out = a(1),
@@ -623,6 +676,8 @@ export const systemApis = {
   'kernel32.dll!GetDriveTypeA': getDriveType,
   'kernel32.dll!GetDriveTypeW': getDriveType,
   'kernel32.dll!GetLogicalDrives': getLogicalDrives,
+  'user32.dll!LoadStringA': (r, a) => loadString(r, a, false),
+  'user32.dll!LoadStringW': (r, a) => loadString(r, a, true),
   'kernel32.dll!VirtualQuery': virtualQuery,
   'kernel32.dll!VirtualProtect': virtualProtect,
   'kernel32.dll!HeapValidate': heapValidate,
