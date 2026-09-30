@@ -764,6 +764,422 @@ function selectClipRgn(runtime, argument) {
   return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 2);
 }
 
+// ---------------------------------------------------------------------------
+// Font/text palettes and the remaining text-group calls.
+// CreateFontIndirectA/W takes a LOGFONT pointer; the descriptor builder reads
+// the same fourteen fields, so the pointer is expanded into the argument shape
+// the shared path already validates.
+function createFontIndirect(runtime, argument, wide) {
+  const pointer = argument(0) >>> 0;
+  if (!pointer) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
+  runtime.check(pointer, 60);
+  const read = (offset) => runtime.read32(pointer + offset) | 0;
+  const face = pointer + 28;
+  const args = [
+    read(0),
+    read(4),
+    read(8),
+    read(12),
+    read(16),
+    read(20),
+    read(24),
+    runtime.guestMemory.read(pointer + 25, 1),
+    runtime.guestMemory.read(pointer + 23, 1),
+    runtime.guestMemory.read(pointer + 26, 1),
+    runtime.guestMemory.read(pointer + 27, 1),
+    runtime.guestMemory.read(pointer + 26, 1),
+    runtime.guestMemory.read(pointer + 27, 1),
+    face,
+  ];
+  return createFont(runtime, (index) => args[index] ?? 0, wide);
+}
+// CreateBitmap(Width, Height, Planes, BitCount, Bits): an in-memory bitmap. The
+// runtime only models the 1/4/8/24/32-bit colour layouts it can rasterize.
+function createBitmap(runtime, argument) {
+  const state = stateFor(runtime);
+  const width = signed(argument(0));
+  const height = signed(argument(1));
+  const planes = argument(2) >>> 0;
+  const bitCount = argument(3) >>> 0;
+  const bits = argument(4) >>> 0;
+  if (width < 1 || height < 1 || width > 4096 || height > 4096 || planes !== 1)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  if (![1, 4, 8, 24, 32].includes(bitCount)) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  if (width * height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
+    return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 5);
+  const allocated = allocateHandle(runtime, state, 5);
+  if (!allocated.result) return allocated;
+  const pixels = opaquePixels(width, height);
+  if (bits) {
+    // A caller-supplied DIB bit block is copied through the documented
+    // bottom-up, DWORD-aligned row order for the modelled depths.
+    try {
+      copyDibRows(runtime, bits, width, height, bitCount, pixels);
+    } catch {
+      return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+    }
+  }
+  state.bitmaps.set(allocated.result, {
+    kind: 'bitmap',
+    stock: false,
+    width,
+    height,
+    monochrome: bitCount === 1,
+    pixels,
+    dirty: false,
+  });
+  return allocated;
+}
+function copyDibRows(runtime, source, width, height, bitCount, pixels) {
+  const stride = Math.ceil((width * bitCount) / 32) * 4;
+  for (let y = 0; y < height; y++) {
+    const row = source + (height - 1 - y) * stride;
+    for (let x = 0; x < width; x++) {
+      let rgb = [0, 0, 0];
+      if (bitCount === 32) {
+        const at = row + x * 4;
+        rgb = [runtime.data[at + 2], runtime.data[at + 1], runtime.data[at]];
+      } else if (bitCount === 24) {
+        const at = row + x * 3;
+        rgb = [runtime.data[at + 2], runtime.data[at + 1], runtime.data[at]];
+      } else if (bitCount === 8) {
+        const grey = runtime.data[row + x];
+        rgb = [grey, grey, grey];
+      } else if (bitCount === 4) {
+        const byte = runtime.data[row + (x >> 1)];
+        const grey = x & 1 ? (byte & 0x0f) * 17 : (byte >> 4) * 17;
+        rgb = [grey, grey, grey];
+      } else {
+        const byte = runtime.data[row + (x >> 3)];
+        const grey = byte & (0x80 >> (x & 7)) ? 255 : 0;
+        rgb = [grey, grey, grey];
+      }
+      const offset = (y * width + x) * 4;
+      pixels[offset] = rgb[0];
+      pixels[offset + 1] = rgb[1];
+      pixels[offset + 2] = rgb[2];
+      pixels[offset + 3] = 255;
+    }
+  }
+}
+// The GetCharWidth family reports each character's advance through a buffer of
+// 32-bit ints. The runtime measures with the same canvas the glyphs come from,
+// so a monospaced advance is exact and a proportional one is the average the
+// window manager itself lays text out with.
+function charWidths(runtime, argument, wide, floatOut) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 5);
+  const first = argument(1) >>> 0;
+  const last = argument(2) >>> 0;
+  const out = argument(3);
+  if (last < first || last - first > 0xffff) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  const font = currentFont(runtime, state, dc) ?? DEFAULT_GDI_FONT;
+  const measured = rasterizeGdiText(runtime, 'W', font);
+  const advance = measured.error ? 8 : Math.max(1, measured.mask.width);
+  const count = last - first + 1;
+  runtime.check(out, count * 4, true);
+  for (let i = 0; i < count; i++)
+    if (floatOut) runtime.view.setFloat32(out + i * 4, advance, true);
+    else runtime.write32(out + i * 4, advance);
+  return success(1, 5);
+}
+// ExtTextOutA/W(HDC, X, Y, Options, RECT *, String, Count, Spacing) is TextOut
+// plus an opaque/transparent rectangle and an optional per-character spacing
+// array. The runtime paints the text and applies the documented background
+// rule; a spacing array is applied by widening each glyph's advance.
+function extTextOut(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 8);
+  const x = signed(argument(1));
+  const y = signed(argument(2));
+  const options = argument(3) >>> 0;
+  if (options & ~(0x2 | 0x4 | 0x10 | 0x10000))
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 8);
+  const rectPointer = argument(4);
+  const spacing = argument(7);
+  let text;
+  try {
+    text = readGdiText(runtime, argument(5), signed(argument(6)), wide);
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 8);
+  }
+  const font = currentFont(runtime, state, dc) ?? DEFAULT_GDI_FONT;
+  // ETO_OPAQUE (0x2) fills the supplied rectangle with the background colour
+  // before the text; ETO_CLIPPED (0x4) is a hint the DC clip already enforces.
+  if (options & 0x2 && rectPointer) {
+    const rect = [0, 4, 8, 12].map((i) => runtime.read32(rectPointer + i) | 0);
+    paintRect(
+      dc.surface,
+      rect[0],
+      rect[1],
+      rect[2],
+      rect[3],
+      { color: dc.backgroundColor, null: false },
+      'copy',
+      dc,
+    );
+  }
+  const measured = rasterizeGdiText(runtime, text, font);
+  if (measured.error === 'backend') return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 8);
+  if (measured.error) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 8);
+  if (!spacing) {
+    paintGdiText(dc.surface, dc, x, y, measured.mask, font);
+    return success(1, 8);
+  }
+  // A spacing array positions each glyph independently; paint them one at a
+  // time at their accumulated offsets.
+  runtime.check(spacing, text.length * 4);
+  let cursor = x;
+  for (let i = 0; i < text.length; i++) {
+    const glyph = rasterizeGdiText(runtime, text[i], font);
+    if (!glyph.error) paintGdiText(dc.surface, dc, cursor, y, glyph.mask, font);
+    cursor += runtime.read32(spacing + i * 4) | 0 || measured.mask.width / text.length;
+  }
+  return success(1, 8);
+}
+// GetDIBits(Bitmap, DC, Start, Lines, Bits, BITMAPINFO, Usage): copies the
+// bitmap's pixels into the caller's DIB in the documented bottom-up order.
+function getDIBits(runtime, argument) {
+  const state = stateFor(runtime);
+  const bitmap = state.bitmaps.get(argument(0) >>> 0);
+  const start = argument(2) | 0;
+  const lines = argument(3) | 0;
+  const bits = argument(4);
+  const info = argument(5);
+  const usage = argument(6) >>> 0;
+  if (!bitmap) return failure(runtime, ERROR_INVALID_HANDLE, 0, 7);
+  if (usage > 2) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
+  if (!info || start < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
+  runtime.check(info, 40);
+  if (!bits) return success(bitmap.height, 7);
+  const bitCount = runtime.guestMemory.read(info + 14, 2);
+  if (![1, 4, 8, 24, 32].includes(bitCount)) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
+  const count = Math.min(lines < 0 ? bitmap.height : lines, bitmap.height - start);
+  const stride = Math.ceil((bitmap.width * bitCount) / 32) * 4;
+  runtime.check(bits, stride * count, true);
+  for (let y = 0; y < count; y++) {
+    const sourceY = start + y;
+    const row = bits + (count - 1 - y) * stride;
+    for (let x = 0; x < bitmap.width; x++) {
+      const offset = (sourceY * bitmap.width + x) * 4;
+      const r = bitmap.pixels[offset],
+        g = bitmap.pixels[offset + 1],
+        b = bitmap.pixels[offset + 2];
+      if (bitCount === 32) {
+        runtime.data[row + x * 4] = b;
+        runtime.data[row + x * 4 + 1] = g;
+        runtime.data[row + x * 4 + 2] = r;
+        runtime.data[row + x * 4 + 3] = 0;
+      } else if (bitCount === 24) {
+        runtime.data[row + x * 3] = b;
+        runtime.data[row + x * 3 + 1] = g;
+        runtime.data[row + x * 3 + 2] = r;
+      } else if (bitCount === 8) {
+        runtime.data[row + x] = Math.round((r + g + b) / 3);
+      }
+    }
+  }
+  return success(count, 7);
+}
+
+// ---------------------------------------------------------------------------
+// Palettes. The virtual display is a true-colour device, so a palette never
+// changes the pixels — but applications still create, select and query one, and
+// refusing the calls breaks their setup. The object records the entries it was
+// given so SetPaletteEntries/GetPaletteEntries round-trip honestly.
+function createPalette(runtime, argument) {
+  const state = stateFor(runtime);
+  const pointer = argument(0) >>> 0;
+  if (!pointer) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
+  runtime.check(pointer, 8);
+  const version = runtime.guestMemory.read(pointer, 2);
+  const count = runtime.guestMemory.read(pointer + 2, 2);
+  if (version !== 0x300 || count > 256) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
+  runtime.check(pointer + 4, count * 4);
+  const entries = [];
+  for (let i = 0; i < count; i++) {
+    const at = pointer + 4 + i * 4;
+    entries.push({
+      red: runtime.data[at],
+      green: runtime.data[at + 1],
+      blue: runtime.data[at + 2],
+      flags: 0,
+    });
+  }
+  const allocated = allocateHandle(runtime, state, 1);
+  if (!allocated.result) return allocated;
+  state.palettes ??= new Map();
+  state.palettes.set(allocated.result, { kind: 'palette', stock: false, entries });
+  return allocated;
+}
+function selectPalette(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 3, 0);
+  const palette = state.palettes?.get(argument(1) >>> 0);
+  if (!palette) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  const previous = dc.palette ?? STOCK_DEFAULT_PALETTE;
+  dc.palette = argument(1) >>> 0;
+  dc.paletteForced = !!argument(2);
+  // Selecting a palette on a true-colour DC does not realize it.
+  return success(0, 3);
+}
+// RealizePalette reports how many palette entries the device mapped. A
+// true-colour device maps none of them, and Windows reports 0 in that case.
+function realizePalette(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 1, 0);
+  return success(0, 1);
+}
+function updateColors(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 1, 0);
+  return success(0, 1);
+}
+function setPaletteEntries(runtime, argument) {
+  const state = stateFor(runtime);
+  const palette = state.palettes?.get(argument(0) >>> 0);
+  if (!palette) return failure(runtime, ERROR_INVALID_HANDLE, 0, 4);
+  const first = argument(1) >>> 0;
+  const count = argument(2) >>> 0;
+  const pointer = argument(3);
+  if (!pointer || first + count > palette.entries.length || count > 256)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
+  runtime.check(pointer, count * 4);
+  for (let i = 0; i < count; i++) {
+    const at = pointer + i * 4;
+    palette.entries[first + i] = {
+      red: runtime.data[at],
+      green: runtime.data[at + 1],
+      blue: runtime.data[at + 2],
+      flags: 0,
+    };
+  }
+  return success(count, 4);
+}
+function getPaletteEntries(runtime, argument) {
+  const state = stateFor(runtime);
+  const palette = state.palettes?.get(argument(0) >>> 0);
+  if (!palette) return failure(runtime, ERROR_INVALID_HANDLE, 0, 4);
+  const first = argument(1) >>> 0;
+  const count = argument(2) >>> 0;
+  const pointer = argument(3);
+  if (first + count > palette.entries.length)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
+  if (!pointer) return success(palette.entries.length, 4);
+  runtime.check(pointer, count * 4, true);
+  for (let i = 0; i < count; i++) {
+    const entry = palette.entries[first + i];
+    const at = pointer + i * 4;
+    runtime.data[at] = entry.red;
+    runtime.data[at + 1] = entry.green;
+    runtime.data[at + 2] = entry.blue;
+    runtime.data[at + 3] = 0;
+  }
+  return success(count, 4);
+}
+// UnrealizeObject and UpdateColors are true-colour no-ops that report success.
+function unrealizeObject(runtime, argument) {
+  const state = stateFor(runtime);
+  const handle = argument(0) >>> 0;
+  if (!state.palettes?.has(handle) && !getBrush(state, handle) && !getPen(state, handle))
+    return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+  return success(1, 1);
+}
+// TranslateCharsetInfo maps a character set to a code page, or the reverse. The
+// runtime only ever advertises the ANSI and OEM pages it actually implements.
+function translateCharsetInfo(runtime, argument) {
+  const source = argument(0);
+  const out = argument(1);
+  const flags = argument(2) >>> 0;
+  if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  runtime.check(out, 16, true);
+  runtime.data.fill(0, out, out + 16);
+  // DEFAULT_CHARSET (1) and ANSI_CHARSET (0) both map to CP1252; OEM_CHARSET
+  // (255) maps to CP437.
+  const charset = flags === 1 ? (source ? runtime.read32(source) : 1) : 1;
+  runtime.write32(out, charset === 255 ? 437 : 1252);
+  runtime.write32(out + 4, 0);
+  runtime.write32(out + 8, 0);
+  runtime.write32(out + 12, charset);
+  return success(1, 3);
+}
+
+// GetOutlineTextMetricsA/W fills an OUTLINETEXTMETRIC. The runtime's fonts are
+// not vector faces with an outline to query, so it reports the device-space
+// text metrics in the structure's OTM_SIZE header and leaves the outline
+// records zero rather than inventing control points.
+function getOutlineTextMetrics(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2);
+  const size = argument(1) | 0;
+  const out = argument(2);
+  // The OTM header on i386 begins with UINT otmSize followed by TEXTMETRIC
+  // (56 or 60 bytes) and the rest of the outline records.
+  const needed = 4 + (wide ? 60 : 56) + 20 * 4;
+  if (!out) return success(needed, 2);
+  if (size < needed) return failure(runtime, ERROR_INSUFFICIENT_BUFFER, 0, 2);
+  runtime.check(out, needed, true);
+  runtime.data.fill(0, out, out + needed);
+  runtime.write32(out, needed);
+  const metrics = out + 4;
+  const { height, width, ascent } = fontMetrics(runtime, state, dc);
+  runtime.write32(metrics, height);
+  runtime.write32(metrics + 4, ascent);
+  runtime.write32(metrics + 8, height - ascent);
+  runtime.write32(metrics + 20, width);
+  runtime.write32(metrics + 24, width);
+  runtime.write32(metrics + 28, 700);
+  runtime.data[metrics + 40] = 0x31;
+  return success(needed, 2);
+}
+// GetCharacterPlacementW computes glyph placement for a string under the
+// selected font. The runtime lays text out linearly, so the placement is the
+// accumulated advance per character, which is exact for the monospaced faces
+// these calls are used with.
+function getCharacterPlacement(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 6);
+  const pointer = argument(1) >>> 0;
+  const count = argument(2) | 0;
+  const maxExtent = argument(3) | 0;
+  const results = argument(4);
+  const flags = argument(5) >>> 0;
+  if (count < 0 || count > 0x10000) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 6);
+  if (results) {
+    runtime.check(results, 28, true);
+    runtime.data.fill(0, results, results + 28);
+  }
+  let text = '';
+  try {
+    text = readGdiText(runtime, pointer, count, true);
+  } catch {
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 6);
+  }
+  const font = currentFont(runtime, state, dc) ?? DEFAULT_GDI_FONT;
+  const measured = rasterizeGdiText(runtime, text, font);
+  const width = measured.error ? text.length * 8 : measured.mask.width;
+  const height = measured.error ? font.height : Math.max(font.height, measured.mask.height);
+  if (results) {
+    // GCP_RESULTSW: lStructSize, lpOutString, lpOrder, lpDx, lpCaretPos,
+    // lpClass, lpGlyphs, nGlyphs, nMaxFit.
+    runtime.write32(results, 28);
+    runtime.write32(
+      results + 24,
+      maxExtent > 0 && width > maxExtent ? text.length - 1 : text.length,
+    );
+  }
+  return success((height << 16) | (width & 0xffff), 6);
+  void flags;
+}
+
 function createFont(runtime, argument, wide) {
   const state = stateFor(runtime);
   let descriptor;
@@ -1505,6 +1921,34 @@ export const gdiApis = {
   'gdi32.dll!CreatePen': createPen,
   'gdi32.dll!CreateFont': (runtime, argument) => createFont(runtime, argument, false),
   'gdi32.dll!CreateFontA': (runtime, argument) => createFont(runtime, argument, false),
+  'gdi32.dll!CreateFontIndirectA': (runtime, argument) =>
+    createFontIndirect(runtime, argument, false),
+  'gdi32.dll!CreateFontIndirectW': (runtime, argument) =>
+    createFontIndirect(runtime, argument, true),
+  'gdi32.dll!CreateBitmap': createBitmap,
+  'gdi32.dll!CreatePalette': createPalette,
+  'gdi32.dll!GetOutlineTextMetricsA': (runtime, argument) =>
+    getOutlineTextMetrics(runtime, argument, false),
+  'gdi32.dll!GetOutlineTextMetricsW': (runtime, argument) =>
+    getOutlineTextMetrics(runtime, argument, true),
+  'gdi32.dll!GetCharacterPlacementW': getCharacterPlacement,
+  'gdi32.dll!GetCharacterPlacementA': getCharacterPlacement,
+  'gdi32.dll!SelectPalette': selectPalette,
+  'gdi32.dll!RealizePalette': realizePalette,
+  'gdi32.dll!UpdateColors': updateColors,
+  'gdi32.dll!SetPaletteEntries': setPaletteEntries,
+  'gdi32.dll!GetPaletteEntries': getPaletteEntries,
+  'gdi32.dll!UnrealizeObject': unrealizeObject,
+  'gdi32.dll!TranslateCharsetInfo': translateCharsetInfo,
+  'gdi32.dll!ExtTextOutA': (runtime, argument) => extTextOut(runtime, argument, false),
+  'gdi32.dll!ExtTextOutW': (runtime, argument) => extTextOut(runtime, argument, true),
+  'gdi32.dll!GetCharWidth32A': (runtime, argument) => charWidths(runtime, argument, false, false),
+  'gdi32.dll!GetCharWidth32W': (runtime, argument) => charWidths(runtime, argument, true, false),
+  'gdi32.dll!GetCharWidthA': (runtime, argument) => charWidths(runtime, argument, false, false),
+  'gdi32.dll!GetCharWidthW': (runtime, argument) => charWidths(runtime, argument, true, false),
+  'gdi32.dll!GetCharABCWidthsFloatA': (runtime, argument) =>
+    charWidths(runtime, argument, false, true),
+  'gdi32.dll!GetDIBits': getDIBits,
   'gdi32.dll!CreateFontW': (runtime, argument) => createFont(runtime, argument, true),
   'user32.dll!DrawTextA': (runtime, argument) => drawText(runtime, argument, false, false),
   'user32.dll!DrawTextW': (runtime, argument) => drawText(runtime, argument, true, false),
