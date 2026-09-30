@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { d3d12Apis, dxgiApis } from '../src/d3d12.js';
 
 const IID = {
@@ -1591,4 +1592,64 @@ test('shared-handle round trip and GetResourceTiling for committed resources', a
 
   await call(buffer, 2);
   await call(dev, 2);
+});
+
+// The i386 COM ABI pops one 32-bit stack slot per argument plus the implicit
+// `this`. A wrong argc leaves the guest stack misaligned and corrupts every
+// later call, so these values are pinned against the MinGW-w64 vtable
+// declarations in d3d12.h/dxgi.h.
+test('every COM argc matches the i386 vtable argument count', async () => {
+  const source = await readFile(new URL('../src/d3d12.js', import.meta.url), 'utf8');
+  const metadata = source.match(/const METADATA_METHODS = \{[\s\S]*?\n\};/)[0];
+  assert.match(metadata, /SetPrivateData: \{ argc: 4,/, 'SetPrivateData(this, guid, size, data)');
+  assert.match(
+    metadata,
+    /SetPrivateDataInterface: \{ argc: 3,/,
+    'SetPrivateDataInterface(this, guid, data)',
+  );
+  assert.match(
+    metadata,
+    /GetPrivateData: \{\n    argc: 4,/,
+    'GetPrivateData(this, guid, size, data)',
+  );
+  assert.match(metadata, /SetName: \{ argc: 2,/, 'SetName(this, name)');
+
+  const tables = {
+    deviceMethods: [
+      [13, 4, 'CheckFeatureSupport(this, feature, data, size)'],
+      [16, 6, 'CreateRootSignature(this, node, blob, len, iid, out)'],
+    ],
+    listMethods: [
+      [11, 2, 'ClearState(this, pipeline)'],
+      [55, 5, 'SetPredication(this, buffer, offset64, op)'],
+      [56, 4, 'SetMarker(this, metadata, data, size)'],
+      [57, 4, 'BeginEvent(this, metadata, data, size)'],
+    ],
+    resourceMethods: [
+      [12, 6, 'WriteToSubresource(this, sub, box, src, row, slice)'],
+      [13, 6, 'ReadFromSubresource(this, dst, row, slice, sub, box)'],
+    ],
+  };
+  for (const [fn, entries] of Object.entries(tables)) {
+    const start = source.indexOf(`function ${fn}()`);
+    assert.ok(start >= 0, `${fn} exists`);
+    let depth = 0;
+    let end = source.indexOf('{', start);
+    for (let i = end; i < source.length; i++) {
+      if (source[i] === '{') depth++;
+      else if (source[i] === '}') {
+        depth--;
+        if (!depth) {
+          end = i;
+          break;
+        }
+      }
+    }
+    const body = source.slice(start, end);
+    for (const [slot, want, message] of entries) {
+      const entry = new RegExp(`\\n    ${slot}: \\{[\\s\\S]{0,200}?argc: (\\d+)`).exec(body);
+      assert.ok(entry, `${fn} declares slot ${slot}`);
+      assert.equal(Number(entry[1]), want, `${fn} slot ${slot}: ${message}`);
+    }
+  }
 });

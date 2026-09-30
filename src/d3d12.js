@@ -19,6 +19,8 @@ import {
 const S_OK = 0;
 const E_INVALIDARG = 0x80070057;
 const E_NOINTERFACE = 0x80004002;
+const DXGI_ERROR_NOT_FOUND = 0x887a0002;
+const DXGI_ERROR_NOT_CURRENTLY_AVAILABLE = 0x887a0022;
 const MAX_BYTES = 1024 * 1024;
 const MAX_RESOURCE_BYTES = 8 * 1024 * 1024;
 const MAX_COMMANDS = 256;
@@ -240,11 +242,14 @@ const METADATA_METHODS = {
     invoke(r, a) {
       const size = number(a(2));
       if (size) output(r, size);
-      return 0x887a0002; // DXGI_ERROR_NOT_FOUND
+      return DXGI_ERROR_NOT_FOUND;
     },
   },
-  SetPrivateData: { argc: 5, invoke: () => S_OK },
-  SetPrivateDataInterface: { argc: 4, invoke: () => S_OK },
+  // SetPrivateData(this, guid, data_size, data) is four stack slots and
+  // SetPrivateDataInterface(this, guid, data) is three; the subtractions the
+  // guest performs on return are what keep its stack balanced.
+  SetPrivateData: { argc: 4, invoke: () => S_OK },
+  SetPrivateDataInterface: { argc: 3, invoke: () => S_OK },
   SetName: { argc: 2, invoke: () => S_OK },
 };
 function make(r, kind, methods, itemState = {}, parent = null, onRelease = null) {
@@ -1081,7 +1086,7 @@ function listMethods() {
     // ClearState drops every bound resource/state but keeps the list open and
     // still attached to its allocator, matching D3D12's reuse contract.
     11: {
-      argc: 1,
+      argc: 2,
       invoke(_r, _a, o) {
         o.state.pipeline = null;
         o.state.root = null;
@@ -1192,24 +1197,27 @@ function listMethods() {
     },
     // Predication is only accepted in its disabled (null buffer) form.
     55: {
-      argc: 4,
+      argc: 5,
       invoke(_r, a) {
-        if (number(a(1))) throw Error('Unsupported D3D12 predication');
+        if (number(a(1)) || number(a(2)) || number(a(3)))
+          throw Error('Unsupported D3D12 predication');
         return undefined;
       },
     },
     // Debug markers and PIX events are pure annotations.
+    // SetMarker/BeginEvent(this, Metadata, pData, Size): the metadata word is
+    // argument 1, the payload argument 2 and its size argument 3.
     56: {
-      argc: 3,
+      argc: 4,
       invoke(r, a) {
-        if (number(a(2))) r.check(number(a(1)), number(a(2)));
+        if (number(a(3))) r.check(number(a(2)), number(a(3)));
         return undefined;
       },
     },
     57: {
-      argc: 3,
+      argc: 4,
       invoke(r, a) {
-        if (number(a(2))) r.check(number(a(1)), number(a(2)));
+        if (number(a(3))) r.check(number(a(2)), number(a(3)));
         return undefined;
       },
     },
@@ -1325,7 +1333,7 @@ function resourceMethods() {
     // destination/source boxes and pitches apply to textures, which this
     // bounded path models only as depth/swap-chain images).
     12: {
-      argc: 7,
+      argc: 6,
       invoke(r, a, o) {
         if (o.state.kind !== 'buffer') throw Error('Unsupported D3D12 WriteToSubresource');
         if (number(a(1))) return E_INVALIDARG;
@@ -1337,7 +1345,7 @@ function resourceMethods() {
       },
     },
     13: {
-      argc: 7,
+      argc: 6,
       invoke(r, a, o) {
         if (o.state.kind !== 'buffer') throw Error('Unsupported D3D12 ReadFromSubresource');
         const dst = number(a(1));
@@ -1539,7 +1547,7 @@ function deviceMethods() {
     // CheckFeatureSupport answers the capability probes real applications make
     // at startup from a fixed, honest profile of the implemented backend.
     13: {
-      argc: 3,
+      argc: 4,
       invoke(r, a) {
         // COM method: argument(0) is `this`.
         const feature = number(a(1));
@@ -2601,30 +2609,46 @@ export const d3d12Apis = {
   },
 };
 
+// DXGI_SWAP_CHAIN_DESC is 60 bytes: DXGI_MODE_DESC (28) + SampleDesc (8) +
+// BufferUsage (4) + BufferCount (4) + OutputWindow (4) + Windowed (4) +
+// SwapEffect (4) + Flags (4).
 function swapchainDesc(r, ptr) {
   r.check(ptr, 60);
   const windowId = u32(r, ptr, 44);
   const win = r.windows?.windows?.get(windowId);
   const width = u32(r, ptr) || win?.width,
     height = u32(r, ptr, 4) || win?.height;
+  // DXGI_MODE_DESC is 28 bytes, then SampleDesc (Count, Quality), BufferUsage,
+  // BufferCount, OutputWindow, Windowed, SwapEffect and Flags.
+  const format = u32(r, ptr, 16);
+  const bufferCount = u32(r, ptr, 40);
+  const swapEffect = u32(r, ptr, 52);
+  const flags = u32(r, ptr, 56);
   if (
     !win ||
     !width ||
     !height ||
     width > 2048 ||
     height > 2048 ||
-    u32(r, ptr, 16) !== 28 ||
+    !(format === 28 || format === 87) ||
     u32(r, ptr, 28) !== 1 ||
     u32(r, ptr, 32) ||
     !(u32(r, ptr, 36) & 0x20) ||
     u32(r, ptr, 36) & ~0x20 ||
-    u32(r, ptr, 40) !== 2 ||
+    ![2, 3].includes(bufferCount) ||
     u32(r, ptr, 48) !== 1 ||
-    u32(r, ptr, 52) !== 4 ||
-    u32(r, ptr, 56)
+    // DISCARD (1) and FLIP_DISCARD (4) map to the same double-buffered model.
+    !(swapEffect === 1 || swapEffect === 4) ||
+    flags & ~0x2
   )
     throw Error('Unsupported DXGI swap chain description');
-  return { windowId, width, height };
+  return {
+    windowId,
+    width,
+    height,
+    format: format === 87 ? 'bgra8unorm' : 'rgba8unorm',
+    bufferCount,
+  };
 }
 function swapchainMethods() {
   return {
@@ -2689,24 +2713,36 @@ function swapchainDesc1(r, ptr, windowId) {
     throw Error('DXGI swap chain window is not a live guest window');
   const width = u32(r, ptr),
     height = u32(r, ptr, 4);
+  const format = u32(r, ptr, 8);
+  const bufferCount = u32(r, ptr, 28);
+  const swapEffect = u32(r, ptr, 36);
   if (
     !width ||
     !height ||
     width > 2048 ||
     height > 2048 ||
-    u32(r, ptr, 8) !== 28 ||
+    !(format === 28 || format === 87) ||
     u32(r, ptr, 12) ||
     u32(r, ptr, 16) !== 1 ||
     u32(r, ptr, 20) ||
     u32(r, ptr, 24) !== 0x20 ||
-    u32(r, ptr, 28) !== 2 ||
+    ![2, 3].includes(bufferCount) ||
+    // DXGI_SWAP_EFFECT_DISCARD (0) and FLIP_DISCARD (4) share one backend.
+    !(swapEffect === 0 || swapEffect === 4) ||
     u32(r, ptr, 32) ||
-    u32(r, ptr, 36) !== 4 ||
+    // DXGI_SCALING_STRETCH (0) is what the samples request.
     u32(r, ptr, 40) ||
     u32(r, ptr, 44)
   )
     throw Error('Unsupported DXGI swap chain description 1');
-  return { windowId, width, height };
+  // AlphaMode and Flags are ignored: the presentation is opaque with no flags.
+  return {
+    windowId,
+    width,
+    height,
+    format: format === 87 ? 'bgra8unorm' : 'rgba8unorm',
+    bufferCount,
+  };
 }
 
 // Shared creation path for IDXGIFactory.CreateSwapChain and the ForHwnd variant.
@@ -2722,7 +2758,9 @@ async function createSwapChain(rt, self, queue, desc, result) {
       buffers: [],
       width: desc.width,
       height: desc.height,
+      format: desc.format,
       windowId: desc.windowId,
+      lastPresentCount: 0,
     },
     self,
     async (item) => {
@@ -2732,7 +2770,8 @@ async function createSwapChain(rt, self, queue, desc, result) {
     },
   );
   queue.refs++;
-  for (let i = 0; i < 2; i++)
+  const count = desc.bufferCount ?? 2;
+  for (let i = 0; i < count; i++)
     s.state.buffers.push(
       make(
         rt,
@@ -2766,7 +2805,7 @@ async function createSwapChain(rt, self, queue, desc, result) {
 // enumeration returns DXGI_ERROR_NOT_FOUND, which ends the sample's loop.
 function enumAdapter(r, index, out, self) {
   output(r, out);
-  if (index !== 0) return 0x887a0002;
+  if (index !== 0) return DXGI_ERROR_NOT_FOUND;
   const adapter = make(r, 'adapter', adapterMethods(), {}, self);
   r.write32(out, adapter.pointer);
   return S_OK;
@@ -2856,7 +2895,7 @@ function adapterMethods() {
       argc: 3,
       invoke: (r, a) => {
         output(r, number(a(2)));
-        return 0x887a0002;
+        return DXGI_ERROR_NOT_FOUND;
       },
     },
     8: {

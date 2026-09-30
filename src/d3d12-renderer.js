@@ -173,7 +173,7 @@ export class D3D12Renderer {
     return this.compiler.scanDescriptors(bytes);
   }
 
-  async createSwapChain({ id, windowId, width, height, bufferIds }) {
+  async createSwapChain({ id, windowId, width, height, bufferIds, format = 'rgba8unorm' }) {
     if (
       !integer(id, 1, 0xffffffff) ||
       this.swapchains.has(id) ||
@@ -182,9 +182,11 @@ export class D3D12Renderer {
       !integer(width, 1, 2048) ||
       !integer(height, 1, 2048) ||
       !Array.isArray(bufferIds) ||
-      bufferIds.length !== 2 ||
-      new Set(bufferIds).size !== 2 ||
-      bufferIds.some((key) => !integer(key, 1, 0xffffffff) || this.resources.has(key))
+      bufferIds.length < 2 ||
+      bufferIds.length > 3 ||
+      new Set(bufferIds).size !== bufferIds.length ||
+      bufferIds.some((key) => !integer(key, 1, 0xffffffff) || this.resources.has(key)) ||
+      !['rgba8unorm', 'bgra8unorm'].includes(format)
     )
       throw Error('Unsupported D3D12 swap chain');
     await this.initialize();
@@ -195,7 +197,7 @@ export class D3D12Renderer {
     if (!software)
       context.configure({
         device: this.device,
-        format: 'rgba8unorm',
+        format,
         alphaMode: 'opaque',
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
       });
@@ -205,6 +207,7 @@ export class D3D12Renderer {
       width,
       height,
       bufferIds,
+      format,
       canvas,
       context,
       software,
@@ -215,11 +218,11 @@ export class D3D12Renderer {
         const texture = this.device.createTexture({
           label: 'D3D12 swap chain backbuffer',
           size: [width, height],
-          format: 'rgba8unorm',
+          format,
           usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
         });
         chain.textures.push(texture);
-        this.resources.set(resourceId, { kind: 'color', width, height, chain, texture });
+        this.resources.set(resourceId, { kind: 'color', width, height, format, chain, texture });
       }
       if (software) {
         chain.bytesPerRow = Math.ceil((width * 4) / 256) * 256;
@@ -234,6 +237,77 @@ export class D3D12Renderer {
       for (const texture of chain.textures) texture.destroy();
       chain.readback?.destroy();
       if (!software) context.unconfigure();
+      throw error;
+    }
+  }
+
+  /**
+   * Recreates a swap chain's back buffers for a new size or count, preserving
+   * the swap chain identity and its window association. ResizeBuffers frees the
+   * old back buffers and hands out the same number of new ones.
+   */
+  async resizeSwapChain({ id, width, height, bufferIds }) {
+    const chain = this.swapchains.get(id);
+    if (
+      !chain ||
+      !integer(width, 1, 2048) ||
+      !integer(height, 1, 2048) ||
+      !Number.isInteger(width) ||
+      !Array.isArray(bufferIds) ||
+      bufferIds.length < 2 ||
+      bufferIds.length > 3 ||
+      new Set(bufferIds).size !== bufferIds.length ||
+      bufferIds.some((key) => !integer(key, 1, 0xffffffff) || this.resources.has(key))
+    )
+      throw Error('Unsupported D3D12 swap chain resize');
+    for (const key of chain.bufferIds) this.resources.delete(key);
+    for (const texture of chain.textures) texture.destroy();
+    chain.readback?.destroy();
+    if (!chain.software) chain.context.unconfigure();
+    chain.width = width;
+    chain.height = height;
+    chain.bufferIds = [...bufferIds];
+    chain.canvas = new OffscreenCanvas(width, height);
+    chain.context = chain.canvas.getContext(chain.software ? '2d' : 'webgpu');
+    if (!chain.context) throw Error('D3D12 presentation context unavailable');
+    if (!chain.software)
+      chain.context.configure({
+        device: this.device,
+        format: chain.format,
+        alphaMode: 'opaque',
+        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+    chain.textures = [];
+    try {
+      for (const resourceId of bufferIds) {
+        const texture = this.device.createTexture({
+          label: 'D3D12 swap chain backbuffer',
+          size: [width, height],
+          format: chain.format,
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        });
+        chain.textures.push(texture);
+        this.resources.set(resourceId, {
+          kind: 'color',
+          width,
+          height,
+          format: chain.format,
+          chain,
+          texture,
+        });
+      }
+      if (chain.software) {
+        chain.bytesPerRow = Math.ceil((width * 4) / 256) * 256;
+        chain.readback = this.device.createBuffer({
+          size: chain.bytesPerRow * height,
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
+      }
+    } catch (error) {
+      for (const key of bufferIds) this.resources.delete(key);
+      for (const texture of chain.textures) texture.destroy();
+      chain.readback?.destroy();
+      chain.textures = [];
       throw error;
     }
   }
@@ -796,7 +870,8 @@ export class D3D12Renderer {
 
   async present({ id, index }) {
     const chain = this.swapchains.get(id);
-    if (!chain || !integer(index, 0, 1)) throw Error('Invalid D3D12 presentation buffer');
+    if (!chain || !integer(index, 0, chain.bufferIds.length - 1))
+      throw Error('Invalid D3D12 presentation buffer');
     if (this.graphics.failure) throw Error(this.graphics.failure);
     const texture = chain.textures[index];
     this.device.pushErrorScope('validation');
@@ -826,12 +901,19 @@ export class D3D12Renderer {
       try {
         const source = new Uint8Array(chain.readback.getMappedRange());
         const pixels = new Uint8ClampedArray(chain.width * chain.height * 4);
-        for (let row = 0; row < chain.height; row++)
-          pixels.set(
-            source.subarray(row * chain.bytesPerRow, row * chain.bytesPerRow + chain.width * 4),
-            row * chain.width * 4,
-          );
-        for (let alpha = 3; alpha < pixels.length; alpha += 4) pixels[alpha] = 255;
+        const swizzle = chain.format === 'bgra8unorm';
+        for (let row = 0; row < chain.height; row++) {
+          const base = row * chain.bytesPerRow;
+          const target = row * chain.width * 4;
+          for (let x = 0; x < chain.width; x++) {
+            const from = base + x * 4;
+            const to = target + x * 4;
+            pixels[to] = swizzle ? source[from + 2] : source[from];
+            pixels[to + 1] = source[from + 1];
+            pixels[to + 2] = swizzle ? source[from] : source[from + 2];
+            pixels[to + 3] = 255;
+          }
+        }
         chain.context.putImageData(new ImageData(pixels, chain.width, chain.height), 0, 0);
       } finally {
         chain.readback.unmap();
