@@ -562,6 +562,15 @@ export async function probeWineTarget(
           record.traceError = error.message;
         }
       }
+      // A COM method's return value is the *out*-parameter for a getter, which
+      // the record's generic `result` field does not carry.
+      if (/\.(GetType|GetDesc)$/.test(name) && args.length > 1) {
+        try {
+          record.out = [0, 4, 8, 12].map((offset) => hex(runtime.read32(args[1] + offset)));
+        } catch (error) {
+          record.traceError = error.message;
+        }
+      }
       if (/^IDirect3DDevice[89]\.SetTransform$/.test(name)) {
         try {
           record.matrix = Array.from({ length: 16 }, (_, i) =>
@@ -879,6 +888,7 @@ export async function probeWineTarget(
   } finally {
     // The file names the guest asked for and whether each resolved, which is
     // what separates a path-resolution defect from a missing asset.
+    report.textureAttempts = runtime?.d3d10TextureAttempts ?? [];
     report.threadsAtStop =
       runtime &&
       [...runtime.threads.records.values()].map((t) => ({

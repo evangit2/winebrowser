@@ -53,7 +53,19 @@ export class WebGPURenderer {
     if (!adapter) throw Error('No WebGPU adapter is available');
     this.fallbackAdapter = !!adapter.info?.isFallbackAdapter;
     this.presentationMode = this.forceReadback || this.fallbackAdapter ? 'readback' : 'canvas';
-    this.device = await adapter.requestDevice();
+    // Direct3D applications overwhelmingly use block-compressed textures, so the
+    // device asks for the BC formats when the adapter offers them. A device
+    // created without the feature reports a clear error the moment such a
+    // texture is created, which is a worse outcome than asking up front.
+    const compressed = [
+      'texture-compression-bc',
+      'texture-compression-etc2',
+      'texture-compression-astc',
+    ].filter((feature) => adapter.features?.has(feature));
+    this.compressedFormats = compressed.includes('texture-compression-bc');
+    this.device = await adapter.requestDevice(
+      compressed.length ? { requiredFeatures: compressed } : {},
+    );
     this.format =
       this.presentationMode === 'readback' ? 'rgba8unorm' : this.gpu.getPreferredCanvasFormat();
     this.device.addEventListener('uncapturederror', (event) => {

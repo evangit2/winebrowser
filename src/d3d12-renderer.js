@@ -56,6 +56,18 @@ const TEXTURE_FORMAT_BYTES = { 28: 4, 87: 4, 49: 2, 61: 1 };
 // The depth attachment formats WebGPU guarantees, in the precision order a
 // D3D application names them: D16_UNORM, D32_FLOAT and D24_UNORM_S8_UINT.
 const DEPTH_FORMATS = ['depth16unorm', 'depth32float', 'depth24plus-stencil8'];
+// Block-compressed sampled formats. WebGPU stores the same 4x4 blocks, so a
+// texture in one of these uploads its bytes unchanged; only the copy footprint
+// differs, because rows are block rows and a texel is 4x4.
+const COMPRESSED_FORMATS = [
+  'bc1-rgba-unorm',
+  'bc1-rgba-unorm-srgb',
+  'bc2-rgba-unorm',
+  'bc2-rgba-unorm-srgb',
+  'bc3-rgba-unorm',
+  'bc3-rgba-unorm-srgb',
+];
+const compressedBytesPerBlock = (format) => (format.startsWith('bc1') ? 8 : 16);
 function sampleTypeForFormat(format) {
   return DXGI_TEXTURE_FORMATS[format]?.sampleType ?? 'float';
 }
@@ -333,6 +345,8 @@ export class D3D12Renderer {
     // expressible as a D16_UNORM one, so refusing it would be arbitrary.
     if (kind === 'depth' && !DEPTH_FORMATS.includes(format))
       throw Error('Unsupported D3D12 depth resource');
+    if (kind === 'texture' && !TEXTURE_FORMAT_BYTES[format] && !COMPRESSED_FORMATS.includes(format))
+      throw Error('Unsupported D3D12 sampled texture format ' + format);
     await this.initialize();
     this.device.pushErrorScope('validation');
     // A sampled texture is uploaded through CopyTextureRegion and then read by
@@ -1071,14 +1085,21 @@ export class D3D12Renderer {
       throw Error('D3D12 texture upload target is missing');
     if (!(rows instanceof Uint8Array) || !bytesPerRow)
       throw Error('D3D12 texture upload data is invalid');
-    if (bytesPerRow < width * TEXTURE_FORMAT_BYTES[resource.format])
-      throw Error('D3D12 texture upload row pitch is too small');
-    if (rows.length < bytesPerRow * height) throw Error('D3D12 texture upload covers too few rows');
+    // A block-compressed texture is addressed in 4x4 blocks: a "row" is a block
+    // row of ceil(width/4) blocks, and the region is ceil(height/4) block rows.
+    const compressed = COMPRESSED_FORMATS.includes(resource.format);
+    const rowBytes = compressed
+      ? Math.ceil(width / 4) * compressedBytesPerBlock(resource.format)
+      : width * TEXTURE_FORMAT_BYTES[resource.format];
+    if (bytesPerRow < rowBytes) throw Error('D3D12 texture upload row pitch is too small');
+    const rowCount = compressed ? Math.ceil(height / 4) : height;
+    if (rows.length < bytesPerRow * rowCount)
+      throw Error('D3D12 texture upload covers too few rows');
     this.device.queue.writeTexture(
       { texture: resource.texture },
-      rows.subarray(0, bytesPerRow * height),
-      { bytesPerRow, rowsPerImage: height },
-      [width, height, 1],
+      rows.subarray(0, bytesPerRow * rowCount),
+      { bytesPerRow, rowsPerImage: rowCount },
+      compressed ? [Math.ceil(width / 4) * 4, Math.ceil(height / 4) * 4, 1] : [width, height, 1],
     );
   }
 

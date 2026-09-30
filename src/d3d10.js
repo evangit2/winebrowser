@@ -87,7 +87,24 @@ const SHADER_RESOURCE_FORMATS = {
   87: 'bgra8unorm',
   49: 'r16unorm',
   61: 'r8unorm',
+  // DXGI_FORMAT_BC1/2/3_UNORM(-_SRGB). WebGPU has counterparts that store the
+  // same 4x4 blocks, so a compressed texture uploads unchanged and the shader
+  // reads the format the application named rather than a decode we performed.
+  70: 'bc1-rgba-unorm', // BC1_TYPELESS, sampled as the UNORM view
+  71: 'bc1-rgba-unorm',
+  72: 'bc1-rgba-unorm-srgb',
+  74: 'bc2-rgba-unorm',
+  75: 'bc2-rgba-unorm-srgb',
+  77: 'bc3-rgba-unorm',
+  78: 'bc3-rgba-unorm-srgb',
 };
+
+// A block-compressed texture's storage is laid out in 4x4 texel blocks rather
+// than pixels, which decides both the copy footprint and the row pitch a guest
+// mip level occupies.
+function isCompressedFormat(format) {
+  return SHADER_RESOURCE_FORMATS[format]?.startsWith('bc') === true;
+}
 // The DXGI depth formats and the WebGPU attachment each maps to. D16_UNORM and
 // D32_FLOAT are stored directly; the combined depth-stencil formats become the
 // depth24plus-stencil8 attachment WebGPU guarantees, which carries the same
@@ -205,7 +222,20 @@ const name = {
 };
 
 // The dimension GetType reports for each texture interface.
-const DIMENSION = { buffer: 1, texture1d: 2, texture2d: 3, texture3d: 4 };
+// D3D10_RESOURCE_DIMENSION as GetType reports it. A texture's state records
+// which *backend role* it serves (sampled texture, render target, depth target),
+// not its D3D dimension, so the mapping has to cover all four roles: reporting
+// `undefined` for a sampled texture made a caller's own dispatch fail with
+// "Unsupported type".
+const DIMENSION = {
+  buffer: 1,
+  texture1d: 2,
+  texture2d: 3,
+  texture3d: 4,
+  texture: 3,
+  'render-texture': 3,
+  depth: 3,
+};
 
 const number = (value) => value >>> 0;
 // A by-value FLOAT argument arrives as its IEEE-754 bit pattern.
@@ -483,7 +513,20 @@ function writeMapped(r, out, pointer, rowPitch) {
 
 function resourceMethods() {
   return {
-    7: { argc: 2, invoke: (_r, _a, o) => DIMENSION[o.state.kind] },
+    // GetType(D3D10_RESOURCE_DIMENSION *rType) writes through its argument; it
+    // is not a value-returning getter. Returning the dimension in EAX left the
+    // caller's variable uninitialized, so a framework's own dispatch reported
+    // "Unsupported type" for a texture it had just created.
+    7: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        if (!out) throw Error('D3D10 GetType requires an output pointer');
+        r.check(out, 4, true);
+        r.write32(out, DIMENSION[o.state.kind] ?? 3);
+        return undefined;
+      },
+    },
     8: {
       argc: 2,
       invoke(_r, a, o) {
@@ -1175,6 +1218,23 @@ function texture2dParse(r, a) {
   const width = u32(r, desc),
     height = u32(r, desc, 4);
   const format = u32(r, desc, 16);
+  // A rejected description is retained with its values, because the return code
+  // alone does not say which field the frontend refused.
+  if ((r.d3d10TextureAttempts ??= []).length < 32)
+    r.d3d10TextureAttempts.push({
+      width,
+      height,
+      mipLevels: u32(r, desc, 8),
+      arraySize: u32(r, desc, 12),
+      format,
+      sampleCount: u32(r, desc, 20),
+      sampleQuality: u32(r, desc, 24),
+      usage: u32(r, desc, 28),
+      bindFlags: `0x${u32(r, desc, 32).toString(16)}`,
+      cpuAccess: `0x${u32(r, desc, 36).toString(16)}`,
+      misc: `0x${u32(r, desc, 40).toString(16)}`,
+      initialData: `0x${number(a(2)).toString(16)}`,
+    });
   const usage = u32(r, desc, 28);
   const bindFlags = u32(r, desc, 32);
   const cpuAccess = u32(r, desc, 36);
@@ -1190,30 +1250,9 @@ function texture2dParse(r, a) {
     usage > USAGE_STAGING ||
     bindFlags & ~BIND_MASK ||
     cpuAccess & ~CPU_ACCESS ||
-    u32(r, desc, 40) ||
-    // Initial texture data would need the placed-footprint upload path, which
-    // this bounded frontend does not model; UpdateSubresource covers the rest.
-    number(a(2))
+    u32(r, desc, 40)
   )
-    if (globalThis.__winebrowserTraceTextureDesc)
-      throw Error(
-        'CreateTexture2D rejected ' +
-          JSON.stringify({
-            width,
-            height,
-            mipLevels: u32(r, desc, 8),
-            arraySize: u32(r, desc, 12),
-            format,
-            sampleCount: u32(r, desc, 20),
-            sampleQuality: u32(r, desc, 24),
-            usage,
-            bindFlags: `0x${bindFlags.toString(16)}`,
-            cpuAccess: `0x${cpuAccess.toString(16)}`,
-            misc: `0x${u32(r, desc, 40).toString(16)}`,
-            initialData: `0x${number(a(2)).toString(16)}`,
-          }),
-      );
-    else return E_INVALIDARG;
+    return E_INVALIDARG;
   const depthBound = !!(bindFlags & BIND.DEPTH);
   const renderBound = !!(bindFlags & BIND.RT);
   const shaderBound = !!(bindFlags & BIND.SRV);
@@ -1232,6 +1271,37 @@ function texture2dParse(r, a) {
       ? RENDER_TARGET_FORMATS
       : SHADER_RESOURCE_FORMATS;
   if (!allowed[format]) return E_INVALIDARG;
+  // A block-compressed texture's guest storage holds the blocks themselves, so
+  // its size follows the block footprint rather than the pixel count. It is
+  // also the shape the backend uploads.
+  const compressed = !depthBound && !renderBound && isCompressedFormat(format);
+  const storageBytes = compressed
+    ? Math.ceil(width / 4) * Math.ceil(height / 4) * (format === 71 || format === 70 ? 8 : 16)
+    : width * height * 4;
+  // A D3D10_SUBRESOURCE_DATA for the one mip level: pSysMem names the bytes,
+  // SysMemPitch the row (or block-row) stride. A texture whose data the caller
+  // supplies is filled before the object exists, so a rejected description
+  // allocates nothing new; the bytes are copied into the resource storage the
+  // frontend already owns.
+  const storage = r.allocate(storageBytes);
+  const initial = number(a(2));
+  if (initial) {
+    r.check(initial, 12);
+    const source = u32(r, initial);
+    if (source) {
+      if (compressed) {
+        const blocksWide = Math.ceil(width / 4),
+          blockRows = Math.ceil(height / 4);
+        const blockBytes = compressedBytesPerBlock(format);
+        if (!source) return E_INVALIDARG;
+        r.check(source, blocksWide * blockBytes * blockRows);
+        r.data.copyWithin(storage, source, source + blocksWide * blockBytes * blockRows);
+      } else {
+        r.check(source, width * 4 * height);
+        r.data.copyWithin(storage, source, source + width * 4 * height);
+      }
+    }
+  }
   return {
     kind,
     width,
@@ -1240,7 +1310,8 @@ function texture2dParse(r, a) {
     usage,
     bindFlags,
     cpuAccess,
-    storage: r.allocate(width * height * 4),
+    compressed,
+    storage,
     evictionPriority: 0,
     // The backend owns a GPU texture for a sampled, render-target or depth
     // resource, so it is created here and torn down with the object.
@@ -1252,8 +1323,26 @@ function texture2dParse(r, a) {
         height,
         format: allowed[format],
       });
+      // A texture the caller supplied bytes for is uploaded straight into the
+      // resource storage the frontend copied them to, so the shader samples the
+      // application's data rather than a cleared image.
+      if (initial && kind === 'texture')
+        await requireBackend(r).uploadTexture({
+          id: item.pointer,
+          width,
+          height,
+          bytesPerRow: compressed
+            ? Math.ceil(width / 4) * compressedBytesPerBlock(format)
+            : width * 4,
+          rows: r.data.slice(storage, storage + storageBytes),
+        });
     },
   };
+}
+
+// Bytes one 4x4 block of a DXGI block-compressed format occupies.
+function compressedBytesPerBlock(format) {
+  return format === 70 || format === 71 || format === 72 ? 8 : 16;
 }
 
 const VIEW_DIMENSION = { texture1d: 0, texture2d: 3, depth: 3 };
@@ -2687,6 +2776,24 @@ const hresult = (argc, implementation) => async (r, a) => ({
   result: await implementation(r, a),
   argc,
 });
+
+// The shader profile each stage compiles against. D3D10 targets shader model
+// 4.0, and a framework asks the device for the profile string before it compiles
+// anything.
+const PROFILE_STRINGS = { vertex: 'vs_4_0', pixel: 'ps_4_0', geometry: 'gs_4_0' };
+const profilePointers = {};
+
+// The profile string the device would compile against. The pointer is stable for
+// the process, as the real entry point's is, and is a plain ANSI string.
+function profilePointer(r, text) {
+  profilePointers[text] ??= (() => {
+    const bytes = new TextEncoder().encode(text + '\0');
+    const pointer = r.allocate(bytes.length);
+    r.data.set(bytes, pointer);
+    return pointer;
+  })();
+  return profilePointers[text];
+}
 
 export const d3d10Apis = {
   'd3d10.dll!D3D10CreateDevice': hresult(6, (r, a) => createDevice(r, a)),
