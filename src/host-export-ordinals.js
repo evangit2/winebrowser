@@ -42,33 +42,50 @@ export function canonicalHostSymbol(dll, symbol, names) {
 // address of stable guest storage for these, never the call thunk a function
 // export gets. The data itself is materialized by the provider module named in
 // the comment (src/msvcrt.js for the CRT symbols).
+//
+// The versioned Visual C++ runtimes re-export the same globals under their own
+// names, and a program built against one of them imports the data *there*. A
+// program that imports `_acmdln` from msvcr80.dll and is handed a code thunk
+// reads that thunk's bytes as a pointer, which is how a command-line walker
+// ends up dereferencing an address that was never mapped. Every alias
+// therefore shares the msvcrt data set, and a new data symbol has to be added
+// here as well as to src/msvcrt.js.
+const CRT_DATA_SYMBOLS = [
+  '_iob',
+  '_acmdln',
+  '_wcmdln',
+  '_pgmptr',
+  '_wpgmptr',
+  '_environ',
+  '_wenviron',
+  '__argv',
+  '__wargv',
+  '__argc',
+  '__initenv',
+  '_winitenv',
+  '_fmode',
+  '_commode',
+  '_adjust_fdiv',
+  '_osver',
+  '_winver',
+  '_winmajor',
+  '_winminor',
+  '_timezone',
+  '_daylight',
+  '_dstbias',
+  '_sys_nerr',
+  '__mb_cur_max',
+];
+
 export const HOST_DATA_EXPORTS = {
-  'msvcrt.dll': new Set([
-    '_iob',
-    '_acmdln',
-    '_wcmdln',
-    '_pgmptr',
-    '_wpgmptr',
-    '_environ',
-    '_wenviron',
-    '__argv',
-    '__wargv',
-    '__argc',
-    '__initenv',
-    '_winitenv',
-    '_fmode',
-    '_commode',
-    '_adjust_fdiv',
-    '_osver',
-    '_winver',
-    '_winmajor',
-    '_winminor',
-    '_timezone',
-    '_daylight',
-    '_dstbias',
-    '_sys_nerr',
-    '__mb_cur_max',
-  ]),
+  'msvcrt.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr70.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr71.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr80.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr90.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr100.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr110.dll': new Set(CRT_DATA_SYMBOLS),
+  'msvcr120.dll': new Set(CRT_DATA_SYMBOLS),
 };
 
 export const isHostDataExport = (dll, symbol) =>
