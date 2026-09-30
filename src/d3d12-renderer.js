@@ -52,7 +52,11 @@ const DXGI_TEXTURE_FORMATS = {
   49: { format: 'r16unorm', sampleType: 'float' },
   61: { format: 'r8unorm', sampleType: 'float' },
 };
-const TEXTURE_FORMAT_BYTES = { 28: 4, 87: 4, 49: 2, 61: 1 };
+// The frontends hand the backend a WebGPU format name (d3d12.js maps the DXGI
+// code first), so the byte table is keyed by that name. A DXGI code here would
+// make every lookup undefined and a `bytesPerRow < NaN` comparison silently true,
+// which is what let an unchecked pitch through before.
+const TEXTURE_FORMAT_BYTES = { rgba8unorm: 4, bgra8unorm: 4, r16unorm: 2, r8unorm: 1 };
 // The depth attachment formats WebGPU guarantees, in the precision order a
 // D3D application names them: D16_UNORM, D32_FLOAT and D24_UNORM_S8_UINT.
 const DEPTH_FORMATS = ['depth16unorm', 'depth32float', 'depth24plus-stencil8'];
