@@ -106,18 +106,34 @@ try {
             .join(''),
         };
       });
-    const first = await sample();
+    // The demo's camera moves, so how much of the client area the lit pillar
+    // room covers changes from frame to frame (measured between ~290k and
+    // ~454k of 454,860 pixels). Requiring a fixed count on one arbitrary frame
+    // is flaky, so sample a short window and judge the best frame: a missing
+    // draw leaves almost nothing lit (the frame is only the demo's dark clear
+    // color, 18/9/7) and a lost shader or texture stage collapses the frame to
+    // one flat color, so the lit and distinct-color floors together still fail
+    // those cases.
+    const sampleBest = async (attempts, gapMs) => {
+      let best = null;
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        const frame = await sample();
+        if (!best || frame.lit > best.lit || (frame.lit === best.lit && frame.colors > best.colors))
+          best = frame;
+        if (best.lit > 350000 && best.colors >= 1000) break;
+        await page.waitForTimeout(gapMs);
+      }
+      return best;
+    };
+    const first = await sampleBest(8, 500);
     assert.deepEqual([first.width, first.height], [798, 570], 'the demo renders at its own size');
-    // The pillar room fills essentially the whole client area, so an almost
-    // black frame (a missing draw) or a frame at a single flat color (a lost
-    // shader or texture stage) both fail here.
-    assert.ok(first.lit > 300000, `the room scene is rendered (${first.lit} lit pixels)`);
+    assert.ok(first.lit > 200000, `the room scene is rendered (${first.lit} lit pixels)`);
     assert.ok(first.colors >= 1000, `textures and lighting produce many colors (${first.colors})`);
     await page.waitForTimeout(3000);
     const second = await sample();
     assert.ok(second.frames > first.frames, 'the guest keeps presenting frames');
     assert.notEqual(first.hash, second.hash, 'the scene animates');
-    assert.ok(second.lit > 300000 && second.colors >= 1000);
+    assert.ok(second.lit > 200000 && second.colors >= 1000);
 
     await mkdir('evidence', { recursive: true });
     await page.locator('#desktop').screenshot({ path: `evidence/humus-d3d9-${mode}.png` });
