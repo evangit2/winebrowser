@@ -189,6 +189,32 @@ function loadIcon(runtime, argument, wide) {
   }
 }
 
+// Builds (or reuses) an HICON from a module's RT_GROUP_ICON resource. Shared
+// with LoadIcon and by ExtractIcon, which addresses the same resources by index.
+export function iconHandleForGroup(runtime, module, name) {
+  const icons = state(runtime);
+  const key = `${module.base}:${typeof name}:${String(name).toLowerCase()}`;
+  const cached = icons.cache.get(key);
+  if (cached) return cached;
+  const group = readPEResource(module.bytes, RT_GROUP_ICON, name);
+  if (!group) return null;
+  const candidates = parseGroupIcon(group).sort((left, right) => {
+    const leftDistance = Math.abs(left.width - 32) + Math.abs(left.height - 32);
+    const rightDistance = Math.abs(right.width - 32) + Math.abs(right.height - 32);
+    return leftDistance - rightDistance || right.bitCount - left.bitCount;
+  });
+  const selected = candidates[0];
+  const dib = readPEResource(module.bytes, RT_ICON, selected.id);
+  if (!dib || (selected.bytes && selected.bytes !== dib.length)) return null;
+  const icon = decodeIconDib(dib, selected);
+  if (icons.handles.size >= MAX_ICONS) throw Error('Icon handle limit exceeded');
+  const handle = icons.next;
+  icons.next += 4;
+  icons.cache.set(key, handle);
+  icons.handles.set(handle, icon);
+  return handle;
+}
+
 export function iconForHandle(runtime, handle) {
   const icon = state(runtime).handles.get(handle);
   return icon ? { width: icon.width, height: icon.height, pixels: icon.pixels.slice() } : null;

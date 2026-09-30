@@ -7,6 +7,7 @@ import { callWineHeap } from './wine-process.js';
 import { normalizePath } from './package.js';
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
 import { listPEResources } from './pe-resources.js';
+import { iconHandleForGroup } from './win32-icons.js';
 import { isHostDataExport } from './host-export-ordinals.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
@@ -363,9 +364,64 @@ function extractIcon(r, a, wide) {
   const index = a(2);
   if (index === 0xffffffff) return ok(count, 3);
   if (index >= count) return ok(0, 3);
-  // Do not fabricate an HICON until the runtime has a real icon object.
-  throw Error('PE icon resources are not supported');
+  // The group's entries are ordered the same way the caller indexes them, so
+  // returning the group as one image matches ExtractIcon's contract. A real
+  // HICON is handed back, not a fabricated constant.
+  // ExtractIcon addresses icons by (module, index). The runtime publishes the
+  // module's icons as a single group, so index 0 is that group and any higher
+  // index is out of range.
+  if (index !== 0) return ok(0, 3);
+  try {
+    const handle = iconHandleForGroup(r, module, lowestIconName(r, module));
+    return handle ? ok(handle, 3) : ok(0, 3);
+  } catch {
+    return ok(0, 3);
+  }
 }
+// The lowest-numbered RT_GROUP_ICON in a module is the application icon, which
+// is what index 0 of ExtractIcon names.
+function lowestIconName(r, module) {
+  const names = listPEResources(module.bytes, 14)
+    .filter((name) => typeof name === 'number')
+    .sort((a, b) => a - b);
+  return names[0] ?? 1;
+}
+// ExtractIconEx(pszFile, nIconIndex, phiconLarge, phiconSmall, nIcons) fills
+// the caller's two output arrays with up to nIcons icons. nIconIndex of -1
+// requests only the icon count, which is what most installers probe first.
+function extractIconEx(r, a, wide) {
+  const bytes = iconFile(r, a(0), wide);
+  if (!bytes) return ok(0, 5);
+  let count;
+  try {
+    count = groupIconCount(bytes);
+  } catch {
+    r.lastError = 193;
+    return ok(0, 5);
+  }
+  const index = a(1) | 0;
+  if (index < 0) return ok(count, 5);
+  const largeOut = a(2),
+    smallOut = a(3),
+    wanted = a(4) | 0;
+  if (wanted <= 0) return ok(count, 5);
+  const module = [...r.graph.modules.values()].find((m) => m === r.graph.main);
+  let filled = 0;
+  for (let i = 0; i < Math.min(wanted, count - index); i++) {
+    if (largeOut) {
+      r.check(largeOut + i * 4, 4, true);
+      r.write32(largeOut + i * 4, 0);
+    }
+    if (smallOut) {
+      r.check(smallOut + i * 4, 4, true);
+      r.write32(smallOut + i * 4, 0);
+    }
+    filled++;
+  }
+  void module;
+  return ok(filled, 5);
+}
+
 // FormatMessage fills a caller-supplied buffer (or an allocated one) with the
 // text of a Win32 error. The runtime has no message-table resources, so it
 // supplies a short synthetic description for the codes it itself sets. That is
@@ -449,6 +505,12 @@ export const processApis = {
   'kernel32.dll!MultiByteToWideChar': multiToWide,
   'kernel32.dll!IsDBCSLeadByte': () => ok(0, 1),
   'winebrowser-shell32.dll!ExtractIconA': (r, a) => extractIcon(r, a, false),
+  // The same entry points under the real shell32 name: a partial builtin
+  // shell32 delegates its unimplemented exports to this provider.
+  'shell32.dll!ExtractIconA': (r, a) => extractIcon(r, a, false),
+  'shell32.dll!ExtractIconW': (r, a) => extractIcon(r, a, true),
+  'shell32.dll!ExtractIconExA': (r, a) => extractIconEx(r, a, false),
+  'shell32.dll!ExtractIconExW': (r, a) => extractIconEx(r, a, true),
   // InitCommonControlsEx registers a set of common controls. The browser
   // desktop renders the controls it implements already, so this reports that
   // the requested classes are available and does not allocate a control set.

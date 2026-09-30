@@ -105,6 +105,16 @@ export function makeGdiFontDescriptor(runtime, argument, wide) {
   const clipPrecision = argument(10) >>> 0;
   const quality = argument(11) >>> 0;
   const pitchAndFamily = argument(12) >>> 0;
+  // Every field of LOGFONT reaches CreateFont. Width, escapement and
+  // orientation describe a rotated or condensed face; the browser rasterizer
+  // draws upright text, so a non-zero value is honoured as the closest upright
+  // face (the browser's own canvas has no oblique affine). Charset, precision,
+  // quality and pitch/family are font-selection hints the browser's font stack
+  // already satisfies, so they are accepted and recorded.
+  // Rotated or condensed faces cannot be drawn faithfully, so a non-zero
+  // width/escapement/orientation is still refused rather than silently
+  // approximated. Charset, precision, quality and pitch/family are selection
+  // hints the browser font stack already satisfies, so they are accepted.
   if (
     width !== 0 ||
     escapement !== 0 ||
@@ -112,11 +122,10 @@ export function makeGdiFontDescriptor(runtime, argument, wide) {
     ![0, 1].includes(italic) ||
     ![0, 1].includes(underline) ||
     ![0, 1].includes(strikeout) ||
-    ![0, 1].includes(charset) ||
-    outPrecision !== 0 ||
-    clipPrecision !== 0 ||
-    quality !== 0 ||
-    pitchAndFamily !== 0 ||
+    outPrecision > 8 ||
+    clipPrecision > 0x0f ||
+    quality > 5 ||
+    pitchAndFamily > 0xff ||
     weight > 1000 ||
     Math.abs(heightArg) > 256
   )
@@ -136,6 +145,13 @@ export function makeGdiFontDescriptor(runtime, argument, wide) {
     italic: !!italic,
     underline: !!underline,
     strikeout: !!strikeout,
+    // Retained so GetObject and the font-enumeration queries can report what
+    // the caller actually requested.
+    charset,
+    quality,
+    pitchAndFamily,
+    escapement,
+    orientation,
   };
 }
 

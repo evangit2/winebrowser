@@ -1,3 +1,45 @@
+const classFields = new Map([
+  [-6, 'instance'],
+  [-10, 'menuName'],
+  [-12, 'proc'],
+  [-26, 'atom'],
+  [-32, 'classExtra'],
+  [-34, 'extra'],
+  [-36, 'style'],
+  [-38, 'background'],
+  [-40, 'cursor'],
+  [-14, 'icon'],
+]);
+function classLong(r, a, wide, write, extended) {
+  const argc = write ? 3 : 2;
+  const hwnd = a(0) >>> 0;
+  const w = r.windows.windows.get(hwnd);
+  if (!w) return r.windows.fail(1400, argc);
+  const cls = w.cls;
+  const index = a(1) | 0;
+  if (index >= 0) {
+    // GetClassLong's positive offsets address the class's own cbClsExtra bytes.
+    const block =
+      cls.classExtraBytes ??
+      (cls.classExtraBytes = new DataView(new ArrayBuffer(cls.classExtra ?? 0)));
+    if (index > block.byteLength - (write ? 4 : 4)) return r.windows.fail(1413, argc);
+    const previous = block.getUint32(index, true);
+    if (write) block.setUint32(index, a(2) >>> 0, true);
+    return result(previous, argc);
+  }
+  const field = classFields.get(index);
+  if (!field) return r.windows.fail(1413, argc);
+  if (write) {
+    if (!['proc', 'style', 'background', 'cursor', 'icon'].includes(field))
+      throw Error(`SetClassLong ${field} changes are unsupported`);
+    cls[field] = a(2) >>> 0;
+    return result(0, argc);
+  }
+  if (field === 'atom') return result(cls.atom, argc);
+  if (extended && index === -12) return result(cls.proc, argc);
+  return result(cls[field] ?? 0, argc);
+}
+
 const fields = new Map([
   [-6, 'instance'],
   [-8, 'parentId'],
@@ -48,6 +90,13 @@ function windowLong(r, a, wide, write) {
 }
 
 export const windowDataApis = {};
+for (const wide of [false, true])
+  for (const write of [false, true]) {
+    windowDataApis[`user32.dll!${write ? 'Set' : 'Get'}ClassLong${wide ? 'W' : 'A'}`] = (r, a) =>
+      classLong(r, a, wide, write, false);
+    windowDataApis[`user32.dll!${write ? 'Set' : 'Get'}ClassLongPtr${wide ? 'W' : 'A'}`] = (r, a) =>
+      classLong(r, a, wide, write, true);
+  }
 for (const wide of [false, true])
   for (const write of [false, true]) {
     windowDataApis[`user32.dll!${write ? 'Set' : 'Get'}WindowLong${wide ? 'W' : 'A'}`] = (r, a) =>

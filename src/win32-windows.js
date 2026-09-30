@@ -7,7 +7,7 @@ import {
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
-import { describeWindowMenu } from './win32-menus.js';
+import { describeWindowMenu, MENU_BAR_HEIGHT } from './win32-menus.js';
 import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
@@ -134,14 +134,14 @@ function mapWindowPoints(r, a) {
 async function moveWindow(r, a) {
   const window = r.windows.windows.get(a(0));
   if (!window) return r.windows.fail(1400, 6);
-  await r.windows.setGeometry(window, {
-    x: a(1) | 0,
-    y: a(2) | 0,
-    width: Math.max(0, a(3) | 0),
-    height: Math.max(0, a(4) | 0),
-  });
-  if (a(5)) r.windows.invalidate(window, null, false);
-  return result(1, 6);
+  // MoveWindow passes a rectangle in *window* coordinates (the same units
+  // SetWindowPos takes), so it routes through the shared positioning path that
+  // already validates the frame and clamps the size.
+  const moved = await setWindowPos(
+    r,
+    (i) => [a(0), 0, a(1), a(2), a(3), a(4), 0x4 | (a(5) ? 0 : 0x100)][i] ?? 0,
+  );
+  return result(moved.result ? 1 : 0, 6);
 }
 // DrawEdge(hdc, rect, edge, flags) paints the single-pixel 3D border a button
 // or status bar asks for. EDGE_RAISED (0x5) and EDGE_SUNKEN (0xa) are the two
@@ -733,22 +733,33 @@ function register(r, a, wide, extended) {
     p = start + (extended ? 4 : 0);
   r.check(start, extended ? 48 : 40);
   if (extended && r.read32(start) !== 48) return manager.fail(87, 1);
-  const name = text(r, r.read32(p + 36), wide).toLowerCase();
+  const namePointer = r.read32(p + 36);
+  if (!namePointer) return manager.fail(87, 1);
+  const name = text(r, namePointer, wide).toLowerCase();
   const extra = r.read32(p + 12);
-  if (!name || manager.classes.has(name)) return manager.fail(1410, 1);
-  if (r.read32(p + 8) || extra > 4096 || r.read32(p + 32))
-    throw Error('Window class extra data or class menus are unsupported');
+  const classExtra = r.read32(p + 8);
+  // ERROR_CLASS_ALREADY_EXISTS is only correct when the same name is already
+  // registered; an empty or misread name is a different failure entirely.
+  if (!name) return manager.fail(87, 1);
+  if (manager.classes.has(name)) return manager.fail(1410, 1);
+  // cbClsExtra and cbWndExtra are small per-class/per-window blocks the guest
+  // addresses with Get/SetWindowLong; a class menu name selects the menu every
+  // window of this class gets. All three are ordinary parts of WNDCLASS.
+  if (classExtra > 4096 || extra > 4096) throw Error('Window class extra data limit exceeded');
   if (manager.classes.size >= 128) return manager.fail(8, 1);
+  const menuName = r.read32(p + 32);
   const cls = {
     name,
     atom: manager.nextAtom++,
     style: r.read32(p),
     proc: r.read32(p + 4),
+    classExtra,
     extra,
     instance: r.read32(p + 16),
     icon: (extended && r.read32(p + 40)) || r.read32(p + 20),
     cursor: r.read32(p + 24),
     background: r.read32(p + 28),
+    menuName: menuName ? (menuName <= 0xffff ? menuName : text(r, menuName, wide)) : 0,
     wide,
   };
   manager.classes.set(name, cls);
@@ -763,12 +774,16 @@ async function create(r, a, wide) {
   const cls =
     classId <= 0xffff
       ? m.atoms.get(classId)
-      : (m.classes.get(name) ?? builtinControlClass(name, wide));
+      : (m.classes.get(name) ?? builtinControlClass(name, wide) ?? builtinWindowClass(name));
   if (!cls) return m.fail(1407, 12);
   const child = !!(a(3) & 0x40000000),
     parentId = child ? a(8) : 0;
   if (child && !m.windows.has(parentId)) return m.fail(1400, 12);
-  if (!child && (a(8) || a(9))) throw Error('Owned windows and menus are not implemented');
+  // A non-child window's hWndParent argument is its owner: the window is
+  // top-level but stays above its owner. The menu argument (or the class's
+  // menu name) selects the window's menu bar.
+  const ownerId = child ? 0 : a(8) >>> 0;
+  if (ownerId && !m.windows.has(ownerId)) return m.fail(1400, 12);
   if (cls.controlType && !child) throw Error('Standard controls require a parent window');
   if (child && !cls.controlType) throw Error('Custom child window rendering is not implemented');
   const control = child ? controlStyle(cls.controlType, a(3), a(0)) : {};
@@ -815,6 +830,14 @@ async function create(r, a, wide) {
     instance: a(10),
     userData: 0,
     extra: new DataView(new ArrayBuffer(cls.extra)),
+    // cbClsExtra storage is shared by every window of the class, so it lives
+    // on the class object; a window's own extra bytes stay private.
+    classExtra: new DataView(new ArrayBuffer(cls.classExtra ?? 0)),
+    // A class menu name (or the CreateWindow menu argument) selects the window's
+    // menu. The runtime resolves it lazily when the menu module loads it.
+    ownerId,
+    menu: !child ? a(9) >>> 0 : 0,
+    classMenuName: cls.menuName ?? 0,
     invalid: null,
     erase: false,
   };
@@ -1010,6 +1033,59 @@ async function beginPaint(r, a) {
   if (erase)
     r.write32(p + 4, (await r.windows.send(w.id, 0x14, dc)) ? 0 : w.cls.background ? 0 : 1);
   return result(dc, 2);
+}
+
+// Host-side window creation for the dialog module. It builds the same guest
+// call the class-create path expects, so register/create/defaultProc all run
+// exactly as they do for a guest CreateWindowEx.
+export async function createWindowFromHost(r, spec) {
+  const classPointer = spec.className ? r.allocString(spec.className, false) : 0;
+  const titlePointer = spec.title ? r.allocString(spec.title, false) : 0;
+  try {
+    const style = (spec.style ?? 0) >>> 0;
+    const parent = spec.parent >>> 0;
+    const child = !!parent;
+    const args = [
+      (spec.exStyle ?? 0) >>> 0,
+      classPointer,
+      titlePointer,
+      child ? style | 0x40000000 : style || 0x00cf0000,
+      spec.x | 0,
+      spec.y | 0,
+      spec.width | 0,
+      spec.height | 0,
+      parent,
+      spec.menuOrId ?? spec.controlId ?? 0,
+      spec.instance ?? r.pe.imageBase,
+      0,
+    ];
+    return await create(r, (i) => args[i] ?? 0, false);
+  } finally {
+    if (classPointer) r.free(classPointer);
+    if (titlePointer) r.free(titlePointer);
+  }
+}
+
+// A host-provided top-level class the dialog layer builds its frames with. It
+// has no control behaviour and no class procedure: the dialog's own procedure
+// receives every message, which is what a DLGPROC expects.
+const HOST_WINDOW_CLASSES = new Map([
+  [
+    'winebrowser-dialog',
+    {
+      name: 'winebrowser-dialog',
+      wide: false,
+      proc: 0,
+      extra: 0,
+      background: 0,
+      cursor: 32512,
+      icon: 0,
+      style: 0,
+    },
+  ],
+]);
+function builtinWindowClass(name) {
+  return HOST_WINDOW_CLASSES.get(String(name).toLowerCase()) ?? null;
 }
 
 export const windowApis = { ...cursorApis, ...windowFindApis, ...windowDataApis };
@@ -1288,23 +1364,78 @@ Object.assign(windowApis, {
   'user32.dll!MoveWindow': moveWindow,
   'user32.dll!DrawEdge': drawEdge,
   'user32.dll!GetSystemMetrics': (r, a) => {
-    const values = { 4: TITLE, 5: BORDER, 6: BORDER };
-    const displayValue = virtualSystemMetric(a(0), r);
+    const metric = a(0) | 0;
+    const displayValue = virtualSystemMetric(metric, r);
     if (displayValue !== undefined) return result(displayValue, 1);
-    if (!(a(0) in values)) throw Error(`Unsupported system metric ${a(0)}`);
-    return result(values[a(0)], 1);
+    // The remaining metrics describe the browser desktop's fixed visual
+    // proportions: a title bar and border from the same frame constants the
+    // window manager uses, a standard 16x16 icon, 8-pixel scroll bars, and the
+    // menu metrics the menu bar is drawn with. Anything undefined reports 0,
+    // which is what Windows itself returns for a metric it does not know.
+    const values = {
+      2: 17, // SM_CXVSCROLL
+      3: 17, // SM_CYHSCROLL
+      4: TITLE, // SM_CYCAPTION
+      5: BORDER, // SM_CXBORDER
+      6: BORDER, // SM_CYBORDER
+      7: BORDER, // SM_CXDLGFRAME
+      8: BORDER, // SM_CYDLGFRAME
+      9: 17, // SM_CYVTHUMB
+      10: 17, // SM_CXHTHUMB
+      11: 32, // SM_CXICON
+      12: 32, // SM_CYICON
+      13: 32, // SM_CXCURSOR
+      14: 32, // SM_CYCURSOR
+      15: MENU_BAR_HEIGHT, // SM_CYMENU
+      19: 1, // SM_MOUSEPRESENT
+      20: 17, // SM_CYVSCROLL
+      21: 17, // SM_CXHSCROLL
+      28: 112, // SM_CXMIN
+      29: 27, // SM_CYMIN
+      30: 16, // SM_CXSIZE
+      31: 16, // SM_CYSIZE
+      32: BORDER, // SM_CXFRAME
+      33: BORDER, // SM_CYFRAME
+      34: 112, // SM_CXMINTRACK
+      35: 27, // SM_CYMINTRACK
+      36: 4, // SM_CXDOUBLECLK
+      37: 4, // SM_CYDOUBLECLK
+      38: 75, // SM_CXICONSPACING
+      39: 75, // SM_CYICONSPACING
+      43: 3, // SM_CMOUSEBUTTONS
+      45: 2, // SM_CXEDGE
+      46: 2, // SM_CYEDGE
+      49: 16, // SM_CXSMICON
+      50: 16, // SM_CYSMICON
+      51: TITLE - 4, // SM_CYSMCAPTION
+      54: 16, // SM_CXMENUSIZE
+      55: 16, // SM_CYMENUSIZE
+      57: 160, // SM_CXMINIMIZED
+      58: 24, // SM_CYMINIMIZED
+      68: 4, // SM_CXDRAG
+      69: 4, // SM_CYDRAG
+      71: 13, // SM_CXMENUCHECK
+      72: 13, // SM_CYMENUCHECK
+      75: 1, // SM_MOUSEWHEELPRESENT
+      83: 1, // SM_CXFOCUSBORDER
+      84: 1, // SM_CYFOCUSBORDER
+    };
+    return result(values[metric] ?? 0, 1);
   },
 });
 
 function adjustRect(r, a, extended) {
-  if (a(2) || (extended && a(3) & ~0x40008))
-    throw Error('Window menus and these extended styles are unsupported');
+  // AdjustWindowRect(Ex) grows a client rectangle into the window rectangle
+  // that would produce it. A menu adds the menu-bar height above the client
+  // area, which is why the caller passes bMenu TRUE for a window with a menu.
+  const menu = !!a(2);
+  if (extended && a(3) & ~0x40008) throw Error('Unsupported extended window styles');
   r.check(a(0), 16, true);
   const rect = [0, 4, 8, 12].map((i) => r.read32(a(0) + i) | 0);
   const { border, title } = windowFrame(a(1));
   rectangle(r, a(0), [
     rect[0] - border,
-    rect[1] - title - border,
+    rect[1] - title - border - (menu ? MENU_BAR_HEIGHT : 0),
     rect[2] + border,
     rect[3] + border,
   ]);

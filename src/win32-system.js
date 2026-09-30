@@ -515,8 +515,12 @@ function loadString(r, a, wide) {
   const buffer = a(2);
   const capacity = a(3) | 0;
   if (!id) return fail(r, 87, 4);
-  const block = (id - 1) >> 4;
-  const index = (id - 1) & 0xf;
+  // Wine's LoadStringW selects the block with `(id >> 4) + 1` and the entry
+  // inside it with `id & 0x0f`. Block 1's entry 0 therefore holds string 0 (an
+  // unused slot) and entry 1 holds string 1; using (id - 1) here would shift
+  // every lookup by one and return the neighbouring string.
+  const block = (id >> 4) + 1;
+  const index = id & 0xf;
   let value = null;
   try {
     const bytes = readPEResource(module.bytes, RT_STRING, block);

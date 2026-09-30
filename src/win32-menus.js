@@ -31,38 +31,47 @@ function menuState(r) {
   return r.menus;
 }
 
-// A PE MENU resource is a compact byte stream: a 16-bit header, then repeated
-// MENUITEMTEMPLATE records that end when the flags(word) is zero, with a POPUP
-// entry containing its own nested list. See winuser.h MENUITEMTEMPLATE.
+// A PE MENU resource is a compact byte stream. It begins with the four-byte
+// MENUHEADER { wVersion, cbHeaderSize }, then repeated MENUITEMTEMPLATE records
+// that end when the flags word is zero. Each record is { mtOption, mtID } plus a
+// NUL-terminated UTF-16 string — the standard template does NOT length-prefix
+// its text (that is the MENUEX format, which begins with version 1). A popup
+// item's own item list follows its string immediately. See winuser.h
+// MENUITEMTEMPLATE and Wine's load_menu_name.
 function parseMenuResource(bytes, offset = 0, depth = 0) {
   if (depth > 8 || offset < 0 || offset + 4 > bytes.length) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const headerSize = view.getUint16(offset, true);
-  let at = offset + headerSize;
+  // Only the standard template is modelled; version 1 is MENUEX.
+  if (view.getUint16(offset, true) !== 0) return null;
+  let at = offset + 4;
   const items = [];
   while (at + 4 <= bytes.length) {
     const flags = view.getUint16(at, true);
-    if (flags === 0) break;
+    if (flags === 0) return { items, end: at + 2 };
     const id = view.getUint16(at + 2, true);
     at += 4;
-    if (flags & 0x800) {
+    if (flags & MF_SEPARATOR) {
       items.push({ flags, id, text: '', separator: true });
       continue;
     }
-    if (at + 2 > bytes.length) return null;
-    const length = view.getUint16(at, true);
-    at += 2;
     let text = '';
-    for (let i = 0; i < length; i++) text += String.fromCharCode(view.getUint16(at + i * 2, true));
-    at += length * 2;
+    while (at + 2 <= bytes.length) {
+      const unit = view.getUint16(at, true);
+      at += 2;
+      if (unit === 0) break;
+      text += String.fromCharCode(unit);
+    }
     if (flags & MF_POPUP) {
+      // A popup's items follow its string directly: the nested list repeats the
+      // MENUHEADER record, which is what parseMenuResource consumes.
       const child = parseMenuResource(bytes, at, depth + 1);
       if (!child) return null;
       items.push({ flags, id, text, submenu: child });
       at = child.end;
     } else items.push({ flags, id, text });
   }
-  return { items, headerSize, end: at + 2 };
+  // A truncated template still yields the items read so far.
+  return { items, end: at };
 }
 
 // Flattens a parsed menu into the JSON the desktop renderer consumes, keeping
@@ -194,7 +203,7 @@ export const menuApis = {
     return { result: flags, argc: 3, resultHigh: 0xffffffff };
   },
 };
-const MENU_BAR_HEIGHT = 20;
+export const MENU_BAR_HEIGHT = 20;
 
 function loadMenu(r, a, wide) {
   const state = menuState(r);
