@@ -177,3 +177,60 @@ test('the bounded printf family applies the CRT size rules through the Wine body
   assert.equal((await call('swprintf_s', [5, wideSpec, 32, wideBuffer])).result, 3);
   assert.equal(r.wideString(wideBuffer), 'w=5');
 });
+
+test('the stream printf family writes through the Wine body to stdout and a FILE*', async () => {
+  // printf/fprintf name a destination rather than a buffer, so the same real Wine
+  // body is reused and only the sink changes. Every entry point is cdecl, which
+  // the stack delta proves: only the return address is removed.
+  const r = setup(),
+    spec = r.allocString('v=%d;'),
+    result = [];
+  // collect stdout
+  const collect = (event) => {
+    if (event.type === 'stdout') result.push(event.text);
+  };
+  r.on?.('event', collect);
+  r.emit = ((original) => (event) => {
+    collect(event);
+    return original?.call(r, event);
+  })(r.emit?.bind(r));
+
+  const call = async (name, pushes) => {
+    const original = r.cpu.r[4].value;
+    for (const value of pushes) r.cpu.push(value);
+    r.cpu.push(0x12345678);
+    const stack = r.cpu.r[4].value;
+    await r.api({ dll: 'msvcrt.dll', name });
+    const response = { result: r.cpu.r[0].value | 0, delta: r.cpu.r[4].value - stack };
+    r.cpu.r[4].value = original;
+    return response;
+  };
+
+  // printf(format, ...): the varargs block starts past the format.
+  const printf = await call('printf', [11, spec]);
+  assert.equal(printf.result, 5, 'printf returns the number of characters written');
+  assert.equal(printf.delta, 4, 'printf is cdecl');
+  assert.equal(result.join(''), 'v=11;');
+
+  // vprintf takes the list as a named argument instead of a `...` block.
+  result.length = 0;
+  const va = r.allocate(4);
+  r.write32(va, 22);
+  await call('vprintf', [va, spec]);
+  assert.equal(result.join(''), 'v=22;');
+
+  // _scprintf counts without writing.
+  result.length = 0;
+  const counted = await call('_scprintf', [33, spec]);
+  assert.equal(counted.result, 5);
+  assert.equal(result.join(''), '', 'the count-only form writes nothing');
+
+  // fprintf(stream, format, ...) writes to the named stream. stdout is the
+  // second entry of the standard block.
+  result.length = 0;
+  const stdout = r.apiProvider.get('msvcrt.dll!__p__iob')(r, () => 0);
+  void stdout;
+  const iob = r.apiProvider.get('msvcrt.dll!_iob')(r, () => 0).result >>> 0;
+  await call('fprintf', [44, spec, iob + 32]);
+  assert.equal(result.join(''), 'v=44;');
+});

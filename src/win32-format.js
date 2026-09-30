@@ -51,6 +51,19 @@ async function wineFormatText(r, wide, spec, valuePointer) {
   return { codes, truncated: written >= FORMAT_CAPACITY };
 }
 
+// The stream entry points (printf/fprintf and their wide forms) live in
+// msvcrt.js, which owns the FILE* table; they only need the formatter body's
+// text, so expose that step instead of duplicating the Wine call.
+export async function formatText(r, wide, spec, valuePointer) {
+  return wineFormatText(r, wide, spec, valuePointer);
+}
+
+// The va_list a `...` block starts at for an entry point with `named` named
+// arguments: ESP still points at the return address when a thunk runs.
+export function variadicPointer(r, named) {
+  return (r.cpu.r[4].value >>> 0) + (named + 1) * 4;
+}
+
 // Writes `codes` into a guest buffer with the caller's capacity, following the
 // CRT's contract: at most capacity-1 characters and always a terminator.
 function writeBounded(r, buffer, capacity, codes, limit = capacity - 1, wide = false) {

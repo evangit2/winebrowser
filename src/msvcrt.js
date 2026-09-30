@@ -16,6 +16,7 @@ import { processCommandLine, processArguments } from './command-line.js';
 import { encodeAnsi } from './encoding.js';
 import { fileMetadata } from './file-metadata.js';
 import { crtCtypeCell, registerCrtExtended } from './msvcrt-extended.js';
+import { registerStreamPrintf } from './msvcrt-printf.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 // x86 argument passing: a double occupies two DWORDs on the stack, low half
@@ -1493,6 +1494,15 @@ function registerStdio() {
   add('_iob', (r, a) => ok(standardStreams(r).base, 0));
 }
 registerStdio();
+
+registerStreamPrintf(msvcrtApis, {
+  streamFor,
+  standardStreams,
+  writeStream,
+  errnoCell,
+  fputc,
+  fgetc,
+});
 
 // ---------------------------------------------------------------------------
 // The low-level CRT file-descriptor layer (_open/_read/_write/_close/_lseek and
