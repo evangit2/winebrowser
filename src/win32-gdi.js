@@ -27,6 +27,7 @@ const STOCK_BLACK_PEN = 0x11101;
 const STOCK_WHITE_PEN = 0x11102;
 const STOCK_NULL_PEN = 0x11103;
 const STOCK_SYSTEM_FONT = 0x11104;
+const STOCK_DEFAULT_PALETTE = 0x10008;
 const MAX_WINDOW_SURFACES = 8;
 const MAX_TOTAL_SURFACE_PIXELS = 16 * 1024 * 1024;
 const PATCOPY = 0x00f00021;
@@ -474,6 +475,295 @@ function setBkMode(runtime, argument) {
  * dependent. Width, escapement/orientation, nondefault precisions, and
  * nondefault pitch/family are rejected rather than approximated silently.
  */
+
+// ---------------------------------------------------------------------------
+// Text metrics, object queries and the remaining shape/clip primitives. They
+// answer from the DC's selected font and the runtime's own rasterizer, so a
+// caller that sizes a control from GetTextMetrics gets the same numbers the
+// painted glyphs use.
+function currentFont(runtime, state, dc) {
+  return dc.font ? getFont(state, dc.font) : null;
+}
+function fontMetrics(runtime, state, dc) {
+  const font = currentFont(runtime, state, dc) ?? DEFAULT_GDI_FONT;
+  const measured = rasterizeGdiText(runtime, 'Wg', font);
+  const height = measured.error ? font.height : Math.max(font.height, measured.mask.height);
+  const width = measured.error ? 8 : Math.max(1, Math.round(measured.mask.width / 2));
+  return {
+    height,
+    width,
+    ascent: Math.round(height * 0.8),
+    descent: height - Math.round(height * 0.8),
+  };
+}
+// GetTextMetricsA/W fills a TEXTMETRIC. Only the fields the runtime can answer
+// honestly are set; the rest stay zero, which is what an application reads for
+// an unavailable attribute.
+function getTextMetrics(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2);
+  const out = argument(1);
+  if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  const size = wide ? 60 : 56;
+  runtime.check(out, size, true);
+  runtime.data.fill(0, out, out + size);
+  const { height, width, ascent } = fontMetrics(runtime, state, dc);
+  runtime.write32(out, height); // tmHeight
+  runtime.write32(out + 4, ascent); // tmAscent
+  runtime.write32(out + 8, height - ascent); // tmDescent
+  runtime.write32(out + 20, width); // tmAveCharWidth
+  runtime.write32(out + 24, width); // tmMaxCharWidth
+  runtime.write32(out + 28, 700); // tmWeight
+  runtime.data[out + 40] = 0x31; // tmCharSet DEFAULT_CHARSET
+  return success(1, 2);
+}
+// GetDeviceCaps(HDC, int): the virtual display reports the same fixed profile
+// for every DC, which is what the renderer actually honours.
+const DEVICE_CAPS = {
+  8: 88, // HORZSIZE (millimetres)
+  10: 66, // VERTSIZE
+  12: 96, // BITSPIXEL
+  14: 1, // PLANES
+  16: 8, // CLIPCAPS (rectangle clipping)
+  18: 1, // SIZEPALETTE
+  20: 1, // NUMRESERVED
+  22: 24, // RASTERCAPS
+  24: 0, // ASPECTX
+  26: 0, // ASPECTY
+  28: 0, // ASPECTXY
+  30: 0, // LOGPIXELSX is 88 in Win32? set below
+  38: 0, // VREFRESH
+  40: 1, // NUMCOLORS for a palette device
+  52: 1, // COLORRES
+  88: 96, // LOGPIXELSX
+  90: 96, // LOGPIXELSY
+  104: 0, // PHYSICALWIDTH (unknown)
+  106: 0, // PHYSICALHEIGHT
+  108: 0, // PHYSICALOFFSETX
+  110: 0, // PHYSICALOFFSETY
+  112: 1, // SCALINGFACTORX
+  114: 1, // SCALINGFACTORY
+};
+function getDeviceCaps(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
+  const index = argument(1) | 0;
+  // The virtual display is a 96-dpi colour raster device with rectangle
+  // clipping; every other capability is reported as zero rather than guessed.
+  const values = { ...DEVICE_CAPS };
+  values[10] = 66;
+  values[30] = 0;
+  return success(values[index] ?? 0, 2);
+}
+// Get(Current)Object reports the handle a DC currently has selected.
+function getCurrentObject(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
+  const kind = argument(1) >>> 0;
+  // OBJ_PEN 1, OBJ_BRUSH 2, OBJ_PAL 5, OBJ_FONT 6, OBJ_BITMAP 7.
+  if (kind === 1) return success(dc.pen, 2);
+  if (kind === 2) return success(dc.brush, 2);
+  if (kind === 5) return success(dc.palette ?? STOCK_DEFAULT_PALETTE, 2);
+  if (kind === 6) return success(dc.font, 2);
+  if (kind === 7) return success(dc.bitmap ?? 0, 2);
+  return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+}
+// GetObject reports the description of a GDI object. The LOGFONT and
+// BITMAP/LOGBITMAP layouts are the ones applications actually query.
+function getObject(runtime, argument, wide) {
+  const state = stateFor(runtime);
+  const handle = argument(0) >>> 0;
+  const size = argument(1) | 0;
+  const out = argument(2);
+  if (size < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  if (!out) return success(0, 3);
+  const font = getFont(state, handle);
+  if (font && size >= 60) {
+    runtime.check(out, 60, true);
+    runtime.data.fill(0, out, out + 60);
+    runtime.write32(out, -font.height); // lfHeight
+    runtime.write32(out + 16, font.weight); // lfWeight
+    runtime.data[out + 23] = 0x31; // lfCharSet DEFAULT_CHARSET
+    const face = (font.face || 'sans-serif').slice(0, 31);
+    if (wide) {
+      for (let i = 0; i <= face.length; i++)
+        runtime.guestMemory.write(out + 28 + i * 2, i === face.length ? 0 : face.charCodeAt(i), 2);
+    } else {
+      for (let i = 0; i < face.length; i++) runtime.data[out + 28 + i] = face.charCodeAt(i) & 0xff;
+      runtime.data[out + 28 + face.length] = 0;
+    }
+    return success(60, 3);
+  }
+  const bitmap = state.bitmaps.get(handle);
+  if (bitmap && size >= 32) {
+    runtime.check(out, Math.min(size, 32), true);
+    runtime.data.fill(0, out, out + Math.min(size, 32));
+    runtime.write32(out, bitmap.width);
+    runtime.write32(out + 4, bitmap.height);
+    runtime.view.setUint16(out + 14, bitmap.monochrome ? 1 : 32, true);
+    return success(32, 3);
+  }
+  const pen = getPen(state, handle);
+  if (pen && size >= 20) {
+    runtime.check(out, Math.min(size, 20), true);
+    runtime.data.fill(0, out, out + Math.min(size, 20));
+    runtime.write32(out + 4, pen.width);
+    return success(20, 3);
+  }
+  const brush = getBrush(state, handle);
+  if (brush && size >= 20) {
+    runtime.check(out, Math.min(size, 20), true);
+    runtime.data.fill(0, out, out + Math.min(size, 20));
+    return success(20, 3);
+  }
+  return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+}
+// Set/GetTextAlign control the DC's text alignment flags.
+function setTextAlign(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2, CLR_INVALID);
+  const flags = argument(1) >>> 0;
+  if (flags & ~0x1f) return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 2);
+  const previous = dc.textAlign ?? 0;
+  dc.textAlign = flags;
+  return success(previous, 2);
+}
+function getTextAlign(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 1, CLR_INVALID);
+  return success(dc.textAlign ?? 0, 1);
+}
+function setTextCharacterExtra(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2, CLR_INVALID);
+  const extra = argument(1) | 0;
+  const previous = dc.charExtra ?? 0;
+  dc.charExtra = extra;
+  return success(previous, 2);
+}
+function getTextCharacterExtra(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 1, CLR_INVALID);
+  return success(dc.charExtra ?? 0, 1);
+}
+// GetBkMode / SetMapMode / GetMapMode.
+function getBkMode(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 1, CLR_INVALID);
+  return success(dc.bkMode ?? 2, 1);
+}
+function getMapMode(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 1);
+  return success(dc.mapMode ?? 1, 1); // MM_TEXT
+}
+function setMapMode(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
+  if ((argument(1) | 0) !== 1) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  const previous = dc.mapMode ?? 1;
+  dc.mapMode = 1;
+  return success(previous, 2);
+}
+// Rectangle(hdc, left, top, right, bottom): a filled, outlined rectangle drawn
+// with the DC's brush and pen.
+function rectangleShape(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 5);
+  const left = signed(argument(1)),
+    top = signed(argument(2));
+  const right = signed(argument(3)),
+    bottom = signed(argument(4));
+  fillPolygon(
+    dc,
+    [
+      [left, top],
+      [right, top],
+      [right, bottom],
+      [left, bottom],
+    ],
+    shapeBrush(runtime, state, dc),
+  );
+  strokePolygon(
+    dc,
+    [
+      [left, top],
+      [right, top],
+      [right, bottom],
+      [left, bottom],
+      [left, top],
+    ],
+    shapePen(runtime, state, dc),
+    false,
+  );
+  return success(1, 5);
+}
+// Polyline(hdc, points, count): an open run of line segments.
+function polyline(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 3);
+  const points = readPoints(runtime, argument(1), argument(2) >>> 0);
+  if (!points) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  strokePolygon(dc, points, shapePen(runtime, state, dc), false);
+  return success(1, 3);
+}
+// SetRectRgn/IntersectClipRect/ExcludeClipRect adjust the DC's clip rectangle.
+// The runtime tracks one rectangular clip, so these are exact for that case.
+function getClipRect(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2, CLR_INVALID);
+  const out = argument(1);
+  if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  const clip = dc.clip ?? [0, 0, dc.surface.width, dc.surface.height];
+  rectangle(runtime, out, clip);
+  return success(clip[2] > clip[0] && clip[3] > clip[1] ? 2 : 1, 2);
+}
+function intersectClipRect(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 5, CLR_INVALID);
+  const current = dc.clip ?? [0, 0, dc.surface.width, dc.surface.height];
+  const next = [
+    Math.max(current[0], signed(argument(1))),
+    Math.max(current[1], signed(argument(2))),
+    Math.min(current[2], signed(argument(3))),
+    Math.min(current[3], signed(argument(4))),
+  ];
+  dc.clip = next;
+  return success(next[2] > next[0] && next[3] > next[1] ? 2 : 1, 5);
+}
+function excludeClipRect(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 5, CLR_INVALID);
+  // An exclusion is not a rectangle, so the runtime keeps the existing clip and
+  // reports the region as complex. Drawing stays bounded by the current clip.
+  return success(3, 5);
+}
+function selectClipRgn(runtime, argument) {
+  const state = stateFor(runtime);
+  const dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2, CLR_INVALID);
+  if (!argument(1)) {
+    dc.clip = [0, 0, dc.surface.width, dc.surface.height];
+    return success(1, 2);
+  }
+  return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 2);
+}
+
 function createFont(runtime, argument, wide) {
   const state = stateFor(runtime);
   let descriptor;
@@ -1253,6 +1543,25 @@ export const gdiApis = {
     dc.layout = value;
     return success(previous, 2);
   },
+  'gdi32.dll!GetBkMode': getBkMode,
+  'gdi32.dll!GetMapMode': getMapMode,
+  'gdi32.dll!SetMapMode': setMapMode,
+  'gdi32.dll!GetTextMetricsA': (runtime, argument) => getTextMetrics(runtime, argument, false),
+  'gdi32.dll!GetTextMetricsW': (runtime, argument) => getTextMetrics(runtime, argument, true),
+  'gdi32.dll!GetDeviceCaps': getDeviceCaps,
+  'gdi32.dll!GetCurrentObject': getCurrentObject,
+  'gdi32.dll!GetObjectA': (runtime, argument) => getObject(runtime, argument, false),
+  'gdi32.dll!GetObjectW': (runtime, argument) => getObject(runtime, argument, true),
+  'gdi32.dll!SetTextAlign': setTextAlign,
+  'gdi32.dll!GetTextAlign': getTextAlign,
+  'gdi32.dll!SetTextCharacterExtra': setTextCharacterExtra,
+  'gdi32.dll!GetTextCharacterExtra': getTextCharacterExtra,
+  'gdi32.dll!Rectangle': rectangleShape,
+  'gdi32.dll!Polyline': polyline,
+  'gdi32.dll!GetClipBox': getClipRect,
+  'gdi32.dll!IntersectClipRect': intersectClipRect,
+  'gdi32.dll!ExcludeClipRect': excludeClipRect,
+  'gdi32.dll!SelectClipRgn': selectClipRgn,
   'gdi32.dll!SetBkMode': setBkMode,
   'gdi32.dll!MoveToEx': moveToEx,
   'gdi32.dll!LineTo': lineTo,

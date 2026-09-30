@@ -98,12 +98,120 @@ function loadMenuFromModule(module, name) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Dynamic menus. CreateMenu/CreatePopupMenu allocate an empty tree that
+// AppendMenu/InsertMenu build up, which is how applications construct their
+// menu bars at runtime (and how a context menu is assembled).
+const MF_STRING = 0x0;
+const MF_OWNERDRAW = 0x100;
+const MF_BITMAP = 0x4;
+
+function createDynamicMenu(r, popup) {
+  const state = menuState(r);
+  if (state.byHandle.size >= MAX_MENUS) return fail(r, 8, 0);
+  const handle = state.nextHandle++;
+  state.byHandle.set(handle, {
+    handle,
+    items: [],
+    count: 0,
+    checked: new Set(),
+    disabled: new Set(),
+    popup: !!popup,
+  });
+  return ok(handle, 0);
+}
+function readMenuText(r, pointer, wide) {
+  if (!pointer) return '';
+  return wide ? r.wideString(pointer) : r.string(pointer);
+}
+// AppendMenu/InsertMenu share one implementation: MF_BYPOSITION selects a slot
+// by index, MF_BYCOMMAND by command id.
+function addMenuItem(r, a, wide, insert) {
+  const state = menuState(r);
+  const menu = state.byHandle.get(a(0));
+  if (!menu) return fail(r, 6, insert ? 5 : 5);
+  const flags = a(1) >>> 0;
+  const id = insert ? a(2) >>> 0 : a(2) >>> 0;
+  const data = insert ? a(3) >>> 0 : a(3) >>> 0;
+  const byPosition = !!(flags & 0x400);
+  let index = insert ? a(4) | 0 : menu.items.length;
+  if (insert && !byPosition) {
+    const found = menu.items.findIndex((item) => item.id === (a(4) | 0));
+    if (found >= 0) index = found;
+  }
+  if (index < 0 || index > menu.items.length) index = menu.items.length;
+  const entry = {
+    flags,
+    id,
+    text: flags & MF_OWNERDRAW || flags & MF_BITMAP ? '' : readMenuText(r, data, wide),
+    separator: false,
+  };
+  if (flags & MF_POPUP) {
+    const child = state.byHandle.get(data);
+    if (!child) return fail(r, 6, 5);
+    entry.id = data;
+    entry.submenu = { items: child.items, end: 0 };
+    entry.popup = true;
+  }
+  menu.items.splice(index, 0, entry);
+  menu.count = menu.items.length;
+  for (const window of r.windows.windows.values()) if (window.menu === a(0)) r.windows.emit(window);
+  return ok(1, 5);
+}
+function deleteMenuItem(r, a) {
+  const state = menuState(r);
+  const menu = state.byHandle.get(a(0));
+  if (!menu) return fail(r, 6, 3);
+  const flags = a(1) >>> 0;
+  const index =
+    flags & 0x400
+      ? a(2) | 0
+      : menu.items.findIndex((item) => item.id === a(2) >>> 0 && !item.separator);
+  if (index >= 0 && index < menu.items.length) {
+    menu.items.splice(index, 1);
+    menu.count = menu.items.length;
+  }
+  for (const window of r.windows.windows.values()) if (window.menu === a(0)) r.windows.emit(window);
+  return ok(1, 3);
+}
+function getSystemMenu(r, a) {
+  // The system menu is the window-menu the browser desktop draws itself, so the
+  // runtime hands back a real handle it can answer further queries about.
+  const window = r.windows.windows.get(a(0));
+  if (!window) return fail(r, 1400, 2);
+  const state = menuState(r);
+  window.systemMenu ??= state.nextHandle++;
+  const handle = window.systemMenu;
+  if (!state.byHandle.has(handle))
+    state.byHandle.set(handle, {
+      handle,
+      items: [
+        { flags: 0, id: 0xf020, text: '&Size' },
+        { flags: 0, id: 0xf030, text: '&Move' },
+        { flags: 0, id: 0xf060, text: '&Close' },
+      ],
+      count: 3,
+      checked: new Set(),
+      disabled: new Set(),
+      system: true,
+    });
+  return ok(handle, 2);
+}
+
 export const menuApis = {
   // LoadMenuA/W(HINSTANCE, LPCTSTR): the name may be a string or an ordinal.
   'user32.dll!LoadMenuA': (r, a) => loadMenu(r, a, false),
   'user32.dll!LoadMenuW': (r, a) => loadMenu(r, a, true),
   'user32.dll!LoadMenuIndirectA': (r, a) => loadMenuIndirect(r, a(0)),
   'user32.dll!LoadMenuIndirectW': (r, a) => loadMenuIndirect(r, a(0)),
+  'user32.dll!CreateMenu': (r) => createDynamicMenu(r, false),
+  'user32.dll!CreatePopupMenu': (r) => createDynamicMenu(r, true),
+  'user32.dll!AppendMenuA': (r, a) => addMenuItem(r, a, false, false),
+  'user32.dll!AppendMenuW': (r, a) => addMenuItem(r, a, true, false),
+  'user32.dll!InsertMenuA': (r, a) => addMenuItem(r, a, false, true),
+  'user32.dll!InsertMenuW': (r, a) => addMenuItem(r, a, true, true),
+  'user32.dll!DeleteMenu': deleteMenuItem,
+  'user32.dll!GetSystemMenu': getSystemMenu,
   // DestroyMenu / SetMenu / GetMenu.
   'user32.dll!DestroyMenu': (r, a) => {
     const state = menuState(r);
@@ -193,6 +301,29 @@ export const menuApis = {
   'user32.dll!GetMenuItemCount': (r, a) => {
     const menu = menuState(r).byHandle.get(a(0));
     return menu ? ok(menu.count, 1) : fail(r, 6, 1);
+  },
+  // CheckRadioButton(hDlg, first, last, check): exactly one id in the range
+  // becomes checked and the rest clear, which is what a radio group means.
+  'user32.dll!CheckRadioButton': (r, a) => {
+    const first = a(1) | 0,
+      last = a(2) | 0,
+      check = a(3) | 0;
+    if (last < first) return fail(r, 87, 4);
+    let changed = false;
+    for (const window of r.windows.windows.values()) {
+      if (window.parentId !== a(0) || window.controlType !== 'button') continue;
+      const id = window.controlId ?? 0;
+      if (id < first || id > last) continue;
+      const next = id === check ? 1 : 0;
+      if ((window.checkState ?? 0) !== next) {
+        window.checkState = next;
+        r.windows.emit(window);
+        changed = true;
+      }
+    }
+    if (!changed && ![...r.windows.windows.values()].some((w) => w.parentId === a(0)))
+      return fail(r, 1400, 4);
+    return ok(1, 4);
   },
   'user32.dll!GetMenuState': (r, a) => {
     const menu = menuState(r).byHandle.get(a(0));
