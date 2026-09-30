@@ -857,7 +857,11 @@ async function create(r, a, wide) {
     const clientWidth = (r.read32(clientRect + 8) - r.read32(clientRect)) | 0;
     const clientHeight = (r.read32(clientRect + 12) - r.read32(clientRect + 4)) | 0;
     if (clientWidth !== w.width || clientHeight !== w.height)
-      throw Error('Custom nonclient window geometry is unsupported');
+      throw Error(
+        `Custom nonclient window geometry is unsupported: the class produced ` +
+          `${clientWidth}x${clientHeight} but the runtime computed ${w.width}x${w.height} ` +
+          `(style 0x${w.style.toString(16)}, exStyle 0x${w.exStyle.toString(16)})`,
+      );
     m.emit(w, 'create');
     w.presented = true;
     if ((await m.send(w.id, 1, 0, cs)) === 0xffffffff) {

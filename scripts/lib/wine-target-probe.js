@@ -46,6 +46,7 @@ export async function probeWineTarget(
     requests: [],
     blockTrace: [],
     apiResults: [],
+    handlerTrace: [],
     registerClobbers: [],
     frames: 0,
     nativeLoaderCalls: [],
@@ -268,7 +269,7 @@ export async function probeWineTarget(
         // frame instead.
         const stack = watch ? runtime.cpu.r[4].value >>> 0 : 0;
         const args = watch
-          ? Array.from({ length: 8 }, (_, i) => {
+          ? Array.from({ length: 12 }, (_, i) => {
               try {
                 return hex(runtime.read32(stack + 4 + i * 4));
               } catch {
@@ -276,11 +277,28 @@ export async function probeWineTarget(
               }
             })
           : null;
+        // A pointer argument is usually a structure whose contents decide the
+        // call's outcome, so the first argument's bytes are recorded too.
+        const structure =
+          watch && stack
+            ? (() => {
+                try {
+                  const pointer = runtime.read32(stack + 4) >>> 0;
+                  return Array.from(runtime.data.subarray(pointer, pointer + 48), (b) =>
+                    b.toString(16).padStart(2, '0'),
+                  ).join(' ');
+                } catch {
+                  return null;
+                }
+              })()
+            : null;
         const result = await api(entry);
         if (watch)
           report.apiResults.push({
             name: key,
             args,
+            structure,
+            lastError: hex(runtime.lastError ?? 0),
             result: hex(result?.result ?? 0),
             instructions: runtime.cpu.instructions,
           });
@@ -658,6 +676,56 @@ export async function probeWineTarget(
       }
       return dump;
     };
+    // A named API can be wrapped to observe its decision directly when the
+    // return value alone does not explain the outcome.
+    for (const name of limits.traceHandlers ?? []) {
+      const handler = runtime.apiProvider.get(name);
+      if (!handler) continue;
+      runtime.apiProvider.set(name, async (r, a) => {
+        // The first argument is usually a structure the call reads and writes,
+        // so its bytes are recorded on both sides of the call: a call that
+        // reports success while leaving the structure untouched is a defect the
+        // return value alone cannot show.
+        // Every readable pointer argument is snapshotted: a call often reads one
+        // structure and fills another, and knowing what the runtime handed back
+        // is what explains the guest's arithmetic afterwards.
+        const pointers = [];
+        for (let i = 0; i < 4; i++) {
+          try {
+            const value = a(i) >>> 0;
+            if (value >= 0x1000 && value + 64 <= runtime.data.length) pointers.push([i, value]);
+          } catch {
+            break;
+          }
+        }
+        const snapshotAll = () =>
+          pointers.map(([index, value]) => ({
+            index,
+            bytes: Array.from(runtime.data.subarray(value, value + 64), (b) =>
+              b.toString(16).padStart(2, '0'),
+            ).join(' '),
+          }));
+        const before = snapshotAll();
+        const response = await handler(r, a);
+        if (report.handlerTrace.length < 64)
+          report.handlerTrace.push({
+            name,
+            args: Array.from({ length: 6 }, (_, i) => {
+              try {
+                return hex(a(i));
+              } catch {
+                return null;
+              }
+            }),
+            before,
+            after: snapshotAll(),
+            result: hex(response?.result ?? 0),
+            lastError: hex(runtime.lastError ?? 0),
+            classes: [...(runtime.windows?.classes?.keys() ?? [])],
+          });
+        return response;
+      });
+    }
     const dispatch = runtime.dispatch.bind(runtime);
     runtime.dispatch = async (...args) => {
       try {
