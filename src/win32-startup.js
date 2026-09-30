@@ -35,6 +35,8 @@ function heapDestroy(r, a) {
 function heapAllocOn(r, a) {
   const heap = a(0);
   if (heap !== 0x50000000 && !r.customHeaps?.has(heap)) return fail(r, 6, 3);
+  // HEAP_NO_SERIALIZE (0x1), HEAP_GENERATE_EXCEPTIONS (0x4) and
+  // HEAP_ZERO_MEMORY (0x8).
   if (a(1) & ~0xd) return fail(r, 87, 3);
   if (!a(2)) return ok(0, 3);
   return ok(r.allocate(a(2), !!(a(1) & 8)), 3);
@@ -50,7 +52,10 @@ function heapFreeOn(r, a) {
 function heapReAlloc(r, a) {
   const heap = a(0);
   if (heap !== 0x50000000 && !r.customHeaps?.has(heap)) return fail(r, 6, 4);
-  if (a(1) & ~0xd) return fail(r, 87, 4);
+  // HEAP_NO_SERIALIZE, HEAP_GENERATE_EXCEPTIONS, HEAP_ZERO_MEMORY and
+  // HEAP_REALLOC_IN_PLACE_ONLY are all accepted; the last is advisory here
+  // because a shrink always stays in place and a grow only moves when forced.
+  if (a(1) & ~0x1d) return fail(r, 87, 4);
   const pointer = a(2),
     size = a(3);
   if (!pointer) return size ? ok(r.allocate(size, !!(a(1) & 8)), 4) : ok(0, 4);

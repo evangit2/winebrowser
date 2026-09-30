@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { PROCESS_LAYOUT } from '../src/process-layout.js';
 import { Runtime } from '../src/runtime.js';
+import { startupApis } from '../src/win32-startup.js';
 import { parsePE } from '../src/pe.js';
 import { PEB_PROCESS_HEAP, initializeWineProcess } from '../src/wine-process.js';
 import { PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS } from '../src/wine-parameters.js';
@@ -286,4 +287,55 @@ test('rejected attach releases bootstrap NLS views without unmapping unrelated s
     assert.deepEqual([...runtime.heap.allocations], allocations);
     for (const pointer of Object.values(PEB_NLS_POINTERS)) assert.equal(runtime.read32(pointer), 0);
   }
+});
+
+// Windows programs call HeapAlloc with HEAP_NO_SERIALIZE (0x1) far more often
+// than with no flags at all, and packers combine it with HEAP_ZERO_MEMORY.
+// Rejecting 0x1 with ERROR_INVALID_PARAMETER made those allocations fail.
+test('HeapAlloc and HeapReAlloc accept the documented flag combinations', async () => {
+  const runtime = {
+    allocations: new Map(),
+    customHeaps: null,
+    wineProcess: null,
+    lastError: 0,
+    allocate(size, zero) {
+      this.allocations.set(0x40000000 + this.allocations.size * 0x1000, { size, zero });
+      return 0x40000000 + (this.allocations.size - 1) * 0x1000;
+    },
+    reallocate(pointer, size, zero) {
+      const entry = this.allocations.get(pointer);
+      if (!entry) return null;
+      entry.size = size;
+      entry.zero = zero;
+      return pointer;
+    },
+    free(pointer) {
+      return this.allocations.delete(pointer);
+    },
+    allocationSize(pointer) {
+      return this.allocations.get(pointer)?.size ?? null;
+    },
+  };
+  const heap = 0x50000000;
+  for (const flags of [0, 1, 4, 8, 9, 0xd]) {
+    const result = await processApis['kernel32.dll!HeapAlloc'](
+      runtime,
+      (i) => [heap, flags, 64][i],
+    );
+    assert.notEqual(result.result, 0, `HeapAlloc accepts flags 0x${flags.toString(16)}`);
+    assert.equal(runtime.lastError, 0);
+  }
+  const pointer = await processApis['kernel32.dll!HeapAlloc'](runtime, (i) => [heap, 1, 64][i]);
+  for (const flags of [0, 1, 4, 8, 9, 0x10, 0x1d]) {
+    const result = await startupApis['kernel32.dll!HeapReAlloc'](
+      runtime,
+      (i) => [heap, flags, pointer.result, 128][i],
+    );
+    assert.notEqual(result.result, 0, `HeapReAlloc accepts flags 0x${flags.toString(16)}`);
+    assert.equal(runtime.lastError, 0);
+  }
+  // A flag outside the documented set is still rejected.
+  const bad = await processApis['kernel32.dll!HeapAlloc'](runtime, (i) => [heap, 0x100, 64][i]);
+  assert.equal(bad.result, 0);
+  assert.equal(runtime.lastError, 87);
 });

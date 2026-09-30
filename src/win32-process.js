@@ -99,7 +99,10 @@ async function heapAlloc(r, a) {
   const heap = a(0);
   if (r.wineProcess && heap !== 0x50000000 && !r.customHeaps?.has(heap))
     return ok(await callWineHeap(r, 'RtlAllocateHeap', [heap, a(1), a(2)]), 3);
-  if ((heap !== 0x50000000 && !r.customHeaps?.has(heap)) || a(1) & ~0xc) return fail(r, 87, 3);
+  // HEAP_NO_SERIALIZE (0x1), HEAP_GENERATE_EXCEPTIONS (0x4) and
+  // HEAP_ZERO_MEMORY (0x8) are the flags HeapAlloc honours; the serialization
+  // and exception flags carry no behaviour for a cooperatively scheduled guest.
+  if ((heap !== 0x50000000 && !r.customHeaps?.has(heap)) || a(1) & ~0xd) return fail(r, 87, 3);
   if (!a(2)) return ok(0, 3);
   return ok(r.allocate(a(2), !!(a(1) & 8)), 3);
 }
