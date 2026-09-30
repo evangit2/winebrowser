@@ -581,7 +581,7 @@
     },
     {
       "id": "humus-inferno-d3d10-x86",
-      "status": "blocked",
+      "status": "partial",
       "path": ".cache/targets/Inferno/Inferno.exe",
       "bytes": 166912,
       "sha256": "fc95e074f9538b20da237c084b9c952f9eb601b44afe600bf594a91b12835b0d",
@@ -609,7 +609,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "loads the supplied Inferno shaders/textures and opens its Direct3D 10 demo window",
-      "statusNote": "Static import closure is unresolved: ADVAPI32, MSVCR80, DXGI, and D3D10 are missing; SHELL32 lacks SHGetSpecialFolderPathA, and the image imports unsupported threading/window/clipboard APIs. No execution claimed."
+      "statusNote": "The import closure is fully resolved with the D3D10 frontend in place: 129 imports, none unsupported. The unchanged EXE now runs its CRT startup and reaches its own entry point (161k guest instructions) and then faults in its frame-chain helper on a write to 0x102cc, before any Direct3D call. Driving it found and fixed a real CRT defect: _controlfp_s takes the accumulated control word as its first argument, and the bounded definition treated the mask word as a pointer."
     },
     {
       "id": "wesmar-tetris-2026-07-x86",
