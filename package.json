@@ -82,6 +82,7 @@
     "probe:wine-target": "node scripts/probe-wine-target.mjs",
     "serve:pages": "node scripts/serve-pages.mjs",
     "test": "node --test tests/*.test.js",
+    "test:7zr": "node scripts/test-7zr-browser.mjs",
     "test:blending": "node scripts/test-blending-browser.mjs",
     "test:blending-backend": "node scripts/test-d3d-blending-backend.mjs",
     "test:browser": "node scripts/test-browser.mjs",

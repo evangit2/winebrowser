@@ -387,7 +387,7 @@ D3D10/11 and broader D3D12 support are still required.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
 - [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, environment save/restore, additional SIMD, exception handling and broader thread semantics. x64 is a separate architectural task.
 - [ ] Run more unchanged desktop targets, starting with Minesweeper (32 unresolved imports at the last inspection); implement reusable dialog/menu/common-control/GDI services where Wine reuse is feasible.
-- [ ] Continue CRT-dependent application targets such as 7zr and PuTTY after Wine startup works. Passing import inspection alone is insufficient.
+- [x] Run a CRT-dependent console application end to end. The unchanged upstream **7zr** 26.03 archiver completes a full `add` in the ordinary harness: its CRT starts, it scans, creates `out.7z`, compresses the input, prints "Everything is Ok" and exits 0, and the output is a real 7z stream (`37 7a bc af 27 1c 00 04`). `npm run test:7zr` is the gate. PuTTY remains a separate blocked target with GUI/GDI/WGL needs.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
 - [x] Model private executable memory. `VirtualAlloc`/`VirtualProtect` now honour
       the full `PAGE_EXECUTE*` set for committed private pages instead of

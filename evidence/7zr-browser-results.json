@@ -1,0 +1,14 @@
+{
+  "binary": "7zr.exe",
+  "scope": "The unchanged upstream 7-Zip console archiver, uploaded with its input and asked to build an archive. Its CRT startup, console output, automation dependency, file creation and compression all run through the ordinary harness; the produced bytes are a real 7z stream.",
+  "date": "2026-09-30T00:28:36.509Z",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "browser": "153.0.8010.12",
+  "exeSha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
+  "exitCode": 0,
+  "instructions": 223940,
+  "compiledBlocks": 2590,
+  "archiveBytes": 98,
+  "stdout": "\n7-Zip (r) 26.03 (x86) : Igor Pavlov : Public domain : 2026-09-03\n\nScanning the drive:\n  0M Scan \r          \r1 file, 0 bytes\n\nCreating archive: out.7z\n\nAdd new data to archive: 1 file, 0 bytes\n\n  0%\r    \r\nFiles read from disk: 0\nArchive size: 98 bytes (1 KiB)\nEverything is Ok\n",
+  "errors": []
+}

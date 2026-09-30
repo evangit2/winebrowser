@@ -32,7 +32,7 @@ jobs:
       - run: npm run test:shaders
         env:
           BROWSER_CHANNEL: chromium
-      - run: node scripts/fetch-targets.mjs winapiexec-1.2-x86 pts-tinype-hh4t-x86
+      - run: node scripts/fetch-targets.mjs winapiexec-1.2-x86 pts-tinype-hh4t-x86 7zip-7zr-26.03-x86
       - run: node scripts/test-external-browser.mjs
         env:
           BROWSER_CHANNEL: chromium
@@ -63,6 +63,7 @@ jobs:
           npm run test:d3d12-blend
           npm run test:exec-memory
           npm run test:humus-d3d9
+          npm run test:7zr
         env:
           BROWSER_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

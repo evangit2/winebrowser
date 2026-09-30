@@ -462,7 +462,7 @@
     },
     {
       "id": "7zip-7zr-26.03-x86",
-      "status": "blocked",
+      "status": "runs",
       "path": ".cache/targets/7zr.exe",
       "bytes": 602624,
       "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
@@ -476,10 +476,10 @@
         "license": "LGPL-2.1-or-later with the upstream unRAR restriction"
       },
       "use": "Real console and filesystem workload from an upstream-built standalone archive tool; includes CRT and security API imports.",
-      "workingDirectory": "public/demos/files",
-      "args": ["a", "winebrowser-target.7z", "assets/message.txt"],
-      "expected": "creates `winebrowser-target.7z` from the supplied existing text asset and reports successful archive creation",
-      "statusNote": "Static import closure is unresolved: OLEAUT32, ADVAPI32, and MSVCRT are missing modules; the image also requires many unsupported KERNEL32 calls (including thread/event, VM, file-enumeration, and console APIs) and USER32 CharUpperW."
+      "workingDirectory": "",
+      "args": ["a", "out.7z", "message.txt"],
+      "expected": "creates `out.7z` from the supplied text asset, reports \"Everything is Ok\" and exits 0; the produced bytes start with the 7z signature 37 7a bc af 27 1c",
+      "statusNote": "The unchanged upstream 7-Zip console archiver runs a complete add from a loose-file upload under the ordinary harness: it starts its CRT (`_initterm`, argc/argv, the stdio FILE* layer and the low-level descriptor layer), scans the drive, creates `out.7z`, compresses the input, prints \"Everything is Ok\" and exits 0 with 223,940 guest instructions and no page errors. The 98-byte output is a real 7z stream whose first bytes are 37 7a bc af 27 1c 00 04. `npm run test:7zr` is the regression gate and evidence/7zr-browser-results.json records the run. This is one independent program, not general archive or general Windows compatibility."
     },
     {
       "id": "putty-0.85-x86",
