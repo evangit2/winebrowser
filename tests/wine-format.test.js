@@ -86,3 +86,34 @@ test('Wine retains its 1024-character output limit and terminates the written bu
   assert.equal(result.result, 1024);
   assert.equal(result.text, 'x'.repeat(1023));
 });
+
+test('msvcrt varargs and va_list entry points use the convention Wine declares', async () => {
+  // Wine's msvcrt.spec lists vsprintf/vswprintf as `@ cdecl` and the varargs
+  // forms (sprintf/swprintf) as cleaned up by the caller; user32's wvsprintfA/W
+  // are `@ stdcall` and pop their own three words. Declaring the wrong one
+  // removes stack words that belong to the caller, so each entry point is
+  // checked against the stack pointer it is required to leave.
+  const r = setup(),
+    output = r.allocate(1024),
+    spec = r.allocString('n=%d'),
+    va = r.allocate(4);
+  r.write32(va, 7);
+  const original = r.cpu.r[4].value;
+  const callDirect = async (name, pushes) => {
+    for (const value of pushes) r.cpu.push(value);
+    r.cpu.push(0x12345678); // return address
+    const stack = r.cpu.r[4].value;
+    assert.equal(await r.api({ dll: name.split('!')[0], name: name.split('!')[1] }), 0x12345678);
+    const delta = r.cpu.r[4].value - stack;
+    return { delta, text: r.string(output) };
+  };
+  // vsprintf(buffer, format, va_list): cdecl, so no argument words are removed.
+  const vsprintf = await callDirect('msvcrt.dll!vsprintf', [va, spec, output]);
+  assert.equal(vsprintf.delta, 4, 'a cdecl entry point removes only the return address');
+  assert.equal(vsprintf.text, 'n=7');
+  // wvsprintfA(buffer, format, va_list): stdcall, so its three words go too.
+  const wvsprintf = await callDirect('user32.dll!wvsprintfA', [va, spec, output]);
+  assert.equal(wvsprintf.delta, 16, 'a stdcall entry point removes its arguments');
+  assert.equal(wvsprintf.text, 'n=7');
+  r.cpu.r[4].value = original;
+});
