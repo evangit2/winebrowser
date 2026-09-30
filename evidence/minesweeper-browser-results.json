@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-30",
+  "targetId": "wesmar-minesweeper-2026-02-x86",
+  "scope": "Unchanged upstream wesmar/minesweeper x86 release run through the ordinary browser harness. This records window and paint progress, not full gameplay.",
+  "unresolvedImportsBefore": 29,
+  "unresolvedImportsAfter": 0,
+  "observations": {
+    "window": {
+      "class": "Minesweeper",
+      "title": "Minesweeper",
+      "clientSize": [240, 310],
+      "frameSize": [242, 340]
+    },
+    "clientCanvas": {
+      "width": 240,
+      "height": 310,
+      "distinctColours": 75,
+      "dominant": ["#c8c8d2 (dialog face)", "#ffffff (client)", "#000000 (grid/text)", "#ff0000 (mine accents)", "#c0c0c0 (frame)"]
+    },
+    "messages": ["WM_CREATE 0x1", "WM_NCCALCSIZE 0x83", "WM_WINDOWPOSCHANGING 0x46", "WM_GETMINMAXINFO 0x24", "WM_WINDOWPOSCHANGED 0x47", "WM_SIZE 0x5", "WM_SHOWWINDOW 0x18", "WM_PAINT 0xf", "WM_ERASEBKGND 0x14"]
+  },
+  "runtimeWork": [
+    "RegisterClass accepts cbWndExtra/cbClsExtra and a class menu name",
+    "standard MENU templates parse with NUL-terminated strings after MENUHEADER",
+    "LoadString uses Wine's (id >> 4) + 1 block and id & 0x0f entry arithmetic",
+    "CreateFont accepts the charset/quality/pitch hints every application passes",
+    "GetSystemMetrics answers the full defined metric table",
+    "AdjustWindowRect(Ex) accounts for a menu bar",
+    "MoveWindow routes through the shared positioning path"
+  ],
+  "remaining": "The game reaches its own message loop and paints its dialog chrome; interactive play (menu commands, cell clicks) is not yet verified."
+}

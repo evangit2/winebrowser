@@ -10,6 +10,16 @@ The independent **pts-tinype hh4t** GUI binary passed with exit code 0, the expe
 
 The unchanged [wesmar/Tetris](https://github.com/wesmar/Tetris) release now runs in the public harness, with browser checks for controls, gameplay, dialogs, sustained execution and clean exit. Its original 16 KB EXE remains unchanged and MIT-licensed. [wesmar/minesweeper](https://github.com/wesmar/minesweeper) is a separate pinned target that remains blocked on broader controls, menus and GDI; passing Tetris does not establish Minesweeper compatibility. See [desktop compatibility scope](desktop-compatibility.md) and [the current task list](../TASKS.md).
 
+The unchanged **wesmar/minesweeper** release now runs through the ordinary
+browser harness. It resolved 29 unresolved imports to zero, opens its
+`Minesweeper` window at a 240x310 client area, receives its own message flow
+(WM_CREATE, WM_NCCALCSIZE, WM_WINDOWPOSCHANGED, WM_SIZE, WM_SHOWWINDOW,
+WM_PAINT, WM_ERASEBKGND) and paints a 75-colour dialog: the classic
+`#c8c8d2` face, white client, black grid and text, and red accents. This is
+window-and-paint evidence, not a playability claim: menu commands and cell
+interaction are not yet driven by a test. See
+[the browser report](../evidence/minesweeper-browser-results.json).
+
 The unchanged upstream **7-Zip console archiver** (7zr 26.03) now runs a complete `add` under the ordinary harness: its CRT starts (`_initterm`, `argc`/`argv`, the stdio `FILE*` layer and the low-level `_open`/`_read`/`_write` descriptor layer), it scans the drive, creates `out.7z`, compresses the supplied input, prints "Everything is Ok" and exits 0, and the 98-byte output is a real 7z stream (`37 7a bc af 27 1c 00 04`). `npm run test:7zr` is its regression gate and [the browser report](../evidence/7zr-browser-results.json) records the run. The remaining independent targets are blocked at known prerequisites, before any compatibility claim: PuTTY and the source-built SGI OpenGL sample now pass TLS-directory parsing, exposing 259 and 54 unresolved imports respectively; their GUI, API-set CRT and WGL/OpenGL requirements still prevent execution; Humus Inferno lacks ADVAPI32/MSVCR80/DXGI/D3D10, imports an absent SHELL32 export, and needs unsupported window/thread/clipboard calls. These are static import/loader findings, not run failures.
 
 The SGI sample is a local build of independently sourced OpenGL tutorial code, not a checked-in project fixture. Its archived source page has no separate license notice; keep its build and executable in the ignored cache. The pts-tinype executables likewise have no repository license file. Humus' included readme permits redistribution if retained; PuTTY is under its MIT-style license, 7zr under LGPL-2.1-or-later with the upstream unRAR restriction, and winapiexec under GPL-3.0. Check each upstream license before redistributing a binary.
