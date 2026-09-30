@@ -550,3 +550,108 @@ test('the CRT process and console helpers answer from the runtime model', async 
   assert.equal((await call('_get_output_format')).result, 0);
   assert.equal((await call('_set_output_format', 1)).result, 0);
 });
+
+test('_aligned_malloc/_aligned_free/_msize round-trip a live block', async (t) => {
+  const { r, call } = await setup(t);
+  // A 64-byte-aligned block with a nonzero offset still lands on a live heap
+  // address whose base _aligned_free can recover.
+  const pointer = (await call('_aligned_malloc', 100, 64)).result >>> 0;
+  assert.notEqual(pointer, 0);
+  assert.equal(pointer % 64, 0, 'the returned address honours the alignment');
+  const size = (await call('_msize', pointer)).result >>> 0;
+  assert.ok(size >= 100, 'the usable size covers the request');
+  // Writing through the block and freeing it must not fault.
+  r.data.set(new Uint8Array([1, 2, 3, 4]), pointer);
+  assert.equal((await call('_aligned_free', pointer)).result, 0);
+  // _expand takes a raw heap pointer (malloc's), not an aligned one, and keeps
+  // the block in place when the request already fits.
+  const block = r.allocate(32);
+  assert.equal((await call('_expand', block, 16)).result >>> 0, block, 'no growth needed');
+  assert.equal(
+    (await call('_expand', block, 0x800000)).result >>> 0,
+    0,
+    'an impossible growth fails',
+  );
+  // An invalid alignment is rejected.
+  assert.equal((await call('_aligned_malloc', 16, 3)).result, 0);
+});
+
+test('remove/rename/_mkdir/_rmdir operate on the package volume', async (t) => {
+  const { r, call } = await setup(t, { 'dir/a.txt': new Uint8Array([1, 2, 3]) });
+  assert.equal((await call('remove', r.allocString('C:\\winebrowser\\dir\\a.txt'))).result, 0);
+  assert.equal(r.files.has('dir/a.txt'), false, 'the file is gone');
+  assert.equal((await call('remove', r.allocString('C:\\winebrowser\\dir\\a.txt'))).result, -1);
+  assert.equal(r.read32((await call('_errno')).result >>> 0) | 0, 2, 'ENOENT');
+
+  // rename moves the bytes to the new key.
+  r.files.set('dir/b.txt', new Uint8Array([9, 9]));
+  assert.equal(
+    (
+      await call(
+        'rename',
+        r.allocString('C:\\winebrowser\\dir\\b.txt'),
+        r.allocString('C:\\winebrowser\\dir\\c.txt'),
+      )
+    ).result,
+    0,
+  );
+  assert.equal(r.files.has('dir/b.txt'), false);
+  assert.equal(r.files.has('dir/c.txt'), true);
+
+  // _mkdir/_rmdir add and remove an empty directory.
+  assert.equal((await call('_mkdir', r.allocString('C:\\winebrowser\\newdir'))).result, 0);
+  assert.equal(r.virtualDirectories.has('newdir/'), true);
+  assert.equal(
+    (await call('_mkdir', r.allocString('C:\\winebrowser\\newdir'))).result,
+    -1,
+    'already exists',
+  );
+  assert.equal((await call('_rmdir', r.allocString('C:\\winebrowser\\newdir'))).result, 0);
+  assert.equal(r.virtualDirectories.has('newdir/'), false);
+  // A directory with contents cannot be removed.
+  assert.equal((await call('_rmdir', r.allocString('C:\\winebrowser\\dir'))).result, -1);
+  assert.equal(r.read32((await call('_errno')).result >>> 0) | 0, 41, 'ENOTEMPTY');
+});
+
+test('_strdate/_strtime/_strdate_s format the guest clock', async (t) => {
+  const { r, call } = await setup(t);
+  const buffer = r.allocate(16);
+  assert.equal((await call('_strdate', buffer)).result, buffer);
+  assert.match(r.string(buffer), /^\d\d\/\d\d\/\d\d$/);
+  await call('_strtime', buffer);
+  assert.match(r.string(buffer), /^\d\d:\d\d:\d\d$/);
+  // The bounded form reports ERANGE for a buffer that cannot hold the text.
+  const small = r.allocate(4);
+  assert.equal((await call('_strdate_s', small, 4)).result, 34);
+  const exact = r.allocate(16);
+  assert.equal((await call('_strdate_s', exact, 16)).result, 0);
+});
+
+test('_open_osfhandle wraps a Win32 handle as a CRT descriptor', async (t) => {
+  const { r, call } = await setup(t);
+  r.crtFds = new Map();
+  r.crtFdNext = 3;
+  const handle = r.nextHandle++;
+  r.handles.set(handle, { path: 'x', position: 0, access: 0xc0000000, share: 0 });
+  const descriptor = (await call('_open_osfhandle', handle, 0)).result;
+  assert.ok(descriptor >= 3);
+  assert.equal(r.crtFds.get(descriptor), handle, 'the descriptor names the handle');
+  // A handle the runtime does not know is EBADF.
+  assert.equal((await call('_open_osfhandle', 0xdeadbeef, 0)).result, -1);
+});
+
+test('_stricoll/_wcsicoll and _memccpy follow the C-locale contract', async (t) => {
+  const { r, call } = await setup(t);
+  assert.equal((await call('_stricoll', r.allocString('abc'), r.allocString('ABC'), 3)).result, 0);
+  assert.equal((await call('_stricoll', r.allocString('abc'), r.allocString('abd'), 3)).result, -1);
+  const wideLeft = r.allocString('ABC', true),
+    wideRight = r.allocString('abc', true);
+  assert.equal((await call('_wcsicoll', wideLeft, wideRight)).result, 0);
+
+  // _memccpy copies through the found byte and returns just past it.
+  const source = r.allocString('hello'),
+    destination = r.allocate(16);
+  const stop = (await call('_memccpy', destination, source, 0x6c /* 'l' */, 5)).result >>> 0;
+  assert.equal(stop, destination + 3, 'the returned pointer is past the found byte');
+  assert.equal(r.string(destination), 'hel');
+});

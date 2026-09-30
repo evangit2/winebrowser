@@ -5,7 +5,7 @@
 // from Wine's own dlls/msvcrt/ctype.c (see scripts/build-msvcrt-ctype.py), so
 // isalpha and friends answer from the table the real msvcrt.dll exports.
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
-import { fileMetadata } from './file-metadata.js';
+import { fileMetadata, touchFile } from './file-metadata.js';
 import { encodeAnsi } from './encoding.js';
 import { CTYPE_TABLE, WCTYPE_TABLE } from './msvcrt-ctype.js';
 
@@ -1768,6 +1768,199 @@ function cputsImpl(r, a, deps) {
   return ok(0, 1);
 }
 
+// ---------------------------------------------------------------------------
+// Aligned allocation. The runtime's guest heap hands back 16-aligned blocks, so
+// a requested alignment at or below that is satisfied directly; a larger one
+// allocates extra room and stores the original pointer immediately below the
+// aligned address, which is exactly the trick the CRT uses and what makes
+// _aligned_free able to recover the base.
+const ALIGNED_HEADER = 16;
+function alignedMallocImpl(r, size, alignment, offset) {
+  if (alignment < 1 || alignment > 0x100000 || (alignment & (alignment - 1)) !== 0) {
+    setErrno(r, EINVAL);
+    return 0;
+  }
+  if (offset >= size) {
+    setErrno(r, EINVAL);
+    return 0;
+  }
+  const base = r.allocate(size + alignment + ALIGNED_HEADER);
+  const raw = base + ALIGNED_HEADER;
+  const aligned = Math.ceil((raw + offset) / alignment) * alignment - offset;
+  r.guestMemory.write32(aligned - ALIGNED_HEADER, base);
+  r.alignedBlocks ??= new Map();
+  r.alignedBlocks.set(aligned, base);
+  return aligned;
+}
+function alignedFreeImpl(r, pointer) {
+  const address = pointer >>> 0;
+  if (!address) return ok(0, 1);
+  // The base is tracked in this runtime's own map, so freeing never depends on
+  // reading a header that a caller may already have overwritten.
+  const base = r.alignedBlocks?.get(address);
+  r.alignedBlocks?.delete(address);
+  if (base !== undefined) r.free(base);
+  else setErrno(r, EINVAL);
+  return ok(0, 1);
+}
+function alignedReallocImpl(r, pointer, size, alignment, offset, argc) {
+  if (!pointer) {
+    const address = alignedMallocImpl(r, size, alignment, offset);
+    return ok(address, argc);
+  }
+  if (!size) {
+    alignedFreeImpl(r, pointer);
+    return ok(0, argc);
+  }
+  const base = r.alignedBlocks?.get(pointer >>> 0);
+  if (base === undefined) {
+    setErrno(r, EINVAL);
+    return ok(0, argc);
+  }
+  const previous = r.allocationSize(base) ?? 0;
+  const address = alignedMallocImpl(r, size, alignment, offset);
+  if (!address) return ok(0, argc);
+  const copy = Math.min(previous, size);
+  r.data.copyWithin(address, pointer, pointer + copy);
+  alignedFreeImpl(r, pointer);
+  return ok(address, argc);
+}
+// _msize reports the usable size of a live heap block.
+function msizeImpl(r, pointer) {
+  const address = pointer >>> 0;
+  // An aligned block is described by its underlying heap allocation, which is
+  // larger than the caller asked for because it carries the alignment slack.
+  const base = r.alignedBlocks?.get(address);
+  const size = r.allocationSize(base !== undefined ? base : address);
+  return ok(size ?? 0xffffffff, 1);
+}
+// _expand grows a block only when it can stay where it is; the heap's in-place
+// growth is exposed by reallocating to the same address or reporting failure.
+function expandImpl(r, pointer, size) {
+  const address = pointer >>> 0;
+  const current = r.allocationSize(address);
+  if (current === null) return ok(0, 2);
+  if (size <= current) return ok(address, 2);
+  const moved = r.reallocate(address, size);
+  // _expand must not move the block, so a moved result is undone by handing
+  // the caller back its original pointer only when nothing changed.
+  if (moved === address) return ok(address, 2);
+  if (moved) {
+    // The heap could not grow in place; restore the original block size.
+    r.reallocate(moved, current);
+    r.expandOverflow ??= new Map();
+    r.expandOverflow.set(address, moved);
+  }
+  return ok(0, 2);
+}
+// Path helpers shared by the file-operation family. Each resolves the guest
+// path against the package volume and reports the CRT's errno on failure.
+function crtRemove(r, a, wide) {
+  const path = resolveQuery(r, a(0), wide);
+  if (path === null || !r.files.has(path)) {
+    setErrno(r, ENOENT);
+    return ok(-1, 1);
+  }
+  if (r.fileSections?.canResize(path, 0) === false) {
+    setErrno(r, EACCES);
+    return ok(-1, 1);
+  }
+  r.files.delete(path);
+  r.dirty.add(path);
+  return ok(0, 1);
+}
+function crtRename(r, a, wide) {
+  const from = resolveQuery(r, a(0), wide),
+    to = resolveQuery(r, a(1), wide);
+  if (from === null || to === null || !r.files.has(from)) {
+    setErrno(r, ENOENT);
+    return ok(-1, 2);
+  }
+  if (r.files.has(to)) {
+    setErrno(r, 17); // EEXIST
+    return ok(-1, 2);
+  }
+  const bytes = r.files.get(from);
+  r.files.delete(from);
+  r.files.set(to, bytes);
+  r.dirty.add(from);
+  r.dirty.add(to);
+  touchFile(r, to, { created: true, write: true });
+  return ok(0, 2);
+}
+function crtMkdir(r, a, wide) {
+  const path = resolveQuery(r, a(0), wide);
+  if (path === null || !path) {
+    setErrno(r, ENOENT);
+    return ok(-1, 1);
+  }
+  r.virtualDirectories ??= new Set();
+  const key = path + '/';
+  if (r.virtualDirectories.has(key) || r.files.has(path)) {
+    setErrno(r, 17);
+    return ok(-1, 1);
+  }
+  r.virtualDirectories.add(key);
+  touchFile(r, path, { created: true, write: true });
+  return ok(0, 1);
+}
+function crtRmdir(r, a, wide) {
+  const path = resolveQuery(r, a(0), wide);
+  if (path === null || !path) {
+    setErrno(r, ENOENT);
+    return ok(-1, 1);
+  }
+  const key = path + '/';
+  if ([...(r.files?.keys() ?? [])].some((name) => name.startsWith(key))) {
+    setErrno(r, 41); // ENOTEMPTY
+    return ok(-1, 1);
+  }
+  if (!r.virtualDirectories?.delete(key)) {
+    setErrno(r, ENOENT);
+    return ok(-1, 1);
+  }
+  return ok(0, 1);
+}
+// _strdate/_strtime format the guest clock's local date and time, which the
+// runtime models as UTC.
+function strdateImpl(r, a, wide, withTime, bounded) {
+  const now = new Date(r.systemNow());
+  const text = withTime
+    ? `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}`
+    : `${String(now.getUTCMonth() + 1).padStart(2, '0')}/${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCFullYear() % 100).padStart(2, '0')}`;
+  if (bounded) {
+    const buffer = a(0) >>> 0,
+      size = a(1) >>> 0;
+    if (!buffer || size < text.length + 1) {
+      setErrno(r, ERANGE);
+      return ok(ERANGE, 2);
+    }
+    r.check(buffer, size * (wide ? 2 : 1), true);
+    if (wide) writeWideChars(r, buffer, text);
+    else writeAnsiBytes(r, buffer, text);
+    return ok(0, 2);
+  }
+  const buffer = a(0) >>> 0;
+  if (!buffer) return ok(0, 1);
+  if (wide) writeWideChars(r, buffer, text);
+  else writeAnsiBytes(r, buffer, text);
+  return ok(buffer, 1);
+}
+
+// The C locale collates by byte value; the case-insensitive forms fold before
+// comparing, and the count bounds how many bytes are examined.
+function collateImpl(r, a, fold) {
+  const count = a(2) >>> 0;
+  for (let i = 0; i < count; i++) {
+    const rawLeft = r.data[a(0) + i],
+      rawRight = r.data[a(1) + i];
+    const left = fold ? (rawLeft | 0x20) & 0xff : rawLeft;
+    const right = fold ? (rawRight | 0x20) & 0xff : rawRight;
+    if (left !== right) return ok(left < right ? -1 : 1, 3);
+    if (!rawLeft) break;
+  }
+  return ok(0, 3);
+}
 // Registration. Called from msvcrt.js after the real implementations are in
 // place but before the trap tables, so a name that already has a handler keeps
 // it and everything else gets the implementation here.
@@ -2644,6 +2837,89 @@ export function registerCrtExtended(apis, deps = {}) {
     return result;
   });
   add('_wctomb_l', (r, a) => wctombImpl(r, { 0: () => a(0), 1: () => a(1) }, 3));
+
+  // Aligned allocation and heap queries.
+  add('_aligned_malloc', (r, a) => ok(alignedMallocImpl(r, a(0) >>> 0, a(1) >>> 0, 0), 2));
+  add('_aligned_offset_malloc', (r, a) =>
+    ok(alignedMallocImpl(r, a(0) >>> 0, a(1) >>> 0, a(2) >>> 0), 3),
+  );
+  add('_aligned_free', alignedFreeImpl);
+  add('_aligned_realloc', (r, a) => alignedReallocImpl(r, a(0), a(1) >>> 0, a(2) >>> 0, 0, 3));
+  add('_aligned_offset_realloc', (r, a) =>
+    alignedReallocImpl(r, a(0), a(1) >>> 0, a(2) >>> 0, a(3) >>> 0, 4),
+  );
+  add('_aligned_msize', (r, a) => msizeImpl(r, a(0)));
+  add('_msize', (r, a) => msizeImpl(r, a(0)));
+  add('_expand', (r, a) => expandImpl(r, a(0), a(1) >>> 0));
+
+  // File creation, deletion and renaming over the package volume.
+  add('remove', (r, a) => crtRemove(r, a, false));
+  add('_wremove', (r, a) => crtRemove(r, a, true));
+  add('_unlink', (r, a) => crtRemove(r, a, false));
+  add('_wunlink', (r, a) => crtRemove(r, a, true));
+  add('rename', (r, a) => crtRename(r, a, false));
+  add('_wrename', (r, a) => crtRename(r, a, true));
+  add('_mkdir', (r, a) => crtMkdir(r, a, false));
+  add('_wmkdir', (r, a) => crtMkdir(r, a, true));
+  add('_rmdir', (r, a) => crtRmdir(r, a, false));
+  add('_wrmdir', (r, a) => crtRmdir(r, a, true));
+  add('_open_osfhandle', (r, a) => {
+    // Wrap an existing Win32 handle in a CRT descriptor; the handle stays owned
+    // by the descriptor table so _get_osfhandle returns the same value.
+    const fds = fdTable(r);
+    const handle = a(0) >>> 0;
+    if (!r.handles?.has(handle)) {
+      setErrno(r, 9);
+      return ok(-1, 2);
+    }
+    let descriptor = r.crtFdNext;
+    while (fds.has(descriptor)) descriptor++;
+    r.crtFdNext = descriptor + 1;
+    fds.set(descriptor, handle);
+    return ok(descriptor, 2);
+  });
+
+  // Date and time strings, formatted from the guest clock (modelled as UTC).
+  add('_strdate', (r, a) => strdateImpl(r, a, false, false, false));
+  add('_strtime', (r, a) => strdateImpl(r, a, false, true, false));
+  add('_wstrdate', (r, a) => strdateImpl(r, a, true, false, false));
+  add('_wstrtime', (r, a) => strdateImpl(r, a, true, true, false));
+  add('_strdate_s', (r, a) => strdateImpl(r, a, false, false, true));
+  add('_strtime_s', (r, a) => strdateImpl(r, a, false, true, true));
+  add('_wstrdate_s', (r, a) => strdateImpl(r, a, true, false, true));
+  add('_wstrtime_s', (r, a) => strdateImpl(r, a, true, true, true));
+
+  // Locale collation in the C locale is the case-folded comparison.
+  add('_stricoll', (r, a) => collateImpl(r, a, true));
+  add('_stricoll_l', (r, a) => collateImpl(r, a, true));
+  add('_wcsicoll', (r, a) => wideCompare(r, a, 0xffffffff));
+  add('_wcsicoll_l', (r, a) => wideCompare(r, a, 0xffffffff));
+  add('_strncoll', (r, a) => collateImpl(r, a, false));
+  add('_strnicoll', (r, a) => collateImpl(r, a, true));
+  add('_wcsncoll', (r, a) => wideCompare(r, a, a(2) >>> 0));
+  add('_wcsnicoll', (r, a) => wideCompare(r, a, a(2) >>> 0));
+
+  // _memccpy copies until a byte is found or the count runs out, reporting the
+  // position just past the found byte.
+  add('_memccpy', (r, a) => {
+    const destination = a(0) >>> 0,
+      source = a(1) >>> 0,
+      needle = a(2) & 0xff,
+      count = a(3) >>> 0;
+    r.check(destination, count, true);
+    r.check(source, count);
+    r.guestMemory.noteCodeWrite(destination, count);
+    for (let i = 0; i < count; i++) {
+      const byte = r.data[source + i];
+      r.data[destination + i] = byte;
+      if (byte === needle) return ok(destination + i + 1, 4);
+    }
+    return ok(0, 4);
+  });
+  // 64-bit rotate helpers; _rotl64/_rotr64 are the same operation on a value
+  // that spans two registers, discarding the high half like Win32's own.
+  add('_rotl64', (r, a) => rotlImpl(r, a, true));
+  add('_rotr64', (r, a) => rotlImpl(r, a, false));
 
   // setjmp/longjmp. The jump buffer is Win32's i386 _JUMP_BUFFER: Ebp, Ebx,
   // Edi, Esi, Esp, Eip, Registration, TryLevel, Cookie, UnwindFunc, then six

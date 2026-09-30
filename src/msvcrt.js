@@ -1707,6 +1707,21 @@ function registerCrtDescriptors() {
   add('_isatty', isatty);
   add('_setmode', setMode);
   add('_fdopen', fdOpen);
+  // _creat(path, pmode) is _open with O_CREAT|O_TRUNC|O_WRONLY.
+  add('_creat', (r, a) =>
+    openDescriptor(r, (index) => [a(0), O_WRONLY | O_CREAT | O_TRUNC][index] ?? 0),
+  );
+  add('_wcreat', (r, a) =>
+    openDescriptor(r, (index) => [a(0), O_WRONLY | O_CREAT | O_TRUNC][index] ?? 0),
+  );
+  // _sopen_s(out, path, oflag, shflag, pmode) writes the descriptor and returns
+  // an errno_t rather than the descriptor itself.
+  add('_sopen_s', async (r, a) => {
+    const opened = await openDescriptor(r, (index) => [a(1), a(2), a(3)][index] ?? 0);
+    const descriptor = opened.result | 0;
+    if (a(0)) r.write32(a(0), descriptor);
+    return ok(descriptor < 0 ? 9 : 0, 5);
+  });
 }
 registerCrtDescriptors();
 
