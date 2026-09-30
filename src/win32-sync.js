@@ -78,10 +78,49 @@ for (const wide of [false, true]) {
   syncApis[`kernel32.dll!CreateSemaphoreEx${suffix}`] = (r, a) =>
     create(r, a, wide, true, false, true);
   syncApis[`kernel32.dll!OpenSemaphore${suffix}`] = (r, a) => create(r, a, wide, false, true, true);
+  syncApis[`kernel32.dll!CreateMutex${suffix}`] = (r, a) => createMutex(r, a, wide);
   syncApis[`kernel32.dll!CreateEvent${suffix}`] = (r, a) => create(r, a, wide);
   syncApis[`kernel32.dll!CreateEventEx${suffix}`] = (r, a) => create(r, a, wide, true);
   syncApis[`kernel32.dll!OpenEvent${suffix}`] = (r, a) => create(r, a, wide, false, true);
 }
+// CreateMutexA/W(LPSECURITY_ATTRIBUTES, BOOL initialOwner, LPCTSTR name). A
+// mutex is a one-count semaphore, so the runtime models it with the same
+// object; `initialOwner` decides whether the creating thread starts holding it.
+function createMutex(r, a, wide) {
+  const argc = 3;
+  const objects = syncObjects(r);
+  let inherit = false;
+  if (a(0)) {
+    if (!syncChecked(r, a(0), 12)) return fail(r, SYNC.FAULT, argc);
+    if (r.read32(a(0)) !== 12) return fail(r, SYNC.INVALID, argc);
+    if (r.read32(a(0) + 4)) return fail(r, SYNC.UNSUPPORTED, argc);
+    inherit = !!r.read32(a(0) + 8);
+  }
+  let name = null;
+  const pointer = a(2);
+  if (pointer) {
+    const raw = wide ? r.wideString(pointer) : r.string(pointer);
+    if (raw.length >= 260) return fail(r, SYNC.NAME, argc);
+    const parsed = objects.path(objects.local + '\\' + raw);
+    if (parsed.status) return fail(r, parsed.status, argc);
+    if (parsed.directory) return fail(r, SYNC.TYPE, argc);
+    name = parsed.name;
+  }
+  const response = objects.semaphore({
+    name,
+    inherit,
+    initial: a(1) ? 0 : 1,
+    maximum: 1,
+  });
+  if (!response.handle) return fail(r, response.status, argc);
+  r.lastError = response.status === SYNC.EXISTS ? 183 : 0;
+  return result(response.handle, argc);
+}
+syncApis['kernel32.dll!ReleaseMutex'] = (r, a) => {
+  const response = syncObjects(r).release(a(0), 1);
+  if (response.status) return fail(r, response.status, 1);
+  return result(1, 1);
+};
 syncApis['kernel32.dll!ReleaseSemaphore'] = (r, a) => {
   if (a(2) && !syncChecked(r, a(2), 4, true)) return fail(r, SYNC.FAULT, 3);
   const response = syncObjects(r).release(a(0), a(1) | 0);

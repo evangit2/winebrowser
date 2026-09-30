@@ -376,6 +376,179 @@ function setErrorMode(r, a) {
   r.errorMode = a(0) >>> 0;
   return ok(previous, 1);
 }
+
+// FindFirstFileEx(Pattern, InfoLevel, Data, SearchOp, Filter, Flags): level 0
+// and search op 0 are the ordinary directory scan. The extended levels add
+// alternate timestamps and the search ops add pattern matching, neither of
+// which the runtime models, so those are refused rather than approximated.
+function findFirstFileEx(r, a, wide) {
+  if ((a(1) | 0) !== 0 || (a(3) | 0) !== 0 || (a(4) | 0) !== 0 || (a(5) | 0) !== 0)
+    return findFailure(r, 87);
+  return findFirstFile(r, (i) => [a(0), 0, a(2)][i] ?? 0, wide);
+}
+// GetDateFormat/GetTimeFormatA/W format a SYSTEMTIME with a locale picture
+// string. The runtime's locale is the invariant one, so the picture itself
+// drives the output and the locale name is accepted but unused.
+function getDateTimeFormat(r, a, wide, time) {
+  const locale = a(0) >>> 0;
+  const flags = a(1) >>> 0;
+  const source = a(2);
+  const formatPointer = a(3);
+  const outPointer = a(4);
+  const capacity = a(5) | 0;
+  if (locale !== 0x400 && locale !== 0x7f) return fail(r, 87, 6);
+  if (flags & ~(0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x100 | 0x200)) return fail(r, 87, 6);
+  if (!source) return fail(r, 87, 6);
+  const units = Array.from({ length: 8 }, (_, i) => r.guestMemory.read(source + i * 2, 2));
+  const [year, month, , day, hour, minute, second] = units;
+  const pad = (value, width = 2) => String(value).padStart(width, '0');
+  const defaultFormat = time ? 'HH:mm:ss' : 'MM/dd/yyyy';
+  const picture = formatPointer
+    ? wide
+      ? r.wideString(formatPointer)
+      : r.string(formatPointer)
+    : defaultFormat;
+  // Substitute the tokens GetDateFormat/GetTimeFormat document. A single-quoted
+  // run is literal text, which is how a picture includes a separator verbatim.
+  let text = '';
+  let literal = false;
+  let index = 0;
+  const token = (length) => {
+    const at = picture.slice(index, index + length);
+    index += length;
+    return at;
+  };
+  while (index < picture.length) {
+    const ch = picture[index];
+    if (ch === "'") {
+      literal = !literal;
+      index++;
+      continue;
+    }
+    if (literal) {
+      text += ch;
+      index++;
+      continue;
+    }
+    const remaining = picture.length - index;
+    if (time) {
+      if (ch === 'H' && remaining >= 2 && picture[index + 1] === 'H') {
+        token(2);
+        text += pad(hour);
+        continue;
+      }
+      if (ch === 'h') {
+        const wide2 = remaining >= 2 && picture[index + 1] === 'h';
+        token(wide2 ? 2 : 1);
+        const h = hour % 12 || 12;
+        text += wide2 ? pad(h) : String(h);
+        continue;
+      }
+      if (ch === 'm' && remaining >= 2 && picture[index + 1] === 'm') {
+        token(2);
+        text += pad(minute);
+        continue;
+      }
+      if (ch === 's' && remaining >= 2 && picture[index + 1] === 's') {
+        token(2);
+        text += pad(second);
+        continue;
+      }
+      if (ch === 't' && remaining >= 2 && picture[index + 1] === 't') {
+        token(2);
+        text += hour < 12 ? 'AM' : 'PM';
+        continue;
+      }
+      if (ch === 't') {
+        token(1);
+        text += hour < 12 ? 'A' : 'P';
+        continue;
+      }
+    } else {
+      if (ch === 'y' && remaining >= 4 && picture.slice(index, index + 4) === 'yyyy') {
+        token(4);
+        text += pad(year, 4);
+        continue;
+      }
+      if (ch === 'y' && remaining >= 2 && picture[index + 1] === 'y') {
+        token(2);
+        text += pad(year % 100);
+        continue;
+      }
+      if (ch === 'M' && remaining >= 4 && picture.slice(index, index + 4) === 'MMMM') {
+        token(4);
+        text += MONTH_NAMES[month - 1] ?? '';
+        continue;
+      }
+      if (ch === 'M' && remaining >= 3 && picture.slice(index, index + 3) === 'MMM') {
+        token(3);
+        text += (MONTH_NAMES[month - 1] ?? '').slice(0, 3);
+        continue;
+      }
+      if (ch === 'M' && remaining >= 2 && picture[index + 1] === 'M') {
+        token(2);
+        text += pad(month);
+        continue;
+      }
+      if (ch === 'M') {
+        token(1);
+        text += String(month);
+        continue;
+      }
+      if (ch === 'd' && remaining >= 4 && picture.slice(index, index + 4) === 'dddd') {
+        token(4);
+        text += DAY_NAMES[new Date(Date.UTC(year, month - 1, day)).getUTCDay()] ?? '';
+        continue;
+      }
+      if (ch === 'd' && remaining >= 3 && picture.slice(index, index + 3) === 'ddd') {
+        token(3);
+        text += (DAY_NAMES[new Date(Date.UTC(year, month - 1, day)).getUTCDay()] ?? '').slice(0, 3);
+        continue;
+      }
+      if (ch === 'd' && remaining >= 2 && picture[index + 1] === 'd') {
+        token(2);
+        text += pad(day);
+        continue;
+      }
+      if (ch === 'd') {
+        token(1);
+        text += String(day);
+        continue;
+      }
+    }
+    text += ch;
+    index++;
+  }
+  const needed = text.length + 1;
+  if (!outPointer || capacity < needed) return ok(needed, 6);
+  if (wide) {
+    r.check(outPointer, needed * 2, true);
+    for (let i = 0; i <= text.length; i++)
+      r.guestMemory.write(outPointer + i * 2, i === text.length ? 0 : text.charCodeAt(i), 2);
+  } else {
+    const bytes = encodeAnsi(text).bytes;
+    r.check(outPointer, bytes.length + 1, true);
+    r.data.set(bytes, outPointer);
+    r.data[outPointer + bytes.length] = 0;
+  }
+  return ok(text.length, 6);
+}
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 function getSystemTimeAsFileTime(r, a) {
   const address = a(0);
   if (!address) return fail(r, 87, 1);
@@ -561,6 +734,279 @@ function loadString(r, a, wide) {
   }
   return ok(count, 4);
 }
+
+// ---------------------------------------------------------------------------
+// Time, string and pointer services PuTTY and other GUI tools import.
+// GetLocalTime/GetSystemTime share one SYSTEMTIME writer; the runtime's
+// timezone answer is UTC, so local and system time agree.
+function writeSystemTime(r, out, date) {
+  r.check(out, 16, true);
+  const write = [
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDay(),
+    date.getUTCDate(),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+    date.getUTCMilliseconds(),
+  ];
+  for (let i = 0; i < 8; i++) {
+    r.check(out + i * 2, 2, true);
+    r.guestMemory.write(out + i * 2, write[i] & 0xffff, 2);
+  }
+}
+function getLocalTime(r, a) {
+  if (!a(0)) return fail(r, 87, 1);
+  writeSystemTime(r, a(0), new Date(r.systemNow()));
+  return ok(0, 1);
+}
+// GetTimeZoneInformation reports UTC with no bias and no daylight rule, which
+// is the same timezone every other guest service advertises.
+function getTimeZoneInformation(r, a) {
+  const out = a(0);
+  if (!out) return fail(r, 87, 1);
+  r.check(out, 172, true);
+  r.data.fill(0, out, out + 172);
+  r.write32(out, 0); // Bias
+  const name = 'UTC';
+  for (let i = 0; i <= name.length; i++)
+    r.guestMemory.write(out + 4 + i * 2, i === name.length ? 0 : name.charCodeAt(i), 2);
+  for (let i = 0; i <= name.length; i++)
+    r.guestMemory.write(out + 88 + i * 2, i === name.length ? 0 : name.charCodeAt(i), 2);
+  return ok(0, 1); // TIME_ZONE_ID_UNKNOWN: no daylight rule in force
+}
+// CompareStringA/W compares two strings the way the runtime's own collation
+// does: an ordinal, case-insensitive-or-sensitive comparison of UTF-16 units.
+// CSTR_LESS_THAN is 1, CSTR_EQUAL is 2, CSTR_GREATER_THAN is 3.
+function compareString(r, a, wide) {
+  const flags = a(0) >>> 0;
+  if (flags & ~(0x1 | 0x2 | 0x10000 | 0x20000 | 0x100000)) return fail(r, 87, 6);
+  const length1 = a(2) | 0,
+    string1 = a(3) >>> 0;
+  const length2 = a(4) | 0,
+    string2 = a(5) >>> 0;
+  if (!string1 || !string2) return fail(r, 87, 6);
+  const read = (pointer, length) => {
+    if (length >= 0) {
+      let value = '';
+      for (let i = 0; i < length; i++)
+        value += String.fromCharCode(
+          wide ? r.guestMemory.read(pointer + i * 2, 2) : r.data[pointer + i],
+        );
+      return value;
+    }
+    return wide ? r.wideString(pointer) : r.string(pointer);
+  };
+  let left = read(string1, length1),
+    right = read(string2, length2);
+  if (flags & 0x1) {
+    left = left.toUpperCase();
+    right = right.toUpperCase();
+  }
+  const order = left < right ? 1 : left > right ? 3 : 2;
+  return ok(order, 6);
+}
+// EncodePointer/DecodePointer are a process-local cookie transform. The runtime
+// uses the identity, so a pointer round-trips exactly.
+function encodePointer(r, a) {
+  return ok(a(0), 1);
+}
+// GetFileSizeEx reports the size through a LARGE_INTEGER.
+function getFileSizeEx(r, a) {
+  const handle = r.handles.get(a(0));
+  if (!handle) return fail(r, 6, 2);
+  const out = a(1);
+  if (!out) return fail(r, 87, 2);
+  r.check(out, 8, true);
+  const bytes = r.files.get(handle.path)?.length ?? 0;
+  r.write32(out, bytes >>> 0);
+  r.write32(out + 4, 0);
+  return ok(1, 2);
+}
+// SetFilePointerEx sets the position and reports it through the LARGE_INTEGER
+// all at once; the 64-bit distance arrives as a low/high pair.
+function setFilePointerEx(r, a) {
+  const handle = r.handles.get(a(0));
+  if (!handle) return fail(r, 6, 4);
+  const method = a(3) >>> 0;
+  if (method > 2) return fail(r, 87, 4);
+  const low = a(1) | 0;
+  const high = a(2) | 0;
+  if (high && high !== -1) return fail(r, 87, 4);
+  const bytes = r.files.get(handle.path)?.length ?? 0;
+  const base = method === 0 ? 0 : method === 1 ? handle.position : bytes;
+  const next = base + low;
+  if (next < 0) return fail(r, 131, 4);
+  handle.position = next;
+  const out = a(4);
+  if (out) {
+    r.check(out, 8, true);
+    r.write32(out, next >>> 0);
+    r.write32(out + 4, 0);
+  }
+  return ok(1, 4);
+}
+// MulDiv multiplies, divides and rounds to nearest, exactly as documented, with
+// the result clamped to the signed 32-bit range.
+function mulDiv(r, a) {
+  const number1 = a(0) | 0,
+    number2 = a(1) | 0,
+    denominator = a(2) | 0;
+  if (!denominator) return ok(0xffffffff, 3);
+  const product = BigInt(number1) * BigInt(number2);
+  const divisor = BigInt(denominator);
+  // Round half away from zero, which is what MulDiv specifies.
+  let quotient = product / divisor;
+  const remainder = product % divisor;
+  if (remainder !== 0n && (remainder < 0n !== divisor < 0n) === false) {
+    if (2n * (remainder < 0n ? -remainder : remainder) >= (divisor < 0n ? -divisor : divisor))
+      quotient += product < 0n ? -1n : 1n;
+  }
+  const clamped =
+    quotient > 2147483647n ? 2147483647n : quotient < -2147483648n ? -2147483648n : quotient;
+  return ok(Number(BigInt.asUintN(32, clamped)), 3);
+}
+// IsDBCSLeadByteEx: the runtime's code pages are all single-byte except the
+// ones that are not, and none of the supported pages has lead bytes.
+function isDbcsLeadByteEx(r, a) {
+  const codePage = a(0) >>> 0;
+  if (
+    codePage !== 0 &&
+    codePage !== 437 &&
+    codePage !== 932 &&
+    codePage !== 936 &&
+    codePage !== 949 &&
+    codePage !== 950
+  )
+    return fail(r, 87, 2);
+  // GB2312, Big5, Shift-JIS and EUC-KR do have lead bytes; the runtime's
+  // supported pages are all single-byte, so this reports none.
+  return ok(0, 2);
+}
+// InitializeSListHead records an empty singly-linked list.
+function initializeSListHead(r, a) {
+  if (!a(0)) return fail(r, 87, 1);
+  r.check(a(0), 8, true);
+  r.write32(a(0), 0);
+  r.write32(a(0) + 4, 0);
+  return ok(0, 1);
+}
+
+// ---------------------------------------------------------------------------
+// Console, environment, pipe and process surfaces PuTTY imports.
+// SetEnvironmentVariableA/W updates the same NAME=VALUE vector the CRT shares.
+function setEnvironmentVariable(r, a, wide) {
+  const name = (wide ? r.wideString(a(0)) : r.string(a(0))) || '';
+  if (!name || name.includes('=')) return fail(r, 87, 2);
+  const value = a(1) ? (wide ? r.wideString(a(1)) : r.string(a(1))) : null;
+  r.environment ??= { ansi: ['=C:=C:\\', 'PATH=C:\\'], wide: ['=C:=C:\\', 'PATH=C:\\'] };
+  const key = name.toUpperCase();
+  for (const kind of wide ? ['wide'] : ['ansi']) {
+    const list = r.environment[kind];
+    const index = list.findIndex((item) => item.slice(0, item.indexOf('=')).toUpperCase() === key);
+    if (value === null) {
+      if (index >= 0) list.splice(index, 1);
+    } else {
+      const entry = `${name}=${value}`;
+      if (index < 0) list.push(entry);
+      else list[index] = entry;
+    }
+  }
+  // The guest's cached environment blocks are stale once an entry changes.
+  r.environmentA = 0;
+  r.environmentW = 0;
+  r.msvcrtData?.delete('_environ');
+  r.msvcrtData?.delete('_environ_w');
+  return ok(value === null ? 1 : 1, 2);
+}
+// The console code pages match the process ANSI/OEM pages the runtime reports.
+function getConsoleOutputCP() {
+  return ok(437, 0);
+}
+function getConsoleCP() {
+  return ok(437, 0);
+}
+// WriteConsoleW writes UTF-16 text to the console handle's stream. The runtime
+// has the same three standard handles WriteFile uses, so this routes there.
+function writeConsole(r, a, wide) {
+  const handle = a(0) >>> 0;
+  if (!r.stdHandles?.has(handle | 0) && handle > 2) return fail(r, 6, 5);
+  const pointer = a(1) >>> 0;
+  const count = a(2) >>> 0;
+  if (count > 0x100000) return fail(r, 87, 5);
+  const text = wide
+    ? Array.from({ length: count }, (_, i) =>
+        String.fromCharCode(r.guestMemory.read(pointer + i * 2, 2)),
+      ).join('')
+    : new TextDecoder('windows-1252').decode(r.data.subarray(pointer, pointer + count));
+  if (text) r.emit({ type: 'stdout', text });
+  if (a(3)) {
+    r.check(a(3), 4, true);
+    r.write32(a(3), count);
+  }
+  return ok(1, 5);
+}
+// CreatePipe(PHANDLE read, PHANDLE write, SECURITY_ATTRIBUTES *, SIZE_T): the
+// runtime has no inter-process pipe, so this reports failure rather than
+// handing back handles that would never carry bytes.
+function createPipe(r) {
+  return fail(r, 5, 4);
+}
+function createProcess(r) {
+  return fail(r, 5, 10);
+}
+function getExitCodeProcess(r, a) {
+  const handle = a(0) >>> 0;
+  const out = a(1);
+  if (!out) return fail(r, 87, 2);
+  // Only a thread the runtime itself created has a recorded exit code; any
+  // other handle is invalid. The current process always reports STILL_ACTIVE.
+  const thread = r.threads?.lookup?.(handle, 0).opened?.object;
+  r.check(out, 4, true);
+  if (thread) r.write32(out, thread.done ? thread.code : 259);
+  else if (handle === 0xffffffff) r.write32(out, 259);
+  else return fail(r, 6, 2);
+  return ok(1, 2);
+}
+// SetHandleInformation records the inheritance flag on a runtime handle.
+function setHandleInformation(r, a) {
+  const handle = a(0) >>> 0;
+  const mask = a(1) >>> 0;
+  const flags = a(2) >>> 0;
+  if (mask & ~3) return fail(r, 87, 3);
+  if (handle <= 2 || r.stdHandles?.has(handle | 0)) return ok(1, 3);
+  const opened = r.handles.get(handle);
+  if (!opened) return fail(r, 6, 3);
+  if (mask & 1) opened.inherit = !!(flags & 1);
+  return ok(1, 3);
+}
+// GetThreadTimes reports the current thread's creation and CPU times. The
+// runtime tracks a virtual clock, so the process and kernel times are the
+// guest's own performance counter rather than a fabricated value.
+function getThreadTimes(r, a) {
+  const found = r.threads?.lookup?.(a(0) >>> 0, 0);
+  if (found?.status) return fail(r, found.status, 4);
+  const ticks = r.performanceClock ? r.performanceClock.read() : 0n;
+  const write = (pointer) => {
+    if (!pointer) return;
+    r.check(pointer, 8, true);
+    r.write32(pointer, Number(ticks & 0xffffffffn));
+    r.write32(pointer + 4, Number((ticks >> 32n) & 0xffffffffn));
+  };
+  for (const index of [1, 2, 3]) write(a(index));
+  return ok(1, 4);
+}
+// LocalFileTimeToFileTime and FileTimeToLocalFileTime: the runtime's timezone
+// is UTC, so local time equals system time and both are the identity.
+function localFileTimeToFileTime(r, a) {
+  if (!a(0) || !a(1)) return fail(r, 87, 2);
+  r.check(a(0), 8);
+  r.check(a(1), 8, true);
+  for (let i = 0; i < 8; i++) r.data[a(1) + i] = r.data[a(0) + i];
+  return ok(1, 2);
+}
+
 function virtualQuery(r, a) {
   const address = a(0) >>> 0,
     out = a(1),
@@ -623,6 +1069,8 @@ export const systemApis = {
   'kernel32.dll!TlsSetValue': tlsSetValue,
   'kernel32.dll!TlsGetValue': tlsGetValue,
   'kernel32.dll!FindFirstFileA': (r, a) => findFirstFile(r, a, false),
+  'kernel32.dll!FindFirstFileExW': (r, a) => findFirstFileEx(r, a, true),
+  'kernel32.dll!FindFirstFileExA': (r, a) => findFirstFileEx(r, a, false),
   'kernel32.dll!FindFirstFileW': (r, a) => findFirstFile(r, a, true),
   'kernel32.dll!FindNextFileA': (r, a) => findNextFile(r, a, false),
   'kernel32.dll!FindNextFileW': (r, a) => findNextFile(r, a, true),
@@ -635,6 +1083,10 @@ export const systemApis = {
   'kernel32.dll!GetWindowsDirectoryW': (r, a) => getWindowsDirectory(r, a, true),
   'kernel32.dll!SetErrorMode': setErrorMode,
   'kernel32.dll!GetSystemTimeAsFileTime': getSystemTimeAsFileTime,
+  'kernel32.dll!GetDateFormatA': (r, a) => getDateTimeFormat(r, a, false, false),
+  'kernel32.dll!GetDateFormatW': (r, a) => getDateTimeFormat(r, a, true, false),
+  'kernel32.dll!GetTimeFormatA': (r, a) => getDateTimeFormat(r, a, false, true),
+  'kernel32.dll!GetTimeFormatW': (r, a) => getDateTimeFormat(r, a, true, true),
   'kernel32.dll!SetFileAttributesA': (r, a) => setFileAttributes(r, a, false),
   'kernel32.dll!SetFileAttributesW': (r, a) => setFileAttributes(r, a, true),
   'kernel32.dll!RemoveDirectoryA': (r, a) => removeDirectory(r, a, false),
@@ -682,6 +1134,32 @@ export const systemApis = {
   'kernel32.dll!GetLogicalDrives': getLogicalDrives,
   'user32.dll!LoadStringA': (r, a) => loadString(r, a, false),
   'user32.dll!LoadStringW': (r, a) => loadString(r, a, true),
+  'kernel32.dll!GetLocalTime': getLocalTime,
+  'kernel32.dll!GetSystemTime': getLocalTime,
+  'kernel32.dll!GetTimeZoneInformation': getTimeZoneInformation,
+  'kernel32.dll!CompareStringA': (r, a) => compareString(r, a, false),
+  'kernel32.dll!CompareStringW': (r, a) => compareString(r, a, true),
+  'kernel32.dll!EncodePointer': encodePointer,
+  'kernel32.dll!DecodePointer': encodePointer,
+  'kernel32.dll!GetFileSizeEx': getFileSizeEx,
+  'kernel32.dll!SetFilePointerEx': setFilePointerEx,
+  'kernel32.dll!MulDiv': mulDiv,
+  'kernel32.dll!IsDBCSLeadByteEx': isDbcsLeadByteEx,
+  'kernel32.dll!InitializeSListHead': initializeSListHead,
+  'kernel32.dll!SetEnvironmentVariableA': (r, a) => setEnvironmentVariable(r, a, false),
+  'kernel32.dll!SetEnvironmentVariableW': (r, a) => setEnvironmentVariable(r, a, true),
+  'kernel32.dll!GetConsoleOutputCP': getConsoleOutputCP,
+  'kernel32.dll!GetConsoleCP': getConsoleCP,
+  'kernel32.dll!WriteConsoleA': (r, a) => writeConsole(r, a, false),
+  'kernel32.dll!WriteConsoleW': (r, a) => writeConsole(r, a, true),
+  'kernel32.dll!CreatePipe': createPipe,
+  'kernel32.dll!CreateProcessA': createProcess,
+  'kernel32.dll!CreateProcessW': createProcess,
+  'kernel32.dll!GetExitCodeProcess': getExitCodeProcess,
+  'kernel32.dll!SetHandleInformation': setHandleInformation,
+  'kernel32.dll!GetThreadTimes': getThreadTimes,
+  'kernel32.dll!LocalFileTimeToFileTime': localFileTimeToFileTime,
+  'kernel32.dll!FileTimeToLocalFileTime': localFileTimeToFileTime,
   'kernel32.dll!VirtualQuery': virtualQuery,
   'kernel32.dll!VirtualProtect': virtualProtect,
   'kernel32.dll!HeapValidate': heapValidate,
