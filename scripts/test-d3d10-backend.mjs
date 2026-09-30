@@ -63,23 +63,37 @@ try {
           id: 5,
           vertex: vsBytes.slice(),
           pixel: psBytes.slice(),
+          // The fixture's vertex format: position, colour and the face normal
+          // at their fixed offsets, matching the shader's compiled signature.
           inputLayout: [
             { semanticName: 'POSITION', semanticIndex: 0, offset: 0, format: 'float32x4' },
             { semanticName: 'COLOR', semanticIndex: 0, offset: 16, format: 'float32x4' },
+            { semanticName: 'NORMAL', semanticIndex: 0, offset: 32, format: 'float32x3' },
           ],
-          vertexStride: 32,
+          vertexStride: 48,
           stagePlan: planned,
         });
         const vertices = new Uint8Array(
           new Float32Array([
-            -0.9, -0.9, 0, 1, 1, 0, 0, 1, 0.9, -0.9, 0, 1, 0, 1, 0, 1, 0, 0.9, 0, 1, 0, 0, 1, 1,
+            -0.9, -0.9, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0.9, -0.9, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0,
+            0.9, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0,
           ]).buffer,
         );
+        // The two stages each declare their own b0, so the draw supplies two
+        // uniform bindings: the vertex stage's transform and the pixel stage's
+        // light. In D3D10 these are different resources at the same register.
+        const transform = new Uint8Array(64);
+        new Float32Array(transform.buffer).set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+        const light = new Uint8Array(32);
+        new Float32Array(light.buffer).set([0.47, 0.75, 0.47, 0, 1, 1, 1, 1]);
         await renderer.execute({
           commands: [
             {
               type: 'draw',
-              bindings: [],
+              bindings: [
+                { group: 0, binding: 0, type: 2, kind: 'uniform', bytes: transform },
+                { group: 0, binding: 1, type: 2, kind: 'uniform', bytes: light },
+              ],
               target: 2,
               pipeline: 5,
               viewport: { x: 0, y: 0, width: 130, height: 128, minDepth: 0, maxDepth: 1 },
@@ -89,7 +103,7 @@ try {
               firstVertex: 0,
               firstInstance: 0,
               vertices,
-              vertexStride: 32,
+              vertexStride: 48,
               depthTarget: 0,
             },
           ],
@@ -121,6 +135,22 @@ try {
   assert.ok(
     report.frames[0][0] + report.frames[0][1] + report.frames[0][2] > 90,
     `the triangle covers the centre pixel (${report.frames[0].join(',')})`,
+  );
+  // The point of the D3D10 planner: both stages declare a constant buffer at
+  // register b0 (space 0), and they must land on two *different* bindings in
+  // the merged layout. A D3D12-style merge would collapse them into one and
+  // make the pixel shader read the vertex shader's transform.
+  assert.deepEqual(
+    report.planBindings,
+    [
+      { stage: 0, type: 2, register: 0, group: 0, binding: 0 },
+      { stage: 1, type: 2, register: 0, group: 0, binding: 1 },
+    ],
+    'each stage keeps its own register file',
+  );
+  assert.ok(
+    report.stageBindings.every((binding) => binding.group === 0),
+    'both constant buffers live in the constant-buffer group',
   );
   assert.deepEqual(errors, []);
   await mkdir('evidence', { recursive: true });

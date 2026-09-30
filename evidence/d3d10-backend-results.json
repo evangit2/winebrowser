@@ -2,18 +2,47 @@
   "report": {
     "logs": [
       "WebGPU graphics initialized in the runtime worker (canvas presentation)",
-      "D3D10 DXBC shaders compiled to WGSL with 0 canonical bindings"
+      "D3D10 DXBC shaders compiled to WGSL with 2 canonical bindings"
     ],
     "frames": [
       [
-        65,
-        63,
-        126,
+        32,
+        31,
+        57,
         255
       ]
     ],
-    "stageBindings": [],
-    "planBindings": []
+    "stageBindings": [
+      {
+        "type": 2,
+        "space": 0,
+        "register": 0,
+        "resourceType": 1,
+        "dataType": 4,
+        "flags": 0,
+        "count": 1,
+        "comparison": false,
+        "stage": 0,
+        "group": 0,
+        "binding": 0
+      }
+    ],
+    "planBindings": [
+      {
+        "stage": 0,
+        "type": 2,
+        "register": 0,
+        "group": 0,
+        "binding": 0
+      },
+      {
+        "stage": 1,
+        "type": 2,
+        "register": 0,
+        "group": 0,
+        "binding": 1
+      }
+    ]
   },
   "errors": []
 }
