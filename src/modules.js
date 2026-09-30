@@ -6,6 +6,9 @@ import { hostModuleImage } from './host-module-image.js';
 import { canonicalHostSymbol, isHostDataExport } from './host-export-ordinals.js';
 import { resolveApiSet } from './api-sets.js';
 
+// A DLL reached through the Windows system directory rather than the package
+// volume: such a path names a runtime-provided Windows module.
+const SYSTEM_DLL_PATH = /^(?:[a-z]:)?\/windows\/system32\//i;
 const dllName = (name) => {
   if (typeof name !== 'string' || !name || name.includes('\0')) throw Error('Invalid DLL name');
   name = name.replaceAll('\\', '/');
@@ -106,7 +109,26 @@ export class ModuleGraph {
     }
     for (const path of paths)
       if (this.files.has(path)) return this.loadPath(path, true, retain ? 1 : 0, options);
-    if (qualified) throw Error(`Missing DLL ${name}`);
+    // A path under the Windows system directory names a DLL the runtime
+    // provides as a host module: LoadLibraryA("C:\\Windows\\System32\\ws2_32.dll")
+    // must resolve to the same provider a bare "ws2_32.dll" import reaches.
+    // A path anywhere else is a literal package path, so a missing file there
+    // is a genuine failure rather than a same-named module from elsewhere.
+    if (qualified && !SYSTEM_DLL_PATH.test(name.replaceAll('\\', '/')))
+      throw Error(`Missing DLL ${name}`);
+    const basename = name.split(/[/\\]/).at(-1).toLowerCase();
+    const rest = qualified ? basename : name.toLowerCase();
+    if (qualified) {
+      const located = [...this.modules.values()].find((m) => m.name === basename);
+      if (located) {
+        if (retain) located.refs = (located.refs ?? 0) + 1;
+        return located;
+      }
+    }
+    if (this.builtinFiles.has(rest))
+      return this.loadPath('@runtime/' + rest, true, retain ? 1 : 0, { ...options, builtin: true });
+    if (this.apiNames[rest]) return this.loadHost(rest, retain ? 1 : 0);
+    throw Error(`Missing DLL ${name}`);
     name = name.toLowerCase();
     if (this.builtinFiles.has(name))
       return this.loadPath('@runtime/' + name, true, retain ? 1 : 0, { ...options, builtin: true });

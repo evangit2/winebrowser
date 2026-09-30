@@ -170,3 +170,25 @@ test('unloading a guest DLL named like a host module preserves the host import t
   assert.ok(r.graph.thunks.has(r.read32(thunk + 1)));
   assert.equal(typeof (await r.callGuest(thunk)), 'number');
 });
+
+// A program that calls LoadLibraryA("C:\\Windows\\System32\\ws2_32.dll") must
+// reach the same runtime provider a bare "ws2_32.dll" import uses. PuTTY loads
+// every one of its optional WinSock and common-control DLLs that way, and a
+// failure there becomes "Unable to load any WinSock library".
+test('a Windows system path resolves to the runtime provider for that DLL', async () => {
+  const r = await setup([]);
+  for (const name of [
+    'C:\\Windows\\System32\\ws2_32.dll',
+    'C:\\Windows\\System32\\USER32.DLL',
+    'c:/windows/system32/kernel32.dll',
+  ]) {
+    const result = await api(r, 'LoadLibraryA', [r.allocString(name)]);
+    assert.notEqual(result.result, 0, `${name} resolves`);
+    assert.equal(r.lastError, 0);
+  }
+  // A path outside the system directory is still a literal package path.
+  for (const name of ['C:\\missing\\ws2_32.dll', 'C:\\winebrowser\\absent\\kernel32.dll']) {
+    assert.equal((await api(r, 'LoadLibraryA', [r.allocString(name)])).result, 0);
+    assert.equal(r.lastError, 126);
+  }
+});
