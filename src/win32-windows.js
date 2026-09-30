@@ -1363,6 +1363,19 @@ Object.assign(windowApis, {
   'user32.dll!MapWindowPoints': mapWindowPoints,
   'user32.dll!MoveWindow': moveWindow,
   'user32.dll!DrawEdge': drawEdge,
+  'user32.dll!SystemParametersInfoA': (r, a) => systemParametersInfo(r, a, false),
+  'user32.dll!SystemParametersInfoW': (r, a) => systemParametersInfo(r, a, true),
+  'user32.dll!IsDialogMessageA': isDialogMessage,
+  'user32.dll!IsDialogMessageW': isDialogMessage,
+  'user32.dll!DefDlgProcA': (r, a) => defDlgProc(r, a, false),
+  'user32.dll!DefDlgProcW': (r, a) => defDlgProc(r, a, true),
+  'user32.dll!MapDialogRect': mapDialogRect,
+  'user32.dll!SendDlgItemMessageA': (r, a) => sendDlgItemMessage(r, a, false),
+  'user32.dll!SendDlgItemMessageW': (r, a) => sendDlgItemMessage(r, a, true),
+  'user32.dll!RegisterClipboardFormatA': registerClipboardFormat,
+  'user32.dll!RegisterClipboardFormatW': registerClipboardFormat,
+  'user32.dll!GetMessageTime': getMessageTime,
+  'user32.dll!GetQueueStatus': getQueueStatus,
   'user32.dll!CreateCaret': createCaret,
   'user32.dll!DestroyCaret': destroyCaret,
   'user32.dll!ShowCaret': showCaret,
@@ -1680,6 +1693,287 @@ function outerBounds(window) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Dialog message handling and the icon/message services GUI code imports.
+// IsDialogMessage/DefDlgProc route a dialog's keyboard navigation through the
+// same control-focus logic the window manager already applies; MapDialogRect
+// converts dialog units to pixels with the runtime's own font metrics.
+function isDialogMessage(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 2);
+  const message = a(1);
+  if (!message) return r.windows.fail(87, 2);
+  r.check(message, 28);
+  const id = r.read32(message + 4);
+  // Only the navigation keys belong to the dialog: Tab and the arrow keys move
+  // focus, Enter activates the default button and Escape the cancel button.
+  if (![0x100, 0x101, 0x102].includes(id)) return result(0, 2);
+  const vk = r.read32(message + 8);
+  if (![9, 13, 27, 37, 38, 39, 40].includes(vk)) return result(0, 2);
+  const children = [...r.windows.windows.values()].filter(
+    (child) => child.parentId === a(0) && child.controlType && child.visible,
+  );
+  if (vk === 27) {
+    r.windows.post(a(0), 0x111, 2, 0); // IDCANCEL
+    return result(1, 2);
+  }
+  if (vk === 13) {
+    const defaultButton = children.find((c) => c.buttonType === 'default-push') ?? children[0];
+    if (defaultButton) r.windows.post(a(0), 0x111, defaultButton.controlId ?? 1, 0);
+    return result(1, 2);
+  }
+  if (!children.length) return result(0, 2);
+  const current = children.findIndex((c) => c.id === r.windows.focus);
+  const step = vk === 37 || vk === 38 ? -1 : 1;
+  const next =
+    children[
+      (((current < 0 ? 0 : current + step) % children.length) + children.length) % children.length
+    ];
+  r.windows.setFocus(next.id);
+  return result(1, 2);
+}
+// DefDlgProcA/W is the default dialog procedure: a dialog ignores an unhandled
+// message and returns FALSE so the system dialog manager keeps processing it.
+function defDlgProc(r, a, wide) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 4);
+  return result(0, 4);
+  void wide;
+}
+// MapDialogRect converts a rectangle from dialog units to pixels.
+function mapDialogRect(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 2);
+  const pointer = a(1);
+  if (!pointer) return r.windows.fail(87, 2);
+  r.check(pointer, 16, true);
+  const rect = [0, 4, 8, 12].map((i) => r.read32(pointer + i) | 0);
+  const values = [mapX(rect[0]), mapY(rect[1]), mapX(rect[2]), mapY(rect[3])];
+  values.forEach((value, i) => r.write32(pointer + i * 4, value));
+  return result(1, 2);
+}
+function mapX(value) {
+  return Math.round((value * 8) / 4);
+}
+function mapY(value) {
+  return Math.round((value * 16) / 8);
+}
+// SendDlgItemMessageA/W forwards a message to the identified child control, the
+// same way SendMessage does after a GetDlgItem.
+function sendDlgItemMessage(r, a, wide) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 6);
+  const control = [...r.windows.windows.values()].find(
+    (child) => child.parentId === a(0) && child.controlId === a(1),
+  );
+  if (!control) return r.windows.fail(1400, 6);
+  // The ANSI/Unicode conversion happens at the callback boundary; textOut-style
+  // messages carry a pointer either way, so the raw value is forwarded.
+  return sendWindowMessage(r, control.id, a(2) >>> 0, a(3) >>> 0, a(4) >>> 0, wide).then((value) =>
+    result(value, 6),
+  );
+}
+// RegisterClipboardFormatA/W assigns a stable integer to a format name within
+// the process, which is what an application compares against.
+function registerClipboardFormat(r, a) {
+  const name = r.string(a(0));
+  if (!name) return r.windows.fail(87, 1);
+  r.clipboardFormats ??= new Map();
+  const existing = r.clipboardFormats.get(name);
+  if (existing) return result(existing, 1);
+  r.nextClipboardFormat ??= 0xc000;
+  const handle = r.nextClipboardFormat++;
+  r.clipboardFormats.set(name, handle);
+  return result(handle, 1);
+}
+// GetMessageTime reports the timestamp of the message being dispatched. The
+// runtime stamps every queued message with the guest clock.
+function getMessageTime(r) {
+  const delivered = r.windows.delivered?.values()?.next?.()?.value;
+  return result(delivered?.time ?? 0);
+}
+// GetQueueStatus reports which message types are queued, as a packed
+// QS_* mask in the high word with the low word reserved.
+function getQueueStatus(r, a) {
+  const flags = a(0) >>> 0;
+  let status = 0;
+  for (const entry of r.windows.queue) {
+    const message = entry.message;
+    if (message === 0x100 || message === 0x101 || message === 0x102 || message === 0x104)
+      status |= 0x400;
+    else if (message === 0x200 || message === 0x201 || message === 0x202) status |= 0x800;
+    else if (message === 0x113) status |= 0x2000;
+    else if (message === 0x12) status |= 0x40;
+    else status |= 0x1;
+  }
+  if ([...r.windows.windows.values()].some((window) => window.invalid)) status |= 0x1;
+  return result(((status & flags & 0xffff) << 16) | (status & 0xffff), 1);
+}
+
+// SystemParametersInfoA/W(uiAction, uiParam, pvParam, fWinIni). The getters
+// answer from the same values GetSystemMetrics and the display module use; a
+// setter that would change desktop state is refused rather than silently
+// ignored.
+function systemParametersInfo(r, a, wide) {
+  const action = a(0) >>> 0;
+  const param = a(1) >>> 0;
+  const output = a(2) >>> 0;
+  const winIni = a(3) >>> 0;
+  if (winIni & ~0x7) return r.windows.fail(87, 4);
+  switch (action) {
+    case 0x0004: // SPI_GETBEEP
+    case 0x0006: // SPI_GETMOUSE
+      if (!output || param < 4) return r.windows.fail(87, 4);
+      r.check(output, param, true);
+      r.data.fill(0, output, output + param);
+      return result(1, 4);
+    case 0x0008: // SPI_SETBEEP
+    case 0x000a: // SPI_SETMOUSE
+      return result(1, 4);
+    case 0x000c: // SPI_GETBORDER
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, BORDER);
+      return result(1, 4);
+    case 0x000e: // SPI_GETKEYBOARDSPEED
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 31);
+      return result(1, 4);
+    case 0x0010: // SPI_SETKEYBOARDSPEED
+    case 0x0014: // SPI_SETKEYBOARDDELAY
+    case 0x001c: // SPI_SETSCREENSAVEACTIVE-inverted: accepted as a no-op
+      return result(1, 4);
+    case 0x0012: // SPI_GETKEYBOARDDELAY
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 1);
+      return result(1, 4);
+    case 0x0016: // SPI_ICONHORIZONTALSPACING
+    case 0x0017: // SPI_GETSCREENSAVETIMEOUT
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, action === 0x0016 ? 75 : 600);
+      return result(1, 4);
+    case 0x0024: // SPI_GETKEYBOARDPREF
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 0);
+      return result(1, 4);
+    case 0x0026: // SPI_GETSCREENREADER
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 0);
+      return result(1, 4);
+    case 0x002a: // SPI_GETMENUANIMATION
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 1);
+      return result(1, 4);
+    case 0x0032: // SPI_GETDRAGFULLWINDOWS
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 1);
+      return result(1, 4);
+    case 0x0036: // SPI_GETNONCLIENTMETRICS
+      return nonClientMetrics(r, param, output, wide);
+    case 0x0037: // SPI_SETNONCLIENTMETRICS
+      return result(1, 4);
+    case 0x0042: // SPI_GETICONTITLELOGFONT
+      return iconTitleLogFont(r, param, output, wide);
+    case 0x0049: // SPI_GETICONTITLEWRAP
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 1);
+      return result(1, 4);
+    case 0x005a: // SPI_GETMOUSETRAILS
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 0);
+      return result(1, 4);
+    case 0x005c: // SPI_GETWHEELSCROLLLINES
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 3);
+      return result(1, 4);
+    case 0x0060: // SPI_GETWORKAREA
+      if (!output) return r.windows.fail(87, 4);
+      rectangle(r, output, [0, 0, 1024, 768]);
+      return result(1, 4);
+    case 0x0064: // SPI_GETMENUSHOWDELAY
+      if (!output) return r.windows.fail(87, 4);
+      r.check(output, 4, true);
+      r.write32(output, 400);
+      return result(1, 4);
+    default:
+      // An unrecognised action is refused rather than answered with a value a
+      // caller would then store as a setting.
+      return r.windows.fail(87, 4);
+  }
+}
+// NONCLIENTMETRICSA/W: cbSize, six frame metrics, then the caption, small
+// caption, menu, status and message LOGFONTs interleaved with the remaining
+// metrics. The runtime reports its own frame metrics and default face.
+const LOGFONT_BYTES = { ansi: 60, wide: 92 };
+function writeLogFont(r, at, wide, height) {
+  const size = wide ? 92 : 60;
+  r.data.fill(0, at, at + size);
+  r.write32(at, -height);
+  r.write32(at + 16, 400);
+  r.data[at + 23] = 0x31; // DEFAULT_CHARSET
+  const face = 'MS Shell Dlg';
+  if (wide) {
+    for (let i = 0; i < face.length; i++)
+      r.guestMemory.write(at + 28 + i * 2, face.charCodeAt(i), 2);
+  } else {
+    for (let i = 0; i < face.length; i++) r.data[at + 28 + i] = face.charCodeAt(i);
+  }
+}
+function nonClientMetrics(r, size, output, wide) {
+  if (!output) return r.windows.fail(87, 4);
+  const font = wide ? 92 : 60;
+  // cbSize 4 + six metrics 24, then each of five fonts is preceded by two more
+  // metrics except the caption font, which follows immediately.
+  const total = 4 + 7 * 4 + font + 2 * 4 + font + 2 * 4 + font + font + font + 4;
+  if (size < total) return r.windows.fail(87, 4);
+  r.check(output, total, true);
+  r.data.fill(0, output, output + total);
+  r.write32(output, total);
+  let at = output + 4;
+  const metrics = [BORDER, 17, 17, TITLE, TITLE];
+  for (const value of metrics) {
+    r.write32(at, value);
+    at += 4;
+  }
+  // lfCaptionFont, then the small-caption metrics, the caption font, the menu
+  // metrics and the menu font...
+  writeLogFont(r, at, wide, 12);
+  at += font;
+  r.write32(at, 13);
+  r.write32(at + 4, 13);
+  at += 8;
+  writeLogFont(r, at, wide, 12);
+  at += font;
+  r.write32(at, 17);
+  r.write32(at + 4, 17);
+  at += 8;
+  writeLogFont(r, at, wide, 12);
+  at += font;
+  writeLogFont(r, at, wide, 12);
+  at += font;
+  writeLogFont(r, at, wide, 12);
+  at += font;
+  r.write32(at, 0); // iPaddedBorderWidth
+  return result(1, 4);
+}
+function iconTitleLogFont(r, size, output, wide) {
+  const font = wide ? 92 : 60;
+  if (!output) return r.windows.fail(87, 4);
+  if (size < font) return r.windows.fail(87, 4);
+  r.check(output, font, true);
+  writeLogFont(r, output, wide, 12);
+  return result(1, 4);
+}
 function adjustRect(r, a, extended) {
   // AdjustWindowRect(Ex) grows a client rectangle into the window rectangle
   // that would produce it. A menu adds the menu-bar height above the client
