@@ -403,10 +403,24 @@ D3D10/11 and broader D3D12 support are still required.
       play (menu commands, cell clicks) is not yet verified, so this is a
       window-and-paint result rather than a compatibility claim.
       See [the browser report](evidence/minesweeper-browser-results.json).
-- [ ] Broaden common-control and dialog coverage beyond the classes the
-      browser desktop renders (list view, tree view, tab, status bar, trackbar,
-      up-down, progress and animation controls); implement reusable dialog
-      resource services where Wine reuse is feasible.
+- [x] Resolve every import of the pinned PuTTY 0.85 release (144 -> 0) through
+      the ordinary browser harness. Closing that list added the whole GDI
+      surface PuTTY needed (CreateFontIndirect, CreateBitmap, ExtTextOut,
+      the character-width queries, GetDIBits, the palette family,
+      GetOutlineTextMetrics, GetCharacterPlacement, Rectangle, Polyline and
+      the rectangular clip services), the caret/scroll-bar/placement/input-
+      state services, dialog message handling (IsDialogMessage, DefDlgProc,
+      MapDialogRect, SendDlgItemMessage), SystemParametersInfo with the real
+      NONCLIENTMETRICS layouts, the registry enumeration and advapi32
+      SID/security helpers, the imm32 IME context, the comdlg32 common
+      dialogs, DrawIconEx/LoadImage, ToAsciiEx, serial-port and named-pipe
+      answers, and the remaining console/time/text services. PuTTY is a
+      socket client, so its remaining prerequisites are networking and its
+      connection UI, not unresolved imports; execution is not yet verified.
+- [ ] Broaden common-control coverage beyond the classes the browser desktop
+      renders (list view, tree view, tab, status bar, trackbar, up-down,
+      progress and animation controls), and add the OpenGL/WGL path the SGI
+      sample needs (it imports opengl32 and the pixel-format calls).
 - [x] Run a CRT-dependent console application end to end. The unchanged upstream **7zr** 26.03 archiver completes a full `add` in the ordinary harness: its CRT starts, it scans, creates `out.7z`, compresses the input, prints "Everything is Ok" and exits 0, and the output is a real 7z stream (`37 7a bc af 27 1c 00 04`). `npm run test:7zr` is the gate. PuTTY remains a separate blocked target with GUI/GDI/WGL needs.
 - [ ] Integrate broader Wine USER32/GDI/Win32u services; complete window styles, menus, custom child windows, controls, input methods and cursor/icon resources.
 - [x] Model private executable memory. `VirtualAlloc`/`VirtualProtect` now honour
