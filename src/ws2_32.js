@@ -118,6 +118,126 @@ function socket(r, a) {
   r.wsaSockets.set(handle, { family: a(0), type: a(1), protocol: a(2), bound: null });
   return ok(handle, 3);
 }
+
+// ---------------------------------------------------------------------------
+// The classic name-resolution and address-conversion entry points. The sandbox
+// has no resolver, so gethostbyname/getservbyname report the documented
+// "unknown host"/"unknown service" failure instead of a fabricated address;
+// inet_ntop and getnameinfo format the literals the runtime can compute
+// exactly, which is what a client uses them for once a socket exists.
+function getHostByName(r, a) {
+  const name = r.string(a(0));
+  if (!name) return fail(r, WSAEINVAL, 1, 0);
+  // A numeric literal is resolved locally, exactly as the real call does.
+  const numeric = /^\d+\.\d+\.\d+\.\d+$/.test(name);
+  r.wsaLastError = numeric ? 0 : 11001; // WSAHOST_NOT_FOUND
+  if (!numeric) return ok(0, 1);
+  const parts = name.split('.').map(Number);
+  r.wsaHostBuffer ??= r.allocate(24);
+  const address = r.allocate(4);
+  r.data[address] = parts[0];
+  r.data[address + 1] = parts[1];
+  r.data[address + 2] = parts[2];
+  r.data[address + 3] = parts[3];
+  const list = r.allocate(8);
+  r.write32(list, address);
+  r.write32(list + 4, 0);
+  // HOSTENT: h_name, h_aliases, h_addrtype, h_length, h_addr_list.
+  r.write32(r.wsaHostBuffer, r.wsaHostBuffer + 16);
+  r.write32(r.wsaHostBuffer + 4, 0);
+  r.view.setUint16(r.wsaHostBuffer + 8, 2, true); // AF_INET
+  r.view.setUint16(r.wsaHostBuffer + 10, 4, true);
+  r.write32(r.wsaHostBuffer + 12, list);
+  for (let i = 0; i <= name.length; i++)
+    r.data[r.wsaHostBuffer + 16 + i] = i === name.length ? 0 : name.charCodeAt(i);
+  return ok(r.wsaHostBuffer, 1);
+}
+function getServByName(r, a) {
+  const name = r.string(a(0));
+  const protocol = a(1) ? r.string(a(1)) : '';
+  if (!name) return fail(r, WSAEINVAL, 2, 0);
+  // The names below are the ones the sockets API defines for a standard
+  // service; anything else reports "unknown service".
+  const table = {
+    ftp: 21,
+    'ftp-data': 20,
+    ssh: 22,
+    telnet: 23,
+    smtp: 25,
+    domain: 53,
+    http: 80,
+    www: 80,
+    'www-http': 80,
+    pop3: 110,
+    ntp: 123,
+    imap: 143,
+    https: 443,
+    'https-alt': 443,
+  };
+  const port = table[name.toLowerCase()];
+  if (port === undefined) {
+    r.wsaLastError = 11004; // WSANO_DATA
+    return ok(0, 2);
+  }
+  if (!['', 'tcp', 'udp'].includes(protocol.toLowerCase())) {
+    r.wsaLastError = 11004;
+    return ok(0, 2);
+  }
+  r.wsaServBuffer ??= r.allocate(24);
+  r.write32(r.wsaServBuffer, r.wsaServBuffer + 16);
+  r.write32(r.wsaServBuffer + 4, 0);
+  r.view.setUint16(r.wsaServBuffer + 8, port ? port : 0, false); // s_port is network order
+  r.view.setUint16(r.wsaServBuffer + 8, ((port & 0xff) << 8) | (port >> 8), false);
+  r.write32(r.wsaServBuffer + 12, 0);
+  const proto = protocol || 'tcp';
+  for (let i = 0; i <= name.length + proto.length + 1; i++) {
+    const text = name + '\u0000' + proto;
+    r.data[r.wsaServBuffer + 16 + i] = i < text.length ? text.charCodeAt(i) : 0;
+  }
+  return ok(r.wsaServBuffer, 2);
+}
+// inet_ntop(AF, Src, Dst, Size) formats an address. Only AF_INET and AF_INET6
+// literals can be computed without a resolver.
+function inetNtop(r, a) {
+  const family = a(0) | 0;
+  const source = a(1) >>> 0;
+  const destination = a(2);
+  const size = a(3) >>> 0;
+  if (!source || !destination) return fail(r, WSAEINVAL, 4, 0);
+  let text;
+  if (family === 2) {
+    r.check(source, 4);
+    text = [0, 1, 2, 3].map((i) => r.data[source + i]).join('.');
+  } else if (family === 23) {
+    r.check(source, 16);
+    const groups = Array.from({ length: 8 }, (_, i) =>
+      r.guestMemory.read(source + i * 2, 2).toString(16),
+    );
+    text = groups.join(':');
+  } else {
+    return fail(r, 10047, 4, 0); // WSAEAFNOSUPPORT
+  }
+  if (!size || size < text.length + 1) return fail(r, 10014, 4, 0); // WSAEFAULT
+  r.check(destination, size, true);
+  for (let i = 0; i <= text.length; i++)
+    r.data[destination + i] = i === text.length ? 0 : text.charCodeAt(i);
+  return ok(destination, 4);
+}
+// inet_pton(AF, Src, Dst) parses a literal into binary form.
+function inetPton(r, a) {
+  const family = a(0) | 0;
+  const source = a(1);
+  const destination = a(2);
+  if (!source || !destination) return fail(r, WSAEINVAL, 3, 0);
+  if (family !== 2) return ok(0, 3); // an unsupported family reports 0, not an error
+  const text = r.string(source);
+  const parts = text.split('.');
+  if (parts.length !== 4 || parts.some((p) => !/^\d+$/.test(p) || Number(p) > 255)) return ok(0, 3);
+  r.check(destination, 4, true);
+  for (let i = 0; i < 4; i++) r.data[destination + i] = Number(parts[i]);
+  return ok(1, 3);
+}
+
 function socketOp(r, a, argc) {
   const handle = a(0) >>> 0;
   if (!r.wsaSockets?.has(handle)) return fail(r, 10038, argc); // WSAENOTSOCK
@@ -181,6 +301,10 @@ const ORDINALS = {
   111: 'WSAGetLastError',
   112: 'WSASetLastError',
   115: 'WSAStartup',
+  52: 'gethostbyname',
+  55: 'getservbyname',
+  57: 'getservbyport',
+  53: 'gethostbyaddr',
   116: 'WSACleanup',
   151: '__WSAFDIsSet',
   165: 'WSAAccept',
@@ -228,6 +352,14 @@ for (const [ordinal, name] of Object.entries(ORDINALS)) {
         return inetAddr(r, a);
       case 'inet_ntoa':
         return inetNtoa(r, a);
+      case 'gethostbyname':
+        return getHostByName(r, a);
+      case 'getservbyname':
+        return getServByName(r, a);
+      case 'inet_ntop':
+        return inetNtop(r, a);
+      case 'inet_pton':
+        return inetPton(r, a);
       case 'socket':
         return socket(r, a);
       case 'closesocket':
@@ -244,3 +376,22 @@ for (const [ordinal, name] of Object.entries(ORDINALS)) {
 // it denotes; unknown ordinals fail loudly rather than returning success.
 for (const [ordinal, name] of Object.entries(ORDINALS))
   ws2Apis[`ws2_32.dll!#${ordinal}`] = ws2Apis[`ws2_32.dll!${name}`];
+
+// A handful of modern ws2_32 exports are name-only: they have no fixed ordinal
+// in the original table, so they are registered separately. They format and
+// parse address literals the runtime can compute without a resolver.
+for (const name of ['inet_ntop', 'inet_pton', 'getnameinfo', 'freeaddrinfo']) {
+  ws2Apis[`ws2_32.dll!${name}`] = (r, a) => {
+    switch (name) {
+      case 'inet_ntop':
+        return inetNtop(r, a);
+      case 'inet_pton':
+        return inetPton(r, a);
+      case 'getnameinfo':
+        return fail(r, 10047, 7, 10047); // WSAEAFNOSUPPORT without a resolver
+      default:
+        return ok(0, 1);
+    }
+  };
+  WS2_NAMES[`ws2_32.dll!${name}`] = name;
+}
