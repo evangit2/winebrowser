@@ -655,3 +655,45 @@ test('_stricoll/_wcsicoll and _memccpy follow the C-locale contract', async (t) 
   assert.equal(stop, destination + 3, 'the returned pointer is past the found byte');
   assert.equal(r.string(destination), 'hel');
 });
+
+test('_ecvt/_fcvt/_gcvt format with the CRT digit rules', async (t) => {
+  const { r, call } = await setup(t);
+  // A double argument occupies two stack slots, low half first.
+  const doubleArgs = (value) => {
+    const view = new DataView(new ArrayBuffer(8));
+    view.setFloat64(0, value, true);
+    return [view.getUint32(0, true), view.getUint32(4, true)];
+  };
+  const decpt = r.allocate(4),
+    sign = r.allocate(4);
+
+  // _ecvt returns ndigits significant digits and the point position.
+  const ecvt = await call('_ecvt', ...doubleArgs(1234.5), 5, decpt, sign);
+  assert.equal(r.string(ecvt.result >>> 0), '12345');
+  assert.equal(r.read32(decpt) | 0, 4);
+  assert.equal(r.read32(sign) | 0, 0);
+
+  // A negative value below one reports the sign and a negative point position.
+  const tiny = await call('_ecvt', ...doubleArgs(-0.00123), 3, decpt, sign);
+  assert.equal(r.string(tiny.result >>> 0), '123');
+  assert.equal(r.read32(decpt) | 0, -2);
+  assert.equal(r.read32(sign) | 0, 1);
+
+  // _fcvt returns the digits with no decimal point.
+  const fcvt = await call('_fcvt', ...doubleArgs(1234.5), 2, decpt, sign);
+  assert.equal(r.string(fcvt.result >>> 0), '123450');
+  assert.equal(r.read32(decpt) | 0, 4);
+
+  // _gcvt writes a compact decimal.
+  const gcvt = await call('_gcvt', ...doubleArgs(-2.75), 4);
+  assert.equal(r.string(gcvt.result >>> 0), '-2.75');
+
+  // The _s forms write into the caller's buffer and report errno_t.
+  const buffer = r.allocate(32);
+  assert.equal((await call('_ecvt_s', buffer, 32, ...doubleArgs(99.5), 3, decpt, sign)).result, 0);
+  assert.equal(r.string(buffer), '995');
+  assert.equal((await call('_gcvt_s', buffer, 32, ...doubleArgs(1.5), 3)).result, 0);
+  assert.equal(r.string(buffer), '1.5');
+  // A buffer too small for the text reports ERANGE.
+  assert.equal((await call('_ecvt_s', buffer, 2, ...doubleArgs(99.5), 3, decpt, sign)).result, 34);
+});

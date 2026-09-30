@@ -1961,6 +1961,122 @@ function collateImpl(r, a, fold) {
   }
   return ok(0, 3);
 }
+// ---------------------------------------------------------------------------
+// The numeric-to-string conversions _ecvt/_fcvt/_gcvt. Each formats with the
+// CRT's own rule (ndigits significant digits, the decimal point reported
+// separately) and writes into a per-process buffer the caller must not free.
+function ecvtBuffer(r, size) {
+  return cell(r, `_ecvt_buffer_${size}`, (rt) => rt.allocate(size));
+}
+// A single digit string of `ndigits` significant digits plus the decimal-point
+// position, which is what _ecvt returns.
+function significantDigits(value, ndigits) {
+  const negative = value < 0 || Object.is(value, -0);
+  const magnitude = Math.abs(value);
+  // Wine caps the request at 80-8 digits, the space its own buffer leaves once
+  // a sign, a decimal point, an exponent and the terminator are accounted for.
+  if (ndigits > 72) ndigits = 72;
+  if (ndigits < 1) {
+    // With no digits requested the value only decides whether the exponent
+    // rounds up and the digit string is empty.
+    const rounded = Number.parseFloat(magnitude.toExponential(0));
+    return {
+      digits: '',
+      decpt: magnitude === 0 ? 0 : Math.floor(Math.log10(rounded)) + 1,
+      negative,
+    };
+  }
+  if (magnitude === 0) return { digits: '0'.repeat(ndigits), decpt: 0, negative };
+  const text = magnitude.toExponential(ndigits - 1).replace('e', 'e');
+  const [mantissa, exponent] = text.split('e');
+  const digits = mantissa.replace('.', '');
+  return { digits, decpt: Number.parseInt(exponent, 10) + 1, negative };
+}
+function writeConversionPointers(r, decptOut, signOut, decpt, negative) {
+  if (decptOut) {
+    r.check(decptOut, 4, true);
+    r.write32(decptOut, decpt | 0);
+  }
+  if (signOut) {
+    r.check(signOut, 4, true);
+    r.write32(signOut, negative ? 1 : 0);
+  }
+}
+// _ecvt_base formats the significant digits, writes *decpt/*sign, and returns
+// the buffer. The _s form validates the caller's buffer instead.
+function ecvtBase(r, value, ndigits, decptOut, signOut, buffer, bufferSize) {
+  const { digits, decpt, negative } = significantDigits(value, ndigits);
+  writeConversionPointers(r, decptOut, signOut, decpt, negative);
+  if (buffer === undefined) {
+    const address = ecvtBuffer(r, 80);
+    writeAnsiBytes(r, address, digits);
+    return ok(address, 3);
+  }
+  if (bufferSize !== undefined && (bufferSize <= 2 || digits.length + 1 > bufferSize)) {
+    setErrno(r, ERANGE);
+    return ok(ERANGE, 6);
+  }
+  writeAnsiBytes(r, buffer, digits);
+  return ok(0, 6);
+}
+// _fcvt returns only the fractional digits (no decimal point) and the position
+// where the point would sit.
+function fcvtBase(r, value, ndigits, decptOut, signOut, buffer, bufferSize) {
+  const negative = value < 0 || Object.is(value, -0);
+  const magnitude = Math.abs(value);
+  const count = ndigits < 0 ? 0 : ndigits;
+  const fixed = magnitude.toFixed(count);
+  const [whole, fraction = ''] = fixed.split('.');
+  const digits = (whole === '0' ? '' : whole) + fraction;
+  const decpt =
+    magnitude === 0
+      ? 0
+      : whole === '0'
+        ? -(count - fraction.replace(/^0+/, '').length)
+        : whole.length;
+  writeConversionPointers(r, decptOut, signOut, decpt, negative);
+  if (buffer === undefined) {
+    const address = ecvtBuffer(r, 80);
+    writeAnsiBytes(r, address, digits);
+    return ok(address, 3);
+  }
+  if (bufferSize !== undefined && digits.length + 1 > bufferSize) {
+    setErrno(r, ERANGE);
+    return ok(ERANGE, 6);
+  }
+  writeAnsiBytes(r, buffer, digits);
+  return ok(0, 6);
+}
+// _gcvt writes a shortest-round-trip decimal with the requested significant
+// digits, including the decimal point.
+function gcvtBase(r, value, ndigits, buffer, bufferSize) {
+  const count = ndigits < 1 ? 1 : ndigits;
+  const text = formatGcvt(value, count);
+  if (buffer === undefined) {
+    const address = cell(r, '_gcvt_buffer', (rt) => rt.allocate(64));
+    writeAnsiBytes(r, address, text);
+    return ok(address, 2);
+  }
+  if (bufferSize !== undefined && text.length + 1 > bufferSize) {
+    setErrno(r, ERANGE);
+    return ok(ERANGE, 4);
+  }
+  writeAnsiBytes(r, buffer, text);
+  return ok(0, 4);
+}
+function formatGcvt(value, digits) {
+  if (!Number.isFinite(value)) return value < 0 ? '-1#INF' : value > 0 ? '1#INF' : '1#IND';
+  // Choose fixed notation when it keeps the requested number of significant
+  // digits and stays within the CRT's own short-output range.
+  const text = value.toPrecision(digits);
+  if (text.includes('e')) {
+    const [mantissa, exponent] = text.split('e');
+    const power = Number.parseInt(exponent, 10);
+    if (power >= -4 && power < digits) return value.toFixed(Math.max(0, digits - 1 - power));
+    return text.replace('e', 'e+').replace('e+-', 'e-');
+  }
+  return text.includes('.') ? text.replace(/\.?0+$/, '') || '0' : text;
+}
 // Registration. Called from msvcrt.js after the real implementations are in
 // place but before the trap tables, so a name that already has a handler keeps
 // it and everything else gets the implementation here.
@@ -2742,6 +2858,16 @@ export function registerCrtExtended(apis, deps = {}) {
   });
   add('raise', () => ok(0, 1));
   add('_fpieee_flt', () => ok(0, 4));
+
+  // Numeric-to-string conversions.
+  add('_ecvt', (r, a) => ecvtBase(r, doubleArg(r, a, 0), a(2) | 0, a(3), a(4)));
+  // The _s forms lead with (buffer, size), so the double starts at slot 2 and
+  // the digits, decimal point and sign follow at slots 4, 5 and 6.
+  add('_ecvt_s', (r, a) => ecvtBase(r, doubleArg(r, a, 2), a(4) | 0, a(5), a(6), a(0), a(1) >>> 0));
+  add('_fcvt', (r, a) => fcvtBase(r, doubleArg(r, a, 0), a(2) | 0, a(3), a(4)));
+  add('_fcvt_s', (r, a) => fcvtBase(r, doubleArg(r, a, 2), a(4) | 0, a(5), a(6), a(0), a(1) >>> 0));
+  add('_gcvt', (r, a) => gcvtBase(r, doubleArg(r, a, 0), a(2) | 0));
+  add('_gcvt_s', (r, a) => gcvtBase(r, doubleArg(r, a, 2), a(4) | 0, a(0), a(1) >>> 0));
 
   // File-descriptor and process helpers.
   add('_dup', (r, a) => dupDescriptor(r, a, false));
