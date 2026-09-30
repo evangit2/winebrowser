@@ -13,6 +13,7 @@ import { audioApis } from './win32-audio.js';
 import { gdiApis } from './win32-gdi.js';
 import { windowApis } from './win32-windows.js';
 import { menuApis } from './win32-menus.js';
+import { imeApis, comDlgApis } from './win32-ime-dialogs.js';
 import { dialogApis } from './win32-dialogs.js';
 import { acceleratorApis } from './win32-accelerators.js';
 import { displayApis } from './win32-display.js';
@@ -84,6 +85,8 @@ for (const key of [
   ...Object.keys(gdiApis),
   ...Object.keys(windowApis),
   ...Object.keys(menuApis),
+  ...Object.keys(imeApis),
+  ...Object.keys(comDlgApis),
   ...Object.keys(dialogApis),
   ...Object.keys(acceleratorApis),
   ...Object.keys(displayApis),
@@ -438,6 +441,8 @@ export function createWin32ApiProvider() {
     ...Object.entries(gdiApis),
     ...Object.entries(windowApis),
     ...Object.entries(menuApis),
+    ...Object.entries(imeApis),
+    ...Object.entries(comDlgApis),
     ...Object.entries(dialogApis),
     ...Object.entries(acceleratorApis),
     ...Object.entries(displayApis),
