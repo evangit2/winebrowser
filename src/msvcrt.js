@@ -322,15 +322,8 @@ msvcrtApis['msvcrt.dll!_set_app_type'] = (r, a) => {
 };
 msvcrtApis['msvcrt.dll!__set_app_type'] = msvcrtApis['msvcrt.dll!_set_app_type'];
 msvcrtApis['msvcrt.dll!__setusermatherr'] = () => ok(0, 1);
-msvcrtApis['msvcrt.dll!_controlfp'] = (r, a) => ok(0x0008001f, 2);
-msvcrtApis['msvcrt.dll!_control87'] = (r, a) => ok(0x0008001f, 2);
-msvcrtApis['msvcrt.dll!_controlfp_s'] = (r, a) => {
-  if (a(2)) {
-    r.check(a(2), 4, true);
-    r.write32(a(2), 0x0008001f);
-  }
-  return ok(0, 3);
-};
+// The authoritative definitions of the floating-point control entry points sit
+// after applyMsvcControl, so they can reproduce Wine's own translation.
 msvcrtApis['msvcrt.dll!__getmainargs'] = (r, a) => {
   // __getmainargs(int *argc, char ***argv, char ***envp, int expand, _startupinfo *)
   // argc/argv describe the whole process vector, so argv[0] is the executable.
@@ -485,7 +478,10 @@ const MSVC_MASK = {
 const MSVC_MCW_EM = 0x0008001f,
   MSVC_MCW_RC = 0x00000300,
   MSVC_MCW_PC = 0x00030000,
-  MSVC_MCW_IC = 0x00040000;
+  MSVC_MCW_IC = 0x00040000,
+  // _MCW_DN (float.h): the denormal control, accepted and mirrored into the
+  // x87 control word's denormal bit by applyMsvcControl.
+  MSVC_MCW_DN = 0x03000000;
 // x87 control-word bit -> MSVC flag, in the order Wine's _setfp reads them.
 const CW_TO_MSVC = [
   [0x01, MSVC_MASK.INVALID],
@@ -566,12 +562,24 @@ msvcrtApis['msvcrt.dll!_controlfp'] = (r, a) => {
   return control87(r, (index) => (index === 0 ? newval : mask));
 };
 msvcrtApis['msvcrt.dll!_set_controlfp'] = msvcrtApis['msvcrt.dll!_controlfp'];
+// int _controlfp_s(unsigned int *current, unsigned int newval, unsigned int mask).
+// The first argument is the out-parameter, so treating it as data would write
+// through a mask value as though it were an address.
 msvcrtApis['msvcrt.dll!_controlfp_s'] = (r, a) => {
-  const out = control87(r, (index) => (index === 0 ? a(0) >>> 0 : a(1) >>> 0));
-  if (a(2)) {
-    r.check(a(2), 4, true);
-    r.write32(a(2), msvcControl(r.cpu.x87));
+  const out = a(0) >>> 0;
+  const newval = a(1) >>> 0,
+    mask = a(2) >>> 0;
+  const previous = msvcControl(r.cpu.x87);
+  const applied = mask & (MSVC_MCW_EM | MSVC_MCW_RC | MSVC_MCW_PC | MSVC_MCW_IC);
+  if (applied) applyMsvcControl(r.cpu.x87, newval, applied);
+  if (out) {
+    r.check(out, 4, true);
+    r.write32(out, previous);
   }
+  // A bit set in both the value and the mask that names no control-word field
+  // is EINVAL; the caller still receives the current word, as the CRT does.
+  if (newval & mask & ~(MSVC_MCW_EM | MSVC_MCW_IC | MSVC_MCW_RC | MSVC_MCW_PC | MSVC_MCW_DN))
+    return ok(22, 3);
   return ok(0, 3);
 };
 msvcrtApis['msvcrt.dll!__control87_2'] = (r, a) => {
