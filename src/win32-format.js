@@ -196,6 +196,32 @@ const bounded = [
   // The `v` forms take a va_list argument instead of a `...` block.
   ['_vsnprintf_s', false, 'snprintf_s', 0, 1, 2, 3, 5],
   ['vsprintf_s', false, 'sprintf_s', 0, 1, null, 2, 4],
+  // The remaining `_l` spellings and the wide bounded forms. A locale_t sits
+  // between the format and the varargs (or before the va_list), and the runtime
+  // models one locale, so it is skipped but still counted. The `_p` positional
+  // forms are deliberately absent: Wine's formatter body has no positional
+  // parameter support, and formatting them as if they were ordinary would be a
+  // silent wrong answer rather than the explicit trap those names keep.
+  ['_snprintf_c_l', false, 'snprintf', 0, 1, null, 2, 4],
+  ['_sprintf_l', false, 'sprintf_s', 0, 1, null, 1, 3],
+  ['_sprintf_s_l', false, 'sprintf_s', 0, 1, null, 2, 4],
+  ['_vsprintf_l', false, 'sprintf_s', 0, 1, null, 1, 4],
+  ['_vsprintf_s_l', false, 'sprintf_s', 0, 1, null, 2, 5],
+  ['_vsnprintf_c', false, 'snprintf', 0, 1, null, 2, 4],
+  ['_vsnprintf_c_l', false, 'snprintf', 0, 1, null, 2, 5],
+  ['_vsnprintf_l', false, 'snprintf', 0, 1, null, 2, 5],
+  ['_vsnprintf_s_l', false, 'snprintf_s', 0, 1, 2, 3, 6],
+  ['_snwprintf', true, 'snprintf', 0, 1, null, 2, 3],
+  ['_snwprintf_l', true, 'snprintf', 0, 1, null, 2, 4],
+  ['_snwprintf_s', true, 'snprintf_s', 0, 1, 2, 3, 4],
+  ['_snwprintf_s_l', true, 'snprintf_s', 0, 1, 2, 3, 5],
+  ['_vsnwprintf', true, 'snprintf', 0, 1, null, 2, 4],
+  ['_vsnwprintf_l', true, 'snprintf', 0, 1, null, 2, 5],
+  ['_vsnwprintf_s', true, 'snprintf_s', 0, 1, 2, 3, 5],
+  ['_vsnwprintf_s_l', true, 'snprintf_s', 0, 1, 2, 3, 6],
+  ['_vswprintf_c', true, 'snprintf', 0, 1, null, 2, 4],
+  ['_vswprintf_c_l', true, 'snprintf', 0, 1, null, 2, 5],
+  ['_vswprintf_s_l', true, 'sprintf_s', 0, 1, null, 2, 5],
 ];
 for (const [
   name,

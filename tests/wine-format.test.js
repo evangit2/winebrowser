@@ -234,3 +234,53 @@ test('the stream printf family writes through the Wine body to stdout and a FILE
   await call('fprintf', [44, spec, iob + 32]);
   assert.equal(result.join(''), 'v=44;');
 });
+
+test('the locale and wide bounded printf spellings share the same Wine body', async () => {
+  // The `_l` forms put a locale_t between the format and the varargs (or before
+  // the va_list), and the wide `_snwprintf`/`_vswprintf_c` family keeps UTF-16
+  // output. Both are routed through the one unchanged Wine formatter body.
+  const r = setup(),
+    spec = r.allocString('n=%d;'),
+    wideSpec = r.allocString('w=%d;', true);
+  const call = async (name, pushes) => {
+    const original = r.cpu.r[4].value;
+    for (const value of pushes) r.cpu.push(value);
+    r.cpu.push(0x12345678);
+    const stack = r.cpu.r[4].value;
+    await r.api({ dll: 'msvcrt.dll', name });
+    const response = { result: r.cpu.r[0].value | 0, delta: r.cpu.r[4].value - stack };
+    r.cpu.r[4].value = original;
+    return response;
+  };
+
+  // _sprintf_l(buffer, format, locale, ...): the locale is skipped, not the
+  // varargs block.
+  // _sprintf_l(buffer, format, locale, ...): the locale is skipped and the
+  // varargs block still begins right after it. Pushes are in reverse argument
+  // order, so the last element is argument 0.
+  const narrow = r.allocate(32);
+  const sprintfL = await call('_sprintf_l', [21, 0, spec, narrow]);
+  assert.equal(sprintfL.result, 5, 'the locale does not change the length');
+  assert.equal(sprintfL.delta, 4, 'cdecl: only the return address is removed');
+  assert.equal(r.string(narrow), 'n=21;');
+
+  // _snprintf_l(buffer, capacity, format, locale, ...).
+  const bounded = r.allocate(32);
+  assert.equal((await call('_snprintf_l', [22, 0, spec, 32, bounded])).result, 5);
+  assert.equal(r.string(bounded), 'n=22;');
+
+  // _snwprintf(buffer, capacity, format, ...) formats UTF-16.
+  const wide = r.allocate(64);
+  assert.equal((await call('_snwprintf', [23, wideSpec, 32, wide])).result, 5);
+  assert.equal(r.wideString(wide), 'w=23;');
+
+  // The va_list forms take the locale as an extra named argument.
+  const values = r.allocate(4);
+  r.write32(values, 24);
+  const vaList = r.allocate(64);
+  assert.equal((await call('_vsprintf_l', [values, 0, spec, vaList])).result, 5);
+  assert.equal(r.string(vaList), 'n=24;');
+  const wideVa = r.allocate(64);
+  assert.equal((await call('_vsnwprintf', [values, wideSpec, 32, wideVa])).result, 5);
+  assert.equal(r.wideString(wideVa), 'w=24;');
+});
