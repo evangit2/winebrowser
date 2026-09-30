@@ -283,3 +283,49 @@ test('string helpers that forward a built argument list call it as an accessor',
   const cwd = runtime.allocate(260);
   assert.equal((await call('_getcwd', cwd, 260)).result, cwd);
 });
+
+test('case-insensitive comparisons stop at the terminator', async () => {
+  // The fold must not map the NUL terminator: `byte | 0x20` turns 0x00 into a
+  // space, so a loop that folds before testing for it never reaches the end of
+  // the string. Two equal strings then compare unequal wherever the memory
+  // after them differs, which silently misroutes every extension dispatch.
+  const provider = createWin32ApiProvider();
+  const buffer = new Uint8Array(0x10000);
+  const view = new DataView(buffer.buffer);
+  let next = 0x1000;
+  const runtime = {
+    data: buffer,
+    view,
+    check: (p, n) => p,
+    read32: (p) => view.getUint32(p, true),
+    write32: (p, v) => view.setUint32(p, v >>> 0, true),
+    allocate: (n) => {
+      const p = next;
+      next = (next + n + 3) & ~3;
+      return p;
+    },
+    free: () => true,
+  };
+  const put = (text) => {
+    const p = runtime.allocate(text.length + 1);
+    for (let i = 0; i < text.length; i++) buffer[p + i] = text.charCodeAt(i);
+    return p;
+  };
+  // Neighbouring bytes differ, so a fold that runs past the terminator sees
+  // them and reports the equal strings as different.
+  const a = put('.dds');
+  const b = put('.dds');
+  const upper = put('.DDS');
+  const other = put('.hdr');
+  const call = async (name, ...args) =>
+    provider.get(importKey('msvcrt.dll', name))(runtime, (i) => args[i] ?? 0);
+  assert.equal((await call('_stricmp', a, b)).result, 0, 'equal strings compare equal');
+  assert.equal((await call('_stricmp', a, upper)).result, 0, 'case is folded');
+  assert.equal((await call('_stricmp', a, other)).result, -1, 'different strings differ');
+  assert.equal((await call('_strnicmp', a, upper, 4)).result, 0, 'bounded form folds too');
+  assert.equal((await call('_strnicmp', a, other, 4)).result, -1);
+  assert.equal((await call('_strcmpi', a, upper)).result, 0, 'the _strcmpi spelling agrees');
+  // The extended module's spellings resolve to the same behaviour.
+  const alias = provider.get(importKey('msvcr80.dll', '_stricmp'));
+  assert.equal((await alias(runtime, (i) => [a, upper][i])).result, 0);
+});

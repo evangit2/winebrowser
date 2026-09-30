@@ -153,6 +153,14 @@ function compare(r, a, width) {
   }
   return ok(0, 3);
 }
+// Case folding for the CRT's case-insensitive comparisons. The fold must leave
+// the NUL terminator alone: `byte | 0x20` maps 0x00 to 0x20 (space), so a loop
+// that folds before testing for the terminator never sees the end of the string
+// and compares whatever follows it. Two equal strings then compare unequal
+// wherever their neighbours differ, which is how a DDS loader is skipped and a
+// file is reported missing while it sits in the package.
+const foldAscii = (byte) => (byte >= 0x41 && byte <= 0x5a ? byte | 0x20 : byte);
+
 function ansiLength(r, a) {
   let length = 0;
   while (length < 0x1000000) {
@@ -938,8 +946,8 @@ const NAMES = {
   },
   _stricmp: (r, a) => {
     for (let i = 0; ; i++) {
-      const left = (r.data[a(0) + i] | 0x20) & 0xff,
-        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      const left = foldAscii(r.data[a(0) + i]),
+        right = foldAscii(r.data[a(1) + i]);
       if (left !== right) return ok(left < right ? -1 : 1, 2);
       if (!left) return ok(0, 2);
     }
@@ -947,8 +955,8 @@ const NAMES = {
   _strnicmp: (r, a) => {
     const count = a(2) >>> 0;
     for (let i = 0; i < count; i++) {
-      const left = (r.data[a(0) + i] | 0x20) & 0xff,
-        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      const left = foldAscii(r.data[a(0) + i]),
+        right = foldAscii(r.data[a(1) + i]);
       if (left !== right) return ok(left < right ? -1 : 1, 3);
       if (!left) break;
     }
@@ -1024,8 +1032,8 @@ const NAMES = {
   memicmp: (r, a) => {
     const count = a(2) >>> 0;
     for (let i = 0; i < count; i++) {
-      const left = (r.data[a(0) + i] | 0x20) & 0xff,
-        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      const left = foldAscii(r.data[a(0) + i]),
+        right = foldAscii(r.data[a(1) + i]);
       if (left !== right) return ok(left < right ? -1 : 1, 3);
     }
     return ok(0, 3);

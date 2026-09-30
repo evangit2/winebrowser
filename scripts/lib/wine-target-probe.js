@@ -572,7 +572,7 @@ export async function probeWineTarget(
         }
       }
       report.apiCalls.push(record);
-      if (report.apiCalls.length > 64) report.apiCalls.shift();
+      if (report.apiCalls.length > 256) report.apiCalls.shift();
       // A bounded histogram keeps every distinct call visible even when the
       // recent-call window saturates during a long render loop.
       const key = record.name + (record.error ? '!' + record.error : '');
@@ -877,8 +877,8 @@ export async function probeWineTarget(
           : {}),
       };
   } finally {
-    report.textureAttempts = runtime?.d3d10TextureAttempts ?? [];
-    report.viewAttempts = runtime?.d3d10ViewAttempts ?? [];
+    // The file names the guest asked for and whether each resolved, which is
+    // what separates a path-resolution defect from a missing asset.
     report.threadsAtStop =
       runtime &&
       [...runtime.threads.records.values()].map((t) => ({

@@ -368,11 +368,28 @@ function ansiColl(r, a) {
   // The C locale collates by unsigned byte value, so strcoll is strcmp and
   // strxfrm copies when the buffer can hold the string (or reports its size).
   return strcmpImpl(r, a);
-}
+} // Case folding for the CRT's case-insensitive comparisons. The fold must leave
+// the NUL terminator alone: `byte | 0x20` maps 0x00 to 0x20 (space), so a loop
+// that folds before testing for the terminator never sees the end of the string
+// and compares whatever follows it. Two equal strings then compare unequal
+// wherever their neighbours differ, which is how a DDS loader is skipped and a
+// file is reported missing while it sits in the package.
+const foldAscii = (byte) => (byte >= 0x41 && byte <= 0x5a ? byte | 0x20 : byte);
+
 function strcmpImpl(r, a) {
   for (let i = 0; ; i++) {
     const left = r.data[a(0) + i],
       right = r.data[a(1) + i];
+    if (left !== right) return ok(left < right ? -1 : 1, 2);
+    if (!left) return ok(0, 2);
+  }
+}
+// _strcmpi/_stricmp are the case-insensitive forms of the same comparison, so
+// they share the body but not the folding.
+function strcmpiImpl(r, a) {
+  for (let i = 0; ; i++) {
+    const left = foldAscii(r.data[a(0) + i]),
+      right = foldAscii(r.data[a(1) + i]);
     if (left !== right) return ok(left < right ? -1 : 1, 2);
     if (!left) return ok(0, 2);
   }
@@ -1957,8 +1974,8 @@ function collateImpl(r, a, fold) {
   for (let i = 0; i < count; i++) {
     const rawLeft = r.data[a(0) + i],
       rawRight = r.data[a(1) + i];
-    const left = fold ? (rawLeft | 0x20) & 0xff : rawLeft;
-    const right = fold ? (rawRight | 0x20) & 0xff : rawRight;
+    const left = fold ? foldAscii(rawLeft) : rawLeft;
+    const right = fold ? foldAscii(rawRight) : rawRight;
     if (left !== right) return ok(left < right ? -1 : 1, 3);
     if (!rawLeft) break;
   }
@@ -2428,14 +2445,14 @@ export function registerCrtExtended(apis, deps = {}) {
   add('_memicmp', (r, a) => {
     const count = a(2) >>> 0;
     for (let i = 0; i < count; i++) {
-      const left = (r.data[a(0) + i] | 0x20) & 0xff,
-        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      const left = foldAscii(r.data[a(0) + i]),
+        right = foldAscii(r.data[a(1) + i]);
       if (left !== right) return ok(left < right ? -1 : 1, 3);
     }
     return ok(0, 3);
   });
-  add('_strcmpi', strcmpImpl);
-  add('_stricmp', strcmpImpl);
+  add('_strcmpi', strcmpiImpl);
+  add('_stricmp', strcmpiImpl);
   add('strncpy_s', strncpyS);
   add('strncat_s', strncatS);
 
@@ -2529,12 +2546,12 @@ export function registerCrtExtended(apis, deps = {}) {
       if (!r.data[a(0) + i]) return ok(found, 2);
     }
   });
-  add('_mbsicmp', strcmpImpl);
+  add('_mbsicmp', strcmpiImpl);
   add('_mbsnbicmp', (r, a) => {
     const count = a(2) >>> 0;
     for (let i = 0; i < count; i++) {
-      const left = (r.data[a(0) + i] | 0x20) & 0xff,
-        right = (r.data[a(1) + i] | 0x20) & 0xff;
+      const left = foldAscii(r.data[a(0) + i]),
+        right = foldAscii(r.data[a(1) + i]);
       if (left !== right) return ok(left < right ? -1 : 1, 3);
       if (!left) break;
     }

@@ -1172,23 +1172,6 @@ function texture2dParse(r, a) {
   const desc = number(a(1));
   if (!desc) return E_INVALIDARG;
   r.check(desc, 44);
-  // Every description the frontend is asked to create is retained (bounded), so
-  // a rejected one can be reported with the values that decided it.
-  if ((r.d3d10TextureAttempts ??= []).length < 32)
-    r.d3d10TextureAttempts.push({
-      width: u32(r, desc),
-      height: u32(r, desc, 4),
-      mipLevels: u32(r, desc, 8),
-      arraySize: u32(r, desc, 12),
-      format: u32(r, desc, 16),
-      sampleCount: u32(r, desc, 20),
-      sampleQuality: u32(r, desc, 24),
-      usage: u32(r, desc, 28),
-      bindFlags: `0x${u32(r, desc, 32).toString(16)}`,
-      cpuAccess: `0x${u32(r, desc, 36).toString(16)}`,
-      misc: `0x${u32(r, desc, 40).toString(16)}`,
-      initialData: `0x${number(a(2)).toString(16)}`,
-    });
   const width = u32(r, desc),
     height = u32(r, desc, 4);
   const format = u32(r, desc, 16);
