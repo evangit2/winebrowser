@@ -802,6 +802,15 @@ function listMethods() {
         return undefined;
       },
     },
+    // Dispatch(X, Y, Z): there is no compute stage, so a dispatch records
+    // nothing and the pipeline is only ever the graphics one.
+    14: {
+      argc: 4,
+      invoke(_r, _a, o) {
+        if (!o.state.pipeline) throw Error('D3D12 Dispatch requires a pipeline state');
+        return undefined;
+      },
+    },
     15: {
       // CopyBufferRegion(dst, DstOffset, src, SrcOffset, NumBytes); the two
       // 64-bit offsets and the size arrive as low/high pairs on i386.
@@ -870,6 +879,19 @@ function listMethods() {
         return undefined;
       },
     },
+    // ResolveSubresource(dst, dstSub, src, srcSub, Format): the bounded path
+    // has no multisampling, so a same-resource resolve is a no-op and any other
+    // combination is refused rather than silently dropped.
+    19: {
+      argc: 6,
+      invoke(r, a, o) {
+        const dst = object(r, a(1), 'resource', o.state.device);
+        const src = object(r, a(3), 'resource', o.state.device);
+        if (number(a(2)) || number(a(4))) return E_INVALIDARG;
+        if (dst !== src) throw Error('Unsupported D3D12 ResolveSubresource between resources');
+        return undefined;
+      },
+    },
     // CopyResource(dst, src): whole-resource copy. Buffers must match in size;
     // textures are handled by the renderer, which this bounded path models only
     // as depth/swap-chain attachments.
@@ -927,6 +949,82 @@ function listMethods() {
         o.state.roots = new Map();
         return undefined;
       },
+    },
+    // The compute root setters share the graphics implementations: the same
+    // slot indices resolve against the same root signature plan.
+    29: {
+      argc: 2,
+      invoke(r, a, o) {
+        o.state.root = object(r, a(1), 'root', o.state.device);
+        o.state.roots = new Map();
+        return undefined;
+      },
+    },
+    31: {
+      argc: 3,
+      invoke(r, a, o) {
+        const index = number(a(1)),
+          handle = number(a(2));
+        const root = o.state.root;
+        if (!root) throw Error('D3D12 root descriptor table requires a root signature');
+        const parameter = rootDescribedParameter(root, index);
+        if (parameter.type !== 'descriptor-table')
+          throw Error('D3D12 root descriptor table index is not a table');
+        o.state.roots.set(index, { kind: 'table', handle });
+        return undefined;
+      },
+    },
+    33: {
+      argc: 4,
+      invoke(r, a, o) {
+        const index = number(a(1)),
+          value = number(a(2)),
+          offset = number(a(3));
+        const root = o.state.root;
+        if (!root) throw Error('D3D12 root constants require a root signature');
+        const parameter = rootDescribedParameter(root, index);
+        if (parameter.type !== '32-bit-constants')
+          throw Error('D3D12 root constants index is not a constants parameter');
+        if (offset >= parameter.valueCount)
+          throw Error('D3D12 root constant offset exceeds the parameter');
+        const entry = o.state.roots.get(index) ?? { kind: 'constants', values: [] };
+        entry.values[offset] = value >>> 0;
+        o.state.roots.set(index, entry);
+        return undefined;
+      },
+    },
+    35: {
+      argc: 5,
+      invoke(r, a, o) {
+        const index = number(a(1)),
+          count = number(a(2)),
+          valuePtr = number(a(3)),
+          offset = number(a(4));
+        const root = o.state.root;
+        if (!root) throw Error('D3D12 root constants require a root signature');
+        const parameter = rootDescribedParameter(root, index);
+        if (parameter.type !== '32-bit-constants')
+          throw Error('D3D12 root constants index is not a constants parameter');
+        if (!count || offset + count > parameter.valueCount)
+          throw Error('D3D12 root constant range exceeds the parameter');
+        r.check(valuePtr, count * 4);
+        const entry = o.state.roots.get(index) ?? { kind: 'constants', values: [] };
+        for (let i = 0; i < count; i++) entry.values[offset + i] = u32(r, valuePtr, i * 4);
+        o.state.roots.set(index, entry);
+        return undefined;
+      },
+    },
+    37: {
+      argc: 3,
+      invoke: (r, a, o) => setRootDescriptor(r, a, o, 'cbv'),
+    },
+    39: {
+      argc: 3,
+      invoke: (r, a, o) => setRootDescriptor(r, a, o, 'srv'),
+    },
+    41: {
+      argc: 3,
+      invoke: (r, a, o) => setRootDescriptor(r, a, o, 'uav'),
     },
     // SetGraphicsRootDescriptorTable(RootParameterIndex, BaseDescriptor): records
     // an offset into the currently bound descriptor heap. The handle is a guest
@@ -1121,6 +1219,49 @@ function listMethods() {
         return undefined;
       },
     },
+    // ClearUnorderedAccessViewUint/Float(GPUHandle, CPUHandle, Resource,
+    //                                  Values[4], RectCount, pRects): the UAV
+    // clear writes the same four values the descriptor's resource storage
+    // holds, but this bounded path has no compute storage to clear.
+    49: {
+      argc: 7,
+      invoke(r, a, o) {
+        const resource = object(r, a(3), 'resource', o.state.device);
+        if (number(a(5)) || number(a(6))) throw Error('Unsupported D3D12 UAV clear rectangles');
+        if (resource.state.kind !== 'buffer')
+          throw Error('Unsupported D3D12 UAV clear on a texture');
+        r.check(number(a(4)), 16);
+        return undefined;
+      },
+    },
+    50: {
+      argc: 7,
+      invoke(r, a, o) {
+        const resource = object(r, a(3), 'resource', o.state.device);
+        if (number(a(5)) || number(a(6))) throw Error('Unsupported D3D12 UAV clear rectangles');
+        if (resource.state.kind !== 'buffer')
+          throw Error('Unsupported D3D12 UAV clear on a texture');
+        r.check(number(a(4)), 16);
+        return undefined;
+      },
+    },
+    // CopyTiles(tiled, coord, size, buffer, offset (UINT64), flags): no
+    // reserved/tiled resource exists, so this is refused explicitly.
+    18: {
+      argc: 8,
+      invoke() {
+        throw Error('Unsupported D3D12 CopyTiles for a reserved resource');
+      },
+    },
+    // ExecuteIndirect(signature, maxCount, argBuffer, argOffset (UINT64),
+    //                countBuffer, countOffset (UINT64)): the command layout is
+    // carried by the signature, which this bounded path does not execute.
+    59: {
+      argc: 9,
+      invoke() {
+        throw Error('Unsupported D3D12 ExecuteIndirect');
+      },
+    },
     // GetType reports the DIRECT command-list type created above.
     8: { argc: 1, invoke: () => 0 },
     // ClearState drops every bound resource/state but keeps the list open and
@@ -1273,6 +1414,22 @@ function listMethods() {
   }
   return methods;
 }
+function pipelineMethods() {
+  return {
+    // GetCachedBlob(ID3DBlob **ppBlob): no blob is retained for a pipeline
+    // state the runtime compiled itself, so the documented "no blob" result is
+    // reported with a null out-parameter.
+    8: {
+      argc: 2,
+      invoke(r, a) {
+        const out = number(a(1));
+        if (out) output(r, out);
+        return 0x80004005; // E_FAIL
+      },
+    },
+  };
+}
+
 function pipelineDesc(r, ptr, dev) {
   const parsed = parsePipelineDescriptor({
     check: r.check.bind(r),
@@ -1612,7 +1769,7 @@ function deviceMethods() {
         const item = make(
           r,
           'pipeline',
-          {},
+          pipelineMethods(),
           {
             device: dev,
             root: p.root,
@@ -2537,6 +2694,43 @@ function queueMethods() {
       },
     },
     13: { argc: 1, invoke: () => undefined },
+    // UpdateTileMappings/CopyTileMappings map sparse (reserved) resources, which
+    // this bounded path does not create; both are refused explicitly instead of
+    // silently accepting a mapping that would never be honoured.
+    8: {
+      argc: 11,
+      invoke() {
+        throw Error('Unsupported D3D12 UpdateTileMappings for a reserved resource');
+      },
+    },
+    9: {
+      argc: 7,
+      invoke() {
+        throw Error('Unsupported D3D12 CopyTileMappings for a reserved resource');
+      },
+    },
+    // Wait(ID3D12Fence *pFence, UINT64 Value): block this queue until the fence
+    // reaches the value. Fences here complete synchronously, so an already
+    // satisfied wait returns at once; a higher value parks the calling guest
+    // thread on the fence's waitable set rather than spinning.
+    15: {
+      argc: 4,
+      async invoke(r, a, q) {
+        const fence = object(r, a(1), 'fence', q.state.device);
+        const value = (BigInt(number(a(3))) << 32n) | BigInt(number(a(2)));
+        if (value <= fence.state.value) return S_OK;
+        const objects = r.syncObjects;
+        if (!objects) throw Error('D3D12 sync objects are unavailable');
+        const event = objects.event({ manual: false, signaled: false }).handle;
+        (fence.state.waiters ??= []).push({ value, event });
+        try {
+          await r.threads.block(objects.wait([event], false, 0xffffffff));
+        } finally {
+          objects.close(event);
+        }
+        return S_OK;
+      },
+    },
     // GetTimestampFrequency(UINT64 *pFrequency): one tick per virtual
     // nanosecond, matching the guest performance clock and RDTSC.
     16: {
@@ -3377,6 +3571,98 @@ function factoryMethods() {
     },
     // IsWindowedStereoEnabled(): the virtual desktop is never stereo.
     14: { argc: 1, invoke: () => 0 },
+    // CreateSwapChainForCoreWindow: there is no CoreWindow in the desktop
+    // model, so it is refused like the real DXGI does for a non-CoreWindow host.
+    16: {
+      argc: 6,
+      invoke(r, a) {
+        output(r, number(a(5)));
+        return E_INVALIDARG;
+      },
+    },
+    // GetSharedResourceAdapterLuid(HANDLE, LUID *): only handles this runtime
+    // opened resolve, and they always belong to the single virtual adapter.
+    17: {
+      argc: 3,
+      invoke(rt, arg, self) {
+        const out = number(arg(2));
+        rt.check(out, 8, true);
+        const handle = number(arg(1)) >>> 0;
+        if (!state(rt).sharedHandles.has(handle)) return E_INVALIDARG;
+        rt.write32(out, ADAPTER_LUID & 0xffffffff);
+        rt.write32(out + 4, ADAPTER_LUID_HIGH);
+        void self;
+        return S_OK;
+      },
+    },
+    // Stereo status and occlusion notifications have no source in the virtual
+    // presentation model; registering returns no cookie rather than a fake one
+    // the caller would later try to unregister.
+    18: {
+      argc: 4,
+      invoke(r, a) {
+        const out = number(a(3));
+        if (out) {
+          r.check(out, 4, true);
+          r.write32(out, 0);
+        }
+        return S_OK;
+      },
+    },
+    19: {
+      argc: 3,
+      invoke(r, a) {
+        const out = number(a(2));
+        if (out) {
+          r.check(out, 4, true);
+          r.write32(out, 0);
+        }
+        return S_OK;
+      },
+    },
+    20: {
+      argc: 2,
+      invoke(_r, a) {
+        return number(a(1)) === 0 ? S_OK : E_INVALIDARG;
+      },
+    },
+    21: {
+      argc: 4,
+      invoke(r, a) {
+        const out = number(a(3));
+        if (out) {
+          r.check(out, 4, true);
+          r.write32(out, 0);
+        }
+        return S_OK;
+      },
+    },
+    22: {
+      argc: 3,
+      invoke(r, a) {
+        const out = number(a(2));
+        if (out) {
+          r.check(out, 4, true);
+          r.write32(out, 0);
+        }
+        return S_OK;
+      },
+    },
+    23: {
+      argc: 2,
+      invoke(_r, a) {
+        return number(a(1)) === 0 ? S_OK : E_INVALIDARG;
+      },
+    },
+    // CreateSwapChainForComposition needs a Windows.UI.Composition surface the
+    // desktop model does not provide.
+    24: {
+      argc: 5,
+      invoke(r, a) {
+        output(r, number(a(4)));
+        return E_INVALIDARG;
+      },
+    },
     15: {
       argc: 7,
       async invoke(rt, arg, self) {
