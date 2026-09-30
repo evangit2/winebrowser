@@ -146,7 +146,10 @@ const iids = {
   query: '9b7e4c0e-342c-4106-a19f-4f2704f689f0',
   predicate: '9b7e4c10-342c-4106-a19f-4f2704f689f0',
   multithread: '9b7e4e00-342c-4106-a19f-4f2704f689f0',
-  shaderReflection: 'd40e946b-806b-47de-bea7-b6f0e8ba70ce',
+  shaderReflection: 'd40e20b6-f8f7-42ad-ab20-4baf8f15dfaa', // IID_ID3D10ShaderReflection
+  shaderReflectionType: 'c530ad7d-9b16-4395-a979-ba2ecff83add',
+  shaderReflectionVariable: '1bf63c95-2650-405d-99c1-3636bd1da0a1',
+  shaderReflectionConstantBuffer: '66c66a94-dddd-4b62-a66a-f0da33c2b4d0',
   swapchain: SWAPCHAIN_IID,
   // IDXGIDevice: the identity a framework asks for when it wants the DXGI side
   // of a rendering device, which is what CreateSwapChain takes.
@@ -2740,6 +2743,10 @@ function inputSignatureBlob(r, a) {
 function reflectShader(r, a) {
   const out = number(a(2));
   output(r, out);
+  // D3D10ReflectShader is a standalone entry point: a program may reflect a
+  // shader before it ever creates a device, so the object store has to exist
+  // for the reflection interfaces it hands back.
+  state(r);
   const bytecode = blobBytes(r, number(a(0)), number(a(1)), 'shader');
   let description;
   try {
@@ -2754,11 +2761,15 @@ function reflectShader(r, a) {
 }
 
 // An HRESULT-returning entry point reports the stack slots it consumed, so the
-// guest's stdcall correction matches what the callee popped.
-const hresult = (argc, implementation) => async (r, a) => ({
-  result: await implementation(r, a),
-  argc,
-});
+// guest's stdcall correction matches what the callee popped. The implementation
+// may return either a bare HRESULT or a complete response: a helper that already
+// fills its out-parameters returns the latter, and wrapping that in another
+// object would coerce to 0 — reporting S_OK on every call, including failures.
+const hresult = (argc, implementation) => async (r, a) => {
+  const response = await implementation(r, a);
+  if (response !== null && typeof response === 'object') return response;
+  return { result: response, argc };
+};
 
 // The shader profile each stage compiles against. D3D10 targets shader model
 // 4.0, and a framework asks the device for the profile string before it compiles
@@ -2954,7 +2965,7 @@ function constantBufferReflection(r, owner, index) {
         const item = makeStandalone(
           r,
           'ID3D10ShaderReflectionConstantBuffer',
-          IUNKNOWN,
+          iids.shaderReflectionConstantBuffer,
           [
             'QueryInterface',
             'AddRef',
@@ -3008,7 +3019,7 @@ function variableReflection(r, owner, index) {
   const item = makeStandalone(
     r,
     'ID3D10ShaderReflectionVariable',
-    IUNKNOWN,
+    iids.shaderReflectionVariable,
     ['QueryInterface', 'AddRef', 'Release', 'GetDesc', 'GetType'],
     {
       3: {
@@ -3039,7 +3050,7 @@ function typeReflection(r, owner) {
   const item = makeStandalone(
     r,
     'ID3D10ShaderReflectionType',
-    IUNKNOWN,
+    iids.shaderReflectionType,
     [
       'QueryInterface',
       'AddRef',
@@ -3090,7 +3101,9 @@ function makeStandalone(r, label, iidValue, methodNames, methods, state, onRelea
   return r.comObjects.create({
     name: label,
     iid: iidValue,
-    iids: [],
+    // Every reflection interface answers its own identity; the base IUnknown
+    // case is handled by the store itself.
+    iids: [iidValue],
     methodNames,
     methods,
     state: { ...state, device: state.device ?? null },

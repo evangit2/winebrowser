@@ -6,6 +6,28 @@ const INVALID = 0x80070057,
   FAIL = 0x80004005,
   NOT_IMPLEMENTED = 0x80004001;
 const MAX_BYTES = 1024 * 1024;
+// The D3D10_SHADER_* bits that only steer packaging, precision, flow control and
+// optimization: hints the shared compiler already satisfies, so they are
+// accepted rather than refused.
+const SHADER_FLAG_HINTS =
+  0x1 | // DEBUG
+  0x2 | // SKIP_VALIDATION
+  0x4 | // SKIP_OPTIMIZATION
+  0x8 | // PACK_MATRIX_ROW_MAJOR
+  0x10 | // PACK_MATRIX_COLUMN_MAJOR
+  0x20 | // PARTIAL_PRECISION
+  0x40 | // FORCE_VS_SOFTWARE_NO_OPT
+  0x80 | // FORCE_PS_SOFTWARE_NO_OPT
+  0x100 | // NO_PRESHADER
+  0x200 | // AVOID_FLOW_CONTROL
+  0x400 | // PREFER_FLOW_CONTROL
+  0x800 | // ENABLE_STRICTNESS
+  0x1000 | // ENABLE_BACKWARDS_COMPATIBILITY
+  0x2000 | // IEEE_STRICTNESS
+  0x4000 | // OPTIMIZATION_LEVEL0
+  0x8000 | // OPTIMIZATION_LEVEL3
+  0xc000 | // OPTIMIZATION_LEVEL2
+  0x40000; // WARNINGS_ARE_ERRORS
 
 // The three entry points differ only in where their arguments sit: D3DCompile
 // takes a source name and a second flags word, D3DCompileFromFile reads the
@@ -36,12 +58,19 @@ export async function compile(runtime, argument, indexes) {
       );
     return result(code);
   };
-  // Flags2 describes effects and is ignored for the supported vertex and pixel
-  // profiles, so only the first flags word is rejected.
-  if (a(indexes.defines) || a(indexes.include) || a(indexes.flags1))
+  // Macros and include handlers would change what the compiler is asked to
+  // build, so they are refused. The flags word is different: the documented
+  // D3D10_SHADER_* bits are packing, precision, flow-control and optimization
+  // *hints*, and the shared compiler already produces correct code without
+  // them. Refusing the word itself refused every shader a game compiles, since
+  // a framework passes PACK_MATRIX_ROW_MAJOR and PREFER_FLOW_CONTROL as a
+  // matter of course.
+  if (a(indexes.defines) || a(indexes.include))
+    return fail(NOT_IMPLEMENTED, 'HLSL macros and include handlers are not implemented');
+  if (a(indexes.flags1) & ~SHADER_FLAG_HINTS)
     return fail(
       NOT_IMPLEMENTED,
-      'HLSL macros, include handlers and nonzero compiler flags are not implemented',
+      `Unsupported HLSL compiler flags 0x${(a(indexes.flags1) & ~SHADER_FLAG_HINTS).toString(16)}`,
     );
   let source, sourceName, entry, profile;
   try {

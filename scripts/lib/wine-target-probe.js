@@ -258,6 +258,7 @@ export async function probeWineTarget(
     // host call is bracketed and a change to a callee-saved register is
     // recorded, which names the offending import directly.
     const calleeSaved = [3, 5, 6, 7];
+    if (limits.traceQuery) runtime.queryTrace = [];
     // Named APIs whose results are worth recording: a zero return is what turns
     // a later garbage read into a diagnosable cause.
     const traceResults = new Set(limits.traceResults ?? []);
@@ -758,7 +759,11 @@ export async function probeWineTarget(
           stack: (error instanceof Error ? error.stack : `non-Error: ${String(error)}`)
             ?.split('\n')
             .slice(0, 18),
-          ip: locate(lastIP),
+          // The runtime tracks the exact instruction that faulted; `lastIP` is
+          // the start of the block it belongs to, which can be many instructions
+          // earlier. Locating the instruction is what makes a fault actionable
+          // without disassembling a whole block.
+          ip: locate(error.faultEip ?? lastIP),
           faultContext: faultContext(runtime, error.message),
           faultMemory: faultMemory(runtime, error.message),
           faultCallStack: guestCallStack(runtime, runtime.cpu.r[4].value >>> 0),
@@ -888,6 +893,7 @@ export async function probeWineTarget(
   } finally {
     // The file names the guest asked for and whether each resolved, which is
     // what separates a path-resolution defect from a missing asset.
+    report.queryTrace = runtime?.queryTrace ?? [];
     report.threadsAtStop =
       runtime &&
       [...runtime.threads.records.values()].map((t) => ({

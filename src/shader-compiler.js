@@ -1,6 +1,28 @@
 // Generic shader translation services. This compiles guest DXBC shader bytes,
 // independently of the x86-to-Wasm translator that executes application code.
 const MAX_SHADER_BYTES = 1024 * 1024;
+// Every profile vkd3d-shader resolves. Keeping the list here rather than
+// hard-coding a pair is what lets a D3D10 application compile at all.
+const HLSL_PROFILES = new Set([
+  'vs_4_0',
+  'vs_4_0_level_9_0',
+  'vs_4_0_level_9_1',
+  'vs_4_0_level_9_3',
+  'vs_4_1',
+  'ps_4_0',
+  'ps_4_0_level_9_0',
+  'ps_4_0_level_9_1',
+  'ps_4_0_level_9_3',
+  'ps_4_1',
+  'gs_4_0',
+  'gs_4_1',
+  'vs_5_0',
+  'ps_5_0',
+  'gs_5_0',
+  'hs_5_0',
+  'ds_5_0',
+  'cs_5_0',
+]);
 
 export const LEGACY_D3D_SHADER_BINDINGS = Object.freeze({
   vertexGroup: 0,
@@ -359,11 +381,12 @@ export class ShaderCompiler {
   async compileHLSL(bytes, entry, profile, sourceName = 'shader.hlsl') {
     if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > MAX_SHADER_BYTES)
       throw Error('Expected bounded HLSL source');
-    // The SM4.0 profiles (vs_4_0/ps_4_0) compile through the same vkd3d-shader
-    // path as SM5.0: the DXBC container and instruction set are the same, only
-    // the target model differs. D3D10 applications ask for the SM4 spellings.
-    if (!['vs_4_0', 'ps_4_0', 'vs_5_0', 'ps_5_0'].includes(profile))
-      throw Error('Unsupported HLSL profile');
+    // Shader model 4 and 5 compile through the same vkd3d-shader path: the DXBC
+    // container and instruction set are the same, only the target model differs.
+    // D3D10 applications ask for the 4_x spellings, D3D11 and D3D12 for 5_x, and
+    // the 4_0_level_9_* forms are what a D3D9-era source compiles to. The list
+    // is the set the library resolves; a profile outside it is a caller error.
+    if (!HLSL_PROFILES.has(profile)) throw Error('Unsupported HLSL profile');
     if (typeof entry !== 'string' || !entry.length || entry.length > 256 || entry.includes('\0'))
       throw Error('Invalid HLSL entry point');
     if (typeof sourceName !== 'string' || sourceName.length > 4096 || sourceName.includes('\0'))

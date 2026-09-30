@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { d3d10Apis } from '../src/d3d10.js';
 import { createWin32ApiProvider, importKey } from '../src/win32.js';
@@ -701,4 +702,33 @@ test('a block-compressed texture accepts an initial upload', async () => {
   assert.equal(upload.bytesPerRow, 64 * 16, 'a block row is 64 blocks of 16 bytes');
   assert.equal(upload.rows.length, 64 * 16 * 64, 'and there are 64 block rows');
   assert.equal(upload.rows[0], 0);
+});
+
+test('reflection objects answer their own identities', async () => {
+  // Each reflection interface has its own IID and answers it. Creating them
+  // with no identities at all made a caller that asked a constant buffer for
+  // its own interface receive E_NOINTERFACE and read a null.
+  const f = fixture(),
+    { runtime: r, call, api, alloc, guid } = f;
+  const out = alloc(4);
+  // The D3D10 cube's own vertex shader declares one constant buffer (Transform,
+  // 64 bytes) and one bound resource, which is what its reflection reports.
+  const shader = new Uint8Array(await readFile('demos/d3d10-cube/shaders/cube.vs.dxbc'));
+  const source = alloc(shader.length);
+  r.data.set(shader, source);
+  assert.equal((await api('D3D10ReflectShader', source, shader.length, out)).result, 0);
+  const reflection = r.read32(out);
+  // GetConstantBufferByIndex returns the interface directly, so a buffer is
+  // reached by reading the call's *result* rather than an out-parameter.
+  const entry = r.thunks.get(r.read32(r.read32(reflection) + 4 * 4));
+  const buffer = await entry.invoke(r, (i) => [reflection, 0][i]);
+  assert.ok(buffer.result, 'the shader declares a constant buffer');
+  const bufferPointer = buffer.result;
+  const iidOut = alloc(4);
+  assert.equal(
+    (await call(bufferPointer, 0, guid('66c66a94-dddd-4b62-a66a-f0da33c2b4d0'), iidOut)).result,
+    0,
+    'a constant buffer answers IID_ID3D10ShaderReflectionConstantBuffer',
+  );
+  assert.equal(r.read32(iidOut), bufferPointer);
 });

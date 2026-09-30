@@ -474,10 +474,14 @@ int wb_hlsl_compile(const void *bytes, unsigned int length, const char *entry,
     int result;
 
     wb_clear();
+    /* The profile is a shader-model request the library resolves itself, so the
+     * guard only has to reject an empty or absurd word. A hard-coded pair here
+     * refused every D3D10 profile even though vkd3d-shader compiles vs_4_0 and
+     * ps_4_0 (and their 4_1/level_9 variants) through the same path. */
     if (!bytes || !length || length > WB_MAX_DXBC || !entry || !entry[0] || !profile
-            || (strcmp(profile, "vs_5_0") && strcmp(profile, "ps_5_0")))
+            || !*profile || strnlen(profile, 64) >= 64)
     {
-        snprintf(wb_messages, sizeof(wb_messages), "Expected bounded HLSL and a vs_5_0/ps_5_0 entry point");
+        snprintf(wb_messages, sizeof(wb_messages), "Expected bounded HLSL and an entry point with a shader profile");
         return 0;
     }
     hlsl.type = VKD3D_SHADER_STRUCTURE_TYPE_HLSL_SOURCE_INFO;

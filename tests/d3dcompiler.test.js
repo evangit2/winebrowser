@@ -140,14 +140,32 @@ test('HLSL API validates outputs atomically and rejects unsupported arguments be
     assert.equal(r.read32(out), 0x1234);
     assert.equal(r.read32(errors), 0x5678);
   }
-  for (const i of [3, 4, 7]) {
+  // Macros and include handlers change what the compiler is asked to build, so
+  // they are still refused.
+  for (const i of [3, 4]) {
     const a = args.slice();
     a[i] = 1;
     assert.equal((await api('D3DCompile', a)).result, 0x80004001);
     assert.equal(r.read32(out), 0);
   }
+  // The flags word is a set of packaging, precision, flow-control and
+  // optimization hints, and the shared compiler already produces correct code
+  // without them. Refusing the word itself refused every shader a game
+  // compiles: D3D_SHADER_DEBUG is 0x1 and a framework passes
+  // PACK_MATRIX_ROW_MAJOR and PREFER_FLOW_CONTROL as a matter of course.
+  for (const flags of [0x1, 0x8, 0x400, 0x1 | 0x8 | 0x400]) {
+    const a = args.slice();
+    a[7] = flags;
+    assert.equal((await api('D3DCompile', a)).result, 0, `flags 0x${flags.toString(16)}`);
+    assert.ok(r.read32(out) !== 0, 'an accepted compile hands back a blob');
+  }
+  assert.equal(calls.length, 4, 'each accepted call reached the compiler');
+  // A bit the header does not define is still refused rather than guessed at.
+  const unknown = args.slice();
+  unknown[7] = 0x80000;
+  assert.equal((await api('D3DCompile', unknown)).result, 0x80004001);
   const bad = args.slice();
   bad[1] = 1024 * 1024 + 1;
   assert.equal((await api('D3DCompile', bad)).result, 0x80070057);
-  assert.equal(calls.length, 0);
+  assert.equal(calls.length, 4);
 });

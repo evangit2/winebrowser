@@ -79,6 +79,10 @@ export class ComObjects {
             if (!out) return { result: E_POINTER, argc: 3 };
             runtime.check(out, 4, true);
             const requested = readGuid(runtime, argument(1) >>> 0);
+            if (runtime.queryTrace) {
+              runtime.queryTrace.push({ name, requested });
+              if (runtime.queryTrace.length > 64) runtime.queryTrace.shift();
+            }
             const target = queryInterface
               ? queryInterface(requested, object)
               : requested === IUNKNOWN || object.iids.has(requested)
