@@ -1590,6 +1590,35 @@ function factorial(n) {
   for (let i = 2; i <= n; i++) value *= i;
   return value;
 }
+// ---------------------------------------------------------------------------
+// longjmp restores the register file and stack the matching setjmp recorded and
+// transfers control to the saved return address. The runtime honours the
+// `jumpTo` a handler reports by resuming there without popping a return address,
+// which is how a second return from setjmp is modelled.
+function restoreJumpBuffer(r, pointer, retval, argc) {
+  if (!pointer) return ok(argc);
+  r.check(pointer, 64);
+  const ebp = r.read32(pointer + 0) >>> 0,
+    ebx = r.read32(pointer + 4) >>> 0,
+    edi = r.read32(pointer + 8) >>> 0,
+    esi = r.read32(pointer + 12) >>> 0,
+    esp = r.read32(pointer + 16) >>> 0,
+    eip = r.read32(pointer + 20) >>> 0;
+  if (!eip) {
+    // A buffer that was never written cannot be resumed from; that is a
+    // corrupted jmp_buf, and the CRT's own behaviour is to crash. Report it as
+    // an invalid-parameter stop rather than silently returning somewhere else.
+    throw Error('longjmp with an uninitialized jump buffer');
+  }
+  r.cpu.r[5].value = ebp | 0;
+  r.cpu.r[3].value = ebx | 0;
+  r.cpu.r[7].value = edi | 0;
+  r.cpu.r[6].value = esi | 0;
+  r.cpu.r[4].value = esp | 0;
+  // A zero retval is turned into 1 so a caller can tell the second return from
+  // the initial one, exactly as longjmp documents.
+  return { result: retval | 0 || 1, argc, convention: 'cdecl', jumpTo: eip };
+}
 // Registration. Called from msvcrt.js after the real implementations are in
 // place but before the trap tables, so a name that already has a handler keeps
 // it and everything else gets the implementation here.
@@ -2372,6 +2401,39 @@ export function registerCrtExtended(apis) {
   });
   add('raise', () => ok(0, 1));
   add('_fpieee_flt', () => ok(0, 4));
+
+  // setjmp/longjmp. The jump buffer is Win32's i386 _JUMP_BUFFER: Ebp, Ebx,
+  // Edi, Esi, Esp, Eip, Registration, TryLevel, Cookie, UnwindFunc, then six
+  // UnwindData words. _setjmp runs as a host thunk, so ESP still points at the
+  // caller's return address, which is exactly the Esp/Eip pair the real entry
+  // point records; longjmp restores them and asks the dispatcher to resume
+  // there, which is what makes _setjmp appear to return a second time.
+  const JMP_MAGIC = 0x56433230;
+  const saveJumpBuffer = (r, pointer, argc, decorate) => {
+    if (!pointer) return ok(argc);
+    r.check(pointer, 64, true);
+    r.data.fill(0, pointer, pointer + 64);
+    const esp = r.cpu.r[4].value >>> 0;
+    r.write32(pointer + 0, r.cpu.r[5].value >>> 0); // Ebp
+    r.write32(pointer + 4, r.cpu.r[3].value >>> 0); // Ebx
+    r.write32(pointer + 8, r.cpu.r[7].value >>> 0); // Edi
+    r.write32(pointer + 12, r.cpu.r[6].value >>> 0); // Esi
+    r.write32(pointer + 16, esp);
+    r.write32(pointer + 20, r.read32(esp) >>> 0); // the return address
+    r.write32(pointer + 24, r.read32(r.cpu.fsBase) >>> 0); // Registration
+    r.write32(pointer + 28, 0xffffffff); // TryLevel = TRYLEVEL_END
+    if (decorate) {
+      r.write32(pointer + 32, JMP_MAGIC);
+      r.write32(pointer + 36, 0); // UnwindFunc: no local unwind callback
+    }
+    return ok(0, argc);
+  };
+  add('_setjmp', (r, a) => saveJumpBuffer(r, a(0), 1, false));
+  add('setjmp', (r, a) => saveJumpBuffer(r, a(0), 1, false));
+  add('_setjmp3', (r, a) => saveJumpBuffer(r, a(0), a(1) === undefined ? 1 : 2, true));
+  add('_setjmpex', (r, a) => saveJumpBuffer(r, a(0), 2, true));
+  add('longjmp', (r, a) => restoreJumpBuffer(r, a(0), a(1), 2));
+  add('_longjmpex', (r, a) => restoreJumpBuffer(r, a(0), a(1), 2));
 }
 
 // ---------------------------------------------------------------------------

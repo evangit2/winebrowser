@@ -440,3 +440,52 @@ test('_strnset and __strncnt operate on the byte string', async (t) => {
   assert.equal(r.string(buffer), '***def');
   assert.equal((await call('__strncnt', r.allocString('abc def'), 0x20)).result, 3);
 });
+
+test('_setjmp records the register file and longjmp restores it', async (t) => {
+  const { r, call } = await setup(t);
+  const buffer = r.allocate(64);
+  // Give the registers recognizable values, and point ESP at a stack word that
+  // holds the return address setjmp is expected to record as the jump target.
+  r.cpu.r[5].value = 0x11111111; // ebp
+  r.cpu.r[3].value = 0x22222222; // ebx
+  r.cpu.r[7].value = 0x33333333; // edi
+  r.cpu.r[6].value = 0x44444444; // esi
+  const stack = r.allocate(16);
+  r.write32(stack, 0x0abcdef0);
+  r.cpu.r[4].value = stack;
+
+  assert.equal((await call('_setjmp', buffer)).result, 0);
+  assert.equal(r.read32(buffer + 0) >>> 0, 0x11111111, 'Ebp');
+  assert.equal(r.read32(buffer + 4) >>> 0, 0x22222222, 'Ebx');
+  assert.equal(r.read32(buffer + 8) >>> 0, 0x33333333, 'Edi');
+  assert.equal(r.read32(buffer + 12) >>> 0, 0x44444444, 'Esi');
+  assert.equal(r.read32(buffer + 16) >>> 0, stack, 'Esp');
+  assert.equal(r.read32(buffer + 20) >>> 0, 0x0abcdef0, 'Eip is the return address');
+
+  // _setjmp3 decorates the buffer with the jump magic the CRT checks.
+  const decorated = r.allocate(64);
+  await call('_setjmp3', decorated, 0);
+  assert.equal(r.read32(decorated + 32) >>> 0, 0x56433230, 'Cookie');
+
+  // Clobber the registers, then longjmp: the saved values come back and the
+  // reported result is the jump target (the runtime resumes there without
+  // popping a return address of its own).
+  r.cpu.r[5].value = 0;
+  r.cpu.r[3].value = 0;
+  r.cpu.r[7].value = 0;
+  r.cpu.r[6].value = 0;
+  r.cpu.r[4].value = 0;
+  const jumped = await call('longjmp', buffer, 0);
+  assert.equal(jumped.result, 1, 'a zero retval becomes 1');
+  assert.equal(jumped.jumpTo >>> 0, 0x0abcdef0, 'control resumes at the saved Eip');
+  assert.equal(jumped.convention, 'cdecl');
+  assert.equal(r.cpu.r[5].value >>> 0, 0x11111111);
+  assert.equal(r.cpu.r[3].value >>> 0, 0x22222222);
+  assert.equal(r.cpu.r[7].value >>> 0, 0x33333333);
+  assert.equal(r.cpu.r[6].value >>> 0, 0x44444444);
+  assert.equal(r.cpu.r[4].value >>> 0, stack);
+
+  // A non-zero retval is preserved.
+  const explicit = await call('longjmp', buffer, 7);
+  assert.equal(explicit.result, 7);
+});

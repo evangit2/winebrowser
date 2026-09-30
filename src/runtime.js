@@ -237,9 +237,17 @@ export class Runtime {
       this.recordApi(importKey(entry.dll, entry.name), argument);
       response = await handler(this, argument);
     }
-    const { result, resultHigh, argc, convention = 'stdcall' } = response;
+    const { result, resultHigh, argc, convention = 'stdcall', jumpTo } = response;
     if (convention !== 'stdcall' && convention !== 'cdecl')
       throw Error(`Unsupported host import convention: ${convention}`);
+    // A handler that transfers control itself (longjmp restores the saved
+    // stack and frame) reports the destination instead of returning normally.
+    // The pop is skipped because the handler has already replaced ESP.
+    if (jumpTo !== undefined) {
+      this.cpu.r[0].value = result | 0;
+      if (resultHigh !== undefined) this.cpu.r[2].value = resultHigh | 0;
+      return jumpTo >>> 0;
+    }
     const returnAddress = this.cpu.pop() >>> 0;
     if (convention === 'stdcall') this.cpu.r[4].value = (this.cpu.r[4].value + argc * 4) | 0;
     this.cpu.r[0].value = result | 0;
