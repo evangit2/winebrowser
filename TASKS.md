@@ -417,6 +417,23 @@ D3D10/11 and broader D3D12 support are still required.
       answers, and the remaining console/time/text services. PuTTY is a
       socket client, so its remaining prerequisites are networking and its
       connection UI, not unresolved imports; execution is not yet verified.
+- [x] Drive the unchanged PuTTY 0.85 executable into its own startup error
+      handling. With every import resolved it reached a real, application-level
+      message ("Unable to load any WinSock library") and 47k guest instructions
+      before stopping. Reaching that point exposed four general defects, each
+      of which would affect any application: - GetStartupInfoW wrote 104 bytes into the 68-byte STARTUPINFOW every
+      i386 build uses, overflowing the caller's frame by 36 bytes and
+      corrupting its saved return address. STARTUPINFOA and STARTUPINFOW are
+      the same size on i386 because every member is a DWORD or a pointer. - OPENFILENAMEA (88), MSGBOXPARAMSA (40) and NONCLIENTMETRICSA/W (344/504)
+      were likewise wrong; all sizes are now taken from the MinGW-w64 headers
+      with the compiler reporting sizeof. - LoadLibraryEx rejected LOAD_LIBRARY_SEARCH_SYSTEM32 (0x800), which the
+      UCRT passes on every loader call, and resolveApiSet did not map the core
+      api-ms-win-core-* contracts, so a LoadLibrary of
+      api-ms-win-core-synch-l1-2-0 failed and the following GetProcAddress
+      returned a null the caller invoked. - A full system path (C:\Windows\System32\ws2_32.dll) did not resolve
+      to the runtime provider for its basename, which is how PuTTY loads
+      every optional WinSock, common-control and shell DLL.
+      Remaining PuTTY work is networking and its connection UI, not the runtime.
 - [ ] Broaden common-control coverage beyond the classes the browser desktop
       renders (list view, tree view, tab, status bar, trackbar, up-down,
       progress and animation controls), and add the OpenGL/WGL path the SGI
