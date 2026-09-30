@@ -17,6 +17,7 @@ import { encodeAnsi } from './encoding.js';
 import { fileMetadata } from './file-metadata.js';
 import { crtCtypeCell, registerCrtExtended } from './msvcrt-extended.js';
 import { registerStreamPrintf } from './msvcrt-printf.js';
+import { registerScanf } from './msvcrt-scanf.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 // x86 argument passing: a double occupies two DWORDs on the stack, low half
@@ -1745,6 +1746,12 @@ registerStreamPrintf(msvcrtApis, {
   errnoCell,
   fputc,
   fgetc,
+});
+
+registerScanf(msvcrtApis, {
+  streamFor,
+  standardStreams,
+  touchRead: (r, path) => touchFile(r, path, { read: true }),
 });
 
 // ---------------------------------------------------------------------------
