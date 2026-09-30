@@ -322,3 +322,121 @@ test('the excluded math helpers return their value in ST(0)', async (t) => {
   await call('_copysignf', floatBits(2), floatBits(-1));
   assert.equal(r.cpu.x87.popDouble(), -2);
 });
+
+test('rotations, _swab and the bounded itoa family', async (t) => {
+  const { r, call } = await setup(t);
+  assert.equal((await call('_rotl', 0x12345678, 4)).result >>> 0, 0x23456781);
+  assert.equal((await call('_rotr', 0x12345678, 4)).result >>> 0, 0x81234567);
+  assert.equal((await call('_rotl', 0x80000000, 1)).result >>> 0, 0x00000001);
+  // A count of 32 masks to 0, leaving the value alone.
+  assert.equal((await call('_rotl', 0xdeadbeef, 32)).result >>> 0, 0xdeadbeef);
+  assert.equal((await call('_lrotl', 0x12345678, 8)).result >>> 0, 0x34567812);
+  assert.equal((await call('_lrotr', 0x12345678, 8)).result >>> 0, 0x78123456);
+
+  // _swab swaps whole adjacent pairs; Wine copies `len >> 1` pairs and does not
+  // touch the odd trailing byte, so 'ABCDE' yields 'BADC' and a clear byte 4.
+  const source = r.allocString('ABCDE'),
+    destination = r.allocate(8);
+  await call('_swab', source, destination, 5);
+  assert.equal(r.string(destination), 'BADC');
+
+  // The _s forms clear the buffer and report EINVAL/ERANGE instead of overrunning.
+  const buffer = r.allocate(16);
+  assert.equal((await call('_itoa_s', -255, buffer, 16, 16)).result, 0);
+  assert.equal(r.string(buffer), '-ff');
+  assert.equal((await call('_ultoa_s', 0xffffffff, buffer, 16, 10)).result, 0);
+  assert.equal(r.string(buffer), '4294967295');
+  // A too-small buffer is cleared and reported as ERANGE.
+  assert.equal((await call('_itoa_s', 1000, buffer, 2, 10)).result, 34);
+  assert.equal(r.string(buffer), '');
+  // An invalid radix is EINVAL.
+  assert.equal((await call('_itoa_s', 10, buffer, 16, 40)).result, 22);
+  const wide = r.allocate(32);
+  assert.equal((await call('_itow_s', -7, wide, 16, 10)).result, 0);
+  assert.equal(r.wideString(wide), '-7');
+  const big = r.allocate(32);
+  assert.equal((await call('_i64toa_s', 0, 1, big, 32, 10)).result, 0);
+  assert.equal(r.string(big), '4294967296');
+});
+
+test('the single-byte code-page conversions agree with the CRT contract', async (t) => {
+  const { r, call } = await setup(t);
+  const out = r.allocate(4);
+  const ascii = r.allocString('A');
+  assert.equal((await call('mbtowc', out, ascii, 1)).result, 1);
+  assert.equal(r.guestMemory.read(out, 2), 0x41);
+  // A byte at or above 0x80 has no single-byte UTF-16 mapping.
+  const high = r.allocate(2);
+  r.data[high] = 0x81;
+  assert.equal((await call('mbtowc', out, high, 1)).result, -1);
+  assert.equal(r.read32((await call('_errno')).result >>> 0) | 0, 42, 'EILSEQ');
+  assert.equal((await call('btowc', 0x41)).result, 0x41);
+  assert.equal((await call('btowc', 0x81)).result, 0xffff);
+  assert.equal((await call('wctob', 0x41)).result, 0x41);
+  assert.equal((await call('wctob', 0x100)).result, -1);
+
+  // mbstowcs converts a whole string and NUL-terminates it.
+  const wide = r.allocate(16);
+  const text = r.allocString('Hi');
+  assert.equal((await call('mbstowcs', wide, text, 16)).result, 2);
+  assert.equal(r.wideString(wide), 'Hi');
+  // wcstombs is the inverse.
+  const bytes = r.allocate(16);
+  assert.equal((await call('wcstombs', bytes, wide, 16)).result, 2);
+  assert.equal(r.string(bytes), 'Hi');
+});
+
+test('localeconv reports the C locale and setlocale records the name', async (t) => {
+  const { r, call } = await setup(t);
+  const lconv = (await call('localeconv')).result >>> 0;
+  assert.notEqual(lconv, 0);
+  assert.equal(r.string(r.read32(lconv)), '.');
+  assert.equal(r.string(r.read32(lconv + 4)), '');
+  assert.equal(r.data[lconv + 40], 0x7f, 'int_frac_digits is CHAR_MAX');
+  const name = (await call('setlocale', 0, r.allocString('C'))).result >>> 0;
+  assert.equal(r.string(name), 'C');
+  assert.notEqual((await call('_get_current_locale')).result >>> 0, 0);
+  assert.notEqual((await call('_create_locale', 0, r.allocString('C'))).result >>> 0, 0);
+});
+
+test('_lsearch appends a key the comparator never matched', async (t) => {
+  const { r, call } = await setup(t);
+  // A guest comparator built from real machine code: return *(int*)a - *(int*)b.
+  const code = new Uint8Array([
+    0x8b,
+    0x44,
+    0x24,
+    0x04, // mov eax,[esp+4]
+    0x8b,
+    0x4c,
+    0x24,
+    0x08, // mov ecx,[esp+8]
+    0x8b,
+    0x00, // mov eax,[eax]
+    0x2b,
+    0x01, // sub eax,[ecx]
+    0xc3, // ret
+  ]);
+  const base = r.allocate(4096);
+  r.data.set(code, base);
+  r.cpu.ranges = [...r.cpu.ranges, [base, base + code.length, false]];
+  const table = r.allocate(16);
+  r.write32(table, 10);
+  r.write32(table + 4, 20);
+  const count = r.allocate(4);
+  r.write32(count, 2);
+  const key = r.allocate(4);
+  r.write32(key, 30);
+  const found = (await call('_lsearch', key, table, count, 4, base)).result >>> 0;
+  assert.equal(found, table + 8, 'the new element is appended at the end');
+  assert.equal(r.read32(count), 3);
+  assert.equal(r.read32(table + 8), 30);
+});
+
+test('_strnset and __strncnt operate on the byte string', async (t) => {
+  const { r, call } = await setup(t);
+  const buffer = r.allocString('abcdef');
+  await call('_strnset', buffer, 0x2a, 3);
+  assert.equal(r.string(buffer), '***def');
+  assert.equal((await call('__strncnt', r.allocString('abc def'), 0x20)).result, 3);
+});

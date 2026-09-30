@@ -1395,6 +1395,75 @@ function fpclassImpl(r, a) {
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
+// Bit rotation and byte swapping. _rotl/_lrotl rotate a 32-bit value left by a
+// count masked to 31 bits, _rotr/_lrotr the other way; the long variants are
+// the same 32-bit operation on this ABI.
+function rotlImpl(r, a, left) {
+  const value = a(0) >>> 0,
+    count = (a(1) >>> 0) & 31;
+  if (!count) return ok(value | 0, 2);
+  const result = left
+    ? ((value << count) | (value >>> (32 - count))) >>> 0
+    : ((value >>> count) | (value << (32 - count))) >>> 0;
+  return ok(result | 0, 2);
+}
+// _swab swaps each adjacent pair of bytes; an odd trailing byte is left alone.
+function swabImpl(r, a) {
+  const source = a(0) >>> 0,
+    destination = a(1) >>> 0;
+  let count = a(2) | 0;
+  if (count <= 1) return ok(0, 3);
+  r.check(source, count);
+  r.check(destination, count, true);
+  for (let i = 0; i + 1 < count; i += 2) {
+    const left = r.data[source + i],
+      right = r.data[source + i + 1];
+    r.data[destination + i] = right;
+    r.data[destination + i + 1] = left;
+  }
+  return ok(0, 3);
+}
+// _itoa_s and friends take the destination size and report errno_t, clearing the
+// buffer on every failure instead of overrunning it. The radix must be 2..36.
+function integerToString(
+  r,
+  a,
+  { wide, bits, signed, bufferIndex, sizeIndex, valueIndex, radixIndex },
+) {
+  const buffer = a(bufferIndex) >>> 0,
+    size = a(sizeIndex) >>> 0,
+    radix = a(radixIndex) | 0;
+  const clear = () => {
+    if (buffer && size) {
+      if (wide) r.guestMemory.write(buffer, 0, 2);
+      else r.data[buffer] = 0;
+    }
+  };
+  if (!buffer || !size || radix < 2 || radix > 36) {
+    clear();
+    setErrno(r, EINVAL);
+    return ok(EINVAL, radixIndex + 1);
+  }
+  const raw =
+    bits === 64
+      ? BigInt(a(valueIndex)) | (BigInt(a(valueIndex + 1)) << 32n)
+      : BigInt(a(valueIndex) | 0);
+  const value = signed ? BigInt.asIntN(bits, raw) : BigInt.asUintN(bits, raw);
+  const text = formatInteger(value, radix, false);
+  if (text === null) {
+    clear();
+    return ok(EINVAL, radixIndex + 1);
+  }
+  if (text.length + 1 > size) {
+    clear();
+    setErrno(r, ERANGE);
+    return ok(ERANGE, radixIndex + 1);
+  }
+  if (wide) writeWideChars(r, buffer, text);
+  else writeAnsiBytes(r, buffer, text);
+  return ok(0, radixIndex + 1);
+}
+// ---------------------------------------------------------------------------
 // strtok and strtok_s. Both replace each separator with a NUL and keep the
 // next start in a context cell; the non-_s form owns one per-process cell,
 // exactly like the CRT's static pointer.
@@ -2018,4 +2087,478 @@ export function registerCrtExtended(apis) {
   add('_wfindfirst32', (r, a) => findfirstImpl(r, a, true, FIND_LAYOUTS.find32));
   add('_wfindnext32', (r, a) => findnextImpl(r, a, true, FIND_LAYOUTS.find32));
   add('_findclose', findcloseImpl);
+
+  // Rotations, byte swapping and the bounded integer-to-string conversions.
+  add('_rotl', (r, a) => rotlImpl(r, a, true));
+  add('_rotr', (r, a) => rotlImpl(r, a, false));
+  add('_lrotl', (r, a) => rotlImpl(r, a, true));
+  add('_lrotr', (r, a) => rotlImpl(r, a, false));
+  add('_swab', swabImpl);
+  add('_itoa_s', (r, a) =>
+    integerToString(r, a, {
+      wide: false,
+      bits: 32,
+      signed: true,
+      bufferIndex: 1,
+      sizeIndex: 2,
+      valueIndex: 0,
+      radixIndex: 3,
+    }),
+  );
+  add('_ltoa_s', (r, a) =>
+    integerToString(r, a, {
+      wide: false,
+      bits: 32,
+      signed: true,
+      bufferIndex: 1,
+      sizeIndex: 2,
+      valueIndex: 0,
+      radixIndex: 3,
+    }),
+  );
+  add('_ultoa_s', (r, a) =>
+    integerToString(r, a, {
+      wide: false,
+      bits: 32,
+      signed: false,
+      bufferIndex: 1,
+      sizeIndex: 2,
+      valueIndex: 0,
+      radixIndex: 3,
+    }),
+  );
+  add('_itow_s', (r, a) =>
+    integerToString(r, a, {
+      wide: true,
+      bits: 32,
+      signed: true,
+      bufferIndex: 1,
+      sizeIndex: 2,
+      valueIndex: 0,
+      radixIndex: 3,
+    }),
+  );
+  add('_ltow_s', (r, a) =>
+    integerToString(r, a, {
+      wide: true,
+      bits: 32,
+      signed: true,
+      bufferIndex: 1,
+      sizeIndex: 2,
+      valueIndex: 0,
+      radixIndex: 3,
+    }),
+  );
+  add('_ultow_s', (r, a) =>
+    integerToString(r, a, {
+      wide: true,
+      bits: 32,
+      signed: false,
+      bufferIndex: 1,
+      sizeIndex: 2,
+      valueIndex: 0,
+      radixIndex: 3,
+    }),
+  );
+  add('_i64toa_s', (r, a) =>
+    integerToString(r, a, {
+      wide: false,
+      bits: 64,
+      signed: true,
+      bufferIndex: 2,
+      sizeIndex: 3,
+      valueIndex: 0,
+      radixIndex: 4,
+    }),
+  );
+  add('_ui64toa_s', (r, a) =>
+    integerToString(r, a, {
+      wide: false,
+      bits: 64,
+      signed: false,
+      bufferIndex: 2,
+      sizeIndex: 3,
+      valueIndex: 0,
+      radixIndex: 4,
+    }),
+  );
+  add('_i64tow_s', (r, a) =>
+    integerToString(r, a, {
+      wide: true,
+      bits: 64,
+      signed: true,
+      bufferIndex: 2,
+      sizeIndex: 3,
+      valueIndex: 0,
+      radixIndex: 4,
+    }),
+  );
+  add('_ui64tow_s', (r, a) =>
+    integerToString(r, a, {
+      wide: true,
+      bits: 64,
+      signed: false,
+      bufferIndex: 2,
+      sizeIndex: 3,
+      valueIndex: 0,
+      radixIndex: 4,
+    }),
+  );
+
+  // Wide numeric conversion mirrors the byte forms over UTF-16 text.
+  const wideIntegerValue = (bits, signed) => (r, a) => {
+    const text = wideText(r, a(0));
+    const max = signed ? (1n << BigInt(bits - 1)) - 1n : (1n << BigInt(bits)) - 1n;
+    const min = signed ? -(1n << BigInt(bits - 1)) : 0n;
+    const parsed = parseInteger(text, 10, max, min);
+    if (parsed?.range) setErrno(r, ERANGE);
+    const value = parsed ? parsed.value : 0n;
+    return bits === 64
+      ? {
+          result: Number(BigInt.asUintN(32, value)),
+          resultHigh: Number(BigInt.asIntN(32, value >> 32n)),
+          argc: 1,
+        }
+      : ok(Number(BigInt.asIntN(32, value)) | 0, 1);
+  };
+  add('_wtoi', wideIntegerValue(32, true));
+  add('_wtol', wideIntegerValue(32, true));
+  add('_wtoi64', wideIntegerValue(64, true));
+  add('_atoi64', (r, a) => {
+    const parsed = parseInteger(ansiText(r, a(0)), 10, (1n << 63n) - 1n, -(1n << 63n));
+    const value = parsed ? parsed.value : 0n;
+    return {
+      result: Number(BigInt.asUintN(32, value)),
+      resultHigh: Number(BigInt.asIntN(32, value >> 32n)),
+      argc: 1,
+    };
+  });
+  add('_wtof', (r, a) => {
+    const parsed = parseFloatPrefix(wideText(r, a(0)));
+    return double4(r, parsed ? parsed.value : 0, 1);
+  });
+
+  // The single-byte code-page conversions.
+  add('btowc', (r, a) => ok((a(0) & 0xff) < 0x80 || a(0) === 0 ? a(0) & 0xff : 0xffff, 1));
+  add('wctob', (r, a) => ok((a(0) & 0xffff) < 0x80 ? a(0) & 0xff : -1, 1));
+  add('mblen', (r, a) => ok(a(0) ? 1 : 0, 2));
+  add('mbtowc', (r, a) => mbtowcImpl(r, a, 3));
+  add('mbrlen', (r, a) =>
+    ok(mbtowcImpl(r, { 0: () => 0, 1: () => a(0), 2: () => a(1) }, 3).result, 3),
+  );
+  add('mbrtowc', (r, a) => {
+    const source = a(1) >>> 0,
+      count = a(2) >>> 0;
+    if (!source || !count) return ok(0, 4);
+    const result = mbtowcImpl(r, { 0: () => a(0), 1: () => source, 2: () => count }, 4);
+    return ok(result.result === 1 ? 1 : result.result, 4);
+  });
+  add('wctomb', (r, a) => wctombImpl(r, a, 2));
+  add('wcrtomb', (r, a) => wctombImpl(r, { 0: () => a(0), 1: () => a(1) }, 3));
+  add('mbstowcs', (r, a) => mbstowcsImpl(r, a, 3));
+  add('wcstombs', (r, a) => wcstombsImpl(r, a, 3));
+  add('_mbstowcs_s', (r, a) =>
+    mbstowcsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
+  );
+  add('mbstowcs_s', (r, a) =>
+    mbstowcsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
+  );
+  add('_wcstombs_s', (r, a) =>
+    wcstombsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
+  );
+  add('wcstombs_s', (r, a) =>
+    wcstombsImpl(r, { 0: () => a(1), 1: () => a(3), 2: () => a(4), 3: () => a(0) }, 5),
+  );
+  add('wctomb_s', (r, a) => {
+    const out = a(0),
+      buffer = a(1),
+      size = a(2) >>> 0,
+      code = a(3) & 0xffff;
+    const result = wctombImpl(r, { 0: () => buffer, 1: () => code }, 4);
+    if (out) r.write32(out, result.result < 0 ? 0xffffffff : result.result);
+    void size;
+    return ok(result.result < 0 ? 22 : 0, 4);
+  });
+  add('wcrtomb_s', (r, a) => {
+    const out = a(0),
+      buffer = a(1),
+      size = a(2) >>> 0,
+      code = a(3) & 0xffff;
+    const result = wctombImpl(r, { 0: () => buffer, 1: () => code }, 5);
+    if (out) r.write32(out, result.result < 0 ? 0xffffffff : result.result);
+    void size;
+    return ok(result.result < 0 ? 22 : 0, 5);
+  });
+
+  // Locale.
+  add('localeconv', localeconvImpl);
+  add('setlocale', setlocaleImpl);
+  add('_wsetlocale', setlocaleImpl);
+  add('_get_current_locale', (r) => ok(currentLocaleHandle(r), 0));
+  add('_create_locale', (r) => ok(currentLocaleHandle(r), 2));
+  add('_wcreate_locale', (r) => ok(currentLocaleHandle(r), 2));
+  add('_free_locale', () => ok(0, 1));
+  add('_configthreadlocale', () => ok(0, 1));
+
+  // List search helpers.
+  add('_lfind', (r, a) => lfindImpl(r, a, { search: false, withContext: false, argc: 5 }));
+  add('_lfind_s', (r, a) => lfindImpl(r, a, { search: false, withContext: true, argc: 6 }));
+  add('_lsearch', (r, a) => lfindImpl(r, a, { search: true, withContext: false, argc: 5 }));
+  add('_lsearch_s', (r, a) => lfindImpl(r, a, { search: true, withContext: true, argc: 6 }));
+
+  // Byte-string extras.
+  add('__strncnt', strncntImpl);
+  add('_strnset', (r, a) => strsetImpl(r, a, true));
+  add('_strset', (r, a) => strsetImpl(r, a, false));
+  add('_strlwr_s', (r, a) => strCaseS(r, a, false, 2));
+  add('_strupr_s', (r, a) => strCaseS(r, a, true, 2));
+  add('_strlwr_s_l', (r, a) => strCaseS(r, a, false, 3));
+  add('_strupr_s_l', (r, a) => strCaseS(r, a, true, 3));
+  add('_stricmp_l', strcmpImpl);
+  add('_strnicmp_l', strcmpImpl);
+  add('_wcsicmp_l', (r, a) => wideCompare(r, a, 0xffffffff));
+  add('_wcsnicmp_l', (r, a) => wideCompare(r, a, a(2) >>> 0));
+  add('_strcoll_l', ansiColl);
+  add('_wcscoll_l', (r, a) => wideCompare(r, a, 0xffffffff));
+  add('_strxfrm_l', strxfrmImpl);
+
+  // Process and console queries.
+  add('_getpid', (r) => ok(r.processId ?? 4242, 0));
+  add('_beep', (r, a) => {
+    const frequency = a(0) | 0,
+      duration = a(1) | 0;
+    if (frequency < 37 || frequency > 32767 || duration > 10000) return ok(-1, 2);
+    r.request('beep', { frequency, duration });
+    return ok(0, 2);
+  });
+  add('_sleep', async (r, a) => {
+    const milliseconds = a(0) >>> 0;
+    if (milliseconds > 10000) throw Error('_sleep exceeds prototype 10-second limit');
+    await r.threads.delay(milliseconds);
+    return ok(0, 1);
+  });
+  add('_get_osplatform', () => ok(2, 0));
+  add('_get_osver', (r, a) => {
+    if (a(0)) r.write32(a(0), 0x0a280000 | 0x0a28);
+    return ok(0, 1);
+  });
+  add('_get_winmajor', (r, a) => {
+    if (a(0)) r.write32(a(0), 6);
+    return ok(0, 1);
+  });
+  add('_get_winminor', (r, a) => {
+    if (a(0)) r.write32(a(0), 2);
+    return ok(0, 1);
+  });
+  add('_get_pgmptr', (r, a) => {
+    if (a(0)) r.write32(a(0), r.allocString(r.exe.replaceAll('/', '\\')));
+    return ok(0, 1);
+  });
+  add('_get_wpgmptr', (r, a) => {
+    if (a(0)) r.write32(a(0), r.allocString(r.exe.replaceAll('/', '\\'), true));
+    return ok(0, 1);
+  });
+  add('_heapchk', () => ok(0xffffffff, 0)); // -1: the CRT heap is not the guest heap.
+  add('_heapmin', () => ok(0, 0));
+  add('_heapset', () => ok(0, 1));
+  add('_heapwalk', () => ok(0xffffffff, 1));
+  add('signal', (r, a) => {
+    // The runtime delivers no signals; report the previous handler and accept
+    // the registration so a program's own bookkeeping stays consistent.
+    const previous = r.crtSignals?.get(a(0)) ?? 0;
+    r.crtSignals ??= new Map();
+    r.crtSignals.set(a(0), a(1) >>> 0);
+    return ok(previous, 2);
+  });
+  add('raise', () => ok(0, 1));
+  add('_fpieee_flt', () => ok(0, 4));
+}
+
+// ---------------------------------------------------------------------------
+// A second group of CRT entry points: the single-byte code-page conversions,
+// the C locale, the byte/word rotation helpers, the list search helpers, and
+// the small process/console queries a console program reaches for. Each is
+// grounded in the same guest model as the rest of the module, and the ones with
+// no honest answer (a real locale database, a child process) report the CRT's
+// documented failure instead of inventing a result.
+function mbtowcImpl(r, a, argc) {
+  const destination = a(0),
+    source = a(1) >>> 0,
+    count = a(2) | 0;
+  if (!source) return ok(0, argc);
+  if (count <= 0) return ok(-1, argc);
+  const byte = r.data[source];
+  if (!byte) return ok(0, argc);
+  // The code page is single-byte: only bytes below 0x80 have a UTF-16 unit.
+  if (byte >= 0x80) {
+    setErrno(r, 42); // EILSEQ
+    return ok(-1, argc);
+  }
+  if (destination) r.guestMemory.write(destination, byte, 2);
+  return ok(1, argc);
+}
+function wctombImpl(r, a, argc) {
+  const destination = a(0),
+    code = a(1) & 0xffff;
+  if (!destination) return ok(0, argc);
+  if (!code) {
+    r.data[destination] = 0;
+    return ok(0, argc);
+  }
+  if (code >= 0x80) {
+    setErrno(r, 42);
+    return ok(-1, argc);
+  }
+  r.data[destination] = code;
+  return ok(1, argc);
+}
+// mbstowcs/wcstombs convert whole strings. The count bounds the number of
+// produced units; a NUL terminator is written when there is room, and an
+// unrepresentable unit makes the conversion fail with EILSEQ and SIZE_MAX.
+function mbstowcsImpl(r, a, argc) {
+  const bounded = argc === 5;
+  const destination = a(0) >>> 0,
+    source = a(1) >>> 0;
+  const count = a(2) >>> 0;
+  let converted = 0;
+  for (; ; converted++) {
+    const byte = r.data[source + converted];
+    if (!byte) break;
+    if (bounded && count && converted >= count) break;
+    if (byte >= 0x80) {
+      setErrno(r, 42);
+      if (bounded && a(3)) r.write32(a(3), 0);
+      return ok(0xffffffff, argc);
+    }
+    if (destination) r.guestMemory.write(destination + converted * 2, byte, 2);
+  }
+  if (destination && (!bounded || !count || converted < count))
+    r.guestMemory.write(destination + converted * 2, 0, 2);
+  if (bounded && a(3)) r.write32(a(3), converted + 1);
+  return ok(converted, argc);
+}
+function wcstombsImpl(r, a, argc) {
+  const bounded = argc === 5;
+  const destination = a(0) >>> 0,
+    source = a(1) >>> 0;
+  const count = a(2) >>> 0;
+  let converted = 0;
+  for (; ; converted++) {
+    const code = r.guestMemory.read(source + converted * 2, 2);
+    if (!code) break;
+    if (bounded && count && converted >= count) break;
+    if (code >= 0x80) {
+      setErrno(r, 42);
+      if (bounded && a(3)) r.write32(a(3), 0);
+      return ok(0xffffffff, argc);
+    }
+    if (destination) r.data[destination + converted] = code;
+  }
+  if (destination && (!bounded || !count || converted < count)) r.data[destination + converted] = 0;
+  if (bounded && a(3)) r.write32(a(3), converted + 1);
+  return ok(converted, argc);
+}
+// The C locale's lconv: the decimal point is ".", every other string is empty
+// and the digit counts are CHAR_MAX, matching Wine's cloc_lconv.
+function localeconvImpl(r) {
+  return ok(
+    cell(r, '_lconv', (rt) => {
+      const table = rt.allocate(64);
+      rt.write32(table, rt.allocString('.'));
+      for (let i = 1; i < 10; i++) rt.write32(table + i * 4, rt.allocString(''));
+      rt.data[table + 40] = 0x7f; // int_frac_digits = CHAR_MAX
+      rt.data[table + 41] = 0x7f; // frac_digits = CHAR_MAX
+      return table;
+    }),
+    0,
+  );
+}
+// setlocale records the requested name and answers with it (the runtime has one
+// locale, so there is nothing else to switch to). _get_current_locale returns
+// that same persistent handle, and every _create_locale call answers with one
+// shared, valid handle because the locale contents are identical.
+function setlocaleImpl(r, a) {
+  const requested = a(1) ? r.string(a(1)) : '';
+  if (requested) r.crtLocaleName = requested;
+  r.crtLocaleName ??= 'C';
+  return ok(
+    cell(r, '_locale_name', (rt) => rt.allocString(r.crtLocaleName)),
+    2,
+  );
+}
+function currentLocaleHandle(r) {
+  return cell(r, '_current_locale', (rt) => {
+    const handle = rt.allocate(32, true);
+    rt.write32(handle, rt.allocString(r.crtLocaleName ?? 'C'));
+    return handle;
+  });
+}
+// _lfind walks an array of fixed-size records with the guest comparator and
+// returns a match; _lsearch also appends the key when there is no match.
+// _lfind/_lsearch take a two-argument comparator (key, element); the _s forms add
+// a context word that is passed first (context, key, element). _lsearch also
+// appends the key when nothing matched and grows the caller's count.
+async function lfindImpl(r, a, { search, withContext, argc }) {
+  const key = a(0),
+    base = a(1),
+    countPointer = a(2),
+    size = a(3) >>> 0,
+    compare = a(4) >>> 0;
+  const context = withContext ? a(5) : 0;
+  if (!size || !compare || !countPointer) return ok(0, argc);
+  const count = r.read32(countPointer) >>> 0;
+  for (let i = 0; i < count; i++) {
+    const element = base + i * size;
+    const result = await r.callGuest(
+      compare,
+      withContext ? [context, key, element] : [key, element],
+      'cdecl',
+    );
+    if (result === 0) return ok(element, argc);
+  }
+  if (!search) return ok(0, argc);
+  if (count > 1 << 20) throw Error('_lsearch count limit exceeded');
+  r.check(base + count * size, size, true);
+  r.data.copyWithin(base + count * size, key, key + size);
+  r.write32(countPointer, count + 1);
+  return ok(base + count * size, argc);
+}
+// __strncnt counts the leading characters that are not the given byte.
+function strncntImpl(r, a) {
+  const byte = a(1) & 0xff || 0x20;
+  let count = 0;
+  while (r.data[a(0) + count] && r.data[a(0) + count] !== byte) count++;
+  return ok(count, 2);
+}
+// _strnset/_strset fill with a byte up to a count or the terminator.
+function strsetImpl(r, a, bounded) {
+  const value = a(1) & 0xff;
+  let count = bounded ? a(2) >>> 0 : 0xffffffff;
+  if (bounded) r.check(a(0), 1, true);
+  for (let i = 0; i < count; i++) {
+    if (!bounded && !r.data[a(0) + i]) break;
+    r.data[a(0) + i] = value;
+  }
+  return ok(a(0), bounded ? 3 : 2);
+}
+// _strlwr_s/_strupr_s validate the destination size and report errno_t.
+function strCaseS(r, a, upper, argc) {
+  const destination = a(0) >>> 0,
+    size = a(1) >>> 0;
+  if (!destination || !size) {
+    setErrno(r, EINVAL);
+    return ok(EINVAL, argc);
+  }
+  r.check(destination, size, true);
+  let i = 0;
+  for (; i < size && r.data[destination + i]; i++) {
+    const byte = r.data[destination + i];
+    if (upper) r.data[destination + i] = byte >= 0x61 && byte <= 0x7a ? byte - 0x20 : byte;
+    else r.data[destination + i] = byte >= 0x41 && byte <= 0x5a ? byte + 0x20 : byte;
+  }
+  if (i >= size) {
+    setErrno(r, ERANGE);
+    return ok(ERANGE, argc);
+  }
+  return ok(0, argc);
 }
