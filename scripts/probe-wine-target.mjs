@@ -25,6 +25,7 @@ const { values: options, positionals } = parseArgs({
     'trace-blocks': { type: 'string' },
     'trace-window': { type: 'string' },
     'trace-imports': { type: 'boolean' },
+    'trace-results': { type: 'string' },
     'max-blocks': { type: 'string' },
     'max-ms': { type: 'string' },
   },
@@ -83,7 +84,8 @@ const input = {
   options['max-ms'] ||
   options['trace-blocks'] ||
   options['trace-window'] ||
-  options['trace-imports']
+  options['trace-imports'] ||
+  options['trace-results']
     ? {
         limits: {
           ...(options['max-blocks'] ? { maxBlocks: Number(options['max-blocks']) } : {}),
@@ -103,6 +105,9 @@ const input = {
               }
             : {}),
           ...(options['trace-imports'] ? { traceImports: true } : {}),
+          ...(options['trace-results']
+            ? { traceResults: options['trace-results'].split(',') }
+            : {}),
         },
       }
     : {}),

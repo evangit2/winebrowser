@@ -29,6 +29,7 @@ import { RESOURCE_BUFFER, DESCRIPTOR_CBV } from './d3d12-bindings.js';
 import { planStageBindings, STAGE_VERTEX } from './d3d10-bindings.js';
 import { inputSignatureContainer, reflectShader as reflectDxbc } from './d3d10-reflection.js';
 import { compile as compileHlsl, COMPILE_SHADER_10_LAYOUT } from './d3dcompiler.js';
+import { registerSwapChainProvider } from './d3d12.js';
 
 const S_OK = 0;
 const E_INVALIDARG = 0x80070057;
@@ -44,8 +45,23 @@ const MAX_PIPELINES = 64;
 // D3D10_SDK_VERSION. The runtime accepts the version the headers were built
 // with and ignores it otherwise, so it is only validated for plausibility.
 const D3D10_SDK_VERSION = 29;
+// D3D10_DRIVER_TYPE: HARDWARE, REFERENCE, NULL, SOFTWARE and WARP. SOFTWARE
+// additionally requires the caller's rasterizer module.
 const DRIVER_TYPES = new Set([0, 1, 2, 3, 5]);
-const CREATE_FLAGS = 0x20; // D3D10_CREATE_DEVICE_BGRA_SUPPORT is the only one modelled.
+// D3D10_CREATE_DEVICE_FLAG. Every documented flag is accepted; they are hints
+// about threading, layer settings and validation that do not change what the
+// bounded device models. Rejecting one the header defines would refuse an
+// application over a flag that has no semantic weight here.
+const CREATE_FLAGS =
+  0x1 | // SINGLETHREADED
+  0x2 | // DEBUG
+  0x4 | // SWITCH_TO_REF
+  0x8 | // PREVENT_INTERNAL_THREADING_OPTIMIZATIONS
+  0x10 | // ALLOW_NULL_FROM_MAP
+  0x20 | // BGRA_SUPPORT
+  0x80 | // PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY
+  0x200 | // STRICT_VALIDATION
+  0x400; // DEBUGGABLE
 
 const USAGE_DEFAULT = 0,
   USAGE_IMMUTABLE = 1,
@@ -105,6 +121,10 @@ const iids = {
   multithread: '9b7e4e00-342c-4106-a19f-4f2704f689f0',
   shaderReflection: 'd40e946b-806b-47de-bea7-b6f0e8ba70ce',
   swapchain: SWAPCHAIN_IID,
+  // IDXGIDevice: the identity a framework asks for when it wants the DXGI side
+  // of a rendering device, which is what CreateSwapChain takes.
+  dxgiDevice: '54ec77fa-1377-44e6-8c32-88fd5f44c84c',
+  adapter: '29038f61-3839-4626-91fd-086879011a05',
 };
 
 // Vtable member names in declaration order. Slot indices are positional and
@@ -140,6 +160,10 @@ const names = {
     'QueryInterface AddRef Release GetDesc GetConstantBufferByIndex GetConstantBufferByName GetResourceBindingDesc GetInputParameterDesc GetOutputParameterDesc',
   swapchain:
     'QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDevice Present GetBuffer SetFullscreenState GetFullscreenState GetDesc ResizeBuffers ResizeTarget GetContainingOutput GetFrameStatistics GetLastPresentCount',
+  dxgiDevice:
+    'QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetAdapter CreateSurface QueryResourceResidency SetGPUThreadPriority GetGPUThreadPriority',
+  adapter:
+    'QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1',
 };
 const name = {
   device: 'ID3D10Device',
@@ -166,6 +190,8 @@ const name = {
   multithread: 'ID3D10Multithread',
   shaderReflection: 'ID3D10ShaderReflection',
   swapchain: 'IDXGISwapChain',
+  dxgiDevice: 'IDXGIDevice',
+  adapter: 'IDXGIAdapter1',
 };
 
 // The dimension GetType reports for each texture interface.
@@ -245,7 +271,14 @@ function output(r, ptr) {
 // and a render-target/depth-stencil/shader-resource view its own identity.
 function extraIids(kind) {
   if (kind === 'device') return [];
-  if (kind === 'multithread' || kind === 'shaderReflection' || kind === 'swapchain') return [];
+  if (
+    kind === 'multithread' ||
+    kind === 'shaderReflection' ||
+    kind === 'swapchain' ||
+    kind === 'dxgiDevice' ||
+    kind === 'adapter'
+  )
+    return [];
   const list = [iids.deviceChild];
   if (kind === 'buffer' || kind === 'texture1d' || kind === 'texture2d' || kind === 'texture3d') {
     list.push(iids.resource);
@@ -291,6 +324,99 @@ const GET_DEVICE = {
   },
 };
 
+// A device's QueryInterface answers IDXGIDevice with a separate object: the
+// interface has its own vtable, so handing back the ID3D10Device pointer would
+// dispatch DXGI methods into D3D10 slots. The object is cached on the device so
+// repeated queries return the same identity, and it keeps the device alive.
+function deviceQueryInterface(r, device) {
+  return (requested, owner) => {
+    if (requested === iids.dxgiDevice) {
+      owner.state.dxgiDevice ??= make(r, 'dxgiDevice', dxgiDeviceMethods(), { owner }, null);
+      return owner.state.dxgiDevice;
+    }
+    return requested === IUNKNOWN || owner.iids.has(requested) ? owner : null;
+  };
+}
+
+// IDXGIDevice describes the adapter a device renders through and where its
+// surfaces would live. The virtual machine has one adapter and no shared
+// surfaces, so GetAdapter reports that adapter and CreateSurface refuses.
+function dxgiDeviceMethods() {
+  return {
+    6: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return DXGI_ERROR_NOT_FOUND;
+      },
+    },
+    7: {
+      argc: 3,
+      invoke(r, a, o) {
+        const out = number(a(2));
+        output(r, out);
+        if (!iid(r, a(1), 'adapter')) return E_NOINTERFACE;
+        o.state.adapter ??= make(
+          r,
+          'adapter',
+          dxgiAdapterMethods(),
+          { owner: o.state.owner },
+          null,
+        );
+        r.write32(out, o.state.adapter.pointer);
+        return S_OK;
+      },
+    },
+    8: {
+      argc: 5,
+      invoke(r, a) {
+        output(r, number(a(4)));
+        // Shared surfaces require a shared handle across adapters; there is
+        // one adapter, so the documented refusal is the honest answer.
+        return DXGI_ERROR_INVALID_CALL;
+      },
+    },
+    9: {
+      argc: 4,
+      invoke: () => E_INVALIDARG,
+    },
+    10: {
+      argc: 2,
+      invoke: (_r, a) => ((a(1) | 0) >= -7 && (a(1) | 0) <= 7 ? undefined : E_INVALIDARG),
+    },
+    11: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 4, true);
+        r.write32(out, o.state.gpuThreadPriority ?? 0);
+        return undefined;
+      },
+    },
+  };
+}
+
+// The adapter an IDXGIDevice reports is the same virtual adapter the factory
+// enumerates, so a caller that walks either route sees one device.
+function dxgiAdapterMethods() {
+  return {
+    6: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return DXGI_ERROR_NOT_FOUND;
+      },
+    },
+    7: {
+      argc: 3,
+      invoke(r, a) {
+        output(r, number(a(2)));
+        return DXGI_ERROR_NOT_FOUND;
+      },
+    },
+  };
+}
+
 function make(r, kind, methods, itemState = {}, device = null, onRelease = null) {
   if (device) {
     if (device.refs >= 0x7fffffff) throw Error('D3D10 device reference limit exceeded');
@@ -308,6 +434,11 @@ function make(r, kind, methods, itemState = {}, device = null, onRelease = null)
       name: name[kind],
       iid: iids[kind],
       iids: extraIids(kind),
+      // A device answers IDXGIDevice as well, through a separate object.
+      queryInterface:
+        kind === 'device'
+          ? (requested, owner) => deviceQueryInterface(r, owner)(requested, owner)
+          : undefined,
       methodNames,
       methods: table,
       state: { ...itemState, device },
@@ -2748,3 +2879,30 @@ function makeStandalone(r, label, iidValue, methodNames, methods, state, onRelea
     onRelease,
   });
 }
+
+// --- the shared DXGI factory bridge ----------------------------------------
+
+// A D3D10 application usually creates its device first and then asks the DXGI
+// factory for a swap chain, passing the device's IDXGIDevice. The factory is
+// shared with the D3D12 frontend, so D3D10 registers how to build a chain whose
+// back buffers are ID3D10Texture2D objects and whose Present is the immediate
+// one. The XIG device object carries the owning device, which is what the
+// chain has to hold on to.
+// A framework may hand the factory either its device or the IDXGIDevice it
+// queried from it, so both names resolve here and the chain is built around the
+// device that owns its back buffers.
+registerSwapChainProvider(
+  ['ID3D10Device', 'IDXGIDevice'],
+  async (r, { item, descPointer, desc1, windowId, result }) => {
+    const owner = item.name === name.device ? item : item.state.owner;
+    if (!owner?.refs) throw Error('DXGI swap chain requires a live D3D10 device');
+    output(r, result);
+    // D3D10's own rules: the 1.0 description carries the effect and window, the
+    // 1.1 description separates the window out and adds scaling and alpha mode.
+    const desc = desc1 ? swapchainDesc1(r, descPointer, windowId) : swapchainDesc(r, descPointer);
+    const chain = await createSwapChainForDevice(r, owner, desc);
+    owner.state.swapchains.add(chain.pointer);
+    r.write32(result, chain.pointer);
+    return S_OK;
+  },
+);

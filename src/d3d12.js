@@ -3464,6 +3464,28 @@ function swapchainDesc1(r, ptr, windowId) {
   };
 }
 
+// A non-D3D12 device family (D3D10) supplies its own swap-chain construction,
+// because its back buffers are its own texture objects and its presentation is
+// not driven by a D3D12 command queue. Registering the handler keeps the DXGI
+// implementation shared while the two frontends stay separate modules.
+const externalSwapChains = [];
+// A device family registers the object names whose pointers can appear as
+// CreateSwapChain's first argument. The same device may be passed directly or
+// after a QueryInterface, so a family can name both its device and its DXGI
+// identity and let its own resolver pick the object the chain must hold.
+export function registerSwapChainProvider(names, resolve) {
+  externalSwapChains.push({ names: new Set(names), resolve });
+}
+
+// A pointer whose object belongs to a registered external device family.
+function externalDeviceFor(rt, pointer) {
+  const item = rt.comObjects?.objects.get(number(pointer));
+  if (!item?.refs) return null;
+  for (const provider of externalSwapChains)
+    if (provider.names.has(item.name)) return { item, provider };
+  return null;
+}
+
 // Shared creation path for IDXGIFactory.CreateSwapChain and the ForHwnd variant.
 async function createSwapChain(rt, self, queue, desc, result) {
   output(rt, result);
@@ -3560,6 +3582,17 @@ function factoryMethods() {
     10: {
       argc: 4,
       async invoke(rt, arg, self) {
+        const external = externalDeviceFor(rt, arg(1));
+        // The description's rules belong to the frontend that owns the swap
+        // chain, so the raw pointer crosses the boundary and each family parses
+        // it with its own header's constraints.
+        if (external)
+          return external.provider.resolve(rt, {
+            factory: self,
+            item: external.item,
+            descPointer: number(arg(2)),
+            result: number(arg(3)),
+          });
         const queue = object(rt, arg(1), 'queue');
         return createSwapChain(rt, self, queue, swapchainDesc(rt, number(arg(2))), number(arg(3)));
       },
@@ -3682,6 +3715,16 @@ function factoryMethods() {
           throw Error('Unsupported DXGI swap chain fullscreen or output restriction');
         const windowId = number(arg(2));
         if (!rt.windows?.windows?.has(windowId)) return E_INVALIDARG;
+        const external = externalDeviceFor(rt, arg(1));
+        if (external)
+          return external.provider.resolve(rt, {
+            factory: self,
+            item: external.item,
+            descPointer: number(arg(3)),
+            desc1: true,
+            windowId,
+            result: number(arg(6)),
+          });
         const queue = object(rt, arg(1), 'queue');
         return createSwapChain(
           rt,

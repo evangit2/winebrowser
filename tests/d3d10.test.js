@@ -535,3 +535,44 @@ test('D3D10GetInputSignatureBlob returns the container an input layout consumes'
   r.data.set(new TextEncoder().encode('nonsense'), bad);
   assert.equal((await api('D3D10GetInputSignatureBlob', bad, 8, out)).result, 0x80070057);
 });
+
+test('D3D10CreateDevice accepts every documented creation flag and answers IDXGIDevice', async () => {
+  const f = fixture(),
+    { runtime: r, call, api, guid, alloc } = f;
+  const out = alloc(4);
+  // Every flag the header defines is a hint that does not change what the
+  // bounded device models. Rejecting one refuses an application over a flag
+  // with no semantic weight here; D3D10_CREATE_DEVICE_SINGLETHREADED is what a
+  // real framework passes first.
+  for (const flags of [0, 0x1, 0x2, 0x20, 0x1 | 0x2 | 0x20, 0x400]) {
+    assert.equal((await api('D3D10CreateDevice', 0, 0, 0, flags, 29, out)).result, 0);
+  }
+  // An undefined flag is still refused.
+  assert.equal((await api('D3D10CreateDevice', 0, 0, 0, 0x1000, 29, out)).result, 0x80070057);
+  assert.equal((await api('D3D10CreateDevice', 0, 0, 0, 0, 30, out)).result, 0x80070057);
+
+  assert.equal((await api('D3D10CreateDevice', 0, 0, 0, 0x1, 29, out)).result, 0);
+  const device = r.read32(out);
+  // A framework obtains its swap chain by handing the factory the device's
+  // IDXGIDevice, so the device has to answer that identity with a real object
+  // whose vtable is the DXGI one — not with its own ID3D10Device pointer.
+  const dxgiOut = alloc(4);
+  assert.equal(
+    (await call(device, 0, guid('54ec77fa-1377-44e6-8c32-88fd5f44c84c'), dxgiOut)).result,
+    0,
+  );
+  const dxgiDevice = r.read32(dxgiOut);
+  assert.ok(dxgiDevice && dxgiDevice !== device, 'IDXGIDevice is its own object');
+  assert.equal(r.comObjects.objects.get(dxgiDevice).name, 'IDXGIDevice');
+  // Asking twice returns the same identity, as a real QI does.
+  const again = alloc(4);
+  await call(device, 0, guid('54ec77fa-1377-44e6-8c32-88fd5f44c84c'), again);
+  assert.equal(r.read32(again), dxgiDevice);
+  // GetAdapter reports the adapter the device renders through.
+  const adapterOut = alloc(4);
+  assert.equal(
+    (await call(dxgiDevice, 7, guid('29038f61-3839-4626-91fd-086879011a05'), adapterOut)).result,
+    0,
+  );
+  assert.equal(r.comObjects.objects.get(r.read32(adapterOut)).name, 'IDXGIAdapter1');
+});

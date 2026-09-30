@@ -45,6 +45,7 @@ export async function probeWineTarget(
     output: [],
     requests: [],
     blockTrace: [],
+    apiResults: [],
     registerClobbers: [],
     frames: 0,
     nativeLoaderCalls: [],
@@ -254,6 +255,38 @@ export async function probeWineTarget(
     // host call is bracketed and a change to a callee-saved register is
     // recorded, which names the offending import directly.
     const calleeSaved = [3, 5, 6, 7];
+    // Named APIs whose results are worth recording: a zero return is what turns
+    // a later garbage read into a diagnosable cause.
+    const traceResults = new Set(limits.traceResults ?? []);
+    if (traceResults.size) {
+      const api = runtime.api.bind(runtime);
+      runtime.api = async (entry) => {
+        const key = `${entry.dll}!${entry.name}`;
+        const watch = traceResults.has(key) && report.apiResults.length < 64;
+        // The argument words are on the stack at entry only: a stdcall callee
+        // pops them before returning, so reading afterwards shows the caller's
+        // frame instead.
+        const stack = watch ? runtime.cpu.r[4].value >>> 0 : 0;
+        const args = watch
+          ? Array.from({ length: 8 }, (_, i) => {
+              try {
+                return hex(runtime.read32(stack + 4 + i * 4));
+              } catch {
+                return null;
+              }
+            })
+          : null;
+        const result = await api(entry);
+        if (watch)
+          report.apiResults.push({
+            name: key,
+            args,
+            result: hex(result?.result ?? 0),
+            instructions: runtime.cpu.instructions,
+          });
+        return result;
+      };
+    }
     if (limits.traceImports) {
       const api = runtime.api.bind(runtime);
       runtime.api = async (entry) => {
@@ -635,6 +668,9 @@ export async function probeWineTarget(
           phase,
           threadId: runtime.threads.current?.id,
           message: error.message,
+          // The calls immediately before a failure name what the program asked
+          // the OS for and with which arguments.
+          apiRing: runtime.apiRing.slice(-16),
           // A defect in the runtime itself (rather than a guest fault) is only
           // actionable with its host stack: the message alone does not name
           // which handler mis-parsed its own arguments.
