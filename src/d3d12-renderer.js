@@ -365,6 +365,10 @@ export class D3D12Renderer {
     alphaToCoverage = false,
     rootPlan = null,
     targetFormat = 'rgba8unorm',
+    // A D3D10 pipeline has no root signature: its shaders' declared registers
+    // are placed by the canonical layout alone, and the frontend resolves each
+    // one from its own bound slots at draw time.
+    implicitBindings = false,
   }) {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
       throw Error('D3D12 pipeline limit exceeded');
@@ -430,7 +434,13 @@ export class D3D12Renderer {
     // signature with no parameters keeps the long-standing empty-layout path.
     const declaresResources = !!rootPlan && rootPlan.parameterCount > 0;
     let plan = null;
-    if (declaresResources) {
+    if (implicitBindings && !rootPlan) {
+      const scanned = [
+        ...(await this.compiler.scanDescriptors(vertex)),
+        ...(await this.compiler.scanDescriptors(pixel)),
+      ];
+      plan = canonicalBindings(scanned);
+    } else if (declaresResources) {
       const scanned = [
         ...(await this.compiler.scanDescriptors(vertex)),
         ...(await this.compiler.scanDescriptors(pixel)),
@@ -508,7 +518,22 @@ export class D3D12Renderer {
         ? `D3D12 DXBC shaders compiled to WGSL with ${plan.bindings.length} canonical bindings`
         : 'D3D12 DXBC shaders compiled to WGSL in the browser worker',
     });
-    return { bindings: plan?.bindings ?? [] };
+    return { bindings: plan?.bindings ?? [], plan };
+  }
+
+  /**
+   * The canonical (group, binding) assignment for a shader pair, with no root
+   * signature involved. A frontend whose API has no signature — D3D10 — scans
+   * its shaders once and binds each canonical register directly.
+   */
+  async planImplicitBindings(vertex, pixel) {
+    await this.initialize();
+    const scanned = [
+      ...(await this.compiler.scanDescriptors(vertex)),
+      ...(await this.compiler.scanDescriptors(pixel)),
+    ];
+    const plan = canonicalBindings(scanned);
+    return { plan, layout: plan.bindings.length ? this.pipelineLayout(plan) : null };
   }
 
   // The pipeline layout implied by a canonical binding plan. Groups 0..2 carry
