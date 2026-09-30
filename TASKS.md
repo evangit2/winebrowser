@@ -373,7 +373,14 @@ D3D10/11 and broader D3D12 support are still required.
       loop (WaitForSingleObject and QueryPerformanceCounter) and reaches
       `bass.dll`'s packing loop.
 - [ ] Hamsterball still stops with an unmapped read inside `bass.dll` at
-      offset `0x234b` (guest `0x105234b`). The protector installs a real
+      offset `0x234b` (guest `0x105234b`). The fault is unchanged after the
+      DXGI/D3D12 breadth work: 118M guest instructions, the 800x600 window, the
+      D3D8 device and its DXT textures, then the protector's table lookup.
+      The code at `bass.dll+0x22ee` is _encrypted on disk_ (it differs from the
+      file at every byte) and only the protector's own decrypt produces what
+      runs, so the fault cannot be diagnosed from a static disassembly. The
+      Node probe cannot reproduce it — `IDirect3D8.CreateDevice` fails first
+      because Node has no WebGPU — so the reproduction has to stay in Chromium. The protector installs a real
       exception registration chain (three frames at `fs:[0]`, handlers in the
       EXE), and the instruction that faults is a table lookup whose index comes
       from the decrypted pointer the protector built, so the failure is an
@@ -439,6 +446,35 @@ D3D10/11 and broader D3D12 support are still required.
       fixture whose own filter observes the access-violation record and resumes
       past the fault, in Node and Chromium; see
       [structured exceptions](docs/structured-exceptions.md).
+- [x] Widen the DXGI swap chain and the D3D12 object graph, and fix nine
+      i386 stack-correction bugs found while doing it. The COM frontend declared
+      `argc` values that disagreed with the real vtable signatures, so a call
+      left the guest stack misaligned; the shared metadata block
+      (`SetPrivateData`/`SetPrivateDataInterface`) was worst because every
+      object calls it. `CheckFeatureSupport`, `ClearState`, `SetPredication`,
+      `SetMarker`, `BeginEvent`, `WriteToSubresource`, `ReadToSubresource` and
+      `CreatePlacedResource` were wrong the same way. A script derives each
+      expected count from the MinGW-w64 headers and a regression test pins the
+      corrected values (169 declared counts now match the ABI).
+      The swap chain then gained ResizeBuffers/ResizeBuffers1, the descriptor
+      and frame-statistics queries, Present1, background colour, rotation,
+      source size, frame latency and matrix transform, GetFrameLatencyWaitableObject
+      (a real auto-reset event), SetColorSpace1 and the IDXGIObject parent
+      chain; the device gained CreateHeap, CreatePlacedResource with overlap
+      accounting, CreateCommandSignature and ID3D12PipelineState.GetCachedBlob;
+      the command list gained the compute root setters, Dispatch,
+      ResolveSubresource, the UAV clears and explicit refusals for
+      CopyTiles/ExecuteIndirect/tile mappings, and the queue gained a blocking
+      Wait. A 2- or 3-buffer BGRA8 or RGBA8 flip-discard chain now presents
+      correctly, including the readback channel swizzle.
+- [x] Add an in-depth Direct3D 12 fixture beyond cube/triangle/parade/terrain:
+      an animated trefoil torus knot (3,072 vertices, 18,432 indices) built with
+      `CreateHeap` + `CreatePlacedResource` on a three-buffer BGRA8 flip-discard
+      chain, exercising `GetDesc1`/`GetFrameStatistics`. `npm run test:d3d12-knot`
+      runs it in Chromium from both EXE upload and hosted ZIP, checking lit
+      geometry, shading variety and animation before a clean exit.
+- [ ] Direct3D 10 and 11 frontends remain absent; no D3D10/11 application has a
+      compatibility claim. (D3D9, D3D8 and D3D12 have native fixtures.)
 - [ ] Expand audio beyond synchronous PCM, and add networking and other OS services with explicit browser constraints.
 - [ ] Persist registry and application-file overlays between runs; support reopening saved applications.
 - [ ] Add wider compatibility/performance testing against native behavior. No claim that arbitrary EXEs run or can simply be compiled to Wasm.
