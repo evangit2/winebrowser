@@ -69,3 +69,69 @@ test('OLE Automation BSTR and VARIANT entries answer instead of raising', (t) =>
   assert.equal(r.guestMemory.read(variant, 2), 0, 'VariantInit clears vt');
   assert.equal(call('oleaut32.dll!SysFreeString', bstr).result, 0);
 });
+
+// Widely imported process, module and path queries that an application asks for
+// before it does any real work. They were previously unresolved imports.
+test('module, process, path and environment queries answer from the runtime model', (t) => {
+  const { r, call } = setup(t);
+
+  // Module identity under FROM_ADDRESS and the current image when the name is
+  // NULL. (Process/thread identity lives in win32-threads.js and is tested
+  // with the rest of the thread surface.)
+  const out = r.allocate(4);
+  assert.equal(call('kernel32.dll!GetModuleHandleExA', 0x4, r.pe.imageBase, out).result, 1);
+  assert.equal(r.read32(out) >>> 0, r.pe.imageBase);
+  call('kernel32.dll!GetModuleHandleExA', 0, 0, out);
+  assert.equal(r.read32(out) >>> 0, r.pe.imageBase);
+  assert.equal(call('kernel32.dll!GetModuleHandleExA', 0x8, 0, out).result, 0);
+  assert.equal(r.lastError, 87, 'an unknown flag is rejected');
+  // A FROM_ADDRESS pointer outside every image fails with MODULE_NOT_FOUND.
+  r.lastError = 0;
+  assert.equal(call('kernel32.dll!GetModuleHandleExA', 0x4, 0x10, out).result, 0);
+  assert.equal(r.lastError, 126);
+
+  const buffer = r.allocate(64);
+  assert.equal(call('kernel32.dll!GetSystemDirectoryA', buffer, 64).result, 19);
+  assert.equal(r.string(buffer), 'C:\\Windows\\System32');
+  // An undersized buffer reports failure with ERROR_INSUFFICIENT_BUFFER.
+  r.lastError = 0;
+  assert.equal(call('kernel32.dll!GetSystemDirectoryA', buffer, 4).result, 0);
+  assert.equal(r.lastError, 122);
+
+  assert.equal(call('kernel32.dll!GetDriveTypeA', r.allocString('C:\\')).result, 3);
+  assert.equal(call('kernel32.dll!GetLogicalDrives').result, 4, 'only C exists');
+});
+
+test('ExpandEnvironmentStrings resolves known variables and leaves unknown ones', (t) => {
+  const { r, call } = setup(t);
+  const buffer = r.allocate(256);
+  const expand = (text) =>
+    call('kernel32.dll!ExpandEnvironmentStringsA', r.allocString(text), buffer, 256).result >>> 0;
+  assert.equal(expand('%SystemRoot%\\x'), 12);
+  assert.equal(r.string(buffer), 'C:\\Windows\\x');
+  assert.equal(expand('%PATH%'), 3);
+  assert.equal(r.string(buffer), 'C:\\');
+  assert.equal(expand('%NoSuchVar%!'), 12);
+  assert.equal(r.string(buffer), '%NoSuchVar%!', 'an unknown name is left in place');
+  // A too-small buffer still reports the length the expansion needs, which is
+  // what ExpandEnvironmentStrings documents (unlike the path getters).
+  assert.equal(
+    call('kernel32.dll!ExpandEnvironmentStringsA', r.allocString('%PATH%'), buffer, 1).result,
+    4,
+  );
+});
+
+test('SearchPath finds a packaged file and reports the required length otherwise', (t) => {
+  const { r, call } = setup(t);
+  const buffer = r.allocate(256);
+  const length =
+    call('kernel32.dll!SearchPathA', 0, r.allocString('console.exe'), 0, buffer, 256).result >>> 0;
+  assert.ok(length > 0, 'a packaged executable is found');
+  assert.equal(r.string(buffer), 'C:\\winebrowser\\console.exe');
+  r.lastError = 0;
+  assert.equal(
+    call('kernel32.dll!SearchPathA', 0, r.allocString('nope.exe'), 0, buffer, 256).result,
+    0,
+  );
+  assert.equal(r.lastError, 2, 'a missing file reports ERROR_FILE_NOT_FOUND');
+});

@@ -385,6 +385,125 @@ function getSystemTimeAsFileTime(r, a) {
   r.view.setBigUint64(address, value, true);
   return ok(0, 1);
 }
+// ---------------------------------------------------------------------------
+// Widely imported module, process, path and environment queries that an
+// ordinary application reaches before it does any real work. They answer from
+// the runtime's own model (mapped modules, the single process identity, the
+// package volume) rather than a fabricated table.
+// GetModuleHandleExA/W(Flags, NameOrAddress, Module *): GET_MODULE_HANDLE_EX_FLAG_
+// FROM_ADDRESS (0x4) takes a pointer instead of a name.
+function getModuleHandleEx(r, a, wide) {
+  const flags = a(0) >>> 0;
+  const nameOrAddress = a(1) >>> 0;
+  const out = a(2);
+  if (flags & ~0x7) return fail(r, 87, 3);
+  if (!out) return fail(r, 87, 3);
+  r.check(out, 4, true);
+  r.write32(out, 0);
+  const pinned = !!(flags & 0x1); // PIN — the module stays loaded for the process.
+  let module = null;
+  if (flags & 0x4) {
+    module = [...r.graph.modules.values()].find(
+      (m) => m.base <= nameOrAddress && nameOrAddress < m.base + m.pe.imageSize,
+    );
+  } else if (!nameOrAddress) {
+    module = r.graph.main;
+  } else {
+    try {
+      module = r.graph.findLoaded(wide ? r.wideString(nameOrAddress) : r.string(nameOrAddress));
+    } catch {
+      return fail(r, 126, 3);
+    }
+  }
+  if (!module) return fail(r, 126, 3);
+  if (pinned) ((r.pinnedModules ??= new Set()), r.pinnedModules.add(module.base));
+  r.write32(out, module.base);
+  return ok(1, 3);
+}
+// GetSystemDirectoryA/W: the package volume's system directory.
+function getSystemDirectory(r, a, wide) {
+  return writeCountedString(r, a(1), a(0), 'C:\\Windows\\System32', wide, 2);
+}
+// A case-insensitive lookup into the runtime's environment. The Win32
+// environment is a vector of NAME=VALUE entries shared with the CRT, so this
+// walks that vector rather than keeping a second copy.
+export function lookupEnvironment(r, name) {
+  const key = name.toUpperCase();
+  const list = r.environment?.wide ?? r.environment?.ansi ?? [];
+  const entries = list.length ? list : ['=C:=C:\\', 'PATH=C:\\'];
+  for (const entry of entries) {
+    const at = entry.indexOf('=');
+    if (at <= 0) continue;
+    if (entry.slice(0, at).toUpperCase() === key) return entry.slice(at + 1);
+  }
+  return undefined;
+}
+// ExpandEnvironmentStringsA/W resolves %NAME% against the runtime environment.
+function expandEnvironmentStrings(r, a, wide) {
+  const read = (pointer) => (wide ? r.wideString(pointer) : r.string(pointer));
+  const source = read(a(0));
+  const expanded = source.replace(/%([^%]+)%/g, (whole, name) => {
+    const key = name.toUpperCase();
+    if (key === 'SYSTEMROOT' || key === 'WINDIR') return 'C:\\Windows';
+    if (key === 'SYSTEMDRIVE') return 'C:';
+    if (key === 'TEMP' || key === 'TMP') return 'C:\\Windows\\Temp';
+    const value = lookupEnvironment(r, name);
+    return value === undefined ? whole : value;
+  });
+  const out = a(1);
+  const capacity = a(2) | 0;
+  const needed = expanded.length + 1;
+  if (!out || capacity < needed) return ok(needed, 3);
+  if (wide) {
+    r.check(out, needed * 2, true);
+    for (let i = 0; i < needed; i++)
+      r.guestMemory.write(out + i * 2, i === expanded.length ? 0 : expanded.charCodeAt(i), 2);
+  } else {
+    const bytes = encodeAnsi(expanded).bytes;
+    r.check(out, bytes.length + 1, true);
+    r.data.set(bytes, out);
+    r.data[out + bytes.length] = 0;
+  }
+  return ok(expanded.length, 3);
+}
+// SearchPathA looks a file up in the same places LoadLibrary and CreateFile do:
+// the current directory first, then the package volume root.
+function searchPath(r, a, wide) {
+  const name = wide ? r.wideString(a(1)) : r.string(a(1));
+  const out = a(3);
+  const capacity = a(4) | 0;
+  let resolved = null;
+  try {
+    const candidate = resolveGuestPath(name, r.cwd);
+    if (r.files.has(candidate)) resolved = candidate;
+  } catch {
+    resolved = null;
+  }
+  const value = resolved ? packageDosPath(resolved) : null;
+  if (!value) return fail(r, 2, 6);
+  const needed = value.length + 1;
+  if (!out || capacity < needed) return ok(needed, 6);
+  if (wide) {
+    r.check(out, needed * 2, true);
+    for (let i = 0; i < needed; i++)
+      r.guestMemory.write(out + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
+  } else {
+    const bytes = encodeAnsi(value).bytes;
+    r.check(out, bytes.length + 1, true);
+    r.data.set(bytes, out);
+    r.data[out + bytes.length] = 0;
+  }
+  return ok(value.length, 6);
+}
+// GetDriveTypeA reports the package volume as a fixed disk.
+function getDriveType(r, _a) {
+  return ok(3, 1); // DRIVE_FIXED
+}
+// GetLogicalDrives returns the drive bitmask; only C: exists.
+function getLogicalDrives() {
+  return ok(1 << 2, 0); // A=bit0, so C is bit 2.
+}
+
 function virtualQuery(r, a) {
   const address = a(0) >>> 0,
     out = a(1),
@@ -493,6 +612,17 @@ export const systemApis = {
   'kernel32.dll!GlobalMemoryStatus': globalMemoryStatus,
   'kernel32.dll!GetProcessTimes': getProcessTimes,
   'kernel32.dll!InterlockedIncrement': interlockedIncrement,
+  'kernel32.dll!GetModuleHandleExA': (r, a) => getModuleHandleEx(r, a, false),
+  'kernel32.dll!GetModuleHandleExW': (r, a) => getModuleHandleEx(r, a, true),
+  'kernel32.dll!GetSystemDirectoryA': (r, a) => getSystemDirectory(r, a, false),
+  'kernel32.dll!GetSystemDirectoryW': (r, a) => getSystemDirectory(r, a, true),
+  'kernel32.dll!ExpandEnvironmentStringsA': (r, a) => expandEnvironmentStrings(r, a, false),
+  'kernel32.dll!ExpandEnvironmentStringsW': (r, a) => expandEnvironmentStrings(r, a, true),
+  'kernel32.dll!SearchPathA': (r, a) => searchPath(r, a, false),
+  'kernel32.dll!SearchPathW': (r, a) => searchPath(r, a, true),
+  'kernel32.dll!GetDriveTypeA': getDriveType,
+  'kernel32.dll!GetDriveTypeW': getDriveType,
+  'kernel32.dll!GetLogicalDrives': getLogicalDrives,
   'kernel32.dll!VirtualQuery': virtualQuery,
   'kernel32.dll!VirtualProtect': virtualProtect,
   'kernel32.dll!HeapValidate': heapValidate,
