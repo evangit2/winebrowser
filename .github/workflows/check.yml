@@ -29,6 +29,9 @@ jobs:
       - run: npm run test:d3d12-backend
         env:
           BROWSER_CHANNEL: chromium
+      - run: npm run test:d3d10-backend
+        env:
+          BROWSER_CHANNEL: chromium
       - run: npm run test:shaders
         env:
           BROWSER_CHANNEL: chromium
@@ -60,6 +63,7 @@ jobs:
           npm run test:d3d12-rendertexture
           npm run test:d3d12-terrain
           npm run test:d3d12-knot
+          npm run test:d3d10
           npm run test:seh
           npm run test:d3d12-blend
           npm run test:exec-memory

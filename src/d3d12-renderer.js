@@ -6,6 +6,7 @@ import {
   DRAW_PARAMETER_GROUP,
   resolveDescriptorPlacement,
 } from './d3d12-bindings.js';
+import { planStageBindings, stageLayoutEntries } from './d3d10-bindings.js';
 
 const DESCRIPTOR_KIND_NAMES = [
   'shader resource view',
@@ -369,6 +370,11 @@ export class D3D12Renderer {
     // are placed by the canonical layout alone, and the frontend resolves each
     // one from its own bound slots at draw time.
     implicitBindings = false,
+    // A D3D10 frontend plans its two stages separately (each stage owns its own
+    // register file), so it passes the placements it already computed together
+    // with the merged plan they came from. Both stages are then compiled
+    // against their own table while the pipeline layout covers the union.
+    stagePlan = null,
   }) {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
       throw Error('D3D12 pipeline limit exceeded');
@@ -432,6 +438,69 @@ export class D3D12Renderer {
     // (group, binding), and compile each stage against that layout so the
     // emitted SPIR-V matches the explicit pipeline layout built below. A root
     // signature with no parameters keeps the long-standing empty-layout path.
+    if (stagePlan) {
+      if (![vertex, pixel].every((bytes) => bytes instanceof Uint8Array && bytes.length > 0))
+        throw Error('D3D10 pipeline requires both shader stages as bytecode');
+      // A stage that declares no descriptors compiles unbound, exactly like the
+      // parameterless D3D12 path; only a stage with registers needs a table.
+      const translate = (bytes, placements) =>
+        placements.length
+          ? this.compiler.compileBound(bytes, placements)
+          : this.compiler.compile(bytes);
+      const vs = await translate(vertex, stagePlan.vertex);
+      const ps = await translate(pixel, stagePlan.pixel);
+      const layout = stagePlan.layout ?? this.layout;
+      this.device.pushErrorScope('validation');
+      let pipeline, failure;
+      try {
+        pipeline = await this.device.createRenderPipelineAsync({
+          label: 'D3D10 translated DXBC pipeline',
+          layout,
+          vertex: {
+            module: this.device.createShaderModule({ code: vs.wgsl }),
+            entryPoint: 'main',
+            buffers: attributes.length ? [{ arrayStride: vertexStride, attributes }] : [],
+          },
+          fragment: {
+            module: this.device.createShaderModule({ code: ps.wgsl }),
+            entryPoint: 'main',
+            targets: [colorTargetFor(blend?.[0], alphaToCoverage, targetFormat)],
+          },
+          primitive: { topology: 'triangle-list', cullMode, frontFace },
+          ...(depth
+            ? {
+                depthStencil: {
+                  format: depth.format,
+                  depthWriteEnabled: depth.testEnabled && depth.writeEnabled,
+                  depthCompare: depth.testEnabled ? depth.compare : 'always',
+                },
+              }
+            : {}),
+        });
+      } catch (error) {
+        failure = error;
+      }
+      const validation = await this.device.popErrorScope();
+      if (failure || validation) throw failure ?? Error(validation.message);
+      this.pipelines.set(id, {
+        pipeline,
+        vertexStride,
+        depth,
+        cullMode,
+        frontFace,
+        plan: stagePlan,
+        bindings: stagePlan.bindings,
+        groupLayouts: stagePlan.groupLayouts ?? null,
+      });
+      this.graphics.emit({
+        type: 'log',
+        text:
+          'D3D10 DXBC shaders compiled to WGSL with ' +
+          stagePlan.bindings.length +
+          ' canonical bindings',
+      });
+      return { bindings: stagePlan.bindings, plan: stagePlan };
+    }
     const declaresResources = !!rootPlan && rootPlan.parameterCount > 0;
     let plan = null;
     if (implicitBindings && !rootPlan) {
@@ -519,6 +588,28 @@ export class D3D12Renderer {
         : 'D3D12 DXBC shaders compiled to WGSL in the browser worker',
     });
     return { bindings: plan?.bindings ?? [], plan };
+  }
+
+  /**
+   * Plans a D3D10 pipeline's canonical bindings. D3D10's device has one
+   * register file per stage, so the two shaders are planned separately and
+   * merged into a single pipeline layout, unlike a D3D12 root signature where
+   * both stages share the registers the signature declares.
+   */
+  async planD3D10Bindings(vertex, pixel) {
+    await this.initialize();
+    const [vsDescriptors, psDescriptors] = await Promise.all([
+      this.compiler.scanDescriptors(vertex),
+      this.compiler.scanDescriptors(pixel),
+    ]);
+    const stage = planStageBindings(vsDescriptors, psDescriptors);
+    if (!stage.bindings.length) return { ...stage, layout: null, groupLayouts: null };
+    const planned = {
+      bindings: stage.bindings,
+      layouts: stageLayoutEntries(stage.bindings, GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT),
+    };
+    const built = this.pipelineLayout(planned);
+    return { ...stage, layout: built.layout, groupLayouts: built.groupLayouts };
   }
 
   /**
@@ -894,7 +985,7 @@ export class D3D12Renderer {
     this.draws += draws;
   }
 
-  async present({ id, index }) {
+  async present({ id, index, graphicsApi = 'd3d12' }) {
     const chain = this.swapchains.get(id);
     if (!chain || !integer(index, 0, chain.bufferIds.length - 1))
       throw Error('Invalid D3D12 presentation buffer');
@@ -953,7 +1044,9 @@ export class D3D12Renderer {
       height: chain.height,
       bitmap,
       renderer: 'webgpu',
-      graphicsApi: 'd3d12',
+      // The frontend names the API it translated, so the desktop can label the
+      // surface with the graphics family the guest actually used.
+      graphicsApi,
       graphicsFrames: ++this.frames,
       graphicsDraws: this.draws,
     });

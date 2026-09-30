@@ -151,7 +151,10 @@
     "test:x87-scale": "node scripts/test-x87-scale-browser.mjs",
     "test:x87-tan": "node scripts/test-x87-tan-browser.mjs",
     "test:x87-trig": "node scripts/test-x87-trig-browser.mjs",
+    "build:d3d10-cube": "bash scripts/build-d3d10-cube.sh",
     "build:d3d12-knot": "bash scripts/build-d3d12-knot.sh",
+    "test:d3d10": "node scripts/test-d3d10-browser.mjs",
+    "test:d3d10-backend": "node scripts/test-d3d10-backend.mjs",
     "test:d3d12-knot": "node scripts/test-d3d12-knot-browser.mjs"
   },
   "dependencies": {

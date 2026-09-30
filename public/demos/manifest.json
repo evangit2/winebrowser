@@ -204,6 +204,15 @@
       "provenance": "Original MIT-licensed PE32 C application and shader tokens; complete source and rebuild materials included.",
       "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
       "zipSha256": "d43ef9a8047101b19d945a4562bc03a1d04ec96d3d87f27cb9c7fca723092173"
+    },
+    {
+      "name": "d3d10-cube",
+      "description": "Native Direct3D 10 animated depth-tested cube: D3D10CreateDeviceAndSwapChain, an explicit input layout, per-stage register binding, render-target and depth-stencil views, and per-stage rasterizer/blend/depth state objects. Close the window to exit.",
+      "exe": "d3d10-cube/d3d10-cube.exe",
+      "exeSha256": "a335955033dc8e52c25f2b7be5cfa54b4d9085826685a85d33a42f3ace8ea763",
+      "zip": "d3d10-cube.zip",
+      "zipSha256": "83945e5e8e2ab5915e46ef4d7056f1938ac4d6eb3c54cfdadc60c80332e651fc",
+      "provenance": "Original MIT-licensed freestanding C demo, built with i686-w64-mingw32; SM4.0 DXBC produced with Wine's d3dcompiler_47."
     }
   ]
 }

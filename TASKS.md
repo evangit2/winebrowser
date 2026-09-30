@@ -563,3 +563,32 @@ D3D10/11 and broader D3D12 support are still required.
 Commits use the repository-local `evangit2` identity. Future work should retain
 unchanged target binaries, fix shared runtime behavior, and record what was
 actually executed.
+
+- [x] **Direct3D 10 frontend.** `src/d3d10.js` implements `D3D10CreateDevice`,
+      `D3D10CreateDeviceAndSwapChain`, `D3D10CompileShader`,
+      `D3D10GetInputSignatureBlob`, `D3D10ReflectShader`, the three profile
+      getters and `D3D10CreateBlob`, plus the 98-slot `ID3D10Device` vtable and
+      every object it creates (buffers, textures, the three view kinds, the four
+      state objects, shaders, input layouts, queries and the DXGI swap chain).
+      Every vtable arity was derived by compiling a call against the MinGW-w64
+      headers, so a mismatch with the guest's stack correction is a build error
+      rather than silent corruption (`.cache/d3d10-argc.py`).
+      D3D10 has no root signature and no command list, which is the whole point
+      of the frontend: each stage owns its own register file, so
+      `VSSetConstantBuffers(0, ...)` and `PSSetConstantBuffers(0, ...)` name two
+      different resources that must stay distinct bindings.
+      `src/d3d10-bindings.js` plans the two stages separately and merges them
+      into one WebGPU layout; `D3D12Renderer.planD3D10Bindings` builds it, and
+      `createPipeline` takes the placements it computed. Every draw executes
+      immediately, in issue order, as D3D10's immediate device does.
+      `src/d3d10-reflection.js` parses the DXBC RDEF/RD11 and ISGN/OSGN chunks
+      (layouts from vkd3d-shader's own reflection), so `D3D10ReflectShader`
+      reports the shader the application really compiled.
+      The new `d3d10-cube` fixture is an in-depth lit cube: a per-pixel
+      lighting pass with a view-dependent highlight, a procedural checker on the
+      object-space position, three interleaved input elements, two separate
+      dynamic constant buffers at each stage's `b0`, and a 16-bit index buffer.
+      `npm run test:d3d10` drives the unchanged PE32 through both the EXE upload
+      and the hosted ZIP and requires a lit, shaded, animating frame and a clean
+      exit; `npm run test:d3d10-backend` compiles the real SM4 DXBC through the
+      shared bridge.

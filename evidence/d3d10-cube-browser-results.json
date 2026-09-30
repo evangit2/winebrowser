@@ -1,0 +1,53 @@
+{
+  "demo": "d3d10-cube",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "firstFourFramesMs": 688,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "draws": 4,
+        "bright": 12107,
+        "colors": 705,
+        "digest": 4147162720
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 43,
+        "draws": 43,
+        "bright": 19685,
+        "colors": 864,
+        "digest": 2843878537
+      },
+      "instructions": 59857
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 412,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "draws": 4,
+        "bright": 12107,
+        "colors": 705,
+        "digest": 4147162720
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 42,
+        "draws": 42,
+        "bright": 19697,
+        "colors": 931,
+        "digest": 2336181874
+      },
+      "instructions": 52771
+    }
+  ],
+  "errors": []
+}

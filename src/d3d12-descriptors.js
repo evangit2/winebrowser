@@ -15,7 +15,7 @@ export function parseResourceRange({ check, read32, pointer, size }) {
 // with the WebGPU location and float width each maps to.
 // The per-vertex formats the backend can feed a shader location, with the
 // number of 32-bit components each supplies.
-const INPUT_FORMATS = {
+export const INPUT_FORMATS = {
   2: { components: 4, format: 'float32x4' }, // R32G32B32A32_FLOAT
   6: { components: 3, format: 'float32x3' }, // R32G32B32_FLOAT
   16: { components: 2, format: 'float32x2' }, // R32G32_FLOAT
@@ -77,7 +77,7 @@ export function parseInputLayout({ check, read32, readString, pointer, count }) 
 // D3D12_BLEND factors the backend can express as a WebGPU blend factor. The
 // dual-source (SRC1_*) and alpha-factor operands have no single-source WebGPU
 // equivalent and are rejected rather than silently substituted.
-const BLEND_FACTORS = {
+export const BLEND_FACTORS = {
   1: 'zero',
   2: 'one',
   3: 'src',
@@ -92,7 +92,7 @@ const BLEND_FACTORS = {
   14: 'constant',
   15: 'one-minus-constant',
 };
-const BLEND_OPERATIONS = {
+export const BLEND_OPERATIONS = {
   1: 'add',
   2: 'subtract',
   3: 'reverse-subtract',
@@ -101,7 +101,7 @@ const BLEND_OPERATIONS = {
 };
 
 // D3D12_COMPARISON_FUNC maps one-to-one onto WebGPU's compare functions.
-const DEPTH_COMPARE = {
+export const DEPTH_COMPARE = {
   1: 'never',
   2: 'less',
   3: 'equal',

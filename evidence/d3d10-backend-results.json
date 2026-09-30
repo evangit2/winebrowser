@@ -1,0 +1,19 @@
+{
+  "report": {
+    "logs": [
+      "WebGPU graphics initialized in the runtime worker (canvas presentation)",
+      "D3D10 DXBC shaders compiled to WGSL with 0 canonical bindings"
+    ],
+    "frames": [
+      [
+        65,
+        63,
+        126,
+        255
+      ]
+    ],
+    "stageBindings": [],
+    "planBindings": []
+  },
+  "errors": []
+}
