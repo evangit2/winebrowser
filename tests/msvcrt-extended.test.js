@@ -697,3 +697,26 @@ test('_ecvt/_fcvt/_gcvt format with the CRT digit rules', async (t) => {
   // A buffer too small for the text reports ERANGE.
   assert.equal((await call('_ecvt_s', buffer, 2, ...doubleArgs(99.5), 3, decpt, sign)).result, 34);
 });
+
+test('the locale-suffixed and multibyte classifiers share the ctype tables', async (t) => {
+  const { r, call } = await setup(t);
+  // The `_l` forms take (c, locale) and classify identically; one locale is
+  // modelled, so the extra argument changes nothing.
+  assert.equal((await call('_isalpha_l', 0x41, 0)).result, 1);
+  assert.equal((await call('_isdigit_l', 0x37, 0)).result, 1);
+  assert.equal((await call('_iswalpha_l', 0x41, 0)).result, 1);
+  assert.equal((await call('_iswdigit_l', 0x39, 0)).result, 1);
+  // The multibyte predicates reduce to the byte classifier on a single-byte
+  // code page.
+  assert.equal((await call('_ismbcalnum', 0x41)).result, 1);
+  assert.equal((await call('_ismbcdigit', 0x37)).result, 1);
+  assert.equal((await call('_ismbcspace', 0x20)).result, 1);
+  assert.equal((await call('_ismbcupper', 0x41)).result, 1);
+  assert.equal((await call('_ismbclower', 0x61)).result, 1);
+  assert.equal((await call('_ismbcpunct', 0x21)).result, 1);
+  // A byte is never a Japanese-specific class under this code page.
+  assert.equal((await call('_ismbchira', 0xa4)).result, 0);
+  assert.equal((await call('_ismbbkana', 0xa1)).result, 0);
+  // _mbstrlen counts characters, equal to bytes here.
+  assert.equal((await call('_mbstrlen', r.allocString('hello'))).result, 5);
+});

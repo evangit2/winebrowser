@@ -2152,6 +2152,63 @@ export function registerCrtExtended(apis, deps = {}) {
     ok(isctype(r, a(0), CTYPE_ALPHA) || (a(0) & 0xff) === 0x5f ? 1 : 0, 1),
   );
 
+  // The locale-suffixed classifiers take (c, locale) and classify identically:
+  // the runtime models one locale, so the extra argument is ignored.
+  for (const [name, mask] of Object.entries(CTYPE_PREDICATES))
+    add(`_${name}_l`, (r, a) => ok(isctype(r, a(0), mask), 2));
+  add('_isblank_l', (r, a) => ok(isBlank(r, a(0)), 2));
+  for (const [name, mask] of Object.entries(WCTYPE_PREDICATES))
+    add(`_${name}_l`, (r, a) => ok(iswctype(r, a(0), mask), 2));
+  // The multibyte predicates (single-byte code page) run the same byte test.
+  const MBCS_PREDICATES = {
+    _ismbcalnum: ALNUM,
+    _ismbcalpha: CTYPE_ALPHA,
+    _ismbcdigit: CTYPE_DIGIT,
+    _ismbcgraph: GRAPH,
+    _ismbclower: CTYPE_LOWER,
+    _ismbcprint: PRINT,
+    _ismbcpunct: CTYPE_PUNCT,
+    _ismbcspace: CTYPE_SPACE,
+    _ismbcupper: CTYPE_UPPER,
+  };
+  for (const [name, mask] of Object.entries(MBCS_PREDICATES)) {
+    add(name, (r, a) => ok(isctype(r, a(0), mask), 1));
+    add(`${name}_l`, (r, a) => ok(isctype(r, a(0), mask), 2));
+  }
+  // The half-width/wide Japanese-specific predicates have no answer under a
+  // single-byte code page, so a byte is never one of those classes.
+  for (const name of [
+    '_ismbbkalnum',
+    '_ismbbkana',
+    '_ismbbkprint',
+    '_ismbbkpunct',
+    '_ismbchira',
+    '_ismbckata',
+    '_ismbcl0',
+    '_ismbcl1',
+    '_ismbcl2',
+    '_ismbcsymbol',
+  ]) {
+    add(name, () => ok(0, 1));
+    add(`${name}_l`, () => ok(0, 2));
+  }
+  add('_ismbclegal', (r, a) => ok(isctype(r, a(0), PRINT), 1));
+  add('_ismbclegal_l', (r, a) => ok(isctype(r, a(0), PRINT), 2));
+  // _ismbslead/_ismbstrail walk a lead/trail position; with no lead bytes only
+  // the single-byte roles remain, which is what the CRT reports at a non-lead.
+  add('_ismbslead', (r, a) => ok(r.data[a(1)] === r.data[a(0)] ? -1 : 0, 2));
+  add('_ismbslead_l', (r, a) => ok(r.data[a(1)] === r.data[a(0)] ? -1 : 0, 3));
+  add('_ismbstrail', (r, a) => ok(r.data[a(1)] === r.data[a(0)] ? -1 : 0, 2));
+  add('_ismbstrail_l', (r, a) => ok(r.data[a(1)] === r.data[a(0)] ? -1 : 0, 3));
+  // _mbstrlen counts characters (equal to bytes on a single-byte code page).
+  add('_mbstrlen', (r, a) => ok(ansiLengthOf(r, a(0)), 1));
+  add('_mbstrlen_l', (r, a) => ok(ansiLengthOf(r, a(0)), 2));
+  // _mbslwr_s/_mbsupr_s are the validated in-place case maps.
+  add('_mbslwr_s', (r, a) => strCaseS(r, a, false, 2));
+  add('_mbsupr_s', (r, a) => strCaseS(r, a, true, 2));
+  add('_mbslwr_s_l', (r, a) => strCaseS(r, a, false, 3));
+  add('_mbsupr_s_l', (r, a) => strCaseS(r, a, true, 3));
+
   // Number parsing and formatting.
   const parseInt = (bits, signed) => (r, a) => {
     const { value, argc } = integerParse(r, a(0), a(1), a(2), bits, signed, 3);
