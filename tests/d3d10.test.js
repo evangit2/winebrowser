@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { d3d10Apis } from '../src/d3d10.js';
+import { createWin32ApiProvider, importKey } from '../src/win32.js';
 import { planStageBindings } from '../src/d3d10-bindings.js';
 import { DESCRIPTOR_CBV, DESCRIPTOR_SAMPLER, DESCRIPTOR_SRV } from '../src/d3d12-bindings.js';
 
@@ -575,4 +576,46 @@ test('D3D10CreateDevice accepts every documented creation flag and answers IDXGI
     0,
   );
   assert.equal(r.comObjects.objects.get(r.read32(adapterOut)).name, 'IDXGIAdapter1');
+});
+
+test('GetMonitorInfo writes both RECTs at the offsets the header declares', async () => {
+  // MONITORINFO is cbSize (0), rcMonitor (4), rcWork (20), dwFlags (36). Writing
+  // the two rectangles four bytes apart puts every field in the wrong slot, so a
+  // caller reads a rectangle with a zero height — which is what made a real
+  // application compute a negative window height and fail its own CreateWindow.
+  const provider = createWin32ApiProvider();
+  const buffer = new Uint8Array(0x10000);
+  const view = new DataView(buffer.buffer);
+  let next = 0x1000;
+  const runtime = {
+    data: buffer,
+    view,
+    check: (p, n) => p,
+    read32: (p) => view.getUint32(p, true),
+    write32: (p, v) => view.setUint32(p, v >>> 0, true),
+    allocate: (n) => {
+      const p = next;
+      next = (next + n + 3) & ~3;
+      return p;
+    },
+    free: () => true,
+    windows: { display: { width: 1024, height: 768 } },
+  };
+  const info = runtime.allocate(40);
+  runtime.write32(info, 40);
+  const handler = provider.get(importKey('user32.dll', 'GetMonitorInfoA'));
+  assert.equal((await handler(runtime, (i) => [1, info][i])).result, 1);
+  const word = (offset) => view.getInt32(info + offset, true);
+  assert.equal(word(0), 40, 'cbSize');
+  assert.deepEqual(
+    [word(4), word(8), word(12), word(16)],
+    [0, 0, 1024, 768],
+    'rcMonitor is an RECT at offset 4',
+  );
+  assert.deepEqual(
+    [word(20), word(24), word(28), word(32)],
+    [0, 0, 1024, 768],
+    'rcWork is an RECT at offset 20',
+  );
+  assert.equal(word(36), 1, 'MONITORINFOF_PRIMARY');
 });

@@ -2160,14 +2160,32 @@ function swapchainDesc(r, ptr) {
     u32(r, ptr, 32) ||
     !(u32(r, ptr, 36) & 0x20) ||
     u32(r, ptr, 36) & ~0x20 ||
-    ![2, 3].includes(bufferCount) ||
+    // DXGI_SWAP_EFFECT_DISCARD and SEQUENTIAL permit a single back buffer; the
+    // flip models require at least two. D3D10 applications commonly request one.
+    !(bufferCount >= 1 && bufferCount <= 3) ||
     u32(r, ptr, 48) !== 1 ||
     u32(r, ptr, 52) > 4 ||
     u32(r, ptr, 52) === 2 ||
     u32(r, ptr, 52) === 3 ||
     u32(r, ptr, 56) & ~0x2
-  )
-    throw Error('Unsupported DXGI swap chain description');
+  ) {
+    const field = (name, value) => `${name}=${value}`;
+    throw Error(
+      'Unsupported DXGI swap chain description ' +
+        [
+          field('width', width),
+          field('height', height),
+          field('format', format),
+          field('samples', u32(r, ptr, 28)),
+          field('usage', `0x${u32(r, ptr, 36).toString(16)}`),
+          field('count', bufferCount),
+          field('window', `0x${windowId.toString(16)}`),
+          field('windowed', u32(r, ptr, 48)),
+          field('effect', u32(r, ptr, 52)),
+          field('flags', `0x${u32(r, ptr, 56).toString(16)}`),
+        ].join(' '),
+    );
+  }
   const resolvedWidth = width || win?.width,
     resolvedHeight = height || win?.height;
   if (!win || !resolvedWidth || !resolvedHeight || resolvedWidth > 2048 || resolvedHeight > 2048)

@@ -183,7 +183,9 @@ export class D3D12Renderer {
       !integer(width, 1, 2048) ||
       !integer(height, 1, 2048) ||
       !Array.isArray(bufferIds) ||
-      bufferIds.length < 2 ||
+      // A bit-block-transfer swap chain may have a single back buffer; D3D10
+      // applications request one, and the flip effects request two or three.
+      bufferIds.length < 1 ||
       bufferIds.length > 3 ||
       new Set(bufferIds).size !== bufferIds.length ||
       bufferIds.some((key) => !integer(key, 1, 0xffffffff) || this.resources.has(key)) ||
@@ -255,7 +257,7 @@ export class D3D12Renderer {
       !integer(height, 1, 2048) ||
       !Number.isInteger(width) ||
       !Array.isArray(bufferIds) ||
-      bufferIds.length < 2 ||
+      bufferIds.length < 1 ||
       bufferIds.length > 3 ||
       new Set(bufferIds).size !== bufferIds.length ||
       bufferIds.some((key) => !integer(key, 1, 0xffffffff) || this.resources.has(key))

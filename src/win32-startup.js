@@ -744,7 +744,10 @@ function getMonitorInfo(r, a, wide) {
   r.check(out, 40, true);
   r.data.fill(0, out, out + 40);
   r.write32(out, 40);
-  for (const offset of [4, 16]) {
+  // rcMonitor is at 4 and rcWork at 20 (the header records both offsets); each
+  // is a 16-byte RECT. Writing them four bytes apart would put every field in
+  // the wrong slot and hand the caller a rectangle with a zero height.
+  for (const offset of [4, 20]) {
     r.write32(out + offset, 0);
     r.write32(out + offset + 4, 0);
     r.write32(out + offset + 8, display.width);
