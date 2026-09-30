@@ -324,10 +324,13 @@ function createFile(runtime, argument, wide = false) {
   if (runtime.handles.size >= 4096) throw Error('Open handle limit exceeded');
   if (!runtime.files.has(path) && runtime.files.size >= 4096)
     throw Error('Virtual file count limit exceeded');
-  // CREATE_ALWAYS (2) and OPEN_ALWAYS (4) create a missing file;
-  // TRUNCATE_EXISTING (5) empties one. All three need write access.
-  if (mode === 2 || mode === 4 || mode === 5) {
-    const mustCreate = mode === 2 || (mode === 4 && !exists);
+  // CREATE_NEW (1) creates a file that does not exist yet, CREATE_ALWAYS (2)
+  // and OPEN_ALWAYS (4) create a missing file, and TRUNCATE_EXISTING (5) empties
+  // one. All of them need write access. CREATE_NEW was missing from this set, so
+  // its newly opened file was never added to the filesystem: the handle was real
+  // but the first WriteFile through it failed.
+  if (mode === 1 || mode === 2 || mode === 4 || mode === 5) {
+    const mustCreate = mode === 1 || mode === 2 || (mode === 4 && !exists);
     const mustTruncate = mode === 2 || mode === 5;
     if ((mustCreate || mustTruncate) && !(access & 0x40000000)) {
       runtime.lastError = 5;
@@ -337,9 +340,18 @@ function createFile(runtime, argument, wide = false) {
       runtime.lastError = 1224; // ERROR_USER_MAPPED_FILE
       return success(0xffffffff, 7);
     }
-    if (mustCreate) touchFile(runtime, path, { created: true, write: true });
+    // A created file is a real (empty) entry in the virtual filesystem, not
+    // just a timestamp: everything that reads the tree (FindFirstFile,
+    // GetFileAttributes) and every later read/write resolves through this map.
+    if (mustCreate) {
+      touchFile(runtime, path, { created: true, write: true });
+      runtime.files.set(path, new Uint8Array());
+      runtime.fileSections?.fileChanged(path);
+      runtime.dirty.add(path);
+    }
     if (mustTruncate) {
       runtime.files.set(path, new Uint8Array());
+      runtime.fileSections?.fileChanged(path);
       runtime.dirty.add(path);
     }
   }

@@ -210,28 +210,28 @@ function freeBstr(r, text) {
 
 function sysAllocString(r, a) {
   const source = a(0);
-  return ok(source ? allocateBstr(r, source, strlenW(r, source)) : 0, 1);
+  return response(source ? allocateBstr(r, source, strlenW(r, source)) : 0, 1);
 }
 function sysAllocStringLen(r, a) {
-  return ok(allocateBstr(r, a(0), a(1) >>> 0), 2);
+  return response(allocateBstr(r, a(0), a(1) >>> 0), 2);
 }
 function sysFreeString(r, a) {
   if (a(0)) freeBstr(r, a(0) >>> 0);
-  return ok(0, 1);
+  return response(0, 1);
 }
 function sysStringLen(r, a) {
   const text = a(0) >>> 0;
-  return ok(text ? (r.read32(text - 4) >>> 0) / 2 : 0, 1);
+  return response(text ? (r.read32(text - 4) >>> 0) / 2 : 0, 1);
 }
 function sysReAllocString(r, a) {
   const holder = a(0) >>> 0;
   const source = a(1) >>> 0;
-  if (!holder) return ok(0, 2);
+  if (!holder) return response(0, 2);
   const previous = r.read32(holder) >>> 0;
   if (!source) {
     if (previous) freeBstr(r, previous);
     r.write32(holder, 0);
-    return ok(1, 2);
+    return response(1, 2);
   }
   const count = strlenW(r, source);
   // Reuse the block when it is large enough, exactly as OleAut32 does.
@@ -243,17 +243,17 @@ function sysReAllocString(r, a) {
         2,
       );
     r.write32(previous - 4, count * 2);
-    return ok(1, 2);
+    return response(1, 2);
   }
   if (previous) freeBstr(r, previous);
   r.write32(holder, allocateBstr(r, source, count));
-  return ok(1, 2);
+  return response(1, 2);
 }
 function sysReAllocStringLen(r, a) {
   const holder = a(0) >>> 0;
   const source = a(1) >>> 0;
   const count = a(2) >>> 0;
-  if (!holder) return ok(0, 3);
+  if (!holder) return response(0, 3);
   const previous = r.read32(holder) >>> 0;
   // The source may legitimately be NULL for a zero-initialised result.
   if (previous && (r.read32(previous - 4) >>> 0) / 2 >= count) {
@@ -261,11 +261,11 @@ function sysReAllocStringLen(r, a) {
       r.guestMemory.write(previous + i * 2, source ? r.guestMemory.read(source + i * 2, 2) : 0, 2);
     r.guestMemory.write(previous + count * 2, 0, 2);
     r.write32(previous - 4, count * 2);
-    return ok(1, 3);
+    return response(1, 3);
   }
   if (previous) freeBstr(r, previous);
   r.write32(holder, allocateBstr(r, source, count));
-  return ok(1, 3);
+  return response(1, 3);
 }
 
 function variantInit(r, a) {
@@ -274,11 +274,11 @@ function variantInit(r, a) {
     r.check(pointer, VARIANT_SIZE, true);
     r.data.fill(0, pointer, pointer + VARIANT_SIZE);
   }
-  return ok(0, 1);
+  return response(0, 1);
 }
 function variantClear(r, a) {
   const pointer = a(0) >>> 0;
-  if (!pointer) return ok(0, 1);
+  if (!pointer) return response(0, 1);
   r.check(pointer, VARIANT_SIZE, true);
   const vt = r.guestMemory.read(pointer, 2);
   if (vt === VT_BSTR) {
@@ -288,19 +288,19 @@ function variantClear(r, a) {
     // Releasing an interface pointer needs that object's own Release, which a
     // synchronous handler cannot perform as a guest call; report the type
     // mismatch rather than dropping the reference silently.
-    return ok(DISP_E_TYPEMISMATCH, 1);
+    return response(DISP_E_TYPEMISMATCH, 1);
   }
   r.data.fill(0, pointer, pointer + VARIANT_SIZE);
-  return ok(0, 1);
+  return response(0, 1);
 }
 function variantCopy(r, a) {
   const destination = a(0) >>> 0,
     source = a(1) >>> 0;
-  if (!destination || !source) return ok(0x80070057, 2); // E_INVALIDARG
+  if (!destination || !source) return response(0x80070057, 2); // E_INVALIDARG
   r.check(destination, VARIANT_SIZE, true);
   r.check(source, VARIANT_SIZE, false);
   const vt = r.guestMemory.read(source, 2);
-  if (![VT_EMPTY, VT_NULL, VT_I4, VT_BSTR].includes(vt)) return ok(DISP_E_TYPEMISMATCH, 2);
+  if (![VT_EMPTY, VT_NULL, VT_I4, VT_BSTR].includes(vt)) return response(DISP_E_TYPEMISMATCH, 2);
   // Clear the destination before writing so its old BSTR is not leaked.
   const previousType = r.guestMemory.read(destination, 2);
   if (previousType === VT_BSTR) {
@@ -318,7 +318,7 @@ function variantCopy(r, a) {
     r.write32(destination + 8, r.read32(source + 8) >>> 0);
     r.write32(destination + 12, r.read32(source + 12) >>> 0);
   }
-  return ok(0, 2);
+  return response(0, 2);
 }
 
 export const oleautApis = {
@@ -328,7 +328,7 @@ export const oleautApis = {
   'oleaut32.dll!SysReAllocStringLen': sysReAllocStringLen,
   'oleaut32.dll!SysFreeString': sysFreeString,
   'oleaut32.dll!SysStringLen': sysStringLen,
-  'oleaut32.dll!SysStringByteLen': (r, a) => ok(a(0) ? r.read32(a(0) - 4) >>> 0 : 0, 1),
+  'oleaut32.dll!SysStringByteLen': (r, a) => response(a(0) ? r.read32(a(0) - 4) >>> 0 : 0, 1),
   'oleaut32.dll!VariantInit': variantInit,
   'oleaut32.dll!VariantClear': variantClear,
   'oleaut32.dll!VariantCopy': variantCopy,

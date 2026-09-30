@@ -253,12 +253,21 @@ function searchPattern(resolved) {
   return { directory, pattern };
 }
 
+// FindFirstFileA/W is one of the few Win32 calls that reports failure with
+// INVALID_HANDLE_VALUE (0xffffffff), not 0. A caller's standard test is
+// `handle != INVALID_HANDLE_VALUE`, so returning 0 for a missing file makes it
+// believe the search succeeded — the case where a program then treats a file
+// that does not exist as present.
+function findFailure(r, error) {
+  return fail(r, error, 2, 0xffffffff);
+}
+
 function findFirstFile(r, a, wide) {
   let resolved;
   try {
     resolved = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd);
   } catch {
-    return fail(r, 3, 2);
+    return findFailure(r, 3);
   }
   // A search only ever names one directory level, so take the prefix from the
   // pattern's last separator rather than treating the whole path as a prefix.
@@ -272,7 +281,7 @@ function findFirstFile(r, a, wide) {
   let names;
   if (wildcard) names = new Map([...available].filter(([name]) => matchWildcard(pattern, name)));
   else names = available.has(pattern) ? new Map([[pattern, available.get(pattern)]]) : new Map();
-  if (!names.size) return fail(r, 2, 2);
+  if (!names.size) return findFailure(r, 2);
   r.findHandles ??= new Map();
   const nextId = (r.nextFindHandle = (r.nextFindHandle ?? 0x51000000) + 4);
   const entries = [...names].map(([name, directoryEntry]) => ({
