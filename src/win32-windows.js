@@ -1363,6 +1363,50 @@ Object.assign(windowApis, {
   'user32.dll!MapWindowPoints': mapWindowPoints,
   'user32.dll!MoveWindow': moveWindow,
   'user32.dll!DrawEdge': drawEdge,
+  'user32.dll!CreateCaret': createCaret,
+  'user32.dll!DestroyCaret': destroyCaret,
+  'user32.dll!ShowCaret': showCaret,
+  'user32.dll!HideCaret': hideCaret,
+  'user32.dll!SetCaretPos': setCaretPos,
+  'user32.dll!GetCaretPos': getCaretPos,
+  'user32.dll!GetCaretBlinkTime': getCaretBlinkTime,
+  'user32.dll!GetDoubleClickTime': getDoubleClickTime,
+  'user32.dll!GetCapture': (r) => result(r.windows.capture),
+  'user32.dll!GetKeyboardState': getKeyboardState,
+  'user32.dll!SetKeyboardState': setKeyboardState,
+  'user32.dll!GetKeyboardLayout': getKeyboardLayout,
+  'user32.dll!SetScrollInfo': setScrollInfo,
+  'user32.dll!GetScrollInfo': getScrollInfo,
+  'user32.dll!GetWindowPlacement': getWindowPlacement,
+  'user32.dll!SetWindowPlacement': setWindowPlacement,
+  'user32.dll!FlashWindow': (r, a) => {
+    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 2);
+    // The browser desktop already highlights a window on activity; report the
+    // previous state as Windows does.
+    return result(r.windows.flashState?.[a(0)] ?? 0, 2);
+  },
+  'user32.dll!IsIconic': (r, a) => {
+    const window = r.windows.windows.get(a(0));
+    return window
+      ? result(window.showCmd === 6 || window.showCmd === 7 ? 1 : 0, 1)
+      : r.windows.fail(1400, 1);
+  },
+  'user32.dll!IsZoomed': (r, a) => {
+    const window = r.windows.windows.get(a(0));
+    return window ? result(window.showCmd === 3 ? 1 : 0, 1) : r.windows.fail(1400, 1);
+  },
+  'user32.dll!SetActiveWindow': (r, a) => {
+    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
+    const previous = r.windows.active;
+    r.windows.active = a(0) >>> 0;
+    return result(previous, 1);
+  },
+  'user32.dll!SetForegroundWindow': (r, a) => {
+    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
+    r.windows.active = a(0) >>> 0;
+    r.windows.raise?.(a(0) >>> 0);
+    return result(1, 1);
+  },
   'user32.dll!GetSystemMetrics': (r, a) => {
     const metric = a(0) | 0;
     const displayValue = virtualSystemMetric(metric, r);
@@ -1423,6 +1467,218 @@ Object.assign(windowApis, {
     return result(values[metric] ?? 0, 1);
   },
 });
+
+// ---------------------------------------------------------------------------
+// Caret, capture, scrollbar, placement and input-state services.
+// The caret is one blink position per window; the desktop draws it, so the
+// runtime records its owner, position and size and reports the system blink.
+function createCaret(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 4);
+  const bitmap = a(1);
+  const width = a(2) | 0,
+    height = a(3) | 0;
+  if (width < 0 || height < 0) return r.windows.fail(87, 4);
+  r.windows.caret = {
+    hwnd: a(0),
+    bitmap,
+    width: width || 2,
+    height: height || 16,
+    x: 0,
+    y: 0,
+    visible: true,
+  };
+  r.windows.emit(window);
+  return result(1, 4);
+}
+function caretWindow(r) {
+  const caret = r.windows.caret;
+  return caret ? r.windows.windows.get(caret.hwnd) : null;
+}
+function destroyCaret(r) {
+  if (!r.windows.caret) return r.windows.fail(6, 0);
+  const window = caretWindow(r);
+  r.windows.caret = null;
+  if (window) r.windows.emit(window);
+  return result(1, 0);
+}
+function showCaret(r, a) {
+  const window = caretWindow(r);
+  if (!window) return r.windows.fail(6, 1);
+  r.windows.caret.visible = true;
+  r.windows.emit(window);
+  return result(1, 1);
+}
+function hideCaret(r, a) {
+  const window = caretWindow(r);
+  if (!window) return r.windows.fail(6, 1);
+  r.windows.caret.visible = false;
+  r.windows.emit(window);
+  return result(1, 1);
+}
+function setCaretPos(r, a) {
+  const caret = r.windows.caret;
+  if (!caret) return r.windows.fail(6, 2);
+  caret.x = a(0) | 0;
+  caret.y = a(1) | 0;
+  const window = caretWindow(r);
+  if (window) r.windows.emit(window);
+  return result(0, 2);
+}
+function getCaretPos(r, a) {
+  const caret = r.windows.caret;
+  if (!caret) return r.windows.fail(6, 1);
+  rectangle(r, a(0), [caret.x, caret.y, 0, 0]);
+  return result(1, 1);
+}
+// The system double-click interval the desktop's own input already enforces.
+function getDoubleClickTime() {
+  return result(500, 0);
+}
+function getCaretBlinkTime() {
+  return result(530, 0);
+}
+// Get/SetKeyboardState read and write the 256-byte key-state table the runtime
+// keeps for GetKeyState and the accelerator path.
+function getKeyboardState(r, a) {
+  const out = a(0);
+  if (!out) return r.windows.fail(87, 1);
+  r.check(out, 256, true);
+  for (let vk = 0; vk < 256; vk++) r.data[out + vk] = r.windows.keyboardState.get(vk) & 0xff;
+  return result(1, 1);
+}
+function setKeyboardState(r, a) {
+  const pointer = a(0);
+  if (!pointer) return r.windows.fail(87, 1);
+  r.check(pointer, 256);
+  for (let vk = 0; vk < 256; vk++) r.windows.keyboardState.set(vk, r.data[pointer + vk]);
+  return result(1, 1);
+}
+// GetKeyboardLayout reports the default layout of the runtime's single locale.
+function getKeyboardLayout(r, a) {
+  if (a(0)) return r.windows.fail(87, 1);
+  return result(0x04090409, 1); // MAKELANGID(en-US, SUBLANG_DEFAULT) twice
+}
+// Scroll-bar state: Set/GetScrollInfo and the pair helpers. The runtime keeps
+// one SCROLLINFO per window and bar so a control's position round-trips.
+function scrollBarIndex(bar) {
+  return bar === 0 ? 'horizontal' : bar === 1 ? 'vertical' : null;
+}
+function setScrollInfo(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 4);
+  const key = scrollBarIndex(a(1) >>> 0);
+  if (!key) return r.windows.fail(87, 4);
+  const info = a(2);
+  if (!info) return r.windows.fail(87, 4);
+  r.check(info, 28);
+  if (r.read32(info) !== 28) return r.windows.fail(87, 4);
+  const scroll = {
+    min: r.read32(info + 4) | 0,
+    max: r.read32(info + 8) | 0,
+    page: r.read32(info + 12) >>> 0,
+    pos: r.read32(info + 16) | 0,
+    track: r.read32(info + 20) >>> 0,
+  };
+  const mask = r.read32(info + 24) >>> 0;
+  if (mask & ~0x1f) return r.windows.fail(87, 4);
+  window.scrollInfo ??= {};
+  const previous = window.scrollInfo[key];
+  const merged = { ...(previous ?? { min: 0, max: 0, page: 0, pos: 0, track: 0 }) };
+  for (const [bit, field] of [
+    [1, 'min'],
+    [2, 'max'],
+    [4, 'page'],
+    [8, 'pos'],
+    [16, 'track'],
+  ])
+    if (mask & bit) merged[field] = scroll[field];
+  window.scrollInfo[key] = merged;
+  if (a(3)) r.windows.emit(window);
+  return result(previous ? previous.pos | 0 : 0, 4);
+}
+function getScrollInfo(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 3);
+  const key = scrollBarIndex(a(1) >>> 0);
+  if (!key) return r.windows.fail(87, 3);
+  const info = a(2);
+  if (!info) return r.windows.fail(87, 3);
+  r.check(info, 28, true);
+  const mask = r.read32(info + 24) >>> 0;
+  if (mask & ~0x1f) return r.windows.fail(87, 3);
+  const scroll = window.scrollInfo?.[key];
+  if (!scroll) return result(0, 3);
+  r.write32(info, 28);
+  if (mask & 1) r.write32(info + 4, scroll.min);
+  if (mask & 2) r.write32(info + 8, scroll.max);
+  if (mask & 4) r.write32(info + 12, scroll.page >>> 0);
+  if (mask & 8) r.write32(info + 16, scroll.pos >>> 0);
+  if (mask & 16) r.write32(info + 20, scroll.track >>> 0);
+  return result(1, 3);
+}
+// Get/SetWindowPlacement round-trip the placement a minimised or restored
+// window reports. The runtime keeps the show state and the normal rectangle.
+function getWindowPlacement(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 2);
+  const out = a(1);
+  if (!out) return r.windows.fail(87, 2);
+  r.check(out, 44, true);
+  r.data.fill(0, out, out + 44);
+  const [x, y] = r.windows.screenPosition(window);
+  const outer = outerBounds(window);
+  r.write32(out, 44);
+  r.write32(out + 4, window.placementFlags ?? 0);
+  r.write32(out + 8, window.showCmd ?? (window.visible ? 1 : 0));
+  r.write32(out + 12, 0);
+  r.write32(out + 16, 0);
+  r.write32(out + 20, 0);
+  r.write32(out + 24, 0);
+  r.write32(out + 28, x);
+  r.write32(out + 32, y);
+  r.write32(out + 36, x + outer.width);
+  r.write32(out + 40, y + outer.height);
+  return result(1, 2);
+}
+function setWindowPlacement(r, a) {
+  const window = r.windows.windows.get(a(0));
+  if (!window) return r.windows.fail(1400, 2);
+  const pointer = a(1);
+  if (!pointer) return r.windows.fail(87, 2);
+  r.check(pointer, 44);
+  if (r.read32(pointer) !== 44) return r.windows.fail(87, 2);
+  // WINDOWPLACEMENT: length 0, flags 4, showCmd 8, ptMinPosition 12,
+  // ptMaxPosition 20, rcNormalPosition 28 (RECT: left/top/right/bottom).
+  const show = r.read32(pointer + 8) | 0;
+  if (show < 0 || show > 9) return r.windows.fail(87, 2);
+  window.showCmd = show;
+  const left = r.read32(pointer + 28) | 0;
+  const top = r.read32(pointer + 32) | 0;
+  const right = r.read32(pointer + 36) | 0;
+  const bottom = r.read32(pointer + 40) | 0;
+  if (right > left && bottom > top) {
+    // The rectangle is the window's restored outer bounds, so the client size
+    // follows from the frame the window already uses.
+    const frame = windowFrame(window.style ?? 0);
+    window.x = left + frame.border;
+    window.y = top + frame.border + frame.title;
+    window.width = Math.max(1, right - left - 2 * frame.border);
+    window.height = Math.max(1, bottom - top - 2 * frame.border - frame.title);
+    resizeWindowSurface(r, window.id, window.width, window.height);
+  }
+  r.windows.emit(window);
+  return result(1, 2);
+}
+function outerBounds(window) {
+  const frame = windowFrame(window.style ?? 0);
+  return {
+    border: frame.border,
+    title: frame.title,
+    width: window.width + 2 * frame.border,
+    height: window.height + 2 * frame.border + frame.title,
+  };
+}
 
 function adjustRect(r, a, extended) {
   // AdjustWindowRect(Ex) grows a client rectangle into the window rectangle
