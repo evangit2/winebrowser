@@ -1,0 +1,49 @@
+{
+  "demo": "d3d12-knot",
+  "url": "http://127.0.0.1:4193/winebrowser/",
+  "runs": [
+    {
+      "mode": "exe-upload",
+      "firstFourFramesMs": 1401,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "bright": 11767,
+        "colors": 8912,
+        "digest": 1334473929
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 10,
+        "bright": 11640,
+        "colors": 8768,
+        "digest": 1012492162
+      },
+      "instructions": 7368029
+    },
+    {
+      "mode": "hosted-zip",
+      "firstFourFramesMs": 1091,
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 4,
+        "bright": 11767,
+        "colors": 8912,
+        "digest": 1334473929
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 8,
+        "bright": 11712,
+        "colors": 8775,
+        "digest": 3307892193
+      },
+      "instructions": 5706275
+    }
+  ],
+  "errors": []
+}

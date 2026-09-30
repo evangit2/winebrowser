@@ -80,6 +80,114 @@
       "zipSha256": "996ae2fdd0fd940c3c44eec5c986858ec992244ce3480d9707401be4af311314"
     },
     {
+      "name": "d3d12-blend",
+      "description": "Native Direct3D 12 blending: three pipelines over one region with blend disabled, SRC_ALPHA/INV_SRC_ALPHA and additive ONE/ONE, so the final pixels prove each blend state reached the GPU. Close the window to exit.",
+      "exe": "d3d12-blend/d3d12-blend.exe",
+      "zip": "d3d12-blend.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 blend descriptors and multiple pipeline states.",
+      "exeSha256": "31fddc3a2c739076a49ca7a121d925f01cd91aa06ecebd57f3945f29aca123b5",
+      "zipSha256": "bc896b309a3810ba5f098695579bf8bd59a4b2929c5dea67a7182f0a5774efe2"
+    },
+    {
+      "name": "d3d12-constants",
+      "description": "Native Direct3D 12 root-constants cube: the per-frame transform reaches the vertex shader as 32-bit root constants, so nothing is re-uploaded. Close the window to exit.",
+      "exe": "d3d12-constants/d3d12-constants.exe",
+      "zip": "d3d12-constants.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 root constants and canonical descriptor bindings.",
+      "exeSha256": "fbfe8e5058a01e6f3f93aae76607bde6b7fc6defb7a8cedf04c1bee60dd27a53",
+      "zipSha256": "6cd5c25c3893c41da75cd90f4eec52cf899c3ba9d4e16fa630d2b9f02a4ccc67"
+    },
+    {
+      "name": "d3d12-constbuffer",
+      "description": "Native Direct3D 12 cube driven by a constant buffer bound through a CBV descriptor table (the HelloConstBuffers shape). Close the window to exit.",
+      "exe": "d3d12-constbuffer/d3d12-constbuffer.exe",
+      "zip": "d3d12-constbuffer.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 constant buffer views and descriptor tables.",
+      "exeSha256": "7b611560bd4aa899a8f9b3ceb541b1b6fa0580dd6a8991073a51c14e1d05f089",
+      "zipSha256": "a4aa7a405affabbbd36232596e7bb364b56ea5d2e20383f653c03895a56f2400"
+    },
+    {
+      "name": "d3d12-cube",
+      "description": "Native Direct3D 12 rotating 3D cube: x87 transforms, indexed vertex uploads, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
+      "exe": "d3d12-cube/d3d12-cube.exe",
+      "zip": "d3d12-cube.zip",
+      "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms during execution. Complete source and rebuild materials included.",
+      "exeSha256": "172155247cbed000cb046289acab47ea6ac0783d96edbab1447e3cf16d957553",
+      "zipSha256": "23e570f0e5324416bd31231d7be249d85f7d9d935f404b4b9460f0120d183d38"
+    },
+    {
+      "description": "Animated Direct3D 12 trefoil knot tube built with heap-placed resources and a three-buffer BGRA8 flip-discard swap chain.",
+      "exe": "d3d12-knot/d3d12-knot.exe",
+      "exeSha256": "e806d91e0662ba4fb82e9c97e166729586e2755d6b72d5ab88959b920fefd9ce",
+      "name": "d3d12-knot",
+      "provenance": "MIT demo source built with i686-w64-mingw32; Wine 11 SM5 DXBC (LGPL-2.1-or-later).",
+      "zip": "d3d12-knot.zip",
+      "zipSha256": "22fc557aa6ca0bc6e3d75eec9699417a8f70bbbe86f8ef84a43cad0c223d1c1c"
+    },
+    {
+      "name": "d3d12-parade",
+      "description": "Native Direct3D 12 'parade': 27 independently rotating, depth-tested, Gouraud-shaded cubes and octahedra drawn with indexed draws per frame; x87 guest transforms, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
+      "exe": "d3d12-parade/d3d12-parade.exe",
+      "zip": "d3d12-parade.zip",
+      "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms and per-vertex lighting during execution. Complete source and rebuild materials included.",
+      "exeSha256": "a1e8a16ea357fad42243cd3527ef77707c88d932c58445c6eb746c3d4e3be1bd",
+      "zipSha256": "aeab708d6ca5b688c26e1a30070c464b54a0f52ec7614056c9e73caafa4d8689"
+    },
+    {
+      "name": "d3d12-rendertexture",
+      "description": "Native Direct3D 12 render-to-texture: a gradient is drawn into an offscreen RTV texture, transitioned, then sampled through an SRV and composited. Close the window to exit.",
+      "exe": "d3d12-rendertexture/d3d12-rendertexture.exe",
+      "zip": "d3d12-rendertexture.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 render-target textures and resource transitions.",
+      "exeSha256": "f546e69d6bc38a740c7368ea912aed2d2905a4277960e2696ddf01a59c074a18",
+      "zipSha256": "75459fa520e45a674cd2caa1397d2e23fba3c626f139d7a6998cb206138c202f"
+    },
+    {
+      "name": "d3d12-rootcbv",
+      "description": "Native Direct3D 12 root constant buffer view: the per-frame transform is bound by GPU virtual address with SetGraphicsRootConstantBufferView, using no descriptor heap or table at all. Close the window to exit.",
+      "exe": "d3d12-rootcbv/d3d12-rootcbv.exe",
+      "zip": "d3d12-rootcbv.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 root CBV descriptors.",
+      "exeSha256": "2d6cd1a275d72f3cd114ecddf9d1a6e0a3e295c4f9a048fdf36c7942368ecee3",
+      "zipSha256": "cfd6d5d4710a01ec30c9ced027ab5ec2889c051d3f9a195c1155ad1a37a746aa"
+    },
+    {
+      "name": "d3d12-terrain",
+      "description": "Native Direct3D 12 procedural terrain: a generated 129x129 height field drawn as 32,768 indexed triangles with 32-bit indices, a three-attribute vertex layout and a constant-buffer camera. Close the window to exit.",
+      "exe": "d3d12-terrain/d3d12-terrain.exe",
+      "zip": "d3d12-terrain.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Generates its mesh in guest code and uploads it through the canonical D3D12 heap path.",
+      "exeSha256": "ddc4dee325aceded4423f0d11013f13d155091f435e0ea3094363de0072cf1c1",
+      "zipSha256": "46dd2a17532a35471de26a276cd635229c7fc47b616cd1d117f81f014ef0ea21"
+    },
+    {
+      "name": "d3d12-texture",
+      "description": "Native Direct3D 12 textured cube: a generated 64x64 texture is uploaded through GetCopyableFootprints and CopyTextureRegion, then sampled from an SRV descriptor table with a static sampler. Close the window to exit.",
+      "exe": "d3d12-texture/d3d12-texture.exe",
+      "zip": "d3d12-texture.zip",
+      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 texture upload, SRV descriptor tables and static samplers.",
+      "exeSha256": "6d7bd65c37507abbd36db852d69514ca24bc838ffe2e336e87d3cb5fc0878332",
+      "zipSha256": "8e421685c87ac20b8962511bf75f8420a40acf3066160e73d7b963377769cef5"
+    },
+    {
+      "name": "d3d12-triangle",
+      "description": "Native D3D12 shader triangle: browser-compiled SM5 shaders, moving viewport, command lists, resource transitions and fences. Initial API subset.",
+      "exe": "d3d12-triangle/d3d12-triangle.exe",
+      "zip": "d3d12-triangle.zip",
+      "provenance": "Original MIT PE32 API fixture embedding unmodified LGPL Wine shader bytecode; complete shader and application sources included.",
+      "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
+      "zipSha256": "8cc317d0328b0807bcdace2ece46b4bb52dc495d4c8c63faabd4ae3aea700679"
+    },
+    {
+      "name": "d3d8-cube",
+      "description": "Native Windows Direct3D 8 cube: browser x86-to-Wasm compilation, WebGPU transforms and depth. Close the window to exit.",
+      "exe": "d3d8-cube/d3d8-cube.exe",
+      "zip": "d3d8-cube.zip",
+      "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D8 bootstrap subset, not WineD3D.",
+      "exeSha256": "f0c46b5cfa9012c3e58cc3238e6146ab40bf2f36ba71ecf18176d7f5c762d3a8",
+      "zipSha256": "1ec33ecedfeecd2ad7f115027ce496ae627b5e88d262a23528b4b54698930815"
+    },
+    {
       "name": "d3d9-cube",
       "description": "Native Windows Direct3D 9 cube: browser x86-to-Wasm compilation, WebGPU transforms and depth. Close the window to exit.",
       "exe": "d3d9-cube/d3d9-cube.exe",
@@ -96,105 +204,6 @@
       "provenance": "Original MIT-licensed PE32 C application and shader tokens; complete source and rebuild materials included.",
       "exeSha256": "49bacd8c11b82755ffd85fcd908a683e8c1dbe0b57175bc15a2803280dbd76a8",
       "zipSha256": "d43ef9a8047101b19d945a4562bc03a1d04ec96d3d87f27cb9c7fca723092173"
-    },
-    {
-      "name": "d3d12-triangle",
-      "description": "Native D3D12 shader triangle: browser-compiled SM5 shaders, moving viewport, command lists, resource transitions and fences. Initial API subset.",
-      "exe": "d3d12-triangle/d3d12-triangle.exe",
-      "zip": "d3d12-triangle.zip",
-      "provenance": "Original MIT PE32 API fixture embedding unmodified LGPL Wine shader bytecode; complete shader and application sources included.",
-      "exeSha256": "0aea87a767816c94197d08f19d851e71cdad82e46bb6ad8f004c972f477a7c19",
-      "zipSha256": "8cc317d0328b0807bcdace2ece46b4bb52dc495d4c8c63faabd4ae3aea700679"
-    },
-    {
-      "name": "d3d12-cube",
-      "description": "Native Direct3D 12 rotating 3D cube: x87 transforms, indexed vertex uploads, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
-      "exe": "d3d12-cube/d3d12-cube.exe",
-      "zip": "d3d12-cube.zip",
-      "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms during execution. Complete source and rebuild materials included.",
-      "exeSha256": "172155247cbed000cb046289acab47ea6ac0783d96edbab1447e3cf16d957553",
-      "zipSha256": "23e570f0e5324416bd31231d7be249d85f7d9d935f404b4b9460f0120d183d38"
-    },
-    {
-      "name": "d3d8-cube",
-      "description": "Native Windows Direct3D 8 cube: browser x86-to-Wasm compilation, WebGPU transforms and depth. Close the window to exit.",
-      "exe": "d3d8-cube/d3d8-cube.exe",
-      "zip": "d3d8-cube.zip",
-      "provenance": "Original MIT-licensed freestanding C graphics fixture; compiled to a Windows PE32 executable. D3D8 bootstrap subset, not WineD3D.",
-      "exeSha256": "f0c46b5cfa9012c3e58cc3238e6146ab40bf2f36ba71ecf18176d7f5c762d3a8",
-      "zipSha256": "1ec33ecedfeecd2ad7f115027ce496ae627b5e88d262a23528b4b54698930815"
-    },
-    {
-      "name": "d3d12-parade",
-      "description": "Native Direct3D 12 'parade': 27 independently rotating, depth-tested, Gouraud-shaded cubes and octahedra drawn with indexed draws per frame; x87 guest transforms, browser-compiled shaders, D16 depth, command lists and fences. Close the window to exit.",
-      "exe": "d3d12-parade/d3d12-parade.exe",
-      "zip": "d3d12-parade.zip",
-      "provenance": "Original MIT PE32 C application and HLSL shaders; native floating-point transforms and per-vertex lighting during execution. Complete source and rebuild materials included.",
-      "exeSha256": "a1e8a16ea357fad42243cd3527ef77707c88d932c58445c6eb746c3d4e3be1bd",
-      "zipSha256": "aeab708d6ca5b688c26e1a30070c464b54a0f52ec7614056c9e73caafa4d8689"
-    },
-    {
-      "name": "d3d12-rootcbv",
-      "description": "Native Direct3D 12 root constant buffer view: the per-frame transform is bound by GPU virtual address with SetGraphicsRootConstantBufferView, using no descriptor heap or table at all. Close the window to exit.",
-      "exe": "d3d12-rootcbv/d3d12-rootcbv.exe",
-      "zip": "d3d12-rootcbv.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 root CBV descriptors.",
-      "exeSha256": "2d6cd1a275d72f3cd114ecddf9d1a6e0a3e295c4f9a048fdf36c7942368ecee3",
-      "zipSha256": "cfd6d5d4710a01ec30c9ced027ab5ec2889c051d3f9a195c1155ad1a37a746aa"
-    },
-    {
-      "name": "d3d12-constbuffer",
-      "description": "Native Direct3D 12 cube driven by a constant buffer bound through a CBV descriptor table (the HelloConstBuffers shape). Close the window to exit.",
-      "exe": "d3d12-constbuffer/d3d12-constbuffer.exe",
-      "zip": "d3d12-constbuffer.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 constant buffer views and descriptor tables.",
-      "exeSha256": "7b611560bd4aa899a8f9b3ceb541b1b6fa0580dd6a8991073a51c14e1d05f089",
-      "zipSha256": "a4aa7a405affabbbd36232596e7bb364b56ea5d2e20383f653c03895a56f2400"
-    },
-    {
-      "name": "d3d12-constants",
-      "description": "Native Direct3D 12 root-constants cube: the per-frame transform reaches the vertex shader as 32-bit root constants, so nothing is re-uploaded. Close the window to exit.",
-      "exe": "d3d12-constants/d3d12-constants.exe",
-      "zip": "d3d12-constants.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 root constants and canonical descriptor bindings.",
-      "exeSha256": "fbfe8e5058a01e6f3f93aae76607bde6b7fc6defb7a8cedf04c1bee60dd27a53",
-      "zipSha256": "6cd5c25c3893c41da75cd90f4eec52cf899c3ba9d4e16fa630d2b9f02a4ccc67"
-    },
-    {
-      "name": "d3d12-texture",
-      "description": "Native Direct3D 12 textured cube: a generated 64x64 texture is uploaded through GetCopyableFootprints and CopyTextureRegion, then sampled from an SRV descriptor table with a static sampler. Close the window to exit.",
-      "exe": "d3d12-texture/d3d12-texture.exe",
-      "zip": "d3d12-texture.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 texture upload, SRV descriptor tables and static samplers.",
-      "exeSha256": "6d7bd65c37507abbd36db852d69514ca24bc838ffe2e336e87d3cb5fc0878332",
-      "zipSha256": "8e421685c87ac20b8962511bf75f8420a40acf3066160e73d7b963377769cef5"
-    },
-    {
-      "name": "d3d12-rendertexture",
-      "description": "Native Direct3D 12 render-to-texture: a gradient is drawn into an offscreen RTV texture, transitioned, then sampled through an SRV and composited. Close the window to exit.",
-      "exe": "d3d12-rendertexture/d3d12-rendertexture.exe",
-      "zip": "d3d12-rendertexture.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 render-target textures and resource transitions.",
-      "exeSha256": "f546e69d6bc38a740c7368ea912aed2d2905a4277960e2696ddf01a59c074a18",
-      "zipSha256": "75459fa520e45a674cd2caa1397d2e23fba3c626f139d7a6998cb206138c202f"
-    },
-    {
-      "name": "d3d12-terrain",
-      "description": "Native Direct3D 12 procedural terrain: a generated 129x129 height field drawn as 32,768 indexed triangles with 32-bit indices, a three-attribute vertex layout and a constant-buffer camera. Close the window to exit.",
-      "exe": "d3d12-terrain/d3d12-terrain.exe",
-      "zip": "d3d12-terrain.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Generates its mesh in guest code and uploads it through the canonical D3D12 heap path.",
-      "exeSha256": "ddc4dee325aceded4423f0d11013f13d155091f435e0ea3094363de0072cf1c1",
-      "zipSha256": "46dd2a17532a35471de26a276cd635229c7fc47b616cd1d117f81f014ef0ea21"
-    },
-    {
-      "name": "d3d12-blend",
-      "description": "Native Direct3D 12 blending: three pipelines over one region with blend disabled, SRC_ALPHA/INV_SRC_ALPHA and additive ONE/ONE, so the final pixels prove each blend state reached the GPU. Close the window to exit.",
-      "exe": "d3d12-blend/d3d12-blend.exe",
-      "zip": "d3d12-blend.zip",
-      "provenance": "Original MIT-licensed freestanding C demo; compiled to a Windows PE32 executable. Exercises D3D12 blend descriptors and multiple pipeline states.",
-      "exeSha256": "31fddc3a2c739076a49ca7a121d925f01cd91aa06ecebd57f3945f29aca123b5",
-      "zipSha256": "bc896b309a3810ba5f098695579bf8bd59a4b2929c5dea67a7182f0a5774efe2"
     }
   ]
 }

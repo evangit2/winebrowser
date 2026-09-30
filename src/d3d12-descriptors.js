@@ -132,10 +132,15 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
     )
   )
     throw Error('Unsupported D3D12 pipeline geometry, input, cache, or node state');
+  // D3D12_GRAPHICS_PIPELINE_STATE_DESC tail: SampleMask (392), PrimitiveTopologyType
+  // (504), NumRenderTargets (508), RTVFormats[8] (512..), DSVFormat (544),
+  // SampleDesc (548/552). A swap chain may be RGBA8 or BGRA8, and the pipeline's
+  // declared RTV format has to match it.
+  const rtvFormat = u32(read32, pointer, 512);
   if (
     u32(read32, pointer, 504) !== 3 ||
     u32(read32, pointer, 508) !== 1 ||
-    u32(read32, pointer, 512) !== 28 ||
+    !(rtvFormat === 28 || rtvFormat === 87) ||
     [516, 520, 524, 528, 532, 536, 540].some((offset) => u32(read32, pointer, offset)) ||
     ![0, 55].includes(u32(read32, pointer, 544)) ||
     u32(read32, pointer, 548) !== 1 ||
@@ -234,6 +239,9 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
     frontFace,
     blend,
     alphaToCoverage,
+    // The RTV format a swap chain may be BGRA8 or RGBA8; the pipeline's
+    // declared colour target format must match the attachment it draws into.
+    targetFormat: rtvFormat === 87 ? 'bgra8unorm' : 'rgba8unorm',
   };
 }
 

@@ -18,11 +18,11 @@ const integer = (value, low, high) => Number.isInteger(value) && value >= low &&
 
 // D3D12's default is "write all channels"; an absent or disabled target writes
 // every channel with blending off.
-function colorTargetFor(target, alphaToCoverage) {
+function colorTargetFor(target, alphaToCoverage, format = 'rgba8unorm') {
   const writeMask = target?.writeMask ?? 0xf;
-  if (!target?.enabled) return { format: 'rgba8unorm', writeMask };
+  if (!target?.enabled) return { format, writeMask };
   return {
-    format: 'rgba8unorm',
+    format,
     writeMask,
     blend: {
       color: {
@@ -364,6 +364,7 @@ export class D3D12Renderer {
     blend = null,
     alphaToCoverage = false,
     rootPlan = null,
+    targetFormat = 'rgba8unorm',
   }) {
     if (!integer(id, 1, 0xffffffff) || this.pipelines.has(id) || this.pipelines.size >= 32)
       throw Error('D3D12 pipeline limit exceeded');
@@ -471,7 +472,7 @@ export class D3D12Renderer {
           // Render target 0's blend state becomes the WebGPU target. The
           // backend models exactly one target, and the frontend has already
           // rejected independent blending on later targets.
-          targets: [colorTargetFor(blend?.[0], alphaToCoverage)],
+          targets: [colorTargetFor(blend?.[0], alphaToCoverage, targetFormat)],
         },
         primitive: { topology: 'triangle-list', cullMode, frontFace },
         ...(depth

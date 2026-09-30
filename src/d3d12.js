@@ -1671,9 +1671,13 @@ function createPlacedResource(rt, arg, dev) {
   rt.free(props);
   if (!parsed) return E_INVALIDARG;
   if (parsed.kind !== 'buffer') throw Error('Unsupported D3D12 placed non-buffer resource');
-  if ((heap.state.used ?? 0) + offset + parsed.size > heap.state.size)
-    throw Error('D3D12 placed resource exceeds its heap');
-  heap.state.used = (heap.state.used ?? 0) + parsed.size;
+  // The placement must lie entirely inside the heap and must not overlap a
+  // range an earlier placement already occupies.
+  if (offset + parsed.size > heap.state.size) throw Error('D3D12 placed resource exceeds its heap');
+  const placed = (heap.state.placed ??= []);
+  if (placed.some((range) => offset < range.end && offset + parsed.size > range.start))
+    throw Error('D3D12 placed resource overlaps an existing placement');
+  placed.push({ start: offset, end: offset + parsed.size });
   const item = make(
     rt,
     'resource',
@@ -1796,6 +1800,9 @@ function deviceMethods() {
             // the backend here rather than through the command list.
             blend: p.blend,
             alphaToCoverage: p.alphaToCoverage,
+            // A BGRA8 swap chain needs the pipeline's colour target declared in
+            // that format; WebGPU rejects a mismatched attachment.
+            targetFormat: p.targetFormat,
             // The pipeline's binding layout must follow the root signature the
             // pipeline state was created against.
             rootPlan: p.root.state.plan,
