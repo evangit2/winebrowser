@@ -117,3 +117,63 @@ test('msvcrt varargs and va_list entry points use the convention Wine declares',
   assert.equal(wvsprintf.text, 'n=7');
   r.cpu.r[4].value = original;
 });
+
+test('the bounded printf family applies the CRT size rules through the Wine body', async () => {
+  // Each bounded entry point is a guest call: arguments are pushed in reverse and
+  // a return address last, so ESP points at it when the thunk runs. The varargs
+  // forms and the va_list forms are both exercised, and the reported stack delta
+  // proves the cdecl cleanup the caller owns.
+  const r = setup(),
+    spec = r.allocString('id=%d end');
+  const call = async (name, pushes) => {
+    const original = r.cpu.r[4].value;
+    for (const value of pushes) r.cpu.push(value);
+    r.cpu.push(0x12345678);
+    const stack = r.cpu.r[4].value;
+    await r.api({ dll: 'msvcrt.dll', name });
+    const response = { result: r.cpu.r[0].value | 0, delta: r.cpu.r[4].value - stack };
+    r.cpu.r[4].value = original;
+    return response;
+  };
+
+  // _snprintf(buffer, capacity, format, ...) NUL-terminates and returns the length
+  // the formatted text would have had, so a caller can size its buffer and retry.
+  const wide = r.allocate(64);
+  const fits = await call('_snprintf', [12345, spec, 64, wide]);
+  assert.equal(fits.result, 12);
+  assert.equal(fits.delta, 4, 'cdecl: only the return address is removed');
+  assert.equal(r.string(wide), 'id=12345 end');
+  const narrow = r.allocate(8);
+  const truncated = await call('_snprintf', [12345, spec, 8, narrow]);
+  assert.equal(truncated.result, 12, 'the return value is the untruncated length');
+  assert.equal(r.string(narrow), 'id=1234', 'the buffer holds capacity-1 characters');
+
+  // sprintf_s(buffer, size, format, ...) must hold the whole result: an
+  // undersized buffer is cleared and reported as ERANGE rather than truncated.
+  const large = r.allocate(64);
+  assert.equal((await call('sprintf_s', [7, spec, 64, large])).result, 8);
+  assert.equal(r.string(large), 'id=7 end');
+  const small = r.allocate(6);
+  r.data.fill(0xcc, small, small + 6);
+  assert.equal((await call('sprintf_s', [7, spec, 6, small])).result, 34);
+  assert.equal(r.string(small), '', 'an undersized destination is emptied');
+
+  // _snprintf_s(buffer, sizeOfBuffer, count, format, ...) with _TRUNCATE.
+  const bounded = r.allocate(64);
+  assert.equal((await call('_snprintf_s', [9, spec, 0xffffffff, 64, bounded])).result, 8);
+  assert.equal(r.string(bounded), 'id=9 end');
+
+  // vsprintf_s(buffer, size, format, va_list) takes a va_list, which on i386 is a
+  // pointer to the first varargs slot.
+  const values = r.allocate(4);
+  r.write32(values, 3);
+  const vaList = r.allocate(64);
+  assert.equal((await call('vsprintf_s', [values, spec, 64, vaList])).result, 8);
+  assert.equal(r.string(vaList), 'id=3 end');
+
+  // The wide form keeps UTF-16 output and the same size rule.
+  const wideSpec = r.allocString('w=%d', true);
+  const wideBuffer = r.allocate(64);
+  assert.equal((await call('swprintf_s', [5, wideSpec, 32, wideBuffer])).result, 3);
+  assert.equal(r.wideString(wideBuffer), 'w=5');
+});
