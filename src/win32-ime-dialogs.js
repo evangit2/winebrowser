@@ -95,11 +95,12 @@ function immIsIME(r, a) {
 // error stays zero, which the documentation defines as a user cancel.
 function validateOpenFileName(r, pointer, wide) {
   if (!pointer) return null;
-  // OPENFILENAMEA is 76 bytes and OPENFILENAMEW is 88 on i386; the common
-  // prefix up to the owner window is identical, so the size field is what
-  // distinguishes a well-formed structure.
+  // OPENFILENAMEA and OPENFILENAMEW are both 88 bytes on i386; the wide form
+  // does not grow the structure because every member is a DWORD or a pointer.
+  // The size field is what distinguishes a well-formed structure.
   const lStructSize = r.guestMemory.read(pointer, 4);
-  if (lStructSize !== (wide ? 88 : 76)) return null;
+  void wide;
+  if (lStructSize !== 88) return null;
   r.check(pointer, lStructSize);
   const owner = r.read32(pointer + 4);
   if (owner && !r.windows.windows.has(owner)) return null;
@@ -344,15 +345,15 @@ export const imeExtraApis = {
 // MessageBoxIndirectW takes a MSGBOXPARAMSW describing the same dialog
 // MessageBoxW shows. The runtime's message box already renders that dialog, so
 // this reads the structure and routes through the same request path.
-async function messageBoxIndirect(r, a) {
+async function messageBoxIndirect(r, a, wide = true) {
   const pointer = a(0);
   if (!pointer) return fail(r, ERROR_INVALID_PARAMETER, 1);
   const size = r.guestMemory.read(pointer, 4);
-  // MSGBOXPARAMSW is 40 bytes on i386 (the ANSI form is 36); a mismatch means
-  // the caller passed a different structure.
-  if (size !== 40 && size !== 36) return fail(r, ERROR_INVALID_PARAMETER, 1);
+  // MSGBOXPARAMSA and MSGBOXPARAMSW are both 40 bytes on i386: the members are
+  // DWORDs and pointers, so the wide form does not grow the structure. The
+  // caller's entry point decides which string form the pointers carry.
+  if (size !== 40) return fail(r, ERROR_INVALID_PARAMETER, 1);
   r.check(pointer, size);
-  const wide = size === 40;
   const owner = r.read32(pointer + 4);
   if (owner && !r.windows.windows.has(owner)) return fail(r, ERROR_INVALID_WINDOW_HANDLE, 1);
   const textPointer = r.read32(pointer + 8);
@@ -414,7 +415,7 @@ function chooseColor(r, a) {
 }
 export const dialogExtraApis = {
   'user32.dll!MessageBoxIndirectW': messageBoxIndirect,
-  'user32.dll!MessageBoxIndirectA': messageBoxIndirect,
+  'user32.dll!MessageBoxIndirectA': (r, a) => messageBoxIndirect(r, a, false),
   'comdlg32.dll!ChooseColorA': chooseColor,
   'comdlg32.dll!ChooseColorW': chooseColor,
 };

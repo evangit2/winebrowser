@@ -1929,39 +1929,41 @@ function writeLogFont(r, at, wide, height) {
     for (let i = 0; i < face.length; i++) r.data[at + 28 + i] = face.charCodeAt(i);
   }
 }
+// NONCLIENTMETRICSA is 344 bytes and NONCLIENTMETRICSW is 504 on i386, both
+// confirmed against the MinGW-w64 headers. The layout is cbSize, six frame
+// metrics, then the caption font, the small-caption metrics and font, the menu
+// metrics and font, and the status and message fonts, with a trailing
+// iPaddedBorderWidth.
+const NONCLIENTMETRICS_BYTES = { ansi: 344, wide: 504 };
 function nonClientMetrics(r, size, output, wide) {
   if (!output) return r.windows.fail(87, 4);
   const font = wide ? 92 : 60;
-  // cbSize 4 + six metrics 24, then each of five fonts is preceded by two more
-  // metrics except the caption font, which follows immediately.
-  const total = 4 + 7 * 4 + font + 2 * 4 + font + 2 * 4 + font + font + font + 4;
+  const total = wide ? NONCLIENTMETRICS_BYTES.wide : NONCLIENTMETRICS_BYTES.ansi;
   if (size < total) return r.windows.fail(87, 4);
   r.check(output, total, true);
   r.data.fill(0, output, output + total);
   r.write32(output, total);
   let at = output + 4;
-  const metrics = [BORDER, 17, 17, TITLE, TITLE];
-  for (const value of metrics) {
+  // iBorderWidth, iScrollWidth, iScrollHeight, iCaptionWidth, iCaptionHeight.
+  for (const value of [BORDER, 17, 17, TITLE, TITLE]) {
     r.write32(at, value);
     at += 4;
   }
-  // lfCaptionFont, then the small-caption metrics, the caption font, the menu
-  // metrics and the menu font...
-  writeLogFont(r, at, wide, 12);
+  writeLogFont(r, at, wide, 12); // lfCaptionFont
   at += font;
-  r.write32(at, 13);
-  r.write32(at + 4, 13);
+  r.write32(at, 13); // iSmCaptionWidth
+  r.write32(at + 4, 13); // iSmCaptionHeight
   at += 8;
-  writeLogFont(r, at, wide, 12);
+  writeLogFont(r, at, wide, 12); // lfSmCaptionFont
   at += font;
-  r.write32(at, 17);
-  r.write32(at + 4, 17);
+  r.write32(at, 17); // iMenuWidth
+  r.write32(at + 4, 17); // iMenuHeight
   at += 8;
-  writeLogFont(r, at, wide, 12);
+  writeLogFont(r, at, wide, 12); // lfMenuFont
   at += font;
-  writeLogFont(r, at, wide, 12);
+  writeLogFont(r, at, wide, 12); // lfStatusFont
   at += font;
-  writeLogFont(r, at, wide, 12);
+  writeLogFont(r, at, wide, 12); // lfMessageFont
   at += font;
   r.write32(at, 0); // iPaddedBorderWidth
   return result(1, 4);
