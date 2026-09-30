@@ -193,19 +193,21 @@ export class GuestMemory {
   }
 
   write(address, value, width = 4) {
+    // A watch records the writer before the access is validated, so a write the
+    // memory model rejects is still attributed to the instruction that made it
+    // rather than failing with no evidence of who reached the address.
+    if (this.watchAnyRange || this.watchValue !== undefined) this.#noteWrite(address, value, width);
     this.check(address, width, true);
     if (width === 1) this.view.setUint8(address, value);
     else if (width === 2) this.view.setUint16(address, value, true);
     else if (width === 4) this.view.setUint32(address, value >>> 0, true);
     else throw Error('Unsupported guest write width');
-    // A watch range with no value records every writer into that window, which
-    // identifies who fills a structure rather than who writes one value.
+  }
+  // A watch range with no value records every writer into that window, which
+  // identifies who fills a structure rather than who writes one value.
+  #noteWrite(address, value, width) {
     if (this.watchAnyRange && address >= this.watchAnyRange[0] && address < this.watchAnyRange[1])
-      this.watchAny(() => ({
-        address: address >>> 0,
-        width,
-        value: value >>> 0,
-      }));
+      this.watchAny(() => ({ address: address >>> 0, width, value: value >>> 0 }));
     else if (this.watchValue !== undefined && value >>> 0 === this.watchValue)
       this.#noteWatch(address, width);
   }
@@ -244,11 +246,8 @@ export class GuestMemory {
   }
 
   write32(address, value) {
+    if (this.watchAnyRange || this.watchValue !== undefined) this.#noteWrite(address, value, 4);
     this.view.setUint32(this.check(address, 4, true), value >>> 0, true);
-    if (this.watchAnyRange && address >= this.watchAnyRange[0] && address < this.watchAnyRange[1])
-      this.watchAny(() => ({ address: address >>> 0, width: 4, value: value >>> 0 }));
-    else if (this.watchValue !== undefined && value >>> 0 === this.watchValue)
-      this.#noteWatch(address, 4);
   }
 
   string(address) {
