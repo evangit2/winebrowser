@@ -73,19 +73,6 @@ function heapSize(r, a) {
   const size = r.allocationSize(a(2));
   return size === null ? fail(r, 6, 3, 0xffffffff) : ok(size, 3);
 }
-// GlobalAlloc/GlobalFree are the legacy wrapper over the process heap. The
-// low GMEM_FIXED bit pattern is what CRT startups actually call.
-function globalAlloc(r, a) {
-  const flags = a(0);
-  if (flags & ~0x42) return fail(r, 87, 2);
-  if (!a(1)) return ok(0, 2);
-  return ok(r.allocate(a(1), !!(flags & 0x40)), 2);
-}
-function globalFree(r, a) {
-  if (!a(0)) return ok(0, 1);
-  return r.free(a(0)) ? ok(0, 1) : fail(r, 6, 1, a(0));
-}
-
 // Critical sections are per-process locks. WineBrowser's guest threads only
 // switch at explicit yield points, so a critical section that never blocks is
 // still correct for single-threaded and cooperatively scheduled guests; the
@@ -483,10 +470,6 @@ export const startupApis = {
   'kernel32.dll!HeapDestroy': heapDestroy,
   'kernel32.dll!HeapReAlloc': heapReAlloc,
   'kernel32.dll!HeapSize': heapSize,
-  'kernel32.dll!GlobalAlloc': globalAlloc,
-  'kernel32.dll!GlobalFree': globalFree,
-  'kernel32.dll!GlobalLock': (r, a) => (r.customHeaps?.has(a(0)) ? ok(0, 1) : ok(a(0), 1)),
-  'kernel32.dll!GlobalUnlock': (r, a) => ok(1, 1),
   'kernel32.dll!InitializeCriticalSection': (r, a) => criticalSection(r, a, 1),
   // Both ...AndSpinCount and ...Ex return BOOL: nonzero means initialized. The
   // plain InitializeCriticalSection returns void, so it stays with ok(0).

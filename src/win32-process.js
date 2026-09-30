@@ -81,9 +81,18 @@ async function loadLibrary(r, a, wide, extended = false) {
 async function freeLibrary(r, a) {
   return ok((await r.freeLibrary(a(0))) ? 1 : 0, 1);
 }
+// LocalAlloc/LocalFree and their Global* twins are the 16-bit-era heap, and
+// plenty of 32-bit code still uses them. On Windows they are the same heap as
+// HeapAlloc, and the FIXED flag makes the returned value the pointer itself.
+// The valid flag word is LMEM_VALID_FLAGS (0xf72) / GMEM_VALID_FLAGS (0x7f72);
+// every other combination is ERROR_INVALID_PARAMETER.
+const LOCAL_VALID_FLAGS = 0xf72;
+const GLOBAL_VALID_FLAGS = 0x7f72;
 function localAlloc(r, a) {
-  if (a(0) & ~0x40) return fail(r, 87, 2);
-  return ok(r.allocate(a(1), !!(a(0) & 0x40)), 2);
+  const flags = a(0);
+  if (flags & ~LOCAL_VALID_FLAGS) return fail(r, 87, 2);
+  if (!a(1)) return ok(0, 2);
+  return ok(r.allocate(a(1), !!(flags & 0x40)), 2);
 }
 function localFree(r, a) {
   if (!a(0)) return ok(0, 1);
@@ -92,6 +101,87 @@ function localFree(r, a) {
     return ok(a(0), 1);
   }
   return ok(0, 1);
+}
+// LocalReAlloc/GlobalReAlloc follow HeapReAlloc: the returned value is the new
+// block, which may differ from the argument. LMEM_MODIFY (0x80) changes the
+// flags of an existing block rather than resizing it.
+function localReAlloc(r, a) {
+  const flags = a(0),
+    pointer = a(1),
+    size = a(2);
+  if (flags & ~LOCAL_VALID_FLAGS) return fail(r, 87, 3);
+  if (!pointer) return size ? ok(r.allocate(size, !!(flags & 0x40)), 3) : ok(0, 3);
+  if (flags & 0x80) return ok(pointer, 3);
+  if (!size) {
+    r.free(pointer);
+    return ok(0, 3);
+  }
+  const moved = r.reallocate(pointer, size, !!(flags & 0x40));
+  return moved === null ? fail(r, 8, 3) : ok(moved, 3);
+}
+// LocalSize/GlobalSize report the usable size; a block with a zero-size query
+// is documented to return zero.
+function localSize(r, a) {
+  const pointer = a(0);
+  if (!pointer) return fail(r, 87, 1);
+  const size = r.allocationSize(pointer);
+  return size === null ? fail(r, 6, 1) : ok(size, 1);
+}
+// LocalFlags/GlobalFlags report the block's state. GMEM_FIXED (0) with a
+// zero lock count is what a FIXED allocation always reports.
+function localFlags(r, a) {
+  const pointer = a(0);
+  if (!pointer) return fail(r, 87, 1);
+  if (r.allocationSize(pointer) === null) return ok(0x8000, 1); // GMEM_INVALID_HANDLE
+  return ok(0, 1);
+}
+function localHandle(r, a) {
+  const pointer = a(0);
+  if (!pointer || r.allocationSize(pointer) === null) return fail(r, 6, 1);
+  // A FIXED block's handle is the pointer itself, so LocalHandle is identity.
+  return ok(pointer, 1);
+}
+function localLock(r, a) {
+  const pointer = a(0);
+  if (!pointer || r.allocationSize(pointer) === null) return fail(r, 6, 1);
+  return ok(pointer, 1);
+}
+function localUnlock(_r, a) {
+  return ok(a(0) ? 1 : 0, 1);
+}
+function localDiscard(r, a) {
+  const pointer = a(0);
+  if (!pointer || r.allocationSize(pointer) === null) return fail(r, 6, 1);
+  // A FIXED block cannot be discarded; Windows reports success without freeing.
+  return ok(pointer, 1);
+}
+function globalFree(r, a) {
+  if (!a(0)) return ok(0, 1);
+  if (!r.free(a(0))) {
+    r.lastError = 6;
+    return ok(a(0), 1);
+  }
+  return ok(0, 1);
+}
+function globalAlloc(r, a) {
+  const flags = a(0);
+  if (flags & ~GLOBAL_VALID_FLAGS) return fail(r, 87, 2);
+  if (!a(1)) return ok(0, 2);
+  return ok(r.allocate(a(1), !!(flags & 0x40)), 2);
+}
+function globalReAlloc(r, a) {
+  const flags = a(0),
+    pointer = a(1),
+    size = a(2);
+  if (flags & ~GLOBAL_VALID_FLAGS) return fail(r, 87, 3);
+  if (!pointer) return size ? ok(r.allocate(size, !!(flags & 0x40)), 3) : ok(0, 3);
+  if (flags & 0x80) return ok(pointer, 3);
+  if (!size) {
+    r.free(pointer);
+    return ok(0, 3);
+  }
+  const moved = r.reallocate(pointer, size, !!(flags & 0x40));
+  return moved === null ? fail(r, 8, 3) : ok(moved, 3);
 }
 // The process heap is 0x50000000; HeapCreate hands out distinct handles that
 // allocate from the same guest arena. Args are (handle, flags, bytes).
@@ -325,6 +415,22 @@ export const processApis = {
   'kernel32.dll!HeapFree': heapFree,
   'kernel32.dll!LocalAlloc': localAlloc,
   'kernel32.dll!LocalFree': localFree,
+  'kernel32.dll!LocalReAlloc': localReAlloc,
+  'kernel32.dll!LocalSize': localSize,
+  'kernel32.dll!LocalFlags': localFlags,
+  'kernel32.dll!LocalHandle': localHandle,
+  'kernel32.dll!LocalLock': localLock,
+  'kernel32.dll!LocalUnlock': localUnlock,
+  'kernel32.dll!LocalDiscard': localDiscard,
+  'kernel32.dll!GlobalAlloc': globalAlloc,
+  'kernel32.dll!GlobalFree': globalFree,
+  'kernel32.dll!GlobalReAlloc': globalReAlloc,
+  'kernel32.dll!GlobalSize': localSize,
+  'kernel32.dll!GlobalFlags': localFlags,
+  'kernel32.dll!GlobalHandle': localHandle,
+  'kernel32.dll!GlobalLock': localLock,
+  'kernel32.dll!GlobalUnlock': localUnlock,
+  'kernel32.dll!GlobalDiscard': localDiscard,
   'kernel32.dll!FormatMessageA': (r, a) => formatMessage(r, a, false),
   'kernel32.dll!FormatMessageW': (r, a) => formatMessage(r, a, true),
   'kernel32.dll!GetCommandLineW': (r) => commandLine(r, true),

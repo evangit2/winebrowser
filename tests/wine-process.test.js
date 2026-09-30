@@ -339,3 +339,66 @@ test('HeapAlloc and HeapReAlloc accept the documented flag combinations', async 
   assert.equal(bad.result, 0);
   assert.equal(runtime.lastError, 87);
 });
+
+// LocalAlloc/LocalReAlloc/GlobalAlloc family: the 16-bit-era heap that plenty of
+// 32-bit code (and most packers) still uses. LMEM_VALID_FLAGS is 0xf72 and
+// GMEM_VALID_FLAGS is 0x7f72; anything outside those is ERROR_INVALID_PARAMETER.
+test('the Local/Global memory family allocates, resizes and reports size', async () => {
+  const runtime = {
+    allocations: new Map(),
+    next: 0x3000000,
+    lastError: 0,
+    allocate(size, zero) {
+      const pointer = this.next;
+      this.next += Math.max(16, Math.ceil(size / 16) * 16);
+      this.allocations.set(pointer, Math.max(16, Math.ceil(size / 16) * 16));
+      this.zeroed = zero;
+      return pointer;
+    },
+    reallocate(pointer, size) {
+      if (!this.allocations.has(pointer)) return null;
+      this.allocations.set(pointer, Math.max(16, Math.ceil(size / 16) * 16));
+      return pointer;
+    },
+    allocationSize(pointer) {
+      return this.allocations.get(pointer) ?? null;
+    },
+    free(pointer) {
+      return this.allocations.delete(pointer);
+    },
+  };
+  const call = (name, ...args) => processApis[`kernel32.dll!${name}`](runtime, (i) => args[i] ?? 0);
+
+  // LPTR (FIXED|ZEROINIT) and MOVEABLE both succeed; the returned value is the
+  // pointer under the FIXED model.
+  const fixed = call('LocalAlloc', 0x40, 100);
+  assert.notEqual(fixed.result, 0);
+  assert.equal(runtime.lastError, 0);
+  assert.equal(call('LocalSize', fixed.result).result, 112);
+  assert.equal(call('LocalFlags', fixed.result).result, 0);
+  assert.equal(call('LocalHandle', fixed.result).result, fixed.result);
+  assert.equal(call('LocalLock', fixed.result).result, fixed.result);
+  assert.equal(call('LocalUnlock', fixed.result).result, 1);
+  // LMEM_DISCARDABLE (0x100) is inside LMEM_VALID_FLAGS and accepted.
+  assert.notEqual(call('LocalAlloc', 0x100, 8).result, 0);
+
+  const global = call('GlobalAlloc', 0x40, 200);
+  assert.notEqual(global.result, 0);
+  assert.equal(call('GlobalSize', global.result).result, 208);
+  const grown = call('GlobalReAlloc', 0, global.result, 4096);
+  assert.equal(call('GlobalSize', grown.result).result, 4096);
+  const shrunk = call('GlobalReAlloc', 0, grown.result, 32);
+  assert.equal(call('GlobalSize', shrunk.result).result, 32);
+  assert.equal(call('GlobalFree', shrunk.result).result, 0);
+
+  // Sizes outside the documented flag words are still refused.
+  for (const [name, flags] of [
+    ['LocalAlloc', 0x1000],
+    ['GlobalAlloc', 0x8],
+  ]) {
+    runtime.lastError = 0;
+    const bad = call(name, flags, 8);
+    assert.equal(bad.result, 0, `${name} rejects 0x${flags.toString(16)}`);
+    assert.equal(runtime.lastError, 87);
+  }
+});
