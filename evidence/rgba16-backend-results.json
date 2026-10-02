@@ -1,8 +1,17 @@
 {
-  "date": "2026-10-02T20:43:18.645Z",
+  "date": "2026-10-02T21:07:26.282Z",
   "browser": "153.0.8010.12",
   "normalChromium": true,
-  "forceReadback": true,
+  "forceReadback": false,
+  "supported": true,
+  "rejection": {
+    "rejectionErrors": [
+      "Invalid D3D offscreen target",
+      "RGBA16 UNORM textures require WebGPU texture-formats-tier1 and float32-filterable"
+    ],
+    "targetCount": 0,
+    "targetBytes": 0
+  },
   "cases": [
     {
       "name": "clear-and-padded-row-readback",

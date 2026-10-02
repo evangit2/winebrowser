@@ -1,0 +1,23 @@
+{
+  "status": "unsupported-adapter",
+  "scope": "Rejection and allocation safety passed; RGBA16 rendering/precision checks did not run.",
+  "browser": "153.0.8010.12",
+  "date": "2026-10-02T21:08:24.877Z",
+  "disabledFeature": "float32-filterable",
+  "supported": false,
+  "deviceFeatures": [
+    "core-features-and-limits",
+    "texture-compression-astc",
+    "texture-compression-etc2",
+    "texture-compression-bc"
+  ],
+  "rejection": {
+    "rejectionErrors": [
+      "Invalid D3D offscreen target",
+      "RGBA16 UNORM textures require WebGPU texture-formats-tier1 and float32-filterable"
+    ],
+    "targetCount": 0,
+    "targetBytes": 0
+  },
+  "gpuErrors": []
+}

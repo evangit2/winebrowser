@@ -42,6 +42,9 @@ jobs:
       - run: npm run test:rgba16-backend
         env:
           BROWSER_CHANNEL: chromium
+          # SwiftShader lacks tier1. Verify rejection/allocation safety there;
+          # precision acceptance remains mandatory in hardware browser runs.
+          WINEBROWSER_ALLOW_UNSUPPORTED_RGBA16: '1'
       - run: npm run test:shared-depth-extent-backend
         env:
           BROWSER_CHANNEL: chromium
@@ -103,6 +106,7 @@ jobs:
           npm run test:7zr
         env:
           BROWSER_CHANNEL: chromium
+          WINEBROWSER_ALLOW_UNSUPPORTED_RGBA16: '1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

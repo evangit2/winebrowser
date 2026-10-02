@@ -96,7 +96,16 @@ try {
       assert.equal(sample.width, 798);
       assert.equal(sample.height, 570);
       assert.ok(sample.lit > 10000, 'particle scene: ' + JSON.stringify(sample));
-      assert.ok(sample.colors >= 1000, 'scene has textured shading');
+      if (sample.colors < 1000) {
+        await page
+          .locator('.virtual-desktop-canvas')
+          .screenshot({ path: 'evidence/instancing-shading-failure.png' });
+        await writeFile(
+          'evidence/instancing-shading-failure.json',
+          JSON.stringify({ mode, goal, sample }, null, 2) + '\n',
+        );
+      }
+      assert.ok(sample.colors >= 1000, 'scene has textured shading: ' + JSON.stringify(sample));
       samples.push({
         path:
           goal <= 32

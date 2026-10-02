@@ -48,3 +48,14 @@ Evidence is in `evidence/rgba16-backend-results.json`,
 `evidence/shared-depth-extent-backend-results.json` and
 `evidence/water-browser-results.json`. Texture feature/sample rules follow the
 [WebGPU specification](https://gpuweb.github.io/gpuweb/#texture-formats).
+
+Linux CI's SwiftShader adapter currently lacks the required optional features.
+Its RGBA16 test verifies explicit rejection before allocation and writes a
+separate `unsupported-adapter` report. Water's worker-adapter preflight checks
+the unchanged archive hashes and records that rendering acceptance did not run.
+Only CI explicitly permits this outcome with
+`WINEBROWSER_ALLOW_UNSUPPORTED_RGBA16=1`; normal acceptance commands fail on
+unsupported adapters. Hardware Chromium precision/scene evidence is preserved
+separately. The backend regression can hide either optional feature with
+`--without-tier1` or `--without-float32-filterable` to test rejection on capable
+hardware as well. This does not add a lower-precision graphics fallback.
