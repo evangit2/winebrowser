@@ -8,7 +8,12 @@ import {
 import { blendDefaults, setBlendState } from './d3d-blending.js';
 import { FOG_STATES, validFogValue, fogSnapshot } from './d3d-fog.js';
 import { fvfLayout } from './d3d-fvf.js';
-import { MAX_DRAW_VERTICES as MAX_VERTICES, MAX_FRAME_BYTES } from './d3d-limits.js';
+import { fixedDeclarationVertices } from './d3d9-fixed-declaration.js';
+import {
+  MAX_DRAW_VERTICES as MAX_VERTICES,
+  MAX_FRAME_BYTES,
+  MAX_FRAME_COMMANDS as MAX_COMMANDS,
+} from './d3d-limits.js';
 import {
   initLighting,
   setLightingState,
@@ -63,7 +68,6 @@ import {
 
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
-const MAX_COMMANDS = 256;
 const number = (value) => value >>> 0;
 const IDENTITY = Float32Array.from([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const floatBits = new DataView(new ArrayBuffer(4));
@@ -165,6 +169,8 @@ function expandTriangles(primitive, primitiveCount, stride, vertices) {
 // Shared by DrawPrimitiveUP, buffered and indexed draws. Vertices are always an
 // immutable contiguous snapshot by the time a command reaches the renderer.
 function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
+  const frameState = state;
+  ({ state, vertices, stride } = fixedDeclarationVertices(state, vertices, stride, vertexCount));
   const layout = fvfLayout(state.fvf);
   if (!layout || stride < layout.size || stride > 256 || stride % 4)
     throw Error('Unsupported D3D9 draw format or render state');
@@ -211,7 +217,7 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
         projection: state.projection.slice(),
       };
   queue(
-    state,
+    frameState,
     {
       type: 'draw',
       fvf: state.fvf,
@@ -236,8 +242,8 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
     size,
   );
   if (texture) {
-    state.textureSnapshots.add(texture);
-    state.frameTextureBytes += textureBytes;
+    frameState.textureSnapshots.add(texture);
+    frameState.frameTextureBytes += textureBytes;
   }
   return D3D_OK;
 }

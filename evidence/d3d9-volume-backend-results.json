@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T07:37:18.769Z",
+  "date": "2026-10-02T08:43:11.498Z",
   "browser": "154.0.8037.97",
   "pixels": [
     [
@@ -25,9 +25,33 @@
       0,
       255,
       255
+    ],
+    [
+      0,
+      0,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
     ]
   ],
   "errors": [],
   "mismatchedDimensionRejected": true,
-  "scope": "Real PS2 sampler3D and fixed-function volume views, two depth slices per path; no third-party scene claim."
+  "scope": "PS2 sampler3D, fixed volume views, and fixed vertex processing linked to a native pixel shader with a translated world matrix; no third-party scene claim."
 }

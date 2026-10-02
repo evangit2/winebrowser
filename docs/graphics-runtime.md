@@ -56,6 +56,14 @@ fixed-function sampling uses the first set and programmable shaders map all
 sets by semantic index. Cube and volume views pass exact pixel checks through
 both shader paths, including backend draws larger than 8 MiB.
 
+Frames permit 4,096 commands within the byte budget. Pixel shaders can be
+combined with unlit fixed vertex processing: generated VS2 bytecode applies
+the application's transforms and forwards colors and all FVF coordinates to
+the unchanged pixel shader. XYZRHW uses the viewport and reciprocal W.
+Declarations equivalent to an FVF also work in the fixed path, including
+float4 particle colors packed to native D3DCOLOR. Lit fixed vertex processing
+combined with a programmable pixel shader remains unsupported.
+
 `src/webgpu-renderer.js` owns the browser backend inside the runtime worker.
 It receives those bounded frame snapshots, creates an `OffscreenCanvas` WebGPU
 target, renders with a small fixed-function WGSL shader and `depth16unorm`,

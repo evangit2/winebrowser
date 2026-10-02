@@ -19,6 +19,7 @@ try {
   const report = await page.evaluate(async () => {
     const { WebGPURenderer } = await import('/src/webgpu-renderer.js');
     const { defaultStage, defaultSampler } = await import('/src/d3d-texture-state.js');
+    const { fixedVertexShader } = await import('/src/d3d9-fixed-vertex.js');
     const errors = [],
       pixels = [],
       canvas = new OffscreenCanvas(64, 64),
@@ -124,6 +125,75 @@ try {
           },
         ],
       });
+      const world = identity.slice();
+      world[12] = 1;
+      const generated = fixedVertexShader({
+        fvf: 0x10142,
+        world,
+        view: identity,
+        projection: identity,
+        lightState: { 137: 0 },
+      });
+      await renderer.present({
+        id: 1,
+        commands: [
+          {
+            type: 'clear',
+            color: 0xff000000,
+            clearColor: true,
+            clearDepth: false,
+            clearStencil: false,
+            depth: 1,
+            stencil: 0,
+          },
+          {
+            ...command,
+            vertices: fixedBytes,
+            stride: 28,
+            vertexShader: generated.state.bytes,
+            vertexShaderId: generated.pointer,
+            vertexConstants: generated.constants,
+            attributes: [
+              { shaderLocation: 0, offset: 0, format: 'float32x3' },
+              { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
+              { shaderLocation: 3, offset: 16, format: 'float32x3' },
+            ],
+          },
+        ],
+      });
+      const transformed = new Uint8Array(6 * 32),
+        transformedView = new DataView(transformed.buffer);
+      for (let i = 0; i < 6; i++) {
+        transformedView.setFloat32(i * 32, (vertices[i * 8] + 1) * 32, true);
+        transformedView.setFloat32(i * 32 + 4, (1 - vertices[i * 8 + 1]) * 32, true);
+        transformedView.setFloat32(i * 32 + 12, 0.5, true);
+        transformedView.setUint32(i * 32 + 16, 0xffffffff, true);
+        for (let c = 0; c < 3; c++)
+          transformedView.setFloat32(i * 32 + 20 + c * 4, vertices[i * 8 + 4 + c], true);
+      }
+      const screenShader = fixedVertexShader({
+        fvf: 0x10144,
+        viewport: { x: 0, y: 0, width: 64, height: 64, minZ: 0, maxZ: 1 },
+        lightState: { 137: 1 },
+      });
+      await renderer.present({
+        id: 1,
+        commands: [
+          {
+            ...command,
+            vertices: transformed,
+            stride: 32,
+            vertexShader: screenShader.state.bytes,
+            vertexShaderId: screenShader.pointer,
+            vertexConstants: screenShader.constants,
+            attributes: [
+              { shaderLocation: 0, offset: 0, format: 'float32x4' },
+              { shaderLocation: 1, offset: 16, format: 'unorm8x4' },
+              { shaderLocation: 3, offset: 20, format: 'float32x3' },
+            ],
+          },
+        ],
+      });
       const mismatch = {
         ...command,
         textures: new Map([
@@ -157,6 +227,10 @@ try {
     [0, 0, 255, 255],
     [255, 0, 0, 255],
     [0, 0, 255, 255],
+    [0, 0, 0, 255],
+    [255, 0, 0, 255],
+    [255, 0, 0, 255],
+    [0, 0, 255, 255],
   ]);
   assert.deepEqual(report.errors, []);
   assert.equal(report.mismatchedDimensionRejected, true);
@@ -168,7 +242,7 @@ try {
         browser: browser.version(),
         ...report,
         scope:
-          'Real PS2 sampler3D and fixed-function volume views, two depth slices per path; no third-party scene claim.',
+          'PS2 sampler3D, fixed volume views, and fixed vertex processing linked to a native pixel shader with a translated world matrix; no third-party scene claim.',
       },
       null,
       2,

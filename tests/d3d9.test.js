@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { d3d9Apis } from '../src/d3d9.js';
-import { MAX_DRAW_VERTICES, MAX_FRAME_BYTES } from '../src/d3d-limits.js';
+import { MAX_DRAW_VERTICES, MAX_FRAME_BYTES, MAX_FRAME_COMMANDS } from '../src/d3d-limits.js';
 
 function fixture(version = 9, memoryBytes = 1024 * 1024) {
   const buffer = new ArrayBuffer(memoryBytes);
@@ -700,7 +700,7 @@ test('frontend enforces renderer dimensions, command budget, and depth-format su
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0);
   runtime.write32(params + 40, 80);
   const device = await create();
-  for (let i = 0; i < 256; i++)
+  for (let i = 0; i < MAX_FRAME_COMMANDS; i++)
     assert.equal((await call(device, 43, 0, 0, 1, 0xff000000, 0x3f800000, 0)).result, 0);
   await assert.rejects(call(device, 43, 0, 0, 1, 0xff000000, 0x3f800000, 0), /frame command limit/);
 });
@@ -2102,6 +2102,90 @@ test('Programmable FVF maps multiple sized texture sets by semantic index', asyn
     { shaderLocation: 1, offset: 12, format: 'float32' },
     { shaderLocation: 2, offset: 16, format: 'float32x4' },
     { shaderLocation: 3, offset: 32, format: 'float32x3' },
+  ]);
+});
+
+test('Fixed declarations pack particle float colors and UVs while charging the shared frame budget', async () => {
+  const { runtime: r, create, call, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4);
+  const declaration = r.allocate(32);
+  for (const [index, offset, type, usage] of [
+    [0, 0, 2, 0],
+    [1, 12, 1, 5],
+    [2, 20, 3, 10],
+  ]) {
+    r.view.setUint16(declaration + index * 8 + 2, offset, true);
+    r.data.set([type, 0, usage, 0], declaration + index * 8 + 4);
+  }
+  r.view.setUint16(declaration + 24, 255, true);
+  r.data[declaration + 28] = 17;
+  await call(device, 86, declaration, out);
+  await call(device, 87, r.read32(out));
+  await call(device, 57, 137, 0);
+  const vertices = r.allocate(108);
+  for (let i = 0; i < 3; i++)
+    for (const [index, value] of [
+      [0, i],
+      [3, 0.25],
+      [4, 0.75],
+      [5, -0.5],
+      [6, 0.5],
+      [7, 1.5],
+      [8, 0.25],
+    ])
+      r.view.setFloat32(vertices + i * 36 + index * 4, value, true);
+  await call(device, 41);
+  assert.equal((await call(device, 83, 4, 1, vertices, 36)).result, 0);
+  const state = r.comObjects.objects.get(device).state;
+  assert.equal(state.frameBytes, 72);
+  assert.equal(state.fvf, 0);
+  state.frameBytes = MAX_FRAME_BYTES - 71;
+  await assert.rejects(call(device, 83, 4, 1, vertices, 36), /frame vertex limit/);
+  state.frameBytes = 72;
+  r.data.fill(0, vertices, vertices + 108);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const draw = events.find((e) => e.type === 'present').commands[0];
+  assert.equal(draw.fvf, 0x142);
+  assert.equal(draw.stride, 24);
+  assert.deepEqual([...draw.vertices.slice(12, 16)], [255, 128, 0, 64]);
+  const view = new DataView(draw.vertices.buffer);
+  assert.equal(view.getFloat32(24, true), 1);
+  assert.equal(view.getFloat32(16, true), 0.25);
+  assert.equal(view.getFloat32(20, true), 0.75);
+});
+
+test('Fixed vertex processing links to a pixel shader without changing bound guest vertex state', async () => {
+  const { runtime: r, create, call, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4);
+  const shader = new Uint32Array([
+    0xffff0200, 0x0200001f, 0x80000000, 0x900f0000, 0x02000001, 0x800f0800, 0x90e40000, 0xffff,
+  ]);
+  const pointer = r.allocate(shader.byteLength);
+  r.data.set(new Uint8Array(shader.buffer), pointer);
+  await call(device, 106, pointer, out);
+  await call(device, 107, r.read32(out));
+  const state = r.comObjects.objects.get(device).state;
+  state.vertexConstants.fill(0.75);
+  state.world[12] = 0.5;
+  await call(device, 57, 137, 0);
+  await call(device, 89, 0x42);
+  const vertices = r.allocate(48);
+  await call(device, 41);
+  assert.equal((await call(device, 83, 4, 1, vertices, 16)).result, 0);
+  state.world[12] = 9;
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const draw = events.find((e) => e.type === 'present').commands[0];
+  assert.equal(state.vertexShader, null);
+  assert.equal(state.vertexConstants[3], 0.75);
+  assert.equal(draw.vertexConstants[3], 0.5);
+  assert.equal(draw.vertexConstants[16], 1);
+  assert.deepEqual(draw.attributes, [
+    { shaderLocation: 0, offset: 0, format: 'float32x3' },
+    { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
   ]);
 });
 

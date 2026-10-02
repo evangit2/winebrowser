@@ -3,6 +3,8 @@
 import { textureSnapshot } from './d3d9-textures.js';
 import { fogSnapshot } from './d3d-fog.js';
 import { fvfLayout } from './d3d-fvf.js';
+import { fixedVertexShader } from './d3d9-fixed-vertex.js';
+import { fixedDeclarationVertices } from './d3d9-fixed-declaration.js';
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_SHADER_BYTES = 1024 * 1024;
@@ -423,6 +425,11 @@ function programmableAttributes(state, stride) {
 // Shared with the buffered and indexed draw paths: they gather vertex bytes
 // before calling here, so only memory consumption stays pointer-based.
 export function programmableDrawFromVertices(state, vertices, stride, vertexCount, runtime) {
+  if (!state.vertexShader && state.pixelShader) {
+    ({state, vertices, stride} = fixedDeclarationVertices(state, vertices, stride, vertexCount));
+    const generated = fixedVertexShader(state);
+    state = { ...state, vertexShader: generated, vertexConstants: generated.constants };
+  }
   const vertex = state.vertexShader;
   const pixel = state.pixelShader;
   const declaration = state.vertexDeclaration;
@@ -489,7 +496,7 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
   const pixel = state.pixelShader;
   const declaration = state.vertexDeclaration;
   if (!vertex && !pixel) return null;
-  if (!vertex || !pixel || (!declaration && !fvfLayout(state.fvf)))
+  if (!pixel || (!declaration && !fvfLayout(state.fvf)))
     throw Error(
       'Programmable D3D9 draw requires a vertex layout and both shaders' +
         ` (vertex=${!!vertex}, pixel=${!!pixel}, declaration=${!!declaration}, FVF=0x${state.fvf.toString(16)})`,
