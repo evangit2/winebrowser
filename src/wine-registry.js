@@ -210,6 +210,15 @@ function setValue(runtime, argument) {
   return result === 0 ? SUCCESS : result === 8 ? NO_MEMORY : INVALID_PARAMETER;
 }
 
+function deleteValue(runtime, argument) {
+  const key = keyValue(runtime, argument(0), registryStore.KEY_SET_VALUE);
+  if (key.status) return key.status;
+  const name = unicodeString(runtime, argument(1), registryStore.MAX_VALUE_NAME_LENGTH);
+  if (name.status) return name.status;
+  const result = registryStore.deleteValue(key.state, key.opened, name.text);
+  return result === 0 ? SUCCESS : result === 2 ? OBJECT_NAME_NOT_FOUND : INVALID_PARAMETER;
+}
+
 export function closeRegistryHandle(runtime, handle) {
   const value = handle >>> 0;
   if ((value & 0xff000000) !== 0x51000000) return null;
@@ -227,4 +236,5 @@ export const registryNtServices = {
   },
   NtQueryValueKey: { argc: 6, call: queryValue },
   NtSetValueKey: { argc: 6, call: setValue },
+  NtDeleteValueKey: { argc: 2, call: deleteValue },
 };

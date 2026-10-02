@@ -438,6 +438,26 @@ function regSetValueExA(runtime, argument) {
   return regSetValueEx(runtime, argument, true);
 }
 
+function deleteValue(state, opened, name) {
+  if (name.length > MAX_VALUE_NAME_LENGTH) return ERROR_INVALID_PARAMETER;
+  const key = name.toUpperCase(),
+    value = opened.node.values.get(key);
+  if (!value) return ERROR_FILE_NOT_FOUND;
+  opened.node.values.delete(key);
+  state.valueCount--;
+  state.totalValueBytes -= value.data.byteLength;
+  return ERROR_SUCCESS;
+}
+
+function regDeleteValue(runtime, argument, ansi) {
+  const state = stateFor(runtime),
+    opened = keyFor(argument(0), state);
+  if (!opened) return response(ERROR_INVALID_HANDLE, 2);
+  if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 2);
+  if (accessDenied(opened, KEY_SET_VALUE)) return response(ERROR_ACCESS_DENIED, 2);
+  return response(deleteValue(state, opened, guestString(runtime, argument(1), ansi)), 2);
+}
+
 function regEnumValue(runtime, argument, ansi) {
   const nameAddress = argument(2) >>> 0;
   const nameSizeAddress = argument(3) >>> 0;
@@ -999,6 +1019,8 @@ export const registryApis = {
   'advapi32.dll!RegQueryValueExW': regQueryValueExW,
   'advapi32.dll!RegSetValueExA': regSetValueExA,
   'advapi32.dll!RegSetValueExW': regSetValueExW,
+  'advapi32.dll!RegDeleteValueA': (r, a) => regDeleteValue(r, a, true),
+  'advapi32.dll!RegDeleteValueW': (r, a) => regDeleteValue(r, a, false),
   'advapi32.dll!RegEnumValueA': (r, a) => regEnumValue(r, a, true),
   'advapi32.dll!RegEnumValueW': (r, a) => regEnumValue(r, a, false),
   'advapi32.dll!RegQueryInfoKeyA': (r, a) => regQueryInfoKey(r, a, true),
@@ -1033,6 +1055,7 @@ export const registryStore = Object.freeze({
   supportedAccess,
   accessDenied,
   storeValue,
+  deleteValue,
   KEY_QUERY_VALUE,
   KEY_SET_VALUE,
   MAX_KEY_NAME_LENGTH,

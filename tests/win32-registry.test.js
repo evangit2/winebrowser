@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { registryApis } from '../src/win32-registry.js';
+import { registryApis, registryStore } from '../src/win32-registry.js';
 import { encodeAnsi } from '../src/encoding.js';
 
 const registryApiSignatures = {
@@ -16,6 +16,8 @@ const registryApiSignatures = {
   RegQueryValueExA: 6,
   RegSetValueExW: 6,
   RegSetValueExA: 6,
+  RegDeleteValueA: 2,
+  RegDeleteValueW: 2,
   RegEnumValueA: 8,
   RegEnumValueW: 8,
   RegQueryInfoKeyW: 12,
@@ -658,4 +660,33 @@ test('legacy A/W create/open aliases share keys, grant supported rights and retu
     for (const handle of [created, reopened, opened])
       assert.equal(call(r, 'RegCloseKey', [handle]), 0);
   }
+});
+
+test('A/W value deletion shares names/default values, enforces access and releases quota', () => {
+  const r = fakeRuntime(),
+    path = 'Software\\DeleteValues';
+  const key = createKey(r, path, KEY_QUERY_VALUE | KEY_SET_VALUE);
+  assert.equal(key.status, ERROR_SUCCESS);
+  const payload = r.bytes([1, 2, 3, 4, 5]),
+    name = r.ansi('Café');
+  assert.equal(call(r, 'RegSetValueExA', [key.handle, name, 0, 3, payload, 5]), ERROR_SUCCESS);
+  assert.equal(call(r, 'RegSetValueExW', [key.handle, 0, 0, 3, payload, 3]), ERROR_SUCCESS);
+  const state = registryStore.stateFor(r),
+    values = state.valueCount,
+    bytes = state.totalValueBytes;
+  const reader = openKey(r, path, KEY_QUERY_VALUE);
+  assert.equal(call(r, 'RegDeleteValueA', [reader.handle, name]), ERROR_ACCESS_DENIED);
+  assert.equal(call(r, 'RegDeleteValueW', [key.handle, r.wide('CAFÉ')]), ERROR_SUCCESS);
+  assert.equal(state.valueCount, values - 1);
+  assert.equal(state.totalValueBytes, bytes - 5);
+  assert.equal(call(r, 'RegDeleteValueA', [key.handle, name]), ERROR_FILE_NOT_FOUND);
+  assert.equal(state.valueCount, values - 1);
+  assert.equal(call(r, 'RegDeleteValueA', [key.handle, r.ansi('')]), ERROR_SUCCESS);
+  assert.equal(state.totalValueBytes, bytes - 8);
+  assert.equal(call(r, 'RegDeleteValueW', [key.handle, 0]), ERROR_FILE_NOT_FOUND);
+  assert.equal(call(r, 'RegDeleteValueA', [0x12345678, 0]), ERROR_INVALID_HANDLE);
+  assert.equal(call(r, 'RegDeleteKeyW', [HKCU, r.wide(path)]), ERROR_SUCCESS);
+  assert.equal(call(r, 'RegDeleteValueW', [key.handle, name]), ERROR_KEY_DELETED);
+  assert.equal(call(r, 'RegCloseKey', [key.handle]), ERROR_SUCCESS);
+  assert.equal(call(r, 'RegDeleteValueW', [key.handle, 0]), ERROR_INVALID_HANDLE);
 });

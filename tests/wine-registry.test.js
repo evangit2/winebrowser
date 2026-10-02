@@ -318,3 +318,39 @@ test('NtOpenKeyEx shares native key lookup and rejects unsupported open options'
   assert.equal(nt(r, 'NtClose', [r.read32(output)]), SUCCESS);
   assert.equal(nt(r, 'NtOpenKeyEx', [output, KEY_QUERY_VALUE, attributes, 8]), INVALID_PARAMETER);
 });
+
+test('NT and Win32 deletion removes the same values through independent handles', () => {
+  const r = runtime(),
+    path = '\\Registry\\Machine\\Software\\DeleteValues';
+  const key = create(r, path),
+    reader = create(r, path, KEY_QUERY_VALUE);
+  assert.equal(key.status, SUCCESS);
+  assert.equal(reader.status, SUCCESS);
+  const name = unicode(r, 'Shared'),
+    data = r.allocate(4),
+    output = r.allocate(16),
+    required = r.allocate(4);
+  r.write32(data, 0xabcdef);
+  assert.equal(nt(r, 'NtSetValueKey', [key.handle, name, 0, 4, data, 4]), SUCCESS);
+  assert.equal(nt(r, 'NtDeleteValueKey', [reader.handle, name]), ACCESS_DENIED);
+  assert.equal(nt(r, 'NtDeleteValueKey', [key.handle, unicode(r, 'SHARED')]), SUCCESS);
+  assert.equal(
+    nt(r, 'NtQueryValueKey', [reader.handle, name, 2, output, 16, required]),
+    OBJECT_NAME_NOT_FOUND,
+  );
+  assert.equal(nt(r, 'NtDeleteValueKey', [key.handle, name]), OBJECT_NAME_NOT_FOUND);
+  assert.equal(nt(r, 'NtDeleteValueKey', [key.handle, 0]), ACCESS_VIOLATION);
+  assert.equal(nt(r, 'NtDeleteValueKey', [HKLM, name]), INVALID_HANDLE);
+  assert.equal(nt(r, 'NtSetValueKey', [key.handle, unicode(r, ''), 0, 4, data, 4]), SUCCESS);
+  const win32 = registryApis['advapi32.dll!RegDeleteValueW'];
+  assert.deepEqual(
+    win32(r, (i) => [key.handle, 0][i]),
+    { result: 0, argc: 2 },
+  );
+  assert.equal(
+    nt(r, 'NtQueryValueKey', [reader.handle, unicode(r, ''), 2, output, 16, required]),
+    OBJECT_NAME_NOT_FOUND,
+  );
+  assert.equal(nt(r, 'NtClose', [key.handle]), SUCCESS);
+  assert.equal(nt(r, 'NtDeleteValueKey', [key.handle, name]), INVALID_HANDLE);
+});
