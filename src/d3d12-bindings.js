@@ -189,9 +189,14 @@ export function decodeRootSignatureWords(words) {
 export function planRootSignature(signature) {
   const parameters = signature.parameters.map((parameter) => {
     if (parameter.type === 'descriptor-table') {
+      let nextOffset = 0;
       const ranges = signature.ranges
         .filter((range) => range.parameter === parameter.index)
-        .map((range) => ({ ...range, slot: range.tableOffset }));
+        .map((range) => {
+          const slot = range.tableOffset === 0xffffffff ? nextOffset : range.tableOffset;
+          nextOffset = slot + range.count;
+          return { ...range, slot };
+        });
       if (!ranges.length) invalid('a descriptor table declares no ranges');
       let slots = 0;
       for (const range of ranges) slots = Math.max(slots, range.slot + range.count);

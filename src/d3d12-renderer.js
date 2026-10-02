@@ -84,11 +84,11 @@ function toSamplerDescriptor(sampler) {
   if (sampler.comparison) throw Error('Unsupported D3D12 comparison sampler');
   const filter = sampler.filter;
   if (!Number.isInteger(filter) || filter > 0x155) throw Error('Unsupported D3D12 sampler filter');
-  const point = (value) => (value ? 'nearest' : 'linear');
+  const filtering = (value) => (value ? 'linear' : 'nearest');
   const anisotropic = (filter & 0x55) === 0x55 && (filter & 0xf) !== 0;
-  const mag = point(filter & 0x4);
-  const min = point(filter & 0x10);
-  const mip = point(filter & 0x100);
+  const mag = filtering(filter & 0x4);
+  const min = filtering(filter & 0x10);
+  const mip = filtering(filter & 0x1);
   const address = (mode) => {
     const mapped = D3D12_ADDRESS[mode];
     if (!mapped) throw Error('Unsupported D3D12 sampler address mode ' + mode);
@@ -470,9 +470,16 @@ export class D3D12Renderer {
     )
       throw Error('Unsupported D3D12 depth pipeline');
     const signature = reflectDXBCInputSignature(vertex).filter((entry) => entry.systemValue === 0);
-    if (signature.length !== inputLayout.length)
+    const activeLayout = inputLayout.filter((attribute) =>
+      signature.some(
+        (input) =>
+          input.semanticName.toUpperCase() === attribute.semanticName.toUpperCase() &&
+          input.semanticIndex === attribute.semanticIndex,
+      ),
+    );
+    if (signature.length !== activeLayout.length)
       throw Error('D3D12 input layout does not cover the vertex shader signature');
-    const attributes = inputLayout.map((attribute) => {
+    const attributes = activeLayout.map((attribute) => {
       const semantic = (attribute.semanticName ?? attribute.semantic ?? '').toUpperCase();
       const entry = signature.find(
         (input) =>
@@ -720,6 +727,7 @@ export class D3D12Renderer {
     if (!Array.isArray(commands) || commands.length > 256)
       throw Error('D3D12 submission limit exceeded');
     let vertexBytes = 0;
+    const uploadedSnapshots = new Set();
     for (const command of commands) {
       const resource = this.resources.get(command.target);
       if (!resource) throw Error('D3D12 command uses a released resource');
@@ -772,7 +780,10 @@ export class D3D12Renderer {
                 (command.firstVertex + command.vertexCount) * p.vertexStride)
           )
             throw Error('Invalid D3D12 vertex buffer snapshot');
-          vertexBytes += command.vertices.length;
+          if (!uploadedSnapshots.has(command.vertices)) {
+            uploadedSnapshots.add(command.vertices);
+            vertexBytes += command.vertices.length;
+          }
         } else if (command.vertices?.length || command.vertexStride)
           throw Error('Unexpected D3D12 vertex input');
         if (indexed) {
@@ -780,7 +791,10 @@ export class D3D12Renderer {
             command,
             p.vertexStride ? command.vertices.length / p.vertexStride : null,
           );
-          vertexBytes += command.indices.length;
+          if (!uploadedSnapshots.has(command.indices)) {
+            uploadedSnapshots.add(command.indices);
+            vertexBytes += command.indices.length;
+          }
         } else if (command.indices || command.indexFormat)
           throw Error('Unexpected D3D12 index input');
         if (vertexBytes > 8 * 1024 * 1024) throw Error('D3D12 upload submission limit exceeded');

@@ -223,6 +223,32 @@ test('plans register slots for a table followed by inline constants', () => {
   assert.equal(signature.slotCount, 2);
 });
 
+test('APPEND descriptor offsets follow the preceding range and restart in each table', () => {
+  const signature = planRootSignature(
+    decodeRootSignatureWords(
+      rootSignatureWords({
+        parameters: [
+          {
+            type: 0,
+            ranges: [
+              { kind: 0, count: 2, baseRegister: 0, tableOffset: 0xffffffff },
+              { kind: 0, count: 3, baseRegister: 2, tableOffset: 7 },
+              { kind: 0, count: 1, baseRegister: 5, tableOffset: 0xffffffff },
+            ],
+          },
+          { type: 0, ranges: [{ kind: 2, count: 1, baseRegister: 0, tableOffset: 0xffffffff }] },
+        ],
+      }),
+    ),
+  );
+  assert.deepEqual(
+    signature.parameters[0].ranges.map((range) => range.slot),
+    [0, 7, 10],
+  );
+  assert.equal(signature.parameters[0].slotCount, 11);
+  assert.equal(signature.parameters[1].ranges[0].slot, 0);
+});
+
 test('a table with a non-zero range offset leaves the earlier slots unclaimed', () => {
   const words = rootSignatureWords({
     parameters: [
