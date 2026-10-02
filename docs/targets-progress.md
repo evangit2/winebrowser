@@ -139,3 +139,44 @@ preserves depth. Inferno now clears its attachment and proceeds into frame setup
 where it has a null guest pointer at inferno.exe+0x6130. It still has no frames.
 785 unit tests, the extended volume/BC/mip/cube/depth browser regression and the
 production build pass.
+
+D3D9 now reports its supported VS 2.0 compiler path (D3D8 retains VS 1.1),
+accepts indexed user-memory triangle lists/strips/fans with 16/32-bit indices,
+and derives programmable vertex inputs from the supported FVF layouts when no
+explicit declaration is bound. Indexed UP calls validate the declared vertex
+window, snapshot its bytes and clear stream/index bindings. The real WebGPU
+regression draws an SM2 shader triangle; 60 D3D9 unit tests pass. The unchanged
+Sketch demo now presents frames, but its white image is not a verified scene.
+RollerCoaster reaches CreateVolumeTexture in the ordinary dropped-ZIP worker;
+no new demo is published as working on the strength of these results.
+
+DrawText and DrawTextEx now measure through the configured GDI rasterizer,
+read flags from the correct DrawTextEx argument and return measured height
+for CALCRECT. Seven text tests cover centering, wrapping and rectangle results.
+This removes the host descriptor.measure exception seen in Hamsterball's error
+report window; the game's underlying fault and gameplay remain unverified.
+Diagnostic probes use the worker's Canvas text rasterizer, bound exception traces
+and capture the requested final frame as well as their initial frames. Their
+frame goal is validated and retained in the result.
+
+The Dynamic Branching acceptance gate also passes after these D3D9 changes:
+the hosted unchanged ZIP and a fresh ZIP upload both render the animated room
+and close with exit code 0. A 120-frame Hamsterball probe instead presents six
+startup frames, enters its own Unexpected Error dialog after a handled read
+fault at EXE+0x85c2c and reaches the diagnostic deadline. The fault uses index
+0xfefe to read 0x507c950; this agrees with the earlier poison-buffer investigation
+in TASKS.md. Startup frames are not gameplay verification. The optional
+--stop-on-exception diagnostic retains the first guest fault's stack, frame
+memory, VM ownership and recent APIs before the application's error handler
+can replace that evidence with its dialog loop.
+
+D3D8/9 volume textures now retain uncompressed mip storage with padded row
+and independent slice pitches. Texture and volume views share LockBox storage,
+report their version-specific native descriptors and keep their container alive.
+Programmable draws snapshot and upload real WebGPU 3D textures; shader bindings
+reject mismatched dimensions and preserve W addressing. The PS2 sampler3D
+browser test reads exact red/blue depth slices without WebGPU errors. Unit tests
+check mip extent, shared sub-box writes, immutable previous snapshots and freed
+storage. Compressed volumes, fixed-function volume coordinates and automatic
+mip generation remain unsupported. A fresh RollerCoaster ZIP passes volume
+creation/filling and next reaches unsupported CreateCubeTexture, with no frames.

@@ -25,6 +25,10 @@ const { values: options } = parseArgs({
     'frame-png': { type: 'string' },
     'frame-goal': { type: 'string' },
     'sample-blocks': { type: 'string' },
+    'stop-on-exception': { type: 'boolean' },
+    watch: { type: 'string' },
+    'watch-range': { type: 'string' },
+    'watch-any': { type: 'string' },
   },
 });
 const EXE_SHA256 = '3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d';
@@ -57,9 +61,20 @@ const input = {
   nlsFiles,
   ...(options['frame-goal'] ? { frameGoal: Number(options['frame-goal']) } : {}),
   ...(options['worker-timeout'] ? { workerTimeoutMs: Number(options['worker-timeout']) } : {}),
-  ...(options['max-blocks'] || options['max-ms'] || options['sample-blocks']
+  ...(options['watch-any']
+    ? { watchAnyRange: options['watch-any'].split('-').map((v) => Number.parseInt(v, 16)) }
+    : {}),
+  ...(options['watch-range']
+    ? { watchRange: options['watch-range'].split('-').map((v) => Number.parseInt(v, 16)) }
+    : {}),
+  ...(options.watch ? { watchValue: Number.parseInt(options.watch, 16) } : {}),
+  ...(options['max-blocks'] ||
+  options['max-ms'] ||
+  options['sample-blocks'] ||
+  options['stop-on-exception']
     ? {
         limits: {
+          ...(options['stop-on-exception'] ? { stopOnException: true } : {}),
           ...(options['sample-blocks']
             ? { blockSampleStride: Number(options['sample-blocks']) }
             : {}),

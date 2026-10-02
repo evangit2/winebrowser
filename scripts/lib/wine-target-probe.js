@@ -1,3 +1,4 @@
+import { createCanvasTextRasterizer } from '../../src/gdi-text.js';
 import { Runtime, API_NAMES } from '../../src/runtime.js';
 import { canonicalHostSymbol } from '../../src/host-export-ordinals.js';
 import { parsePE } from '../../src/pe.js';
@@ -33,6 +34,7 @@ export async function probeWineTarget(
 ) {
   const report = {
     status: 'blocked-guest',
+    frameGoal,
     scope:
       'Unchanged upstream PE with real Wine base DLLs and source-built loader metadata; unresolved host imports trap if reached. This is not normal harness compatibility.',
     phases: [],
@@ -66,6 +68,8 @@ export async function probeWineTarget(
   )
     throw Error('Invalid diagnostic block sample stride');
 
+  if (!Number.isInteger(frameGoal) || frameGoal < 1 || frameGoal > 10000)
+    throw Error('Invalid diagnostic frame goal');
   const restore = new Map();
   const recentBlocks = [];
   let blockHistogramKeys = 0;
@@ -126,7 +130,8 @@ export async function probeWineTarget(
     // Capture the pixels of the first few presented frames so the report
     // proves the guest actually rendered content, not just presented.
     const sampleFrame = async (message) => {
-      if (report.frameSamples.length >= 3) return;
+      const finalFrame = message.graphicsFrames >= frameGoal;
+      if (report.frameSamples.length >= 3 && !finalFrame) return;
       const { bitmap } = message;
       if (!bitmap) return;
       const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
@@ -149,7 +154,7 @@ export async function probeWineTarget(
       // Publish the first frame as an inline base64 PNG so the render can be
       // inspected visually without a separate screenshot harness. A string
       // keeps the JSON report compact instead of one number per byte.
-      if (!report.framePngBase64) {
+      if (!report.framePngBase64 || finalFrame) {
         const bytes = new Uint8Array(
           await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer(),
         );
@@ -181,7 +186,10 @@ export async function probeWineTarget(
           if (report.frames >= frameGoal) report.frameGoalReached = true;
           // A render loop presents indefinitely; keep the sample set bounded
           // (and await it exactly once) so a long run cannot grow the report.
-          if (report.frameSamples.length < 3 && report.pendingSamples.length < 3) {
+          if (
+            (report.frameSamples.length < 3 || report.frames === frameGoal) &&
+            report.pendingSamples.length < 3
+          ) {
             const pending = sampleFrame(message)
               .then(() => {
                 report.pendingSamples.splice(report.pendingSamples.indexOf(pending), 1);
@@ -798,6 +806,31 @@ export async function probeWineTarget(
         throw error;
       }
     };
+    if (typeof OffscreenCanvas === 'function')
+      runtime.gdiTextRasterizer = createCanvasTextRasterizer();
+    const deliverException = runtime.deliverException.bind(runtime);
+    runtime.deliverException = async (fault) => {
+      report.guestExceptions ??= [];
+      const record = {
+        message: fault.message,
+        threadId: runtime.threads.current?.id,
+        ip: locate(runtime.cpu.instructionIp),
+        registers: runtime.cpu.r.map((r) => hex(r.value)),
+        instructions: runtime.cpu.instructions,
+        apiRing: runtime.apiRing.slice(-16),
+        faultContext: faultContext(runtime, fault.message),
+        faultMemory: faultMemory(runtime, fault.message),
+        faultCallStack: guestCallStack(runtime, runtime.cpu.r[4].value >>> 0),
+      };
+      if (report.guestExceptions.length >= 64) report.guestExceptions.shift();
+      report.guestExceptions.push(record);
+      if (limits.stopOnException)
+        throw Error('Diagnostic stopped at guest exception: ' + fault.message);
+      const result = await deliverException(fault);
+      record.handled = result.handled;
+      record.frames = result.frames;
+      return result;
+    };
     runtime.guestMemory.watchValue = watchValue;
     runtime.guestMemory.watchRange = watchRange;
     runtime.guestMemory.watchIp = () => lastIP;
@@ -806,6 +839,13 @@ export async function probeWineTarget(
     runtime.guestMemory.watchAnyRange = watchAnyRange;
     runtime.guestMemory.watchCallStack = (address) => ({
       destination: hex(address),
+      sourceWindow: {
+        base: hex(runtime.cpu.r[6].value),
+        bytes: Array.from(
+          runtime.data.slice(runtime.cpu.r[6].value >>> 0, (runtime.cpu.r[6].value >>> 0) + 64),
+          (b) => b.toString(16).padStart(2, '0'),
+        ),
+      },
       frames: guestCallStack(runtime, runtime.cpu.r[4].value >>> 0),
     });
     report.watchValue = watchValue;
