@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T10:51:20.001Z",
+  "date": "2026-10-02T14:02:36.757Z",
   "browser": "154.0.8037.97",
   "url": "http://127.0.0.1:4197/winebrowser/",
   "exeSha256": "acf1fed9b4863723b41600d4016e97dd3ec6313dbd5144622919f9b8103e912e",
@@ -7,81 +7,81 @@
   "runs": [
     {
       "mode": "zip-upload",
-      "elapsedMs": 155973,
+      "elapsedMs": 138058,
       "samples": [
         {
           "width": 798,
           "height": 570,
           "frames": 8,
           "draws": 4924,
-          "lit": 438905,
-          "white": 61,
+          "lit": 290608,
+          "white": 55,
           "colors": 4096,
-          "hash": "2f2d5a2a186aaf908fda409f0989aea5a61e2414915cdab4946b4f329b9a404c"
+          "hash": "889e03dc85cdaf34eca51c33dd992e3d193bbab4cbd060de2548e257d2b8f555"
         },
         {
           "width": 798,
           "height": 570,
           "frames": 16,
           "draws": 9852,
-          "lit": 236377,
+          "lit": 445880,
           "white": 61,
           "colors": 4096,
-          "hash": "891c4b1d7bad5ab546196152a3638a568b84a1900794ac8e16c3a4fe386b31b1"
+          "hash": "c7d134ff0672f6dd0df0353f6dcb37e1ccf0fbb8aa72dc93772871be4c0cc23d"
         },
         {
           "width": 798,
           "height": 570,
           "frames": 32,
           "draws": 19708,
-          "lit": 345416,
-          "white": 50,
+          "lit": 433824,
+          "white": 61,
           "colors": 4096,
-          "hash": "4c53ed87c565ca4809d385caf5d5c56d0a193e5ad98b461f438c31a6195ffc03"
+          "hash": "5915d6376e5299751cef5db2758ce09e60e63c57052a2571e6c1afa218a5a9c7"
         }
       ],
       "exitCode": 0,
-      "instructions": 899781412,
-      "apiCalls": 72546
+      "instructions": 892132337,
+      "apiCalls": 72537
     },
     {
       "mode": "hosted-zip",
-      "elapsedMs": 154042,
+      "elapsedMs": 143272,
       "samples": [
         {
           "width": 798,
           "height": 570,
           "frames": 8,
           "draws": 4924,
-          "lit": 454344,
-          "white": 61,
+          "lit": 281057,
+          "white": 55,
           "colors": 4096,
-          "hash": "dd91ccc7f0e452c159d03fd5b91d5c6b9cfe29534666b3b965d31ace3c3a3993"
+          "hash": "ca0294e6c14464bb36cc03e8eb2febda1f5e221880ebac9ce6350c78d3360698"
         },
         {
           "width": 798,
           "height": 570,
           "frames": 16,
           "draws": 9852,
-          "lit": 251114,
+          "lit": 338657,
           "white": 61,
           "colors": 4096,
-          "hash": "f33c49dbedeb465e4a4b7ca66697e3c784db9dcf73d322968a62fe33072fea72"
+          "hash": "e43d0638bba66ba2472245a535254b0d51269fcb1f5ebff6b0dbdb2552932780"
         },
         {
           "width": 798,
           "height": 570,
           "frames": 32,
           "draws": 19708,
-          "lit": 429477,
+          "lit": 446859,
           "white": 50,
           "colors": 4096,
-          "hash": "b91d0d3db8ed4d46ab251f9fbc2cfdaf0e3793092e033f2b436b45b3961f7cfe"
+          "hash": "06e3fe9f281c87dd7da53351c98370e7c503ab48372fbdb1401ef235a42e2b01"
         }
       ],
       "exitCode": 0,
-      "instructions": 901115051,
-      "apiCalls": 72538
+      "instructions": 894997910,
+      "apiCalls": 72562
     }
   ],
   "errors": []
