@@ -221,7 +221,7 @@ export class Runtime {
     const argument = (index) => this.read32(stackPointer + 4 + index * 4);
     let response;
     if (entry.kind === 'wine-nt') response = await dispatchWineNt(this, entry);
-    else if (entry.kind === 'com' || entry.kind === 'wine-loader') {
+    else if (entry.kind === 'com' || entry.kind === 'wine-loader' || entry.kind === 'wine-unix') {
       this.calls++;
       this.apiNames.add(entry.name);
       if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);

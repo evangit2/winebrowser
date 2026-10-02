@@ -13,6 +13,7 @@ import {
   RETIRED_COUNT_GLOBAL,
 } from './wasm.js';
 import { classifySse, SIMDState } from './simd.js';
+import { transferFxState } from './x86-fxstate.js';
 import { classifyX87, X87State } from './x87.js';
 import { guestCpuid } from './processor-features.js';
 import { GuestPerformanceClock, splitGuestCounter } from './guest-clock.js';
@@ -223,7 +224,9 @@ export class CPU {
       simd: (op, dst, src, address, immediate) =>
         this.simd.execute(op, dst, src, address, immediate),
       x87: (op, a, b, address, width, options) =>
-        this.x87.execute(op, a, b, address, width, options),
+        op === 30 || op === 31
+          ? transferFxState(this, address, op === 31)
+          : this.x87.execute(op, a, b, address, width, options),
       flagByte: (value, write) => {
         if (write) {
           this.f.sf = (value >>> 7) & 1;
@@ -717,6 +720,9 @@ export class CPU {
       return info.index;
     };
     const readReg = (r) => {
+      // Read-only flat Windows selectors let native RtlCaptureContext record
+      // segment state. FS addressing still uses the current thread TEB base.
+      if (r >= R.ES && r <= R.GS) return constant(r === R.CS ? 0x1b : r === R.FS ? 0x3b : 0x23);
       const info = regInfo(r);
       let code = get(info.index);
       if (info.shift) code.push(...constant(info.shift), 0x76);

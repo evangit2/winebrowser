@@ -178,6 +178,24 @@ export const COMPILE_SHADER_10_LAYOUT = {
 };
 
 export const d3dCompilerApis = {
+  'd3dcompiler_47.dll!D3DReadFileToBlob': (r, a) => {
+    const out = a(1) >>> 0;
+    if (!out) return { result: INVALID, argc: 2 };
+    r.check(out, 4, true);
+    const filename = r.wideString(a(0) >>> 0);
+    r.write32(out, 0);
+    let path;
+    try {
+      path = resolveGuestPath(filename, r.cwd);
+    } catch {
+      return { result: INVALID, argc: 2 };
+    }
+    const bytes = r.files.get(path);
+    if (!bytes) return { result: 0x80070002, argc: 2 };
+    if (!bytes.length || bytes.length > MAX_BYTES) return { result: INVALID, argc: 2 };
+    r.write32(out, createBlob(r, bytes).pointer);
+    return { result: 0, argc: 2 };
+  },
   'd3dcompiler_47.dll!D3DCompile': (r, a) => compile(r, a, D3DCOMPILE_LAYOUT),
   'd3dcompiler_47.dll!D3DCompileFromFile': (r, a) => compile(r, a, COMPILE_FROM_FILE_LAYOUT),
 };

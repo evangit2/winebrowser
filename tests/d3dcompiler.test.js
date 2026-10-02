@@ -169,3 +169,24 @@ test('HLSL API validates outputs atomically and rejects unsupported arguments be
   assert.equal((await api('D3DCompile', bad)).result, 0x80070057);
   assert.equal(calls.length, 4);
 });
+
+test('D3DReadFileToBlob resolves UTF16 guest paths and owns shader bytes until Release', async () => {
+  const { r, calls, freed, string, api, method } = fixture();
+  const raw = Uint8Array.of(68, 88, 66, 67, 1);
+  r.files.set('app/vertexshader.cso', raw);
+  const path = string('C:\\winebrowser\\app\\VertexShader.cso', true),
+    out = r.allocate(4);
+  assert.deepEqual(await api('D3DReadFileToBlob', [path, out]), { result: 0, argc: 2 });
+  const blob = r.read32(out),
+    pointer = (await method(blob, 3)).result;
+  raw.fill(0);
+  assert.deepEqual([...r.data.slice(pointer, pointer + 5)], [68, 88, 66, 67, 1]);
+  assert.equal((await method(blob, 4)).result, 5);
+  assert.equal(calls.length, 0, 'reading bytecode never compiles or substitutes it');
+  await method(blob, 2);
+  assert.deepEqual(freed, [pointer]);
+  r.files.clear();
+  r.write32(out, 123);
+  assert.equal((await api('D3DReadFileToBlob', [path, out])).result, 0x80070002);
+  assert.equal(r.read32(out), 0);
+});

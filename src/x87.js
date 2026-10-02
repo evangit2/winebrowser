@@ -33,6 +33,8 @@ export const X87Op = Object.freeze({
   exponential: 27,
   scale: 28,
   tangent: 29,
+  storeExtendedState: 30,
+  loadExtendedState: 31,
 });
 
 const POP = 1,
@@ -55,6 +57,8 @@ export function classifyX87(i, iced) {
     reg = (n) => (n < i.opCount && i.opKind(n) === K.Register ? stIndex(i.opRegister(n), R) : -1),
     result = (op, a = 0, b = 0, flags = 0) => ({ op, a, b, width, flags, memory: mem });
 
+  if (m === M.Fxsave) return result(X87Op.storeExtendedState);
+  if (m === M.Fxrstor) return result(X87Op.loadExtendedState);
   if (m === M.Fld) return mem ? result(X87Op.loadFloat) : result(X87Op.loadStack, reg(0));
   if (m === M.Fild) return result(X87Op.loadInt);
   if (m === M.Fst || m === M.Fstp)

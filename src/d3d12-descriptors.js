@@ -50,7 +50,8 @@ export function parseInputLayout({ check, read32, readString, pointer, count }) 
     const semanticIndex = u32(read32, element, 4);
     const format = u32(read32, element, 8);
     const inputSlot = u32(read32, element, 12);
-    const offset = u32(read32, element, 16);
+    const requestedOffset = u32(read32, element, 16);
+    const offset = requestedOffset === 0xffffffff ? maxEnd : requestedOffset;
     const classification = u32(read32, element, 20);
     const stepRate = u32(read32, element, 24);
     const described = INPUT_FORMATS[format];
@@ -151,7 +152,7 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
     u32(read32, pointer, 508) !== 1 ||
     !(rtvFormat === 28 || rtvFormat === 87) ||
     [516, 520, 524, 528, 532, 536, 540].some((offset) => u32(read32, pointer, offset)) ||
-    ![0, 55].includes(u32(read32, pointer, 544)) ||
+    ![0, 40, 45, 55].includes(u32(read32, pointer, 544)) ||
     u32(read32, pointer, 548) !== 1 ||
     u32(read32, pointer, 552) !== 0 ||
     u32(read32, pointer, 392) !== 0xffffffff
@@ -209,18 +210,18 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
   // StencilEnable, StencilReadMask, StencilWriteMask, then the front and back
   // D3D12_DEPTH_STENCILOP_DESC records (8 bytes each). Stencil is not modelled.
   let depth = null;
-  if (u32(read32, pointer, 544) === 55) {
+  if (u32(read32, pointer, 544)) {
     if (
       ![0, 1].includes(u32(read32, pointer, 440)) ||
       ![0, 1].includes(u32(read32, pointer, 444)) ||
       !DEPTH_COMPARE[u32(read32, pointer, 448)] ||
-      data[pointer + 452] ||
-      data[pointer + 453] ||
-      data.subarray(pointer + 456, pointer + 492).some((value) => value !== 0)
+      u32(read32, pointer, 452)
     )
       throw Error('Unsupported D3D12 depth/stencil pipeline');
     depth = {
-      format: 'depth16unorm',
+      format: { 40: 'depth32float', 45: 'depth24plus-stencil8', 55: 'depth16unorm' }[
+        u32(read32, pointer, 544)
+      ],
       // DepthEnable=FALSE means depth testing and writing are both off, which
       // WebGPU expresses as a comparison that always passes with no write.
       testEnabled: !!u32(read32, pointer, 440),
@@ -228,7 +229,7 @@ export function parsePipelineDescriptor({ check, data, read32, readString, point
       compare: DEPTH_COMPARE[u32(read32, pointer, 448)],
     };
   } else if (data.subarray(pointer + 440, pointer + 492).some((value) => value !== 0)) {
-    throw Error('D3D12 depth state requires a D16_UNORM target');
+    throw Error('D3D12 depth state requires a depth target');
   }
   const layout = parseInputLayout({
     check,
@@ -315,16 +316,17 @@ export function parseCommittedResourceDescriptor({
       height > 2048 ||
       width > 2048 ||
       uint16(28) !== 1 ||
-      uint16(30) !== 1 ||
+      (!DEPTH_CLEAR_FORMATS[u32(read32, descriptor, 32)] && uint16(30) !== 1) ||
       u32(read32, descriptor, 36) !== 1 ||
       u32(read32, descriptor, 40) ||
       u32(read32, descriptor, 44)
     )
       return null;
     const format = u32(read32, descriptor, 32);
-    if (format === 55) {
-      // A D16_UNORM depth attachment: one mip, one array slice, DEPTH_WRITE
-      // state and an explicit depth clear value are all required.
+    if (DEPTH_CLEAR_FORMATS[format]) {
+      // Depth attachments accept one slice and a bounded mip chain, including
+      // MipLevels=0 (the complete chain). Only mip zero is bound for rendering.
+      if (uint16(30) > 1 + Math.floor(Math.log2(Math.max(width, height)))) return null;
       if (u32(read32, descriptor, 48) !== 2 || initialState !== 0x10 || !clearValue) return null;
     } else {
       // An ordinary 2D texture: R8G8B8A8_UNORM, one mip, one slice. It is
@@ -362,11 +364,18 @@ export function parseCommittedResourceDescriptor({
     // depth formats the backend can host; the stencil word is only meaningful
     // for the combined ones.
     const clearFormat = u32(read32, clearValue);
-    if (!DEPTH_CLEAR_FORMATS[clearFormat] || !Number.isFinite(depth) || depth < 0 || depth > 1)
+    if (
+      clearFormat !== format ||
+      !DEPTH_CLEAR_FORMATS[clearFormat] ||
+      !Number.isFinite(depth) ||
+      depth < 0 ||
+      depth > 1
+    )
       return null;
     if (!DEPTH_CLEAR_FORMATS[clearFormat].combined && data[clearValue + 8]) return null;
     return {
       kind: 'depth',
+      mipLevelCount: uint16(30) || 1 + Math.floor(Math.log2(Math.max(width, height))),
       width,
       height,
       format: clearFormat,

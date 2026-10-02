@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { privateDataMethods } from '../src/d3d-private-data.js';
 import { d3d12Apis, dxgiApis } from '../src/d3d12.js';
 
 const IID = {
@@ -53,6 +54,14 @@ function fixture() {
     string(p) {
       let value = '';
       while (this.check(p, 1) && data[p]) value += String.fromCharCode(data[p++]);
+      return value;
+    },
+    wideString(p) {
+      let value = '';
+      while (this.check(p, 2) && view.getUint16(p, true)) {
+        value += String.fromCharCode(view.getUint16(p, true));
+        p += 2;
+      }
       return value;
     },
     graphics12: {
@@ -753,9 +762,13 @@ test('GetDesc, ClearState and the annotation no-ops round-trip without trapping'
   r.write32(desc + 44, 1);
   const buffer = await create(dev, 27, [props, 0, desc, 0xac3, 0], 'resource');
 
-  const descOut = alloc();
+  const descOut = alloc(56);
   r.data.fill(0xcc, descOut, descOut + 56);
-  await call(buffer, 10, descOut);
+  assert.equal(
+    (await call(buffer, 10, descOut)).result,
+    descOut,
+    'native C++ aggregate return pointer',
+  );
   assert.equal(r.read32(descOut), 1, 'buffer dimension');
   assert.equal(r.read32(descOut + 16), 256, 'buffer byte width');
   assert.equal(r.read32(descOut + 44), 1, 'row-major layout');
@@ -768,11 +781,11 @@ test('GetDesc, ClearState and the annotation no-ops round-trip without trapping'
   const name = alloc(8);
   r.data.set([0x78, 0, 0x79, 0, 0, 0, 0, 0], name);
   assert.equal((await call(buffer, 6, name)).result, 0, 'SetName');
-  assert.equal((await call(buffer, 4, alloc(16), 0, 0, name)).result, 0, 'SetPrivateData');
+  assert.equal((await call(buffer, 4, alloc(16), 0, 0)).result, 0, 'SetPrivateData');
   assert.equal((await call(buffer, 5, alloc(16), 0)).result, 0, 'SetPrivateDataInterface');
   const sizeOut = alloc();
   assert.equal(
-    (await call(buffer, 3, alloc(16), 0, sizeOut, 0)).result,
+    (await call(buffer, 3, alloc(16), sizeOut, 0)).result,
     0x887a0002,
     'GetPrivateData reports not-found',
   );
@@ -1171,7 +1184,7 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
   await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
   const dev = r.read32(out);
 
-  // A 100-byte buffer: one row, 256-byte-pitched, 256 total.
+  // A 100-byte buffer: one aligned row pitch, exactly 100 bytes required.
   const buffer = alloc(56);
   r.write32(buffer, 1);
   r.write32(buffer + 16, 100);
@@ -1194,9 +1207,9 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
   assert.equal(r.read32(layout + 24), 256, 'row pitch is 256-aligned');
   assert.equal(r.read32(rows), 1);
   assert.equal(r.read32(rowSize), 100, 'row size is the unaligned byte width');
-  assert.equal(r.read32(total), 256);
+  assert.equal(r.read32(total), 100);
 
-  // A 4x4 RGBA texture (format 28): 16-byte rows, 64 total.
+  // A 4x4 RGBA texture: three padded rows and a 16-byte final row.
   const texture = alloc(56);
   r.write32(texture, 3);
   r.write32(texture + 16, 4);
@@ -1214,15 +1227,15 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
   assert.equal(r.read32(layout + 24), 256, 'texture row pitch aligned');
   assert.equal(r.read32(rows), 4);
   assert.equal(r.read32(rowSize), 16, 'texture row size 4*4 bytes');
-  assert.equal(r.read32(total), 1024);
+  assert.equal(r.read32(total), 784);
 
-  // Explicit base offset is folded into the first layout and the total.
+  // The footprint includes the base offset; the required byte span excludes it.
   assert.equal(
     (await call(dev, 38, buffer, 0, 1, 0x1000, 0, layout, rows, rowSize, total)).result,
     undefined,
   );
   assert.equal(r.read32(layout), 0x1000);
-  assert.equal(r.read32(total), 0x1100);
+  assert.equal(r.read32(total), 100);
 
   // Unsupported inputs fail explicitly: nonzero first subresource, unknown
   // format, and a count above one for a single-mip texture.
@@ -1610,18 +1623,13 @@ test('shared-handle round trip and GetResourceTiling for committed resources', a
 test('every COM argc matches the i386 vtable argument count', async () => {
   const source = await readFile(new URL('../src/d3d12.js', import.meta.url), 'utf8');
   const metadata = source.match(/const METADATA_METHODS = \{[\s\S]*?\n\};/)[0];
-  assert.match(metadata, /SetPrivateData: \{ argc: 4,/, 'SetPrivateData(this, guid, size, data)');
-  assert.match(
-    metadata,
-    /SetPrivateDataInterface: \{ argc: 3,/,
-    'SetPrivateDataInterface(this, guid, data)',
-  );
-  assert.match(
-    metadata,
-    /GetPrivateData: \{\n    argc: 4,/,
-    'GetPrivateData(this, guid, size, data)',
-  );
-  assert.match(metadata, /SetName: \{ argc: 2,/, 'SetName(this, name)');
+  for (const [name, argc] of [
+    ['SetPrivateData', 4],
+    ['SetPrivateDataInterface', 3],
+    ['GetPrivateData', 4],
+  ])
+    assert.equal(privateDataMethods[name].argc, argc, name + ' i386 argument count');
+  assert.match(metadata, /SetName: \{[\s\S]*?argc: 2,/, 'SetName(this, name)');
 
   const tables = {
     deviceMethods: [
@@ -1721,4 +1729,73 @@ test('heap-backed placed resources and command signatures resolve through the de
     0x80070057,
     'a zero stride is rejected',
   );
+});
+
+test('private graphics data copies bytes and transfers COM references exactly once', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, guid } = f;
+  const out = alloc();
+  await f.api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out),
+    allocator = await f.create(dev, 9, [0], 'allocator');
+  const key = guid(IID.root),
+    bytes = alloc(4),
+    size = alloc(),
+    destination = alloc(4);
+  r.write32(bytes, 0x12345678);
+  assert.equal((await call(dev, 4, key, 4, bytes)).result, 0);
+  r.write32(bytes, 0);
+  assert.equal((await call(dev, 3, key, size, 0)).result, 0);
+  assert.equal(r.read32(size), 4);
+  r.write32(size, 3);
+  r.write32(destination, 0xdeadbeef);
+  assert.equal((await call(dev, 3, key, size, destination)).result, 0x887a0003);
+  assert.equal(r.read32(destination), 0xdeadbeef, 'short reads leave destination intact');
+  assert.equal(r.read32(size), 4);
+  assert.equal((await call(dev, 3, key, size, destination)).result, 0);
+  assert.equal(r.read32(destination), 0x12345678, 'owned copy survives caller writes');
+  const object = r.comObjects.objects.get(allocator);
+  assert.equal((await call(dev, 5, key, allocator)).result, 0);
+  assert.equal(object.refs, 2);
+  assert.equal((await call(dev, 5, key, allocator)).result, 0);
+  assert.equal(object.refs, 2, 'replacing with same interface retains then releases');
+  assert.equal((await call(dev, 5, key, 0xbad)).result, 0x80070057);
+  assert.equal(object.refs, 2, 'invalid replacement preserves old entry');
+  assert.equal((await call(dev, 3, key, size, 0)).result, 0);
+  assert.equal(object.refs, 2, 'size query does not retain');
+  assert.equal((await call(dev, 3, key, size, destination)).result, 0);
+  assert.equal(r.read32(destination), allocator);
+  assert.equal(object.refs, 3);
+  await call(allocator, 2);
+  await call(allocator, 2);
+  assert.equal(object.refs, 1, 'private entry keeps object alive');
+  assert.equal((await call(dev, 4, key, 0, 0)).result, 0);
+  assert.equal(object.refs, 0, 'deleting private interface releases final ownership');
+  assert.equal((await call(dev, 3, key, size, 0)).result, 0x887a0002);
+  assert.equal(r.read32(size), 0);
+  await call(dev, 2);
+  assert.equal(r.comObjects.liveObjects, 0);
+});
+
+test('copy lists match their allocator and queue; compute dispatch remains explicit', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, guid } = f;
+  const out = alloc();
+  await f.api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out),
+    desc = alloc(16);
+  r.write32(desc, 3);
+  const queue = await f.create(dev, 8, [desc], 'queue');
+  const direct = await f.create(dev, 9, [0], 'allocator');
+  const copy = await f.create(dev, 9, [3], 'allocator');
+  const list = await f.create(dev, 12, [0, 3, copy, 0], 'list');
+  assert.equal((await call(list, 8)).result, 3);
+  assert.equal((await call(list, 10, direct, 0)).result, 0x80070057);
+  await assert.rejects(call(list, 14, 1, 1, 1), /[Cc]ompute|[Dd]ispatch/);
+  await call(list, 9);
+  const lists = alloc();
+  r.write32(lists, list);
+  await call(queue, 10, 1, lists);
+  const bad = await call(dev, 12, 0, 3, direct, 0, guid(IID.list), out);
+  assert.equal(bad.result, 0x80070057);
 });

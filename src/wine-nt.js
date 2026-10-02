@@ -1,3 +1,5 @@
+import { debugNtServices } from './wine-debug.js';
+import { installWineUnixClock } from './wine-unix-clock.js';
 import { nlsServices } from './wine-nls.js';
 import { closeRegistryHandle, registryNtServices } from './wine-registry.js';
 import { tokenNtServices } from './wine-token.js';
@@ -79,6 +81,7 @@ export function installWineNtBridge(runtime, module) {
   runtime.write32(slot, address);
   if (tebSlot !== undefined) runtime.write32(tebSlot, address);
   module.ntBridge = { version: 1, address, slot, serviceCount: services.size, tebSlot };
+  installWineUnixClock(runtime, module);
 }
 
 const ACCESS_VIOLATION = 0xc0000005;
@@ -257,6 +260,7 @@ function writeLargeInteger(runtime, address, value) {
 }
 
 export const ntServices = {
+  ...debugNtServices,
   ...syncNtServices,
   ...duplicateNtServices,
   ...nlsServices,
@@ -387,5 +391,8 @@ export async function dispatchWineNt(runtime, entry) {
   runtime.calls++;
   runtime.apiNames.add('ntdll.dll!' + service.name);
   if (runtime.apiTrace.length < 2048) runtime.apiTrace.push('ntdll.dll!' + service.name);
-  return { result: await provider.call(runtime, argument), argc: 0 };
+  const response = await provider.call(runtime, argument);
+  return typeof response === 'object' && response?.jumpTo !== undefined
+    ? { ...response, argc: 0 }
+    : { result: response, argc: 0 };
 }

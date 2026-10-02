@@ -800,10 +800,10 @@ export class D3D12Renderer {
           v.minDepth < 0 ||
           v.maxDepth > 1 ||
           v.minDepth > v.maxDepth ||
-          !integer(s.left, 0, extent.width) ||
-          !integer(s.right, s.left, extent.width) ||
-          !integer(s.top, 0, extent.height) ||
-          !integer(s.bottom, s.top, extent.height) ||
+          !integer(s.left, -0x80000000, 0x7fffffff) ||
+          !integer(s.right, s.left, 0x7fffffff) ||
+          !integer(s.top, -0x80000000, 0x7fffffff) ||
+          !integer(s.bottom, s.top, 0x7fffffff) ||
           (!indexed && !integer(command.vertexCount, 0, 0x7fffffff)) ||
           !integer(command.instanceCount, 0, 1024) ||
           (!indexed && !integer(command.firstVertex, 0, 0x7fffffff - command.vertexCount)) ||
@@ -976,7 +976,7 @@ export class D3D12Renderer {
           ...(depth
             ? {
                 depthStencilAttachment: {
-                  view: depth.createView(),
+                  view: depth.createView({ baseMipLevel: 0, mipLevelCount: 1 }),
                   depthLoadOp: clearDepth && command.clearDepth !== false ? 'clear' : 'load',
                   depthStoreOp: 'store',
                   depthClearValue: clearDepth ? command.depth : 1,
@@ -1018,7 +1018,13 @@ export class D3D12Renderer {
             pass.setBindGroup(group, groups[group] ?? this.emptyGroup);
           pass.setBindGroup(3, this.drawParameters(draws++, command));
           pass.setViewport(v.x, v.y, v.width, v.height, v.minDepth, v.maxDepth);
-          pass.setScissorRect(s.left, s.top, s.right - s.left, s.bottom - s.top);
+          const clip = (value, limit) => Math.max(0, Math.min(value, limit));
+          const extent = resource.chain ?? resource;
+          const left = clip(s.left, extent.width),
+            top = clip(s.top, extent.height);
+          const right = clip(s.right, extent.width),
+            bottom = clip(s.bottom, extent.height);
+          pass.setScissorRect(left, top, right - left, bottom - top);
           if (command.indexCount !== undefined) {
             pass.setIndexBuffer(
               this.uploadBuffer(

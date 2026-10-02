@@ -1,3 +1,6 @@
+import { privateDataMethods, releasePrivateData } from './d3d-private-data.js';
+import { pipelineStreamDescriptor } from './d3d12-pipeline-stream.js';
+import { dxgiDebugApis } from './dxgi-debug.js';
 // Bounded PE32 D3D12/DXGI bootstrap. Slot order and struct offsets are from
 // i686-w64-mingw32 d3d12.h/dxgi.h (MinGW-w64 14.0.0).
 import { ComObjects, readGuid } from './com.js';
@@ -109,6 +112,13 @@ const PAGEABLE = '63ee58fb-1268-4835-86da-f008ce62f0d6';
 const COMMAND_LIST = '7116d91c-e7e4-47ce-b8c6-ec8168f437e5';
 const iids = {
   device: '189819f1-1db6-4b57-be54-1821339b85f7',
+  device1: '77acce80-638e-4e65-8895-c1f23386863e',
+  device2: '30baa41e-b15b-475c-a0bb-1af5c5b64328',
+  list1: '553103fb-1fe7-4557-bb38-946d7d0e7ca7',
+  list2: '38c3e585-ff17-412c-9150-4fc6f9d72a28',
+  adapter2: '0aa1ae0a-fa0e-4b84-8644-e05ff8e5acb5',
+  adapter3: '645967a4-1392-4310-a798-8053ce3e93fd',
+  adapter4: '3c8d99d1-4fbf-4181-a82c-af66bf7bd24e',
   queue: '0ec870a6-5d7e-4c22-8cfc-5baae07616ed',
   allocator: '6102dee4-af59-4b09-b999-b44d73f09b24',
   list: '5b160d0f-ac1b-4185-8ba8-b3ae42a5a455',
@@ -132,12 +142,13 @@ const iids = {
   swapchain1: '790a45f7-0d42-4876-983a-0a55cfe6f4aa',
   swapchain2: 'a8be2ac4-199f-4946-b331-79599fb98de7',
   swapchain3: '94d99bdb-f1f8-4ab0-b236-7da0170edab1',
+  swapchain4: '3d585d5a-bd4a-489e-b1f4-3dbcb6452ffb',
 };
 const names = {
-  device: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetNodeCount CreateCommandQueue CreateCommandAllocator CreateGraphicsPipelineState CreateComputePipelineState CreateCommandList CheckFeatureSupport CreateDescriptorHeap GetDescriptorHandleIncrementSize CreateRootSignature CreateConstantBufferView CreateShaderResourceView CreateUnorderedAccessView CreateRenderTargetView CreateDepthStencilView CreateSampler CopyDescriptors CopyDescriptorsSimple GetResourceAllocationInfo GetCustomHeapProperties CreateCommittedResource CreateHeap CreatePlacedResource CreateReservedResource CreateSharedHandle OpenSharedHandle OpenSharedHandleByName MakeResident Evict CreateFence GetDeviceRemovedReason GetCopyableFootprints CreateQueryHeap SetStablePowerState CreateCommandSignature GetResourceTiling GetAdapterLuid`,
+  device: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetNodeCount CreateCommandQueue CreateCommandAllocator CreateGraphicsPipelineState CreateComputePipelineState CreateCommandList CheckFeatureSupport CreateDescriptorHeap GetDescriptorHandleIncrementSize CreateRootSignature CreateConstantBufferView CreateShaderResourceView CreateUnorderedAccessView CreateRenderTargetView CreateDepthStencilView CreateSampler CopyDescriptors CopyDescriptorsSimple GetResourceAllocationInfo GetCustomHeapProperties CreateCommittedResource CreateHeap CreatePlacedResource CreateReservedResource CreateSharedHandle OpenSharedHandle OpenSharedHandleByName MakeResident Evict CreateFence GetDeviceRemovedReason GetCopyableFootprints CreateQueryHeap SetStablePowerState CreateCommandSignature GetResourceTiling GetAdapterLuid CreatePipelineLibrary SetEventOnMultipleFenceCompletion SetResidencyPriority CreatePipelineState`,
   queue: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice UpdateTileMappings CopyTileMappings ExecuteCommandLists SetMarker BeginEvent EndEvent Signal Wait GetTimestampFrequency GetClockCalibration GetDesc`,
   allocator: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Reset`,
-  list: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetType Close Reset ClearState DrawInstanced DrawIndexedInstanced Dispatch CopyBufferRegion CopyTextureRegion CopyResource CopyTiles ResolveSubresource IASetPrimitiveTopology RSSetViewports RSSetScissorRects OMSetBlendFactor OMSetStencilRef SetPipelineState ResourceBarrier ExecuteBundle SetDescriptorHeaps SetComputeRootSignature SetGraphicsRootSignature SetComputeRootDescriptorTable SetGraphicsRootDescriptorTable SetComputeRoot32BitConstant SetGraphicsRoot32BitConstant SetComputeRoot32BitConstants SetGraphicsRoot32BitConstants SetComputeRootConstantBufferView SetGraphicsRootConstantBufferView SetComputeRootShaderResourceView SetGraphicsRootShaderResourceView SetComputeRootUnorderedAccessView SetGraphicsRootUnorderedAccessView IASetIndexBuffer IASetVertexBuffers SOSetTargets OMSetRenderTargets ClearDepthStencilView ClearRenderTargetView ClearUnorderedAccessViewUint ClearUnorderedAccessViewFloat DiscardResource BeginQuery EndQuery ResolveQueryData SetPredication SetMarker BeginEvent EndEvent ExecuteIndirect`,
+  list: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetType Close Reset ClearState DrawInstanced DrawIndexedInstanced Dispatch CopyBufferRegion CopyTextureRegion CopyResource CopyTiles ResolveSubresource IASetPrimitiveTopology RSSetViewports RSSetScissorRects OMSetBlendFactor OMSetStencilRef SetPipelineState ResourceBarrier ExecuteBundle SetDescriptorHeaps SetComputeRootSignature SetGraphicsRootSignature SetComputeRootDescriptorTable SetGraphicsRootDescriptorTable SetComputeRoot32BitConstant SetGraphicsRoot32BitConstant SetComputeRoot32BitConstants SetGraphicsRoot32BitConstants SetComputeRootConstantBufferView SetGraphicsRootConstantBufferView SetComputeRootShaderResourceView SetGraphicsRootShaderResourceView SetComputeRootUnorderedAccessView SetGraphicsRootUnorderedAccessView IASetIndexBuffer IASetVertexBuffers SOSetTargets OMSetRenderTargets ClearDepthStencilView ClearRenderTargetView ClearUnorderedAccessViewUint ClearUnorderedAccessViewFloat DiscardResource BeginQuery EndQuery ResolveQueryData SetPredication SetMarker BeginEvent EndEvent ExecuteIndirect AtomicCopyBufferUINT AtomicCopyBufferUINT64 OMSetDepthBounds SetSamplePositions ResolveSubresourceRegion SetViewInstanceMask WriteBufferImmediate`,
   pipeline: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetCachedBlob`,
   root: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice`,
   fence: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice GetCompletedValue SetEventOnCompletion Signal`,
@@ -147,9 +158,9 @@ const names = {
   signature: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice`,
   resource: `QueryInterface AddRef Release GetPrivateData SetPrivateData SetPrivateDataInterface SetName GetDevice Map Unmap GetDesc GetGPUVirtualAddress WriteToSubresource ReadFromSubresource GetHeapProperties`,
   factory: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumAdapters MakeWindowAssociation GetWindowAssociation CreateSwapChain CreateSoftwareAdapter EnumAdapters1 IsCurrent IsWindowedStereoEnabled CreateSwapChainForHwnd CreateSwapChainForCoreWindow GetSharedResourceAdapterLuid RegisterStereoStatusWindow RegisterStereoStatusEvent UnregisterStereoStatus RegisterOcclusionStatusWindow RegisterOcclusionStatusEvent UnregisterOcclusionStatus CreateSwapChainForComposition GetCreationFlags EnumAdapterByLuid EnumWarpAdapter`,
-  adapter: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1`,
+  adapter: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent EnumOutputs GetDesc CheckInterfaceSupport GetDesc1 GetDesc2 RegisterHardwareContentProtectionTeardownStatusEvent UnregisterHardwareContentProtectionTeardownStatus QueryVideoMemoryInfo SetVideoMemoryReservation RegisterVideoMemoryBudgetChangeNotificationEvent UnregisterVideoMemoryBudgetChangeNotification GetDesc3`,
   output: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDesc GetDisplayModeList FindClosestMatchingMode WaitForVBlank TakeOwnership ReleaseOwnership GetGammaControlCapabilities SetGammaControl GetGammaControl SetDisplaySurface GetDisplaySurfaceData GetFrameStatistics`,
-  swapchain: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDevice Present GetBuffer SetFullscreenState GetFullscreenState GetDesc ResizeBuffers ResizeTarget GetContainingOutput GetFrameStatistics GetLastPresentCount GetDesc1 GetFullscreenDesc GetHwnd GetCoreWindow Present1 IsTemporaryMonoSupported GetRestrictToOutput SetBackgroundColor GetBackgroundColor SetRotation GetRotation SetSourceSize GetSourceSize SetMaximumFrameLatency GetMaximumFrameLatency GetFrameLatencyWaitableObject SetMatrixTransform GetMatrixTransform GetCurrentBackBufferIndex CheckColorSpaceSupport SetColorSpace1 ResizeBuffers1`,
+  swapchain: `QueryInterface AddRef Release SetPrivateData SetPrivateDataInterface GetPrivateData GetParent GetDevice Present GetBuffer SetFullscreenState GetFullscreenState GetDesc ResizeBuffers ResizeTarget GetContainingOutput GetFrameStatistics GetLastPresentCount GetDesc1 GetFullscreenDesc GetHwnd GetCoreWindow Present1 IsTemporaryMonoSupported GetRestrictToOutput SetBackgroundColor GetBackgroundColor SetRotation GetRotation SetSourceSize GetSourceSize SetMaximumFrameLatency GetMaximumFrameLatency GetFrameLatencyWaitableObject SetMatrixTransform GetMatrixTransform GetCurrentBackBufferIndex CheckColorSpaceSupport SetColorSpace1 ResizeBuffers1 SetHDRMetaData`,
 };
 const name = {
   device: 'ID3D12Device',
@@ -210,7 +221,7 @@ function object(r, pointer, kind, owner = null) {
   return item;
 }
 function iid(r, ptr, expected) {
-  return readGuid(r, number(ptr)) === iids[expected];
+  return [iids[expected], ...extraIids(expected, true)].includes(readGuid(r, number(ptr)));
 }
 function output(r, ptr) {
   r.check(number(ptr), 4, true);
@@ -223,8 +234,10 @@ function extraIids(kind, parent) {
   if (kind === 'factory')
     return [iids.factoryBase, iids.factory1, iids.factory2, iids.factory3, iids.factory4];
   if (kind === 'adapter' || kind === 'swapchain')
-    return kind === 'swapchain' ? [iids.swapchain1, iids.swapchain2, iids.swapchain3] : [];
-  if (kind === 'device') return [OBJECT];
+    return kind === 'swapchain'
+      ? [iids.swapchain1, iids.swapchain2, iids.swapchain3, iids.swapchain4]
+      : [iids.adapter2, iids.adapter3, iids.adapter4];
+  if (kind === 'device') return [OBJECT, iids.device1, iids.device2];
   if (kind === 'output') return [];
   if (!parent) return [];
   return [
@@ -243,13 +256,13 @@ function extraIids(kind, parent) {
     ].includes(kind)
       ? [PAGEABLE]
       : []),
-    ...(kind === 'list' ? [COMMAND_LIST] : []),
+    ...(kind === 'list' ? [COMMAND_LIST, iids.list1, iids.list2] : []),
   ];
 }
 
 // ID3D12Object private-data and debug-name calls appear throughout real
-// applications and carry no rendering semantics. Answer them without storing
-// anything: GetPrivateData reports "not found" and the setters succeed.
+// applications. Preserve bounded private bytes and COM ownership, and keep the
+// debug name for diagnostics.
 // ID3D12DeviceChild.GetDevice is equally common and hands back the owning
 // device with its own reference.
 
@@ -291,21 +304,16 @@ const DEVICE_CHILD_GET_DEVICE = {
   },
 };
 const METADATA_METHODS = {
-  GetPrivateData: {
-    argc: 4,
-    invoke(r, a) {
-      const size = number(a(2));
-      if (size) output(r, size);
-      return DXGI_ERROR_NOT_FOUND;
+  ...privateDataMethods,
+  SetName: {
+    argc: 2,
+    invoke(r, a, o) {
+      o.state.debugName = r.wideString(number(a(1)));
+      return S_OK;
     },
   },
-  // SetPrivateData(this, guid, data_size, data) is four stack slots and
-  // SetPrivateDataInterface(this, guid, data) is three; the subtractions the
-  // guest performs on return are what keep its stack balanced.
-  SetPrivateData: { argc: 4, invoke: () => S_OK },
-  SetPrivateDataInterface: { argc: 3, invoke: () => S_OK },
-  SetName: { argc: 2, invoke: () => S_OK },
 };
+
 function make(r, kind, methods, itemState = {}, parent = null, onRelease = null) {
   if (parent) {
     if (parent.refs >= 0x7fffffff) throw Error('D3D12 parent reference limit exceeded');
@@ -331,6 +339,7 @@ function make(r, kind, methods, itemState = {}, parent = null, onRelease = null)
       methods: table,
       state: { ...itemState, parent },
       onRelease: async (item) => {
+        await releasePrivateData(r, item);
         await onRelease?.(item);
         if (parent) parent.refs--;
       },
@@ -615,6 +624,7 @@ function textureFootprint(texture, rowPitch) {
 
 function recordDraw(r, a, o, indexed) {
   const s = o.state;
+  if (s.type) throw Error('D3D12 graphics draw requires a direct command list');
   const count = number(a(1)),
     instances = number(a(2)),
     first = number(a(3));
@@ -727,7 +737,8 @@ function listMethods() {
       argc: 3,
       invoke(r, a, o) {
         const alloc = object(r, a(1), 'allocator', o.state.device);
-        if (!o.state.closed || alloc.state.type !== 0 || alloc.state.inUse) return E_INVALIDARG;
+        if (!o.state.closed || alloc.state.type !== (o.state.type ?? 0) || alloc.state.inUse)
+          return E_INVALIDARG;
         const p = a(2) ? object(r, a(2), 'pipeline', o.state.device) : null;
         o.state.allocator = alloc;
         o.state.pipeline = p;
@@ -816,13 +827,11 @@ function listMethods() {
         return undefined;
       },
     },
-    // Dispatch(X, Y, Z): there is no compute stage, so a dispatch records
-    // nothing and the pipeline is only ever the graphics one.
+    // Compute shaders are not implemented; never silently discard a dispatch.
     14: {
       argc: 4,
       invoke(_r, _a, o) {
-        if (!o.state.pipeline) throw Error('D3D12 Dispatch requires a pipeline state');
-        return undefined;
+        throw Error('D3D12 compute dispatch is not implemented');
       },
     },
     15: {
@@ -1277,7 +1286,7 @@ function listMethods() {
       },
     },
     // GetType reports the DIRECT command-list type created above.
-    8: { argc: 1, invoke: () => 0 },
+    8: { argc: 1, invoke: (_r, _a, o) => o.state.type ?? 0 },
     // ClearState drops every bound resource/state but keeps the list open and
     // still attached to its allocator, matching D3D12's reuse contract.
     11: {
@@ -1505,7 +1514,7 @@ function resourceMethods() {
           r.write32(out + 16, o.state.size);
           r.write32(out + 24, 1);
           r.view.setUint16(out + 28, 1, true);
-          r.view.setUint16(out + 30, 1, true);
+          r.view.setUint16(out + 30, o.state.mipLevelCount ?? 1, true);
           r.write32(out + 36, 1); // SampleDesc.Count
           r.write32(out + 44, 1); // D3D12_TEXTURE_LAYOUT_ROW_MAJOR
         } else {
@@ -1516,11 +1525,11 @@ function resourceMethods() {
           r.write32(out + 16, width);
           r.write32(out + 24, height);
           r.view.setUint16(out + 28, 1, true);
-          r.view.setUint16(out + 30, 1, true);
+          r.view.setUint16(out + 30, o.state.mipLevelCount ?? 1, true);
           r.write32(
             out + 32,
             o.state.kind === 'depth'
-              ? 55
+              ? (o.state.format ?? 55)
               : o.state.kind === 'texture' || o.state.kind === 'render-texture'
                 ? o.state.format
                 : 28,
@@ -1529,7 +1538,7 @@ function resourceMethods() {
           if (o.state.kind === 'depth') r.write32(out + 48, 2);
           else if (o.state.kind === 'render-texture') r.write32(out + 48, 1);
         }
-        return undefined;
+        return out;
       },
     },
     11: {
@@ -1751,6 +1760,31 @@ function deviceMethods() {
     },
   });
   return {
+    47: {
+      argc: 4,
+      async invoke(r, a, dev) {
+        const pointer = number(a(1));
+        r.check(pointer, 8);
+        const descriptor = pipelineStreamDescriptor({
+          data: r.data,
+          check: r.check.bind(r),
+          read32: r.read32.bind(r),
+          pointer: u32(r, pointer, 4),
+          size: u32(r, pointer),
+        });
+        const temporary = r.allocate(descriptor.length);
+        try {
+          r.data.set(descriptor, temporary);
+          return await deviceMethods()[10].invoke(
+            r,
+            (index) => (index === 1 ? temporary : a(index)),
+            dev,
+          );
+        } finally {
+          r.free(temporary);
+        }
+      },
+    },
     7: { argc: 1, invoke: () => 1 },
     8: child(
       'queue',
@@ -1758,15 +1792,18 @@ function deviceMethods() {
       (r, a) => {
         const p = number(a(1));
         r.check(p, 16);
-        if (u32(r, p) !== 0 || u32(r, p, 4) || u32(r, p, 8) || u32(r, p, 12)) return E_INVALIDARG;
-        return { type: 0 };
+        const type = u32(r, p);
+        if (![0, 2, 3].includes(type) || u32(r, p, 4) || u32(r, p, 8) || u32(r, p, 12))
+          return E_INVALIDARG;
+        return { type };
       },
       queueMethods(),
     ),
     9: child(
       'allocator',
       4,
-      (_r, a) => (number(a(1)) === 0 ? { type: 0, inUse: false } : E_INVALIDARG),
+      (_r, a) =>
+        [0, 2, 3].includes(number(a(1))) ? { type: number(a(1)), inUse: false } : E_INVALIDARG,
       {
         8: {
           argc: 1,
@@ -1842,7 +1879,12 @@ function deviceMethods() {
         if (!iid(r, a(5), 'list')) return E_NOINTERFACE;
         const alloc = object(r, a(3), 'allocator', dev);
         const p = a(4) ? object(r, a(4), 'pipeline', dev) : null;
-        if (number(a(1)) !== 0 || number(a(2)) !== 0 || alloc.state.type !== 0 || alloc.state.inUse)
+        if (
+          number(a(1)) !== 0 ||
+          ![0, 2, 3].includes(number(a(2))) ||
+          alloc.state.type !== number(a(2)) ||
+          alloc.state.inUse
+        )
           return E_INVALIDARG;
         const item = make(
           r,
@@ -1851,6 +1893,7 @@ function deviceMethods() {
           {
             device: dev,
             allocator: alloc,
+            type: number(a(2)),
             pipeline: p,
             root: null,
             target: null,
@@ -2124,7 +2167,7 @@ function deviceMethods() {
         if (desc) {
           r.check(desc, 24);
           if (
-            u32(r, desc) !== 55 ||
+            u32(r, desc) !== (res.state.format ?? 55) ||
             u32(r, desc, 4) !== 3 ||
             u32(r, desc, 8) ||
             r.data.subarray(desc + 12, desc + 24).some((value) => value !== 0)
@@ -2431,7 +2474,7 @@ function deviceMethods() {
         const align256 = (value) => (value + 255) & ~255;
         const pieces = [];
         if (dimension === 1) {
-          if (!width) return E_INVALIDARG;
+          if (!width || count !== 1) return E_INVALIDARG;
           pieces.push({ width, height: 1, rowPitch: align256(width), rowSize: width });
         } else if (dimension === 3) {
           const bpp = TEXTURE_FORMAT_BYTES[format];
@@ -2439,7 +2482,8 @@ function deviceMethods() {
           const rowSize = width * bpp;
           pieces.push({ width, height, rowPitch: align256(rowSize), rowSize });
         } else return E_INVALIDARG;
-        let offset = offsetLow;
+        let offset = Math.ceil(offsetLow / 512) * 512;
+        const firstOffset = offset;
         for (let i = 0; i < pieces.length; i++) {
           const piece = pieces[i];
           if (layouts) {
@@ -2456,10 +2500,12 @@ function deviceMethods() {
             r.write32(rowSizeOut + i * 8, piece.rowSize);
             r.write32(rowSizeOut + i * 8 + 4, 0);
           }
-          offset += piece.rowPitch * piece.height;
+          // The last row needs no padding. UpdateSubresources compares this
+          // span with the upload buffer size; rounding it up skips valid copies.
+          offset += piece.rowPitch * (piece.height - 1) + piece.rowSize;
         }
         if (totalOut) {
-          r.write32(totalOut, offset);
+          r.write32(totalOut, offset - firstOffset);
           r.write32(totalOut + 4, 0);
         }
         return undefined;
@@ -2533,6 +2579,7 @@ function deviceMethods() {
               kind: info.kind,
               width: info.width,
               height: info.height,
+              mipLevelCount: info.mipLevelCount ?? 1,
               // The backend maps a depth resource's DXGI format to the WebGPU
               // attachment format it hosts (D32_FLOAT, D24S8 or D16_UNORM).
               format:
@@ -2807,6 +2854,8 @@ function queueMethods() {
         for (let i = 0; i < count; i++) {
           const l = object(r, u32(r, ptr, i * 4), 'list', q.state.device);
           if (!l.state.closed) throw Error('Executing open D3D12 command list');
+          if ((l.state.type ?? 0) !== q.state.type)
+            throw Error('D3D12 command list and queue types differ');
           lists.push(l);
         }
         const states = new Map();
@@ -3989,6 +4038,7 @@ const createFactoryApi = (argc, flagsIndex, iidIndex, outIndex) => (r, a) => {
 };
 
 export const dxgiApis = {
+  ...dxgiDebugApis,
   'dxgi.dll!CreateDXGIFactory': createFactoryApi(2, null, 0, 1),
   'dxgi.dll!CreateDXGIFactory1': createFactoryApi(2, null, 0, 1),
   'dxgi.dll!CreateDXGIFactory2': createFactoryApi(3, 0, 1, 2),
