@@ -1,3 +1,5 @@
+import { dpiApis } from './win32-dpi.js';
+import { pathApis } from './win32-paths.js';
 import { registryApis } from './win32-registry.js';
 import { comApis } from './win32-com.js';
 import { dinput8Apis } from './dinput8.js';
@@ -82,6 +84,8 @@ export const API_NAMES = {
 };
 
 for (const key of [
+  ...Object.keys(dpiApis),
+  ...Object.keys(pathApis),
   ...Object.keys(processApis),
   ...Object.keys(fileMetadataApis),
   ...Object.keys(fileSectionApis),
@@ -442,6 +446,8 @@ function closeHandle(runtime, argument) {
 /** Provide the explicitly supported Win32 imports for a single Runtime. */
 export function createWin32ApiProvider() {
   const provider = new Map([
+    ...Object.entries(dpiApis),
+    ...Object.entries(pathApis),
     ...Object.entries(processApis),
     ...Object.entries(fileMetadataApis),
     ...Object.entries(fileSectionApis),
