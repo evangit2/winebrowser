@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T08:30:37.737Z",
+  "date": "2026-10-02T10:33:51.465Z",
   "browser": "154.0.8037.97",
   "scope": "Ordinary EXE and nested ZIP uploads automatically fetch verified source-built Wine DLLs/NLS, execute native CRC code and dynamically load a supplied PE32 DLL, then print and exit zero. Corrupt-byte rejection is checked in the dev gate. No broad compatibility claim.",
   "runs": [
@@ -129,15 +129,15 @@
         "blocks": 23512,
         "instructions": 109640,
         "compiledBlocks": 1716,
-        "wasmBytes": 1335597,
+        "wasmBytes": 1395657,
         "apiCalls": 41,
-        "elapsedMs": 495.25499987602234,
+        "elapsedMs": 1253.3850002288818,
         "outputs": []
       }
     },
     {
       "name": "dynamic.zip",
-      "sha256": "cecdf532c8582781181a30aece5e4a47ab53f32020b4d8c19d2df2c4a6918880",
+      "sha256": "dd9d0717ae583edb08f9fb0cc1436253e25c8136d859ce95ff7b26e1ca1e05cc",
       "requests": [
         "/runtime/wine-base/ntdll.dll",
         "/runtime/wine-base/kernelbase.dll",
@@ -264,15 +264,15 @@
         "blocks": 26529,
         "instructions": 122548,
         "compiledBlocks": 159,
-        "wasmBytes": 1547368,
+        "wasmBytes": 1617018,
         "apiCalls": 44,
-        "elapsedMs": 609.9199998378754,
+        "elapsedMs": 664.335000038147,
         "outputs": []
       }
     },
     {
       "name": "dynamic-crt.zip",
-      "sha256": "b3f6d2a18d8bfa5125875b42fe4a1478e3459f4e027db4885ba9b997f2aa753c",
+      "sha256": "74b6606eb27bbc9703f29a6b239b624e5b6b2620e853ac606d7510795cf4b258",
       "requests": [
         "/runtime/wine-base/ntdll.dll",
         "/runtime/wine-base/kernelbase.dll",
@@ -432,9 +432,9 @@
         "blocks": 77040,
         "instructions": 384926,
         "compiledBlocks": 312,
-        "wasmBytes": 3299257,
+        "wasmBytes": 3448777,
         "apiCalls": 64,
-        "elapsedMs": 1605.6200001239777,
+        "elapsedMs": 1730.664999961853,
         "outputs": []
       }
     }

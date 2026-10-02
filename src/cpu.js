@@ -9,6 +9,8 @@ import {
   Host,
   FS_BASE_GLOBAL,
   INSTRUCTION_IP_GLOBAL,
+  CODE_CHANGED_GLOBAL,
+  RETIRED_COUNT_GLOBAL,
 } from './wasm.js';
 import { classifySse, SIMDState } from './simd.js';
 import { classifyX87, X87State } from './x87.js';
@@ -46,6 +48,9 @@ export class CPU {
     // blocks store it immediately before their checked access, so a fault can
     // name the exact instruction to offer to the exception chain.
     this.instructionIpGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
+    this.codeChangedGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
+    this.retiredCountGlobal = new WebAssembly.Global({ value: 'i32', mutable: true }, 0);
+    this.activeBlock = null;
     this.fsBase = fsBase;
     this.df = 0;
     this.stringRestart = null;
@@ -421,6 +426,8 @@ export class CPU {
     this.r.forEach((r, i) => (this.host['r' + i] = r));
     this.host.fsBase = this.fsBaseGlobal;
     this.host.instructionIp = this.instructionIpGlobal;
+    this.host.codeChanged = this.codeChangedGlobal;
+    this.host.retiredCount = this.retiredCountGlobal;
   }
   /** The guest address of the instruction that is currently executing. */
   get instructionIp() {
@@ -670,7 +677,7 @@ export class CPU {
       !zf && sf === of,
     ][c];
   }
-  compile(ip) {
+  compile(ip, conservativeWritable = false) {
     const {
       Decoder,
       DecoderOptions,
@@ -695,7 +702,8 @@ export class CPU {
       count = 0,
       end = ip,
       usesX87 = false,
-      usesFS = false;
+      usesFS = false,
+      sawWritableStore = false;
     const regInfo = (r) => {
       if (r >= R.EAX && r <= R.EDI) return { index: r - R.EAX, width: 32, shift: 0 };
       if (r >= R.AX && r <= R.DI) return { index: r - R.AX, width: 16, shift: 0 };
@@ -1381,16 +1389,27 @@ export class CPU {
             code.push(...get(5), ...set(4), ...call(3), ...set(5));
           } else if (m !== M.Nop && m !== M.Pause)
             throw Error(`Unsupported instruction ${i.toString()} at 0x${at.toString(16)}`);
-          // A writable code page can replace instructions which follow the
-          // current store. End at memory operations and implicit stack writes
-          // so the next instruction is decoded after that write completes.
-          // Read-only code keeps the ordinary multi-instruction fast path.
+          // Ordinary data/stack writes cannot change this block's remaining
+          // instructions. Continue within writable packed-image code unless
+          // checked memory invalidated the currently executing translation.
           if (
             range[2] &&
             (this.instructionWritesMemory(i) ||
               [M.Push, M.Pushf, M.Pushfd, M.Pusha, M.Pushad].includes(m))
-          )
-            break;
+          ) {
+            sawWritableStore = true;
+            if (conservativeWritable) break;
+            code.push(
+              ...get(CODE_CHANGED_GLOBAL),
+              0x04,
+              0x40,
+              ...constant(count),
+              ...set(RETIRED_COUNT_GLOBAL),
+              ...constant(next),
+              0x0f,
+              0x0b,
+            );
+          }
         } finally {
           i.free();
         }
@@ -1410,6 +1429,7 @@ export class CPU {
         usesFS,
         x87: usesX87,
         referenced: true,
+        guardedWritable: range[2] && !conservativeWritable && sawWritableStore,
       };
       this.cache.set(ip, block);
       for (let page = ip >>> 12; page <= (end - 1) >>> 12; page++) {
@@ -1418,6 +1438,9 @@ export class CPU {
       }
       return block;
     } catch (error) {
+      // A decrypting store may replace garbage or unsupported bytes ahead.
+      // Fall back to ending at its first write before decoding those bytes.
+      if (range[2] && sawWritableStore && !conservativeWritable) return this.compile(ip, true);
       throw Error(`x86 block 0x${ip.toString(16)}: ${error.message}`);
     } finally {
       d.free();
@@ -1468,8 +1491,20 @@ export class CPU {
     if (!block) block = this.cache.get(ip) ?? this.compile(ip);
     if (!block.referenced) block.referenced = true;
     if (block.usesFS && !this.fsBase) throw Error('FS requires guest TEB');
+    if (!block.guardedWritable) {
+      this.instructions += block.count;
+      return block.run() >>> 0;
+    }
+    this.codeChangedGlobal.value = 0;
+    this.retiredCountGlobal.value = block.count;
+    this.activeBlock = block;
     this.instructions += block.count;
-    return block.run() >>> 0;
+    try {
+      return block.run() >>> 0;
+    } finally {
+      this.instructions -= block.count - this.retiredCountGlobal.value;
+      this.activeBlock = null;
+    }
   }
   // Clock (second-chance) eviction. Marking a hit is a single property write,
   // so the per-dispatch cost stays O(1); a Map delete/insert on every hit would
@@ -1514,6 +1549,7 @@ export class CPU {
   removeBlock(ip) {
     const block = this.cache.get(ip);
     if (!block) return;
+    if (this.pendingBlock === block) this.pendingBlock = undefined;
     this.cache.delete(ip);
     for (let page = ip >>> 12; page <= (block.end - 1) >>> 12; page++) {
       const entries = this.cachePages.get(page);
@@ -1526,7 +1562,10 @@ export class CPU {
     for (let page = address >>> 12; page <= (end - 1) >>> 12; page++)
       for (const ip of this.cachePages.get(page) ?? []) {
         const block = this.cache.get(ip);
-        if (ip < end && block.end > address) this.removeBlock(ip);
+        if (ip < end && block.end > address) {
+          if (block === this.activeBlock) this.codeChangedGlobal.value = 1;
+          this.removeBlock(ip);
+        }
       }
   }
   dispose() {

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-02T10:34:22.112Z",
+  "runs": [
+    {
+      "mode": "conservative-write-boundary",
+      "elapsedMs": 234.467708,
+      "dispatches": 1050000,
+      "instructions": 2100000,
+      "compiledBlocks": 21,
+      "value": 1000000
+    },
+    {
+      "mode": "guarded-writable-block",
+      "elapsedMs": 68.20666600000004,
+      "dispatches": 50000,
+      "instructions": 2100000,
+      "compiledBlocks": 1,
+      "value": 1000000
+    }
+  ]
+}

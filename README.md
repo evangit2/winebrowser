@@ -81,30 +81,13 @@ EXEs and ZIPs also pass pixel and resource-lifetime checks; see the
 [texture scope and evidence](docs/d3d-textures.md). Native GPU lighting, materials
 and point/directional/spot lights also pass EXE/ZIP and pixel tests; see
 [lighting scope](docs/d3d-lighting.md). [Framebuffer blending](docs/d3d-blending.md)
-now includes RGB565 rounding after each overlapping primitive. The original Hamsterball EXE
-has been recovered byte-for-byte from retained PE sections and is now an actual
-translation target. Its packed native BASS DLL now loads dependencies through the
-experimental Wine/browser loader callback, resolves the virtual WinMM mixer and
-native ACM/UCRT and OLE32 exports, executes x87 logarithms, trigonometry and
-classification, scalar SSE arithmetic, double-width integer shifts and `FISTTP`.
-Native Wine character conversion, legacy registry calls and WinMM native-driver
-loading now pass. Hamsterball completes DLL attachment and reaches its original
-EXE entry. Its native clock reads now pass through the read-only Windows shared
-data mapping. Predefined cursor loading and x87 integer-operand arithmetic now
-pass, as do COM GUID conversion, window lookup and 24-bit icon decoding.
-Native window metadata/positioning and DirectInput 8 pass independent native
-browser tests, including keyboard/mouse formats, immediate/buffered input and
-focus-loss recovery. NT/Win32 event synchronization now passes native fixtures
-through both ordinary uploads and real Wine DLLs. The TEB now provides Wine's
-activation-context stack and Unicode scratch buffer. Package file and directory
-metadata now passes through Win32 and native NT queries, including Hamsterball's
-`C:\winebrowser\DATA` lookup. Guest threads now pass ordinary and native Wine lifecycle tests. Current startup
-initializes two workers, creates the 800×600 Hamsterball window, and passes
-D3D8 display/depth queries. Chromium creates its fullscreen RGB565/FLIP device
-and passes capabilities, viewport setup and a finite projection, then stops at the
-unsupported `IDirect3DTexture8.GetSurfaceLevel`, after mapping `shadow.png`, executing its image-reading code, and about 9.42 million guest instructions;
-[Custom cursor resources](docs/custom-cursors.md) and random-access file opens now pass.
-No game frame renders yet. Node stops at device creation because it lacks WebGPU. See [graphics scope](docs/d3d-display.md) and [thread scope](docs/thread-runtime.md).
+now includes RGB565 rounding after each overlapping primitive. The unchanged original Hamsterball EXE and its native BASS/CRT dependencies now
+load through ordinary ZIP upload with an automatically selected source-built
+Wine base. The browser translates their x86 code to Wasm during execution.
+Hamsterball presents its loading screen, reaches “CLICK HERE TO PLAY!” and
+responds to mouse input with its original menu. Startup is slow and gameplay
+remains unverified; [the current gate](TASKS.md#current-original-hamsterball-gate)
+records the remaining work. No Theseus-translated game executable is used.
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the
 [audio fixture and limits](tests/fixtures/dsound/README.md).
@@ -119,7 +102,7 @@ frontends and broader D3D12 resources/shaders.
 - Relative and sandboxed DOS DLL paths, same-basename plugins, `LoadLibraryExA/W` with flags 0 or `LOAD_WITH_ALTERED_SEARCH_PATH`, and full module filename queries. Other search/datafile flags remain unsupported.
 - Browser-provided DLL handles point to mapped PE32 images with readable headers, sorted export names and executable API stubs. Imported and dynamically resolved addresses match their PE export tables. Unsupported exports still fail explicitly.
 - Single-thread COM initialization and native in-process class activation from the package's registry. Real guest `DllGetClassObject`, class factories and objects execute through browser translation; native fixture tests cover reference counts, failure HRESULTs, server locks and unload/reload. Cross-apartment and external COM servers remain unsupported.
-- Writable PE sections invalidate overlapping translated blocks; memory operations end writable-code blocks before following instructions are decoded. A 4,096-block cache evicts old translations instead of ending large programs. Executable private allocations and changing code-page protections remain separate unfinished work.
+- Writable PE sections and executable private memory invalidate overlapping translations. Ordinary data/stack writes keep executing within a Wasm block; writes that change its own code return before stale instructions execute. A 16,384-block cache evicts old translations instead of ending large programs. Native executable allocation/protection/rewrite fixtures pass.
 - Guest thread creation, scheduling, suspended start/resume, priorities, joins and exit. Static PE TLS provides separate templates and process/thread callbacks; new static TLS DLLs can currently load only before additional threads exist. The optional native Wine path owns dynamic TLS/FLS. See [thread scope](docs/thread-runtime.md).
 - Byte/word/dword CMPS string comparisons, REPE/REPNE termination and per-thread fault restart flags, alongside existing MOVS/STOS/SCAS support. See [comparison scope](docs/string-comparisons.md).
 - Implicit-register MUL/IMUL/DIV/IDIV at byte, word and dword widths, with full-width results and pre-mutation divide errors. See [integer arithmetic scope](docs/wide-integer-arithmetic.md).
@@ -135,7 +118,7 @@ frontends and broader D3D12 resources/shaders.
 - Offscreen compatible bitmaps and SRCCOPY BitBlt, process-local ANSI/Unicode registry storage, keyboard accelerators, and Wine guest formatting, with [independent executable evidence](docs/desktop-compatibility.md).
 - Explicit failure for unsupported imports, instructions, and memory accesses. No success stubs for unknown functions.
 
-The CPU emitter implements a subset of x86; iced-x86's much broader **decoding** support is not execution support. Current exclusions include x64, 16-bit address/stack modes, full x87/SIMD coverage, SEH, guest threading, dynamic TLS APIs, broad CRT startup, full windowing/GDI, OpenGL, broader DirectX including D3D10/11/12, networking, and drivers. Self-modifying code is rejected through executable-memory write checks. Limits include 64 MiB guest memory and 4,096 compiled blocks. Automated suites and direct Runtime consumers default to one million dispatches. Manual browser sessions continue until guest exit or Stop; the worker yields regularly to handle input. Runtime wall time includes browser API waits; it is not a game-performance benchmark.
+The CPU emitter implements a subset of x86; iced-x86's much broader **decoding** support is not execution support. Current exclusions include x64, 16-bit address/stack modes, full x87/SIMD coverage, complete exception/thread/TLS semantics, broader CRT startup, full windowing/GDI, OpenGL, broader DirectX including D3D10/11/12, networking, and drivers. Self-modifying code runs through checked write invalidation. Limits include 256 MiB guest address space and 16,384 compiled blocks. Automated suites and direct Runtime consumers default to one million dispatches. Manual browser sessions continue until guest exit or Stop; the worker yields regularly to handle input. Runtime wall time includes browser API waits; it is not a game-performance benchmark.
 
 ## Maintainable boundaries
 

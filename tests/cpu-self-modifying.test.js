@@ -161,24 +161,22 @@ test('the block cache gives a second chance to recently referenced blocks', () =
   );
 });
 
-test('writable code keeps a block across memory reads but stops at a memory write', () => {
+test('writable code continues across data writes that leave its instructions unchanged', () => {
   const { cpu, guest } = machine();
   // mov eax,[0x9000] ; add eax,1 ; mov [0x9004],eax ; mov ebx,7
-  // A read cannot alter following code, so the block may include it; the store
-  // can, so the block must end there and the following instruction is decoded
-  // after the store completes.
+  // A checked write to a separate data page does not invalidate this block.
+  // Its following instructions can run without returning to JavaScript.
   guest.data.set(
     [0x8b, 0x05, 0x00, 0x90, 0x00, 0x00, 0x83, 0xc0, 0x01, 0xa3, 0x04, 0x90, 0x00, 0x00, 0xbb],
     0x1300,
   );
   guest.data.set([0xbb, 7, 0, 0, 0, 0xeb, 0], 0x130e);
-  // The block starting at 0x1300 must stop at the store, not run past it.
   const next = cpu.step(0x1300);
-  assert.equal(next, 0x130e, 'block ends at the memory write');
+  assert.equal(next, 0x1315, 'data write stays in the translated block');
   assert.equal(cpu.r[0].value, 1);
-  assert.equal(cpu.r[3].value, 0, 'following instruction is not part of the block');
-  assert.equal(cpu.step(0x130e), 0x1315);
+  assert.equal(guest.read32(0x9004), 1);
   assert.equal(cpu.r[3].value, 7);
+  assert.equal(cpu.instructions, 5);
 });
 
 test('a bulk memory write invalidates the translated blocks it overwrites', () => {
@@ -203,4 +201,51 @@ test('a bulk memory write invalidates the translated blocks it overwrites', () =
   guest.noteCodeWrite(0x8000, 16);
   assert.equal(cpu.cache.get(0x1100), kept);
   assert.equal(cpu.compilations, before);
+});
+
+test('an in-flight write to supported following code exits before stale instructions and counts only retired instructions', () => {
+  const { cpu, guest } = machine();
+  // mov byte [0x140a],42; mov eax,7; jmp next
+  guest.data.set([0xc6, 0x05, 0x0a, 0x14, 0, 0, 42, 0xb8, 7, 0, 0, 0, 0xeb, 0], 0x1400);
+  assert.equal(cpu.step(0x1400), 0x1407);
+  assert.equal(cpu.r[0].value, 0, 'stale MOV has not executed');
+  assert.equal(cpu.instructions, 1);
+  assert.equal(cpu.cache.has(0x1400), false);
+  assert.equal(cpu.step(0x1407), 0x140e);
+  assert.equal(cpu.r[0].value, (42 << 16) | 7);
+  assert.equal(cpu.instructions, 3);
+});
+
+test('an implicit stack write that changes following code exits before the changed instruction', () => {
+  const { cpu, guest } = machine();
+  guest.data.set([0x68, 0xb8, 42, 0, 0, 0xb8, 7, 0, 0, 0, 0xeb, 0], 0x1500);
+  cpu.r[4].value = 0x1509;
+  assert.equal(cpu.step(0x1500), 0x1505);
+  assert.equal(cpu.instructions, 1);
+  assert.equal(cpu.r[4].value, 0x1505);
+  assert.equal(cpu.step(0x1505), 0x150c);
+  assert.equal(cpu.r[0].value, 42);
+});
+
+test('writing another cached code block evicts it without stopping unchanged current instructions', () => {
+  const { cpu, guest } = machine();
+  guest.data.set([0xb8, 7, 0, 0, 0, 0xeb, 0], 0x1700);
+  cpu.step(0x1700);
+  guest.data.set([0xc6, 0x05, 1, 0x17, 0, 0, 42, 0xb9, 99, 0, 0, 0, 0xeb, 0], 0x1600);
+  assert.equal(cpu.step(0x1600), 0x160e);
+  assert.equal(cpu.r[1].value, 99);
+  assert.equal(cpu.cache.has(0x1600), true);
+  assert.equal(cpu.cache.has(0x1700), false);
+  cpu.step(0x1700);
+  assert.equal(cpu.r[0].value, 42);
+});
+
+test('a code write invalidates a block prepared before the write as well as its cache entry', () => {
+  const { cpu, guest } = machine();
+  guest.data.set([0xb8, 7, 0, 0, 0, 0xeb, 0], 0x1800);
+  assert.equal(cpu.prepare(0x1800), null);
+  guest.write32(0x1801, 42);
+  assert.equal(cpu.pendingBlock, undefined);
+  cpu.step(0x1800);
+  assert.equal(cpu.r[0].value, 42);
 });
