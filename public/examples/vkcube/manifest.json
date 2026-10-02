@@ -1,0 +1,18 @@
+{
+  "project": "KhronosGroup/Vulkan-Tools",
+  "revision": "f13d435dd50dc616db0c10e7bac87cd3aa7c82e3",
+  "headersRevision": "c46850864f4661461b0f6cb9922c058ffea4915e",
+  "headersArchiveSha256": "539ff8eaa4abf22fddbd98225c68a0c5ddb940075a4048c8b7f5d04449070a4e",
+  "files": {
+    "upstream/cube.c": "c609168cdc3c42dd03a011950c971c2b6b926d02a882e340a1311f842e0e4a59",
+    "upstream/cube.frag": "98c12992e28dbd714be0b039449ac79ce0e3d99c98c197a7a296a9f18a57941d",
+    "upstream/cube.frag.inc": "4e07c655338d09e0741a755db827e89d365643cc8cbd5efbdfca9e40ea9e9016",
+    "upstream/cube.vert": "a1e06f8a8ba71b5eaf554522089e5c9580b7f6d8795c5b8a31b09df8df9aa3a2",
+    "upstream/cube.vert.inc": "ff270ed086316cec8f7e64e089409ec292af1ab9252dbebabd67ddab4bf56e22",
+    "upstream/cube_functions.h": "f9cafc6afddf7a3c82f7b1e53ea2b18ccaff51a765a9ddbfa70e3b1e13d8fbd8",
+    "upstream/gettime.h": "fae4c59f9637fd5a5de2baa6a482da7ffa8740eeb307e27461a71ddcf43ce0ac",
+    "upstream/linmath.h": "e9b975a5ff53a416f1940099b13eddc0cdd978dce4a4016bb0415b686dac272f",
+    "upstream/lunarg.ppm.h": "bc36823a68e23c073fd6f1efa05e86da555391510cf75c563d0e519b8b6b593a",
+    "upstream/object_type_string_helper.h": "df4bb3a0a52647d52774af2dcf128b6bd98f7de97e3b3f1e9d35da67193d4aa5"
+  }
+}

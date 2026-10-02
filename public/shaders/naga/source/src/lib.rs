@@ -1,3 +1,4 @@
+mod combined_samplers;
 mod draw_parameters;
 
 use wasm_bindgen::prelude::*;
@@ -16,14 +17,52 @@ pub fn spirv_to_wgsl(bytes: &[u8]) -> Result<String, String> {
         return Err("SPIR-V input has no little-endian magic word".into());
     }
 
+    let normalized = draw_parameters::lower(bytes)?;
+    emit_wgsl(&normalized, false)
+}
+
+/// Vulkan resources keep descriptor set numbers; binding N maps to 2*N and
+/// a combined image sampler maps to image 2*N plus sampler 2*N+1.
+#[wasm_bindgen]
+pub fn vulkan_spirv_to_wgsl(bytes: &[u8]) -> Result<String, String> {
+    if bytes.len() < 20
+        || bytes.len() > MAX_SPIRV_BYTES
+        || bytes.len() % 4 != 0
+        || !bytes.starts_with(&SPIRV_MAGIC_LE)
+    {
+        return Err("Invalid bounded Vulkan SPIR-V module".into());
+    }
+    let mut words: Vec<u32> = bytes
+        .chunks_exact(4)
+        .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+        .collect();
+    let mut at = 5;
+    while at < words.len() {
+        let count = (words[at] >> 16) as usize;
+        if count == 0 || at + count > words.len() {
+            return Err("Invalid SPIR-V instruction length".into());
+        }
+        if words[at] & 65535 == 71 && count == 4 && words[at + 2] == 33 {
+            if words[at + 3] >= 32 {
+                return Err("Vulkan descriptor binding exceeds 31".into());
+            }
+            words[at + 3] *= 2;
+        }
+        at += count;
+    }
+    let doubled: Vec<u8> = words.into_iter().flat_map(u32::to_le_bytes).collect();
+    let (separate, _) = combined_samplers::split_with_bindings(&doubled)?;
+    emit_wgsl(&separate, true)
+}
+
+fn emit_wgsl(bytes: &[u8], adjust_coordinate_space: bool) -> Result<String, String> {
     // D3D and WebGPU both use depth 0..1. The renderer handles viewport
     // orientation and winding, so Naga must not adjust the clip coordinates.
     let options = naga::front::spv::Options {
-        adjust_coordinate_space: false,
+        adjust_coordinate_space,
         ..Default::default()
     };
-    let normalized = draw_parameters::lower(bytes)?;
-    let module = naga::front::spv::parse_u8_slice(&normalized, &options)
+    let module = naga::front::spv::parse_u8_slice(bytes, &options)
         .map_err(|error| format!("SPIR-V parse failed: {error}"))?;
     if module.entry_points.is_empty() {
         return Err("SPIR-V module has no shader entry point".into());

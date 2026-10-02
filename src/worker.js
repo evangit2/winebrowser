@@ -120,7 +120,7 @@ onmessage = async ({ data }) => {
         const url = new URL(`${import.meta.env.BASE_URL}vendor/iced.js`, self.location.origin).href;
         iced = await (await import(/* @vite-ignore */ url)).init();
       }
-      const graphics = new WebGPURenderer({ emit });
+      const graphics = new WebGPURenderer({ emit, forceReadback: data.forceReadback === true });
       const graphics12 = new D3D12Renderer(graphics);
       const opengl = new OpenGLRenderer({ emit });
       const runtime = new Runtime(iced, {
@@ -145,6 +145,7 @@ onmessage = async ({ data }) => {
         result = await runtime.run();
       } finally {
         activeRuntime = null;
+        runtime.vulkan?.dispose();
         graphics12.dispose();
         graphics.dispose();
         opengl.dispose();

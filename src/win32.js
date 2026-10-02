@@ -4,6 +4,8 @@ import { registryApis } from './win32-registry.js';
 import { comApis } from './win32-com.js';
 import { dinput8Apis } from './dinput8.js';
 import { d3d9Apis } from './d3d9.js';
+import { vulkanApis } from './vulkan.js';
+import { paintApis } from './win32-paint.js';
 import { d3d12Apis, dxgiApis } from './d3d12.js';
 import { d3d10Apis } from './d3d10.js';
 import { openglApis } from './opengl.js';
@@ -123,6 +125,8 @@ for (const key of [
   ...Object.keys(registryApis),
   ...Object.keys(comApis),
   ...Object.keys(d3d9Apis),
+  ...Object.keys(vulkanApis),
+  ...Object.keys(paintApis),
   ...Object.keys(dinput8Apis),
   ...Object.keys(d3d12Apis),
   ...Object.keys(d3d10Apis),
@@ -475,6 +479,8 @@ export function createWin32ApiProvider() {
     ...Object.entries(registryApis),
     ...Object.entries(comApis),
     ...Object.entries(d3d9Apis),
+    ...Object.entries(vulkanApis),
+    ...Object.entries(paintApis),
     ...Object.entries(dinput8Apis),
     ...Object.entries(d3d12Apis),
     ...Object.entries(d3d10Apis),

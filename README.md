@@ -8,6 +8,14 @@ An experimental **browser-local Windows PE runtime**. Choose one or more EXEs, Z
 
 **Try the [live WineBrowser test harness](https://evangit2.github.io/winebrowser/).** It runs locally in your browser. Use a modern Chromium browser such as Chrome or Edge.
 
+**Native Vulkan uploads now run the free Khronos 3D cube demo.** Download the
+[Windows x86 EXE](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.exe)
+or [ZIP with source and license](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.zip),
+upload it and click Run, or use **Load vkcube** in the catalog. The original
+textured cube executes through Vulkan → WebGPU, with x86 and SPIR-V compilation
+inside the browser. This is a pinned Windows x86 build of the current upstream
+Vulkan-Tools source. See [Vulkan scope and verification](docs/vulkan-runtime.md).
+
 The hosted PE32 x86 examples below have passed the browser suite. Open a ZIP in the harness when the program needs packaged assets or a DLL; the ZIP contains the executable and its working directory.
 
 | Example    | Download                                                                                                                                           | What it exercises and expected result                                                                           |

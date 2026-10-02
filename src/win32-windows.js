@@ -655,8 +655,15 @@ export class WindowManager {
         x: 0,
         y: 0,
       };
-      if (this.isVisible(window.id) && !window.controlType && window.invalid && accepts(message))
+      if (
+        this.isVisible(window.id) &&
+        !window.controlType &&
+        (window.invalid || window.internalPaint) &&
+        accepts(message)
+      ) {
+        if (remove) window.internalPaint = false;
         return message;
+      }
     }
     return null;
   }

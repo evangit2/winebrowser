@@ -47,7 +47,7 @@ The DLL links GCC 16.1.0 libgcc integer division/remainder helpers under GPLv3 w
 
 `public/shaders/vkd3d-shader.js` and `.wasm` link **libvkd3d-shader 2.1** with the retained LGPL point-size portability patch under LGPL-2.1-or-later. The exact complete upstream source archive is distributed alongside the library at `public/shaders/source/vkd3d-2.1.tar.xz` (SHA-256 `7510146aff2adfb4ae07ab890701a607e5ff7c66e57100cfc9f630ec92eeda6a`), with upstream licenses, `webgpu-vertex-point-size.patch`, the original MIT adapter `bridge.c`, and its rebuild script. The patch makes the existing point-size emission option apply to vertex shaders for WGSL compatibility. [Build instructions and manifest](runtime/shaders/vkd3d/README.md) identify the Emscripten toolchain and pinned headers. Users can rebuild/replace these separate modules without rebuilding a Windows application. This is a shader compiler and root-signature serializer/parser, not the full vkd3d graphics runtime.
 
-`public/shaders/naga/` contains the original MIT Rust/Wasm wrapper and **Naga 30.0.1** (MIT OR Apache-2.0). It ships the wrapper source, Cargo lockfile, build script, dependency notices and license texts. [Build instructions](runtime/shaders/naga/README.md) document the generic SPIR-V draw-parameter normalization and validation. No DirectWebGPU shader bridge source was copied.
+`public/shaders/naga/` contains the original MIT Rust/Wasm wrapper and **Naga 30.0.1** (MIT OR Apache-2.0). It ships the wrapper source, Cargo lockfile, build script, dependency notices and license texts. [Build instructions](runtime/shaders/naga/README.md) document the generic SPIR-V draw-parameter normalization and validation. The Vulkan combined-sampler normalization in `runtime/shaders/naga/src/combined_samplers.rs` derives from the same author-owned DirectWebGPU project, adapted to deterministic Vulkan descriptor bindings.
 
 The DXBC shader fixtures in `tests/fixtures/shaders/` and `demos/d3d12-triangle/` derive from Wine 11's `dlls/d3d12/tests/d3d12.c`, pinned to `db11d0fe6a169c457e23d007e20404643d067aa8`, under LGPL-2.1-or-later. Their complete original source and license are retained in both locations and in the hosted triangle ZIP, with extraction provenance and rebuild materials. The original triangle application remains MIT; its license does not replace the shaders' terms.
 
@@ -66,3 +66,15 @@ archive retains its readme, and the extracted executable has the same readme
 beside it. Each directory contains pinned hashes, upstream links and execution
 scope in PROVENANCE.md. WineBrowser does not patch or pretranslate these EXEs.
 The project's MIT license does not replace their upstream freeware terms.
+
+## Khronos Vulkan Cube
+
+`demos/vkcube/upstream/` and `public/examples/vkcube/` retain the Apache-2.0
+Khronos/Valve/LunarG Vulkan-Tools cube source, SPIR-V shaders and LunarG texture
+from commit `f13d435dd50dc616db0c10e7bac87cd3aa7c82e3`. The upstream source
+headers and full `LICENSE` accompany the Windows x86 build. The original scene
+code is unchanged. The `startup.c` glue and build recipe are project-authored.
+The binary also links MinGW-w64 CRT and GCC runtime helpers; the retained GCC
+license/runtime-exception notices apply. The build manifest pins Vulkan-Headers
+at `c46850864f4661461b0f6cb9922c058ffea4915e` and the archive SHA-256. The GCC
+license/runtime-exception and MinGW-w64 runtime license texts accompany the ZIP.
