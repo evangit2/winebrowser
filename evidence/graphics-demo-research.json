@@ -1,6 +1,6 @@
 {
   "date": "2026-10-02T16:40:04.403Z",
-  "scope": "Archive hashes, static imports, source requirements and explicit browser observations. Only Instancing is newly cataloged; frame counts alone do not establish effect correctness.",
+  "scope": "Pinned archive hashes, source prerequisites and browser observations. RollerCoaster, Instancing and TransparentShadowMapping have upload/catalog regressions; other candidates remain unverified.",
   "targets": [
     {
       "name": "Instancing",
@@ -62,7 +62,8 @@
       "unsupported": [],
       "imports": 116,
       "license": "Included readme permits free redistribution if retained.",
-      "status": "partial rendering: 33 frames/785 draws; original cubemap render-target shadow passes unsupported"
+      "status": "verified catalog/upload; 48 animated scene frames, six cubemap API path and exit zero; separate 7,021-frame sustained run with browser-time compilation",
+      "evidence": "transparent-shadows-browser-results.json"
     },
     {
       "name": "Metaballs2",

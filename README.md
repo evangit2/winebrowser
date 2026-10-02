@@ -47,6 +47,14 @@ code and Direct3D shaders compile in the browser. `npm run test:rollercoaster`
 checks ordinary ZIP upload and the hosted example for animated textured scenes,
 32 frames with over 19,000 draws, and clean exit. Startup is CPU intensive.
 
+**Animated stained-glass shadow demo:** choose **Load humus-transparent-shadows**,
+then **Run executable**. The unchanged 1.2 MB original archive renders a textured
+room with animated light and six cubemap shadow passes. Its readme permits
+redistribution and remains in the archive. [ZIP](https://evangit2.github.io/winebrowser/examples/humus-transparent-shadows/TransparentShadowMapping.zip)
+· [provenance](public/examples/humus-transparent-shadows/PROVENANCE.md).
+Upload/catalog checks pass scene animation and window-close exit zero; x86
+blocks and original D3D9 shaders compile during browser execution.
+
 **Independent third-party Direct3D 9 demo:** choose **Load humus-dynamic-branching** in the harness, then **Run executable**. This is the unchanged Humus 3D _Dynamic Branching_ demo by Emil Persson ([ZIP](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.zip) · [EXE](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.exe) · [pinned provenance](public/examples/humus-dynamic-branching/PROVENANCE.md)). WineBrowser does not patch it: the guest's own x86 blocks, DXT textures, HMDL pillar-room model and VS 1.1 / PS 2.0 shaders are translated during browser execution, and the stencil-shadow room renders in a virtual window at the demo's own 798×570 size. `npm run test:humus-d3d9` checks the published example and the unchanged upstream ZIP for a large, richly shaded, animated image and the demo's Direct3D 9 call surface. Camera and menu input are not wired up, and this is one independent application, not broad D3D9 game compatibility.
 
 **Interactive native game:** [Breakout EXE](https://evangit2.github.io/winebrowser/demos/breakout/breakout.exe) or [ZIP](https://evangit2.github.io/winebrowser/demos/breakout.zip). In the live harness, choose **Load breakout**, then **Run executable**. Use the arrow keys or mouse to move the paddle, Space to pause, and R to restart. The game opens two independent guest windows; drag their title bars, resize their corners, and close both to exit. This is an original MIT-licensed Win32 C program compiled to PE32, with [source](demos/breakout/main.c) and a reproducible build. Minesweeper remains a blocked follow-on target.

@@ -1,0 +1,100 @@
+{
+  "passed": true,
+  "date": "2026-10-02T18:14:29.579Z",
+  "browser": "154.0.8037.97",
+  "url": "http://127.0.0.1:4197/winebrowser/",
+  "exeSha256": "7364e6f1ff3fe694dc0c939ded55eeee526f61bfae6073e3e4530dd549a926cf",
+  "zipSha256": "da7446674a70947d4c5ec43d70bbd9ceb6e71468fc1830faaeb7def1f4d45cb5",
+  "scope": "Unchanged original archive: ordinary ZIP upload and catalog, six-face cubemap API path, animated room/stained-glass scene excluding FPS text, browser-time x86 compilation and clean exit. Exact target storage/sampling has a separate native render-target regression.",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "elapsedMs": 29593,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 8,
+          "draws": 185,
+          "dark": 288280,
+          "bright": 21170,
+          "colored": 19849,
+          "colors": 4096,
+          "sceneSha256": "d98c22aa967dd78b931e9c1dd70ef9a7b64c2665997698f418dcc07ffcb6f694"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 24,
+          "draws": 569,
+          "dark": 325001,
+          "bright": 9287,
+          "colored": 8895,
+          "colors": 4096,
+          "sceneSha256": "6b74fe21263e7f572bc93c2656ccffdf673291243abb8fc28e89e4e0ddb16ef0"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 48,
+          "draws": 1145,
+          "dark": 322093,
+          "bright": 5747,
+          "colored": 11287,
+          "colors": 4096,
+          "sceneSha256": "38f341cb35d8748224e470d8248bde931f25a0a7a52f2b4e8788efec0fa3d835"
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4105,
+      "wasmBytes": 38874454,
+      "instructions": 154995378,
+      "apiCalls": 20089
+    },
+    {
+      "mode": "hosted-zip",
+      "elapsedMs": 28235,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 8,
+          "draws": 185,
+          "dark": 170640,
+          "bright": 25046,
+          "colored": 78298,
+          "colors": 4096,
+          "sceneSha256": "0659ccd2d927aaca160ba91147953e90a3d99853937d7039a7f59163d52939de"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 24,
+          "draws": 569,
+          "dark": 300993,
+          "bright": 21865,
+          "colored": 17864,
+          "colors": 4096,
+          "sceneSha256": "08d5bc0d3c3776d17e99f16003f59b1178868231bc11677739c49426a6710ecc"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 48,
+          "draws": 1145,
+          "dark": 341235,
+          "bright": 4136,
+          "colored": 8898,
+          "colors": 4096,
+          "sceneSha256": "8d30712730d2e2785664597e713cac39ea163eaa720b4f85e368ee3df12c507b"
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4105,
+      "wasmBytes": 38874454,
+      "instructions": 154995308,
+      "apiCalls": 20089
+    }
+  ],
+  "errors": []
+}

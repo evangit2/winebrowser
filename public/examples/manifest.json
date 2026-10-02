@@ -29,6 +29,15 @@
       "provenance": "Freeware by Emil Persson (Humus); redistribution permitted with readme included. Original archive, executable and shaders."
     },
     {
+      "name": "humus-transparent-shadows",
+      "description": "Humus D3D9 stained-glass room with animated light and six cubemap shadow passes. Close the guest window to exit.",
+      "exe": "humus-transparent-shadows/TransparentShadowMapping.exe",
+      "exeSha256": "7364e6f1ff3fe694dc0c939ded55eeee526f61bfae6073e3e4530dd549a926cf",
+      "zip": "humus-transparent-shadows/TransparentShadowMapping.zip",
+      "zipSha256": "da7446674a70947d4c5ec43d70bbd9ceb6e71468fc1830faaeb7def1f4d45cb5",
+      "provenance": "Freeware by Emil Persson (Humus); redistribution permitted with readme included. Original archive, executable and shaders."
+    },
+    {
       "name": "tetris",
       "description": "Unchanged wesmar/Tetris x86 release: arrows move/rotate, Space drops, P pauses, F2 restarts.",
       "exe": "tetris/tetris.exe",

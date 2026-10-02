@@ -10,6 +10,11 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## October 2 checkpoint
 
+- [x] Unchanged redistributable TransparentShadowMapping renders its stained-glass
+      room through six original cubemap passes. Upload/catalog checks pass 48
+      animated scene frames and clean exit; a sustained upload passes 7,021
+      frames. The source-built shader/compiler/runtime path is selected normally.
+
 - [x] D3D8/9 clears/draws now reach selected standalone, 2D and cube targets,
       preserve shared depth, and update native texture bytes before sampling.
       Native EXE/ZIP checks cover all six faces, exact displayed pixels,

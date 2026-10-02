@@ -56,3 +56,13 @@ The legacy VS 1.1/PS 2.0 token fixtures in `tests/fixtures/shaders/legacy/` are 
 ## Berkeley SoftFloat arithmetic
 
 `public/runtime/softfloat/` contains Berkeley SoftFloat Release 3e from commit `a0c6494cdc11865811dec815d5c0049fba9d82a8`, under its three-clause BSD license. The exact unmodified upstream source archive, license, original MIT adapter and rebuild script are retained under `public/runtime/softfloat/source/`. This is an arithmetic library for x87 extended precision, not a CPU or PC emulator. [The manifest and ABI](runtime/softfloat/README.md) document the independent Wasm module and reproducible build.
+
+## Humus graphics demos
+
+The unchanged RollerCoaster, Instancing and TransparentShadowMapping archives in
+`public/examples/` are freeware by Emil Persson (Humus). Their original readmes
+permit free redistribution through any medium when retained; each complete
+archive retains its readme, and the extracted executable has the same readme
+beside it. Each directory contains pinned hashes, upstream links and execution
+scope in PROVENANCE.md. WineBrowser does not patch or pretranslate these EXEs.
+The project's MIT license does not replace their upstream freeware terms.

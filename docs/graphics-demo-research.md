@@ -1,7 +1,7 @@
 # Redistributable graphics demo research
 
-Two unchanged Humus D3D9 archives now have ordinary-upload and catalog browser
-regressions: RollerCoaster and Instancing. Their original readmes permit free
+Three unchanged Humus D3D9 archives now have ordinary-upload and catalog browser
+regressions: RollerCoaster, Instancing and TransparentShadowMapping. Their original readmes permit free
 redistribution if retained. The catalog ships the complete original archives,
 including their source, shaders, textures and notices. No executable is
 patched or pretranslated.
@@ -20,23 +20,34 @@ instancing remains unsupported; the demo's title does not establish that path.
 - [RollerCoaster browser evidence](../evidence/rollercoaster-browser-results.json)
 - [Archive hashes and candidate findings](../evidence/graphics-demo-research.json)
 
+TransparentShadowMapping is a 1,206,184-byte original archive. Its source renders
+six 512×512 cubemap faces with one D16 depth surface, then samples that cube when
+drawing the textured room and stained glass. ZIP upload and catalog regressions
+check 48 frames, scene animation excluding FPS text, the original API path and
+exit zero. The native target regression independently verifies exact cube pixels.
+No screenshot comparison against an upstream native driver is claimed.
+
+- [Shadow archive](https://www.humus.name/3D/TransparentShadowMapping.zip)
+- [Shadow browser evidence](../evidence/transparent-shadows-browser-results.json)
+- [Sustained upload and browser compilation](../evidence/transparent-shadows-sustained.json)
+
 ## Candidates still requiring work
 
-| Original archive         | ZIP bytes | Observed progress and requirements                                                                                                                                                        |
-| ------------------------ | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Water                    |   714,714 | Browser reaches a dialog with no scene. Its blank text needs investigation; no rendering claim.                                                                                           |
-| SelfShadowBump           | 1,138,848 | Browser reaches the upstream volumetric-texture precomputation prompt. The probe did not dismiss it. `Main.cpp` also requires six cubemap render-target passes.                           |
-| TransparentShadowMapping | 1,206,184 | NORMAL semantic correction allows 33 frames / 785 draws. `Main.cpp` requires six cubemap render-target passes, which remain unsupported. Partial frames do not establish correct shadows. |
-| MandelbrotSet            |   157,297 | Static imports require `MFC42.DLL`, which the archive does not supply. Its registry-value deletion import is now implemented, but the missing library still prevents startup.             |
-| Metaballs2               | 1,645,308 | Vulkan demo with an x64 EXE. The PE32 frontend rejects it before execution; x64 translation and a Vulkan frontend remain required.                                                        |
+| Original archive | ZIP bytes | Observed progress and requirements                                                                                                                                            |
+| ---------------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Water            |   714,714 | Browser reaches a dialog with no scene. Its blank text needs investigation; no rendering claim.                                                                               |
+| SelfShadowBump   | 1,138,848 | Browser reaches the upstream volumetric-texture precomputation prompt. The probe did not dismiss it. `Main.cpp` also requires six cubemap render-target passes.               |
+| MandelbrotSet    |   157,297 | Static imports require `MFC42.DLL`, which the archive does not supply. Its registry-value deletion import is now implemented, but the missing library still prevents startup. |
+| Metaballs2       | 1,645,308 | Vulkan demo with an x64 EXE. The PE32 frontend rejects it before execution; x64 translation and a Vulkan frontend remain required.                                            |
 
 These candidates remain in the ignored research cache. Inspecting source and
 imports establishes prerequisites, not compatibility. The previous implicit-backbuffer routing gap is now fixed for selected
 standalone, 2D and cube targets. Native regressions verify six faces, shared
 D16 storage, exact sampling and RGB565 partial clears; see
 [offscreen scope](d3d-render-targets.md). Transfers currently pass through CPU
-readback at target boundaries. The original shadow candidate is undergoing
-scene, animation and shutdown verification before catalog publication.
+readback at target boundaries. The original shadow demo now passes ZIP upload and catalog scene/animation checks
+and clean exit. A sustained unpatched upload reaches 7,021 frames; its report
+records 4,105 blocks compiled into 38,874,454 Wasm bytes during browser execution.
 
 To reproduce Instancing after downloading the pinned archive into
 `.cache/demo-research/Instancing.zip`, run `npm run package:instancing`, build
