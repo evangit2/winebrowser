@@ -219,3 +219,29 @@ later dynamically loaded guest DLL using the runtime's automatic assets. Both
 exit zero; corrupted assets fail verification. Source, patch, licenses and
 rebuild scripts accompany the runtime payload. Static/dynamic import coverage
 and browser services remain bounded; this is not arbitrary compatibility.
+
+October 2 follow-up: the unchanged Humus RollerCoaster archive is now in the
+public catalog with its original redistribution readme and provenance. Both
+ordinary ZIP upload and hosted catalog paths pass 32 animated frames and more
+than 19,000 draws, then exit zero. Eight fixed texture stages, independent sized
+coordinates and mixed 2D/cube/volume views remove its earlier blockers. The
+Pages deployment workflow runs this regression; ASCII cube render targets
+remain unsupported.
+
+Original Hamsterball now reaches its original menu through ordinary ZIP upload
+and the automatic native Wine base. Nested D3D8 buffer locks and bounded boosts
+for starved ready threads remove the previous adjacency crash and main-thread
+starvation. A captured menu-transition draw contains valid XYZRHW positions
+but undefined UV fields after SetTexture(0, NULL). Fixed draw validation now
+normalizes non-finite unused UV fields in the immutable snapshot, while rejecting
+non-finite sampled coordinates and preserving guest bytes. D3D8 and D3D9 tests
+cover both cases. A fresh game run is checking this fix; race gameplay is still
+unverified.
+
+A browser CPU profile during Hamsterball startup shows guest memory checking
+among the main execution costs. A small region cache now preserves alternating
+stack/heap/image locality while revalidating each entry's identity, bounds and
+permissions. Protection changes, removal, index shifts, collisions and executable
+write callbacks have regression coverage. `node scripts/benchmark-memory-regions.mjs`
+exercises a synthetic alternating-region workload; its timing is not a game-speed
+measurement. The full unit suite passes 812 tests after this change.
