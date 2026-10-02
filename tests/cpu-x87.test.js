@@ -14,7 +14,7 @@ const wasmUrl = pathToFileURL(
   new URL('../public/runtime/softfloat/softfloat.wasm', import.meta.url).pathname,
 ).href;
 
-async function machine(code, check) {
+async function machine(code, check, initialize = true) {
   const memory = new WebAssembly.Memory({ initial: 1 });
   new Uint8Array(memory.buffer).set(code, CODE);
   const view = new DataView(memory.buffer);
@@ -40,7 +40,7 @@ async function machine(code, check) {
     x87ModuleUrl: moduleUrl,
     x87WasmUrl: wasmUrl,
   });
-  await cpu.initialize();
+  if (initialize) await cpu.initialize();
   return { cpu, memory, view, bytes: new Uint8Array(memory.buffer) };
 }
 
@@ -1226,6 +1226,61 @@ test('FLDENV restores control and tags but leaves register contents stale', asyn
         cpu.x87.values[i].every((byte) => byte === 0x11 * i),
         `R${i} contents stay stale after FLDENV`,
       );
+  } finally {
+    cpu.dispose();
+  }
+});
+
+test('x87 blocks initialize once, then dispatch synchronously with exact arithmetic and restored contexts', async () => {
+  // FLD1; FSTP dword [DATA]; JMP CODE.
+  const { cpu, view } = await machine(
+    [0xd9, 0xe8, 0xd9, 0x1d, 0x00, 0x20, 0x00, 0x00, 0xeb, 0xf6],
+    undefined,
+    false,
+  );
+  try {
+    assert.equal(cpu.x87.initialized, false);
+    const preparation = cpu.prepare(CODE);
+    assert.ok(preparation instanceof Promise);
+    await preparation;
+    assert.equal(cpu.x87.initialized, true);
+    assert.equal(cpu.step(CODE), CODE);
+    assert.equal(view.getFloat32(DATA, true), 1);
+    const context = cpu.captureContext();
+    // A prepared floating-point block follows the same synchronous path as
+    // an integer block. Restoring a thread's state keeps the shared helper ready.
+    cpu.restoreContext(context);
+    let calls = 0;
+    const initialize = cpu.initialize.bind(cpu);
+    cpu.initialize = () => {
+      calls++;
+      return initialize();
+    };
+    for (let n = 0; n < 100; n++) {
+      assert.equal(cpu.prepare(CODE), null);
+      assert.equal(cpu.step(CODE), CODE);
+    }
+    assert.equal(calls, 0);
+    assert.equal(cpu.instructions, 303);
+    assert.equal(view.getFloat32(DATA, true), 1);
+    assert.ok(cpu.x87.tags.every((tag) => tag === 3));
+    cpu.x87.dispose();
+    assert.equal(cpu.x87.initialized, false);
+    assert.ok(cpu.prepare(CODE) instanceof Promise);
+    await cpu.initialize();
+    assert.equal(cpu.prepare(CODE), null);
+  } finally {
+    cpu.dispose();
+  }
+});
+
+test('failed x87 initialization never enters the synchronous dispatch path', async () => {
+  const { cpu } = await machine([0xd9, 0xe8], undefined, false);
+  try {
+    cpu.x87.control = 0x017f; // Reserved precision-control encoding.
+    await assert.rejects(cpu.prepare(CODE), /Reserved x87 precision/);
+    assert.equal(cpu.x87.initialized, false);
+    await assert.rejects(cpu.prepare(CODE), /Reserved x87 precision/);
   } finally {
     cpu.dispose();
   }

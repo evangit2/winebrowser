@@ -200,6 +200,7 @@ export class X87State {
     this.tags = new Uint8Array(8).fill(3);
     this.reset();
     this.ready = null;
+    this.initialized = false;
   }
 
   reset() {
@@ -226,6 +227,7 @@ export class X87State {
     this.p = this.sf._malloc(42);
     if (!this.p) throw Error('SoftFloat scratch allocation failed');
     this.#configure();
+    this.initialized = true;
   }
 
   snapshot() {
@@ -252,6 +254,7 @@ export class X87State {
     this.p = 0;
     this.sf = null;
     this.ready = null;
+    this.initialized = false;
   }
 
   #configure(roundingOverride) {

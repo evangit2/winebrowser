@@ -1530,7 +1530,7 @@ export class CPU {
     // returned the caller must await it, so no pending block is kept: another
     // guest thread could otherwise run before step() and clobber it.
     const block = this.cache.get(ip) ?? this.compile(ip);
-    if (block.x87) return this.initialize();
+    if (block.x87 && !this.x87.initialized) return this.initialize();
     this.pendingBlock = block;
     return null;
   }
