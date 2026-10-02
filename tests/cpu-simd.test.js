@@ -7,6 +7,29 @@ import { probeScalarSse } from '../scripts/lib/scalar-sse-probe.js';
 
 const CODE = 0x1000;
 const DATA = 0x2000;
+test('AND/ANDNOT/OR SSE encodings apply exact 128-bit masks without floating conversion', () => {
+  const a = [0x80000000, 0x7fc00001, 0xffffffff, 0x12345678],
+    b = [0xffffffff, 0x00ffffff, 0x80000000, 0x87654321];
+  for (const prefix of [[], [0x66]])
+    for (const [code, operation] of [
+      [0x54, (a, b) => a & b],
+      [0x55, (a, b) => ~a & b],
+      [0x56, (a, b) => a | b],
+    ]) {
+      const { cpu } = machine([...prefix, 0x0f, code, 0xc1]);
+      cpu.simd.registers[0].set(a);
+      cpu.simd.registers[1].set(b);
+      const flags = { ...cpu.f },
+        mxcsr = cpu.simd.mxcsr;
+      cpu.step(CODE);
+      assert.deepEqual(
+        lanes(cpu),
+        a.map((v, i) => operation(v, b[i]) >>> 0),
+      );
+      assert.deepEqual(cpu.f, flags);
+      assert.equal(cpu.simd.mxcsr, mxcsr);
+    }
+});
 test('PCMPEQD compares every DWORD as bits, handles aliasing and leaves flags/MXCSR unchanged', () => {
   const { cpu } = machine([0x66, 0x0f, 0x76, 0xc1]);
   cpu.simd.registers[0].set([0x80000000, 0xffffffff, 7, 0x7fc00001]);

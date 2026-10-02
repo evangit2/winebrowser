@@ -34,6 +34,12 @@ export const SIMD_OP = Object.freeze({
   STMXCSR: 30,
   PCMPEQD_XMM_XMM: 31,
   PCMPEQD_XMM_MEM: 32,
+  AND_XMM_XMM: 33,
+  AND_XMM_MEM: 34,
+  ANDNOT_XMM_XMM: 35,
+  ANDNOT_XMM_MEM: 36,
+  OR_XMM_XMM: 37,
+  OR_XMM_MEM: 38,
 });
 
 const floatingCodes = new WeakMap();
@@ -294,6 +300,32 @@ export function classifySse(instruction, iced) {
         aligned: src.memory,
       };
     }
+    case C.Andps_xmm_xmmm128:
+    case C.Andpd_xmm_xmmm128:
+    case C.Pand_xmm_xmmm128:
+    case C.Andnps_xmm_xmmm128:
+    case C.Andnpd_xmm_xmmm128:
+    case C.Pandn_xmm_xmmm128:
+    case C.Orps_xmm_xmmm128:
+    case C.Orpd_xmm_xmmm128:
+    case C.Por_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = source(1, mem128);
+      if (dst === null || !src) return null;
+      const name = iced.Mnemonic[instruction.mnemonic];
+      const op = ['Andps', 'Andpd', 'Pand'].includes(name)
+        ? SIMD_OP.AND_XMM_XMM
+        : ['Andnps', 'Andnpd', 'Pandn'].includes(name)
+          ? SIMD_OP.ANDNOT_XMM_XMM
+          : SIMD_OP.OR_XMM_XMM;
+      return {
+        op: op + (src.memory ? 1 : 0),
+        dst,
+        src: src.reg,
+        addressOperand: src.memory ? 1 : -1,
+        aligned: src.memory,
+      };
+    }
     case C.Pshufd_xmm_xmmm128_imm8: {
       const dst = xmm(0);
       if (dst === null || instruction.opKind(2) !== K.Immediate8) return null;
@@ -396,6 +428,24 @@ export class SIMDState {
     const load = (size) => this.readMemory(address, size);
     const store = (values, size) => this.writeMemory(address, values, size);
     switch (op) {
+      case SIMD_OP.AND_XMM_XMM:
+      case SIMD_OP.AND_XMM_MEM:
+      case SIMD_OP.ANDNOT_XMM_XMM:
+      case SIMD_OP.ANDNOT_XMM_MEM:
+      case SIMD_OP.OR_XMM_XMM:
+      case SIMD_OP.OR_XMM_MEM: {
+        const value = [SIMD_OP.AND_XMM_MEM, SIMD_OP.ANDNOT_XMM_MEM, SIMD_OP.OR_XMM_MEM].includes(op)
+          ? load(16)
+          : s;
+        for (let i = 0; i < 4; i++)
+          d[i] =
+            op <= SIMD_OP.AND_XMM_MEM
+              ? d[i] & value[i]
+              : op <= SIMD_OP.ANDNOT_XMM_MEM
+                ? ~d[i] & value[i]
+                : d[i] | value[i];
+        return;
+      }
       case SIMD_OP.PCMPEQD_XMM_XMM:
       case SIMD_OP.PCMPEQD_XMM_MEM: {
         const value = op === SIMD_OP.PCMPEQD_XMM_MEM ? load(16) : s;
