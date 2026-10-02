@@ -13,6 +13,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run format:check
+      - run: python3 scripts/generate-api-set-schema.py --check
       - run: npm test
       - run: npm run test:softfloat
       - run: python3 scripts/generate-x87-remainder-vectors.py --check-native
@@ -72,6 +73,7 @@ jobs:
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
           npm run test:installer-apis
+          npm run test:api-sets
           npm run test:x87-remainder
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:wine-base-upload
           npm run test:windows
@@ -82,9 +84,11 @@ jobs:
           npm run test:opengl
           npm run fetch:opengl
           npm run test:opengl-upstream
+          npm run test:raytraced-shadows
           npm run test:d3d12
           npm run test:d3d12-cube
           npm run test:learning-dx12
+          npm run test:dx12-city
           npm run test:d3d12-parade
           npm run test:d3d12-constbuffer
           npm run test:d3d12-rootcbv

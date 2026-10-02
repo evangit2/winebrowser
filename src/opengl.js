@@ -1,3 +1,4 @@
+import { installGLCompatibility } from './opengl-compat.js';
 import { describeDisplayDC } from './win32-gdi.js';
 
 const states = new WeakMap();
@@ -10,6 +11,9 @@ const GL_EXTENSIONS = [
   'GL_ARB_shading_language_100',
   'GL_ARB_vertex_buffer_object',
   'GL_ARB_vertex_array_object',
+  'GL_ARB_multitexture',
+  'GL_ARB_texture_compression',
+  'GL_EXT_texture_compression_s3tc',
 ];
 const state = (r) => {
   let s = states.get(r);
@@ -273,10 +277,18 @@ for (const [name, count] of [
 
 glAPI('glGetIntegerv', 2, (gl, c, r, a) => {
   const value =
-    { 0x821b: 3, 0x821c: 3, 0x821d: GL_EXTENSIONS.length }[a(0)] ?? gl.getParameter(a(0));
+    {
+      0x821b: 3,
+      0x821c: 3,
+      0x821d: GL_EXTENSIONS.length,
+      0x84e2: a(0) === 0x84e2 ? gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) : 0,
+      0x8871: 8,
+      0x86a2: 4,
+      0x86a3: [0x83f0, 0x83f1, 0x83f2, 0x83f3],
+    }[a(0)] ?? gl.getParameter(a(0));
   const values = ArrayBuffer.isView(value) || Array.isArray(value) ? value : [value];
   if (values.some((v) => typeof v !== 'number' && typeof v !== 'boolean'))
-    throw Error('Unsupported OpenGL object-valued integer query');
+    throw Error('Unsupported OpenGL integer query 0x' + a(0).toString(16));
   bytes(r, a(1), values.length * 4, true);
   values.forEach((v, i) => r.write32(a(1) + i * 4, Number(v)));
 });
@@ -499,3 +511,16 @@ for (const [name, count] of [
     backend(r).draws++;
   });
 }
+
+installGLCompatibility(openglApis, {
+  glAPI,
+  backend,
+  bytes,
+  f32,
+  ok,
+  fail,
+  current,
+  state,
+  thread,
+  writeText,
+});

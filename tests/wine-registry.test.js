@@ -262,6 +262,26 @@ test('NT create requires an existing parent and native RootDirectory handles', (
   );
 });
 
+test('native registry input strings consume Length independently of MaximumLength and accept 32-bit view selectors', () => {
+  const r = runtime();
+  const machine = create(r, '\\Registry\\Machine');
+  assert.equal(create(r, 'Software\\LengthBound', ALL_ACCESS, machine.handle).status, SUCCESS);
+  const attributes = objectAttributes(r, 'Software\\LengthBound', machine.handle);
+  const name = r.read32(attributes + 8);
+  r.view.setUint16(name + 2, 0, true);
+  const output = r.allocate(4);
+  for (const selector of [0, 0x100, 0x200]) {
+    assert.equal(nt(r, 'NtOpenKeyEx', [output, ALL_ACCESS | selector, attributes, 0]), SUCCESS);
+    assert.equal(nt(r, 'NtClose', [r.read32(output)]), SUCCESS);
+  }
+  assert.equal(
+    nt(r, 'NtOpenKeyEx', [output, ALL_ACCESS | 0x300, attributes, 0]),
+    INVALID_PARAMETER,
+  );
+  r.view.setUint16(name, 3, true);
+  assert.equal(nt(r, 'NtOpenKeyEx', [output, ALL_ACCESS, attributes, 0]), INVALID_PARAMETER);
+});
+
 test('native current-user SID and Win32 HKCU share one key tree', () => {
   const r = runtime();
   const nativeUser = r.allocate(4);

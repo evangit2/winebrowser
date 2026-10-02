@@ -1,5 +1,6 @@
 // Pure parsers for the bounded PE32 D3D12 descriptor subset. Callers provide
 // memory accessors so parsing has no COM, allocation, or backend side effects.
+import { BC_FORMATS } from './d3d12-footprint.js';
 const u32 = (read32, pointer, offset = 0) => read32(pointer + offset) >>> 0;
 
 export function parseResourceRange({ check, read32, pointer, size }) {
@@ -334,7 +335,8 @@ export function parseCommittedResourceDescriptor({
       // (ALLOW_RENDER_TARGET plus a clear value, as the descriptor requires).
       const bpp = TEXTURE_FORMAT_BYTES[format];
       const flags = u32(read32, descriptor, 48);
-      if (!bpp || flags & ~1) return null;
+      if ((!bpp && !BC_FORMATS[format]) || flags & ~1) return null;
+      if (BC_FORMATS[format] && flags) return null;
       if (flags & 1) {
         // D3D12 requires a clear value whenever ALLOW_RENDER_TARGET is set,
         // and the resource starts in RENDER_TARGET state when so requested.

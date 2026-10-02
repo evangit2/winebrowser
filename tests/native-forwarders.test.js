@@ -12,6 +12,6 @@ test('native character forwarders require a real KernelBase component instead of
     files: new Map([['characters.exe', bytes]]),
     exe: 'characters.exe',
   });
-  await assert.rejects(runtime.run(), /Missing DLL kernelbase.dll/);
+  await assert.rejects(runtime.run(), /requires the native Wine kernelbase.dll component/);
   assert.equal(runtime.exitCode, null);
 });

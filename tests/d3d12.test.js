@@ -1229,6 +1229,18 @@ test('GetCopyableFootprints lays out buffer and 2D-texture uploads with 256-byte
   assert.equal(r.read32(rowSize), 16, 'texture row size 4*4 bytes');
   assert.equal(r.read32(total), 784);
 
+  // BC1 footprint extents stay in texels; rows and row sizes count 4x4 blocks.
+  r.write32(texture + 16, 9);
+  r.write32(texture + 24, 5);
+  r.write32(texture + 32, 71);
+  await call(dev, 38, texture, 0, 1, 1, 0, layout, rows, rowSize, total);
+  assert.equal(r.read32(layout), 512);
+  assert.equal(r.read32(layout + 12), 9);
+  assert.equal(r.read32(layout + 16), 5);
+  assert.equal(r.read32(rows), 2);
+  assert.equal(r.read32(rowSize), 24);
+  assert.equal(r.read32(total), 280);
+
   // The footprint includes the base offset; the required byte span excludes it.
   assert.equal(
     (await call(dev, 38, buffer, 0, 1, 0x1000, 0, layout, rows, rowSize, total)).result,
@@ -1552,7 +1564,7 @@ test('CopyResource duplicates equal-sized buffers and rejects mismatches', async
   await call(list, 10, allocator, 0);
   await assert.rejects(call(list, 17, other, upload), /equal buffer sizes/);
   await assert.rejects(call(list, 17, target, 0), /Invalid or released ID3D12Resource/);
-  await assert.rejects(call(list, 27, upload), /ExecuteBundle/);
+  await assert.rejects(call(list, 27, upload), /Invalid or released ID3D12GraphicsCommandList/);
   await call(list, 2);
   await call(allocator, 2);
   await call(queue, 2);
@@ -1637,6 +1649,12 @@ test('every COM argc matches the i386 vtable argument count', async () => {
       [16, 6, 'CreateRootSignature(this, node, blob, len, iid, out)'],
     ],
     listMethods: [
+      ...[31, 32].map((slot) => [slot, 4, 'RootDescriptorTable(this, index, handle64)']),
+      ...[37, 38, 39, 40, 41, 42].map((slot) => [
+        slot,
+        4,
+        'RootDescriptor(this, index, address64)',
+      ]),
       [11, 2, 'ClearState(this, pipeline)'],
       [55, 5, 'SetPredication(this, buffer, offset64, op)'],
       [56, 4, 'SetMarker(this, metadata, data, size)'],
@@ -1669,6 +1687,51 @@ test('every COM argc matches the i386 vtable argument count', async () => {
       assert.equal(Number(entry[1]), want, `${fn} slot ${slot}: ${message}`);
     }
   }
+});
+
+test('closed bundles inherit attachments and unchanged root bindings and propagate their graphics state', async () => {
+  const f = fixture(),
+    { runtime: r, alloc, call, create, api, guid } = f;
+  const out = alloc();
+  await api('d3d12.dll!D3D12CreateDevice', 0, 0xb000, guid(IID.device), out);
+  const dev = r.read32(out);
+  const allocator = await create(dev, 9, [0], 'allocator');
+  const list = await create(dev, 12, [0, 0, allocator, 0], 'list');
+  const bundleAllocator = await create(dev, 9, [1], 'allocator');
+  const bundle = await create(dev, 12, [0, 1, bundleAllocator, 0], 'list');
+  const raw = alloc(8);
+  r.data.set([0x44, 0x58, 0x42, 0x43, 1, 0, 0, 0], raw);
+  const rootPointer = await create(dev, 16, [0, raw, 8], 'root');
+  const root = r.comObjects.objects.get(rootPointer);
+  const direct = r.comObjects.objects.get(list).state;
+  const target = { pointer: 0x2222 };
+  const viewport = { x: 0, y: 0, width: 640, height: 480, minDepth: 0, maxDepth: 1 };
+  Object.assign(direct, {
+    pipeline: { pointer: 0x3333, state: { root, inputLayout: [], depth: null } },
+    root,
+    target,
+    viewport,
+    scissor: { left: 0, top: 0, right: 640, bottom: 480 },
+  });
+  direct.roots.set(7, { kind: 'constants', values: [123] });
+  await call(bundle, 30, rootPointer);
+  await call(bundle, 20, 4);
+  await call(bundle, 12, 3, 1, 0, 0);
+  await assert.rejects(call(list, 27, bundle), /closed bundle/);
+  await assert.rejects(call(bundle, 21, 1, alloc(24)), /bundle method RSSetViewports/);
+  await assert.rejects(call(bundle, 27, list), /bundle method ExecuteBundle/);
+  await call(bundle, 9);
+  await call(list, 27, bundle);
+  const [draw] = direct.commands;
+  assert.equal(draw.target, target.pointer);
+  assert.deepEqual(draw.viewport, viewport);
+  assert.equal(draw.vertexCount, 3);
+  assert.equal(direct.topology, 4);
+  assert.equal(direct.roots.get(7).values[0], 123, 'same signature preserves inherited bindings');
+  await call(list, 27, bundle);
+  assert.equal(direct.commands.length, 2, 'a closed bundle is reusable');
+  await assert.rejects(call(list, 27, list), /closed bundle/);
+  await assert.rejects(call(bundle, 12, 3, 1, 0, 0), /closed/);
 });
 
 test('heap-backed placed resources and command signatures resolve through the device', async () => {

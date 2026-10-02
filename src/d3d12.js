@@ -1,6 +1,7 @@
 import { privateDataMethods, releasePrivateData } from './d3d-private-data.js';
 import { pipelineStreamDescriptor } from './d3d12-pipeline-stream.js';
 import { dxgiDebugApis } from './dxgi-debug.js';
+import { BC_FORMATS, textureRows } from './d3d12-footprint.js';
 // Bounded PE32 D3D12/DXGI bootstrap. Slot order and struct offsets are from
 // i686-w64-mingw32 d3d12.h/dxgi.h (MinGW-w64 14.0.0).
 import { ComObjects, readGuid } from './com.js';
@@ -47,7 +48,13 @@ const TEXTURE_STATES = new Set([0, 0x400, 0x40, 0x80]);
 // are accepted, since a post-process may sample the result from either stage.
 const RENDER_TEXTURE_STATES = new Set([0, 4, 0x40, 0x80]);
 // DXGI_FORMAT -> WebGPU format for the sampled textures this path uploads.
-const WEBGPU_FORMAT = { 28: 'rgba8unorm', 87: 'bgra8unorm', 49: 'r16unorm', 61: 'r8unorm' };
+const WEBGPU_FORMAT = {
+  28: 'rgba8unorm',
+  87: 'bgra8unorm',
+  49: 'r16unorm',
+  61: 'r8unorm',
+  ...Object.fromEntries(Object.entries(BC_FORMATS).map(([id, bc]) => [id, bc.format])),
+};
 // DXGI depth formats and the WebGPU format each maps to. D24_UNORM_S8_UINT has
 // no WebGPU counterpart with the same precision, so it becomes the combined
 // 24-bit depth + 8-bit stencil attachment WebGPU does guarantee.
@@ -85,6 +92,9 @@ const FMT_BUFFER = 0x1,
   FMT_BLEND = 0x8000,
   FMT_DEPTH = 0x10000;
 const FORMAT_SUPPORT = {
+  ...Object.fromEntries(
+    Object.keys(BC_FORMATS).map((id) => [id, FMT_TEX2D | FMT_LOAD | FMT_SAMPLE]),
+  ),
   2: FMT_BUFFER | FMT_VERTEX | FMT_TEX2D | FMT_LOAD, // R32G32B32A32_FLOAT
   6: FMT_BUFFER | FMT_VERTEX | FMT_TEX2D | FMT_LOAD, // R32G32B32_FLOAT
   28: FMT_TEX2D | FMT_LOAD | FMT_SAMPLE | FMT_RT | FMT_BLEND, // R8G8B8A8_UNORM
@@ -457,7 +467,8 @@ function descriptorTableEntry(r, o, entry, heapSlot) {
     throw Error('D3D12 descriptor table range exceeds the bound heap');
   const descriptor = state(r).descriptors.get(base);
   if (!descriptor || !descriptor.heap.refs) throw Error('D3D12 descriptor table slot is empty');
-  if (!descriptor.resource) throw Error('D3D12 descriptor table slot has no resource');
+  if (descriptor.kind !== 'sampler' && !descriptor.resource)
+    throw Error('D3D12 descriptor table slot has no resource');
   return descriptor;
 }
 
@@ -553,6 +564,7 @@ function dynamicSamplerDescription(bytes) {
 // Records a root descriptor binding (CBV/SRV/UAV) from a guest GPU virtual
 // address, resolving it to the buffer whose storage contains that address.
 function setRootDescriptor(r, a, o, kind) {
+  if (number(a(3))) throw Error('Unsupported 64-bit D3D12 root descriptor address');
   const index = number(a(1)),
     address = number(a(2));
   const root = o.state.root;
@@ -575,7 +587,7 @@ function setRootDescriptor(r, a, o, kind) {
 // accepted.
 function textureCopyLocation(r, o, pointer) {
   if (!pointer) throw Error('D3D12 CopyTextureRegion location is null');
-  r.check(pointer, 32);
+  r.check(pointer, 36);
   const resource = object(r, u32(r, pointer), 'resource', o.state.device);
   const type = u32(r, pointer, 4);
   if (type === 0) {
@@ -607,23 +619,33 @@ function textureCopyLocation(r, o, pointer) {
 // The placed texture footprint for a 2D copy: the source buffer supplies the
 // row pitch, which GetCopyableFootprints computed with 256-byte alignment.
 function textureFootprint(texture, rowPitch) {
-  const bytesPerPixel = TEXTURE_FORMAT_BYTES[texture.format];
-  if (!bytesPerPixel || !texture.width || !texture.height)
-    throw Error('Unsupported D3D12 texture footprint');
-  const rowSize = texture.width * bytesPerPixel;
+  const { rowSize, rowCount } = textureRows(
+    texture.format,
+    texture.width,
+    texture.height,
+    TEXTURE_FORMAT_BYTES[texture.format],
+  );
   if (rowPitch < rowSize || rowPitch % 4)
     throw Error('Unsupported D3D12 texture footprint row pitch');
   return {
     width: texture.width,
     height: texture.height,
     rowSize,
+    rowCount,
     bytesPerRow: rowPitch,
-    totalBytes: rowPitch * texture.height,
+    totalBytes: rowPitch * (rowCount - 1) + rowSize,
   };
 }
 
 function recordDraw(r, a, o, indexed) {
   const s = o.state;
+  if (s.type === 1) {
+    // Bundle geometry and bindings are read when the direct list executes the
+    // bundle, after its caller has supplied attachments and updated buffers.
+    const args = Array.from({ length: indexed ? 6 : 5 }, (_, i) => a(i));
+    add(o, { type: 'bundle-draw', indexed, args });
+    return undefined;
+  }
   if (s.type) throw Error('D3D12 graphics draw requires a direct command list');
   const count = number(a(1)),
     instances = number(a(2)),
@@ -676,7 +698,16 @@ function recordDraw(r, a, o, indexed) {
   // enabled requires a bound depth resource.
   if (!!(pipeline.depth && pipeline.depth.testEnabled) !== !!s.depthTarget)
     throw Error('D3D12 pipeline depth state does not match bound target');
-  const snapshotBytes = (vertexView?.size ?? 0) + (indexView?.size ?? 0);
+  s.viewSnapshots ??= new Set();
+  let snapshotBytes = 0;
+  for (const view of [vertexView, indexView]) {
+    if (!view) continue;
+    const key = `${view.address}:${view.size}`;
+    if (!s.viewSnapshots.has(key)) {
+      s.viewSnapshots.add(key);
+      snapshotBytes += view.size;
+    }
+  }
   if (s.vertexBytes + snapshotBytes > MAX_RESOURCE_BYTES)
     throw Error('D3D12 command list upload snapshot limit exceeded');
   // Resolve each canonical binding the pipeline's shaders declare against what
@@ -754,6 +785,8 @@ function listMethods() {
         o.state.roots = new Map();
         o.state.commands = [];
         o.state.vertexBytes = 0;
+        o.state.viewSnapshots = new Set();
+        o.state.initialPipeline = p;
         o.state.closed = false;
         alloc.state.inUse = true;
         return S_OK;
@@ -931,12 +964,40 @@ function listMethods() {
         return undefined;
       },
     },
-    // ExecuteBundle(ID3D12GraphicsCommandList *pCommandList): bundles are not
-    // supported; the empty form still fails explicitly.
+    // Replay the recorded state operations into the caller. Attachments,
+    // viewport and scissor are inherited; modified state remains in the caller.
     27: {
       argc: 2,
-      invoke(r, a) {
-        if (number(a(1))) throw Error('Unsupported D3D12 ExecuteBundle');
+      invoke(r, a, o) {
+        if (o.state.type) throw Error('D3D12 bundles require a direct caller');
+        const bundle = object(r, a(1), 'list', o.state.device);
+        if (bundle.state.type !== 1 || !bundle.state.closed)
+          throw Error('D3D12 ExecuteBundle requires a closed bundle');
+        if (bundle.state.initialPipeline)
+          o.state.pipeline = object(
+            r,
+            bundle.state.initialPipeline.pointer,
+            'pipeline',
+            o.state.device,
+          );
+        for (const command of bundle.state.commands) {
+          if (command.type === 'bundle-draw') {
+            recordDraw(r, (i) => command.args[i], o, command.indexed);
+          } else if (command.type === 'bundle-root') {
+            if (o.state.root !== command.value) o.state.roots = new Map();
+            o.state.root = command.value;
+          } else if (command.type === 'bundle-binding') {
+            o.state.roots.set(command.index, cloneRootBinding(command.value));
+          } else if (command.type === 'bundle-state') {
+            if (
+              command.field === 'descriptorHeaps' &&
+              (command.value.length !== o.state.descriptorHeaps.length ||
+                command.value.some((heap) => !o.state.descriptorHeaps.includes(heap)))
+            )
+              throw Error('D3D12 bundle descriptor heaps differ from its caller');
+            o.state[command.field] = command.value;
+          } else throw Error('Unsupported D3D12 bundle command');
+        }
         return undefined;
       },
     },
@@ -966,10 +1027,11 @@ function listMethods() {
     30: {
       argc: 2,
       invoke(r, a, o) {
-        o.state.root = object(r, a(1), 'root', o.state.device);
+        const root = object(r, a(1), 'root', o.state.device);
         // Root bindings belong to the signature they were set against; a new
         // signature starts with none, matching the D3D12 contract.
-        o.state.roots = new Map();
+        if (o.state.root !== root) o.state.roots = new Map();
+        o.state.root = root;
         return undefined;
       },
     },
@@ -984,8 +1046,9 @@ function listMethods() {
       },
     },
     31: {
-      argc: 3,
+      argc: 4,
       invoke(r, a, o) {
+        if (number(a(3))) throw Error('Unsupported 64-bit D3D12 descriptor handle');
         const index = number(a(1)),
           handle = number(a(2));
         const root = o.state.root;
@@ -1038,23 +1101,24 @@ function listMethods() {
       },
     },
     37: {
-      argc: 3,
+      argc: 4,
       invoke: (r, a, o) => setRootDescriptor(r, a, o, 'cbv'),
     },
     39: {
-      argc: 3,
+      argc: 4,
       invoke: (r, a, o) => setRootDescriptor(r, a, o, 'srv'),
     },
     41: {
-      argc: 3,
+      argc: 4,
       invoke: (r, a, o) => setRootDescriptor(r, a, o, 'uav'),
     },
     // SetGraphicsRootDescriptorTable(RootParameterIndex, BaseDescriptor): records
     // an offset into the currently bound descriptor heap. The handle is a guest
     // address of a 4-byte slot, so the slot index is derived from the heap base.
     32: {
-      argc: 3,
+      argc: 4,
       invoke(r, a, o) {
+        if (number(a(3))) throw Error('Unsupported 64-bit D3D12 descriptor handle');
         const index = number(a(1)),
           handle = number(a(2));
         const root = o.state.root;
@@ -1070,15 +1134,15 @@ function listMethods() {
     // take a GPU virtual address, which is the guest storage of an upload or
     // default-heap buffer.
     38: {
-      argc: 3,
+      argc: 4,
       invoke: (r, a, o) => setRootDescriptor(r, a, o, 'cbv'),
     },
     40: {
-      argc: 3,
+      argc: 4,
       invoke: (r, a, o) => setRootDescriptor(r, a, o, 'srv'),
     },
     42: {
-      argc: 3,
+      argc: 4,
       invoke: (r, a, o) => setRootDescriptor(r, a, o, 'uav'),
     },
     // SetGraphicsRoot32BitConstant(s)(RootParameterIndex, Value(s), DestOffset).
@@ -1432,10 +1496,35 @@ function listMethods() {
     const invoke = method.invoke;
     method.invoke = (r, a, o) => {
       if (o.state.closed) throw Error('D3D12 command list is closed');
-      return invoke(r, a, o);
+      if (o.state.type !== 1) return invoke(r, a, o);
+      const field = {
+        20: 'topology',
+        25: 'pipeline',
+        28: 'descriptorHeaps',
+        43: 'indexBuffer',
+        44: 'vertexBuffer',
+      }[slot];
+      const binding = [32, 34, 36, 38, 40, 42].includes(Number(slot));
+      if (!field && !binding && ![12, 13, 30, 56, 57, 58].includes(Number(slot)))
+        throw Error(`Unsupported D3D12 bundle method ${names.list.split(' ')[slot]}`);
+      const result = invoke(r, a, o);
+      if (field) add(o, { type: 'bundle-state', field, value: o.state[field] });
+      else if (slot === '30') add(o, { type: 'bundle-root', value: o.state.root });
+      else if (binding) {
+        const index = number(a(1));
+        add(o, {
+          type: 'bundle-binding',
+          index,
+          value: cloneRootBinding(o.state.roots.get(index)),
+        });
+      }
+      return result;
     };
   }
   return methods;
+}
+function cloneRootBinding(binding) {
+  return { ...binding, ...(binding.values ? { values: [...binding.values] } : {}) };
 }
 function pipelineMethods() {
   return {
@@ -1803,7 +1892,7 @@ function deviceMethods() {
       'allocator',
       4,
       (_r, a) =>
-        [0, 2, 3].includes(number(a(1))) ? { type: number(a(1)), inUse: false } : E_INVALIDARG,
+        [0, 1, 2, 3].includes(number(a(1))) ? { type: number(a(1)), inUse: false } : E_INVALIDARG,
       {
         8: {
           argc: 1,
@@ -1881,7 +1970,7 @@ function deviceMethods() {
         const p = a(4) ? object(r, a(4), 'pipeline', dev) : null;
         if (
           number(a(1)) !== 0 ||
-          ![0, 2, 3].includes(number(a(2))) ||
+          ![0, 1, 2, 3].includes(number(a(2))) ||
           alloc.state.type !== number(a(2)) ||
           alloc.state.inUse
         )
@@ -1895,6 +1984,7 @@ function deviceMethods() {
             allocator: alloc,
             type: number(a(2)),
             pipeline: p,
+            initialPipeline: p,
             root: null,
             target: null,
             depthTarget: null,
@@ -2478,9 +2568,10 @@ function deviceMethods() {
           pieces.push({ width, height: 1, rowPitch: align256(width), rowSize: width });
         } else if (dimension === 3) {
           const bpp = TEXTURE_FORMAT_BYTES[format];
-          if (!bpp || !width || !height || count !== 1) return E_INVALIDARG;
-          const rowSize = width * bpp;
-          pieces.push({ width, height, rowPitch: align256(rowSize), rowSize });
+          if ((!bpp && !BC_FORMATS[format]) || !width || !height || count !== 1)
+            return E_INVALIDARG;
+          const { rowSize, rowCount } = textureRows(format, width, height, bpp);
+          pieces.push({ width, height, rowCount, rowPitch: align256(rowSize), rowSize });
         } else return E_INVALIDARG;
         let offset = Math.ceil(offsetLow / 512) * 512;
         const firstOffset = offset;
@@ -2495,14 +2586,14 @@ function deviceMethods() {
             r.write32(layouts + i * 32 + 20, 1);
             r.write32(layouts + i * 32 + 24, piece.rowPitch);
           }
-          if (rowCountOut) r.write32(rowCountOut + i * 4, piece.height);
+          if (rowCountOut) r.write32(rowCountOut + i * 4, piece.rowCount ?? piece.height);
           if (rowSizeOut) {
             r.write32(rowSizeOut + i * 8, piece.rowSize);
             r.write32(rowSizeOut + i * 8 + 4, 0);
           }
           // The last row needs no padding. UpdateSubresources compares this
           // span with the upload buffer size; rounding it up skips valid copies.
-          offset += piece.rowPitch * (piece.height - 1) + piece.rowSize;
+          offset += piece.rowPitch * ((piece.rowCount ?? piece.height) - 1) + piece.rowSize;
         }
         if (totalOut) {
           r.write32(totalOut, offset - firstOffset);
@@ -2861,6 +2952,17 @@ function queueMethods() {
         const states = new Map();
         const commands = [];
         let vertexBytes = 0;
+        const snapshots = new Map();
+        const snapshot = (view) => {
+          const key = `${view.address}:${view.size}`;
+          if (!snapshots.has(key)) {
+            vertexBytes += view.size;
+            if (vertexBytes > MAX_RESOURCE_BYTES)
+              throw Error('D3D12 upload snapshot limit exceeded');
+            snapshots.set(key, r.data.slice(view.address, view.address + view.size));
+          }
+          return snapshots.get(key);
+        };
         for (const l of lists)
           for (const c of l.state.commands) {
             if (c.type === 'barrier') {
@@ -2914,6 +3016,8 @@ function queueMethods() {
               const from = src.state.storage + c.srcOffset;
               const to = dst.state.storage + c.dstOffset;
               r.data.copyWithin(to, from, from + c.size);
+              // A subsequent draw must see copies made earlier in this batch.
+              snapshots.clear();
             } else if (c.type === 'query-begin' || c.type === 'query-end') {
               // A TIMESTAMP query samples the monotonic guest clock; an
               // OCCLUSION pair counts as a fully-visible pass.
@@ -2950,9 +3054,6 @@ function queueMethods() {
                   object(r, c.vertexView.resource.pointer, 'resource', q.state.device);
                 if (c.indexView)
                   object(r, c.indexView.resource.pointer, 'resource', q.state.device);
-                vertexBytes += (c.vertexView?.size ?? 0) + (c.indexView?.size ?? 0);
-                if (vertexBytes > MAX_RESOURCE_BYTES)
-                  throw Error('D3D12 upload snapshot limit exceeded');
               }
               if (res.state.kind !== 'color' && res.state.kind !== 'render-texture')
                 throw Error('D3D12 render target must be a swapchain image or a render texture');
@@ -2961,15 +3062,10 @@ function queueMethods() {
               if (c.type === 'draw') {
                 const delivered = {
                   ...c,
-                  vertices: c.vertexView
-                    ? r.data.slice(c.vertexView.address, c.vertexView.address + c.vertexView.size)
-                    : new Uint8Array(0),
+                  vertices: c.vertexView ? snapshot(c.vertexView) : new Uint8Array(0),
                 };
                 if (c.indexView) {
-                  delivered.indices = r.data.slice(
-                    c.indexView.address,
-                    c.indexView.address + c.indexView.size,
-                  );
+                  delivered.indices = snapshot(c.indexView);
                   validateIndexSnapshot(
                     delivered,
                     c.vertexStride ? delivered.vertices.length / c.vertexStride : null,

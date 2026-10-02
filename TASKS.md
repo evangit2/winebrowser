@@ -711,3 +711,18 @@ This does not establish x64 or arbitrary Vulkan-program compatibility.
 
 - Added shared services for the imports reported by the ATI Treasure Chest installer. The authored native installer-service client passes in the browser; see [installer scope](docs/installer-runtime.md). Keep exact ATI installer installation/rendering acceptance open.
 - Humus Dynamic Branching and RollerCoaster both rendered on the live Pages site in ordinary headed Chromium 153, with no unsafe WebGPU flags. Startup is still approximately 90–120 seconds. First x87 dispatch optimization removes repeated initialization awaits; few-second startup is not achieved.
+
+## Microsoft DX12 city checkpoint (October 2)
+
+The unchanged MIT D3D12Bundles scene now runs as a native x86 build: 30 BC1-textured
+city meshes, 186,420 triangles/frame, two pixel shaders, D32 depth and three
+reusable bundles. Ordinary Chrome verifies ZIP upload, EXE/assets upload and the
+hosted example, camera movement/turn/reset and exit 0. The full 138-import EXE
+closure and five native DLLs' 1,509 transitive import providers are audited.
+See `docs/microsoft-dx12-city.md` and `npm run test:dx12-city`.
+
+The runtime fixes include bundle state inheritance/replay, BC block footprints,
+shared geometry snapshots, 64-bit root-handle x86 stack arities, APPEND descriptor
+offsets, sampler tables/filter bits and unused shader input elements. Native
+standalone source build reproduces the packaged EXE. General x64/compute/DXIL
+programs and arbitrary library exports remain unverified.

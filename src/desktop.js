@@ -748,6 +748,7 @@ export class VirtualDesktop {
     graphicsApi,
     graphicsFrames,
     graphicsDraws,
+    graphicsModelView,
   }) {
     const window = this.windows.get(windowId);
     if (
@@ -778,6 +779,8 @@ export class VirtualDesktop {
         // distinguish "nothing was drawn" from "everything was cleared".
         if (graphicsDraws !== undefined)
           window.canvas.dataset.graphicsDraws = String(graphicsDraws);
+        if (graphicsModelView)
+          window.canvas.dataset.graphicsModelView = JSON.stringify(graphicsModelView);
         return true;
       } finally {
         bitmap.close();

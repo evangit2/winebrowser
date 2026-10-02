@@ -1,0 +1,109 @@
+{
+  "url": "https://humus.name/3D/RaytracedShadows.zip",
+  "archiveSha256": "126b68f89cddb8cefa41f3fe3ba74b64bbbf5a2ef2c402bbe659042295773b08",
+  "exeSha256": "3f1d94477ed652d91ead86196d48c9b595bd83713420cd5fd5cf482810668449",
+  "exeEntry": "RaytracedShadows/RaytracedShadows.exe",
+  "files": [
+    {
+      "path": "RaytracedShadows/Main.cpp",
+      "bytes": 13169,
+      "sha256": "f44c454be488b9b39f5f6728ec2c7abf17ab6862545261765dd986d859e74d37"
+    },
+    {
+      "path": "RaytracedShadows/Main.h",
+      "bytes": 1009,
+      "sha256": "4a99a0c388f07a496422efe97a5d7f5845daa317a455075bfb39841ade35e242"
+    },
+    {
+      "path": "RaytracedShadows/Makefile",
+      "bytes": 1181,
+      "sha256": "9630aab525eada42c3c910907452330495257f36758df9e2ceb57f978cf6e070"
+    },
+    {
+      "path": "RaytracedShadows/RaytracedShadows.dsp",
+      "bytes": 7496,
+      "sha256": "73aecd3aa59819b07d576701167412da4daa999f1ccf0d721b04810831b2d89c"
+    },
+    {
+      "path": "RaytracedShadows/RaytracedShadows.dsw",
+      "bytes": 555,
+      "sha256": "f7328221ab1a4acd6855f03533d730447f5b89aebc5f14c45f31f3c963d3f246"
+    },
+    {
+      "path": "RaytracedShadows/RaytracedShadows.exe",
+      "bytes": 331776,
+      "sha256": "3f1d94477ed652d91ead86196d48c9b595bd83713420cd5fd5cf482810668449"
+    },
+    {
+      "path": "RaytracedShadows/room.shd",
+      "bytes": 850,
+      "sha256": "bf143168467d541f2f8657bf6ae6da4229edb08f60162b449f421644bd15fd49"
+    },
+    {
+      "path": "RaytracedShadows/roomAmbient.shd",
+      "bytes": 347,
+      "sha256": "02dffd88081817da0718ed3e37cb4570c3e33f64ecfae41b6b619144232218f9"
+    },
+    {
+      "path": "RaytracedShadows/shadow.shd",
+      "bytes": 971,
+      "sha256": "c2cbf69c398a691b9012907b6b0c7bc78d24a286483b8137e3d18787c92e6eaa"
+    },
+    {
+      "path": "RaytracedShadows/sphere.shd",
+      "bytes": 808,
+      "sha256": "786e954bca77acce6020fb0618869169d3e3ec1bbf24e79f25bf90e4939f0b8f"
+    },
+    {
+      "path": "RaytracedShadows/sphereAmbient.shd",
+      "bytes": 558,
+      "sha256": "5da7f02c4366c9dad146b13c21f56b0ca3a2a018ce48b54c8ab28218534fec66"
+    },
+    {
+      "path": "readme.txt",
+      "bytes": 1101,
+      "sha256": "56dd528b14422b1bb9e1cfe27197aeb2330647f2181118bd864f8d436438204d"
+    },
+    {
+      "path": "Textures/Fonts/Future.dds",
+      "bytes": 349680,
+      "sha256": "9b7f4ea36194f5ab48e38b33dc8039a8aab0ce905d541aa6dee1ed5f30de2022"
+    },
+    {
+      "path": "Textures/Fonts/Future.font",
+      "bytes": 5124,
+      "sha256": "878c2b3e5fa5961d0f3eacb564901e0e91dc185c834e48e01e4803f8cda1a2e3"
+    },
+    {
+      "path": "Textures/StoneWall_1-2.dds",
+      "bytes": 174904,
+      "sha256": "56ec4536fc7e3a9fa3f17599bd46549642455d307e1e685b260a4c9af6398086"
+    },
+    {
+      "path": "Textures/StoneWall_1-2Bump.png",
+      "bytes": 147199,
+      "sha256": "71ec9fb164eb22b6adab025987fbdbbe1e1e9ad25b62c2687cbbddc00f258cb4"
+    },
+    {
+      "path": "Textures/synbr01.dds",
+      "bytes": 174904,
+      "sha256": "e0f31b1019b111e76bb2ab3e5ac1f891ecc12bd87e4914a706dfaedef5302470"
+    },
+    {
+      "path": "Textures/synbr01Bump.png",
+      "bytes": 77052,
+      "sha256": "19713457a4c8a9e9f0388bb1e6fe742e07ad3187bf81dcc23f526cca26d8b81c"
+    },
+    {
+      "path": "Textures/Tx_imp_wall_01Bump.png",
+      "bytes": 120288,
+      "sha256": "d11bcdda3fcd767ef5665f30a1ebafb413b61391ae38369bad1b4a73b23e78f6"
+    },
+    {
+      "path": "Textures/Tx_imp_wall_01_small.dds",
+      "bytes": 174904,
+      "sha256": "1e91302c1beba282d1658efb95df379eaf131d98250e92ce9c9ea3da85dc3fac"
+    }
+  ],
+  "note": "Unchanged original archive, EXE, shaders and assets; freeware terms retained."
+}

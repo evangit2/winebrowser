@@ -173,6 +173,27 @@ function setValue(runtime, handle, name, type, bytes) {
   ]);
 }
 
+test('process-owned keys grant KEY_ALL_ACCESS consistently with native NT registry handles', () => {
+  const r = fakeRuntime();
+  const created = createKey(r, 'Software\\FullAccess', 0xf003f);
+  assert.equal(created.status, ERROR_SUCCESS);
+  assert.equal(
+    setValue(r, created.handle, 'Data', REG_DWORD, Uint8Array.of(1, 2, 3, 4)),
+    ERROR_SUCCESS,
+  );
+  assert.equal(call(r, 'RegCloseKey', [created.handle]), ERROR_SUCCESS);
+  const opened = openKey(r, 'Software\\FullAccess', 0xf003f);
+  assert.equal(opened.status, ERROR_SUCCESS);
+  r.write32(0x2400, 4);
+  assert.equal(
+    call(r, 'RegQueryValueExW', [opened.handle, r.wide('Data'), 0, 0x2404, 0x2410, 0x2400]),
+    ERROR_SUCCESS,
+  );
+  assert.deepEqual([...r.data.slice(0x2410, 0x2414)], [1, 2, 3, 4]);
+  assert.equal(createKey(r, 'Software\\InvalidAccess', 0x40).status, ERROR_INVALID_PARAMETER);
+  assert.equal(call(r, 'RegCloseKey', [opened.handle]), ERROR_SUCCESS);
+});
+
 test('RegCreateKeyExW, RegOpenKeyExW and RegCloseKey retain process-local case-insensitive keys', () => {
   const runtime = fakeRuntime();
   assert.deepEqual(createKey(runtime, 'Software\\Tetris'), {
@@ -539,7 +560,12 @@ test('registry operations enforce requested access and reject unsupported flags'
     0x20019 | 0x200,
     0x2010,
   ]);
-  assert.equal(unsupported, ERROR_INVALID_PARAMETER, 'WOW64 view flags are explicitly unsupported');
+  assert.equal(unsupported, ERROR_SUCCESS, '32-bit Windows ignores a single WOW64 view selector');
+  assert.equal(call(runtime, 'RegCloseKey', [runtime.read32(0x2010)]), ERROR_SUCCESS);
+  assert.equal(
+    call(runtime, 'RegOpenKeyExW', [HKCU, runtime.wide('Software'), 0, KEY_READ | 0x300, 0x2010]),
+    ERROR_INVALID_PARAMETER,
+  );
   assert.equal(
     call(runtime, 'RegOpenKeyExW', [HKCU, runtime.wide('Software'), 1, KEY_READ, 0x2010]),
     ERROR_INVALID_PARAMETER,

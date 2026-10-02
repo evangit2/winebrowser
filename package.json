@@ -184,6 +184,8 @@
     "test:learning-dx12": "node scripts/test-learning-dx12-cube-browser.mjs",
     "fetch:opengl": "python3 scripts/fetch-opengl-demo.py",
     "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs",
+    "package:raytraced-shadows": "python3 scripts/package-humus-raytraced-shadows.py",
+    "test:raytraced-shadows": "node scripts/test-raytraced-shadows-browser.mjs",
     "build:installer-apis": "sh scripts/build-installer-apis.sh",
     "test:installer-apis": "node scripts/test-installer-apis-browser.mjs",
     "benchmark:x87-dispatch": "node scripts/benchmark-x87-dispatch.mjs",
@@ -193,7 +195,11 @@
     "test:water": "node scripts/test-water-browser.mjs",
     "test:rgba16-backend": "node scripts/test-rgba16-backend.mjs",
     "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs",
-    "build:vulkan-compute": "sh scripts/build-vulkan-compute.sh"
+    "build:vulkan-compute": "sh scripts/build-vulkan-compute.sh",
+    "build:api-sets": "sh scripts/build-api-set-fixtures.sh",
+    "test:api-sets": "node scripts/test-api-sets-browser.mjs",
+    "build:dx12-city": "python3 scripts/build-microsoft-dx12-city.py",
+    "test:dx12-city": "node scripts/test-microsoft-dx12-city-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

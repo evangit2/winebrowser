@@ -2,6 +2,17 @@
   "format": 1,
   "interactive": [
     {
+      "name": "microsoft-dx12-city",
+      "description": "Microsoft DirectX 12 city demo: 30 textured city meshes and a movable camera. WASD moves, arrows turn, Escape resets. Native x86 build from unchanged MIT source; close the window to exit.",
+      "exe": "microsoft-dx12-city/D3D12Bundles.exe",
+      "exeSha256": "3bd477ccddbe9a50aa07db1b7408d901188a2d90391b3cde135f1ab0084ba524",
+      "zip": "microsoft-dx12-city/D3D12City-x86.zip",
+      "zipSha256": "328b2eaa5c0ea2b8401377dd7e8fa2b2912dc962e17f6f9aa449aad215709ee2",
+      "sourceZip": "microsoft-dx12-city/source.zip",
+      "sourceZipSha256": "3137f167323ebc32df208613c058542cf875c77f126f744d2d71ad91e92f18ab",
+      "provenance": "MIT, Microsoft DirectX-Graphics-Samples revision be8195fc324c97c6550b710ace15e18b560c07c8. Unchanged native C++, original OCC city mesh and BC1 texture, original HLSL compiled to SM5 DXBC."
+    },
+    {
       "name": "humus-dynamic-branching",
       "description": "Unchanged Humus \"Dynamic Branching\" Direct3D 9 demo: a stencil-shadow pillar room with programmable shaders and DXT textures. F1 opens settings.",
       "exe": "humus-dynamic-branching/DynamicBranching.exe",
@@ -18,6 +29,15 @@
       "zip": "humus-instancing/Instancing.zip",
       "zipSha256": "9c74c3a787a1320e9cd7e7f708ff923f4a83be5a6e1dc93b80763c3c398e61f7",
       "provenance": "Freeware by Emil Persson (Humus); redistribution permitted with readme included. Original archive, executable and shaders."
+    },
+    {
+      "name": "humus-raytraced-shadows",
+      "description": "Unchanged freeware Humus OpenGL tech demo: bump-mapped room, seven bouncing spheres, moving light and raytraced soft shadows. W/S or arrows move; F1 opens settings.",
+      "exe": "humus-raytraced-shadows/RaytracedShadows.exe",
+      "exeSha256": "3f1d94477ed652d91ead86196d48c9b595bd83713420cd5fd5cf482810668449",
+      "zip": "humus-raytraced-shadows/RaytracedShadows.zip",
+      "zipSha256": "126b68f89cddb8cefa41f3fe3ba74b64bbbf5a2ef2c402bbe659042295773b08",
+      "provenance": "Emil Persson (Humus). Original freeware archive, retained readme permits redistribution; no binary or shader patching."
     },
     {
       "name": "humus-rollercoaster",
