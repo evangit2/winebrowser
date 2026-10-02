@@ -41,6 +41,7 @@ export function device8Methods(methods9, names9) {
     'SetRenderState',
     'GetRenderState',
     'DrawPrimitiveUP',
+    'DrawIndexedPrimitiveUP',
     'CreateVertexBuffer',
     'CreateIndexBuffer',
     'DrawPrimitive',

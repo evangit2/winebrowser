@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { d3d9Apis } from '../src/d3d9.js';
 
 function fixture(version = 9) {
@@ -886,7 +887,7 @@ for (const version of [8, 9]) {
     for (const index of [17, 18, 47]) assert.equal(runtime.read32(p + index * 4), 0);
     // The programmable path compiles VS 1.1 and PS 2.0, so those versions are
     // advertised while other shader models stay unadvertised.
-    assert.equal(runtime.read32(p + 49 * 4), 0xfffe0101);
+    assert.equal(runtime.read32(p + 49 * 4), version === 9 ? 0xfffe0200 : 0xfffe0101);
     assert.equal(runtime.read32(p + 50 * 4), 256);
     assert.equal(runtime.read32(p + 51 * 4), 0xffff0200);
     assert.equal(runtime.read32(p + 15 * 4), 0x4005);
@@ -1886,3 +1887,84 @@ for (const version of [8, 9])
       0x8876086c,
     );
   });
+
+for (const version of [8, 9])
+  test(`D3D${version} indexed user-memory draws validate the window and snapshot both index widths`, async () => {
+    const { runtime: r, create, call, events } = fixture(version);
+    const device = await create(),
+      vertices = r.allocate(64),
+      indices = r.allocate(12);
+    const setFvf = version === 8 ? 76 : 89,
+      begin = version === 8 ? 34 : 41,
+      end = version === 8 ? 35 : 42,
+      draw = version === 8 ? 73 : 84,
+      present = version === 8 ? 15 : 17;
+    const data = new DataView(r.data.buffer);
+    for (let i = 0; i < 4; i++) {
+      data.setFloat32(vertices + i * 16, i, true);
+      data.setFloat32(vertices + i * 16 + 4, 0, true);
+      data.setFloat32(vertices + i * 16 + 8, 0.5, true);
+      data.setUint32(vertices + i * 16 + 12, 0xffffffff, true);
+    }
+    await call(device, setFvf, 0x42);
+    await call(device, begin);
+    for (const format of [101, 102]) {
+      for (let i = 0; i < 3; i++)
+        if (format === 101) data.setUint16(indices + i * 2, [3, 1, 2][i], true);
+        else data.setUint32(indices + i * 4, [3, 1, 2][i], true);
+      assert.equal((await call(device, draw, 4, 1, 3, 1, indices, format, vertices, 16)).result, 0);
+      assert.equal(
+        (await call(device, draw, 4, 1, 2, 1, indices, format, vertices, 16)).result,
+        0x8876086c,
+      );
+    }
+    r.data.fill(0, vertices, vertices + 64);
+    await call(device, end);
+    await call(device, present, 0, 0, 0, 0);
+    const draws = events.find((e) => e.type === 'present').commands;
+    assert.equal(draws.length, 2);
+    for (const d of draws)
+      assert.deepEqual(
+        [0, 16, 32].map((i) => new DataView(d.vertices.buffer).getFloat32(i, true)),
+        [3, 1, 2],
+      );
+  });
+
+test('FVF supplies shader semantics and programmable fans expand with immutable colors', async () => {
+  const { runtime: r, create, call, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4);
+  for (const [file, createSlot, bindSlot] of [
+    ['wine-color-constant.vs11.d3dbc', 91, 92],
+    ['wine-color.ps20.d3dbc', 106, 107],
+  ]) {
+    const bytes = await readFile(
+      new URL('../tests/fixtures/shaders/legacy/' + file, import.meta.url),
+    );
+    const p = r.allocate(bytes.length);
+    r.data.set(bytes, p);
+    assert.equal((await call(device, createSlot, p, out)).result, 0);
+    await call(device, bindSlot, r.read32(out));
+  }
+  await call(device, 89, 0x42);
+  const vertices = r.allocate(64);
+  for (let i = 0; i < 4; i++) {
+    r.view.setFloat32(vertices + i * 16, i, true);
+    r.view.setFloat32(vertices + i * 16 + 4, 0, true);
+    r.view.setFloat32(vertices + i * 16 + 8, 0.5, true);
+    r.write32(vertices + i * 16 + 12, 0xff112233);
+  }
+  await call(device, 41);
+  assert.equal((await call(device, 83, 6, 2, vertices, 16)).result, 0);
+  r.data.fill(0, vertices, vertices + 64);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const command = events.find((e) => e.type === 'present').commands[0];
+  assert.equal(command.type, 'draw-programmable');
+  assert.equal(command.vertexCount, 6);
+  assert.deepEqual(command.attributes, [
+    { shaderLocation: 0, offset: 0, format: 'float32x3' },
+    { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
+  ]);
+  assert.deepEqual([...command.vertices.slice(12, 16)], [0x11, 0x22, 0x33, 0xff]);
+});

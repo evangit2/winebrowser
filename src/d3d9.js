@@ -254,7 +254,6 @@ function bufferedDraw(runtime, state, source, primitive, primitiveCount) {
     runtime,
   );
   if (programmable) {
-    if (primitive !== D3DPT.TRIANGLELIST) throw Error('Unsupported programmable D3D9 draw state');
     const { payloadBytes, ...command } = programmable;
     queue(state, command, payloadBytes);
     return D3D_OK;
@@ -677,13 +676,64 @@ function deviceMethods(version = 9) {
           runtime,
         );
         if (programmable) {
-          if (primitive !== D3DPT.TRIANGLELIST)
-            throw Error('Unsupported programmable IDirect3DDevice9.DrawPrimitiveUP state');
           const { payloadBytes, ...command } = programmable;
           queue(state, command, payloadBytes);
           return D3D_OK;
         }
         return fixedFunctionDraw(runtime, state, expanded.vertices, stride, expanded.vertexCount);
+      },
+    },
+    84: {
+      // DrawIndexedPrimitiveUP(type, minIndex, numVertices, primitiveCount,
+      //                        indices, indexFormat, vertices, stride).
+      argc: 9,
+      invoke(runtime, argument, object) {
+        const state = object.state;
+        if (!state.inScene || ((state.depthTest || state.depthWrite) && !state.hasDepth))
+          return D3DERR_INVALIDCALL;
+        const primitive = number(argument(1)),
+          minIndex = number(argument(2)),
+          numVertices = number(argument(3)),
+          primitiveCount = number(argument(4)),
+          indices = number(argument(5)),
+          format = number(argument(6)),
+          pointer = number(argument(7)),
+          stride = number(argument(8));
+        const count = primitiveVertexCount(primitive, primitiveCount);
+        const width = format === 101 ? 2 : format === 102 ? 4 : 0;
+        if (
+          !width ||
+          !count ||
+          !numVertices ||
+          count > MAX_VERTICES ||
+          numVertices > MAX_VERTICES ||
+          minIndex + numVertices > MAX_VERTICES ||
+          stride < 4 ||
+          stride > 256 ||
+          stride % 4
+        )
+          return D3DERR_INVALIDCALL;
+        runtime.check(indices, count * width);
+        runtime.check(pointer + minIndex * stride, numVertices * stride);
+        const gathered = new Uint8Array(count * stride);
+        for (let i = 0; i < count; i++) {
+          const index =
+            width === 2
+              ? runtime.view.getUint16(indices + i * 2, true)
+              : runtime.read32(indices + i * 4);
+          if (index < minIndex || index >= minIndex + numVertices) return D3DERR_INVALIDCALL;
+          const begin = pointer + index * stride;
+          gathered.set(runtime.data.subarray(begin, begin + stride), i * stride);
+        }
+        const result = bufferedDraw(
+          runtime,
+          state,
+          { vertices: gathered, stride, vertexCount: count },
+          primitive,
+          primitiveCount,
+        );
+        releaseBufferBindings(state);
+        return result;
       },
     },
     26: createVertexBufferMethod(version),

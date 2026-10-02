@@ -29,16 +29,16 @@ export function deviceCaps(version) {
   caps[37] = caps[38] = 1; // One blend stage and sampled texture.
   new Float32Array(caps.buffer)[28] = 1e10; // Finite homogeneous W range.
   caps[45] = 21845; // Triangle-list primitive count (65,535 vertices).
-  // The programmable path compiles VS 1.1 and PS 2.0 bytecode in the browser
-  // (see src/d3d9-programmable.js), so advertise exactly those versions. Other
-  // shader models stay unadvertised.
-  caps[49] = 0xfffe0101; // D3DVS_VERSION(1,1)
+  // Legacy bytecode is compiled by vkd3d-shader at draw time. D3D9 supports
+  // the SM2 vertex path; D3D8 retains its VS1.1 API profile.
+  caps[49] = version === 9 ? 0xfffe0200 : 0xfffe0101;
   caps[50] = 256; // MaxVertexShaderConst, matching the device constant bank.
   caps[51] = 0xffff0200; // D3DPS_VERSION(2,0)
   new Float32Array(caps.buffer)[52] = 8; // D3D9 PixelShader1xMaxValue.
   if (version === 9) {
     caps[58] = 1; // NumberOfAdaptersInGroup.
     caps[60] = 1; // One render target.
+    caps[64] = 12; // VS20Caps.NumTemps (SM2 minimum).
     // D3DPS20Caps: swizzle and gradient instructions pass through the browser
     // shader compiler; predication and NP2 padding are not implemented.
     const ps20 = 66;

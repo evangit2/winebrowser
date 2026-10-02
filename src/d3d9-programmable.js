@@ -2,6 +2,7 @@
 // import with d3d9-textures.js is safe because both bindings are used lazily.
 import { textureSnapshot } from './d3d9-textures.js';
 import { fogSnapshot } from './d3d-fog.js';
+import { fvfLayout } from './d3d-fvf.js';
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_SHADER_BYTES = 1024 * 1024;
@@ -352,7 +353,36 @@ export function getFloatConstants(runtime, state, start, pointer, count, limit) 
 function programmableAttributes(state, stride) {
   const vertex = state.vertexShader,
     declaration = state.vertexDeclaration;
-  const elements = declaration.state.elements;
+  const layout = declaration ? null : fvfLayout(state.fvf);
+  const elements =
+    declaration?.state.elements ??
+    (layout
+      ? [
+          {
+            offset: 0,
+            type: layout.rhw ? 3 : 2,
+            format: layout.rhw ? 'float32x4' : 'float32x3',
+            size: layout.rhw ? 16 : 12,
+            usage: layout.rhw ? 9 : 0,
+            usageIndex: 0,
+          },
+          ...[
+            ['normal', 2, 0, 2, 'float32x3', 12],
+            ['diffuse', 10, 0, 4, 'unorm8x4', 4],
+            ['specular', 10, 1, 4, 'unorm8x4', 4],
+            ['uv', 5, 0, 1, 'float32x2', 8],
+          ]
+            .filter(([field]) => layout[field] !== null)
+            .map(([field, usage, usageIndex, type, format, size]) => ({
+              offset: layout[field],
+              usage,
+              usageIndex,
+              type,
+              format,
+              size,
+            })),
+        ]
+      : []);
   // A D3D9 vertex declaration may carry elements the shader never reads (the
   // Humus demos declare four texture-coordinate sets but bind shaders that use
   // one). The contract is that every shader input has a matching declaration
@@ -389,9 +419,9 @@ export function programmableDrawFromVertices(state, vertices, stride, vertexCoun
   const vertex = state.vertexShader;
   const pixel = state.pixelShader;
   const declaration = state.vertexDeclaration;
-  if (!vertex && !pixel && !declaration) return null;
-  if (!vertex || !pixel || !declaration)
-    throw Error('Programmable D3D9 draw requires vertex declaration and both shaders');
+  if (!vertex && !pixel) return null;
+  if (!vertex || !pixel || (!declaration && !fvfLayout(state.fvf)))
+    throw Error('Programmable D3D9 draw requires a vertex layout and both shaders');
   const attributes = programmableAttributes(state, stride);
   if (vertexCount * stride > vertices.length)
     throw Error('Programmable D3D9 draw exceeds the supplied vertex bytes');
@@ -448,9 +478,9 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
   const vertex = state.vertexShader;
   const pixel = state.pixelShader;
   const declaration = state.vertexDeclaration;
-  if (!vertex && !pixel && !declaration) return null;
-  if (!vertex || !pixel || !declaration)
-    throw Error('Programmable D3D9 draw requires vertex declaration and both shaders');
+  if (!vertex && !pixel) return null;
+  if (!vertex || !pixel || (!declaration && !fvfLayout(state.fvf)))
+    throw Error('Programmable D3D9 draw requires a vertex layout and both shaders');
   const size = vertexCount * stride;
   runtime.check(pointer, size);
   return programmableDrawFromVertices(

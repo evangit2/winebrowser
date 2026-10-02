@@ -617,12 +617,25 @@ try {
       } catch {
         depth24StencilRejected = true;
       }
+      const sm2 = await programmable();
+      // Equivalent SM2 DCL/MOV/MUL bytecode with explicit instruction lengths.
+      sm2.vertexShader = new Uint8Array(
+        new Uint32Array([
+          0xfffe0200, 0x0200001f, 0x80000000, 0x900f0000, 0x0200001f, 0x8000000a, 0x900f0001,
+          0x02000001, 0xc00f0000, 0x90e40000, 0x03000005, 0xd00f0000, 0xa0e40000, 0x90e40001,
+          0xffff,
+        ]).buffer,
+      );
+      sm2.vertexShaderId = 200;
+      await renderer.present({ id: 100, commands: [clear, sm2] });
+      const shaderModel2 = frames.at(-1);
       return {
         scope:
           'WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance',
         frames: initialFrames,
         submittedFrames,
         depth24Only,
+        shaderModel2,
         depth24StencilRejected,
         draws,
         flipped,
@@ -661,6 +674,7 @@ try {
   );
   assert.deepEqual(report.depth24Only.center, [255, 0, 0, 255]);
   assert.equal(report.depth24StencilRejected, true);
+  assert.deepEqual(report.shaderModel2.center, [255, 128, 64, 255]);
   assert.equal(report.submittedFrames, 5);
   assert.equal(report.draws, 7);
   assert.deepEqual(

@@ -87,6 +87,20 @@
       255
     ]
   },
+  "shaderModel2": {
+    "center": [
+      255,
+      128,
+      64,
+      255
+    ],
+    "corner": [
+      37,
+      45,
+      65,
+      255
+    ]
+  },
   "depth24StencilRejected": true,
   "draws": 7,
   "flipped": [
@@ -1355,9 +1369,9 @@
     }
   ],
   "pacedIntervals": [
-    18.66000008583069,
-    17.87999987602234,
-    19.820000171661377
+    18.020000219345093,
+    18.93999981880188,
+    16.850000143051147
   ],
   "presentationMode": "canvas",
   "fallbackAdapter": false,
@@ -1369,7 +1383,7 @@
     "invalid command rejected",
     "invalid command rejected"
   ],
-  "date": "2026-10-02T04:27:47.611Z",
+  "date": "2026-10-02T05:34:25.962Z",
   "browser": "154.0.8037.97",
   "passed": true
 }
