@@ -78,6 +78,7 @@ jobs:
           npm run test:d3d12-blend
           npm run test:exec-memory
           npm run test:humus-d3d9
+          npm run test:rollercoaster
           npm run test:7zr
         env:
           BROWSER_CHANNEL: chromium
