@@ -97,3 +97,14 @@ binding numbers alone did not distinguish texture dimensions or resource types;
 its key now includes the complete layout entries. 776 unit tests, the real
 browser volume/BC sampling test and the production build pass. Inferno's terrain
 BC4 creation succeeds; its next sampled texture still needs mip-chain support.
+
+Sampled D3D10 2D textures now retain every supplied mip, copying rows according
+to each D3D10_SUBRESOURCE_DATA pitch. Zero MipLevels resolves the complete chain;
+GetDesc and shader-resource-view mip ranges report the resulting allocation.
+WebGPU creates the chain and uploads each actual level. The browser test samples
+explicit mip 1 and mip 2 with exact green/blue pixels; unit coverage checks padded
+source rows, the default full chain and bounded partial SRV ranges. CPU mapping,
+attachment mip chains and automatic mip generation remain unsupported. All 777
+unit tests, the volume/BC/mip browser regression and the production build pass.
+Inferno passes the ten-level 512x512 RGBA chain and continues loading assets;
+it has not presented frames yet.

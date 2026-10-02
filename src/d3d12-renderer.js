@@ -339,7 +339,16 @@ export class D3D12Renderer {
     }
   }
 
-  async createResource({ id, kind, width, height, depth = 1, dimension = '2d', format }) {
+  async createResource({
+    id,
+    kind,
+    width,
+    height,
+    depth = 1,
+    dimension = '2d',
+    format,
+    mipLevelCount = 1,
+  }) {
     if (
       !integer(id, 1, 0xffffffff) ||
       this.resources.has(id) ||
@@ -351,6 +360,11 @@ export class D3D12Renderer {
       !['2d', '3d'].includes(dimension) ||
       (dimension === '2d' && depth !== 1) ||
       (dimension === '3d' && (kind !== 'texture' || COMPRESSED_FORMATS.includes(format))) ||
+      !integer(
+        mipLevelCount,
+        1,
+        1 + Math.floor(Math.log2(Math.max(width, height, dimension === '3d' ? depth : 1))),
+      ) ||
       typeof format !== 'string'
     )
       throw Error('Unsupported D3D12 texture resource');
@@ -368,6 +382,7 @@ export class D3D12Renderer {
       label: `D3D12 ${kind} resource`,
       size: [width, height, depth],
       dimension,
+      mipLevelCount,
       format,
       usage:
         kind === 'depth'
@@ -385,7 +400,16 @@ export class D3D12Renderer {
       texture.destroy();
       throw Error(error.message);
     }
-    this.resources.set(id, { kind, width, height, depth, dimension, format, texture });
+    this.resources.set(id, {
+      kind,
+      width,
+      height,
+      depth,
+      dimension,
+      mipLevelCount,
+      format,
+      texture,
+    });
   }
 
   async createPipeline({
@@ -1092,7 +1116,16 @@ export class D3D12Renderer {
    * `rows` already carries the source row pitch, so the copy preserves the
    * D3D12 layout the application computed through GetCopyableFootprints.
    */
-  async uploadTexture({ id, width, height, depth = 1, bytesPerRow, rowsPerImage, rows }) {
+  async uploadTexture({
+    id,
+    width,
+    height,
+    depth = 1,
+    mipLevel = 0,
+    bytesPerRow,
+    rowsPerImage,
+    rows,
+  }) {
     await this.initialize();
     const resource = this.resources.get(id);
     if (!resource || resource.kind !== 'texture')
@@ -1100,8 +1133,9 @@ export class D3D12Renderer {
     if (
       !(rows instanceof Uint8Array) ||
       !integer(bytesPerRow, 1, 0x7fffffff) ||
-      !integer(width, 1, resource.width) ||
-      !integer(height, 1, resource.height) ||
+      !integer(mipLevel, 0, (resource.mipLevelCount ?? 1) - 1) ||
+      !integer(width, 1, Math.max(1, resource.width >> mipLevel)) ||
+      !integer(height, 1, Math.max(1, resource.height >> mipLevel)) ||
       !integer(depth, 1, resource.depth ?? 1)
     )
       throw Error('D3D12 texture upload data is invalid');
@@ -1120,7 +1154,7 @@ export class D3D12Renderer {
       (depth - 1) * rowsPerImage * bytesPerRow + (rowCount - 1) * bytesPerRow + rowBytes;
     if (rows.length < byteLength) throw Error('D3D12 texture upload covers too few rows');
     this.device.queue.writeTexture(
-      { texture: resource.texture },
+      { texture: resource.texture, mipLevel },
       rows.subarray(0, byteLength),
       { bytesPerRow, rowsPerImage },
       compressed
@@ -1134,11 +1168,13 @@ export class D3D12Renderer {
     const resource = this.resources.get(descriptor.resource.pointer);
     if (!resource || (resource.kind !== 'texture' && resource.kind !== 'render-texture'))
       return null;
-    const key = `${descriptor.resource.pointer}:${descriptor.format ?? resource.format}`;
+    const baseMipLevel = descriptor.baseMipLevel ?? 0;
+    const mipLevelCount = descriptor.mipLevelCount ?? resource.mipLevelCount ?? 1;
+    const key = `${descriptor.resource.pointer}:${descriptor.format ?? resource.format}:${baseMipLevel}:${mipLevelCount}`;
     this.textureViews ??= new Map();
     let view = this.textureViews.get(key);
     if (!view) {
-      view = resource.texture.createView();
+      view = resource.texture.createView({ baseMipLevel, mipLevelCount });
       this.textureViews.set(key, view);
     }
     return {

@@ -199,6 +199,7 @@ test('D3D10CreateDeviceAndSwapChain binds a device, its back buffers and an orde
       type: 'resource',
       id: depth,
       kind: 'depth',
+      mipLevelCount: 1,
       width: 640,
       height: 480,
       format: 'depth16unorm',
@@ -686,6 +687,7 @@ test('a block-compressed texture accepts an initial upload', async () => {
   for (let i = 0; i < 64 * 64 * 16; i++) r.data[source + i] = i & 0xff;
   const initial = alloc(12);
   r.write32(initial, source);
+  r.write32(initial + 4, 64 * 16);
   const desc = alloc(44);
   r.write32(desc, 256);
   r.write32(desc + 4, 256);
@@ -823,4 +825,47 @@ test('D3D10 BC4 and BC5 preserve their 8- and 16-byte block footprints', async (
     assert.equal(upload.rows.length, bytes);
     await call(r.read32(out), 2);
   }
+});
+
+test('D3D10 mip chains preserve independent pitches, descriptors and SRV mip ranges', async () => {
+  const { runtime: r, api, alloc, call, events } = fixture();
+  const out = alloc(4);
+  await api('D3D10CreateDevice', 0, 0, 0, 0, 29, out);
+  const device = r.read32(out);
+  const desc = alloc(44),
+    initial = alloc(36);
+  [4, 4, 0, 1, 28, 1, 0, 1, 8, 0, 0].forEach((v, i) => r.write32(desc + i * 4, v));
+  const expected = [];
+  for (let mip = 0; mip < 3; mip++) {
+    const width = 4 >> mip,
+      pitch = width * 4 + 8;
+    const source = alloc(pitch * width);
+    r.data.fill(0xee, source, source + pitch * width);
+    for (let row = 0; row < width; row++)
+      r.data.fill(mip + 1, source + row * pitch, source + row * pitch + width * 4);
+    [source, pitch, 0].forEach((v, i) => r.write32(initial + mip * 12 + i * 4, v));
+    expected.push(new Uint8Array(width * width * 4).fill(mip + 1));
+  }
+  assert.equal((await call(device, 73, desc, initial, out)).result, 0);
+  const texture = r.read32(out);
+  assert.equal(events.find((e) => e.type === 'resource').mipLevelCount, 3);
+  const uploads = events.filter((e) => e.type === 'uploadTexture');
+  assert.deepEqual(
+    uploads.map((e) => e.mipLevel),
+    [0, 1, 2],
+  );
+  uploads.forEach((e, i) => assert.deepEqual(e.rows, expected[i]));
+  const returned = alloc(44);
+  await call(texture, 12, returned);
+  assert.equal(r.read32(returned + 8), 3);
+  const viewDesc = alloc(24);
+  [28, 4, 1, 0xffffffff].forEach((v, i) => r.write32(viewDesc + i * 4, v));
+  assert.equal((await call(device, 75, texture, viewDesc, out)).result, 0);
+  await call(r.read32(out), 8, returned);
+  assert.equal(r.read32(returned + 8), 1);
+  assert.equal(r.read32(returned + 12), 2);
+  r.write32(viewDesc + 12, 3);
+  assert.equal((await call(device, 75, texture, viewDesc, out)).result, 0x80070057);
+  r.write32(initial + 16, 4); // second mip row needs eight bytes
+  assert.equal((await call(device, 73, desc, initial, out)).result, 0x80070057);
 });

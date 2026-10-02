@@ -612,7 +612,8 @@ function textureMapMethods(bytesPerPixel) {
       invoke(r, a, o) {
         const out = number(a(4));
         if (!out) return E_INVALIDARG;
-        if (number(a(1))) throw Error('Unsupported D3D10 texture subresource Map');
+        if (number(a(1)) || (o.state.mipLevels ?? 1) > 1)
+          throw Error('Unsupported D3D10 texture subresource Map');
         const map = number(a(2));
         if (!(map >= 1 && map <= 5) || number(a(3)) & ~0x1)
           throw Error('Unsupported D3D10 texture Map flags');
@@ -647,7 +648,7 @@ function texture2dMethods() {
         r.data.fill(0, out, out + 44);
         r.write32(out, o.state.width);
         r.write32(out + 4, o.state.height);
-        r.write32(out + 8, 1); // MipLevels
+        r.write32(out + 8, o.state.mipLevels ?? 1); // MipLevels
         r.write32(out + 12, 1); // ArraySize
         r.write32(out + 16, o.state.format);
         r.write32(out + 20, 1); // SampleDesc.Count
@@ -711,7 +712,10 @@ function viewMethods(withDesc) {
         r.data.fill(0, out, out + size);
         r.write32(out, o.state.format);
         r.write32(out + 4, o.state.viewDimension);
-        if (o.name === name.shaderResourceView) r.write32(out + 12, 1);
+        if (o.name === name.shaderResourceView) {
+          r.write32(out + 8, o.state.baseMipLevel ?? 0);
+          r.write32(out + 12, o.state.mipLevelCount ?? 1);
+        }
         return undefined;
       },
     };
@@ -1257,6 +1261,8 @@ function texture2dParse(r, a) {
   r.check(desc, 44);
   const width = u32(r, desc),
     height = u32(r, desc, 4);
+  const maxMips = 1 + Math.floor(Math.log2(Math.max(width, height)));
+  const mipLevels = u32(r, desc, 8) || maxMips;
   const format = u32(r, desc, 16);
   const usage = u32(r, desc, 28);
   const bindFlags = u32(r, desc, 32);
@@ -1266,7 +1272,7 @@ function texture2dParse(r, a) {
     !height ||
     width > 2048 ||
     height > 2048 ||
-    u32(r, desc, 8) !== 1 ||
+    mipLevels > maxMips ||
     u32(r, desc, 12) !== 1 ||
     u32(r, desc, 20) !== 1 ||
     u32(r, desc, 24) ||
@@ -1294,41 +1300,60 @@ function texture2dParse(r, a) {
       ? RENDER_TARGET_FORMATS
       : SHADER_RESOURCE_FORMATS;
   if (!allowed[format]) return E_INVALIDARG;
+  // CPU-mapped and attachment resources retain their single-subresource path.
+  if (mipLevels > 1 && (kind !== 'texture' || cpuAccess)) return E_INVALIDARG;
+  const initial = number(a(2));
+  if (usage === USAGE_IMMUTABLE && !initial) return E_INVALIDARG;
+  if (initial) r.check(initial, mipLevels * 12);
   // A block-compressed texture's guest storage holds the blocks themselves, so
   // its size follows the block footprint rather than the pixel count. It is
   // also the shape the backend uploads.
   const compressed = !depthBound && !renderBound && isCompressedFormat(format);
-  const storageBytes = compressed
-    ? Math.ceil(width / 4) * Math.ceil(height / 4) * compressedBytesPerBlock(format)
-    : width * height * 4;
-  // A D3D10_SUBRESOURCE_DATA for the one mip level: pSysMem names the bytes,
-  // SysMemPitch the row (or block-row) stride. A texture whose data the caller
-  // supplies is filled before the object exists, so a rejected description
-  // allocates nothing new; the bytes are copied into the resource storage the
-  // frontend already owns.
-  const storage = r.allocate(storageBytes);
-  const initial = number(a(2));
-  if (initial) {
-    r.check(initial, 12);
-    const source = u32(r, initial);
-    if (source) {
-      if (compressed) {
-        const blocksWide = Math.ceil(width / 4),
-          blockRows = Math.ceil(height / 4);
-        const blockBytes = compressedBytesPerBlock(format);
-        if (!source) return E_INVALIDARG;
-        r.check(source, blocksWide * blockBytes * blockRows);
-        r.data.copyWithin(storage, source, source + blocksWide * blockBytes * blockRows);
-      } else {
-        r.check(source, width * 4 * height);
-        r.data.copyWithin(storage, source, source + width * 4 * height);
-      }
+  const subresources = [];
+  let storageBytes = 0;
+  for (let mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
+    const w = Math.max(1, width >> mipLevel),
+      h = Math.max(1, height >> mipLevel);
+    const rowBytes = compressed ? Math.ceil(w / 4) * compressedBytesPerBlock(format) : w * 4;
+    const rowCount = compressed ? Math.ceil(h / 4) : h;
+    const size = rowBytes * rowCount;
+    let source = 0,
+      sourcePitch = rowBytes;
+    if (initial) {
+      source = u32(r, initial, mipLevel * 12);
+      sourcePitch = u32(r, initial, mipLevel * 12 + 4);
+      if (!source || sourcePitch < rowBytes) return E_INVALIDARG;
+      r.check(source, (rowCount - 1) * sourcePitch + rowBytes);
     }
+    subresources.push({
+      mipLevel,
+      width: w,
+      height: h,
+      rowBytes,
+      rowCount,
+      size,
+      offset: storageBytes,
+      source,
+      sourcePitch,
+    });
+    storageBytes += size;
   }
+  if (storageBytes > MAX_RESOURCE_BYTES) return E_INVALIDARG;
+  const storage = r.allocate(storageBytes);
+  for (const sub of subresources)
+    if (initial)
+      for (let row = 0; row < sub.rowCount; row++)
+        r.data.copyWithin(
+          storage + sub.offset + row * sub.rowBytes,
+          sub.source + row * sub.sourcePitch,
+          sub.source + row * sub.sourcePitch + sub.rowBytes,
+        );
   return {
     kind,
     width,
     height,
+    mipLevels,
+    subresources,
     format,
     usage,
     bindFlags,
@@ -1344,21 +1369,22 @@ function texture2dParse(r, a) {
         kind,
         width,
         height,
+        mipLevelCount: mipLevels,
         format: allowed[format],
       });
       // A texture the caller supplied bytes for is uploaded straight into the
       // resource storage the frontend copied them to, so the shader samples the
       // application's data rather than a cleared image.
       if (initial && kind === 'texture')
-        await requireBackend(r).uploadTexture({
-          id: item.pointer,
-          width,
-          height,
-          bytesPerRow: compressed
-            ? Math.ceil(width / 4) * compressedBytesPerBlock(format)
-            : width * 4,
-          rows: r.data.slice(storage, storage + storageBytes),
-        });
+        for (const sub of subresources)
+          await requireBackend(r).uploadTexture({
+            id: item.pointer,
+            mipLevel: sub.mipLevel,
+            width: sub.width,
+            height: sub.height,
+            bytesPerRow: sub.rowBytes,
+            rows: r.data.slice(storage + sub.offset, storage + sub.offset + sub.size),
+          });
     },
   };
 }
@@ -1514,6 +1540,8 @@ function viewParse(r, a, device, viewKind) {
   const volume = resource.name === name.texture3d;
   if (volume && viewKind !== 'shaderResourceView') return E_INVALIDARG;
   let dimension = volume ? 8 : DEFAULT_VIEW_DIMENSION[viewKind];
+  let baseMipLevel = 0,
+    mipLevelCount = resource.state.mipLevels ?? 1;
   if (desc) {
     r.check(desc, 20);
     // A zero format means "the resource's own format", which is the documented
@@ -1533,16 +1561,21 @@ function viewParse(r, a, device, viewKind) {
     // The union members a dimension does not use are still the caller's stack
     // and may hold anything, so they are deliberately not read.
     dimension = u32(r, desc, 4);
-    if (
-      volume &&
-      (dimension !== 8 || u32(r, desc, 8) !== 0 || ![1, 0xffffffff].includes(u32(r, desc, 12)))
-    )
-      return E_INVALIDARG;
+    if (viewKind === 'shaderResourceView') {
+      if ((volume && dimension !== 8) || (!volume && dimension !== 4)) return E_INVALIDARG;
+      baseMipLevel = u32(r, desc, 8);
+      const count = u32(r, desc, 12);
+      mipLevelCount = count === 0xffffffff ? (resource.state.mipLevels ?? 1) - baseMipLevel : count;
+      if (!mipLevelCount || baseMipLevel + mipLevelCount > (resource.state.mipLevels ?? 1))
+        return E_INVALIDARG;
+    }
   }
   return {
     resource,
     format: resource.state.format,
     viewDimension: dimension,
+    baseMipLevel,
+    mipLevelCount,
     descBuffer: 0,
   };
 }
