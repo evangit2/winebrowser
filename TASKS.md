@@ -18,11 +18,15 @@ D3D10/11 and broader D3D12 support are still required.
       notices ship with the base package.
 - [x] D3D8/9 cube mip storage and programmable cube sampling; six exact face
       pixels pass. Surface LockRect now pops its four COM arguments correctly.
-- [ ] Cube render targets and three-component fixed-function texture coordinates
-      block additional Humus candidates. No new third-party scene is published.
-- [ ] Original Hamsterball still reaches a read at EXE +0x85c2c with index FEFE.
-      A late write trace identifies native heap metadata writes into the reused
-      image buffer; the buffer's later table lifetime remains under investigation.
+- [x] Eight fixed texture stages with sized independent coordinates and mixed
+      cube/volume/2D views unblock the unchanged redistributable Humus
+      RollerCoaster scene. ZIP upload and hosted catalog runs pass animated
+      textured scene checks and clean exit; the Pages workflow runs both paths.
+- [x] Nested D3D8 vertex/index buffer locks preserve the outer allocation and
+      remove the original Hamsterball FEFE adjacency crash.
+- [ ] Original Hamsterball reaches its menus, but selecting Tournament fails
+      fixed-function vertex validation. Capture the submitted fields before
+      changing validation; actual race gameplay remains unverified.
 
 ## Current original-Hamsterball gate
 
@@ -33,7 +37,9 @@ responds to a mouse action with its original menu. See
 [ordinary upload evidence](evidence/hamsterball-pages-startup-results.json).
 Gameplay remains unverified. A priority-15 BASS worker exposed starvation of the
 ready main thread; bounded ready-thread priority boosts restore progress, with
-native thread fixtures passing. A fresh Pages run is checking the combined fixes.
+native thread fixtures passing. A fresh Pages run has reached the original main
+menu with the combined CPU, texture-stage and scheduling fixes; the tournament
+failure is under investigation.
 
 - [x] Recover the exact original EXE from the retained Theseus PE sections and
       original import lookup table; verify SHA-256
