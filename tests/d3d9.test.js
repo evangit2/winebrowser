@@ -2036,6 +2036,84 @@ test('D3D8 device GetInfo fills a bounded zeroed structure and rejects bad buffe
   await call(device, 2);
 });
 
+for (const version of [8, 9])
+  test(`D3D${version} dynamic managed and system-memory buffers preserve locks, descriptors and draws`, async () => {
+    const { runtime: r, call, create, events } = fixture(version);
+    const device = await create(),
+      out = r.allocate(4),
+      locked = r.allocate(4),
+      desc = r.allocate(24);
+    const slots =
+      version === 8
+        ? {
+            vb: 23,
+            ib: 24,
+            stream: 83,
+            indices: 85,
+            fvf: 76,
+            begin: 34,
+            end: 35,
+            draw: 71,
+            present: 15,
+          }
+        : {
+            vb: 26,
+            ib: 27,
+            stream: 100,
+            indices: 104,
+            fvf: 89,
+            begin: 41,
+            end: 42,
+            draw: 82,
+            present: 17,
+          };
+    await call(device, slots.fvf, 0x42);
+    await call(device, version === 8 ? 50 : 57, 137, 0);
+    await call(device, slots.begin);
+    for (const pool of [1, 2]) {
+      assert.equal((await call(device, slots.vb, 48, 0x200, 0x42, pool, out, 0)).result, 0);
+      const vb = r.read32(out);
+      assert.equal((await call(vb, 13, desc)).result, 0);
+      assert.equal(r.read32(desc + 8), 0x200);
+      assert.equal(r.read32(desc + 12), pool);
+      await call(vb, 11, 0, 0, locked, 0x2000);
+      const bytes = r.read32(locked);
+      for (let i = 0; i < 3; i++) {
+        r.view.setFloat32(bytes + i * 16, i + pool, true);
+        r.write32(bytes + i * 16 + 12, 0xff804020);
+      }
+      await call(vb, 12);
+      assert.equal((await call(device, slots.ib, 6, 0x200, 101, pool, out, 0)).result, 0);
+      const ib = r.read32(out);
+      await call(ib, 13, desc);
+      assert.equal(r.read32(desc + 8), 0x200);
+      assert.equal(r.read32(desc + 12), pool);
+      await call(ib, 11, 0, 0, locked, 0x1000);
+      for (let i = 0; i < 3; i++) r.view.setUint16(r.read32(locked) + i * 2, i, true);
+      await call(ib, 12);
+      await call(device, slots.stream, 0, vb, ...(version === 8 ? [16] : [0, 16]));
+      await call(device, slots.indices, ib, ...(version === 8 ? [0] : []));
+      const args = version === 8 ? [4, 0, 3, 0, 1] : [4, 0, 0, 3, 0, 1];
+      assert.equal((await call(device, slots.draw, ...args)).result, 0);
+      // Mutating the original backing cannot change the queued draw.
+      r.data.fill(0, bytes, bytes + 48);
+      await call(device, slots.stream, 0, 0, ...(version === 8 ? [0] : [0, 0]));
+      await call(device, slots.indices, 0, ...(version === 8 ? [0] : []));
+      await call(vb, 2);
+      await call(ib, 2);
+    }
+    r.write32(out, 0xdeadbeef);
+    assert.equal((await call(device, slots.vb, 48, 0, 0x42, 3, out, 0)).result, 0x8876086c);
+    assert.equal(r.read32(out), 0);
+    await call(device, slots.end);
+    await call(device, slots.present, 0, 0, 0, 0);
+    const commands = events.at(-1).commands;
+    assert.equal(commands.length, 2);
+    for (let i = 0; i < 2; i++)
+      assert.equal(new DataView(commands[i].vertices.buffer).getFloat32(0, true), i + 1);
+    await call(device, 2);
+  });
+
 test('D3D9 buffer Lock accepts discard and no-sys-lock hints on any pool', async () => {
   const { runtime, call, create } = fixture();
   const device = await create();

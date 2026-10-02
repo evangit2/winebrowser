@@ -24,9 +24,14 @@ D3D10/11 and broader D3D12 support are still required.
       textured scene checks and clean exit; the Pages workflow runs both paths.
 - [x] Nested D3D8 vertex/index buffer locks preserve the outer allocation and
       remove the original Hamsterball FEFE adjacency crash.
-- [ ] Original Hamsterball reaches its menus, but selecting Tournament fails
-      fixed-function vertex validation. Capture the submitted fields before
-      changing validation; actual race gameplay remains unverified.
+- [x] Capture the original Hamsterball's failing transition draw: valid XYZRHW
+      positions and undefined UV fields after SetTexture(0, NULL). Normalize
+      non-finite unused UVs without changing guest bytes; sampled UVs still fail.
+      The original tournament, difficulty and warm-up race selection now render.
+- [x] Align dynamic managed/system-memory buffers with Wine's D3D8/9 buffer path.
+      Both native cube EXEs and hosted ZIPs alternate direct, managed and
+      system-memory indexed draws; descriptors, locks, animation and exit pass.
+- [ ] Verify actual race gameplay in a fresh run with the combined fixes.
 
 ## Current original-Hamsterball gate
 
@@ -37,9 +42,10 @@ responds to a mouse action with its original menu. See
 [ordinary upload evidence](evidence/hamsterball-pages-startup-results.json).
 Gameplay remains unverified. A priority-15 BASS worker exposed starvation of the
 ready main thread; bounded ready-thread priority boosts restore progress, with
-native thread fixtures passing. A fresh Pages run has reached the original main
-menu with the combined CPU, texture-stage and scheduling fixes; the tournament
-failure is under investigation.
+native thread fixtures passing. A fresh Pages run reaches the normal tournament's
+warm-up race selection after the unused-UV fix. Timed execution quanta improve
+starvation boosts beyond two host checkpoints; race loading then reveals a
+dynamic managed-buffer restriction. A fresh run is checking the combined fixes.
 
 - [x] Recover the exact original EXE from the retained Theseus PE sections and
       original import lookup table; verify SHA-256

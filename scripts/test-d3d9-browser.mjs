@@ -125,6 +125,11 @@ try {
       `IDirect3DDevice${version}.GetViewport`,
       `IDirect3DDevice${version}.SetViewport`,
       `IDirect3DDevice${version}.DrawPrimitiveUP`,
+      `IDirect3DDevice${version}.CreateVertexBuffer`,
+      `IDirect3DDevice${version}.CreateIndexBuffer`,
+      `IDirect3DDevice${version}.DrawIndexedPrimitive`,
+      `IDirect3DVertexBuffer${version}.GetDesc`,
+      `IDirect3DIndexBuffer${version}.GetDesc`,
       `IDirect3DDevice${version}.Present`,
       `IDirect3DDevice${version}.Release`,
     ])

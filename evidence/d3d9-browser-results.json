@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T10:14:18.583Z",
+  "date": "2026-10-02T15:13:54.417Z",
   "url": "http://127.0.0.1:4197/winebrowser/",
   "browser": "154.0.8037.97",
   "nativeGame": "d3d9-cube",
@@ -8,54 +8,12 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "1b9a41348c30bea477efe3ccff0e5e7e23474eefcd54e2ba1124da44671d001c",
+      "exeSha256": "8aa740d5abadb48644c6b8516c47e4aed107db19b31450ac67a66da371e80fcd",
       "first": {
         "width": 640,
         "height": 480,
         "frames": 5,
-        "hash": "bb2d9c9d6fa63361bfe42c829ea6da0440617677422e1062d77b7a51416f1988",
-        "corner": [
-          23,
-          29,
-          49,
-          255
-        ],
-        "coloredPixels": 77812,
-        "colors": [
-          "242,207,91",
-          "232,101,84"
-        ]
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "frames": 17,
-        "hash": "5ab8124708f47b993059850dba9e937b1ba31c8b804ece0507ae69bb40b12399",
-        "corner": [
-          23,
-          29,
-          49,
-          255
-        ],
-        "coloredPixels": 74972,
-        "colors": [
-          "232,101,84",
-          "121,216,117"
-        ]
-      },
-      "exitCode": 0,
-      "compiledBlocks": 174,
-      "instructions": 3802,
-      "apiCalls": 276
-    },
-    {
-      "mode": "hosted-zip",
-      "exeSha256": "1b9a41348c30bea477efe3ccff0e5e7e23474eefcd54e2ba1124da44671d001c",
-      "first": {
-        "width": 640,
-        "height": 480,
-        "frames": 4,
-        "hash": "85fb11369dc72836436c7ae42b02791fe5cf7eef99c1b3595183ef338bf427af",
+        "hash": "96443c11d0fef43db37da2d4f9806faa3f1e69219427b91e773bac09880951b9",
         "corner": [
           23,
           29,
@@ -65,14 +23,55 @@
         "coloredPixels": 74972,
         "colors": [
           "121,216,117",
-          "232,101,84"
+          "93,197,239"
         ]
       },
       "second": {
         "width": 640,
         "height": 480,
-        "frames": 17,
-        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
+        "frames": 18,
+        "hash": "cd7a20799ad1b1602e0927d685913a1109117f63ee65a2c19c3ead13cf4c96dc",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77284,
+        "colors": [
+          "93,197,239"
+        ]
+      },
+      "exitCode": 0,
+      "compiledBlocks": 223,
+      "instructions": 12213,
+      "apiCalls": 361
+    },
+    {
+      "mode": "hosted-zip",
+      "exeSha256": "8aa740d5abadb48644c6b8516c47e4aed107db19b31450ac67a66da371e80fcd",
+      "first": {
+        "width": 640,
+        "height": 480,
+        "frames": 5,
+        "hash": "c27a891999c438545f9322e087f48fc9d8b2eb5fa1d4afb823c4ca694aab08cf",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 77812,
+        "colors": [
+          "93,197,239",
+          "242,207,91"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 19,
+        "hash": "f282d6841154c3748a98263dd314389b16059d0c2bace8db19406f58f200c8d9",
         "corner": [
           23,
           29,
@@ -81,14 +80,14 @@
         ],
         "coloredPixels": 74972,
         "colors": [
-          "93,197,239",
-          "121,216,117"
+          "242,207,91",
+          "232,101,84"
         ]
       },
       "exitCode": 0,
-      "compiledBlocks": 174,
-      "instructions": 3705,
-      "apiCalls": 267
+      "compiledBlocks": 223,
+      "instructions": 12319,
+      "apiCalls": 370
     }
   ],
   "errors": []

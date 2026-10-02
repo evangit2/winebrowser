@@ -152,8 +152,11 @@ export function createBufferObject(runtime, device, kind, version, options) {
   if (!size || size > MAX_BUFFER_BYTES) throw Error('Unsupported D3D9 buffer size');
   if (usage & ~(D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC))
     throw Error(`Unsupported ${bufferInterface(kind, version).name} usage 0x${usage.toString(16)}`);
-  if (pool > 1 || (usage & D3DUSAGE_DYNAMIC && pool !== 0))
-    throw Error(`Unsupported ${bufferInterface(kind, version).name} pool ${pool}`);
+  // Wine's D3D8/9 buffer path preserves DYNAMIC on managed buffers and
+  // copies system-memory buffers for drawing. Unlike dynamic textures, these
+  // combinations do not require the default pool. All three pools use the
+  // same checked guest backing and immutable draw snapshots here.
+  if (pool > 2) return D3DERR_INVALIDCALL; // Buffers cannot use SCRATCH.
   const fvf = options.fvf >>> 0;
   if (kind === 'vertex' && fvf && !fvfLayout(fvf))
     throw Error(`Unsupported ${bufferInterface(kind, version).name} FVF 0x${fvf.toString(16)}`);

@@ -28,6 +28,21 @@
 #define IDirect3DDevice9_Clear IDirect3DDevice8_Clear
 #define IDirect3DDevice9_BeginScene IDirect3DDevice8_BeginScene
 #define IDirect3DDevice9_DrawPrimitiveUP IDirect3DDevice8_DrawPrimitiveUP
+#define IDirect3DVertexBuffer9 IDirect3DVertexBuffer8
+#define IDirect3DIndexBuffer9 IDirect3DIndexBuffer8
+#define IDirect3DDevice9_CreateVertexBuffer(p,l,u,f,pool,out,shared) IDirect3DDevice8_CreateVertexBuffer(p,l,u,f,pool,out)
+#define IDirect3DDevice9_CreateIndexBuffer(p,l,u,f,pool,out,shared) IDirect3DDevice8_CreateIndexBuffer(p,l,u,f,pool,out)
+#define IDirect3DVertexBuffer9_Lock(p,o,n,out,f) IDirect3DVertexBuffer8_Lock(p,o,n,(BYTE **)out,f)
+#define IDirect3DVertexBuffer9_Unlock IDirect3DVertexBuffer8_Unlock
+#define IDirect3DVertexBuffer9_GetDesc IDirect3DVertexBuffer8_GetDesc
+#define IDirect3DVertexBuffer9_Release IDirect3DVertexBuffer8_Release
+#define IDirect3DIndexBuffer9_Lock(p,o,n,out,f) IDirect3DIndexBuffer8_Lock(p,o,n,(BYTE **)out,f)
+#define IDirect3DIndexBuffer9_Unlock IDirect3DIndexBuffer8_Unlock
+#define IDirect3DIndexBuffer9_GetDesc IDirect3DIndexBuffer8_GetDesc
+#define IDirect3DIndexBuffer9_Release IDirect3DIndexBuffer8_Release
+#define IDirect3DDevice9_SetStreamSource(p,s,b,o,stride) IDirect3DDevice8_SetStreamSource(p,s,b,stride)
+#define IDirect3DDevice9_SetIndices(p,b) IDirect3DDevice8_SetIndices(p,b,0)
+#define IDirect3DDevice9_DrawIndexedPrimitive(p,t,b,min,n,s,c) IDirect3DDevice8_DrawIndexedPrimitive(p,t,min,n,s,c)
 #define IDirect3DDevice9_EndScene IDirect3DDevice8_EndScene
 #define IDirect3DDevice9_Present IDirect3DDevice8_Present
 #define IDirect3DDevice9_Release IDirect3DDevice8_Release

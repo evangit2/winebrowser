@@ -62,6 +62,31 @@ static uint32_t world[16] = {
 
 static volatile int running = 1;
 
+/* Buffer pools are independent of texture pool restrictions. These real COM
+ * calls retain DYNAMIC usage in managed/system-memory descriptors, lock and
+ * fill exact bytes, and feed the same cube to indexed draws. */
+static int create_dynamic_cube(IDirect3DDevice9 *device, D3DPOOL pool,
+        IDirect3DVertexBuffer9 **vb, IDirect3DIndexBuffer9 **ib)
+{
+    D3DVERTEXBUFFER_DESC vd;
+    D3DINDEXBUFFER_DESC id;
+    void *data = 0;
+    const DWORD usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+    if (FAILED(IDirect3DDevice9_CreateVertexBuffer(device, sizeof(cube), usage,
+            D3DFVF_XYZ | D3DFVF_DIFFUSE, pool, vb, 0)) || !*vb) return 45;
+    if (FAILED(IDirect3DVertexBuffer9_GetDesc(*vb, &vd)) || vd.Usage != usage ||
+            vd.Pool != pool || vd.Size != sizeof(cube) || vd.FVF != (D3DFVF_XYZ | D3DFVF_DIFFUSE)) return 46;
+    if (FAILED(IDirect3DVertexBuffer9_Lock(*vb, 0, 0, &data, D3DLOCK_DISCARD)) || !data) return 47;
+    for (UINT i = 0; i < sizeof(cube); i++) ((BYTE *)data)[i] = ((const BYTE *)cube)[i];
+    if (FAILED(IDirect3DVertexBuffer9_Unlock(*vb))) return 48;
+    if (FAILED(IDirect3DDevice9_CreateIndexBuffer(device, 72, usage, D3DFMT_INDEX16, pool, ib, 0)) || !*ib) return 49;
+    if (FAILED(IDirect3DIndexBuffer9_GetDesc(*ib, &id)) || id.Usage != usage || id.Pool != pool ||
+            id.Size != 72 || id.Format != D3DFMT_INDEX16) return 50;
+    if (FAILED(IDirect3DIndexBuffer9_Lock(*ib, 0, 0, &data, D3DLOCK_DISCARD)) || !data) return 51;
+    for (UINT i = 0; i < 36; i++) ((WORD *)data)[i] = (WORD)i;
+    return FAILED(IDirect3DIndexBuffer9_Unlock(*ib)) ? 52 : 0;
+}
+
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
     if (message == WM_KEYDOWN && wparam == VK_ESCAPE) { running = 0; return 0; }
@@ -152,6 +177,13 @@ static int run(void)
     HRESULT status = IDirect3D9_CreateDevice(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
             window, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &params, &device);
     if (FAILED(status) || !device) return 5;
+    IDirect3DVertexBuffer9 *buffers[2] = {0, 0};
+    IDirect3DIndexBuffer9 *indices[2] = {0, 0};
+    for (UINT i = 0; i < 2; i++) {
+        int result = create_dynamic_cube(device, i ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED,
+                &buffers[i], &indices[i]);
+        if (result) return result;
+    }
     IDirect3D9 *original_d3d = d3d;
     IDirect3D9_Release(d3d);
     d3d = 0;
@@ -196,6 +228,7 @@ static int run(void)
     if (FAILED(IDirect3DDevice9_SetTransform(device, D3DTS_VIEW, (const D3DMATRIX *)view))) return 11;
     if (FAILED(IDirect3DDevice9_SetTransform(device, D3DTS_PROJECTION, (const D3DMATRIX *)projection))) return 12;
 
+    UINT frame = 0;
     while (running) {
         MSG message;
         while (PeekMessageA(&message, 0, 0, 0, PM_REMOVE)) {
@@ -212,14 +245,28 @@ static int run(void)
         if (FAILED(IDirect3DDevice9_Clear(device, 0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
                 0x00171d31u, 1.0f, 0))) return 14;
         if (FAILED(IDirect3DDevice9_BeginScene(device))) return 15;
-        status = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLELIST, 12,
-                cube, sizeof(cube[0]));
+        if (frame % 3 == 0) {
+            status = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLELIST, 12,
+                    cube, sizeof(cube[0]));
+        } else {
+            UINT index = frame % 3 - 1;
+            if (FAILED(IDirect3DDevice9_SetStreamSource(device, 0, buffers[index], 0, sizeof(cube[0]))) ||
+                    FAILED(IDirect3DDevice9_SetIndices(device, indices[index]))) return 53;
+            status = IDirect3DDevice9_DrawIndexedPrimitive(device, D3DPT_TRIANGLELIST, 0, 0, 36, 0, 12);
+        }
         if (FAILED(status)) return 16;
         if (FAILED(IDirect3DDevice9_EndScene(device))) return 17;
         if (FAILED(IDirect3DDevice9_Present(device, 0, 0, 0, 0))) return 18;
+        frame++;
         Sleep(16);
     }
 
+    IDirect3DDevice9_SetStreamSource(device, 0, 0, 0, 0);
+    IDirect3DDevice9_SetIndices(device, 0);
+    for (UINT i = 0; i < 2; i++) {
+        IDirect3DVertexBuffer9_Release(buffers[i]);
+        IDirect3DIndexBuffer9_Release(indices[i]);
+    }
     IDirect3DDevice9_Release(device);
     if (IDirect3D9_GetAdapterCount(d3d) != 1) return 43;
 #ifdef WINEBROWSER_FULLSCREEN

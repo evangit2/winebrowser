@@ -61,6 +61,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:wine-base-upload
           npm run test:windows
           npm run test:tetris
+          npm run test:d3d8
           npm run test:d3d9
           npm run test:d3d9-shader-cube
           npm run test:d3d12
