@@ -38,6 +38,15 @@ licenses and rebuild instructions; see [the native loader scope](docs/wine-loade
 
 **Native D3D12 shader demo:** choose **Load d3d12-triangle**, then **Run executable**. [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-triangle/d3d12-triangle.exe) · [ZIP with source](https://evangit2.github.io/winebrowser/demos/d3d12-triangle.zip). The PE32 program creates DXGI backbuffers, a root signature and pipeline, records command lists with resource barriers, draws through its own SM5 shaders, presents, and waits on a fence. Its full-screen triangle fills a moving viewport. Both the x86 machine code and the DXBC shaders compile locally during browser execution; libvkd3d-shader and Naga provide the shader translation. This bounded path does not provide general DX12 game compatibility, DXIL or x64 support.
 
+**Independent roller-coaster demo:** choose **Load humus-rollercoaster**, then
+**Run executable**. The unchanged 911 KB Humus _RollerCoaster_ archive includes
+large indexed terrain, a moving reflective track, cube maps, 3D procedural noise,
+water, lava and particles. [ZIP](https://evangit2.github.io/winebrowser/examples/humus-rollercoaster/RollerCoaster.zip)
+· [provenance](public/examples/humus-rollercoaster/PROVENANCE.md). The original x86
+code and Direct3D shaders compile in the browser. `npm run test:rollercoaster`
+checks ordinary ZIP upload and the hosted example for animated textured scenes,
+32 frames with over 19,000 draws, and clean exit. Startup is CPU intensive.
+
 **Independent third-party Direct3D 9 demo:** choose **Load humus-dynamic-branching** in the harness, then **Run executable**. This is the unchanged Humus 3D _Dynamic Branching_ demo by Emil Persson ([ZIP](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.zip) · [EXE](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.exe) · [pinned provenance](public/examples/humus-dynamic-branching/PROVENANCE.md)). WineBrowser does not patch it: the guest's own x86 blocks, DXT textures, HMDL pillar-room model and VS 1.1 / PS 2.0 shaders are translated during browser execution, and the stencil-shadow room renders in a virtual window at the demo's own 798×570 size. `npm run test:humus-d3d9` checks the published example and the unchanged upstream ZIP for a large, richly shaded, animated image and the demo's Direct3D 9 call surface. Camera and menu input are not wired up, and this is one independent application, not broad D3D9 game compatibility.
 
 **Interactive native game:** [Breakout EXE](https://evangit2.github.io/winebrowser/demos/breakout/breakout.exe) or [ZIP](https://evangit2.github.io/winebrowser/demos/breakout.zip). In the live harness, choose **Load breakout**, then **Run executable**. Use the arrow keys or mouse to move the paddle, Space to pause, and R to restart. The game opens two independent guest windows; drag their title bars, resize their corners, and close both to exit. This is an original MIT-licensed Win32 C program compiled to PE32, with [source](demos/breakout/main.c) and a reproducible build. Minesweeper remains a blocked follow-on target.

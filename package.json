@@ -163,7 +163,9 @@
     "test:d3d9-cubemap-backend": "node scripts/test-d3d9-cubemap-backend.mjs",
     "package:wine-base": "python3 scripts/package-wine-base.py",
     "build:wine-base-auto": "sh scripts/build-wine-base-auto-fixture.sh",
-    "test:wine-base-upload": "node scripts/test-wine-base-upload.mjs"
+    "test:wine-base-upload": "node scripts/test-wine-base-upload.mjs",
+    "package:rollercoaster": "python3 scripts/package-humus-rollercoaster.py",
+    "test:rollercoaster": "node scripts/test-rollercoaster-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

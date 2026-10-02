@@ -11,6 +11,15 @@
       "provenance": "Freeware, Emil Persson (Humus); upstream readme permits redistribution with the readme included. Unchanged upstream archive."
     },
     {
+      "name": "humus-rollercoaster",
+      "description": "Unchanged Humus RollerCoaster D3D9 demo: moving reflective track, terrain, water, lava and particles. CPU intensive startup; close its window to exit.",
+      "exe": "humus-rollercoaster/RollerCoaster.exe",
+      "exeSha256": "acf1fed9b4863723b41600d4016e97dd3ec6313dbd5144622919f9b8103e912e",
+      "zip": "humus-rollercoaster/RollerCoaster.zip",
+      "zipSha256": "fbb55c23ae94469ba12712ce830186d719de1a3abc983a3298a055331f0de0a0",
+      "provenance": "Freeware by Emil Persson (Humus); redistribution permitted with readme included. Original archive, executable and shaders."
+    },
+    {
       "name": "tetris",
       "description": "Unchanged wesmar/Tetris x86 release: arrows move/rotate, Space drops, P pauses, F2 restarts.",
       "exe": "tetris/tetris.exe",
