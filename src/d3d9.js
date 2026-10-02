@@ -194,17 +194,32 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
   if (layout.rhw) floatOffsets.push(12);
   if (layout.normal !== null)
     floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
-  for (const coordinate of layout.texcoords)
-    for (let i = 0; i < coordinate.components; i++) floatOffsets.push(coordinate.offset + i * 4);
+  const sampledCoordinates = new Map();
+  for (const stage of texturing?.stages ?? (texturing ? [texturing] : [])) {
+    if (!stage.texture) continue;
+    const index = stage.stage[11];
+    const components = (stage.texture.dimension ?? '2d') === '2d' ? 2 : 3;
+    sampledCoordinates.set(index, Math.max(sampledCoordinates.get(index) ?? 0, components));
+  }
+  const unusedFloats = new Set();
+  for (const [index, coordinate] of layout.texcoords.entries())
+    for (let i = 0; i < coordinate.components; i++) {
+      const offset = coordinate.offset + i * 4;
+      floatOffsets.push(offset);
+      if (i >= (sampledCoordinates.get(index) ?? 0)) unusedFloats.add(offset);
+    }
   // D3D disables depth writes whenever depth testing is off, so the depth
   // component is unused then and pre-transformed overlays may leave it
-  // undefined (commonly NaN). Normalize that slot; any other non-finite
-  // component still fails.
+  // undefined (commonly NaN). Unselected texture coordinates are likewise
+  // unused, including all coordinates on an untextured draw. Normalize only
+  // these non-finite slots in the immutable draw snapshot; consumed fields
+  // still fail validation and guest memory remains unchanged.
   const unusedDepth = layout.rhw && !state.depthTest;
+  if (unusedDepth) unusedFloats.add(8);
   for (let i = 0; i < vertexCount; i++)
     for (const offset of floatOffsets)
       if (!Number.isFinite(view.getFloat32(i * stride + offset, true))) {
-        if (unusedDepth && offset === 8) view.setFloat32(i * stride + offset, 0, true);
+        if (unusedFloats.has(offset)) view.setFloat32(i * stride + offset, 0, true);
         else throw Error('Unsupported D3D9 non-finite vertex');
       }
   // Pre-transformed (XYZRHW) vertices bypass world/view/projection and lighting;

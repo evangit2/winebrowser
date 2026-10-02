@@ -1369,6 +1369,48 @@ for (const version of [8, 9]) {
     await call(d, 2);
     assert.equal(r.d3dTextureBytes, 0, 'device destruction frees internally owned textures');
   });
+  test(`D3D${version} ignores non-finite unused UV fields but validates sampled coordinates`, async () => {
+    const { runtime: r, call, create, output, events } = fixture(version);
+    const d = await create(),
+      vertices = r.allocate(3 * 36);
+    await call(d, slots.fvf, 0x244); // XYZRHW, diffuse, two float2 coordinates.
+    for (let i = 0; i < 3; i++) {
+      const p = vertices + i * 36;
+      [270 + i * 24, 384, 1, 1].forEach((v, j) => r.view.setFloat32(p + j * 4, v, true));
+      r.write32(p + 16, 0xbf00007f);
+      r.write32(p + 20, 0xffffffff); // Undefined first UV, as on untextured overlays.
+      r.view.setFloat32(p + 24, Infinity, true);
+      r.view.setFloat32(p + 28, 0.25, true);
+      r.view.setFloat32(p + 32, 0.5, true);
+    }
+    const original = r.data.slice(vertices, vertices + 108);
+    await call(d, slots.scene);
+    await call(d, slots.draw, 4, 1, vertices, 36);
+    await call(d, slots.create, 1, 1, 1, 0, 21, 1, output, 0);
+    const texture = r.read32(output);
+    await call(d, slots.bind, 0, texture);
+    // Selecting UV1 must leave undefined UV0 unused.
+    await call(d, slots.stage, 0, 11, 1);
+    await call(d, slots.draw, 4, 1, vertices, 36);
+    // Selecting UV0 now consumes its non-finite fields.
+    await call(d, slots.stage, 0, 11, 0);
+    await assert.rejects(call(d, slots.draw, 4, 1, vertices, 36), /non-finite vertex/);
+    assert.deepEqual(r.data.slice(vertices, vertices + 108), original, 'guest bytes are preserved');
+    await call(d, slots.end);
+    await call(d, slots.present, 0, 0, 0, 0);
+    const commands = events.at(-1).commands;
+    assert.equal(commands.length, 2);
+    assert.equal(commands[0].texturing, null);
+    const snapshot = new DataView(commands[1].vertices.buffer);
+    for (let i = 0; i < 3; i++) {
+      assert.equal(snapshot.getFloat32(i * 36 + 20, true), 0);
+      assert.equal(snapshot.getFloat32(i * 36 + 24, true), 0);
+      assert.equal(snapshot.getFloat32(i * 36 + 28, true), 0.25);
+      assert.equal(snapshot.getFloat32(i * 36 + 32, true), 0.5);
+    }
+    await call(texture, 2);
+    await call(d, 2);
+  });
   test(`D3D${version} fixed stage cascades snapshot all revisions and account for unique uploads`, async () => {
     const { runtime: r, call, create, output, events } = fixture(version),
       d = await create();
