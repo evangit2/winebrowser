@@ -1,0 +1,86 @@
+{
+  "example": "humus-dynamic-branching",
+  "scope": "Unchanged third-party Humus \"Dynamic Branching\" D3D9 demo executed through the ordinary browser host-API path: guest x86 blocks and the demo’s own shaders are translated during browser execution, and its DXT textures, HMDL model and stencil-shadow scene render in a virtual window. This is one independent application, not broad D3D9 game compatibility.",
+  "date": "2026-10-02T19:38:33.330Z",
+  "url": "http://127.0.0.1:4197/winebrowser/",
+  "browser": "153.0.8010.12",
+  "exeSha256": "7664f1f55d71593b6af9475bef06aba811bbe8a5ec3ba690ec559064d6207bc5",
+  "archiveSha256": "8063039867fb69e4c58c6bad90f4aad80e43d0eb5c33818e1ba5a9c2be57077a",
+  "browserCompilation": true,
+  "browserShaderCompilation": true,
+  "runs": [
+    {
+      "mode": "hosted-zip",
+      "firstFramesMs": 61766,
+      "first": {
+        "width": 798,
+        "height": 570,
+        "frames": 114,
+        "lit": 327711,
+        "colors": 4096,
+        "corner": [
+          18,
+          9,
+          7,
+          255
+        ],
+        "hash": "e290f45b17ce6fddac4b0061559739ac244f815f49218e72a6aac47908f965cc"
+      },
+      "second": {
+        "width": 798,
+        "height": 570,
+        "frames": 378,
+        "lit": 293884,
+        "colors": 4096,
+        "corner": [
+          18,
+          9,
+          7,
+          255
+        ],
+        "hash": "bae5321e91d18a16d618aae9919cff3fca8c9a8e8b2fc9c511dde8719f34fe59"
+      },
+      "exitCode": 0,
+      "instructions": 576972113,
+      "compiledBlocks": 4371,
+      "apiCalls": 242532
+    },
+    {
+      "mode": "dropped-zip",
+      "firstFramesMs": 60614,
+      "first": {
+        "width": 798,
+        "height": 570,
+        "frames": 139,
+        "lit": 324485,
+        "colors": 4096,
+        "corner": [
+          18,
+          9,
+          7,
+          255
+        ],
+        "hash": "0b26a9198781e98bd72df077773a5b8a4ecf8f62f59a7df4539391d8f6027bd1"
+      },
+      "second": {
+        "width": 798,
+        "height": 570,
+        "frames": 378,
+        "lit": 290282,
+        "colors": 4096,
+        "corner": [
+          18,
+          9,
+          7,
+          255
+        ],
+        "hash": "cf486be57aa671a8066ad44b37f3342afe7a7eab43873773bb463627b91b0a4d"
+      },
+      "exitCode": 0,
+      "instructions": 576827939,
+      "compiledBlocks": 4371,
+      "apiCalls": 241921
+    }
+  ],
+  "errors": []
+}

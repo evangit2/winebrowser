@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-02T19:41:48.485Z",
+  "browser": "153.0.8010.12",
+  "url": "http://127.0.0.1:4197/winebrowser/",
+  "exeSha256": "acf1fed9b4863723b41600d4016e97dd3ec6313dbd5144622919f9b8103e912e",
+  "zipSha256": "fbb55c23ae94469ba12712ce830186d719de1a3abc983a3298a055331f0de0a0",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "elapsedMs": 97594,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 8,
+          "draws": 4925,
+          "lit": 178925,
+          "white": 55,
+          "colors": 4096,
+          "hash": "021e67f7d5f543e57715d674f883d493fd141582b295f502e400d07084843f21"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 16,
+          "draws": 9853,
+          "lit": 385161,
+          "white": 55,
+          "colors": 4096,
+          "hash": "f525890d0b49b9fec4ba9a29ba403f21fd0fbfd84366bf0f874e36f1f086e133"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 32,
+          "draws": 19709,
+          "lit": 427780,
+          "white": 61,
+          "colors": 4096,
+          "hash": "e752b87a4cc4ddfb02349b27e53d5c3660413f78f17df70f5bba738e2dfcf315"
+        }
+      ],
+      "exitCode": 0,
+      "instructions": 881058149,
+      "apiCalls": 72516
+    },
+    {
+      "mode": "hosted-zip",
+      "elapsedMs": 94054,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 8,
+          "draws": 4926,
+          "lit": 280318,
+          "white": 55,
+          "colors": 4096,
+          "hash": "81eac684208235b52a676fa9117018095126b9666ab39565d5059fc41ba9334a"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 16,
+          "draws": 9854,
+          "lit": 242274,
+          "white": 55,
+          "colors": 4096,
+          "hash": "30891a0a62ccde8a91a3ab9b737b784c8944371283c5d54e456610da8da327ae"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 32,
+          "draws": 19710,
+          "lit": 454673,
+          "white": 61,
+          "colors": 4096,
+          "hash": "c4738e020024bebd3991ebc1db52645772f884a93e4fcd8790ba444915aa1b54"
+        }
+      ],
+      "exitCode": 0,
+      "instructions": 881575591,
+      "apiCalls": 72480
+    }
+  ],
+  "errors": []
+}

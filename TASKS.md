@@ -10,6 +10,12 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## October 2 checkpoint
 
+- [x] Verify Dynamic Branching and RollerCoaster in ordinary headed Chromium
+      without unsafe GPU flags, both catalog and ZIP upload. Preserve SoftFloat
+      ext80 while reducing scratch allocations and repeated mode setup. The
+      vec3 hot-loop benchmark improves 34%; application startup still takes
+      roughly 61 and 94–98 seconds. See `docs/startup-performance.md`.
+
 - [x] Unchanged redistributable TransparentShadowMapping renders its stained-glass
       room through six original cubemap passes. Upload/catalog checks pass 48
       animated scene frames and clean exit; a sustained upload passes 7,021

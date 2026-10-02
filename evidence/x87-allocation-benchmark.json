@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-02T19:33:33.592Z",
+  "environment": "Node v22.23.1",
+  "scope": "Exact x87 vec3 arithmetic dispatcher microbenchmark; not full application startup",
+  "runs": [
+    {
+      "mode": "repeated-initialization-await",
+      "elapsedMs": 847.07625,
+      "blocks": 500000,
+      "instructions": 5000000,
+      "result": 0.5,
+      "compiledBytes": 893
+    },
+    {
+      "mode": "initialized-synchronous-dispatch",
+      "elapsedMs": 722.409542,
+      "blocks": 500000,
+      "instructions": 5000000,
+      "result": 0.5,
+      "compiledBytes": 893
+    }
+  ]
+}

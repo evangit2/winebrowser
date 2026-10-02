@@ -1,6 +1,7 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
 import { fyl2x, fpatan, sincos, f2xm1, fscale, fptan } from './x87-transcendentals.js';
+import { classifyExtendedFloat } from './x87-classification.js';
 import { roundedMagnitudeUp } from './x87-rounding.js';
 export const X87Op = Object.freeze({
   loadFloat: 0,
@@ -205,6 +206,9 @@ export class X87State {
     this.reset();
     this.ready = null;
     this.initialized = false;
+    this.configuredMode = null;
+    this.resultViews = null;
+    this.resultHeap = null;
   }
 
   reset() {
@@ -259,14 +263,20 @@ export class X87State {
     this.sf = null;
     this.ready = null;
     this.initialized = false;
+    this.configuredMode = null;
+    this.resultViews = null;
+    this.resultHeap = null;
   }
 
   #configure(roundingOverride) {
     const rounding = roundingOverride ?? [0, 2, 3, 1][(this.control >>> 10) & 3];
     const precision = [24, 0, 53, 64][(this.control >>> 8) & 3];
     if (!precision) throw Error('Reserved x87 precision-control mode');
+    const mode = (precision << 8) | rounding;
+    if (this.configuredMode === mode) return;
     if (this.sf._wb_sf_init(this.p, 4, rounding, precision, 1))
       throw Error('SoftFloat init failed');
+    this.configuredMode = mode;
   }
 
   #physical(st = 0) {
@@ -283,7 +293,7 @@ export class X87State {
   }
 
   #tagFor(value) {
-    const c = this.sf._wb_sf_classify(this.#put(value), 10);
+    const c = classifyExtendedFloat(value);
     return c & 1 ? 1 : c & (2 | 8 | 16 | 32) ? 2 : 0;
   }
 
@@ -313,6 +323,19 @@ export class X87State {
     return this.p + offset;
   }
 
+  // These views are scratch values, consumed/copied before another helper
+  // operation. Refresh them if another SoftFloat user grows its shared memory.
+  #result(width) {
+    const heap = this.sf.HEAPU8;
+    if (this.resultHeap !== heap) {
+      this.resultHeap = heap;
+      this.resultViews = new Map(
+        [2, 4, 8, 10].map((size) => [size, heap.subarray(this.p + 24, this.p + 24 + size)]),
+      );
+    }
+    return this.resultViews.get(width);
+  }
+
   #operation(call, roundingOverride) {
     this.#configure(roundingOverride);
     const rc = call();
@@ -321,7 +344,7 @@ export class X87State {
     let x = 0;
     for (let bit = 0; bit < 5; bit++) if (flags & (1 << bit)) x |= 1 << SOFT_TO_X87[1 << bit];
     if (x) this.#exception(x, false);
-    return this.sf.HEAPU8.slice(this.p + 24, this.p + 34);
+    return this.#result(10);
   }
 
   #exception(bits, stackOverflow) {
@@ -391,7 +414,7 @@ export class X87State {
       }
       return rc;
     }, roundingOverride);
-    return this.sf.HEAPU8.slice(this.p + 24, this.p + 24 + width);
+    return this.#result(width);
   }
 
   // The CRT's _CI* intrinsics move their x87 arguments to binary64, call the
@@ -602,6 +625,9 @@ export class X87State {
             ? this.#integerOperand(address, width)
             : this.#convertFrom(this.#read(address, width), width === 4 ? 'f32' : 'f64');
       } else right = this.#value(src);
+      // Integer arithmetic's C1 rounding test also needs the original
+      // converted operand after the helper overwrites its result scratch.
+      if ((options & (INTEGER | MEMORY)) === (INTEGER | MEMORY)) right = right.slice();
       let left = this.#value(dst);
       if (options & INTEGER) this.status &= ~0x200;
       if (options & REVERSE) [left, right] = [right, left];
@@ -725,8 +751,8 @@ export class X87State {
       } else right = this.#value(a);
       if (options & INTEGER) this.status &= ~0x200;
       const left = this.#value(0);
-      const leftClass = this.sf._wb_sf_classify(this.#put(left), 10);
-      const rightClass = this.sf._wb_sf_classify(this.#put(right), 10);
+      const leftClass = classifyExtendedFloat(left);
+      const rightClass = classifyExtendedFloat(right);
       const nanMask = options & UNORDERED ? 32 : 16 | 32;
       if ((leftClass | rightClass) & nanMask) this.#exception(1, false);
       this.#put(left, 4);
