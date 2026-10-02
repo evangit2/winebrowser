@@ -7,6 +7,32 @@ import { probeScalarSse } from '../scripts/lib/scalar-sse-probe.js';
 
 const CODE = 0x1000;
 const DATA = 0x2000;
+test('PCMPEQD compares every DWORD as bits, handles aliasing and leaves flags/MXCSR unchanged', () => {
+  const { cpu } = machine([0x66, 0x0f, 0x76, 0xc1]);
+  cpu.simd.registers[0].set([0x80000000, 0xffffffff, 7, 0x7fc00001]);
+  cpu.simd.registers[1].set([0x80000000, 0xfffffffe, 7, 0x7fc00002]);
+  const flags = { ...cpu.f },
+    mxcsr = cpu.simd.mxcsr;
+  cpu.step(CODE);
+  assert.deepEqual(lanes(cpu), [0xffffffff, 0, 0xffffffff, 0]);
+  assert.deepEqual(cpu.f, flags);
+  assert.equal(cpu.simd.mxcsr, mxcsr);
+  const alias = machine([0x66, 0x0f, 0x76, 0xc0]);
+  alias.cpu.simd.registers[0].set([1, 0xffffffff, 0x80000000, 0]);
+  alias.cpu.step(CODE);
+  assert.deepEqual(lanes(alias.cpu), [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff]);
+});
+test('PCMPEQD reads all 128 memory bits and enforces legacy SSE alignment', () => {
+  const { cpu, view } = machine([0x66, 0x0f, 0x76, 0x08]);
+  cpu.r[0].value = DATA;
+  cpu.simd.registers[1].set([1, 2, 3, 4]);
+  [1, 0, 3, 9].forEach((v, i) => view.setUint32(DATA + i * 4, v, true));
+  cpu.step(CODE);
+  assert.deepEqual(lanes(cpu, 1), [0xffffffff, 0, 0xffffffff, 0]);
+  const bad = machine([0x66, 0x0f, 0x76, 0x08]);
+  bad.cpu.r[0].value = DATA + 1;
+  assert.throws(() => bad.cpu.step(CODE), /alignment/);
+});
 
 test('XORPS/XORPD are raw 128-bit logical operations, including NaN and sign bit patterns', () => {
   for (const prefix of [[], [0x66]]) {

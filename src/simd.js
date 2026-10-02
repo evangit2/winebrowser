@@ -32,6 +32,8 @@ export const SIMD_OP = Object.freeze({
   FLOAT_SCALAR: 28,
   LDMXCSR: 29,
   STMXCSR: 30,
+  PCMPEQD_XMM_XMM: 31,
+  PCMPEQD_XMM_MEM: 32,
 });
 
 const floatingCodes = new WeakMap();
@@ -280,6 +282,18 @@ export function classifySse(instruction, iced) {
         aligned: src.memory,
       };
     }
+    case C.Pcmpeqd_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = source(1, mem128);
+      if (dst === null || !src) return null;
+      return {
+        op: src.memory ? SIMD_OP.PCMPEQD_XMM_MEM : SIMD_OP.PCMPEQD_XMM_XMM,
+        dst,
+        src: src.reg,
+        addressOperand: src.memory ? 1 : -1,
+        aligned: src.memory,
+      };
+    }
     case C.Pshufd_xmm_xmmm128_imm8: {
       const dst = xmm(0);
       if (dst === null || instruction.opKind(2) !== K.Immediate8) return null;
@@ -382,6 +396,12 @@ export class SIMDState {
     const load = (size) => this.readMemory(address, size);
     const store = (values, size) => this.writeMemory(address, values, size);
     switch (op) {
+      case SIMD_OP.PCMPEQD_XMM_XMM:
+      case SIMD_OP.PCMPEQD_XMM_MEM: {
+        const value = op === SIMD_OP.PCMPEQD_XMM_MEM ? load(16) : s;
+        for (let i = 0; i < 4; i++) d[i] = d[i] === value[i] ? 0xffffffff : 0;
+        return;
+      }
       case SIMD_OP.LDMXCSR: {
         const value = load(4)[0];
         if (value & 0xffff0000)
