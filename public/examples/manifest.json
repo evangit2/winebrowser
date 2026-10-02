@@ -31,6 +31,15 @@
       "provenance": "Freeware by Emil Persson (Humus); redistribution permitted with readme included. Original archive, executable and shaders."
     },
     {
+      "name": "humus-raytraced-shadows",
+      "description": "Unchanged freeware Humus OpenGL tech demo: bump-mapped room, seven bouncing spheres, moving light and raytraced soft shadows. W/S or arrows move; F1 opens settings.",
+      "exe": "humus-raytraced-shadows/RaytracedShadows.exe",
+      "exeSha256": "3f1d94477ed652d91ead86196d48c9b595bd83713420cd5fd5cf482810668449",
+      "zip": "humus-raytraced-shadows/RaytracedShadows.zip",
+      "zipSha256": "126b68f89cddb8cefa41f3fe3ba74b64bbbf5a2ef2c402bbe659042295773b08",
+      "provenance": "Emil Persson (Humus). Original freeware archive, retained readme permits redistribution; no binary or shader patching."
+    },
+    {
       "name": "humus-rollercoaster",
       "description": "Unchanged Humus RollerCoaster D3D9 demo: moving reflective track, terrain, water, lava and particles. CPU intensive startup; close its window to exit.",
       "exe": "humus-rollercoaster/RollerCoaster.exe",

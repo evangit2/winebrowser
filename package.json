@@ -181,6 +181,8 @@
     "test:learning-dx12": "node scripts/test-learning-dx12-cube-browser.mjs",
     "fetch:opengl": "python3 scripts/fetch-opengl-demo.py",
     "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs",
+    "package:raytraced-shadows": "python3 scripts/package-humus-raytraced-shadows.py",
+    "test:raytraced-shadows": "node scripts/test-raytraced-shadows-browser.mjs",
     "build:installer-apis": "sh scripts/build-installer-apis.sh",
     "test:installer-apis": "node scripts/test-installer-apis-browser.mjs",
     "benchmark:x87-dispatch": "node scripts/benchmark-x87-dispatch.mjs",

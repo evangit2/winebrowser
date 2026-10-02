@@ -84,6 +84,7 @@ jobs:
           npm run test:opengl
           npm run fetch:opengl
           npm run test:opengl-upstream
+          npm run test:raytraced-shadows
           npm run test:d3d12
           npm run test:d3d12-cube
           npm run test:learning-dx12

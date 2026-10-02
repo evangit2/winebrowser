@@ -110,11 +110,15 @@ Set `WINEBROWSER_TEST_URL=https://evangit2.github.io/winebrowser/` to run the sa
 
 ## What works today
 
-Native Windows OpenGL uploads now compile and render locally through WGL and
-worker WebGL2. The free **opengl-raymarch** tech demo includes soft shadows,
-ambient occlusion and camera controls. An unchanged published GLSL 450 pyramid/
-cube EXE also runs with its genuine native GLEW DLL. EXE/ZIP uploads, animation
-and clean exit pass browser tests; see [OpenGL scope and downloads](docs/opengl.md).
+Native Windows OpenGL uploads compile and render locally through WGL and worker
+WebGL2. Choose **Load humus-raytraced-shadows** for the unchanged freeware Humus
+demo: seven bouncing spheres, moving light, a bump-mapped room and three lighting/
+shadow passes. [Original ZIP](https://evangit2.github.io/winebrowser/examples/humus-raytraced-shadows/RaytracedShadows.zip).
+Its 144 imports across six Windows DLLs resolve; textures, native physics,
+camera controls, F1 settings, browser shader compilation and clean exit pass
+upload/catalog checks. The free **opengl-raymarch** OpenGL 3.3 demo and a published
+GLSL 450 pyramid/cube EXE with its genuine native GLEW DLL also run. See
+[tested OpenGL and DLL scope](docs/opengl.md); this is bounded compatibility.
 
 The local harness now also includes a native **D3D8 cube**. Its 32-bit EXE uses
 the actual D3D8 COM ABI and translates in the browser through the shared graphics
