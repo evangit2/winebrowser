@@ -258,6 +258,20 @@ export async function probeWineTarget(
         if (!entry.forwarder && ['LdrLoadDll', 'LdrGetProcedureAddress'].includes(entry.name))
           loaderEntries.set(module.base + entry.rva, entry.name);
     const pendingLoaderCalls = [];
+    const heapEntries = new Map(),
+      pendingHeapCalls = [];
+    if (limits.heapRange) {
+      const ntdll = runtime.graph.modules.get('ntdll.dll');
+      for (const [name, argc] of [
+        ['RtlAllocateHeap', 3],
+        ['RtlReAllocateHeap', 4],
+        ['RtlFreeHeap', 3],
+      ]) {
+        const entry = ntdll.pe.exports.find((e) => e.name === name);
+        if (entry && !entry.forwarder) heapEntries.set(ntdll.base + entry.rva, { name, argc });
+      }
+      report.nativeHeapCalls = [];
+    }
     const started = performance.now();
     let dispatches = 0;
     // `traceBlocks` is a diagnostic aid: when a caller names block addresses,
@@ -368,6 +382,54 @@ export async function probeWineTarget(
       )
         throw Error('Wine target diagnostic execution deadline exceeded');
       const stack = runtime.cpu.r[4].value >>> 0;
+      if (limits.heapRange) {
+        const threadId = runtime.threads.current?.id;
+        for (let i = pendingHeapCalls.length - 1; i >= 0; i--) {
+          const pending = pendingHeapCalls[i];
+          if (
+            pending.threadId !== threadId ||
+            pending.returnAddress !== ip ||
+            pending.returnStack !== stack
+          )
+            continue;
+          pendingHeapCalls.splice(i, 1);
+          const result = runtime.cpu.r[0].value >>> 0,
+            { name, args } = pending;
+          const [low, high] = limits.heapRange;
+          const pointer = name === 'RtlFreeHeap' ? args[2] : result;
+          const bytes =
+            name === 'RtlAllocateHeap' ? args[2] : name === 'RtlReAllocateHeap' ? args[3] : 1;
+          if (
+            (pointer < high && pointer + bytes > low) ||
+            (name === 'RtlReAllocateHeap' && args[2] >= low && args[2] < high)
+          ) {
+            report.nativeHeapCalls.push({
+              name,
+              args: args.map(hex),
+              result: hex(result),
+              instructions: runtime.cpu.instructions,
+              threadId,
+              frames: pending.frames,
+            });
+            if (report.nativeHeapCalls.length > 512) report.nativeHeapCalls.shift();
+          }
+        }
+        const heap = heapEntries.get(ip);
+        if (heap) {
+          const args = Array.from({ length: heap.argc }, (_, i) =>
+            runtime.read32(stack + 4 + i * 4),
+          );
+          pendingHeapCalls.push({
+            ...heap,
+            args,
+            threadId,
+            returnAddress: runtime.read32(stack),
+            returnStack: stack + 4 + heap.argc * 4,
+            frames: guestCallStack(runtime, stack),
+          });
+          if (pendingHeapCalls.length > 64) pendingHeapCalls.shift();
+        }
+      }
       // Loader-call records must never be missed: a program's dynamic imports
       // are the evidence for what it needed, even mid-startup.
       for (let i = pendingLoaderCalls.length - 1; i >= 0; i--)
@@ -849,6 +911,7 @@ export async function probeWineTarget(
     runtime.guestMemory.watchInstructions = () => runtime.cpu.instructions;
     runtime.guestMemory.watchRegisters = () => runtime.cpu.r.map((register) => hex(register.value));
     runtime.guestMemory.watchAnyRange = watchAnyRange;
+    runtime.guestMemory.watchAfterInstructions = limits.watchAfterInstructions;
     runtime.guestMemory.watchCallStack = (address) => ({
       destination: hex(address),
       sourceWindow: {

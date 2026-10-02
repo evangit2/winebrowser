@@ -213,13 +213,17 @@ export class GuestMemory {
   }
   watchAny(entry) {
     this.watchEntries ??= [];
-    if (this.watchEntries.length >= 128) return;
+    const instructions = this.watchInstructions?.() ?? null;
+    if (instructions < (this.watchAfterInstructions ?? 0)) return;
+    if (this.watchEntries.length >= 128) this.watchEntries.shift();
     const ip = this.watchIp?.() ?? null;
+    const value = entry();
     this.watchEntries.push({
-      ...entry(),
+      ...value,
       ip,
-      instructions: this.watchInstructions?.() ?? null,
+      instructions,
       registers: this.watchRegisters?.() ?? null,
+      context: this.watchCallStack?.(value.address),
     });
   }
   #noteWatch(address, width) {

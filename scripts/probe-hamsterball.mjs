@@ -29,6 +29,8 @@ const { values: options } = parseArgs({
     watch: { type: 'string' },
     'watch-range': { type: 'string' },
     'watch-any': { type: 'string' },
+    'watch-after': { type: 'string' },
+    'heap-range': { type: 'string' },
   },
 });
 const EXE_SHA256 = '3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d';
@@ -74,6 +76,12 @@ const input = {
   options['stop-on-exception']
     ? {
         limits: {
+          ...(options['watch-after']
+            ? { watchAfterInstructions: Number(options['watch-after']) }
+            : {}),
+          ...(options['heap-range']
+            ? { heapRange: options['heap-range'].split('-').map((v) => Number.parseInt(v, 16)) }
+            : {}),
           ...(options['stop-on-exception'] ? { stopOnException: true } : {}),
           ...(options['sample-blocks']
             ? { blockSampleStride: Number(options['sample-blocks']) }
