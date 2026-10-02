@@ -1,5 +1,5 @@
 {
-  "url": "http://127.0.0.1:4196/winebrowser/",
+  "url": "https://evangit2.github.io/winebrowser/",
   "exeSha256": "3f1d94477ed652d91ead86196d48c9b595bd83713420cd5fd5cf482810668449",
   "archiveSha256": "126b68f89cddb8cefa41f3fe3ba74b64bbbf5a2ef2c402bbe659042295773b08",
   "dependencyAudit": [
@@ -196,8 +196,8 @@
       "first": {
         "width": 798,
         "height": 570,
-        "frames": 9,
-        "draws": 324,
+        "frames": 8,
+        "draws": 288,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -216,17 +216,17 @@
           945.4393920898438,
           1
         ],
-        "shaded": 351381,
+        "shaded": 372209,
         "opaque": 454860,
         "menuYellowPixels": 0,
         "colors": 8192,
-        "hash": "2e3ea91fbba8f7ea236041483f75b75af06a502c0e05e3f54033c9dc8d8a2845"
+        "hash": "022eb6087d572342d61c5f1d96008ac602849f9bb7a72263bb8852f49473d25d"
       },
       "animated": {
         "width": 798,
         "height": 570,
-        "frames": 12,
-        "draws": 432,
+        "frames": 11,
+        "draws": 396,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -245,17 +245,17 @@
           945.4393920898438,
           1
         ],
-        "shaded": 366844,
+        "shaded": 396362,
         "opaque": 454860,
-        "menuYellowPixels": 9,
+        "menuYellowPixels": 0,
         "colors": 8192,
-        "hash": "4afc3b0c37174a70a3207d4c61c8b6f6e6354cf5ed12a5d25830acfa07da7a67"
+        "hash": "d8bc051e9b6d9170719ed772b48931d985846599749fdccacae7b037fa8c36af"
       },
       "camera": {
         "width": 798,
         "height": 570,
-        "frames": 21,
-        "draws": 756,
+        "frames": 20,
+        "draws": 720,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -271,20 +271,20 @@
           0,
           0.000043361698772059754,
           323.4321594238281,
-          864.5408935546875,
+          834.6930541992188,
           1
         ],
-        "shaded": 367825,
+        "shaded": 428094,
         "opaque": 454860,
         "menuYellowPixels": 0,
         "colors": 8192,
-        "hash": "84daa8aef4a7b797970443be2dcb47e776cd38bade874a85c8bf71abe9bc5d5c"
+        "hash": "1c2a35689589b4625a98d9084bcf5becc1f371904d57e1874d5fa05be963f258"
       },
       "settings": {
         "width": 798,
         "height": 570,
-        "frames": 24,
-        "draws": 870,
+        "frames": 23,
+        "draws": 834,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -300,20 +300,20 @@
           0,
           0.000043361698772059754,
           323.4321594238281,
-          864.5408935546875,
+          834.6930541992188,
           1
         ],
-        "shaded": 351480,
+        "shaded": 421633,
         "opaque": 454860,
-        "menuYellowPixels": 5363,
+        "menuYellowPixels": 5505,
         "colors": 8192,
-        "hash": "df4c0a103ceaafbee4bddb4942d8675406dbe13b2f9c0815147a1cb6500b60ca"
+        "hash": "dc46de7a687bb66552ed50bada70bbf004bb3a3242d0627510fa8b1c417f681f"
       },
       "restored": {
         "width": 798,
         "height": 570,
-        "frames": 32,
-        "draws": 1179,
+        "frames": 31,
+        "draws": 1140,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -329,19 +329,19 @@
           0,
           0.000043361698772059754,
           323.4321594238281,
-          864.5408935546875,
+          834.6930541992188,
           1
         ],
-        "shaded": 297444,
+        "shaded": 421731,
         "opaque": 454860,
         "menuYellowPixels": 0,
         "colors": 8192,
-        "hash": "62240f1cf4ea445f1b3e6fe3df14c598214e59fe5b91ac5b6df5c78086ce3375"
+        "hash": "e913acacc35c5090e78b63cd3ad1f0e06195707b628788bda0bcf74dcd94f10b"
       },
       "exitCode": 0,
-      "instructions": 204472500,
-      "compiledBlocks": 3820,
-      "wasmBytes": 3092568,
+      "instructions": 204325731,
+      "compiledBlocks": 3799,
+      "wasmBytes": 3075229,
       "apiNames": [
         "kernel32.dll!GetVersion",
         "kernel32.dll!HeapCreate",
@@ -470,8 +470,8 @@
       "first": {
         "width": 798,
         "height": 570,
-        "frames": 9,
-        "draws": 324,
+        "frames": 8,
+        "draws": 288,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -490,17 +490,17 @@
           945.4393920898438,
           1
         ],
-        "shaded": 316784,
+        "shaded": 374947,
         "opaque": 454860,
-        "menuYellowPixels": 805,
+        "menuYellowPixels": 76,
         "colors": 8192,
-        "hash": "47c845034e453217ee8e353e9dd05caa060f706a5bbb4e73ec15e7a9902ac8da"
+        "hash": "bc1d7a08d4a3cc00b33e70c29729b26225b24c8cc848b6e4a094790d3575337c"
       },
       "animated": {
         "width": 798,
         "height": 570,
-        "frames": 12,
-        "draws": 432,
+        "frames": 11,
+        "draws": 396,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -519,17 +519,17 @@
           945.4393920898438,
           1
         ],
-        "shaded": 391753,
+        "shaded": 383384,
         "opaque": 454860,
-        "menuYellowPixels": 245,
+        "menuYellowPixels": 86,
         "colors": 8192,
-        "hash": "8ea8d2b8562f50ca85267d1014a7ae87c0f56130d126d921013a66f7eb308b2d"
+        "hash": "8f944d87968316eda0404f51c735851cc436989304c5ee3cfc9f10340ad51e40"
       },
       "camera": {
         "width": 798,
         "height": 570,
-        "frames": 21,
-        "draws": 756,
+        "frames": 20,
+        "draws": 720,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -543,22 +543,22 @@
           -1.9012947660712598e-8,
           -3.935979364655395e-8,
           0,
-          0.000043361698772059754,
-          323.4321594238281,
-          798.4954223632812,
+          0.000043361695134080946,
+          323.43212890625,
+          795.1272583007812,
           1
         ],
-        "shaded": 422702,
+        "shaded": 371568,
         "opaque": 454860,
-        "menuYellowPixels": 40,
+        "menuYellowPixels": 29,
         "colors": 8192,
-        "hash": "99d765d37e3d40e0d3d78c8529831952b8eaf7714a7cec76fb47ee03b179fc7b"
+        "hash": "70385f924ed19d53eed6681be9bc68a5d8f495331b10544279566cc4177ca48c"
       },
       "settings": {
         "width": 798,
         "height": 570,
-        "frames": 24,
-        "draws": 870,
+        "frames": 23,
+        "draws": 834,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -572,22 +572,22 @@
           -1.9012947660712598e-8,
           -3.935979364655395e-8,
           0,
-          0.000043361698772059754,
-          323.4321594238281,
-          798.4954223632812,
+          0.000043361695134080946,
+          323.43212890625,
+          795.1272583007812,
           1
         ],
-        "shaded": 407708,
+        "shaded": 311919,
         "opaque": 454860,
-        "menuYellowPixels": 5363,
+        "menuYellowPixels": 5429,
         "colors": 8192,
-        "hash": "ea2d8238be6a2f4fbe185b27a310004ffc7f0e60e21c6e0b328da73de5c547ab"
+        "hash": "144ce183d639abb1c0f9283324443e30d61974f53859eedfb1bd48b02687939a"
       },
       "restored": {
         "width": 798,
         "height": 570,
-        "frames": 31,
-        "draws": 1140,
+        "frames": 29,
+        "draws": 1065,
         "modelView": [
           -4.371138828673793e-8,
           -0.4349655210971832,
@@ -601,19 +601,19 @@
           -1.9012947660712598e-8,
           -3.935979364655395e-8,
           0,
-          0.000043361698772059754,
-          323.4321594238281,
-          798.4954223632812,
+          0.000043361695134080946,
+          323.43212890625,
+          795.1272583007812,
           1
         ],
-        "shaded": 410837,
+        "shaded": 304259,
         "opaque": 454860,
-        "menuYellowPixels": 0,
+        "menuYellowPixels": 90,
         "colors": 8192,
-        "hash": "f835b84f0bdf7821fbf3dfdb2820968377953af9d928888bb17c8635cb4fdcf3"
+        "hash": "4a3f3b127f5b70b76b21d2ace9fd091e53518db284782f4f1f181020d2f4a029"
       },
       "exitCode": 0,
-      "instructions": 204426343,
+      "instructions": 204277676,
       "compiledBlocks": 3820,
       "wasmBytes": 3092568,
       "apiNames": [

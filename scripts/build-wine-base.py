@@ -22,6 +22,10 @@ TARGETS = {
     "msvcrt.dll": "dlls/msvcrt/i386-windows/msvcrt.dll",
     "msacm32.dll": "dlls/msacm32/i386-windows/msacm32.dll",
     "ucrtbase.dll": "dlls/ucrtbase/i386-windows/ucrtbase.dll",
+    "vcruntime140.dll": "dlls/vcruntime140/i386-windows/vcruntime140.dll",
+    "msvcp140.dll": "dlls/msvcp140/i386-windows/msvcp140.dll",
+    "msvcp140_1.dll": "dlls/msvcp140_1/i386-windows/msvcp140_1.dll",
+    "concrt140.dll": "dlls/concrt140/i386-windows/concrt140.dll",
 }
 
 
@@ -118,7 +122,7 @@ def main():
     for name, target in TARGETS.items():
         destination = OUTPUT.parent / name
         temporary = destination.with_suffix(".tmp")
-        subprocess.run([strip, "--strip-debug", "-o", str(temporary), str(build / target)], check=True)
+        subprocess.run([strip, "--strip-debug", "-o", str(temporary), str(build / target)], check=True, env=env)
         details = pe_details(temporary, objdump)
         temporary.replace(destination)
         runtime_dlls.append({"name": name, "path": name, "bytes": details["bytes"], "sha256": details["sha256"]})
@@ -132,6 +136,7 @@ def main():
         "patchSha256": loader["patchSha256"],
         "artifactPathBase": "manifest-directory",
         "strip": version(strip),
+        "sourceDateEpoch": 0,
         "dlls": runtime_dlls,
         "nls": runtime_nls,
         "scope": "Cache-only source-built base closure; not enabled in normal uploads or published.",

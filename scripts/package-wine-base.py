@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / '.cache/wine-base'
@@ -22,7 +23,7 @@ def main():
     patch = ROOT / 'runtime/wine/browser-loader.patch'
     assert manifest['patchSha256'] == inventory['patch']['sha256'] == digest(patch)
     pinned_nls = json.loads((ROOT / 'runtime/wine/nls-probe-manifest.json').read_text())
-    assert {r['name'] for r in manifest['dlls']} == {'ntdll.dll', 'kernel32.dll', 'kernelbase.dll', 'msvcrt.dll', 'msacm32.dll', 'ucrtbase.dll'}
+    assert {r['name'] for r in manifest['dlls']} == {'ntdll.dll', 'kernel32.dll', 'kernelbase.dll', 'msvcrt.dll', 'msacm32.dll', 'ucrtbase.dll', 'vcruntime140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'concrt140.dll'}
     assert {r['name'] for r in manifest['nls']} == set(pinned_nls['files'])
     copies = []
     for kind in ['dlls', 'nls']:
@@ -55,6 +56,10 @@ def main():
     manifest['sourceArchive'] = {'path': 'wine-source.tar.gz', 'bytes': archive.stat().st_size, 'sha256': SOURCE_HASH}
     manifest['licenses'] = [name for name in inventory['licenses']]
     text = json.dumps(manifest, indent=2) + '\n'
+    text = subprocess.check_output(
+        ['node', str(ROOT / 'node_modules/prettier/bin/prettier.cjs'), '--stdin-filepath', 'manifest.json'],
+        input=text, text=True, cwd=ROOT,
+    )
     (DEST / 'manifest.json').write_text(text)
     metadata = ROOT / 'runtime/wine-base'
     metadata.mkdir(parents=True, exist_ok=True)

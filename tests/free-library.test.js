@@ -168,3 +168,36 @@ test('host module handles remain unique after dynamic guest DLL unloads', async 
   const retried = runtime.graph.load('user32.dll', true);
   assert.equal(retried.base, transient.base, 'failed-load rollback restores the host-base cursor');
 });
+
+test('recursive DLL releases defer unmapping and notify each DLL once', async () => {
+  const runtime = await dynamicRuntime();
+  const forwardBase = await runtime.loadLibrary('forward.dll');
+  const tlsBase = await runtime.loadLibrary('tls.dll');
+  const forward = runtime.graph.modules.get('forward.dll');
+  const tls = runtime.graph.modules.get('tls.dll');
+  const sum = await runtime.resolveExport(forward, 'ForwardSum');
+  const math = runtime.graph.modules.get('math.dll');
+  const detached = [];
+  const callGuest = runtime.callGuest.bind(runtime);
+  runtime.callGuest = async (address, args, convention) => {
+    const module = [forward, tls, math].find((item) => item.pe.entryPoint === address);
+    if (module && args?.[1] === 0) {
+      detached.push(module.name);
+      assert.equal(module.initialized, false, 'attach state is cleared before notification');
+      if (module === forward) {
+        assert.equal(await runtime.freeLibrary(tlsBase), true);
+        assert.equal(runtime.graph.modules.get('tls.dll'), tls);
+        assert.equal(tls.mapped, true, 'nested release leaves images available to destructors');
+        assert.equal(await callGuest(sum, [20, 22], 'cdecl'), 42);
+      }
+    }
+    return callGuest(address, args, convention);
+  };
+  assert.equal(await runtime.freeLibrary(forwardBase), true);
+  assert.deepEqual(detached, ['forward.dll', 'tls.dll', 'math.dll']);
+  for (const name of ['forward.dll', 'tls.dll', 'math.dll'])
+    assert.equal(runtime.graph.modules.has(name), false);
+  assert.equal(runtime.unloadInProgress, false);
+  assert.equal(runtime.tls.records.size, 0);
+  await assert.rejects(runtime.callGuest(sum, [20, 22], 'cdecl'), /Execute outside code/);
+});

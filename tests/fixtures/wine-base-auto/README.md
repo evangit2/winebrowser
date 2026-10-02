@@ -14,7 +14,7 @@ reference so the final module inventory verifies its native provenance.
 
 `npm run build:wine-base-auto` rebuilds the native inputs with MinGW.
 `npm run test:wine-base-upload` uploads the original files through the actual
-worker and requires automatic fetches of the six source DLLs and seven NLS
+worker and requires automatic fetches of the source DLL closure and seven NLS
 tables, native mapped modules, real output and exit zero. Its dev gate rejects
 a modified runtime NTDLL. Set WINEBROWSER_TEST_URL to a built project URL to
 verify the same uploads through the Pages isolation service worker. These

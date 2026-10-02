@@ -221,11 +221,12 @@ remain unsupported. See Microsoft's [NtCreateFile options](https://learn.microso
 ## Source-built base closure
 
 `npm run build:wine-base` reuses the pinned Wine source and loader patch to build
-ntdll, kernel32, kernelbase, msvcrt, msacm32 and ucrtbase. The cache-only inventory
+ntdll, kernel32, kernelbase, msvcrt, msacm32, ucrtbase, vcruntime140, msvcp140,
+msvcp140_1 and concrt140. The cache-only inventory
 retains source archive/patch hashes, toolchain, imports, licenses and NLS
 provenance. `.cache/wine-base/runtime.json` separately inventories copies with
 debug sections stripped and the seven unchanged source NLS tables. No installed
-Wine files are needed for this profile; the DLL payload is 7,655,973 bytes.
+Wine files are needed for this profile; the DLL payload is 9,401,549 bytes.
 
 `WINEBROWSER_SOURCE_BASE=.cache/wine-base/runtime.json` selects it in the existing
 Wine probes. Every DLL/table hash and source/patch identity is checked before
@@ -239,7 +240,7 @@ diagnostic bootstrap. The source-built shell/format helpers are still shared
 with normal uploads. `npm run package:wine-base` publishes hash-verified DLL/NLS copies, the matching
 51 MiB source archive, loader patch, licenses and rebuild scripts under
 `public/runtime/wine-base/`. Installed Wine binaries are never copied. The worker
-fetches these six DLLs and seven tables (12,095,871 bytes) if the native graph
+fetches these ten DLLs and seven tables (13,841,447 bytes) if the native graph
 resolves missing imports better than the host graph. It also scans supplied
 DLLs before process startup, so a DLL reached later through LoadLibrary can
 share a native system-library graph. Supplied package DLLs retain precedence.
@@ -259,3 +260,28 @@ A corrupted base asset is rejected. The test also runs against the built Pages
 path in CI. This supplies a bounded native closure, not every Windows library,
 Win32 service or instruction. Original Hamsterball now renders a race and responds to arrow keys; completion
 and audio remain unverified. See [race evidence](../evidence/hamsterball-race-gameplay.json).
+
+## Visual C++ runtime closure
+
+Ordinary EXE/DLL uploads can now resolve `vcruntime140.dll`, `msvcp140.dll`,
+`msvcp140_1.dll` and `concrt140.dll` through the source-built closure. The native
+DLL code compiles to Wasm during execution. The authored upload regression
+checks mutex ownership/try-locking, independent exception-message ownership,
+64-byte aligned C++ virtual allocation/deallocation, mangled concurrency
+allocation exports, balanced client references and clean exit. A second upload
+loads an authored plugin from a nested ZIP directory, runs those checks, unloads
+MSVCP140_1 and repeats, while preserving native Wine-owned references to
+MSVCP140 and ConCRT. Recursive `FreeLibrary` calls during detach
+update references immediately; the outermost unload owns notifications and
+keeps DLL images mapped until cleanup callbacks return, as Wine does.
+Corresponding
+source and rebuild instructions accompany the DLLs. Exception unwinding,
+additional C++ application behavior and general concurrency remain unfinished.
+
+`MSVCP140_2` is withheld because its pinned Wine special-math exports are stubs.
+The strip phase now receives `SOURCE_DATE_EPOCH=0`, keeping the PE timestamp
+and checksum reproducible. The six earlier DLLs retain identical executable
+content; only those header fields change when normalized.
+
+Evidence: `evidence/cpp-runtime-browser-results.json` and the
+[native client](../tests/fixtures/cpp-runtime/README.md).

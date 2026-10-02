@@ -1,0 +1,189 @@
+{
+  "date": "2026-10-02T23:23:09.819Z",
+  "url": "http://127.0.0.1:4205/winebrowser/",
+  "normalChromium": true,
+  "browser": "153.0.8010.12",
+  "scope": "Ordinary authored native PE32 upload automatically fetches source-built Wine Visual C++ DLLs: native mutex ownership/try-lock behavior, independently owned exception-message copies, real thiscall aligned allocation/deallocation, mangled Concurrency::Alloc/Free exports, library reference balancing and clean exit; a nested uploaded plugin then runs the checks twice across plugin and MSVCP140_1 unload/reload cycles, preserving Wine-owned references to MSVCP140/ConCRT. No Microsoft redistributable binaries or success stubs are supplied.",
+  "runs": [
+    {
+      "profile": "cpp-runtime",
+      "exeSha256": "dae8a1a3704b12463c39db730a6d46afd2570bca6a4e4d60da66a7cc7033a904",
+      "pluginSha256": null,
+      "exitCode": 0,
+      "x86TranslationMs": 1010.7200001627207,
+      "elapsedMs": 1281.8849999979138,
+      "totalCompiledBlocks": 3606,
+      "instructions": 329577,
+      "modules": [
+        {
+          "name": "cpp-runtime.exe",
+          "path": "cpp-runtime.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "msvcp140.dll",
+          "path": "@runtime/msvcp140.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 2,
+          "initialized": false
+        },
+        {
+          "name": "msvcp140_1.dll",
+          "path": "@runtime/msvcp140_1.dll",
+          "host": false,
+          "base": 17629184,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "vcruntime140.dll",
+          "path": "@runtime/vcruntime140.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "@runtime/ucrtbase.dll",
+          "host": false,
+          "base": 17760256,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 18677760,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 19136512,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 19922944,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "concrt140.dll",
+          "path": "@runtime/concrt140.dll",
+          "host": false,
+          "base": 22675456,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        }
+      ],
+      "output": "NATIVE CPP RUNTIME PASS\n"
+    },
+    {
+      "profile": "plugin-host",
+      "exeSha256": "46c7f78bb30bf2a7d5c2a5b62ba57d1bafc2f93de4481970a7ff46a0ac0cb6a9",
+      "pluginSha256": "99056ebe1a0bb95e38aed2c78ab6250ca5efb3aacbb2bae984715cce8dc2dcf1",
+      "exitCode": 0,
+      "x86TranslationMs": 1085.0200002267957,
+      "elapsedMs": 1369.9649999961257,
+      "totalCompiledBlocks": 3775,
+      "instructions": 374749,
+      "modules": [
+        {
+          "name": "plugin-host.exe",
+          "path": "app/plugin-host.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 17235968,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 19988480,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "msvcp140.dll",
+          "path": "@runtime/msvcp140.dll",
+          "host": false,
+          "base": 20840448,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "vcruntime140.dll",
+          "path": "@runtime/vcruntime140.dll",
+          "host": false,
+          "base": 21757952,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "@runtime/ucrtbase.dll",
+          "host": false,
+          "base": 21823488,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "concrt140.dll",
+          "path": "@runtime/concrt140.dll",
+          "host": false,
+          "base": 22740992,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        }
+      ],
+      "output": "NATIVE CPP RUNTIME PASS\nNATIVE CPP RUNTIME PASS\nCPP PLUGIN RELOAD PASS\n"
+    }
+  ],
+  "errors": []
+}
