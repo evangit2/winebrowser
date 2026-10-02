@@ -59,3 +59,17 @@ test('RedrawWindow validates flags and removes internal paints on request', asyn
   await paintApis['user32.dll!RedrawWindow'](r, (i) => [0x20000, 0, 0, 0x10][i]);
   assert.equal(r.windows.queue.length, 0);
 });
+test('ValidateRect consumes a full update region without consuming internal paint', () => {
+  const r = fixture(),
+    window = r.windows.windows.get(0x20000);
+  window.invalid = [0, 0, 500, 500];
+  window.erase = true;
+  window.internalPaint = true;
+  assert.deepEqual(
+    paintApis['user32.dll!ValidateRect'](r, (i) => [window.id, 0][i]),
+    { result: 1, argc: 2 },
+  );
+  assert.equal(window.invalid, null);
+  assert.equal(window.erase, false);
+  assert.equal(window.internalPaint, true);
+});

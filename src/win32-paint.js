@@ -1,5 +1,23 @@
 // Paint requests and message waits share the guest window manager's queue.
 export const paintApis = {
+  'user32.dll!ValidateRect': (r, a) => {
+    const window = r.windows.windows.get(a(0));
+    if (!window) return r.windows.fail(1400, 2);
+    if (a(1) && window.invalid) {
+      r.check(a(1), 16);
+      const rect = [0, 4, 8, 12].map((off) => r.read32(a(1) + off) | 0);
+      if (
+        rect[0] > window.invalid[0] ||
+        rect[1] > window.invalid[1] ||
+        rect[2] < window.invalid[2] ||
+        rect[3] < window.invalid[3]
+      )
+        throw Error('Unsupported partial ValidateRect region');
+    }
+    window.invalid = null;
+    window.erase = false;
+    return { result: 1, argc: 2 };
+  },
   'user32.dll!WaitMessage': async (r) => {
     while (
       !r.windows.queue.length &&

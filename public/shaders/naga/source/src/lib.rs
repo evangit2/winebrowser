@@ -62,8 +62,18 @@ fn emit_wgsl(bytes: &[u8], adjust_coordinate_space: bool) -> Result<String, Stri
         adjust_coordinate_space,
         ..Default::default()
     };
-    let module = naga::front::spv::parse_u8_slice(bytes, &options)
+    let mut module = naga::front::spv::parse_u8_slice(bytes, &options)
         .map_err(|error| format!("SPIR-V parse failed: {error}"))?;
+    if adjust_coordinate_space {
+        // WebGPU has no push constants. Reserve group 3 for a submission-time
+        // immutable uniform snapshot of the Vulkan command buffer's bytes.
+        for (_, variable) in module.global_variables.iter_mut() {
+            if variable.space == naga::AddressSpace::Immediate {
+                variable.space = naga::AddressSpace::Uniform;
+                variable.binding = Some(naga::ResourceBinding { group: 3, binding: 0 });
+            }
+        }
+    }
     if module.entry_points.is_empty() {
         return Err("SPIR-V module has no shader entry point".into());
     }

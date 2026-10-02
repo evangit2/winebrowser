@@ -6,8 +6,8 @@
       "sha256": "19aa5430e6ba68598593163dbc479e17f7a7a7ba7ff51b98ae4b2fcf4707db57"
     },
     "winebrowser_shader_wgsl_bg.wasm": {
-      "bytes": 1486664,
-      "sha256": "a1b7951e64414c7bc3eb5c90d21ef907dd41346d19f402f5d58cb39e2fc8d6c5"
+      "bytes": 1486792,
+      "sha256": "ded78f78c778737500c35aab3397c5c7fca165118151da30498be72153a8a3ad"
     }
   },
   "drawParameters": {

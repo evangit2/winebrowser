@@ -127,8 +127,9 @@ function record(r, id, item) {
   c.commands.push(item);
 }
 const impl = {};
+const unavailable = new Set(['vkCmdBeginRendering', 'vkCmdEndRendering']);
 async function procAddress(r, name) {
-  if (!impl[name]) return 0;
+  if (!impl[name] || unavailable.has(name)) return 0;
   return r.resolveExport(r.graph.load('vulkan-1.dll'), name);
 }
 impl.vkGetInstanceProcAddr = async (r, [id, namePointer]) => {
@@ -161,6 +162,12 @@ impl.vkGetDeviceProcAddr = async (r, [id, namePointer]) => {
 impl.vkEnumerateInstanceVersion = (r, [p]) => {
   r.write32(p, 1 << 22);
   return 0;
+};
+// A Vulkan-1.0 binary may contain unused 1.3 paths in its C++ virtual table.
+// Its static imports can resolve, while optional loader queries remain null
+// and execution of an unimplemented path fails explicitly.
+impl.vkCmdBeginRendering = impl.vkCmdEndRendering = () => {
+  throw Error('Vulkan 1.3 dynamic rendering is unavailable');
 };
 impl.vkEnumerateInstanceLayerProperties = (r, [count, pointer]) =>
   enumerate(r, count, pointer, [], 520, () => {});
@@ -213,12 +220,23 @@ impl.vkGetPhysicalDeviceProperties = (r, [gpu, p]) => {
     maxImageDimensionCube: 1,
     maxImageArrayLayers: 1,
     maxUniformBufferRange: 65536,
+    maxStorageBufferRange: MAX_BYTES,
     maxBoundDescriptorSets: 4,
     maxPerStageDescriptorSamplers: 16,
+    maxPerStageDescriptorSampledImages: 16,
     maxPerStageDescriptorUniformBuffers: 12,
+    maxPerStageDescriptorStorageBuffers: 4,
     maxDescriptorSetUniformBuffers: 12,
     maxDescriptorSetSamplers: 16,
     maxDescriptorSetSampledImages: 16,
+    maxDescriptorSetStorageBuffers: 4,
+    maxPushConstantsSize: 128,
+    maxVertexInputAttributes: 16,
+    maxVertexInputBindings: 8,
+    maxVertexInputAttributeOffset: 2047,
+    maxVertexInputBindingStride: 2048,
+    maxComputeSharedMemorySize: 16384,
+    maxComputeWorkGroupInvocations: 256,
     maxFramebufferWidth: 2048,
     maxFramebufferHeight: 2048,
     maxFramebufferLayers: 1,
@@ -229,6 +247,11 @@ impl.vkGetPhysicalDeviceProperties = (r, [gpu, p]) => {
   }))
     r.write32(l + ABI.VkPhysicalDeviceLimits[name], value);
   write64(r, l + ABI.VkPhysicalDeviceLimits.minUniformBufferOffsetAlignment, 256);
+  write64(r, l + ABI.VkPhysicalDeviceLimits.minStorageBufferOffsetAlignment, 256);
+  for (let i = 0; i < 3; i++) {
+    r.write32(l + ABI.VkPhysicalDeviceLimits.maxComputeWorkGroupCount + i * 4, 65535);
+    r.write32(l + ABI.VkPhysicalDeviceLimits.maxComputeWorkGroupSize + i * 4, i === 2 ? 64 : 256);
+  }
 };
 impl.vkGetPhysicalDeviceFeatures = (r, [gpu, p]) => {
   get(r, gpu, 'physical');
@@ -248,7 +271,7 @@ impl.vkGetPhysicalDeviceQueueFamilyProperties = (r, [gpu, count, p]) => {
   get(r, gpu, 'physical');
   return enumerate(r, count, p, [0], ABI.VkQueueFamilyProperties.__size, (p) => {
     zero(r, p, ABI.VkQueueFamilyProperties.__size);
-    r.write32(p, 1);
+    r.write32(p, 7); // Graphics, compute and transfer share one ordered queue.
     r.write32(p + 4, 1);
     for (let i = 0; i < 3; i++) r.write32(p + 12 + i * 4, 1);
   });
@@ -396,7 +419,7 @@ impl.vkAcquireNextImageKHR = (r, [device, id, timeout, semaphore, fence, p]) => 
 impl.vkCreateBuffer = (r, [device, p, allocator, output]) => {
   get(r, device, 'device');
   const v = info(r, p, 'VkBufferCreateInfo', 12);
-  if (allocator || v('flags') || v('sharingMode') || ![1, 0x10].includes(v('usage'))) return -8;
+  if (allocator || v('flags') || v('sharingMode') || !v('usage') || v('usage') & ~0xf3) return -8;
   return out(
     r,
     output,
@@ -563,23 +586,45 @@ impl.vkCreateDescriptorSetLayout = (r, [device, p, allocator, output]) => {
     if (
       binding >= 32 ||
       bindings.has(binding) ||
-      ![1, 6].includes(type) ||
+      ![1, 6, 7].includes(type) ||
       field(r, p, 'VkDescriptorSetLayoutBinding', 'descriptorCount') !== 1 ||
       field(r, p, 'VkDescriptorSetLayoutBinding', 'pImmutableSamplers')
     )
       return -8;
-    bindings.set(binding, type);
+    const stages = field(r, p, 'VkDescriptorSetLayoutBinding', 'stageFlags');
+    if (!stages || stages & ~49) return -8;
+    bindings.set(binding, { type, stages });
   }
   return out(r, output, make(r, 'set-layout', { bindings }));
 };
 impl.vkCreatePipelineLayout = (r, [device, p, allocator, output]) => {
   const v = info(r, p, 'VkPipelineLayoutCreateInfo', 30);
-  if (allocator || v('flags') || v('pushConstantRangeCount')) return -8;
+  if (allocator || v('flags')) return -8;
   const count = bounded(v('setLayoutCount'), 4, 'descriptor sets', 0);
   const layouts = Array.from({ length: count }, (_, i) =>
     get(r, u64(r, v('pSetLayouts') + i * 8), 'set-layout'),
   );
-  return out(r, output, make(r, 'pipeline-layout', { layouts }));
+  const ranges = Array.from(
+    { length: bounded(v('pushConstantRangeCount'), 8, 'push constant ranges', 0) },
+    (_, i) => {
+      const p = v('pPushConstantRanges') + i * ABI.VkPushConstantRange.__size;
+      const offset = field(r, p, 'VkPushConstantRange', 'offset'),
+        size = field(r, p, 'VkPushConstantRange', 'size'),
+        stages = field(r, p, 'VkPushConstantRange', 'stageFlags');
+      if (
+        count > 3 ||
+        offset % 4 ||
+        size % 4 ||
+        !size ||
+        offset + size > 128 ||
+        !stages ||
+        stages & ~49
+      )
+        throw Error('Unsupported Vulkan push constant range');
+      return { offset, size, stages };
+    },
+  );
+  return out(r, output, make(r, 'pipeline-layout', { layouts, ranges }));
 };
 impl.vkCreateDescriptorPool = (r, [device, p, allocator, output]) => {
   const v = info(r, p, 'VkDescriptorPoolCreateInfo', 33);
@@ -618,18 +663,24 @@ impl.vkUpdateDescriptorSets = (r, [device, count, writes, copyCount]) => {
     if (
       v('dstArrayElement') ||
       v('descriptorCount') !== 1 ||
-      set.layout.bindings.get(binding) !== type
+      set.layout.bindings.get(binding)?.type !== type
     )
       throw Error('Invalid Vulkan descriptor write');
     let descriptor;
-    if (type === 6) {
+    if (type === 6 || type === 7) {
       const p = v('pBufferInfo'),
         buffer = get(r, field(r, p, 'VkDescriptorBufferInfo', 'buffer', true), 'buffer');
       const offset = field(r, p, 'VkDescriptorBufferInfo', 'offset', true);
       let range = field(r, p, 'VkDescriptorBufferInfo', 'range', true);
       if (range === WHOLE) range = buffer.size - offset;
       bounded(offset, buffer.size - 1, 'uniform offset', 0);
-      bounded(range, Math.min(65536, buffer.size - offset), 'uniform range');
+      bounded(
+        range,
+        Math.min(type === 6 ? 65536 : MAX_BYTES, buffer.size - offset),
+        'descriptor range',
+      );
+      if (!(buffer.usage & (type === 6 ? 0x10 : 0x20)))
+        throw Error('Vulkan buffer descriptor usage mismatch');
       descriptor = { type, buffer, offset, range };
     } else {
       const p = v('pImageInfo');
@@ -717,8 +768,32 @@ impl.vkCreateGraphicsPipelines = async (
       };
     });
     const vertex = info(r, v('pVertexInputState'), 'VkPipelineVertexInputStateCreateInfo', 19);
-    if (vertex('vertexBindingDescriptionCount') || vertex('vertexAttributeDescriptionCount'))
-      return -8;
+    const vertexBindings = Array.from(
+      { length: bounded(vertex('vertexBindingDescriptionCount'), 8, 'vertex bindings', 0) },
+      (_, i) => {
+        const p =
+          vertex('pVertexBindingDescriptions') + i * ABI.VkVertexInputBindingDescription.__size;
+        const binding = field(r, p, 'VkVertexInputBindingDescription', 'binding'),
+          stride = field(r, p, 'VkVertexInputBindingDescription', 'stride'),
+          rate = field(r, p, 'VkVertexInputBindingDescription', 'inputRate');
+        if (binding >= 8 || stride > 2048 || stride % 4 || rate > 1)
+          throw Error('Unsupported Vulkan vertex binding');
+        return { binding, stride, rate };
+      },
+    );
+    const vertexAttributes = Array.from(
+      { length: bounded(vertex('vertexAttributeDescriptionCount'), 16, 'vertex attributes', 0) },
+      (_, i) => {
+        const p =
+          vertex('pVertexAttributeDescriptions') + i * ABI.VkVertexInputAttributeDescription.__size;
+        return Object.fromEntries(
+          ['location', 'binding', 'format', 'offset'].map((n) => [
+            n,
+            field(r, p, 'VkVertexInputAttributeDescription', n),
+          ]),
+        );
+      },
+    );
     const assembly = info(
       r,
       v('pInputAssemblyState'),
@@ -744,12 +819,21 @@ impl.vkCreateGraphicsPipelines = async (
     )
       return -8;
     const depth = info(r, v('pDepthStencilState'), 'VkPipelineDepthStencilStateCreateInfo', 25);
-    if (depth('stencilTestEnable') || depth('depthBoundsTestEnable') || !depth('depthTestEnable'))
-      return -8;
+    if (depth('stencilTestEnable') || depth('depthBoundsTestEnable')) return -8;
     const blend = info(r, v('pColorBlendState'), 'VkPipelineColorBlendStateCreateInfo', 26);
     if (blend('logicOpEnable') || blend('attachmentCount') !== 1) return -8;
     const attachment = blend('pAttachments');
-    if (field(r, attachment, 'VkPipelineColorBlendAttachmentState', 'blendEnable')) return -8;
+    const blending = Object.fromEntries(
+      [
+        'blendEnable',
+        'srcColorBlendFactor',
+        'dstColorBlendFactor',
+        'colorBlendOp',
+        'srcAlphaBlendFactor',
+        'dstAlphaBlendFactor',
+        'alphaBlendOp',
+      ].map((n) => [n, field(r, attachment, 'VkPipelineColorBlendAttachmentState', n)]),
+    );
     const viewport = info(r, v('pViewportState'), 'VkPipelineViewportStateCreateInfo', 22);
     if (viewport('viewportCount') !== 1 || viewport('scissorCount') !== 1 || !v('pDynamicState'))
       return -8;
@@ -764,8 +848,12 @@ impl.vkCreateGraphicsPipelines = async (
     get(r, v('renderPass', true), 'renderpass');
     const gpu = await state(r).renderer.pipeline({
       stages,
+      layout,
+      vertexBindings,
+      vertexAttributes,
+      blending,
       depthWrite: !!depth('depthWriteEnable'),
-      depthCompare: depth('depthCompareOp'),
+      depthCompare: depth('depthTestEnable') ? depth('depthCompareOp') : 7,
       cullMode: raster('cullMode'),
       frontFace: raster('frontFace'),
       writeMask: field(r, attachment, 'VkPipelineColorBlendAttachmentState', 'colorWriteMask'),
@@ -778,6 +866,37 @@ impl.vkCreateCommandPool = (r, [device, p, allocator, output]) => {
   const v = info(r, p, 'VkCommandPoolCreateInfo', 39);
   if (allocator || v('queueFamilyIndex') || v('flags') & ~3) return -8;
   return out(r, output, make(r, 'command-pool', { commands: new Set() }));
+};
+impl.vkCreateComputePipelines = async (
+  r,
+  [device, cache, count, descriptions, allocator, output],
+) => {
+  get(r, device, 'device');
+  if (allocator) return -8;
+  if (cache) get(r, cache, 'pipeline-cache');
+  bounded(count, 4, 'compute pipeline count');
+  for (let i = 0; i < count; i++) {
+    const p = descriptions + i * ABI.VkComputePipelineCreateInfo.__size,
+      v = info(r, p, 'VkComputePipelineCreateInfo', 29);
+    if (v('flags') || v('basePipelineHandle', true)) return -8;
+    const stage = info(
+      r,
+      p + ABI.VkComputePipelineCreateInfo.stage,
+      'VkPipelineShaderStageCreateInfo',
+      18,
+    );
+    if (stage('stage') !== 32 || stage('flags') || stage('pSpecializationInfo')) return -8;
+    const layout = get(r, v('layout', true), 'pipeline-layout');
+    const gpu = await state(r).renderer.computePipeline({
+      layout,
+      stage: {
+        entry: r.string(stage('pName')),
+        bytes: get(r, stage('module', true), 'shader').bytes,
+      },
+    });
+    out(r, output + i * 8, make(r, 'pipeline', { gpu, layout }));
+  }
+  return 0;
 };
 impl.vkAllocateCommandBuffers = (r, [device, p, output]) => {
   const v = info(r, p, 'VkCommandBufferAllocateInfo', 40),
@@ -841,17 +960,112 @@ impl.vkCmdBeginRenderPass = (r, [id, p, contents]) => {
 };
 impl.vkCmdEndRenderPass = (r, [id]) => record(r, id, { type: 'end-pass' });
 impl.vkCmdBindPipeline = (r, [id, point, pipeline]) => {
-  if (point) throw Error('Vulkan compute pipeline unsupported');
-  record(r, id, { type: 'pipeline', pipeline: get(r, pipeline, 'pipeline') });
+  if (point > 1) throw Error('Unsupported Vulkan pipeline bind point');
+  record(r, id, { type: 'pipeline', point, pipeline: get(r, pipeline, 'pipeline') });
 };
 impl.vkCmdBindDescriptorSets = (r, [id, point, layout, first, count, sets, dynamicCount]) => {
-  get(r, layout, 'pipeline-layout');
-  if (point || first || dynamicCount) throw Error('Unsupported Vulkan descriptor bind');
-  bounded(count, 4, 'bound sets');
+  const target = get(r, layout, 'pipeline-layout');
+  if (point > 1 || dynamicCount) throw Error('Unsupported Vulkan descriptor bind');
+  bounded(count, target.layouts.length - first, 'bound sets');
+  const bindings = Array.from({ length: count }, (_, i) =>
+    get(r, u64(r, sets + i * 8), 'descriptor-set'),
+  );
+  if (
+    bindings.some(
+      (set, i) =>
+        JSON.stringify([...set.layout.bindings]) !==
+        JSON.stringify([...target.layouts[first + i].bindings]),
+    )
+  )
+    throw Error('Vulkan descriptor layout mismatch');
   record(r, id, {
     type: 'sets',
-    sets: Array.from({ length: count }, (_, i) => get(r, u64(r, sets + i * 8), 'descriptor-set')),
+    point,
+    first,
+    sets: bindings,
   });
+};
+impl.vkCmdBindVertexBuffers = (r, [id, first, count, p, offsets]) => {
+  bounded(count, 8 - first, 'bound vertex buffers');
+  const buffers = Array.from({ length: count }, (_, i) => {
+    const buffer = get(r, u64(r, p + i * 8), 'buffer'),
+      offset = u64(r, offsets + i * 8);
+    if (!(buffer.usage & 0x80) || offset >= buffer.size || offset % 4)
+      throw Error('Invalid Vulkan vertex buffer binding');
+    return { buffer, offset };
+  });
+  record(r, id, { type: 'vertices', first, buffers });
+};
+impl.vkCmdBindIndexBuffer = (r, [id, bufferId, offset, indexType]) => {
+  const buffer = get(r, bufferId, 'buffer');
+  if (
+    !(buffer.usage & 0x40) ||
+    indexType > 1 ||
+    offset >= buffer.size ||
+    offset % (indexType ? 4 : 2)
+  )
+    throw Error('Invalid Vulkan index buffer binding');
+  record(r, id, { type: 'indices', buffer, offset, format: indexType ? 'uint32' : 'uint16' });
+};
+impl.vkCmdDrawIndexed = (r, [id, indices, instances, first, vertexOffset, firstInstance]) => {
+  bounded(indices, 1024 * 1024, 'draw indices');
+  bounded(instances, 1024, 'draw instances');
+  record(r, id, {
+    type: 'draw-indexed',
+    values: [indices, instances, first, vertexOffset | 0, firstInstance],
+  });
+};
+impl.vkCmdPushConstants = (r, [id, layoutId, stages, offset, size, p]) => {
+  const layout = get(r, layoutId, 'pipeline-layout');
+  if (
+    offset % 4 ||
+    size % 4 ||
+    !size ||
+    offset + size > 128 ||
+    !stages ||
+    stages & ~49 ||
+    !layout.ranges.some(
+      (range) =>
+        (range.stages & stages) === stages &&
+        range.offset <= offset &&
+        range.offset + range.size >= offset + size,
+    )
+  )
+    throw Error('Invalid Vulkan push constants');
+  r.check(p, size);
+  record(r, id, { type: 'push', offset, bytes: r.data.slice(p, p + size) });
+};
+impl.vkCmdCopyBuffer = (r, [id, sourceId, targetId, count, p]) => {
+  const source = get(r, sourceId, 'buffer'),
+    target = get(r, targetId, 'buffer');
+  if (!(source.usage & 1) || !(target.usage & 2)) throw Error('Vulkan copy buffer usage mismatch');
+  bounded(count, 64, 'buffer copies');
+  for (let i = 0; i < count; i++) {
+    const at = p + i * ABI.VkBufferCopy.__size;
+    const sourceOffset = field(r, at, 'VkBufferCopy', 'srcOffset', true),
+      targetOffset = field(r, at, 'VkBufferCopy', 'dstOffset', true),
+      size = field(r, at, 'VkBufferCopy', 'size', true);
+    bounded(
+      size,
+      Math.min(source.size - sourceOffset, target.size - targetOffset),
+      'buffer copy size',
+    );
+    record(r, id, { type: 'copy-buffer', source, target, sourceOffset, targetOffset, size });
+  }
+};
+impl.vkFlushMappedMemoryRanges = impl.vkInvalidateMappedMemoryRanges = (r, [device, count, p]) => {
+  get(r, device, 'device');
+  bounded(count, 64, 'mapped ranges');
+  for (let i = 0; i < count; i++) {
+    const v = info(r, p + i * ABI.VkMappedMemoryRange.__size, 'VkMappedMemoryRange', 6),
+      memory = get(r, v('memory', true), 'memory');
+    const offset = v('offset', true),
+      size = v('size', true) === WHOLE ? memory.size - offset : v('size', true);
+    if (!memory.mapped) return -5;
+    bounded(size, memory.size - offset, 'mapped range size');
+    for (const object of memory.resources) object.dirty = true;
+  }
+  return 0;
 };
 impl.vkCmdSetViewport = (r, [id, first, count, p]) => {
   if (first || count !== 1) throw Error('Unsupported Vulkan viewport count');
@@ -876,11 +1090,28 @@ impl.vkCmdDraw = (r, [id, vertices, instances, first, firstInstance]) => {
   bounded(instances, 1024, 'draw instances');
   record(r, id, { type: 'draw', values: [vertices, instances, first, firstInstance] });
 };
+impl.vkCmdDispatch = (r, [id, x, y, z]) => {
+  for (const count of [x, y, z]) bounded(count, 65535, 'dispatch group count', 0);
+  record(r, id, { type: 'dispatch', values: [x, y, z] });
+};
 impl.vkCmdPipelineBarrier = (
   r,
   [id, src, dst, dependency, memoryCount, memories, bufferCount, buffers, imageCount, images],
 ) => {
-  if (dependency || memoryCount || bufferCount) throw Error('Unsupported Vulkan barrier kind');
+  if (dependency || memoryCount) throw Error('Unsupported Vulkan barrier kind');
+  bounded(bufferCount, 32, 'buffer barriers', 0);
+  for (let i = 0; i < bufferCount; i++) {
+    const v = info(r, buffers + i * ABI.VkBufferMemoryBarrier.__size, 'VkBufferMemoryBarrier', 44);
+    const buffer = get(r, v('buffer', true), 'buffer');
+    if (
+      ![0xffffffff, 0].includes(v('srcQueueFamilyIndex')) ||
+      ![0xffffffff, 0].includes(v('dstQueueFamilyIndex'))
+    )
+      throw Error('Unsupported Vulkan buffer queue ownership');
+    const size = v('size', true) === WHOLE ? buffer.size - v('offset', true) : v('size', true);
+    bounded(size, buffer.size - v('offset', true), 'buffer barrier range');
+    record(r, id, { type: 'barrier', buffer });
+  }
   bounded(imageCount, 32, 'image barriers', 0);
   for (let i = 0; i < imageCount; i++) {
     const p = images + i * ABI.VkImageMemoryBarrier.__size,

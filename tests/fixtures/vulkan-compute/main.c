@@ -1,0 +1,80 @@
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <windows.h>
+#include <vulkan/vulkan.h>
+#include "shader.h"
+#define CHECK(expression) do { if ((expression) != VK_SUCCESS) ExitProcess(91); } while (0)
+void mainCRTStartup(void) {
+  VkInstance instance; VkDevice device; VkPhysicalDevice physical; VkQueue queue;
+  VkInstanceCreateInfo ici = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+  CHECK(vkCreateInstance(&ici, 0, &instance));
+  uint32_t count = 1; CHECK(vkEnumeratePhysicalDevices(instance, &count, &physical));
+  VkQueueFamilyProperties family; vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, &family);
+  if (!(family.queueFlags & VK_QUEUE_COMPUTE_BIT)) ExitProcess(92);
+  float priority = 1;
+  VkDeviceQueueCreateInfo qci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, 0, 0, 0, 1, &priority};
+  VkDeviceCreateInfo dci = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+  dci.queueCreateInfoCount = 1; dci.pQueueCreateInfos = &qci;
+  CHECK(vkCreateDevice(physical, &dci, 0, &device)); vkGetDeviceQueue(device, 0, 0, &queue);
+  VkBuffer buffer; VkDeviceMemory memory;
+  VkBufferCreateInfo bci = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO}; bci.size = 16; bci.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  CHECK(vkCreateBuffer(device, &bci, 0, &buffer));
+  VkMemoryAllocateInfo mai = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO}; mai.allocationSize = 16;
+  CHECK(vkAllocateMemory(device, &mai, 0, &memory)); CHECK(vkBindBufferMemory(device, buffer, memory, 0));
+  uint32_t *values; CHECK(vkMapMemory(device, memory, 0, 16, 0, (void**)&values));
+  for (unsigned i=0; i<4; ++i) values[i]=i+1;
+  VkBuffer target; VkDeviceMemory targetMemory; uint32_t *copied;
+  bci.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  CHECK(vkCreateBuffer(device, &bci, 0, &target));
+  CHECK(vkAllocateMemory(device, &mai, 0, &targetMemory)); CHECK(vkBindBufferMemory(device, target, targetMemory, 0));
+  CHECK(vkMapMemory(device, targetMemory, 0, 16, 0, (void**)&copied));
+  for (unsigned i=0; i<4; ++i) copied[i]=200+i;
+  VkDescriptorSetLayoutBinding binding = {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, 0};
+  VkDescriptorSetLayoutCreateInfo slci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO}; slci.bindingCount=1; slci.pBindings=&binding;
+  VkDescriptorSetLayout setLayout; CHECK(vkCreateDescriptorSetLayout(device, &slci, 0, &setLayout));
+  VkPushConstantRange range = {VK_SHADER_STAGE_COMPUTE_BIT, 0, 4};
+  VkPipelineLayoutCreateInfo plci = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO}; plci.setLayoutCount=1; plci.pSetLayouts=&setLayout; plci.pushConstantRangeCount=1; plci.pPushConstantRanges=&range;
+  VkPipelineLayout layout; CHECK(vkCreatePipelineLayout(device, &plci, 0, &layout));
+  VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1};
+  VkDescriptorPoolCreateInfo dpci = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO}; dpci.maxSets=1; dpci.poolSizeCount=1; dpci.pPoolSizes=&poolSize;
+  VkDescriptorPool pool; CHECK(vkCreateDescriptorPool(device, &dpci, 0, &pool));
+  VkDescriptorSetAllocateInfo sai = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, 0, pool, 1, &setLayout};
+  VkDescriptorSet set; CHECK(vkAllocateDescriptorSets(device, &sai, &set));
+  VkDescriptorBufferInfo dbi = {buffer, 0, 16};
+  VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET}; write.dstSet=set; write.descriptorCount=1; write.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; write.pBufferInfo=&dbi;
+  vkUpdateDescriptorSets(device, 1, &write, 0, 0);
+  VkShaderModuleCreateInfo smci = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO}; smci.codeSize=sizeof(shader); smci.pCode=shader;
+  VkShaderModule module; CHECK(vkCreateShaderModule(device, &smci, 0, &module));
+  VkComputePipelineCreateInfo cpci = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO}; cpci.layout=layout;
+  cpci.stage.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; cpci.stage.stage=VK_SHADER_STAGE_COMPUTE_BIT; cpci.stage.module=module; cpci.stage.pName="main";
+  VkPipeline pipeline; CHECK(vkCreateComputePipelines(device, 0, 1, &cpci, 0, &pipeline));
+  VkCommandPoolCreateInfo cpi = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+  VkCommandPool commands; CHECK(vkCreateCommandPool(device, &cpi, 0, &commands));
+  VkCommandBufferAllocateInfo cai = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, 0, commands, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+  VkCommandBuffer cmd; CHECK(vkAllocateCommandBuffers(device, &cai, &cmd));
+  VkCommandBufferBeginInfo begin = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO}; CHECK(vkBeginCommandBuffer(cmd, &begin));
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 1, &set, 0, 0);
+  uint32_t increment=3; vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &increment);
+  vkCmdDispatch(cmd, 1, 1, 1);
+  VkBufferMemoryBarrier barrier = {VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+  barrier.srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT; barrier.dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT;
+  barrier.srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED; barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+  barrier.buffer=buffer; barrier.size=16;
+  vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, 0, 1, &barrier, 0, 0);
+  VkBufferCopy copy = {0, 4, 8}; vkCmdCopyBuffer(cmd, buffer, target, 1, &copy);
+  CHECK(vkEndCommandBuffer(cmd));
+  VkSubmitInfo submit = {VK_STRUCTURE_TYPE_SUBMIT_INFO}; submit.commandBufferCount=1; submit.pCommandBuffers=&cmd;
+  CHECK(vkQueueSubmit(queue, 1, &submit, 0)); CHECK(vkQueueWaitIdle(queue));
+  for (unsigned i=0; i<4; ++i) if(values[i] != (i+1)*2+3) ExitProcess(93);
+  if (copied[0]!=200 || copied[1]!=5 || copied[2]!=7 || copied[3]!=203) ExitProcess(95);
+  CHECK(vkQueueSubmit(queue, 1, &submit, 0));
+  CHECK(vkQueueWaitIdle(queue));
+  for (unsigned i=0; i<4; ++i) if(values[i] != ((i+1)*2+3)*2+3) ExitProcess(94);
+  if (copied[0]!=200 || copied[1]!=13 || copied[2]!=17 || copied[3]!=203) ExitProcess(96);
+  vkUnmapMemory(device,targetMemory); vkDestroyBuffer(device,target,0); vkFreeMemory(device,targetMemory,0);
+  vkUnmapMemory(device,memory); vkDestroyCommandPool(device,commands,0); vkDestroyPipeline(device,pipeline,0);
+  vkDestroyShaderModule(device,module,0); vkDestroyDescriptorPool(device,pool,0); vkDestroyPipelineLayout(device,layout,0); vkDestroyDescriptorSetLayout(device,setLayout,0);
+  vkDestroyBuffer(device,buffer,0); vkFreeMemory(device,memory,0); vkDestroyDevice(device,0); vkDestroyInstance(instance,0);
+  const char result[] = "vulkan-compute-ok\n"; DWORD written; WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), result, sizeof(result)-1, &written, 0);
+  ExitProcess(0);
+}

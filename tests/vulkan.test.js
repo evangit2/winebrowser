@@ -94,7 +94,58 @@ test('Vulkan loader names and handlers reach the ordinary module provider', () =
     assert.ok(API_NAMES['vulkan-1.dll'].includes(name));
     assert.ok(provider.has('vulkan-1.dll!' + name));
   }
-  assert.ok(!API_NAMES['vulkan-1.dll'].includes('vkCreateComputePipelines'));
+  assert.ok(API_NAMES['vulkan-1.dll'].includes('vkCreateComputePipelines'));
+});
+test('push constants capture immutable command bytes and respect layout ranges', async () => {
+  const { r, call, info, device } = fixture();
+  const dev = await device();
+  const range = r.allocate(VK_ABI.VkPushConstantRange.__size);
+  r.write32(range, 1);
+  r.write32(range + 4, 0);
+  r.write32(range + 8, 64);
+  await call('vkCreatePipelineLayout', [
+    dev,
+    info('VkPipelineLayoutCreateInfo', 30, {
+      pushConstantRangeCount: 1,
+      pPushConstantRanges: range,
+    }),
+    0,
+    0x108,
+  ]);
+  const layout = r.read32(0x108);
+  await call('vkCreateCommandPool', [dev, info('VkCommandPoolCreateInfo', 39), 0, 0x110]);
+  await call('vkAllocateCommandBuffers', [
+    dev,
+    info('VkCommandBufferAllocateInfo', 40, {
+      commandPool: r.read32(0x110),
+      commandBufferCount: 1,
+    }),
+    0x118,
+  ]);
+  const cmd = r.read32(0x118);
+  await call('vkBeginCommandBuffer', [cmd, info('VkCommandBufferBeginInfo', 42)]);
+  const data = r.allocate(64);
+  r.write32(data, 17);
+  await call('vkCmdPushConstants', [cmd, layout, 1, 0, 64, data]);
+  r.write32(data, 29);
+  await call('vkCmdPushConstants', [cmd, layout, 1, 0, 64, data]);
+  const commands = r.vulkan.objects.get(cmd).commands;
+  assert.equal(new DataView(commands[0].bytes.buffer).getUint32(0, true), 17);
+  assert.equal(new DataView(commands[1].bytes.buffer).getUint32(0, true), 29);
+  await assert.rejects(
+    call('vkCmdPushConstants', [cmd, layout, 16, 0, 64, data]),
+    /push constants/,
+  );
+  await assert.rejects(call('vkCmdPushConstants', [cmd, layout, 1, 4, 64, data]), /push constants/);
+  await assert.rejects(call('vkCmdPushConstants', [cmd, layout, 1, 0, 63, data]), /push constants/);
+});
+test('unsupported Vulkan 1.3 static imports fail while optional loader queries remain null', async () => {
+  const { r, call, instance } = fixture();
+  const id = await instance(),
+    name = r.allocate(32);
+  r.data.set(new TextEncoder().encode('vkCmdBeginRendering\0'), name);
+  assert.equal((await call('vkGetInstanceProcAddr', [id, name])).result, 0);
+  await assert.rejects(call('vkCmdBeginRendering', [0, 0]), /unavailable/);
 });
 test('instance extension enumeration reports capacity, VK_INCOMPLETE and bounded names', async () => {
   const { r, call } = fixture();

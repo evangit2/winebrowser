@@ -2028,7 +2028,7 @@ function adjustRect(r, a, extended) {
   // that would produce it. A menu adds the menu-bar height above the client
   // area, which is why the caller passes bMenu TRUE for a window with a menu.
   const menu = !!a(2);
-  if (extended && a(3) & ~0x40008) throw Error('Unsupported extended window styles');
+  if (extended && a(3) & ~0x40108) throw Error('Unsupported extended window styles');
   r.check(a(0), 16, true);
   const rect = [0, 4, 8, 12].map((i) => r.read32(a(0) + i) | 0);
   const { border, title } = windowFrame(a(1));
