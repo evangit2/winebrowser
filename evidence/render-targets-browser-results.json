@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "date": "2026-10-02T17:39:39.755Z",
+  "date": "2026-10-02T20:43:12.270Z",
   "browser": "154.0.8037.97",
   "scope": "Native D3D8/9 EXE and ZIP uploads render all six cube faces with a shared D16 depth attachment, validate center/border readback and standalone RGB565 full/partial clears in guest code, sample those faces in 12,288 exact displayed pixels, animate and exit zero.",
   "runs": [
@@ -28,13 +28,13 @@
       "animated": {
         "width": 192,
         "height": 64,
-        "frames": 8,
+        "frames": 10,
         "bad": 0,
         "phase": 1,
         "verifiedPixels": 12288
       },
       "exitCode": 0,
-      "instructions": 37473,
+      "instructions": 48609,
       "errors": []
     },
     {
@@ -44,7 +44,7 @@
         {
           "width": 192,
           "height": 64,
-          "frames": 4,
+          "frames": 6,
           "bad": 0,
           "phase": 1,
           "verifiedPixels": 12288
@@ -52,7 +52,7 @@
         {
           "width": 192,
           "height": 64,
-          "frames": 7,
+          "frames": 9,
           "bad": 0,
           "phase": 0,
           "verifiedPixels": 12288
@@ -67,7 +67,7 @@
         "verifiedPixels": 12288
       },
       "exitCode": 0,
-      "instructions": 37473,
+      "instructions": 41223,
       "errors": []
     },
     {
@@ -100,7 +100,7 @@
         "verifiedPixels": 12288
       },
       "exitCode": 0,
-      "instructions": 30983,
+      "instructions": 34852,
       "errors": []
     },
     {
@@ -133,7 +133,7 @@
         "verifiedPixels": 12288
       },
       "exitCode": 0,
-      "instructions": 30983,
+      "instructions": 34852,
       "errors": []
     }
   ]

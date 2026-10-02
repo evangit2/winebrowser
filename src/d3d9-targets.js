@@ -1,3 +1,4 @@
+import { targetPixelBytes, colorTargetFormats } from './d3d-pixel-format.js';
 import {
   deviceSurface,
   surfaceStorage,
@@ -51,10 +52,22 @@ export function depthDescription(runtime, device) {
 export function storeTargetPixels(runtime, surface, rgba) {
   const state = owner(surface),
     level = surface.state.level;
-  if (!(rgba instanceof Uint8Array) || rgba.length !== level.width * level.height * 4)
+  if (
+    !(rgba instanceof Uint8Array) ||
+    rgba.length !== level.width * level.height * targetPixelBytes(state.format)
+  )
     throw Error('Invalid D3D target readback');
   const base = state.base || surfaceStorage(runtime, surface);
   if (!base) throw Error('D3D target CPU storage limit exceeded');
+  if (state.format === 36) {
+    for (let y = 0; y < level.height; y++)
+      runtime.data.set(
+        rgba.subarray(y * level.width * 8, (y + 1) * level.width * 8),
+        base + level.offset + y * level.pitch,
+      );
+    if (surface.state.texture) invalidate(surface.state.texture);
+    return;
+  }
   for (let y = 0; y < level.height; y++)
     for (let x = 0; x < level.width; x++) {
       const p = base + level.offset + y * level.pitch + x * state.bpp,
@@ -177,7 +190,7 @@ export function validatedTarget(runtime, device, pointer, depth = false) {
       surface.state.level.locked ||
       !(resource.usage & (depth ? 2 : 1)) ||
       resource.pool !== 0 ||
-      (depth ? !DEPTH_FORMATS[resource.format] : ![21, 22, 23].includes(resource.format))
+      (depth ? !DEPTH_FORMATS[resource.format] : !colorTargetFormats.includes(resource.format))
     )
       return undefined;
   }

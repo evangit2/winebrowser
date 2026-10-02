@@ -486,7 +486,7 @@ export function programmableDrawFromVertices(state, vertices, stride, vertexCoun
     vertexConstants: state.vertexConstants.slice(),
     pixelConstants: state.pixelConstants.slice(),
     depthTest: state.depthTest,
-    depthWrite: state.depthWrite,
+    depthWrite: state.depthTest && state.depthWrite,
     depthCompare: state.depthCompare,
     dither: state.dither,
     blend: { ...state.blendState },

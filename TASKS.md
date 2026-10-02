@@ -10,6 +10,14 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## October 2 checkpoint
 
+- [x] Unchanged Humus Water renders reflective landscape and ripple physics;
+      ordinary Chromium static ZIP/catalog paths pass 120 frames and exit zero.
+      Add actual RGBA16 attachments, precision-preserving float32 sampling,
+      shared larger depth/stencil extents with exact outside-region preservation,
+      native XLAT and ext80 FPREM/FPREM1. 422 independent remainder cases pass an
+      unchanged native PE32 upload across twelve control-word configurations.
+      See `docs/rgba16-targets.md` and `docs/x87-remainder.md`.
+
 - [x] Verify Dynamic Branching and RollerCoaster in ordinary headed Chromium
       without unsafe GPU flags, both catalog and ZIP upload. Preserve SoftFloat
       ext80 while reducing scratch allocations and repeated mode setup. The

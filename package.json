@@ -185,7 +185,11 @@
     "test:installer-apis": "node scripts/test-installer-apis-browser.mjs",
     "benchmark:x87-dispatch": "node scripts/benchmark-x87-dispatch.mjs",
     "build:x87-remainder": "sh scripts/build-x87-remainder.sh",
-    "test:x87-remainder": "node scripts/test-x87-remainder-browser.mjs"
+    "test:x87-remainder": "node scripts/test-x87-remainder-browser.mjs",
+    "package:water": "python3 scripts/package-humus-water.py",
+    "test:water": "node scripts/test-water-browser.mjs",
+    "test:rgba16-backend": "node scripts/test-rgba16-backend.mjs",
+    "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

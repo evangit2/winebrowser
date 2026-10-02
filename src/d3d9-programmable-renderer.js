@@ -5,6 +5,7 @@ import { validStencil, validAlphaTest, stencilState } from './d3d-stencil.js';
 import { validFog } from './d3d-fog.js';
 import { ShaderCompiler } from './shader-compiler.js';
 import { MAX_DRAW_VERTICES } from './d3d-limits.js';
+import { validSnapshotFormat, snapshotPixelBytes, samplingPixelBytes } from './d3d-pixel-format.js';
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 const CONSTANT_BYTES = { vertex: 256 * 16, pixel: 224 * 16 };
@@ -20,6 +21,7 @@ function validTextures(textures) {
     const { snapshot, sampler } = binding;
     if (
       !snapshot ||
+      !validSnapshotFormat(snapshot) ||
       ![undefined, '2d', '3d', 'cube'].includes(snapshot.dimension) ||
       !Array.isArray(snapshot.levels) ||
       !snapshot.levels.length ||
@@ -31,7 +33,10 @@ function validTextures(textures) {
           (snapshot.dimension === '3d' && !integer(l.depth, 1, 256)) ||
           (snapshot.dimension !== '3d' && l.depth !== undefined) ||
           l.rgba.length !==
-            l.width * l.height * (snapshot.dimension === 'cube' ? 6 : (l.depth ?? 1)) * 4 ||
+            l.width *
+              l.height *
+              (snapshot.dimension === 'cube' ? 6 : (l.depth ?? 1)) *
+              snapshotPixelBytes(snapshot) ||
           (snapshot.dimension === 'cube' && l.width !== l.height),
       )
     )
@@ -53,7 +58,11 @@ function validTextures(textures) {
             level.height > 256))
       )
         return false;
-      bytes += level.rgba.length;
+      bytes +=
+        level.width *
+        level.height *
+        (dimension === 'cube' ? 6 : (level.depth ?? 1)) *
+        samplingPixelBytes(snapshot);
       if (bytes > 32 * 1024 * 1024) return false;
     }
     if (!sampler || typeof sampler !== 'object') return false;

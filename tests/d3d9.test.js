@@ -1006,7 +1006,8 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 40 * 4), 8);
     assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 21)).result, 0);
     assert.equal((await call(factory, 10, 0, 1, 23, 0x200, 3, 23)).result, 0);
-    assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 21)).result, 0x8876086a);
+    assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 21)).result, 0);
+    assert.equal((await call(factory, 10, 0, 1, 22, 1, 4, 21)).result, 0x8876086a);
     assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 0x31545844)).result, 0);
     const expected = runtime.data.slice(p, p + size),
       device = await create();
@@ -2755,4 +2756,105 @@ test('D3D8 render/depth/image surface methods adapt argument counts and target s
   assert.equal(r.comObjects.objects.get(device).state.renderTarget.pointer, back);
   for (const surface of [color, depth, image, back]) await call(surface, 2);
   assert.equal((await call(device, 2)).result, 0);
+});
+
+for (const version of [8, 9]) {
+  test(`D3D${version} RGBA16 capabilities, mip snapshots and target readback preserve all 16 bits`, async () => {
+    const { runtime: r, call, create, factory } = fixture(version);
+    let initializations = 0;
+    r.graphics.initialize = async () => {
+      initializations++;
+    };
+    assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 36)).result, 0x8876086a);
+    assert.equal(initializations, 1);
+    const device = await create(),
+      out = r.allocate(4),
+      surfaceOut = r.allocate(4);
+    const make = version === 9 ? 23 : 20;
+    const args = [3, 2, 2, 0, 36, 1, out, ...(version === 9 ? [0] : [])];
+    assert.equal((await call(device, make, ...args)).result, 0x8876086c);
+    assert.equal(r.read32(out), 0);
+    r.graphics.supportsRGBA16Unorm = true;
+    assert.equal((await call(factory, 10, 0, 1, 22, 1, 3, 36)).result, 0);
+    assert.equal((await call(factory, 10, 0, 1, 22, 1, 4, 36)).result, 0x8876086a);
+    assert.equal((await call(device, make, ...args)).result, 0);
+    let texture = r.comObjects.objects.get(r.read32(out));
+    for (const [mip, level] of texture.state.levels.entries()) {
+      assert.equal(level.pitch, level.width * 8);
+      for (let pixel = 0; pixel < level.width * level.height; pixel++)
+        for (let channel = 0; channel < 4; channel++)
+          r.view.setUint16(
+            texture.state.base + level.offset + pixel * 8 + channel * 2,
+            0x1234 + pixel * 7 + channel + mip * 0x100,
+            true,
+          );
+    }
+    const initial = textureSnapshot(r, texture);
+    assert.equal(initial.format, 'rgba16unorm');
+    for (const [mip, level] of initial.levels.entries()) {
+      assert.equal(level.rgba.length, level.width * level.height * 8);
+      const view = new DataView(level.rgba.buffer);
+      for (let pixel = 0; pixel < level.width * level.height; pixel++)
+        for (let channel = 0; channel < 4; channel++)
+          assert.equal(
+            view.getUint16(pixel * 8 + channel * 2, true),
+            0x1234 + pixel * 7 + channel + mip * 0x100,
+          );
+    }
+    const targetArgs = [3, 2, 1, 1, 36, 0, out, ...(version === 9 ? [0] : [])];
+    assert.equal((await call(device, make, ...targetArgs)).result, 0);
+    const pointer = r.read32(out);
+    texture = r.comObjects.objects.get(pointer);
+    await call(pointer, version === 9 ? 18 : 15, 0, surfaceOut);
+    const surface = r.read32(surfaceOut),
+      back = r.comObjects.objects.get(device).state.backBuffer.pointer;
+    r.graphics.render = async (batch) => {
+      if (!batch.readback) return null;
+      assert.equal(batch.target.colorFormat, 36);
+      const rgba = new Uint8Array(3 * 2 * 8),
+        view = new DataView(rgba.buffer);
+      for (let i = 0; i < 24; i++) view.setUint16(i * 2, 0x4000 + i, true);
+      return rgba;
+    };
+    if (version === 9) {
+      await call(device, 39, 0);
+      assert.equal((await call(device, 37, 0, surface)).result, 0);
+      await call(device, 43, 0, 0, 1, 0xff000000, 0x3f800000, 0);
+      await call(device, 37, 0, back);
+    } else {
+      assert.equal((await call(device, 31, surface, 0)).result, 0);
+      await call(device, 36, 0, 0, 1, 0xff000000, 0x3f800000, 0);
+      await call(device, 31, back, 0);
+    }
+    const readback = textureSnapshot(r, texture);
+    const view = new DataView(readback.levels[0].rgba.buffer);
+    for (let i = 0; i < 24; i++) assert.equal(view.getUint16(i * 2, true), 0x4000 + i);
+  });
+}
+
+test('disabled D3D9 depth testing suppresses writes while retaining queried ZWRITEENABLE', async () => {
+  const { runtime: r, call, create, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4),
+    vertices = r.allocate(48);
+  for (let i = 0; i < 3; i++) {
+    r.view.setFloat32(vertices + i * 16, i, true);
+    r.view.setFloat32(vertices + i * 16 + 4, 0, true);
+    r.view.setFloat32(vertices + i * 16 + 8, 0.5, true);
+    r.write32(vertices + i * 16 + 12, 0xffffffff);
+  }
+  await call(device, 57, 7, 0);
+  await call(device, 58, 14, out);
+  assert.equal(r.read32(out), 1);
+  await call(device, 39, 0);
+  await call(device, 89, 0x42);
+  await call(device, 41);
+  assert.equal((await call(device, 83, 4, 1, vertices, 16)).result, 0);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const command = events.at(-1).commands[0];
+  assert.equal(command.depthTest, false);
+  assert.equal(command.depthWrite, false);
+  await call(device, 58, 14, out);
+  assert.equal(r.read32(out), 1);
 });

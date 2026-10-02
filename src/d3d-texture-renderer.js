@@ -3,6 +3,14 @@ import { lightingStruct, lightingFields, lightingCode } from './d3d-lighting.js'
 import { validSamplerValue, validStageValue, floatState } from './d3d-texture-state.js';
 import { alphaTestCode } from './d3d-stencil.js';
 import { fogCode } from './d3d-fog.js';
+import {
+  snapshotFormat,
+  snapshotPixelBytes,
+  validSnapshotFormat,
+  samplingFormat,
+  samplingPixelBytes,
+  samplingPixels,
+} from './d3d-pixel-format.js';
 const ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
 export const textureStages = (texturing) => texturing?.stages ?? (texturing ? [texturing] : []);
 export function validateTexturing(t) {
@@ -30,6 +38,7 @@ export function validateTexturing(t) {
   )
     throw Error('Invalid graphics texture state');
   if (!t.texture) return 0;
+  if (!validSnapshotFormat(t.texture)) throw Error('Invalid graphics texture format');
   const { id, revision, levels } = t.texture;
   if (
     !Number.isInteger(id) ||
@@ -57,7 +66,11 @@ export function validateTexturing(t) {
       l.width !== Math.max(1, first.width >> i) ||
       l.height !== Math.max(1, first.height >> i) ||
       !(l.rgba instanceof Uint8Array) ||
-      l.rgba.length !== l.width * l.height * (dimension === 'cube' ? 6 : (l.depth ?? 1)) * 4 ||
+      l.rgba.length !==
+        l.width *
+          l.height *
+          (dimension === 'cube' ? 6 : (l.depth ?? 1)) *
+          snapshotPixelBytes(t.texture) ||
       (dimension === '3d' &&
         (!Number.isInteger(l.depth) ||
           l.depth < 1 ||
@@ -68,7 +81,11 @@ export function validateTexturing(t) {
       (dimension !== '3d' && l.depth !== undefined)
     )
       throw Error('Invalid graphics mip level');
-    bytes += l.rgba.length;
+    bytes +=
+      l.width *
+      l.height *
+      (dimension === 'cube' ? 6 : (l.depth ?? 1)) *
+      samplingPixelBytes(t.texture);
   }
   return bytes;
 }
@@ -276,6 +293,7 @@ export class D3DTextureRenderer {
     const { device } = this.owner;
     surface.textures ??= new Map();
     const snapshot = t.texture;
+    this.validateFormat(snapshot);
     const key = snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white';
     let cached = surface.textures.get(key);
     const levels = snapshot?.levels ?? [
@@ -290,14 +308,14 @@ export class D3DTextureRenderer {
         ],
         dimension: dimension === 'cube' ? '2d' : dimension,
         mipLevelCount: levels.length,
-        format: 'rgba8unorm',
+        format: samplingFormat(snapshot),
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
       });
       levels.forEach((l, i) =>
         device.queue.writeTexture(
           { texture, mipLevel: i },
-          l.rgba,
-          { bytesPerRow: l.width * 4, rowsPerImage: l.height },
+          samplingPixels(snapshot, l),
+          { bytesPerRow: l.width * samplingPixelBytes(snapshot), rowsPerImage: l.height },
           [l.width, l.height, dimension === 'cube' ? 6 : (l.depth ?? 1)],
         ),
       );
@@ -362,6 +380,7 @@ export class D3DTextureRenderer {
     // binding numbers the translated shaders use.
     const entries = [];
     const view = (snapshot, type) => {
+      this.validateFormat(snapshot);
       const dimension = /texture_3d</.test(type ?? '')
         ? '3d'
         : /texture_cube</.test(type ?? '')
@@ -384,14 +403,14 @@ export class D3DTextureRenderer {
           ],
           dimension: dimension === 'cube' ? '2d' : dimension,
           mipLevelCount: levels.length,
-          format: 'rgba8unorm',
+          format: samplingFormat(snapshot),
           usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
         });
         levels.forEach((l, i) =>
           this.owner.device.queue.writeTexture(
             { texture, mipLevel: i },
-            l.rgba,
-            { bytesPerRow: l.width * 4, rowsPerImage: l.height },
+            samplingPixels(snapshot, l),
+            { bytesPerRow: l.width * samplingPixelBytes(snapshot), rowsPerImage: l.height },
             [l.width, l.height, dimension === 'cube' ? 6 : (l.depth ?? 1)],
           ),
         );
@@ -439,6 +458,14 @@ export class D3DTextureRenderer {
       lodMaxClamp: state[7] ? 16 : 0,
     };
     return descriptor;
+  }
+
+  validateFormat(snapshot) {
+    if (!validSnapshotFormat(snapshot)) throw Error('Invalid graphics texture format');
+    if (snapshotFormat(snapshot) === 'rgba16unorm' && !this.owner.supportsRGBA16Unorm)
+      throw Error(
+        'RGBA16 UNORM textures require WebGPU texture-formats-tier1 and float32-filterable',
+      );
   }
 
   sampler(descriptor) {

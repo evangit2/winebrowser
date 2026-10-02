@@ -1,0 +1,105 @@
+{
+  "passed": true,
+  "date": "2026-10-02T20:43:55.362Z",
+  "browser": "153.0.8010.12",
+  "url": "http://127.0.0.1:4197/winebrowser/",
+  "exeSha256": "435463c13f528a9012daa03004441e4187a7668ed0871f941633d8d53b6d4b0d",
+  "zipSha256": "b932030521da28ab2c66e01e4d7914101540cd3f9cd9381586f12890f7d9fa70",
+  "normalChromium": true,
+  "scope": "Unchanged Humus Water archive: ordinary ZIP upload and catalog, original shaders, reflective landscape and ripple simulation, animated scene excluding FPS text, browser x86 and shader compilation, clean exit. Precision and shared-depth storage are independently verified by GPU regressions.",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "elapsedMs": 39144,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 10,
+          "draws": 46,
+          "dark": 225306,
+          "bright": 1262,
+          "colored": 55629,
+          "colors": 4096,
+          "sceneSha256": "06f1dda5074612c79996619b16915e674e608106eaadbe199f080d77e4c37e0e"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 43,
+          "draws": 232,
+          "dark": 225036,
+          "bright": 1262,
+          "colored": 55505,
+          "colors": 4096,
+          "sceneSha256": "0b1c5a9236df7f2531df509c5b5aeb0b9199cc68f3d0c9427466f7f47f6f4a69"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 120,
+          "draws": 687,
+          "dark": 224862,
+          "bright": 1262,
+          "colored": 55459,
+          "colors": 4096,
+          "sceneSha256": "5da79826762a95996f6f2759e62c619b10149df96c67fa900cda5f75e89cb222"
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4045,
+      "wasmBytes": 37379491,
+      "instructions": 305120996,
+      "x86TranslationMs": 16658.20500012487,
+      "totalCompiledBlocks": 46616,
+      "apiCalls": 13255
+    },
+    {
+      "mode": "hosted-zip",
+      "elapsedMs": 26825,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 11,
+          "draws": 54,
+          "dark": 225306,
+          "bright": 1262,
+          "colored": 55629,
+          "colors": 4096,
+          "sceneSha256": "06f1dda5074612c79996619b16915e674e608106eaadbe199f080d77e4c37e0e"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 42,
+          "draws": 232,
+          "dark": 225385,
+          "bright": 1269,
+          "colored": 55364,
+          "colors": 4096,
+          "sceneSha256": "825c802a7f178a57d79eb729fa28419b9230bfd73cea4f507d563c7da9a3c1fa"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 120,
+          "draws": 680,
+          "dark": 224976,
+          "bright": 1262,
+          "colored": 55301,
+          "colors": 4096,
+          "sceneSha256": "472debc49c2b5ace233ce87dc229afbf8f22ba8559d912bb3f28dff6253eccf2"
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4045,
+      "wasmBytes": 37379491,
+      "instructions": 305048343,
+      "x86TranslationMs": 10169.260000430048,
+      "totalCompiledBlocks": 46616,
+      "apiCalls": 12766
+    }
+  ],
+  "errors": []
+}

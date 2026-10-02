@@ -1,3 +1,4 @@
+import { supportsGuestFormat } from './d3d-pixel-format.js';
 import { readGuid } from './com.js';
 import { compressedFormat } from './d3d-compressed.js';
 import { levelGeometry, textureBytesPerPixel, freeTexture, invalidate } from './d3d9-textures.js';
@@ -149,6 +150,7 @@ export function createVolumeTextureMethod(version) {
       if (
         ![width, height, depth].every((v) => v > 0 && v <= 256) ||
         !bpp ||
+        !supportsGuestFormat(r, format) ||
         compressedFormat(format) ||
         ![0, 1, 2, 3].includes(pool) ||
         ![0, 0x200].includes(usage) ||

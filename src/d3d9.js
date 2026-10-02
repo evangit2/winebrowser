@@ -1,3 +1,4 @@
+import { supportsGuestFormat, colorTargetFormats } from './d3d-pixel-format.js';
 import {
   flushTargets,
   depthDescription,
@@ -259,7 +260,7 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
       ...transforms,
       viewport: { ...state.viewport },
       depthTest: state.depthTest,
-      depthWrite: state.depthWrite,
+      depthWrite: state.depthTest && state.depthWrite,
       depthCompare: state.depthCompare,
       dither: state.dither,
       blend: { ...state.blendState },
@@ -394,7 +395,8 @@ function deviceMethods(version = 9) {
           !height ||
           width > 2048 ||
           height > 2048 ||
-          ![21, 22, 23].includes(format) ||
+          !colorTargetFormats.includes(format) ||
+          !supportsGuestFormat(r, format) ||
           number(a(4)) ||
           number(a(5)) ||
           number(a(6)) ||
@@ -471,6 +473,7 @@ function deviceMethods(version = 9) {
           width > 2048 ||
           height > 2048 ||
           !bpp ||
+          !supportsGuestFormat(r, format) ||
           ![0, 1, 2].includes(pool) ||
           number(a(6))
         )
@@ -675,7 +678,7 @@ function deviceMethods(version = 9) {
         const pointer = argument(3) >>> 0;
         const stride = argument(4) >>> 0;
         if (!state.inScene) return D3DERR_INVALIDCALL;
-        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
+        if (state.depthTest && !state.hasDepth) return D3DERR_INVALIDCALL;
         const vertexCount = primitiveVertexCount(primitive, primitiveCount);
         if (!vertexCount || vertexCount > MAX_VERTICES)
           throw Error('Unsupported D3D9 primitive type or vertex count limit');
@@ -710,8 +713,7 @@ function deviceMethods(version = 9) {
       argc: 9,
       invoke(runtime, argument, object) {
         const state = object.state;
-        if (!state.inScene || ((state.depthTest || state.depthWrite) && !state.hasDepth))
-          return D3DERR_INVALIDCALL;
+        if (!state.inScene || (state.depthTest && !state.hasDepth)) return D3DERR_INVALIDCALL;
         const primitive = number(argument(1)),
           minIndex = number(argument(2)),
           numVertices = number(argument(3)),
@@ -769,7 +771,7 @@ function deviceMethods(version = 9) {
         const startVertex = argument(2) >>> 0;
         const primitiveCount = argument(3) >>> 0;
         if (!state.inScene) return D3DERR_INVALIDCALL;
-        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
+        if (state.depthTest && !state.hasDepth) return D3DERR_INVALIDCALL;
         return bufferedDraw(
           runtime,
           state,
@@ -805,7 +807,7 @@ function deviceMethods(version = 9) {
                 primitiveCount: argument(6) >>> 0,
               };
         if (!state.inScene) return D3DERR_INVALIDCALL;
-        if ((state.depthTest || state.depthWrite) && !state.hasDepth) return D3DERR_INVALIDCALL;
+        if (state.depthTest && !state.hasDepth) return D3DERR_INVALIDCALL;
         return bufferedDraw(
           runtime,
           state,
@@ -984,12 +986,18 @@ function factoryMethods(version = 9) {
     ...displayMethods(version),
     10: {
       argc: 7,
-      invoke(_r, a) {
+      async invoke(r, a) {
         if (a(1) !== 0) return D3DERR_INVALIDCALL;
         if (a(2) !== 1 || ![22, 23].includes(a(3))) return 0x8876086a;
-        return [3, 4, 5].includes(a(5)) &&
-          [0, 0x200].includes(a(4)) &&
+        if (a(6) === 36) await r.graphics?.initialize?.();
+        const usage = a(4),
+          type = a(5),
+          format = a(6);
+        return [1, 3, 4, 5].includes(type) &&
+          ([0, 0x200].includes(usage) ||
+            (usage === 1 && type !== 4 && colorTargetFormats.includes(format))) &&
           textureBytesPerPixel(a(6)) &&
+          supportsGuestFormat(r, format) &&
           (a(5) !== 4 || a(6) < 0x100)
           ? 0
           : 0x8876086a;

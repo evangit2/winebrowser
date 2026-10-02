@@ -36,6 +36,7 @@ export class D3DClearRenderer {
       surface.depthFormat,
       command.clearColor,
       command.clearDepth,
+      command.clearStencil,
     ].join(':');
     if (!this.pipelines.has(key))
       this.pipelines.set(
@@ -61,6 +62,13 @@ export class D3DClearRenderer {
                   format: surface.depthFormat,
                   depthWriteEnabled: command.clearDepth,
                   depthCompare: 'always',
+                  ...(command.clearStencil
+                    ? {
+                        stencilFront: { compare: 'always', passOp: 'replace' },
+                        stencilBack: { compare: 'always', passOp: 'replace' },
+                        stencilWriteMask: 0xff,
+                      }
+                    : {}),
                 },
               }
             : {}),
@@ -95,6 +103,7 @@ export class D3DClearRenderer {
       new Float32Array([c.r, c.g, c.b, c.a, command.clearDepth ? command.depth : 0, 0, 0, 0]),
     );
     pass.setBindGroup(0, slot.group);
+    if (command.clearStencil) pass.setStencilReference(command.stencil);
     pass.setViewport(0, 0, surface.width, surface.height, 0, 1);
     for (const r of regions)
       if (r.width && r.height) {

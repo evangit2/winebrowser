@@ -22,6 +22,12 @@ compilation. Choose **Load learning-dx12-cube** and **Run executable**, or uploa
 [the complete Windows ZIP](https://evangit2.github.io/winebrowser/examples/learning-dx12-cube/Tutorial2-x86.zip).
 This is a source-built 32-bit counterpart of the upstream 64-bit release.
 
+The freeware [Humus Water demo](public/examples/humus-water/PROVENANCE.md) also
+runs its unchanged Windows EXE and original shaders. Choose **Load humus-water**
+or upload [the complete Water ZIP](https://evangit2.github.io/winebrowser/examples/humus-water/Water.zip).
+Its reflected landscape and ripple simulation use two RGBA16 render targets
+with preserved 16-bit precision. See [texture/depth scope](docs/rgba16-targets.md).
+
 The hosted PE32 x86 examples below have passed the browser suite. Open a ZIP in the harness when the program needs packaged assets or a DLL; the ZIP contains the executable and its working directory.
 
 | Example    | Download                                                                                                                                           | What it exercises and expected result                                                                           |

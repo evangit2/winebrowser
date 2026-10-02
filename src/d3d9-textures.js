@@ -1,3 +1,4 @@
+import { supportsGuestFormat, colorTargetFormats } from './d3d-pixel-format.js';
 import { readGuid } from './com.js';
 import { compressedFormat, decodeCompressed } from './d3d-compressed.js';
 import { releaseComReference } from './d3d9-programmable.js';
@@ -13,7 +14,7 @@ const BASE_METHODS =
 const TAIL_METHODS = 'GetLevelDesc GetSurfaceLevel LockRect UnlockRect AddDirtyRect';
 export const textureBytesPerPixel = (format) =>
   compressedFormat(format)?.blockBytes ??
-  { 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1, 50: 1, 51: 2, 52: 1 }[format];
+  { 36: 8, 21: 4, 22: 4, 23: 2, 24: 2, 25: 2, 26: 2, 28: 1, 50: 1, 51: 2, 52: 1 }[format];
 
 // Row length and row count for one mip level. Compressed formats store 4x4
 // texel blocks, so their rows are block rows and a level holds
@@ -424,9 +425,10 @@ export function createTextureMethod(version, cube = false) {
         width > 2048 ||
         height > 2048 ||
         !bpp ||
+        !supportsGuestFormat(r, format) ||
         ![0, 1, 2, 3].includes(pool) ||
         ![0, 1, 0x200].includes(usage) ||
-        (usage === 1 && ![21, 22, 23].includes(format)) ||
+        (usage === 1 && !colorTargetFormats.includes(format)) ||
         (usage && pool !== 0) ||
         count < 1 ||
         count > 1 + Math.floor(Math.log2(Math.max(width, height))) ||
@@ -758,7 +760,15 @@ export function textureSnapshot(r, object) {
   if (s.freed) throw Error('D3D draw uses a freed texture');
   if (!s.snapshot) {
     let levels = s.levels.map((l) => {
-      const rgba = new Uint8Array(l.width * l.height * (l.depth ?? 1) * 4);
+      const rgba = new Uint8Array(l.width * l.height * (l.depth ?? 1) * (s.format === 36 ? 8 : 4));
+      if (s.format === 36) {
+        for (let z = 0; z < (l.depth ?? 1); z++)
+          for (let y = 0; y < l.height; y++) {
+            const p = s.base + l.offset + z * (l.slicePitch ?? 0) + y * l.pitch;
+            rgba.set(r.data.subarray(p, p + l.width * 8), (z * l.height + y) * l.width * 8);
+          }
+        return { width: l.width, height: l.height, ...(l.depth ? { depth: l.depth } : {}), rgba };
+      }
       if (l.blockBytes) {
         decodeCompressed(r.data, s.base + l.offset, s.format, l.width, l.height, rgba);
         return { width: l.width, height: l.height, ...(l.depth ? { depth: l.depth } : {}), rgba };
@@ -823,6 +833,7 @@ export function textureSnapshot(r, object) {
     s.snapshot = {
       id: object.pointer,
       revision: s.revision,
+      ...(s.format === 36 ? { format: 'rgba16unorm' } : {}),
       ...(s.kind === 'texture3d'
         ? { dimension: '3d' }
         : s.kind === 'texturecube'

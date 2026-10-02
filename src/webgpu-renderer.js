@@ -16,6 +16,12 @@ import { D3DClearRenderer } from './d3d-clear-renderer.js';
 import { validStencil, validAlphaTest, stencilFace, stencilState } from './d3d-stencil.js';
 import { validFog } from './d3d-fog.js';
 import {
+  targetGPUFormat,
+  targetPixelBytes,
+  colorTargetFormats,
+  snapshotFormat,
+} from './d3d-pixel-format.js';
+import {
   MAX_DRAW_VERTICES,
   MAX_FRAME_BYTES,
   MAX_FRAME_COMMANDS as MAX_COMMANDS,
@@ -71,6 +77,12 @@ export class WebGPURenderer {
       'texture-compression-astc',
     ].filter((feature) => adapter.features?.has(feature));
     this.compressedFormats = compressed.includes('texture-compression-bc');
+    // Native 16-bit normalized attachments require tier1. Their sampled
+    // snapshots use filterable float32 to retain every UNORM16 component.
+    this.supportsRGBA16Unorm =
+      !!adapter.features?.has('texture-formats-tier1') &&
+      !!adapter.features?.has('float32-filterable');
+    if (this.supportsRGBA16Unorm) compressed.push('texture-formats-tier1', 'float32-filterable');
     this.device = await adapter.requestDevice(
       compressed.length ? { requiredFeatures: compressed } : {},
     );
@@ -252,6 +264,10 @@ export class WebGPURenderer {
           const textureBytes = validateTexturing(stage),
             texture = stage.texture;
           if (!texture) continue;
+          if (snapshotFormat(texture) === 'rgba16unorm' && !this.supportsRGBA16Unorm)
+            throw Error(
+              'RGBA16 UNORM textures require WebGPU texture-formats-tier1 and float32-filterable',
+            );
           const key = `${texture.id}:${texture.revision}`;
           if (textures.has(key) && textures.get(key) !== texture)
             throw Error('Conflicting graphics texture snapshots');
@@ -453,16 +469,30 @@ export class WebGPURenderer {
     if (!root) throw Error('Graphics device has been released');
     const surface = target ? this.targetSurface(root, target) : root;
     const depthResource = this.depthTarget(root, depth);
-    surface.depthTexture = depthResource?.texture ?? null;
-    surface.depthFormat = depthResource?.format ?? null;
+    const usesDepth =
+      Array.isArray(commands) &&
+      commands.some((command) =>
+        command.type === 'clear'
+          ? command.clearDepth || command.clearStencil
+          : command.depthTest || command.depthWrite || stencilState(command)[52],
+      );
+    // D3D permits color-only work while a differently sized logical depth
+    // surface remains selected. Do not attach or alter that unused resource.
+    surface.depthTexture = usesDepth ? (depthResource?.texture ?? null) : null;
+    surface.depthFormat = usesDepth ? (depthResource?.format ?? null) : null;
     surface.depthInitialized = depthResource?.initialized ?? false;
     if (
       surface.depthTexture &&
-      (depthResource.width !== surface.width || depthResource.height !== surface.height)
+      (depthResource.width < surface.width || depthResource.height < surface.height)
     )
       throw Error(
         `Unsupported D3D depth/color attachment size mismatch: color ${surface.width}x${surface.height}, depth ${depthResource.width}x${depthResource.height}, ${commands.length} queued commands`,
       );
+    const padding =
+      surface.depthTexture &&
+      (depthResource.width !== surface.width || depthResource.height !== surface.height)
+        ? this.paddedColor(root, surface, depthResource)
+        : null;
     if (this.failure) throw Error(this.failure);
     this.validate(surface, commands);
     const drawCount = commands.filter((command) => command.type === 'draw').length;
@@ -483,9 +513,14 @@ export class WebGPURenderer {
     let error;
     try {
       const texture = surface.colors[surface.colorIndex];
-      const target = texture.createView();
+      const target = (padding?.texture ?? texture).createView();
       const depthView = surface.depthTexture?.createView();
       const encoder = this.device.createCommandEncoder();
+      if (padding)
+        encoder.copyTextureToTexture({ texture }, { texture: padding.texture }, [
+          surface.width,
+          surface.height,
+        ]);
       let pass = null,
         drawIndex = 0;
       const begin = (clear) => {
@@ -518,7 +553,7 @@ export class WebGPURenderer {
               }
             : {}),
         });
-        surface.depthInitialized = true;
+        if (depthView) surface.depthInitialized = true;
       };
       let programmableIndex = 0,
         clearIndex = 0;
@@ -530,11 +565,15 @@ export class WebGPURenderer {
           if (
             // D3D ignores pRects for a stencil clear, so a whole-attachment
             // clear is the only faithful path for one.
-            command.clearStencil ||
-            regions.some(
-              (r) =>
-                r.x === 0 && r.y === 0 && r.width === surface.width && r.height === surface.height,
-            )
+            (!padding && command.clearStencil) ||
+            (!(padding && (command.clearDepth || command.clearStencil)) &&
+              regions.some(
+                (r) =>
+                  r.x === 0 &&
+                  r.y === 0 &&
+                  r.width === surface.width &&
+                  r.height === surface.height,
+              ))
           ) {
             begin(command);
           } else if (regions.some((r) => r.width && r.height)) {
@@ -580,7 +619,7 @@ export class WebGPURenderer {
             pass?.end();
             pass = null;
             encoder.copyTextureToTexture(
-              { texture, origin: [v.x, v.y] },
+              { texture: padding?.texture ?? texture, origin: [v.x, v.y] },
               { texture: surface.blendFeedback, origin: [v.x, v.y] },
               [v.width, v.height],
             );
@@ -590,10 +629,16 @@ export class WebGPURenderer {
       }
       if (!pass) begin();
       pass.end();
+      if (padding)
+        encoder.copyTextureToTexture({ texture: padding.texture }, { texture }, [
+          surface.width,
+          surface.height,
+        ]);
       this.clears.trim(surface, clearIndex);
       let buffer = null;
       if (readback) {
-        const bytesPerRow = Math.ceil((surface.width * 4) / 256) * 256;
+        const bytesPerRow =
+          Math.ceil((surface.width * targetPixelBytes(surface.colorFormat)) / 256) * 256;
         buffer = this.device.createBuffer({
           size: bytesPerRow * surface.height,
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
@@ -617,7 +662,7 @@ export class WebGPURenderer {
       surface.pendingReadback = null;
       throw error ?? Error('WebGPU validation failed: ' + validation.message);
     }
-    if (depthResource) depthResource.initialized = surface.depthInitialized;
+    if (depthResource && usesDepth) depthResource.initialized = surface.depthInitialized;
     this.draws += drawCount + programmable.length;
     const pending = surface.pendingReadback;
     surface.pendingReadback = null;
@@ -626,11 +671,12 @@ export class WebGPURenderer {
     try {
       await buffer.mapAsync(GPUMapMode.READ);
       const mapped = new Uint8Array(buffer.getMappedRange());
-      const pixels = new Uint8Array(surface.width * surface.height * 4);
+      const rowBytes = surface.width * targetPixelBytes(surface.colorFormat);
+      const pixels = new Uint8Array(rowBytes * surface.height);
       for (let row = 0; row < surface.height; row++)
         pixels.set(
-          mapped.subarray(row * bytesPerRow, row * bytesPerRow + surface.width * 4),
-          row * surface.width * 4,
+          mapped.subarray(row * bytesPerRow, row * bytesPerRow + rowBytes),
+          row * rowBytes,
         );
       if (surface.gpuFormat === 'bgra8unorm')
         for (let i = 0; i < pixels.length; i += 4)
@@ -648,7 +694,8 @@ export class WebGPURenderer {
       !integer(id, 1, 0xffffffff) ||
       !integer(width, 1, MAX_DIMENSION) ||
       !integer(height, 1, MAX_DIMENSION) ||
-      ![21, 22, 23].includes(colorFormat)
+      !colorTargetFormats.includes(colorFormat) ||
+      (colorFormat === 36 && !this.supportsRGBA16Unorm)
     )
       throw Error('Invalid D3D offscreen target');
     let surface = root.targets.get(id);
@@ -661,12 +708,13 @@ export class WebGPURenderer {
         throw Error('Conflicting D3D offscreen target description');
       return surface;
     }
-    if ((root.targetBytes ?? 0) + width * height * 4 > 32 * 1024 * 1024)
+    const byteSize = width * height * targetPixelBytes(colorFormat);
+    if ((root.targetBytes ?? 0) + byteSize > 32 * 1024 * 1024)
       throw Error('D3D offscreen target storage limit exceeded');
     const texture = this.device.createTexture({
       label: 'D3D offscreen color target',
       size: [width, height],
-      format: 'rgba8unorm',
+      format: targetGPUFormat(colorFormat),
       usage:
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
     });
@@ -674,14 +722,33 @@ export class WebGPURenderer {
       width,
       height,
       colorFormat,
-      gpuFormat: 'rgba8unorm',
+      gpuFormat: targetGPUFormat(colorFormat),
       colors: [texture],
       colorIndex: 0,
       slots: [],
     };
     root.targets.set(id, surface);
-    root.targetBytes = (root.targetBytes ?? 0) + width * height * 4;
+    root.targetBytes = (root.targetBytes ?? 0) + byteSize;
     return surface;
+  }
+
+  paddedColor(root, surface, depth) {
+    const existing = surface.paddedColor;
+    if (existing?.width === depth.width && existing?.height === depth.height) return existing;
+    const bytes = depth.width * depth.height * targetPixelBytes(surface.colorFormat);
+    const previous = existing?.bytes ?? 0;
+    if ((root.targetBytes ?? 0) + (root.paddingBytes ?? 0) - previous + bytes > 32 * 1024 * 1024)
+      throw Error('D3D padded attachment storage limit exceeded');
+    const texture = this.device.createTexture({
+      label: 'D3D color attachment padded to shared depth extent',
+      size: [depth.width, depth.height],
+      format: surface.gpuFormat,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+    });
+    existing?.texture.destroy();
+    root.paddingBytes = (root.paddingBytes ?? 0) - previous + bytes;
+    return (surface.paddedColor = { texture, width: depth.width, height: depth.height, bytes });
   }
 
   depthTarget(root, description) {
@@ -734,9 +801,10 @@ export class WebGPURenderer {
     if (!root) return;
     const surface = root.targets.get(targetId);
     if (surface) {
+      root.paddingBytes = (root.paddingBytes ?? 0) - (surface.paddedColor?.bytes ?? 0);
       this.destroySurfaceResources(surface);
       root.targets.delete(targetId);
-      root.targetBytes -= surface.width * surface.height * 4;
+      root.targetBytes -= surface.width * surface.height * targetPixelBytes(surface.colorFormat);
     }
     const depth = root.depthTargets.get(targetId);
     if (depth) {
@@ -833,6 +901,7 @@ export class WebGPURenderer {
     this.clears.trim(surface, 0);
     surface.blendFeedback?.destroy();
     surface.pendingReadback?.buffer.destroy();
+    surface.paddedColor?.texture.destroy();
     for (const texture of surface.colors) texture.destroy();
   }
 
