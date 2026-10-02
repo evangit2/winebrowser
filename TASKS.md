@@ -10,6 +10,13 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## October 2 checkpoint
 
+- [x] Unchanged Humus Instancing archive renders animated additive particle
+      clouds through its own shader-constant, vertex-buffer and user-pointer
+      paths. ZIP upload and catalog checks pass 48 frames, then exit zero.
+      Its redistributable readme and source remain in the original archive.
+      Unused multistream declarations retain their metadata; consumed nonzero
+      streams and hardware stream-frequency instancing remain unsupported.
+
 - [x] Ordinary uploads automatically obtain six source-built Wine DLLs and seven
       NLS tables when they resolve missing imports; supplied DLL imports are
       inspected before startup for later LoadLibrary calls. Bare EXE/native DLL

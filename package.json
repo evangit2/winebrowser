@@ -165,7 +165,9 @@
     "build:wine-base-auto": "sh scripts/build-wine-base-auto-fixture.sh",
     "test:wine-base-upload": "node scripts/test-wine-base-upload.mjs",
     "package:rollercoaster": "python3 scripts/package-humus-rollercoaster.py",
-    "test:rollercoaster": "node scripts/test-rollercoaster-browser.mjs"
+    "test:rollercoaster": "node scripts/test-rollercoaster-browser.mjs",
+    "package:instancing": "python3 scripts/package-humus-instancing.py",
+    "test:instancing": "node scripts/test-instancing-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

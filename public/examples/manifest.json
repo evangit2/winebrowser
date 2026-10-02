@@ -11,6 +11,15 @@
       "provenance": "Freeware, Emil Persson (Humus); upstream readme permits redistribution with the readme included. Unchanged upstream archive."
     },
     {
+      "name": "humus-instancing",
+      "description": "Animated Humus D3D9 particle clouds using the original shader-constant batching path. Keys 2\u20134 compare drawing paths; close its window to exit.",
+      "exe": "humus-instancing/Instancing.exe",
+      "exeSha256": "37df64605e11c7a23df2d5befeb0bf38d2b9b6d2bf1322ffb1d0a437030b2903",
+      "zip": "humus-instancing/Instancing.zip",
+      "zipSha256": "9c74c3a787a1320e9cd7e7f708ff923f4a83be5a6e1dc93b80763c3c398e61f7",
+      "provenance": "Freeware by Emil Persson (Humus); redistribution permitted with readme included. Original archive, executable and shaders."
+    },
+    {
       "name": "humus-rollercoaster",
       "description": "Unchanged Humus RollerCoaster D3D9 demo: moving reflective track, terrain, water, lava and particles. CPU intensive startup; close its window to exit.",
       "exe": "humus-rollercoaster/RollerCoaster.exe",

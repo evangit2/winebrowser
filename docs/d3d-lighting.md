@@ -60,11 +60,11 @@ XYZRHW vertices, fog and indexed vertex streams remain separate work.
 ## Verification
 
 `npm run test:lighting-backend` and the same script with `--force-readback`
-check 27 cases / 110,592 pixels per presentation mode. Hand-computed directional
+check 30 cases / 122,880 pixels per presentation mode. Hand-computed directional
 and material-source cases are supplemented by an independent CPU vertex-lighting
 and barycentric reference for point attenuation/range, spot cones/falloff, eight
 mixed lights and specular viewer modes. Tests also cover inverse-transpose normals,
-normalization, camera rotation, absent colors/normals, queued state, texture/specular
+normalization, projective and singular matrices, camera rotation, absent colors/normals, queued state, texture/specular
 ordering, attachment alpha and RGB565 output. Results:
 [canvas](../evidence/d3d-lighting-backend.json),
 [readback](../evidence/d3d-lighting-backend-readback.json).

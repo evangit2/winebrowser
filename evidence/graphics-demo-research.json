@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-02T16:40:04.403Z",
+  "scope": "Archive hashes, static imports, source requirements and explicit browser observations. Only Instancing is newly cataloged; frame counts alone do not establish effect correctness.",
+  "targets": [
+    {
+      "name": "Instancing",
+      "url": "https://www.humus.name/3D/Instancing.zip",
+      "archiveBytes": 432605,
+      "archiveSha256": "9c74c3a787a1320e9cd7e7f708ff923f4a83be5a6e1dc93b80763c3c398e61f7",
+      "exe": "instancing/instancing.exe",
+      "machine": 332,
+      "unsupported": [],
+      "imports": 120,
+      "license": "Included readme permits free redistribution if retained.",
+      "status": "verified catalog/upload; 48 frames and clean exit; three original fallback draw paths"
+    },
+    {
+      "name": "MandelbrotSet",
+      "url": "https://www.humus.name/3D/MandelbrotSet.zip",
+      "archiveBytes": 157297,
+      "archiveSha256": "14b620ac2887daee77e981b757549fc879fd340e9b07c676a278cafad3bfc095",
+      "exe": "mandelbrotset/mandelbrotset.exe",
+      "machine": 332,
+      "unsupported": [
+        "Missing DLL MFC42.DLL"
+      ],
+      "imports": 245,
+      "license": "Included readme permits free redistribution if retained.",
+      "status": "not executed: missing MFC42.DLL"
+    },
+    {
+      "name": "Water",
+      "url": "https://www.humus.name/3D/Water.zip",
+      "archiveBytes": 714714,
+      "archiveSha256": "b932030521da28ab2c66e01e4d7914101540cd3f9cd9381586f12890f7d9fa70",
+      "exe": "water/water.exe",
+      "machine": 332,
+      "unsupported": [],
+      "imports": 119,
+      "license": "Included readme permits free redistribution if retained.",
+      "status": "dialog encountered; no scene verified"
+    },
+    {
+      "name": "SelfShadowBump",
+      "url": "https://www.humus.name/3D/SelfShadowBump.zip",
+      "archiveBytes": 1138848,
+      "archiveSha256": "cb3a68a0827a511d2fe9749541da0daa3950bf09bd0fa119aac0daedc17ee101",
+      "exe": "selfshadowbump/selfshadowbump.exe",
+      "machine": 332,
+      "unsupported": [],
+      "imports": 116,
+      "license": "Included readme permits free redistribution if retained.",
+      "status": "precomputation prompt observed; not progressed past prompt"
+    },
+    {
+      "name": "TransparentShadowMapping",
+      "url": "https://www.humus.name/3D/TransparentShadowMapping.zip",
+      "archiveBytes": 1206184,
+      "archiveSha256": "da7446674a70947d4c5ec43d70bbd9ceb6e71468fc1830faaeb7def1f4d45cb5",
+      "exe": "transparentshadowmapping/transparentshadowmapping.exe",
+      "machine": 332,
+      "unsupported": [],
+      "imports": 116,
+      "license": "Included readme permits free redistribution if retained.",
+      "status": "partial rendering: 33 frames/785 draws; original cubemap render-target shadow passes unsupported"
+    },
+    {
+      "name": "Metaballs2",
+      "url": "https://www.humus.name/3D/Metaballs2.zip",
+      "archiveBytes": 1645308,
+      "archiveSha256": "b72a8bb6fcf792a9e5e8e326feb070447d275c0ae25a5f413382a4175b7e31da",
+      "exe": "metaballs2/metaballs2.exe",
+      "error": "Invalid or unsupported PE: only x86 (I386) images are supported",
+      "unsupported": [],
+      "license": "Included readme permits free redistribution if retained.",
+      "status": "not executed: x64 image rejected; Vulkan unsupported"
+    }
+  ]
+}

@@ -80,6 +80,7 @@ jobs:
           npm run test:exec-memory
           npm run test:humus-d3d9
           npm run test:rollercoaster
+          npm run test:instancing
           npm run test:7zr
         env:
           BROWSER_CHANNEL: chromium

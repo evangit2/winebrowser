@@ -261,3 +261,14 @@ matrices unchanged: `world[15]` is `0.9999999403953552`, one Float32 step below
 1, while its projective row entries are zero. The old exact affine check rejects
 this otherwise ordinary finite transform. The captured matrix has regression
 coverage and [recorded evidence](../evidence/hamsterball-race-normal-transform.json).
+
+The unchanged Humus Instancing archive (432,605 bytes) now renders animated
+particle clouds through its source-defined shader-constant fallback. Creating
+unused multistream declarations previously stopped startup; declaration
+creation and round-trip now preserve those fields, while an actual draw that
+consumes an unsupported stream still fails explicitly. Ordinary ZIP upload and
+hosted catalog runs each pass 48 frames, including the original vertex-buffer
+and user-pointer paths selected with normal keyboard input, then exit zero.
+See [the report](../evidence/instancing-browser-results.json). The author permits
+redistribution with the readme retained; the published archive is unchanged.
+Hardware stream-frequency instancing remains unsupported.

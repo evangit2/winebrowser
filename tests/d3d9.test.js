@@ -2538,3 +2538,69 @@ test('D3D8/9 cube faces and mips share surface bytes, preserve snapshots and ret
     await call(device, 2);
   }
 });
+
+test('declaration creation retains unused stream metadata and rejects consumed streams at draw', async () => {
+  const { runtime: r, create, call, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4),
+    source = r.allocate(32);
+  const elements = [
+    [0, 0, 2, 0, 0],
+    [0, 12, 4, 10, 0],
+    [15, 0, 3, 5, 7],
+  ];
+  for (const [i, [stream, offset, type, usage, index]] of elements.entries()) {
+    r.view.setUint16(source + i * 8, stream, true);
+    r.view.setUint16(source + i * 8 + 2, offset, true);
+    r.data.set([type, 0, usage, index], source + i * 8 + 4);
+  }
+  r.view.setUint16(source + 24, 255, true);
+  r.data[source + 28] = 17;
+  assert.equal((await call(device, 86, source, out)).result, 0);
+  const declaration = r.read32(out),
+    count = r.allocate(4),
+    copy = r.allocate(32);
+  r.write32(count, 4);
+  assert.equal((await call(declaration, 4, copy, count)).result, 0);
+  assert.deepEqual(r.data.slice(copy, copy + 32), r.data.slice(source, source + 32));
+  await call(device, 87, declaration);
+  for (const [file, make, bind] of [
+    ['wine-color-constant.vs11.d3dbc', 91, 92],
+    ['wine-color.ps20.d3dbc', 106, 107],
+  ]) {
+    const bytes = await readFile(
+        new URL('../tests/fixtures/shaders/legacy/' + file, import.meta.url),
+      ),
+      p = r.allocate(bytes.length);
+    r.data.set(bytes, p);
+    await call(device, make, p, out);
+    await call(device, bind, r.read32(out));
+  }
+  const vertices = r.allocate(48);
+  for (let i = 0; i < 3; i++) {
+    r.view.setFloat32(vertices + i * 16, i, true);
+    r.view.setFloat32(vertices + i * 16 + 4, 0, true);
+    r.view.setFloat32(vertices + i * 16 + 8, 0.5, true);
+    r.write32(vertices + i * 16 + 12, 0xff112233);
+  }
+  await call(device, 41);
+  assert.equal((await call(device, 83, 4, 1, vertices, 16)).result, 0);
+  // A second layout now reads color from stream 15. Creation still succeeds,
+  // but stream-zero UP draws must never accidentally reuse position bytes.
+  r.view.setUint16(source + 8, 15, true);
+  await call(device, 86, source, out);
+  await call(device, 87, r.read32(out));
+  await assert.rejects(call(device, 83, 4, 1, vertices, 16), /unsupported vertex stream 15/);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  assert.equal(events.at(-1).commands.length, 1);
+  assert.deepEqual(events.at(-1).commands[0].attributes, [
+    { shaderLocation: 0, offset: 0, format: 'float32x3' },
+    { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
+  ]);
+  r.view.setUint16(source + 16, 16, true);
+  await assert.rejects(
+    call(device, 86, source, out),
+    /Unsupported D3D9 vertex declaration element/,
+  );
+});

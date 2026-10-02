@@ -149,11 +149,19 @@ export function parseVertexDeclaration(runtime, pointer) {
       3: ['float32x4', 16],
       4: ['unorm8x4', 4],
     }[type];
-    if (stream || method || !info || offset % 4 || usageIndex > 15)
+    if (stream >= 16 || method || !info || offset % 4 || usageIndex > 15)
       throw Error('Unsupported D3D9 vertex declaration element');
     if (elements.some((entry) => entry.usage === usage && entry.usageIndex === usageIndex))
       throw Error('Duplicate D3D9 vertex declaration semantic');
-    elements.push({ offset, format: info[0], size: info[1], type, usage, usageIndex });
+    elements.push({
+      ...(stream ? { stream } : {}),
+      offset,
+      format: info[0],
+      size: info[1],
+      type,
+      usage,
+      usageIndex,
+    });
   }
   throw Error('D3D9 vertex declaration has no terminator');
 }
@@ -235,7 +243,7 @@ function declarationBytes(elements) {
   const view = new DataView(bytes.buffer);
   elements.forEach((element, index) => {
     const p = index * 8;
-    view.setUint16(p, 0, true);
+    view.setUint16(p, element.stream ?? 0, true);
     view.setUint16(p + 2, element.offset, true);
     bytes[p + 4] = element.type;
     bytes[p + 5] = 0;
@@ -406,6 +414,11 @@ function programmableAttributes(state, stride) {
           `${input.usage}/${input.usageIndex} for register ${input.register}; declaration ` +
           elements.map((e) => `${e.usage}/${e.usageIndex}`).join(','),
       );
+    // Declaration creation is independent of the draw path. Applications can
+    // create unused multistream layouts while drawing with a stream-zero
+    // fallback; only an input the bound shader consumes requires gathering.
+    if (element.stream)
+      throw Error(`D3D9 draw requires unsupported vertex stream ${element.stream}`);
     return {
       shaderLocation: input.register,
       offset: element.offset,

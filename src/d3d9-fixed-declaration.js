@@ -24,6 +24,7 @@ export function fixedDeclarationVertices(state, vertices, stride, vertexCount) {
     elements.some(
       (e) =>
         (!unusedUsage(e.usage) && ![0, 3, 5, 9, 10].includes(e.usage)) ||
+        (!unusedUsage(e.usage) && !!e.stream) ||
         e.offset + e.size > stride,
     ) ||
     elements.some(
