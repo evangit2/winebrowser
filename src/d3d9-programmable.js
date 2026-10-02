@@ -426,7 +426,7 @@ function programmableAttributes(state, stride) {
 // before calling here, so only memory consumption stays pointer-based.
 export function programmableDrawFromVertices(state, vertices, stride, vertexCount, runtime) {
   if (!state.vertexShader && state.pixelShader) {
-    ({state, vertices, stride} = fixedDeclarationVertices(state, vertices, stride, vertexCount));
+    ({ state, vertices, stride } = fixedDeclarationVertices(state, vertices, stride, vertexCount));
     const generated = fixedVertexShader(state);
     state = { ...state, vertexShader: generated, vertexConstants: generated.constants };
   }
