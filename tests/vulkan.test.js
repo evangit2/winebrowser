@@ -79,6 +79,9 @@ test('PE32 ABI keeps struct size separate from the VkDeviceSize member offset', 
   assert.equal(VK_ABI.VkMemoryRequirements.memoryTypeBits, 16);
   assert.equal(VK_ABI.VkImageViewCreateInfo.image, 16);
   assert.deepEqual(VK_COMMANDS.vkMapMemory, [1, 2, 2, 2, 1, 1]);
+  assert.deepEqual(VK_COMMANDS.vkCreateSwapchainKHR, [1, 1, 1, 1]);
+  assert.deepEqual(VK_COMMANDS.vkCmdBindIndexBuffer, [1, 2, 2, 1]);
+  assert.deepEqual(VK_COMMANDS.vkCmdPushConstants, [1, 2, 1, 1, 1, 1]);
 });
 test('Vulkan loader names and handlers reach the ordinary module provider', () => {
   const provider = createWin32ApiProvider();
