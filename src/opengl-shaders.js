@@ -4,7 +4,12 @@ export function browserGLSL(source, stage) {
   if (typeof source !== 'string' || source.length > 1024 * 1024)
     throw Error('OpenGL shader source limit exceeded');
   const version = source.match(/^\s*#\s*version\s+(\d+)(?:\s+\w+)?/m);
-  if (version && ![110, 120, 130, 140, 150, 330, 300].includes(Number(version[1])))
+  if (
+    version &&
+    ![110, 120, 130, 140, 150, 330, 300, 400, 410, 420, 430, 440, 450, 460].includes(
+      Number(version[1]),
+    )
+  )
     throw Error(`Unsupported desktop GLSL version ${version[1]}`);
   source = source.replace(/^\s*#\s*version[^\n]*(?:\n|$)/m, '');
   let fragmentOutput = false;

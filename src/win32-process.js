@@ -296,11 +296,10 @@ function multiToWide(r, a) {
     count = a(3) | 0;
   const output = a(4),
     capacity = a(5) | 0;
-  // MB_PRECOMPOSED (1) and MB_COMPOSITE (2) describe normalization, which
-  // does not change the one-to-one mapping of a single-byte code page. UTF-8
-  // additionally accepts MB_ERR_INVALID_CHARS (8), which the TextDecoder
-  // fatal option already implements.
-  const allowedFlags = cp === UTF8_CODE_PAGE ? 8 : 3;
+  // MB_ERR_INVALID_CHARS is also valid for single-byte pages. Every byte
+  // in our tables has a mapping. MB_COMPOSITE requests canonical decomposition.
+  const allowedFlags = cp === UTF8_CODE_PAGE ? 8 : 11;
+  if ((flags & 3) === 3) return fail(r, 1004, 6); // ERROR_INVALID_FLAGS
   if ((!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== UTF8_CODE_PAGE) || flags & ~allowedFlags) {
     if (!SINGLE_BYTE_CODE_PAGES.has(cp) && cp !== UTF8_CODE_PAGE) return fail(r, 87, 6);
     throw Error(`Unsupported MultiByteToWideChar cp=${cp} flags=${flags}`);
@@ -325,6 +324,7 @@ function multiToWide(r, a) {
         : cp === 437
           ? decodeOem(bytes)
           : decodeAnsi(bytes);
+    if (cp !== UTF8_CODE_PAGE && flags & 2) value = value.normalize('NFD');
   } catch {
     return fail(r, 1113, 6);
   }

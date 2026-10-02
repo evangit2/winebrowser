@@ -25,6 +25,65 @@ function machine(code) {
   return { cpu, guest };
 }
 
+test('REP return hints and BND returns preserve the ordinary 32-bit stack ABI with MPX disabled', () => {
+  for (const prefix of [0xf2, 0xf3]) {
+    for (const popBytes of [0, 8]) {
+      const { cpu, guest } = machine([prefix, ...(popBytes ? [0xc2, popBytes, 0] : [0xc3])]);
+      cpu.r[4].value = 0x8800;
+      guest.write32(0x8800, 0x12345678);
+      cpu.r[1].value = 99;
+      const flags = { ...cpu.f };
+      assert.equal(cpu.step(0x1000) >>> 0, 0x12345678);
+      assert.equal(cpu.r[4].value, 0x8804 + popBytes);
+      assert.equal(cpu.r[1].value, 99, 'the prefix does not repeat the return');
+      assert.deepEqual(cpu.f, flags);
+    }
+  }
+  const bad = machine([0xf2, 0x40]);
+  assert.throws(() => bad.cpu.step(0x1000), /Repeat prefix unsupported/);
+});
+
+test('MPX-disabled BND conditional and indirect branches use normal control flow', () => {
+  const { cpu } = machine([0xf2, 0x72, 2]);
+  cpu.f.cf = 1;
+  assert.equal(cpu.step(0x1000), 0x1005);
+  cpu.f.cf = 0;
+  assert.equal(cpu.step(0x1000), 0x1003);
+  const indirect = machine([0xf2, 0xff, 0xe0]);
+  indirect.cpu.r[0].value = 0x12345678;
+  assert.equal(indirect.cpu.step(0x1000) >>> 0, 0x12345678);
+});
+
+test('memory fences preserve ordered private guest-memory writes and register state', () => {
+  for (const operation of [0xe8, 0xf0, 0xf8]) {
+    const { cpu, guest } = machine([
+      0xc7,
+      0x05,
+      0x00,
+      0x88,
+      0,
+      0,
+      42,
+      0,
+      0,
+      0,
+      0x0f,
+      0xae,
+      operation,
+      0xa1,
+      0x00,
+      0x88,
+      0,
+      0,
+    ]);
+    cpu.r[1].value = 77;
+    cpu.step(0x1000);
+    assert.equal(guest.read32(0x8800), 42);
+    assert.equal(cpu.r[0].value, 42);
+    assert.equal(cpu.r[1].value, 77);
+  }
+});
+
 test('PUSHF/PUSHFD encode flags and POPF/POPFD preserve privileged bits at CPL3', () => {
   for (const width of [2, 4]) {
     const { cpu, guest } = machine([...(width === 2 ? [0x66] : []), 0x9c]);

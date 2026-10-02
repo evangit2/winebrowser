@@ -1,3 +1,6 @@
+import { processCommandLine } from './command-line.js';
+import { packageDosPath } from './guest-paths.js';
+
 // Process-owned addresses in the fixed 64 MiB PE32 address space. Wine i386
 // places a 0x800-byte debug_info immediately after its 0x1000-byte TEB; keep
 // the PEB on a separate page so unchanged guest debug helpers cannot corrupt it.
@@ -16,6 +19,30 @@ export function initializeProcessLayout(runtime) {
   const { peb } = PROCESS_LAYOUT;
   runtime.write32(peb + 8, runtime.pe.imageBase);
   runtime.write32(peb + 0x64, 1);
+  // A standalone MSVC CRT reads PEB.ProcessParameters directly during exit.
+  // Provide normalized PE32 RTL_USER_PROCESS_PARAMETERS even without ntdll.
+  // Native Wine replaces this bootstrap allocation with its own parameters.
+  const parameters = runtime.allocate(0x290);
+  runtime.write32(parameters, 0x290);
+  runtime.write32(parameters + 4, 0x290);
+  runtime.write32(parameters + 8, 1); // RTL_USER_PROC_PARAMS_NORMALIZED
+  runtime.write32(parameters + 0x1c, 1); // stdout, matching GetStdHandle
+  runtime.write32(parameters + 0x20, 2); // stderr
+  for (const [offset, value] of [
+    [0x24, packageDosPath(runtime.cwd, true)],
+    [0x30, ''],
+    [0x38, packageDosPath(runtime.exe)],
+    [0x40, processCommandLine(runtime)],
+  ]) {
+    if (value.length > 32766 || value.includes('\0'))
+      throw Error('Invalid process parameter string');
+    const buffer = runtime.allocString(value, true);
+    runtime.guestMemory.write(parameters + offset, value.length * 2, 2);
+    runtime.guestMemory.write(parameters + offset + 2, (value.length + 1) * 2, 2);
+    runtime.write32(parameters + offset + 4, buffer);
+  }
+  runtime.write32(parameters + 0x48, runtime.allocate(4)); // empty UTF-16 environment
+  runtime.write32(peb + 0x10, parameters);
 }
 
 // Initialize a separately allocated TEB/debug block without changing process

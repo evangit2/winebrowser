@@ -239,11 +239,15 @@ test('parameter initialization failure rolls back the heap, PEB pointers and scr
   installStubHeap(runtime, { parameters: true, failParameters: true });
   const originalAllocations = [...runtime.heap.allocations];
   const originalReservations = [...runtime.virtualMemory.reservations];
+  const originalParameters = runtime.read32(PEB_PROCESS_PARAMETERS);
   for (let attempt = 0; attempt < 2; attempt++) {
     await assert.rejects(runtime.loadLibrary('ntdll.dll'), /synthetic parameter failure/);
     assert.equal(runtime.wineProcess, undefined);
     for (const pointer of [PEB_PROCESS_HEAP, PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS])
-      assert.equal(runtime.read32(pointer), 0);
+      assert.equal(
+        runtime.read32(pointer),
+        pointer === PEB_PROCESS_PARAMETERS ? originalParameters : 0,
+      );
     assert.deepEqual([...runtime.heap.allocations], originalAllocations);
     assert.deepEqual([...runtime.virtualMemory.reservations], originalReservations);
   }
@@ -259,11 +263,15 @@ test('rejected DLL attach rolls back successful Wine process parameters', async 
   const runtime = await makeRuntime(dll);
   const events = installStubHeap(runtime, { parameters: true });
   const originalAllocations = [...runtime.heap.allocations];
+  const originalParameters = runtime.read32(PEB_PROCESS_PARAMETERS);
   for (let attempt = 0; attempt < 2; attempt++) {
     await assert.rejects(runtime.loadLibrary('ntdll.dll'), /DllMain rejected process attach/);
     assert.equal(runtime.wineProcess, undefined);
     for (const pointer of [PEB_PROCESS_HEAP, PEB_FAST_LOCK, PEB_PROCESS_PARAMETERS])
-      assert.equal(runtime.read32(pointer), 0);
+      assert.equal(
+        runtime.read32(pointer),
+        pointer === PEB_PROCESS_PARAMETERS ? originalParameters : 0,
+      );
     assert.equal(runtime.virtualMemory.reservations.size, 0);
     assert.deepEqual([...runtime.heap.allocations], originalAllocations);
   }

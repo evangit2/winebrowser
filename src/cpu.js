@@ -864,7 +864,27 @@ export class CPU {
           const stringCompare = stringScas || stringCmps;
           const stringOp = stringMov || stringStos || stringCompare || stringLods;
           const legacyBitScan = i.hasRepPrefix && (m === M.Bsf || m === M.Bsr);
-          if ((i.hasRepPrefix || i.hasRepnePrefix) && !simd && !stringOp && !legacyBitScan)
+          // REP RET is an AMD return hint. F2 RET is BND RET; with MPX
+          // disabled (as our CPUID advertises), bounds prefixes are ignored.
+          const legacyReturn =
+            m === M.Ret && [this.iced.Code.Retnd, this.iced.Code.Retnd_imm16].includes(i.code);
+          const legacyBoundsBranch =
+            i.hasRepnePrefix &&
+            [
+              this.iced.FlowControl.Call,
+              this.iced.FlowControl.IndirectCall,
+              this.iced.FlowControl.UnconditionalBranch,
+              this.iced.FlowControl.IndirectBranch,
+              this.iced.FlowControl.ConditionalBranch,
+            ].includes(i.flowControl);
+          if (
+            (i.hasRepPrefix || i.hasRepnePrefix) &&
+            !simd &&
+            !stringOp &&
+            !legacyBitScan &&
+            !legacyReturn &&
+            !legacyBoundsBranch
+          )
             throw Error('Repeat prefix unsupported');
           if (stringOp) {
             if (i.hasRepnePrefix && !stringCompare)
@@ -972,6 +992,12 @@ export class CPU {
           } else if (m === M.Cpuid) {
             if (i.opCount !== 0) throw Error('Unexpected CPUID operands');
             code.push(...get(0), ...get(1), ...call(Host.cpuid));
+          } else if ([M.Lfence, M.Sfence, M.Mfence].includes(m)) {
+            if (i.opCount !== 0) throw Error('Unexpected memory fence operands');
+            // Guest memory is private to one worker. Checked loads/stores are
+            // synchronous host calls, and guest threads switch only at explicit
+            // dispatch boundaries, so this model already executes them in order.
+            code.push(0x01);
           } else if (m === M.Rdtsc) {
             if (i.opCount !== 0) throw Error('Unexpected RDTSC operands');
             code.push(...call(Host.timestamp));

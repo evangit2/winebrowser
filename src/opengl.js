@@ -3,6 +3,14 @@ import { describeDisplayDC } from './win32-gdi.js';
 const states = new WeakMap();
 const ok = (result = 0, argc = 0) => ({ result: result >>> 0, argc });
 const MAX_BYTES = 16 * 1024 * 1024;
+const GL_EXTENSIONS = [
+  'GL_ARB_shader_objects',
+  'GL_ARB_vertex_shader',
+  'GL_ARB_fragment_shader',
+  'GL_ARB_shading_language_100',
+  'GL_ARB_vertex_buffer_object',
+  'GL_ARB_vertex_array_object',
+];
 const state = (r) => {
   let s = states.get(r);
   if (!s) states.set(r, (s = { formats: new Map(), current: new Map(), strings: new Map() }));
@@ -160,7 +168,10 @@ export const openglApis = {
     return ok(1, 2);
   },
   'opengl32.dll!wglDeleteContext': (r, a) => {
-    if ([...state(r).current.values()].some((v) => v.id === a(0))) return fail(r, 170, 1);
+    const s = state(r),
+      owner = thread(r);
+    if ([...s.current].some(([id, v]) => id !== owner && v.id === a(0))) return fail(r, 170, 1);
+    if (s.current.get(owner)?.id === a(0)) s.current.delete(owner);
     return backend(r).destroy(a(0)) ? ok(1, 1) : fail(r, 6, 1);
   },
   'opengl32.dll!wglGetCurrentContext': (r) => ok(state(r).current.get(thread(r))?.id ?? 0),
@@ -188,14 +199,14 @@ export const openglApis = {
       1,
     ),
   'opengl32.dll!glGetString': (r, a) => {
+    if (!state(r).current.has(thread(r))) return ok(0, 1);
     current(r);
     const value = {
       0x1f00: 'WineBrowser',
       0x1f01: 'WineBrowser WebGL2 desktop OpenGL subset',
       0x1f02: '3.3 WineBrowser (bounded WebGL2 bridge)',
       0x8b8c: '3.30 WineBrowser GLSL ES bridge',
-      0x1f03:
-        'GL_ARB_shader_objects GL_ARB_vertex_shader GL_ARB_fragment_shader GL_ARB_shading_language_100 GL_ARB_vertex_buffer_object GL_ARB_vertex_array_object',
+      0x1f03: GL_EXTENSIONS.join(' '),
     }[a(0)];
     if (value === undefined) {
       current(r).error = 0x500;
@@ -204,6 +215,7 @@ export const openglApis = {
     return ok(stringPointer(r, value), 1);
   },
   'opengl32.dll!glGetError': (r) => {
+    if (!state(r).current.has(thread(r))) return ok(0);
     const c = current(r),
       error = c.error ?? c.gl.getError();
     delete c.error;
@@ -213,6 +225,9 @@ export const openglApis = {
 
 const glAPI = (name, argc, run) => {
   openglApis['opengl32.dll!' + name] = (r, a) => {
+    // Windows' null-context GL dispatch ignores these calls. WM_SIZE commonly
+    // calls glViewport while CreateWindowEx is still running, before WGL init.
+    if (!state(r).current.has(thread(r))) return ok(0, argc);
     const c = current(r);
     return ok(run(c.gl, c, r, a) ?? 0, argc);
   };
@@ -257,12 +272,58 @@ for (const [name, count] of [
   direct(name, count, (a, i) => f32(a(i)));
 
 glAPI('glGetIntegerv', 2, (gl, c, r, a) => {
-  const value = gl.getParameter(a(0));
+  const value =
+    { 0x821b: 3, 0x821c: 3, 0x821d: GL_EXTENSIONS.length }[a(0)] ?? gl.getParameter(a(0));
   const values = ArrayBuffer.isView(value) || Array.isArray(value) ? value : [value];
   if (values.some((v) => typeof v !== 'number' && typeof v !== 'boolean'))
     throw Error('Unsupported OpenGL object-valued integer query');
   bytes(r, a(1), values.length * 4, true);
   values.forEach((v, i) => r.write32(a(1) + i * 4, Number(v)));
+});
+glAPI('glGetStringi', 2, (gl, c, r, a) => {
+  if (a(0) !== 0x1f03 || a(1) >= GL_EXTENSIONS.length) {
+    c.error = a(0) !== 0x1f03 ? 0x500 : 0x501;
+    return 0;
+  }
+  return stringPointer(r, GL_EXTENSIONS[a(1)]);
+});
+glAPI('glClearDepth', 2, (gl, c, r, a) => {
+  const value = new DataView(new ArrayBuffer(8));
+  value.setUint32(0, a(0), true);
+  value.setUint32(4, a(1), true);
+  gl.clearDepth(value.getFloat64(0, true));
+});
+glAPI('glShadeModel', 1, (gl, c, r, a) => {
+  if (![0x1d00, 0x1d01].includes(a(0))) {
+    c.error = 0x500;
+    return;
+  }
+  // Interpolation in a programmable pipeline is specified by the shader.
+  c.shadeModel = a(0);
+});
+glAPI('glHint', 2, (gl, c, r, a) => {
+  if (![0x1100, 0x1101, 0x1102].includes(a(1))) {
+    c.error = 0x500;
+    return;
+  }
+  if (a(0) === 0x0c50) {
+    c.perspectiveHint = a(1);
+    return;
+  }
+  gl.hint(a(0), a(1));
+});
+glAPI('glGetAttachedShaders', 4, (gl, c, r, a) => {
+  const attached = gl.getAttachedShaders(backend(r).object(c, a(0), 'program')) ?? [];
+  const count = Math.min(a(1), attached.length);
+  bytes(r, a(3), count * 4, true);
+  for (let i = 0; i < count; i++) {
+    const name = [...c.names].find(
+      ([, entry]) => entry.kind === 'shader' && entry.object === attached[i],
+    )?.[0];
+    if (name === undefined) throw Error('Unowned OpenGL attached shader');
+    r.write32(a(3) + i * 4, name);
+  }
+  if (a(2)) r.write32(a(2), count);
 });
 glAPI('glCreateShader', 1, (gl, c, r, a) => backend(r).name(c, 'shader', gl.createShader(a(0))));
 glAPI('glCreateProgram', 0, (gl, c, r) => backend(r).name(c, 'program', gl.createProgram()));

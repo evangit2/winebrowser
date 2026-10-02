@@ -40,6 +40,19 @@ test('UTF-8 conversion preserves surrogate pairs/BOM and rejects invalid input w
   assert.equal(call('kernel32.dll!MultiByteToWideChar', 65001, 8, input, 1, output, 8).result, 0);
   assert.equal(r.lastError, 1113);
 });
+
+test('single-byte CRT conversion accepts MB_PRECOMPOSED plus strict decoding and expands MB_COMPOSITE', () => {
+  const { r, call } = setup(),
+    input = r.allocate(2),
+    output = r.allocate(8);
+  r.data.set([0xe9, 0], input);
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 1252, 9, input, -1, output, 4).result, 2);
+  assert.equal(r.wideString(output), 'é');
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 1252, 2, input, -1, output, 4).result, 3);
+  assert.equal(r.wideString(output), 'e\u0301');
+  assert.equal(call('kernel32.dll!MultiByteToWideChar', 1252, 3, input, -1, output, 4).result, 0);
+  assert.equal(r.lastError, 1004);
+});
 test('Get/SetWindowText cross the ANSI WndProc boundary without corrupting UTF-16 buffers', async () => {
   const { r, call } = setup(),
     hwnd = 0x20000,

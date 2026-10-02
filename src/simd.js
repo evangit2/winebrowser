@@ -255,6 +255,8 @@ export function classifySse(instruction, iced) {
     case C.Punpckldq_xmm_xmmm128:
     case C.Punpcklqdq_xmm_xmmm128:
     case C.Pxor_xmm_xmmm128:
+    case C.Xorps_xmm_xmmm128:
+    case C.Xorpd_xmm_xmmm128:
     case C.Paddw_xmm_xmmm128: {
       const dst = xmm(0);
       if (dst === null) return null;
@@ -265,7 +267,9 @@ export function classifySse(instruction, iced) {
           ? [SIMD_OP.PUNPCKLDQ_XMM_XMM, SIMD_OP.PUNPCKLDQ_XMM_MEM]
           : instruction.mnemonic === iced.Mnemonic.Punpcklqdq
             ? [SIMD_OP.PUNPCKLQDQ_XMM_XMM, SIMD_OP.PUNPCKLQDQ_XMM_MEM]
-            : instruction.mnemonic === iced.Mnemonic.Pxor
+            : [iced.Mnemonic.Pxor, iced.Mnemonic.Xorps, iced.Mnemonic.Xorpd].includes(
+                  instruction.mnemonic,
+                )
               ? [SIMD_OP.PXOR_XMM_XMM, SIMD_OP.PXOR_XMM_MEM]
               : [SIMD_OP.PADDW_XMM_XMM, SIMD_OP.PADDW_XMM_MEM];
       return {

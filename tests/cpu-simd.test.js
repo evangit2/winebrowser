@@ -8,6 +8,20 @@ import { probeScalarSse } from '../scripts/lib/scalar-sse-probe.js';
 const CODE = 0x1000;
 const DATA = 0x2000;
 
+test('XORPS/XORPD are raw 128-bit logical operations, including NaN and sign bit patterns', () => {
+  for (const prefix of [[], [0x66]]) {
+    const { cpu } = machine([...prefix, 0x0f, 0x57, 0xc1]);
+    cpu.simd.registers[0].set([0x7fc00001, 0x80000000, 0xffffffff, 0x12345678]);
+    cpu.simd.registers[1].set([0x00ffffff, 0x80000000, 0x7fffffff, 0x87654321]);
+    const flags = { ...cpu.f },
+      mxcsr = cpu.simd.float.mxcsr;
+    cpu.step(CODE);
+    assert.deepEqual(lanes(cpu), [0x7f3ffffe, 0, 0x80000000, 0x95511559]);
+    assert.deepEqual(cpu.f, flags);
+    assert.equal(cpu.simd.float.mxcsr, mxcsr);
+  }
+});
+
 function machine(code, { check } = {}) {
   const memory = new WebAssembly.Memory({ initial: 1 });
   new Uint8Array(memory.buffer).set(code, CODE);
