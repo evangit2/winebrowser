@@ -158,7 +158,10 @@ export function validLighting(value) {
 export function normalMatrix(world, view) {
   if ([world, view].some((m) => m.length !== 16 || !Array.from(m).every(Number.isFinite)))
     throw Error('Invalid D3D normal transform');
-  if ([world, view].some((m) => m[3] || m[7] || m[11] || m[15] !== 1))
+  // For block triangular matrices, the spatial inverse is independent of
+  // translation and the nonzero homogeneous diagonal. Keep this common path
+  // cheap even when guest arithmetic leaves _44 a Float32 step away from 1.
+  if ([world, view].some((m) => m[3] || m[7] || m[11] || m[15] === 0))
     return projectiveNormalMatrix(world, view);
   const m = Array.from({ length: 3 }, (_, row) =>
     Array.from(

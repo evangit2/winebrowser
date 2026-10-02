@@ -80,6 +80,13 @@ test('projective normals include translation and homogeneous terms of the full i
   const swapped = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0];
   assert.deepEqual([...normalMatrix(swapped, identity)], [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
   assert.deepEqual([...normalMatrix(swapped, swapped)], [...normalMatrix(identity, identity)]);
+  const homogeneous = [...identity];
+  homogeneous[15] = 2;
+  homogeneous[12] = 7;
+  assert.deepEqual(
+    [...normalMatrix(homogeneous, homogeneous)],
+    [...normalMatrix(identity, identity)],
+  );
 });
 test('singular normals preserve Wine modelview transpose and reject nonfinite input', () => {
   const singular = [2, 1, 0, 0.5, 0, 0, 0, 0, 0, 0, 3, 0, 4, 0, 0, 1];
