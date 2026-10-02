@@ -142,3 +142,11 @@ The alternate readback run repeats the same acceptance. Evidence is in
 `evidence/skinning-browser-results.json`, `evidence/skinning-readback-results.json`
 and `evidence/vulkan-compute-results.json`. Vkcube remains a regression gate
 for EXE/ZIP/catalog and staging-buffer uploads.
+
+`evidence/vulkan-pages-acceptance.json` records the successful GitHub workflow
+and deployment commit, matching live download hashes, and six ordinary Chrome
+154 runs on the actual Pages site without special GPU flags. The live tests
+also verify that F1 removes the native overlay and that resumed animation
+produces new poses beyond the paused frame-buffer phases. Native GPU compute
+passes on the same live site. These are checks of the deployed application;
+the final evidence commit changes only documentation and acceptance tooling.

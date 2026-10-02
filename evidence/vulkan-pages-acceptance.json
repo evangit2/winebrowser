@@ -1,0 +1,150 @@
+{
+  "date": "2026-10-02T23:46:03.504Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedCommit": "0101b7f50bb65587f665c6834cf8367dcab5e846",
+  "workflow": {
+    "url": "https://github.com/evangit2/winebrowser/actions/runs/37076070825",
+    "conclusion": "success",
+    "unitTestsPassed": 912
+  },
+  "deployment": {
+    "id": 6820344263,
+    "state": "success",
+    "url": "https://evangit2.github.io/winebrowser/"
+  },
+  "browser": "154.0.8037.97",
+  "ordinaryBrowserWithoutSpecialGpuFlags": true,
+  "applicationFilesUnchangedSinceDeployment": true,
+  "exeSha256": "ff42fb88664b336ccd70f29615689ef1ca8c20c6bbb8d210db235f174522c608",
+  "zipSha256": "6794a432dc5b556b8fad7afac6c430ee003d3c00278dc01be9ecc868c36e4375",
+  "sourceZipSha256": "b6360728dcb9d2067e4bfebba9480eab2409e66368a8d49afdd4489ec44a7961",
+  "sourceZipDownloadVerified": true,
+  "staticDependencyModules": [
+    "gltfskinning.exe",
+    "gdi32.dll",
+    "kernel32.dll",
+    "ntdll.dll",
+    "ucrtbase.dll",
+    "user32.dll",
+    "vulkan-1.dll",
+    "kernelbase.dll"
+  ],
+  "unresolved": [],
+  "normal": [
+    {
+      "mode": "zip-upload",
+      "exitCode": 0,
+      "compiledBlocks": 15811,
+      "elapsedMs": 20229,
+      "animationAndInput": true,
+      "nativeOverlayToggle": true,
+      "modules": [
+        "gltfskinning.exe",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ucrtbase.dll",
+        "user32.dll",
+        "vulkan-1.dll",
+        "kernelbase.dll"
+      ]
+    },
+    {
+      "mode": "folder-upload",
+      "exitCode": 0,
+      "compiledBlocks": 15816,
+      "elapsedMs": 18837,
+      "animationAndInput": true,
+      "nativeOverlayToggle": true,
+      "modules": [
+        "gltfskinning.exe",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ucrtbase.dll",
+        "user32.dll",
+        "vulkan-1.dll",
+        "kernelbase.dll"
+      ]
+    },
+    {
+      "mode": "hosted-catalog",
+      "exitCode": 0,
+      "compiledBlocks": 15811,
+      "elapsedMs": 18769,
+      "animationAndInput": true,
+      "nativeOverlayToggle": true,
+      "modules": [
+        "gltfskinning.exe",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ucrtbase.dll",
+        "user32.dll",
+        "vulkan-1.dll",
+        "kernelbase.dll"
+      ]
+    }
+  ],
+  "readback": [
+    {
+      "mode": "zip-upload",
+      "exitCode": 0,
+      "compiledBlocks": 15811,
+      "elapsedMs": 19614,
+      "animationAndInput": true,
+      "nativeOverlayToggle": true,
+      "modules": [
+        "gltfskinning.exe",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ucrtbase.dll",
+        "user32.dll",
+        "vulkan-1.dll",
+        "kernelbase.dll"
+      ]
+    },
+    {
+      "mode": "folder-upload",
+      "exitCode": 0,
+      "compiledBlocks": 15809,
+      "elapsedMs": 20734,
+      "animationAndInput": true,
+      "nativeOverlayToggle": true,
+      "modules": [
+        "gltfskinning.exe",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ucrtbase.dll",
+        "user32.dll",
+        "vulkan-1.dll",
+        "kernelbase.dll"
+      ]
+    },
+    {
+      "mode": "hosted-catalog",
+      "exitCode": 0,
+      "compiledBlocks": 15806,
+      "elapsedMs": 19741,
+      "animationAndInput": true,
+      "nativeOverlayToggle": true,
+      "modules": [
+        "gltfskinning.exe",
+        "gdi32.dll",
+        "kernel32.dll",
+        "ntdll.dll",
+        "ucrtbase.dll",
+        "user32.dll",
+        "vulkan-1.dll",
+        "kernelbase.dll"
+      ]
+    }
+  ],
+  "compute": {
+    "exitCode": 0,
+    "exactStorageResultsAndPartialCopies": true
+  },
+  "scope": "Pinned Windows x86 source build. Original application, animation, assets and SPIR-V retained, with one size_t portability guard in the common helper. The selected application dependency closure is verified; x64, optional wireframe and arbitrary DLL/game compatibility remain unsupported."
+}

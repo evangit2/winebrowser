@@ -148,12 +148,27 @@ try {
     await page
       .locator('#desktop')
       .screenshot({ path: `evidence/skinning-${mode}${presentation}.png` });
+    const overlayPixels = () =>
+      canvas.evaluate((canvas) => {
+        const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        let red = 0;
+        for (let y = 0; y < 200; y++)
+          for (let x = 0; x < 270; x++) {
+            const i = (y * canvas.width + x) * 4;
+            if (pixels[i] > 180 && pixels[i + 1] < 40 && pixels[i + 2] < 40) red++;
+          }
+        return red;
+      });
+    const overlayBefore = await overlayPixels();
+    assert.ok(overlayBefore > 200, 'native ImGui overlay is visible');
     await canvas.focus();
     await page.keyboard.press('p');
     await waitFrames(animated.frames + 12);
     const paused = await snapshot();
     await page.keyboard.press('F1');
     await waitFrames(paused.frames + 12);
+    const overlayAfter = await overlayPixels();
+    assert.equal(overlayAfter, 0, 'F1 hides the native ImGui overlay');
     // An upstream frames-in-flight buffer can contain an earlier paused pose;
     // check three matching frame phases rather than imposing a new guest loop.
     const poses = [];
@@ -179,6 +194,16 @@ try {
     await waitFrames(moved.frames + 24);
     const resumed = await snapshot();
     assert.notEqual(resumed.hash, moved.hash, 'skeletal animation resumes');
+    const resumedPoses = [resumed];
+    for (let i = 0; i < 3; i++) {
+      await waitFrames(resumedPoses.at(-1).frames + 12);
+      resumedPoses.push(await snapshot());
+    }
+    assert.equal(
+      new Set(resumedPoses.map((p) => p.hash)).size,
+      4,
+      'resumed animation exceeds the three static native frame-buffer phases',
+    );
     await page.locator('.virtual-desktop-close').click();
     await page.waitForFunction(() => window.__lastRun !== null, null, { timeout: 60000 });
     const result = await page.evaluate(() => window.__lastRun);
@@ -216,6 +241,9 @@ try {
       paused,
       moved,
       resumed,
+      resumedPoses,
+      overlayBefore,
+      overlayAfter,
       exitCode: result.exitCode,
       elapsedMs: Date.now() - started,
       compiledBlocks: result.compiledBlocks,

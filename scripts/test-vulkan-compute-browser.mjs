@@ -56,7 +56,13 @@ try {
   await writeFile(
     'evidence/vulkan-compute-results.json',
     JSON.stringify(
-      { date: new Date().toISOString(), url, browser: browser.version(), ...report },
+      {
+        date: new Date().toISOString(),
+        url,
+        browser: browser.version(),
+        ordinaryBrowser: process.env.WINEBROWSER_NORMAL_CHROMIUM === '1',
+        ...report,
+      },
       null,
       2,
     ) + '\n',
