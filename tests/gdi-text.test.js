@@ -228,3 +228,54 @@ test('canvas text backend reuses bounded surfaces and keys cached masks by CSS f
   assert.equal(drawCalls, 3, 'the cache key includes complete CSS font and requested height');
   assert.equal(canvases, 2, 'text updates reuse the two worker-local canvases');
 });
+
+test('DrawText measures through the rasterizer for alignment, word wrap and DrawTextEx CALCRECT', () => {
+  const runtime = makeRuntime({
+    rasterize(text) {
+      return {
+        width: text.length * 3,
+        height: 4,
+        ascent: 3,
+        alpha: new Uint8Array(text.length * 12).fill(255),
+      };
+    },
+  });
+  runtime.write32 = (p, v) => runtime.view.setUint32(p, v >>> 0, true);
+  runtime.guestMemory = {
+    read: (p, size) => (size === 1 ? runtime.memory[p] : runtime.view.getUint16(p, true)),
+  };
+  const dc = call(
+    runtime,
+    'user32.dll!GetDC',
+    call(runtime, 'user32.dll!GetDesktopWindow').result,
+  ).result;
+  runtime.memory.set(new TextEncoder().encode('Wide'), 0x200);
+  point(runtime, 0x100, 0, 0);
+  point(runtime, 0x108, 30, 30);
+  call(runtime, 'gdi32.dll!SetTextColor', dc, 0x000000ff);
+  call(runtime, 'gdi32.dll!SetBkMode', dc, 1);
+  const height = call(runtime, 'user32.dll!DrawTextA', dc, 0x200, 4, 0x100, 0x21).result;
+  assert.ok(height > 0);
+  assert.deepEqual(
+    framePixel(flushGdi(runtime), 9, 0),
+    [255, 0, 0, 255],
+    'center uses actual twelve-pixel glyph width',
+  );
+  point(runtime, 0x100, 4, 5);
+  point(runtime, 0x108, 34, 35);
+  assert.equal(
+    call(runtime, 'user32.dll!DrawTextExA', dc, 0x200, 4, 0x100, 0x420, 0).result,
+    height,
+  );
+  assert.equal(runtime.read32(0x108), 16);
+  assert.equal(runtime.read32(0x10c), 5 + height);
+  runtime.memory.set(new TextEncoder().encode('A B C'), 0x200);
+  point(runtime, 0x100, 0, 0);
+  point(runtime, 0x108, 7, 100);
+  assert.equal(
+    call(runtime, 'user32.dll!DrawTextA', dc, 0x200, 5, 0x100, 0x410).result,
+    3 * height,
+  );
+  assert.equal(runtime.read32(0x108), 3);
+  assert.equal(runtime.read32(0x10c), 3 * height);
+});

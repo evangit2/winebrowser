@@ -1804,7 +1804,7 @@ function drawText(runtime, argument, wide, extended) {
     textPointer = argument(1),
     count = signed(argument(2)),
     rectPointer = argument(3),
-    flags = argument(extended ? 5 : 4) >>> 0;
+    flags = argument(4) >>> 0;
   if (!dcHandle || !textPointer || !rectPointer || flags & ~DT_MODELED)
     return failure(runtime, ERROR_INVALID_PARAMETER, 0, argc);
   const state = stateFor(runtime);
@@ -1838,6 +1838,12 @@ function drawText(runtime, argument, wide, extended) {
   const font = dc.font ? getFont(state, dc.font) : null;
   if (dc.font && !font) return failure(runtime, ERROR_INVALID_HANDLE, 0, argc);
   const descriptor = font ?? DEFAULT_GDI_FONT;
+  let measureError;
+  const measureWidth = (value) => {
+    const measured = rasterizeGdiText(runtime, value, descriptor);
+    if (measured.error) measureError = measured.error;
+    return measured.mask?.width ?? 0;
+  };
   const width = Math.max(0, rect.right - rect.left),
     height = Math.max(0, rect.bottom - rect.top);
   const lineHeight = descriptor.height + (descriptor.externalLeading ?? 0);
@@ -1853,7 +1859,7 @@ function drawText(runtime, argument, wide, extended) {
       let current = '';
       for (const word of line.split(/(\s+)/)) {
         const candidate = current + word;
-        if (current && descriptor.measure(candidate) > width) {
+        if (current && measureWidth(candidate) > width) {
           wrapped.push(current.replace(/\s+$/, ''));
           current = word.replace(/^\s+/, '');
         } else current = candidate;
@@ -1862,10 +1868,17 @@ function drawText(runtime, argument, wide, extended) {
     }
   if (flags & DT_CALCRECT) {
     let maxWidth = 0;
-    for (const line of wrapped) maxWidth = Math.max(maxWidth, descriptor.measure(line));
+    for (const line of wrapped) maxWidth = Math.max(maxWidth, measureWidth(line));
+    if (measureError)
+      return failure(
+        runtime,
+        measureError === 'backend' ? ERROR_CALL_NOT_IMPLEMENTED : ERROR_INVALID_PARAMETER,
+        0,
+        argc,
+      );
     runtime.write32(rectPointer + 8, rect.left + maxWidth);
     runtime.write32(rectPointer + 12, rect.top + wrapped.length * lineHeight);
-    return success(0, argc);
+    return success(wrapped.length * lineHeight, argc);
   }
   let y = rect.top;
   if (flags & DT_VCENTER && flags & DT_SINGLELINE)
@@ -1874,7 +1887,7 @@ function drawText(runtime, argument, wide, extended) {
     y = rect.top + Math.max(0, height - lineHeight);
   let painted = 0;
   for (const line of wrapped) {
-    const lineWidth = descriptor.measure(line);
+    const lineWidth = measureWidth(line);
     let x = rect.left;
     if (flags & DT_CENTER) x = rect.left + Math.max(0, (width - lineWidth) >> 1);
     else if (flags & DT_RIGHT) x = rect.left + Math.max(0, width - lineWidth);
