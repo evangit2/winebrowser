@@ -10,6 +10,7 @@ export class GuestMemory {
     this.onCodeWrite = onCodeWrite;
     // Index-validated region cache for the locality fast path.
     this.cachedRegion = undefined;
+    this.cachedRegions = new Array(64);
     this.readOnlyViews = readOnlyViews.map((mapping) => {
       const { start, bytes, ranges = [[0, bytes?.length]] } = mapping;
       if (
@@ -67,7 +68,8 @@ export class GuestMemory {
   // address and then silently index an unrelated/empty TypedArray slice.
   //
   // Guest access is locality-heavy, so the region that satisfied the previous
-  // check is cached. The cache is validated by identity against the shared
+  // check is cached, with a small page-indexed cache for alternating stack,
+  // heap and image accesses. Each entry is validated by identity against the shared
   // regions array on every use, so a protection change, split, unmap or reload
   // (all of which replace or remove region objects) makes the entry stale and
   // the exact scan below runs instead. No invalidation hook is required.
@@ -76,7 +78,14 @@ export class GuestMemory {
     const end = address + size;
     const regions = this.regions;
     const validSize = Number.isSafeInteger(size) && size >= 0;
-    const cached = this.cachedRegion;
+    let cached = this.cachedRegion;
+    if (
+      cached === undefined ||
+      regions[cached.index] !== cached.region ||
+      address < cached.region.start ||
+      end > cached.region.end
+    )
+      cached = this.cachedRegions[(address >>> 12) & 63];
     if (
       cached !== undefined &&
       regions[cached.index] === cached.region &&
@@ -88,6 +97,7 @@ export class GuestMemory {
       cached.region.read !== false &&
       (!write || (cached.region.write && (!cached.region.exec || this.onCodeWrite)))
     ) {
+      this.cachedRegion = cached;
       if (write && cached.region.exec) this.onCodeWrite(address, size);
       return address;
     }
@@ -133,8 +143,10 @@ export class GuestMemory {
         { code: EXCEPTION_CODE.ACCESS_VIOLATION, address, write, size },
       );
     }
-    if (size > 0 && coverIndex >= 0)
+    if (size > 0 && coverIndex >= 0) {
       this.cachedRegion = { index: coverIndex, region: regions[coverIndex] };
+      this.cachedRegions[(address >>> 12) & 63] = this.cachedRegion;
+    }
     if (write && size && this.onCodeWrite && regions[coverIndex]?.exec)
       this.onCodeWrite(address, size);
     return address;
