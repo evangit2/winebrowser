@@ -24,6 +24,7 @@ const { values: options } = parseArgs({
     'max-ms': { type: 'string' },
     'frame-png': { type: 'string' },
     'frame-goal': { type: 'string' },
+    'sample-blocks': { type: 'string' },
   },
 });
 const EXE_SHA256 = '3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d';
@@ -56,9 +57,12 @@ const input = {
   nlsFiles,
   ...(options['frame-goal'] ? { frameGoal: Number(options['frame-goal']) } : {}),
   ...(options['worker-timeout'] ? { workerTimeoutMs: Number(options['worker-timeout']) } : {}),
-  ...(options['max-blocks'] || options['max-ms']
+  ...(options['max-blocks'] || options['max-ms'] || options['sample-blocks']
     ? {
         limits: {
+          ...(options['sample-blocks']
+            ? { blockSampleStride: Number(options['sample-blocks']) }
+            : {}),
           ...(options['max-blocks'] ? { maxBlocks: Number(options['max-blocks']) } : {}),
           ...(options['max-ms'] ? { maxExecutionMs: Number(options['max-ms']) } : {}),
         },

@@ -56,9 +56,15 @@ export async function probeWineTarget(
     diagnosticLimits: {
       maxBlocks: limits.maxBlocks ?? 10_000_000,
       maxExecutionMs: limits.maxExecutionMs ?? 45_000,
+      blockSampleStride: limits.blockSampleStride ?? 8,
     },
   };
-  // A temporary switch for diagnosing a rejected description; set by the caller.
+  if (
+    !Number.isInteger(report.diagnosticLimits.blockSampleStride) ||
+    report.diagnosticLimits.blockSampleStride < 1 ||
+    report.diagnosticLimits.blockSampleStride > 65536
+  )
+    throw Error('Invalid diagnostic block sample stride');
 
   const restore = new Map();
   const recentBlocks = [];
@@ -389,7 +395,7 @@ export async function probeWineTarget(
       }
       // Sampling the block histograms keeps the probe's own overhead far below
       // the guest work it measures while still locating hot blocks.
-      if (dispatch % 8 === 0) {
+      if (dispatch % report.diagnosticLimits.blockSampleStride === 0) {
         const hot = locate(ip);
         const hotKey = `${runtime.threads.current?.id ?? 0}:${hot.module ? `${hot.module}+${hot.offset}` : hot.address}`;
         // A long-running guest (a render loop) visits unbounded distinct blocks.
@@ -518,6 +524,18 @@ export async function probeWineTarget(
           });
         } catch (error) {
           // Never let tracing change the guest's failure.
+        }
+      }
+      if (/^ID3D10Device.CreateTexture[123]D$/.test(name)) {
+        try {
+          const words = name.endsWith('2D') ? 11 : name.endsWith('3D') ? 9 : 8;
+          runtime.check(args[1], words * 4);
+          record.description = Array.from(
+            { length: words },
+            (_, i) => runtime.read32(args[1] + i * 4) >>> 0,
+          );
+        } catch (error) {
+          record.traceError = error.message;
         }
       }
       if (/(CreateTexture|CreateVolumeTexture|CreateCubeTexture)$/.test(name)) {

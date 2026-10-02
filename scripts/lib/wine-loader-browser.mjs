@@ -1,5 +1,8 @@
 import { chromium } from '@playwright/test';
-import { createServer } from 'vite';
+import { build } from 'vite';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
 import { webgpuBrowserOptions } from './webgpu-browser.mjs';
 
 const probes = {
@@ -36,16 +39,79 @@ async function probeInBrowser(root, kind, input) {
     }
   }
   for (const field of ['dll', 'executable']) if (input[field]) assets.set(field, input[field]);
-  const server = await createServer({
+  // Serve a bundled snapshot without Vite's development client. Native
+  // decoders run long enough that hot reload and developer error forwarding
+  // can interfere with execution and inflate the diagnostic driver's heap.
+  const compiled = await build({
     root,
+    configFile: false,
     base: '/',
+    publicDir: false,
     logLevel: 'error',
-    server: { host: '127.0.0.1', port: 0, strictPort: true },
+    build: {
+      target: 'esnext',
+      write: false,
+      minify: false,
+      lib: {
+        entry: resolve(root, 'scripts/lib', probe.script),
+        formats: ['es'],
+        fileName: 'probe',
+      },
+    },
+  });
+  const output = (Array.isArray(compiled) ? compiled : [compiled]).flatMap(
+    (result) => result.output,
+  );
+  const outputs = new Map(output.map((file) => [file.fileName, file.code ?? file.source]));
+  const entry = output.find((file) => file.isEntry).fileName;
+  const publicRoot = resolve(root, 'public');
+  const server = createServer(async (request, response) => {
+    response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    response.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    try {
+      const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+      if (pathname === '/tests/fixtures/desktop-controls.html') {
+        response.setHeader('Content-Type', 'text/html');
+        response.end('<!doctype html><title>Wine probe</title>');
+      } else if (pathname.startsWith('/__wine_probe_bundle/')) {
+        const file = outputs.get(pathname.slice('/__wine_probe_bundle/'.length));
+        if (file === undefined) {
+          response.writeHead(404);
+          response.end();
+          return;
+        }
+        response.setHeader('Content-Type', 'text/javascript');
+        response.end(file);
+      } else {
+        const file = resolve(publicRoot, '.' + pathname);
+        if (!file.startsWith(publicRoot + sep)) {
+          response.writeHead(403);
+          response.end();
+          return;
+        }
+        response.setHeader(
+          'Content-Type',
+          file.endsWith('.wasm')
+            ? 'application/wasm'
+            : file.endsWith('.js')
+              ? 'text/javascript'
+              : 'application/octet-stream',
+        );
+        response.end(await readFile(file));
+      }
+    } catch {
+      response.writeHead(404);
+      response.end();
+    }
   });
   let browser;
   try {
-    await server.listen();
-    const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    const origin = `http://127.0.0.1:${server.address().port}`;
     // The D3D12/DXGI target probe exercises real swap-chain presentation, so
     // launch with the same WebGPU flags the automated graphics fixtures use.
     browser = await chromium.launch({ ...webgpuBrowserOptions, headless: true });
@@ -76,7 +142,7 @@ async function probeInBrowser(root, kind, input) {
       async (payload) => {
         if (!crossOriginIsolated) throw Error('Chromium probe is not cross-origin isolated');
         const source = `
-        import { ${payload.probe.entry} as probe } from ${JSON.stringify(payload.origin + '/scripts/lib/' + payload.probe.script)};
+        import { ${payload.probe.entry} as probe } from ${JSON.stringify(payload.origin + '/__wine_probe_bundle/' + payload.entry)};
         import { init } from ${JSON.stringify(payload.origin + '/vendor/iced.js')};
         onmessage = async ({data}) => {
           try {
@@ -131,6 +197,7 @@ async function probeInBrowser(root, kind, input) {
       },
       {
         origin,
+        entry,
         probe,
         descriptors,
         byteFields: ['dll', 'executable'].filter((field) => input[field]),
@@ -150,7 +217,7 @@ async function probeInBrowser(root, kind, input) {
     return { ...result, browser: browser.version(), outboundRequests: outbound };
   } finally {
     await browser?.close();
-    await server.close();
+    await new Promise((resolve) => server.close(resolve));
   }
 }
 
