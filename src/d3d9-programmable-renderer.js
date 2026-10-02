@@ -19,7 +19,7 @@ function validTextures(textures) {
     const { snapshot, sampler } = binding;
     if (
       !snapshot ||
-      ![undefined, '2d', '3d'].includes(snapshot.dimension) ||
+      ![undefined, '2d', '3d', 'cube'].includes(snapshot.dimension) ||
       !Array.isArray(snapshot.levels) ||
       !snapshot.levels.length ||
       snapshot.levels.some(
@@ -29,7 +29,9 @@ function validTextures(textures) {
           !(l.rgba instanceof Uint8Array) ||
           (snapshot.dimension === '3d' && !integer(l.depth, 1, 256)) ||
           (snapshot.dimension !== '3d' && l.depth !== undefined) ||
-          l.rgba.length !== l.width * l.height * (l.depth ?? 1) * 4,
+          l.rgba.length !==
+            l.width * l.height * (snapshot.dimension === 'cube' ? 6 : (l.depth ?? 1)) * 4 ||
+          (snapshot.dimension === 'cube' && l.width !== l.height),
       )
     )
       return false;

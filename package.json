@@ -159,7 +159,8 @@
     "test:volume-backend": "node scripts/test-volume-backend.mjs",
     "test:d3d9-volume-backend": "node scripts/test-d3d9-volume-backend.mjs",
     "build:wine-base": "python3 scripts/build-wine-base.py",
-    "test:wine-source-base": "node scripts/test-wine-source-base.mjs"
+    "test:wine-source-base": "node scripts/test-wine-source-base.mjs",
+    "test:d3d9-cubemap-backend": "node scripts/test-d3d9-cubemap-backend.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

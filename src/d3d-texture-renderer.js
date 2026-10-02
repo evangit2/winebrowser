@@ -260,23 +260,27 @@ export class D3DTextureRenderer {
     // binding numbers the translated shaders use.
     const entries = [];
     const view = (snapshot, type) => {
-      const dimension = /texture_3d</.test(type ?? '') ? '3d' : '2d';
+      const dimension = /texture_3d</.test(type ?? '')
+        ? '3d'
+        : /texture_cube</.test(type ?? '')
+          ? 'cube'
+          : '2d';
       if (snapshot && (snapshot.dimension ?? '2d') !== dimension)
         throw Error('D3D9 sampled texture dimension does not match its shader');
-      const key = snapshot
-        ? `${snapshot.id}:${snapshot.revision}`
-        : dimension === '3d'
-          ? 'white-3d'
-          : 'white';
+      const key = snapshot ? `${snapshot.id}:${snapshot.revision}` : `white-${dimension}`;
       surface.textures ??= new Map();
       let cached = surface.textures.get(key);
       if (!cached) {
         const levels = snapshot?.levels ?? [
-          { width: 1, height: 1, rgba: new Uint8Array([255, 255, 255, 255]) },
+          { width: 1, height: 1, rgba: new Uint8Array(dimension === 'cube' ? 24 : 4).fill(255) },
         ];
         const texture = this.owner.device.createTexture({
-          size: [levels[0].width, levels[0].height, levels[0].depth ?? 1],
-          dimension,
+          size: [
+            levels[0].width,
+            levels[0].height,
+            dimension === 'cube' ? 6 : (levels[0].depth ?? 1),
+          ],
+          dimension: dimension === 'cube' ? '2d' : dimension,
           mipLevelCount: levels.length,
           format: 'rgba8unorm',
           usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
@@ -286,7 +290,7 @@ export class D3DTextureRenderer {
             { texture, mipLevel: i },
             l.rgba,
             { bytesPerRow: l.width * 4, rowsPerImage: l.height },
-            [l.width, l.height, l.depth ?? 1],
+            [l.width, l.height, dimension === 'cube' ? 6 : (l.depth ?? 1)],
           ),
         );
         cached = { texture, views: new Map() };
@@ -352,7 +356,7 @@ export class D3DTextureRenderer {
     // texture in texturing, programmable draws one per sampler register. A
     // snapshot missing from here would be destroyed and re-uploaded every
     // frame, which for a 512x512 mip chain dominates the frame time.
-    const used = new Set(['white-3d']);
+    const used = new Set(['white-2d', 'white-3d', 'white-cube']);
     const key = (snapshot) => (snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white');
     for (const c of commands) {
       if (c.texturing) used.add(key(c.texturing.texture));

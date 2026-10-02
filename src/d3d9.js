@@ -313,6 +313,7 @@ function deviceMethods(version = 9) {
     },
     23: createTextureMethod(version),
     24: createVolumeTextureMethod(version),
+    25: createTextureMethod(version, true),
     64: { argc: 3, invoke: (r, a, d) => getTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
     65: { argc: 3, invoke: (r, a, d) => bindTexture(r, d, a(1) >>> 0, a(2) >>> 0) },
     66: textureStateMethod({ version, get: true }),
@@ -967,7 +968,7 @@ function factoryMethods(version = 9) {
       invoke(_r, a) {
         if (a(1) !== 0) return D3DERR_INVALIDCALL;
         if (a(2) !== 1 || ![22, 23].includes(a(3))) return 0x8876086a;
-        return [3, 4].includes(a(5)) &&
+        return [3, 4, 5].includes(a(5)) &&
           [0, 0x200].includes(a(4)) &&
           textureBytesPerPixel(a(6)) &&
           (a(5) !== 4 || a(6) < 0x100)

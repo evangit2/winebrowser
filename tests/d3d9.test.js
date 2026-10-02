@@ -560,10 +560,7 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0x8876086c);
   runtime.write32(params + 32, 1);
   const device = await create();
-  await assert.rejects(
-    call(device, 25, 1),
-    /Unsupported COM method IDirect3DDevice9.CreateCubeTexture/,
-  );
+  assert.equal((await call(device, 25, 1, 1, 0, 21, 1, 0, 0)).result, 0x8876086c);
   await assert.rejects(call(device, 57, 22, 4), /Unsupported IDirect3DDevice9.SetRenderState/);
   await assert.rejects(call(device, 89, 0x44 | 0x200), /Unsupported IDirect3DDevice9.SetFVF/);
   await call(device, 57, 22, 1);
@@ -882,9 +879,10 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
     // StencilCaps advertises exactly the D3DSTENCILOP operations the WebGPU
-    // renderer maps; cube texture and stream caps stay unadvertised.
+    // renderer maps; cube/volume texture paths are advertised; multiple streams remain unadvertised.
     assert.equal(runtime.read32(p + 34 * 4), 0xff);
-    for (const index of [17, 47]) assert.equal(runtime.read32(p + index * 4), 0);
+    assert.equal(runtime.read32(p + 47 * 4), 0);
+    assert.equal(runtime.read32(p + 17 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 18 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 20 * 4), 0x17);
     assert.equal(runtime.read32(p + 24 * 4), 256);
@@ -894,7 +892,7 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 49 * 4), version === 9 ? 0xfffe0200 : 0xfffe0101);
     assert.equal(runtime.read32(p + 50 * 4), 256);
     assert.equal(runtime.read32(p + 51 * 4), 0xffff0200);
-    assert.equal(runtime.read32(p + 15 * 4), 0xe005);
+    assert.equal(runtime.read32(p + 15 * 4), 0x1e805);
     assert.equal(runtime.read32(p + 16 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 22 * 4), 2048);
     assert.equal(runtime.read32(p + 38 * 4), 1);
@@ -2045,3 +2043,66 @@ for (const version of [8, 9])
     );
     assert.equal(r.read32(output), 0);
   });
+
+test('D3D8/9 cube faces and mips share surface bytes, preserve snapshots and retain storage', async () => {
+  const { textureSnapshot, bindTexture } = await import('../src/d3d9-textures.js');
+  for (const version of [8, 9]) {
+    const { runtime: r, call, create, freed } = fixture(version);
+    const device = await create(),
+      d = r.comObjects.objects.get(device),
+      out = r.allocate(4);
+    const created = await call(device, version === 8 ? 22 : 25, 4, 0, 0, 21, 1, out, 0);
+    assert.equal(created.result, 0);
+    assert.equal(created.argc, version === 8 ? 7 : 8);
+    const pointer = r.read32(out),
+      texture = r.comObjects.objects.get(pointer),
+      shift = version === 8 ? 0 : 3;
+    assert.equal((await call(pointer, 10)).result, 5);
+    assert.equal((await call(pointer, 13)).result, 3);
+    const desc = r.allocate(32),
+      locked = r.allocate(8),
+      viewOut = r.allocate(4);
+    assert.equal((await call(pointer, 14 + shift, 2, desc)).result, 0);
+    assert.deepEqual([r.read32(desc + 24), r.read32(desc + 28)], [1, 1]);
+    const rect = r.allocate(16);
+    [1, 1, 3, 3].forEach((v, i) => r.write32(rect + i * 4, v));
+    for (let face = 0; face < 6; face++) {
+      const lock = await call(pointer, 16 + shift, face, 1, locked, 0, 0);
+      assert.equal(lock.result, 0);
+      assert.equal(lock.argc, 6);
+      const bits = r.read32(locked + 4);
+      r.write32(bits, 0xff000000 | ((face + 1) << 16));
+      assert.equal((await call(pointer, 17 + shift, face, 1)).argc, 3);
+    }
+    assert.equal((await call(pointer, 16 + shift, 6, 0, locked, 0, 0)).result, 0x8876086c);
+    assert.equal((await call(pointer, 16 + shift, 0, 3, locked, 0, 0)).result, 0x8876086c);
+    assert.equal((await call(pointer, 18 + shift, 5, rect)).result, 0);
+    assert.equal((await call(pointer, 18 + shift, 6, 0)).result, 0x8876086c);
+    assert.equal((await call(pointer, 15 + shift, 1, 1, viewOut)).result, 0);
+    const surface = r.read32(viewOut);
+    const before = textureSnapshot(r, texture);
+    assert.equal(before.dimension, 'cube');
+    assert.equal(before.levels.length, 3);
+    assert.equal(before.levels[1].rgba.length, 2 * 2 * 6 * 4);
+    for (let face = 0; face < 6; face++)
+      assert.deepEqual(
+        [...before.levels[1].rgba.slice(face * 16, face * 16 + 4)],
+        [face + 1, 0, 0, 255],
+      );
+    assert.equal((await call(surface, version === 8 ? 9 : 13, locked, 0, 0)).argc, 4);
+    assert.throws(() => textureSnapshot(r, texture), /locked/);
+    r.write32(r.read32(locked + 4), 0xff0000ff);
+    await call(surface, version === 8 ? 10 : 14);
+    const after = textureSnapshot(r, texture);
+    assert.deepEqual([...before.levels[1].rgba.slice(16, 20)], [2, 0, 0, 255]);
+    assert.deepEqual([...after.levels[1].rgba.slice(16, 20)], [0, 0, 255, 255]);
+    assert.equal(bindTexture(r, d, 0, pointer), 0);
+    const base = texture.state.base;
+    await call(pointer, 2);
+    await call(surface, 2);
+    assert.equal(freed.includes(base), false);
+    assert.equal(bindTexture(r, d, 0, 0), 0);
+    assert.equal(freed.filter((p) => p === base).length, 1);
+    await call(device, 2);
+  }
+});

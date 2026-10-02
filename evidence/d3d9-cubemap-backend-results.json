@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-02T06:45:59.750Z",
+  "browser": "154.0.8037.97",
+  "pixels": [
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      255,
+      255
+    ]
+  ],
+  "errors": [],
+  "mismatchedDimensionRejected": true,
+  "scope": "Real PS2 samplerCube compilation and all six directed face pixels; no third-party scene claim."
+}

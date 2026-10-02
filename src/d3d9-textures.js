@@ -332,7 +332,7 @@ export function bindTexture(r, device, stage, pointer) {
   if (
     pointer &&
     (!next?.refs ||
-      !['texture2d', 'texture3d'].includes(next.state.kind) ||
+      !['texture2d', 'texture3d', 'texturecube'].includes(next.state.kind) ||
       next.state.device !== device)
   )
     return INVALID;
@@ -387,13 +387,17 @@ export function invalidate(o) {
   o.state.revision++;
   o.state.snapshot = null;
 }
-export function createTextureMethod(version) {
+export function createTextureMethod(version, cube = false) {
   return {
-    argc: version === 8 ? 8 : 9,
+    argc: (version === 8 ? 8 : 9) - (cube ? 1 : 0),
     invoke(r, a, device) {
-      const [width, height, requested, usage, format, pool, output] = [1, 2, 3, 4, 5, 6, 7].map(
-        (i) => a(i) >>> 0,
+      const width = a(1) >>> 0,
+        height = cube ? width : a(2) >>> 0,
+        delta = cube ? 1 : 0;
+      const [requested, usage, format, pool, output] = [3, 4, 5, 6, 7].map(
+        (i) => a(i - delta) >>> 0,
       );
+      if (!output) return INVALID;
       r.check(output, 4, true);
       r.write32(output, 0);
       const bpp = textureBytesPerPixel(format);
@@ -409,12 +413,15 @@ export function createTextureMethod(version) {
         (usage && pool !== 0) ||
         count < 1 ||
         count > 1 + Math.floor(Math.log2(Math.max(width, height))) ||
-        (version === 9 && a(8))
+        (version === 9 && a(8 - delta))
       )
         return INVALID;
       let bytes = 0;
-      const levels = Array.from({ length: count }, (_, i) => {
-        const w = Math.max(1, width >> i),
+      const faces = cube ? 6 : 1;
+      const levelIndex = (face, mip) => (face < faces && mip < count ? mip * faces + face : -1);
+      const levels = Array.from({ length: count * faces }, (_, index) => {
+        const i = Math.floor(index / faces),
+          w = Math.max(1, width >> i),
           h = Math.max(1, height >> i),
           { pitch, rows, blockBytes } = levelGeometry(format, bpp, w, h);
         const level = {
@@ -456,7 +463,7 @@ export function createTextureMethod(version) {
             },
           },
           8: { argc: 1, invoke: (_r, _a, o) => o.state.priority },
-          10: { argc: 1, invoke: () => 3 },
+          10: { argc: 1, invoke: () => (cube ? 5 : 3) },
           11: {
             argc: 2,
             invoke(_r, a, o) {
@@ -470,7 +477,7 @@ export function createTextureMethod(version) {
           [14 + shift]: {
             argc: 3,
             invoke(r, a) {
-              const level = levels[a(1) >>> 0];
+              const level = levels[levelIndex(0, a(1) >>> 0)];
               if (!level || !a(2)) return INVALID;
               r.check(a(2), 32, true);
               const values =
@@ -482,24 +489,28 @@ export function createTextureMethod(version) {
             },
           },
           [15 + shift]: {
-            // GetSurfaceLevel returns a view onto one mip level's storage.
-            argc: 3,
+            // Cube surfaces address a face plus mip; 2D surfaces only a mip.
+            argc: cube ? 4 : 3,
             invoke(r, a, o) {
-              const out = a(2) >>> 0;
+              const out = a(cube ? 3 : 2) >>> 0;
               if (!out) return INVALID;
               r.check(out, 4, true);
               r.write32(out, 0);
-              const level = levels[a(1) >>> 0];
-              if (!level) return INVALID;
-              const surface = createSurface(r, o, a(1) >>> 0);
+              const index = cube ? levelIndex(a(1) >>> 0, a(2) >>> 0) : levelIndex(0, a(1) >>> 0);
+              if (!levels[index]) return INVALID;
+              const surface = createSurface(r, o, index);
               r.write32(out, surface.pointer);
               return 0;
             },
           },
           [16 + shift]: {
-            argc: 5,
-            invoke(r, a, o) {
-              const level = levels[a(1) >>> 0],
+            argc: cube ? 6 : 5,
+            invoke(r, argument, o) {
+              const a = (i) => argument(i + (cube ? 1 : 0));
+              const index = cube
+                ? levelIndex(argument(1) >>> 0, a(1) >>> 0)
+                : levelIndex(0, a(1) >>> 0);
+              const level = levels[index],
                 flags = a(4) >>> 0;
               if (
                 !level ||
@@ -523,9 +534,10 @@ export function createTextureMethod(version) {
             },
           },
           [17 + shift]: {
-            argc: 2,
+            argc: cube ? 3 : 2,
             invoke(_r, a, o) {
-              const level = levels[a(1) >>> 0];
+              const index = cube ? levelIndex(a(1) >>> 0, a(2) >>> 0) : levelIndex(0, a(1) >>> 0);
+              const level = levels[index];
               if (!level?.locked) return INVALID;
               if (!(level.locked.flags & 0x10)) invalidate(o);
               level.locked = null;
@@ -533,18 +545,21 @@ export function createTextureMethod(version) {
             },
           },
           [18 + shift]: {
-            argc: 2,
+            argc: cube ? 3 : 2,
             invoke(r, a, o) {
-              if (!rect(r, a(1), levels[0])) return INVALID;
+              if ((cube && a(1) >>> 0 >= 6) || !rect(r, a(cube ? 2 : 1), levels[0])) return INVALID;
               invalidate(o);
               return 0;
             },
           },
         };
         const object = r.comObjects.create({
-          name: `IDirect3DTexture${version}`,
-          iid:
-            version === 8
+          name: `IDirect3D${cube ? 'CubeTexture' : 'Texture'}${version}`,
+          iid: cube
+            ? version === 8
+              ? '3ee5b968-2aca-4c34-8bb5-7e0c3d19b750'
+              : 'fff32f81-d953-473a-9223-93d652aba93f'
+            : version === 8
               ? 'e4cdd575-2866-4f01-b12e-7eece1ec9358'
               : '85c31227-3de5-4f00-9b3a-f11ac38c18b5',
           iids:
@@ -552,12 +567,13 @@ export function createTextureMethod(version) {
               ? ['b4211cfa-51b9-4a9f-ab78-db99b2bb678e', '1b36bb7b-09b7-410a-b445-7d1430d7b33f']
               : ['580ca87e-1d3c-4d54-991d-b7d3e3c298ce', '05eec05d-8f7d-4362-b999-d1baf357c704'],
           methodNames:
-            `${BASE_METHODS} ${version === 9 ? 'SetAutoGenFilterType GetAutoGenFilterType GenerateMipSubLevels ' : ''}${TAIL_METHODS}`.split(
+            `${BASE_METHODS} ${version === 9 ? 'SetAutoGenFilterType GetAutoGenFilterType GenerateMipSubLevels ' : ''}${cube ? TAIL_METHODS.replace('GetSurfaceLevel', 'GetCubeMapSurface') : TAIL_METHODS}`.split(
               ' ',
             ),
           methods,
           state: {
-            kind: 'texture2d',
+            kind: cube ? 'texturecube' : 'texture2d',
+            mipCount: count,
             device,
             width,
             height,
@@ -715,7 +731,7 @@ export function textureSnapshot(r, object) {
   if (s.levels.some((l) => l.locked)) throw Error('D3D draw uses a locked texture');
   if (s.freed) throw Error('D3D draw uses a freed texture');
   if (!s.snapshot) {
-    const levels = s.levels.map((l) => {
+    let levels = s.levels.map((l) => {
       const rgba = new Uint8Array(l.width * l.height * (l.depth ?? 1) * 4);
       if (l.blockBytes) {
         decodeCompressed(r.data, s.base + l.offset, s.format, l.width, l.height, rgba);
@@ -769,18 +785,31 @@ export function textureSnapshot(r, object) {
           }
       return { width: l.width, height: l.height, ...(l.depth ? { depth: l.depth } : {}), rgba };
     });
+    if (s.kind === 'texturecube') {
+      levels = Array.from({ length: s.mipCount }, (_, mip) => {
+        const first = levels[mip * 6],
+          rgba = new Uint8Array(first.rgba.length * 6);
+        for (let face = 0; face < 6; face++)
+          rgba.set(levels[mip * 6 + face].rgba, first.rgba.length * face);
+        return { width: first.width, height: first.height, rgba };
+      });
+    }
     s.snapshot = {
       id: object.pointer,
       revision: s.revision,
-      ...(s.kind === 'texture3d' ? { dimension: '3d' } : {}),
+      ...(s.kind === 'texture3d'
+        ? { dimension: '3d' }
+        : s.kind === 'texturecube'
+          ? { dimension: 'cube' }
+          : {}),
       levels,
     };
   }
   return s.snapshot;
 }
 export function fixedTextureDraw(r, state) {
-  if (state.textures[0]?.state.kind === 'texture3d')
-    throw Error('Fixed-function volume texture coordinates are unsupported');
+  if (['texture3d', 'texturecube'].includes(state.textures[0]?.state.kind))
+    throw Error('Fixed-function volume/cube texture coordinates are unsupported');
   const stage = state.textureStages[0],
     texture = state.textures[0];
   // D3D disables this and following stages when COLOROP is disabled, or a

@@ -201,3 +201,16 @@ The original Hamsterball still faults at EXE +0x85c2c after six transition frame
 A one-byte write trace finds the suspect FE byte written at EXE +0xadd32 and
 subsequently processed by the PNG RGB/BGR swap at +0xa5151. This does not yet
 establish why image data reaches the later table lookup; gameplay is unverified.
+
+
+Native D3D8/9 cube textures now store all six faces and supplied/full mip
+chains, including compressed formats, shared face surfaces and immutable draw
+snapshots. The real PS2 samplerCube gate checks exact pixels from all six
+directions with no GPU errors. Cube render targets and fixed-function cube
+coordinates remain unsupported. RollerCoaster passes its cube creation and
+now stops at three-component FVF coordinates (0x10142); ASCII explicitly needs
+a usage=RENDERTARGET cube and is still blocked. Neither is a public scene claim.
+The D3D8/9 surface LockRect ABI was corrected from five stack words to four;
+a native fixture writes through a face/level view and verifies all pixels and
+exit zero in EXE and ZIP modes. A fresh original Hamsterball probe still reaches
+the same FE-filled adjacency/table read fault, so this fix does not prove gameplay.

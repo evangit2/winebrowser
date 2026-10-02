@@ -12,8 +12,9 @@ export function deviceCaps(version) {
   caps[9] = 0x00400011; // COLORPERSPECTIVE | ZTEST | DITHER.
   caps[10] = 0xff; // All eight D3DCMPFUNC depth comparisons.
   caps[14] = 0x4208; // COLORGOURAUDRGB | SPECULARGOURAUDRGB | ALPHAGOURAUDBLEND.
-  caps[15] = 0xe005; // PERSPECTIVE | ALPHA | MIPMAP | VOLUMEMAP | MIPVOLUMEMAP.
+  caps[15] = 0x1e805; // PERSPECTIVE | ALPHA | MIPMAP | VOLUMEMAP | MIPVOLUMEMAP | CUBEMAP | MIPCUBEMAP.
   caps[16] = 0x03030300; // MIN/MAG/MIP POINT and LINEAR.
+  caps[17] = caps[16]; // Cube MIN/MAG/MIP POINT and LINEAR.
   caps[18] = caps[16]; // Volume MIN/MAG/MIP POINT and LINEAR.
   caps[19] = 0x17; // WRAP | MIRROR | CLAMP | INDEPENDENTUV.
   caps[20] = caps[19]; // Volume U/V/W address modes.
@@ -51,7 +52,7 @@ export function deviceCaps(version) {
     caps[ps20 + 3] = 0; // StaticFlowControlDepth.
     caps[ps20 + 4] = 512; // NumInstructionSlots for ps_2_0.
   }
-  // Cube textures and multiple indexed streams remain unadvertised.
+  // Multiple indexed streams remain unadvertised.
   return caps;
 }
 export function writeDeviceCaps(runtime, pointer, version, adapter = 0, type = 1) {
