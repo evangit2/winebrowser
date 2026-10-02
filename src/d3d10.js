@@ -98,6 +98,10 @@ const SHADER_RESOURCE_FORMATS = {
   75: 'bc2-rgba-unorm-srgb',
   77: 'bc3-rgba-unorm',
   78: 'bc3-rgba-unorm-srgb',
+  80: 'bc4-r-unorm',
+  81: 'bc4-r-snorm',
+  83: 'bc5-rg-unorm',
+  84: 'bc5-rg-snorm',
 };
 
 // A block-compressed texture's storage is laid out in 4x4 texel blocks rather
@@ -1447,7 +1451,7 @@ function texture3dParse(r, a) {
 
 // Bytes one 4x4 block of a DXGI block-compressed format occupies.
 function compressedBytesPerBlock(format) {
-  return format === 70 || format === 71 || format === 72 ? 8 : 16;
+  return [70, 71, 72, 80, 81].includes(format) ? 8 : 16;
 }
 
 const VIEW_DIMENSION = { texture1d: 0, texture2d: 3, depth: 3 };

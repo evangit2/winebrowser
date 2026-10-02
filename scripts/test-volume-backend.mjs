@@ -120,12 +120,79 @@ try {
     });
     await renderer.present({ id: 1, index: 0 });
     await renderer.device.queue.onSubmittedWorkDone();
+    const { bytes: texturePixel } = await renderer.compiler.compileHLSL(
+      encode(
+        'Texture2D<float4> tex : register(t0); float4 main(float4 p : SV_Position) : SV_Target { return tex.Load(int3(0, 0, 0)); }',
+      ),
+      'main',
+      'ps_4_0',
+    );
+    const texturePlan = await renderer.planD3D10Bindings(vertex, texturePixel);
+    await renderer.createPipeline({
+      id: 7,
+      vertex,
+      pixel: texturePixel,
+      stagePlan: texturePlan,
+      inputLayout: [{ semanticName: 'POSITION', semanticIndex: 0, offset: 0, format: 'float32x4' }],
+      vertexStride: 16,
+    });
+    const compressionCases = [];
+    for (const [format, block, expected] of [
+      ['bc4-r-unorm', [128, 64, 0, 0, 0, 0, 0, 0], [128, 0, 0, 255]],
+      ['bc4-r-snorm', [64, 0, 0, 0, 0, 0, 0, 0], [129, 0, 0, 255]],
+      ['bc5-rg-unorm', [192, 0, 0, 0, 0, 0, 0, 0, 96, 0, 0, 0, 0, 0, 0, 0], [192, 96, 0, 255]],
+      ['bc5-rg-snorm', [127, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0], [255, 0, 0, 255]],
+    ]) {
+      await renderer.createResource({ id: 6, kind: 'texture', width: 4, height: 4, format });
+      await renderer.uploadTexture({
+        id: 6,
+        width: 4,
+        height: 4,
+        bytesPerRow: block.length,
+        rows: Uint8Array.from(block),
+      });
+      const binding = texturePlan.bindings.find((b) => b.type === 0);
+      await renderer.execute({
+        commands: [
+          {
+            type: 'draw',
+            target: 2,
+            pipeline: 7,
+            bindings: [
+              {
+                group: binding.group,
+                binding: binding.binding,
+                type: 0,
+                kind: 'texture-view',
+                descriptor: { resource: { pointer: 6 } },
+              },
+            ],
+            vertices: new Uint8Array(
+              new Float32Array([-1, -1, 0, 1, 3, -1, 0, 1, -1, 3, 0, 1]).buffer,
+            ),
+            vertexStride: 16,
+            vertexCount: 3,
+            instanceCount: 1,
+            firstVertex: 0,
+            firstInstance: 0,
+            viewport: { x: 0, y: 0, width: 64, height: 64, minDepth: 0, maxDepth: 1 },
+            scissor: { left: 0, top: 0, right: 64, bottom: 64 },
+            depthTarget: 0,
+          },
+        ],
+      });
+      await renderer.present({ id: 1, index: 0 });
+      compressionCases.push({ format, expected, actual: pixels.at(-1) });
+      renderer.destroyResource({ id: 6 });
+    }
     renderer.destroyResource({ id: 4 });
     return {
-      pixels,
+      pixels: pixels.slice(0, 2),
+      compressionCases,
       errors,
       descriptors: stagePlan.bindings,
-      scope: 'Browser-compiled SM4 shaders sampling two native WebGPU 3D texture slices',
+      scope:
+        'Browser-compiled SM4 shaders sampling 3D slices and BC4/BC5 UNORM/SNORM textures through successive pipelines',
     };
   });
   assert.deepEqual(report.pixels, [
@@ -133,6 +200,7 @@ try {
     [0, 0, 255, 255],
   ]);
   assert.deepEqual(report.errors, []);
+  for (const c of report.compressionCases) assert.deepEqual(c.actual, c.expected, c.format);
   await writeFile(
     'evidence/volume-backend-results.json',
     JSON.stringify(

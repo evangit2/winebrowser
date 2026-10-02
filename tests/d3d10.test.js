@@ -798,3 +798,29 @@ test('D3D10 sampled volume copies padded rows and slices and reports its native 
   await call(view, 2);
   assert.ok(events.some((event) => event.type === 'destroyResource' && event.id === volume));
 });
+
+test('D3D10 BC4 and BC5 preserve their 8- and 16-byte block footprints', async () => {
+  const { runtime: r, api, alloc, call, events } = fixture();
+  const out = alloc(4);
+  await api('D3D10CreateDevice', 0, 0, 0, 0, 29, out);
+  const device = r.read32(out);
+  for (const [format, bytes, gpuFormat] of [
+    [80, 8, 'bc4-r-unorm'],
+    [81, 8, 'bc4-r-snorm'],
+    [83, 16, 'bc5-rg-unorm'],
+    [84, 16, 'bc5-rg-snorm'],
+  ]) {
+    const desc = alloc(44);
+    [4, 4, 1, 1, format, 1, 0, 1, 8, 0, 0].forEach((value, i) => r.write32(desc + i * 4, value));
+    const source = alloc(bytes),
+      initial = alloc(12);
+    r.data.fill(0x77, source, source + bytes);
+    [source, bytes, bytes].forEach((value, i) => r.write32(initial + i * 4, value));
+    assert.equal((await call(device, 73, desc, initial, out)).result, 0);
+    assert.equal(events.filter((event) => event.type === 'resource').at(-1).format, gpuFormat);
+    const upload = events.filter((event) => event.type === 'uploadTexture').at(-1);
+    assert.equal(upload.bytesPerRow, bytes);
+    assert.equal(upload.rows.length, bytes);
+    await call(r.read32(out), 2);
+  }
+});

@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T03:40:56.954Z",
+  "date": "2026-10-02T04:04:22.871Z",
   "browser": "154.0.8037.97",
   "pixels": [
     [
@@ -14,6 +14,68 @@
       255,
       255
     ]
+  ],
+  "compressionCases": [
+    {
+      "format": "bc4-r-unorm",
+      "expected": [
+        128,
+        0,
+        0,
+        255
+      ],
+      "actual": [
+        128,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "format": "bc4-r-snorm",
+      "expected": [
+        129,
+        0,
+        0,
+        255
+      ],
+      "actual": [
+        129,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "format": "bc5-rg-unorm",
+      "expected": [
+        192,
+        96,
+        0,
+        255
+      ],
+      "actual": [
+        192,
+        96,
+        0,
+        255
+      ]
+    },
+    {
+      "format": "bc5-rg-snorm",
+      "expected": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "actual": [
+        255,
+        0,
+        0,
+        255
+      ]
+    }
   ],
   "errors": [],
   "descriptors": [
@@ -31,5 +93,5 @@
       "binding": 0
     }
   ],
-  "scope": "Browser-compiled SM4 shaders sampling two native WebGPU 3D texture slices"
+  "scope": "Browser-compiled SM4 shaders sampling 3D slices and BC4/BC5 UNORM/SNORM textures through successive pipelines"
 }

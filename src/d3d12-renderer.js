@@ -70,8 +70,13 @@ const COMPRESSED_FORMATS = [
   'bc2-rgba-unorm-srgb',
   'bc3-rgba-unorm',
   'bc3-rgba-unorm-srgb',
+  'bc4-r-unorm',
+  'bc4-r-snorm',
+  'bc5-rg-unorm',
+  'bc5-rg-snorm',
 ];
-const compressedBytesPerBlock = (format) => (format.startsWith('bc1') ? 8 : 16);
+const compressedBytesPerBlock = (format) =>
+  format.startsWith('bc1') || format.startsWith('bc4') ? 8 : 16;
 function sampleTypeForFormat(format) {
   return DXGI_TEXTURE_FORMATS[format]?.sampleType ?? 'float';
 }
@@ -661,9 +666,9 @@ export class D3D12Renderer {
   // the constant buffers, SRVs/UAVs and samplers; group 3 stays the draw
   // parameter uniform vkd3d-shader emits for base vertex/instance.
   pipelineLayout(plan) {
-    const entriesKey = plan.layouts
-      .map((entry) => `${entry.group}:${entry.entries.map((e) => e.binding).join(',')}`)
-      .join('|');
+    // Binding numbers alone do not identify a layout: texture dimension,
+    // sample type, buffer/sampler kind and visibility all affect compatibility.
+    const entriesKey = JSON.stringify(plan.layouts);
     this.canonicalLayouts ??= new Map();
     const cached = this.canonicalLayouts.get(entriesKey);
     if (cached) return cached;

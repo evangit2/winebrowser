@@ -88,3 +88,12 @@ actual scalar/vector/matrix/aggregate type records, member offsets and default
 values from DXBC RDEF metadata. Count, recursion and byte bounds are checked;
 malformed type/default records are regression-tested. Borrowed descriptors still
 share their root's lifetime.
+
+BC4 and BC5 UNORM/SNORM texture storage now preserves their native 8/16-byte
+block footprints and reaches WebGPU's BC texture formats. The browser regression
+reads exact channel values for all four formats after a volume-texture pipeline.
+This mixed sequence also exposed and fixes the shared pipeline-layout cache:
+binding numbers alone did not distinguish texture dimensions or resource types;
+its key now includes the complete layout entries. 776 unit tests, the real
+browser volume/BC sampling test and the production build pass. Inferno's terrain
+BC4 creation succeeds; its next sampled texture still needs mip-chain support.
