@@ -5,42 +5,67 @@
   "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e",
   "artifactPathBase": "manifest-directory",
   "strip": "GNU strip (GNU Binutils) 2.47.20260726",
+  "sourceDateEpoch": 0,
   "dlls": [
     {
       "name": "ntdll.dll",
       "path": "ntdll.dll",
       "bytes": 987285,
-      "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43"
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd"
     },
     {
       "name": "kernelbase.dll",
       "path": "kernelbase.dll",
       "bytes": 3314461,
-      "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca"
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
     },
     {
       "name": "kernel32.dll",
       "path": "kernel32.dll",
       "bytes": 889074,
-      "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c"
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f"
     },
     {
       "name": "msvcrt.dll",
       "path": "msvcrt.dll",
       "bytes": 975547,
-      "sha256": "1070168fd7ed6af4bcc4c3e518b0ae15890169ae6af6a77bfd5491185e85e6a4"
+      "sha256": "ae706b617b11cf59d52bd668b1f9ae5c9d6e1b5be2a7cead6bfeb33664b5b1bc"
     },
     {
       "name": "msacm32.dll",
       "path": "msacm32.dll",
       "bytes": 178336,
-      "sha256": "f3ad24df332a83ba86e85e833a9c1774f2af14f1a5622aabaf0e30686172f78c"
+      "sha256": "2e734ca076411199f5c96c3567f53f30fb4b4175532546e64551f89a268a3e85"
     },
     {
       "name": "ucrtbase.dll",
       "path": "ucrtbase.dll",
       "bytes": 1311270,
-      "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6"
+      "sha256": "f869a2cdec3acdd2d747dea1324ad354a5d4ac20674d1e5ae1b5ad216ace99e0"
+    },
+    {
+      "name": "vcruntime140.dll",
+      "path": "vcruntime140.dll",
+      "bytes": 53287,
+      "sha256": "be20f43a26bb58d854b443e8bad8438ee1f1f591324dcee441d6d4ca86ad879b"
+    },
+    {
+      "name": "msvcp140.dll",
+      "path": "msvcp140.dll",
+      "bytes": 1384568,
+      "sha256": "5975b6984b88c0afd5477b7cb2d6305f9a0bf8e2dc1bcf0c497672ce284e9d82"
+    },
+    {
+      "name": "msvcp140_1.dll",
+      "path": "msvcp140_1.dll",
+      "bytes": 54932,
+      "sha256": "97086a84c6d50a9506b32074e3db182ff25e30a0ae89df30226e8439739a5b8f"
+    },
+    {
+      "name": "concrt140.dll",
+      "path": "concrt140.dll",
+      "bytes": 252789,
+      "sha256": "ffc4c58d374b3a5c850ed7b17565901cbd4442009a11d311fb99352acf76d00f"
     }
   ],
   "nls": [
@@ -97,7 +122,7 @@
   "build": [
     "--enable-archs=i386",
     "--disable-tests",
-    "make -j4 dlls/ntdll/i386-windows/ntdll.dll dlls/kernelbase/i386-windows/kernelbase.dll dlls/kernel32/i386-windows/kernel32.dll dlls/msvcrt/i386-windows/msvcrt.dll dlls/msacm32/i386-windows/msacm32.dll dlls/ucrtbase/i386-windows/ucrtbase.dll"
+    "make -j4 dlls/ntdll/i386-windows/ntdll.dll dlls/kernelbase/i386-windows/kernelbase.dll dlls/kernel32/i386-windows/kernel32.dll dlls/msvcrt/i386-windows/msvcrt.dll dlls/msacm32/i386-windows/msacm32.dll dlls/ucrtbase/i386-windows/ucrtbase.dll dlls/vcruntime140/i386-windows/vcruntime140.dll dlls/msvcp140/i386-windows/msvcp140.dll dlls/msvcp140_1/i386-windows/msvcp140_1.dll dlls/concrt140/i386-windows/concrt140.dll"
   ],
   "scope": "Source-built PE32 base libraries and NLS for automatic missing-import fallback. Win32/NT browser services remain bounded; this is not arbitrary Windows compatibility.",
   "sourceArchive": {

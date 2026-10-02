@@ -708,28 +708,64 @@ export class Runtime {
       return false;
     }
     module.refs--;
-
+    // Like Wine's free_lib_count, nested unloads update references but leave
+    // detach notifications and image removal to the outermost unload. DLL
+    // destructors may release other DLLs while executing code in this batch.
+    if (this.unloadInProgress) return true;
+    this.unloadInProgress = true;
+    try {
+      return await this.#releaseUnreferencedModules();
+    } finally {
+      this.unloadInProgress = false;
+    }
+  }
+  async #releaseUnreferencedModules() {
     // Startup imports, the executable, host shims, and Wine's process ntdll
     // remain roots. A dynamically loaded dependency remains live while any
     // retained module reaches it through its import/forwarder graph.
-    const live = new Set(),
-      visit = (candidate) => {
-        if (!candidate || live.has(candidate)) return;
-        live.add(candidate);
-        for (const dependency of candidate.dependencies ?? []) visit(dependency);
-      };
-    for (const root of this.graph.startupModules) visit(root);
-    for (const candidate of this.graph.modules.values())
-      if (
-        candidate.host ||
-        candidate.pinned ||
-        candidate.refs > 0 ||
-        candidate === this.wineProcess?.module
-      )
-        visit(candidate);
-    const removed = new Set(
-      [...this.graph.modules.values()].filter((candidate) => !live.has(candidate)),
-    );
+    const unreachable = () => {
+      const live = new Set(),
+        visit = (candidate) => {
+          if (!candidate || live.has(candidate)) return;
+          live.add(candidate);
+          for (const dependency of candidate.dependencies ?? []) visit(dependency);
+        };
+      for (const root of this.graph.startupModules) visit(root);
+      for (const candidate of this.graph.modules.values())
+        if (
+          candidate.host ||
+          candidate.pinned ||
+          candidate.refs > 0 ||
+          candidate === this.wineProcess?.module
+        )
+          visit(candidate);
+      return new Set([...this.graph.modules.values()].filter((candidate) => !live.has(candidate)));
+    };
+    let removed;
+    // Recompute after every callback: a destructor may release another
+    // dynamic root or load a new DLL. Keep all images mapped until callbacks
+    // finish, and clear attach state before invoking each notification.
+    for (;;) {
+      removed = unreachable();
+      const candidate = this.graph
+        .initializationOrder()
+        .reverse()
+        .find((module) => removed.has(module) && !module.detached && !module.detaching);
+      if (!candidate) break;
+      candidate.detaching = true;
+      const initialized = candidate.initialized;
+      candidate.initialized = false;
+      try {
+        await this.tls.detach(candidate);
+        if (initialized && candidate.pe.entryPoint) {
+          this.exitCode = null;
+          await this.callGuest(candidate.pe.entryPoint, [candidate.base, 0, 0]);
+        }
+        candidate.detached = true;
+      } finally {
+        candidate.detaching = false;
+      }
+    }
     if (!removed.size) {
       await this.wineLoader?.sync();
       return true;
@@ -738,18 +774,6 @@ export class Runtime {
       [...removed].filter((candidate) => candidate.host).map((candidate) => candidate.name),
     );
     const removedKeys = new Set([...removed].map((candidate) => candidate.key));
-
-    const order = this.graph
-      .initializationOrder()
-      .reverse()
-      .filter((candidate) => removed.has(candidate));
-    for (const candidate of order) {
-      await this.tls.detach(candidate);
-      if (candidate.initialized && candidate.pe.entryPoint) {
-        this.exitCode = null;
-        await this.callGuest(candidate.pe.entryPoint, [candidate.base, 0, 0]);
-      }
-    }
 
     // Static TLS is per module. Use the same rollback machinery as failed
     // loads so the PE TLS index and TEB vector slot are restored before unmap.

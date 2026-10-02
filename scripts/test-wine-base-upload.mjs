@@ -6,6 +6,8 @@ import { createServer } from 'vite';
 import { chromium } from '@playwright/test';
 import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 
+const wineManifest = JSON.parse(await readFile('runtime/wine-base/manifest.json', 'utf8'));
+
 const url = process.env.WINEBROWSER_TEST_URL;
 const server = url
   ? null
@@ -81,7 +83,11 @@ try {
     assert.equal(result.output, item.output);
     assert.equal(result.result.exitCode, 0);
     assert.deepEqual(errors, []);
-    assert.equal(requests.length, 13, 'six DLLs and seven NLS tables supplied automatically');
+    assert.equal(
+      requests.length,
+      wineManifest.dlls.length + wineManifest.nls.length,
+      'published DLL/NLS closure supplied automatically',
+    );
     for (const name of ['ntdll.dll', 'kernel32.dll', 'kernelbase.dll'])
       assert.ok(
         result.result.modules.some(
