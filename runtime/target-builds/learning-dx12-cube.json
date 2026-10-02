@@ -1,0 +1,60 @@
+{
+  "upstream": "https://github.com/jpvanoosten/LearningDirectX12",
+  "revision": "25b21e05f9a60a72f64c4c11cca824331ec39354",
+  "license": "MIT",
+  "licenseSha256": "7466a01c81ae3b96dcaa4acf6f029df004c3f24a89ef2b094cdea11acd47fd19",
+  "files": {
+    "DX12Lib/CMakeLists.txt": "e7e3636974e0b190b35ab1d3f5b0d2d05843f8082e1763caa01707eb87eb2119",
+    "DX12Lib/resource.h": "d0f138fad27159a71ddeb7b183057777b6b22ec7b351ec36e997623b6504a383",
+    "DX12Lib/inc/DX12LibPCH.h": "698fc5bd2513928ea921266302ed17e6cc732e050ce32d8c0d8f6d7ff60e734f",
+    "DX12Lib/inc/Application.h": "0f6fcc3d58407314e07ffdd9c203253533bad6aaa892603bbd08f6b26dad3643",
+    "DX12Lib/inc/Events.h": "6d9ae216038a753d134333c78c10de8aadd8487e382ff4cad12d41f93c74f385",
+    "DX12Lib/inc/KeyCodes.h": "5bba9cd7d425c57043fd1a04c0b022b9b44c785ff1fccda6ce60357578257d1e",
+    "DX12Lib/inc/Window.h": "1d4b5593b74ed23bedc5df08fa4a2f4d68aefe6dca926b162cb4b93a527856d8",
+    "DX12Lib/inc/Game.h": "3c8f47390cafa29b04e0e70c2d9a527b27e237c35937f1b59898eeab64af8c52",
+    "DX12Lib/inc/d3dx12.h": "73897fd96d8779da8af4b617a0eeb49a7f39be878bf3817f6a957eb009cfca0c",
+    "DX12Lib/inc/HighResolutionClock.h": "dd419abd3f21486e650ff6a0b60b7e811433affa252d0924618320a1e8d85c45",
+    "DX12Lib/inc/CommandQueue.h": "5e35eb38e7a6161ef7d7530172f6a54aced1ece6a3e7b0f5a641b658e991f116",
+    "DX12Lib/inc/Helpers.h": "8a137037b84e01501434ec2205ecd6c33c3e48fe1099a06c6d5f7772b398c897",
+    "DX12Lib/src/DX12LibPCH.cpp": "b671fa13e76b4dde9876856c535c71860970fb1323504ce3d4f320adca6a7244",
+    "DX12Lib/src/CommandQueue.cpp": "7ee6da671c3ff16e0f28668562b51e463bb1d7a9ffde62c461007ff7eb73621b",
+    "DX12Lib/src/Window.cpp": "e39bcb6e2faf01f9991f13fdab8ffff5bae2201b43e85417298b5416e7d98b89",
+    "DX12Lib/src/Application.cpp": "0fc2fdc910054f810fe2a2e4f18456d9d51d3b43046224b32722795d88b06c73",
+    "DX12Lib/src/HighResolutionClock.cpp": "9b702f42d9dd83d4d31d2da72a90e815291076d6543f2999261b2107485c9903",
+    "DX12Lib/src/Game.cpp": "7ca32fd9bf522f86ce77fb226706ec16c5b344608ed20b32cdb43a26308e6392",
+    "Tutorial2/CMakeLists.txt": "39ad5b3fb0bcc9cc70fd40ae495f4544f4a7cebf1310587e4b6d5147e802108a",
+    "Tutorial2/inc/Tutorial2.h": "9494ef807ad49caee1cad86e5f62681cf2b4a54a902e921ae553dcaf20f6db53",
+    "Tutorial2/shaders/PixelShader.hlsl": "2aac56d3426ddb31e9ebd05ca9d0b816da8a613ebe9301ddb8a31aeeeb2f2370",
+    "Tutorial2/shaders/VertexShader.hlsl": "ba98d097433d588428c15484a35a37c8f47e67cdd69b61e3dcc98240a159af53",
+    "Tutorial2/src/Tutorial2.cpp": "b29f3d9240e28ba26bb0f5de7845b1b28a53e64311a7ffde3207fd1407f018c1",
+    "Tutorial2/src/main.cpp": "4385ae3fd1a5cb5cc31bd4fd53571c0161f4b83f1accf8bf5f1ac8bd32a3cdff"
+  },
+  "directXMath": {
+    "upstream": "https://github.com/microsoft/DirectXMath",
+    "revision": "abced86db5d790d3463b118f2f716db30374a1f7",
+    "license": "MIT",
+    "files": {
+      "LICENSE": "d5f67216f1301a781226f9f4e15c9519e9126ba16aef602a256b387c10a5a851",
+      "Inc/DirectXMathConvert.inl": "3e814e1c15e4ce5db3d0d8f79ee292e47865601ff646e150041fe69b8478a51e",
+      "Inc/DirectXCollision.inl": "f8df9957c3f9e3d0bd0376362384115d8b005155aaabb1e54d78d827d600a727",
+      "Inc/DirectXMathMisc.inl": "03b588dfd5c6161a782e777e739f0bc9f973c3747f77be642e3eb5649374215b",
+      "Inc/DirectXPackedVector.inl": "caa49c6bf9538b92a15bc69017c0ccdd1ae575daf160a8a26c3d785b33667640",
+      "Inc/DirectXCollision.h": "13acf064d26bcb5121dbcf459524e5028d012d7ca319cc368d0e904880b9fd50",
+      "Inc/DirectXMath.h": "121368161b6e5461fb6fa0c24fd81699536de1ac0f288fc5fc46c51e99aacac4",
+      "Inc/DirectXColors.h": "81816969fd75ac891be4bd066d8e84233b6fb2fce7a33c1167a912e1c8685775",
+      "Inc/DirectXMathVector.inl": "8486f33481250179f4c1178cd64f1122fe9ee62c837b8148f3b5d2b9bd47bbb5",
+      "Inc/DirectXPackedVector.h": "f2a8b5935f57dd37edd6854b9bcc59fc8429fdb15407c69fde43c1b65e23ce60",
+      "Inc/DirectXMathMatrix.inl": "7a321e6029771bea728b9ff94e4c6d1d20e925be8e10c5900f4fef3460319c97"
+    }
+  },
+  "release": {
+    "url": "https://github.com/jpvanoosten/LearningDirectX12/releases/download/v0.0.2/Tutorial2.zip",
+    "sha256": "513fc9681c6c20fafc659ec500e7a4784f19093d279c0fd0205527e43004d46f",
+    "shaders": {
+      "VertexShader.cso": "0c3023710095dfbc99ff9fccabc1887b329d7b96b880d886b8101036f6bde4f7",
+      "PixelShader.cso": "fb27a4dfca890e630d59426523addd3089f471af068d56f827f60079ca360249"
+    },
+    "originalExecutableSha256": "9cb3c02f71a5f6cdfa8f2e9f3e68e7d48b450f86df82359d79ee5c43f5f6a941"
+  },
+  "buildNote": "The upstream release is x64. The browser target is a native PE32 build of unchanged upstream C++ with upstream scalar DirectXMath (_XM_NO_INTRINSICS_). The original release shader bytes are retained. A preinclude supplies MinGW WRL compatibility and standard declarations; a generated header-path alias accommodates the upstream Windows-style include. No guest instructions or shaders are rewritten."
+}
