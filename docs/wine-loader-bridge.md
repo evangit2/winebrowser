@@ -217,3 +217,20 @@ EOF reads, sharing, access rights and close behavior remain enforced by the same
 file implementation. Tests cover both hints (and their combination) through
 NtCreateFile/NtOpenFile, while asynchronous, unbuffered and delete-on-close modes
 remain unsupported. See Microsoft's [NtCreateFile options](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
+
+## Source-built base closure
+
+`npm run build:wine-base` reuses the pinned Wine source and loader patch to build
+ntdll, kernel32, kernelbase, msvcrt, msacm32 and ucrtbase. The cache-only inventory
+retains source archive/patch hashes, toolchain, imports, licenses and NLS
+provenance. `.cache/wine-base/runtime.json` separately inventories copies with
+debug sections stripped and the seven unchanged source NLS tables. No installed
+Wine files are needed for this profile; the DLL payload is 7,655,973 bytes.
+
+`WINEBROWSER_SOURCE_BASE=.cache/wine-base/runtime.json` selects it in the existing
+Wine probes. Every DLL/table hash and source/patch identity is checked before
+execution. `npm run test:wine-source-base` verifies 65 native TLS allocations,
+Wine CRT allocation/formatting/output, binary file round trips and the console
+EXE's real entry/exit in Chromium. The source-built shell/format helpers are
+still shared with normal uploads. This closure remains local and diagnostic;
+production loader integration and redistribution packaging are unfinished.

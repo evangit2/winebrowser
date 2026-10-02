@@ -20,6 +20,8 @@ TARGETS = {
     "kernelbase.dll": "dlls/kernelbase/i386-windows/kernelbase.dll",
     "kernel32.dll": "dlls/kernel32/i386-windows/kernel32.dll",
     "msvcrt.dll": "dlls/msvcrt/i386-windows/msvcrt.dll",
+    "msacm32.dll": "dlls/msacm32/i386-windows/msacm32.dll",
+    "ucrtbase.dll": "dlls/ucrtbase/i386-windows/ucrtbase.dll",
 }
 
 
@@ -49,7 +51,7 @@ def pe_details(path, objdump):
         {match.lower() for match in re.findall(r"DLL Name: (\S+)", output)},
         key=str.lower,
     )
-    if any(name not in TARGETS for name in imports):
+    if any(name not in TARGETS and name not in {"winmm.dll", "user32.dll", "advapi32.dll"} for name in imports):
         raise RuntimeError(f"{path.name} imports outside the base closure: {imports}")
     return {
         "path": str(path.relative_to(ROOT)),
@@ -108,6 +110,34 @@ def main():
             raise RuntimeError(f"pinned source NLS mismatch: {name}")
         nls[name] = {"path": str(path.relative_to(ROOT)), **actual}
 
+    strip = shutil.which("i686-w64-mingw32-strip")
+    if not strip:
+        raise RuntimeError("i686-w64-mingw32-strip is required")
+    runtime_dlls = []
+    runtime_nls = []
+    for name, target in TARGETS.items():
+        destination = OUTPUT.parent / name
+        temporary = destination.with_suffix(".tmp")
+        subprocess.run([strip, "--strip-debug", "-o", str(temporary), str(build / target)], check=True)
+        details = pe_details(temporary, objdump)
+        temporary.replace(destination)
+        runtime_dlls.append({"name": name, "path": name, "bytes": details["bytes"], "sha256": details["sha256"]})
+    for name, info in nls.items():
+        shutil.copyfile(ROOT / info["path"], OUTPUT.parent / name)
+        runtime_nls.append({"name": name, "path": name, "bytes": info["bytes"], "sha256": info["sha256"]})
+    runtime_manifest = {
+        "sourceRevision": loader["sourceRevision"],
+        "sourceUrl": loader["sourceUrl"],
+        "sourceSha256": loader["sourceSha256"],
+        "patchSha256": loader["patchSha256"],
+        "artifactPathBase": "manifest-directory",
+        "strip": version(strip),
+        "dlls": runtime_dlls,
+        "nls": runtime_nls,
+        "scope": "Cache-only source-built base closure; not enabled in normal uploads or published.",
+    }
+    (OUTPUT.parent / "runtime.json").write_text(json.dumps(runtime_manifest, indent=2) + "\n")
+
     licenses = {}
     for name in ("LICENSE", "COPYING.LIB"):
         path = source / name
@@ -135,6 +165,7 @@ def main():
             "objdump": version(objdump),
         },
         "artifacts": artifacts,
+        "runtimeManifest": ".cache/wine-base/runtime.json",
         "licenses": licenses,
         "nls": {
             "published": False,

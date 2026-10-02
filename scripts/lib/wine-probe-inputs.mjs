@@ -15,7 +15,10 @@ const installedHashes = {
 
 // Optional local Wine inputs: verify provenance before handing bytes to Node or
 // an intercepted browser test route. Nothing here publishes installed files.
-export async function loadWineProbeInputs(root, { wineDirectory, nlsDirectory }) {
+export async function loadWineProbeInputs(
+  root,
+  { wineDirectory, nlsDirectory, sourceBaseManifest = process.env.WINEBROWSER_SOURCE_BASE },
+) {
   const manifestPath = path.join(root, '.cache/wine-loader/manifest.json');
   const inputs = {
     manifest: path.relative(root, manifestPath),
@@ -24,10 +27,6 @@ export async function loadWineProbeInputs(root, { wineDirectory, nlsDirectory })
     dlls: [],
     nls: [],
   };
-  if (!wineDirectory || !nlsDirectory)
-    throw Error(
-      'Pass the pinned i386 Wine DLL directory and NLS directory as arguments or WINEBROWSER_WINE_DIR/WINEBROWSER_NLS_DIR.',
-    );
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   assert.equal(manifest.sourceRevision, 'db11d0fe6a169c457e23d007e20404643d067aa8');
   assert.equal(
@@ -49,6 +48,71 @@ export async function loadWineProbeInputs(root, { wineDirectory, nlsDirectory })
     sourceSha256: manifest.sourceSha256,
     patchSha256: manifest.patchSha256,
   });
+  if (sourceBaseManifest) {
+    const basePath = path.resolve(root, sourceBaseManifest),
+      directory = path.dirname(basePath);
+    const source = JSON.parse(await readFile(basePath, 'utf8'));
+    for (const key of ['sourceRevision', 'sourceSha256', 'patchSha256'])
+      assert.equal(source[key], manifest[key], `Source base ${key} mismatch`);
+    assert.equal(source.artifactPathBase, 'manifest-directory');
+    const component = async (row) => {
+      const filename = path.resolve(directory, row.path);
+      assert.equal(
+        path.dirname(filename),
+        directory,
+        'Source component must be inside its manifest directory',
+      );
+      const bytes = new Uint8Array(await readFile(filename));
+      assert.equal(bytes.length, row.bytes, row.name + ' source byte length');
+      assert.equal(sha256(bytes), row.sha256, row.name + ' source hash');
+      return { filename, bytes };
+    };
+    const builtinFiles = new Map(),
+      nlsFiles = new Map();
+    const required = new Set(['ntdll.dll', ...Object.keys(installedHashes)]);
+    assert.equal(source.dlls.length, required.size);
+    for (const row of source.dlls) {
+      assert.ok(required.delete(row.name), 'Unknown or duplicate source DLL: ' + row.name);
+      const { filename, bytes } = await component(row);
+      assert.equal(parsePE(bytes, { allowDll: true }).isDll, true);
+      builtinFiles.set(row.name, bytes);
+      inputs.dlls.push({ name: row.name, path: filename, bytes: bytes.length, sha256: row.sha256 });
+    }
+    assert.equal(required.size, 0);
+    const pinnedNls = JSON.parse(
+      await readFile(path.join(root, 'runtime/wine/nls-probe-manifest.json'), 'utf8'),
+    );
+    assert.equal(source.nls.length, Object.keys(pinnedNls.files).length);
+    for (const row of source.nls) {
+      assert.equal(row.sha256, pinnedNls.files[row.name]?.sha256, 'Source NLS provenance');
+      assert.ok(!nlsFiles.has(row.name), 'Duplicate source NLS');
+      const { filename, bytes } = await component(row);
+      nlsFiles.set(row.name, bytes);
+      inputs.nls.push({ name: row.name, path: filename, bytes: bytes.length, sha256: row.sha256 });
+    }
+    for (const [name, metadata] of [
+      ['shell32.dll', 'runtime/wine/manifest.json'],
+      ['wine-format.dll', 'runtime/wine-format/manifest.json'],
+    ]) {
+      const expected = JSON.parse(await readFile(path.join(root, metadata), 'utf8'));
+      const filename = path.join(root, 'public/runtime', name),
+        bytes = new Uint8Array(await readFile(filename));
+      assert.equal(sha256(bytes), expected.dllSha256);
+      builtinFiles.set(name, bytes);
+      inputs.dlls.push({ name, path: filename, bytes: bytes.length, sha256: sha256(bytes) });
+    }
+    Object.assign(inputs, {
+      mode: 'source-built-base',
+      baseManifest: path.relative(root, basePath),
+      wineDirectory: null,
+      nlsDirectory: null,
+    });
+    return { builtinFiles, nlsFiles, inputs };
+  }
+  if (!wineDirectory || !nlsDirectory)
+    throw Error(
+      'Pass the pinned i386 Wine DLL directory and NLS directory as arguments or WINEBROWSER_WINE_DIR/WINEBROWSER_NLS_DIR.',
+    );
   inputs.dlls.push({
     name: 'ntdll.dll',
     path: patchedPath,
