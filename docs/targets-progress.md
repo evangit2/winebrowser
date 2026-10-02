@@ -54,3 +54,20 @@ surface (vertex/index buffers, DXT textures, VS 1.1/PS 2.0 shaders, sampler
 states and indexed draws) before the window closes with exit code 0.
 
 Supporting runtime work this required: block-compressed DXT1/DXT3/DXT5 decode and `L8`/`A8L8`/`A4L4` luminance formats, D3D9 stencil shadow-volume state with a combined depth24plus-stencil8 attachment and stencil clears, alpha-test discard in both fixed-function and translated pixel shaders, vertex declarations that are a superset of the shader's inputs, and texture/sampler binding for translated legacy pixel shaders.
+
+## October 1 continuation
+
+The unchanged Inferno EXE now passes shader reflection in Chromium and reaches
+its volume-texture creation. Reflection's constant-buffer, variable and type
+interfaces do not inherit IUnknown: their first slot is GetDesc. The old three-slot
+prefix misrouted that call to QueryInterface and corrupted the i386 stack.
+Borrowed children now use the documented slots and stdcall arities, cache their
+identity under the owning root, share its strings, and refuse calls after its
+Release. The root remains a normal IUnknown interface. The regression invokes
+all three child layouts and verifies descriptor bounds and root lifetime.
+
+Validation: 772 unit tests and the production build pass. A fresh unchanged-EXE
+Chromium probe gets through the font shader's constant-buffer descriptors and
+then reports `Couldn't create texture` after `ID3D10Device.CreateTexture3D`.
+No Inferno frames have been presented; volume resources and geometry shader
+execution remain required. Probe inputs stay local and hash-checked.

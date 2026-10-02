@@ -16,6 +16,7 @@
 // bound, caches it under the bound state, and resolves each stage's registers
 // from that stage's own slots.
 import { ComObjects, readGuid } from './com.js';
+import { registerThunk } from './thunk-addresses.js';
 import { createBlob } from './com-blob.js';
 import {
   INPUT_FORMATS,
@@ -2825,7 +2826,8 @@ export const d3d10Apis = {
 // --- shader reflection objects ---------------------------------------------
 
 // The reflection interfaces are not device children: they are created only by
-// D3D10ReflectShader, answer IUnknown, and their GetConstantBuffer* and
+// D3D10ReflectShader. Only the root inherits IUnknown; its borrowed children
+// start at GetDesc, have no AddRef/Release, and die with the root. GetConstantBuffer* and
 // GetVariable* methods return an interface pointer directly rather than
 // through an out parameter. Guest strings are interned once per reflection and
 // freed with it.
@@ -2841,15 +2843,7 @@ function makeReflection(r, description) {
     }
     return pointer;
   };
-  const state = { description, strings, names: new Map() };
-  const pointerFor = (map, key, build) => {
-    let item = map.get(key);
-    if (!item) {
-      item = build();
-      map.set(key, item);
-    }
-    return item;
-  };
+  const state = { description, strings, names: new Map(), children: new Set() };
   return makeStandalone(
     r,
     'ID3D10ShaderReflection',
@@ -2962,20 +2956,17 @@ function constantBufferReflection(r, owner, index) {
     : (() => {
         const buffer = owner.state.description.constantBuffers[index];
         const variables = owner.state.description.variables[index] ?? [];
-        const item = makeStandalone(
+        const item = makeBorrowedReflection(
           r,
           'ID3D10ShaderReflectionConstantBuffer',
-          iids.shaderReflectionConstantBuffer,
+          owner,
           [
-            'QueryInterface',
-            'AddRef',
-            'Release',
             'GetDesc',
             'GetVariableByIndex',
             'GetVariableByName',
           ],
           {
-            3: {
+            0: {
               argc: 2,
               invoke(runtime, a, o) {
                 const out = number(a(1));
@@ -2987,7 +2978,7 @@ function constantBufferReflection(r, owner, index) {
                 return undefined;
               },
             },
-            4: {
+            1: {
               argc: 2,
               invoke(runtime, a, o) {
                 const at = number(a(1));
@@ -2995,7 +2986,7 @@ function constantBufferReflection(r, owner, index) {
                 return variableReflection(runtime, o, at).pointer;
               },
             },
-            5: {
+            2: {
               argc: 2,
               invoke(runtime, a, o) {
                 const name = runtime.string(number(a(1)));
@@ -3005,7 +2996,7 @@ function constantBufferReflection(r, owner, index) {
               },
             },
           },
-          { variables, owner },
+          { variables, owner, names: new Map() },
         );
         owner.state.names.set(key, item);
         return item;
@@ -3016,13 +3007,13 @@ function variableReflection(r, owner, index) {
   const key = `var:${index}`;
   if (owner.state.names.has(key)) return owner.state.names.get(key);
   const variable = owner.state.variables[index];
-  const item = makeStandalone(
+  const item = makeBorrowedReflection(
     r,
     'ID3D10ShaderReflectionVariable',
-    iids.shaderReflectionVariable,
-    ['QueryInterface', 'AddRef', 'Release', 'GetDesc', 'GetType'],
+    owner,
+    ['GetDesc', 'GetType'],
     {
-      3: {
+      0: {
         argc: 2,
         invoke(runtime, a, o) {
           const out = number(a(1));
@@ -3034,12 +3025,12 @@ function variableReflection(r, owner, index) {
           return undefined;
         },
       },
-      4: {
+      1: {
         argc: 1,
         invoke: (runtime, _a, o) => typeReflection(runtime, o).pointer,
       },
     },
-    { variable, owner },
+    { variable, owner, names: new Map() },
   );
   owner.state.names.set(key, item);
   return item;
@@ -3047,21 +3038,18 @@ function variableReflection(r, owner, index) {
 
 function typeReflection(r, owner) {
   if (owner.state.names.has('type')) return owner.state.names.get('type');
-  const item = makeStandalone(
+  const item = makeBorrowedReflection(
     r,
     'ID3D10ShaderReflectionType',
-    iids.shaderReflectionType,
+    owner,
     [
-      'QueryInterface',
-      'AddRef',
-      'Release',
       'GetDesc',
       'GetMemberTypeByIndex',
       'GetMemberTypeByName',
       'GetMemberTypeName',
     ],
     {
-      3: {
+      0: {
         argc: 2,
         invoke(runtime, a) {
           const out = number(a(1));
@@ -3072,9 +3060,9 @@ function typeReflection(r, owner) {
       },
       // The bounded reflection describes no aggregate members, so a member
       // request is the documented null rather than an invented type.
-      4: { argc: 2, invoke: () => 0 },
-      5: { argc: 2, invoke: () => 0 },
-      6: { argc: 2, invoke: () => 0 },
+      1: { argc: 2, invoke: () => 0 },
+      2: { argc: 2, invoke: () => 0 },
+      3: { argc: 2, invoke: () => 0 },
     },
     { owner },
   );
@@ -3085,7 +3073,7 @@ function typeReflection(r, owner) {
 // A reflection object's strings live in the root object, so a nested
 // descriptor reuses the same allocation.
 function ownerString(r, o, text) {
-  const root = o.state.owner ?? o;
+  const root = reflectionRoot(o);
   let pointer = root.state.strings.get(text);
   if (pointer === undefined) {
     const bytes = new TextEncoder().encode(text + '\0');
@@ -3096,7 +3084,39 @@ function ownerString(r, o, text) {
   return pointer;
 }
 
-// Reflection interfaces answer IUnknown and carry no device.
+// Borrowed reflection children are virtual interfaces, not COM objects. Their
+// slots and stdcall arities come from d3d10shader.h. Keep their pointer reserved
+// after root release so stale calls fail rather than reaching a reused object.
+function reflectionRoot(object) {
+  while (object.state.owner) object = object.state.owner;
+  return object;
+}
+
+function makeBorrowedReflection(r, label, owner, methodNames, methods, state) {
+  const root = reflectionRoot(owner);
+  if (root.state.children.size >= 4096) throw Error('Shader reflection child limit exceeded');
+  const vtable = r.allocate(methodNames.length * 4);
+  const pointer = r.allocate(4);
+  r.write32(pointer, vtable);
+  const object = { pointer, vtable, state };
+  root.state.children.add(object);
+  for (const [slot, methodName] of methodNames.entries()) {
+    const method = methods[slot];
+    r.write32(vtable + slot * 4, registerThunk(r.thunks, {
+      kind: 'com',
+      name: `${label}.${methodName}`,
+      async invoke(runtime, argument) {
+        if (runtime !== r || (argument(0) >>> 0) !== pointer)
+          throw Error(`Invalid ${label} this pointer`);
+        if (!root.refs) throw Error(`Released shader reflection ${label}`);
+        return { result: await method.invoke(runtime, argument, object), argc: method.argc };
+      },
+    }));
+  }
+  return object;
+}
+
+// The root reflection interface answers IUnknown and carries no device.
 function makeStandalone(r, label, iidValue, methodNames, methods, state, onRelease) {
   return r.comObjects.create({
     name: label,

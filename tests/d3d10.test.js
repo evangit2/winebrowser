@@ -704,31 +704,37 @@ test('a block-compressed texture accepts an initial upload', async () => {
   assert.equal(upload.rows[0], 0);
 });
 
-test('reflection objects answer their own identities', async () => {
-  // Each reflection interface has its own IID and answers it. Creating them
-  // with no identities at all made a caller that asked a constant buffer for
-  // its own interface receive E_NOINTERFACE and read a null.
-  const f = fixture(),
-    { runtime: r, call, api, alloc, guid } = f;
+test('reflection children use the non-IUnknown ABI and share root lifetime', async () => {
+  const { runtime: r, call, api, alloc, guid } = fixture();
   const out = alloc(4);
-  // The D3D10 cube's own vertex shader declares one constant buffer (Transform,
-  // 64 bytes) and one bound resource, which is what its reflection reports.
   const shader = new Uint8Array(await readFile('demos/d3d10-cube/shaders/cube.vs.dxbc'));
   const source = alloc(shader.length);
   r.data.set(shader, source);
   assert.equal((await api('D3D10ReflectShader', source, shader.length, out)).result, 0);
   const reflection = r.read32(out);
-  // GetConstantBufferByIndex returns the interface directly, so a buffer is
-  // reached by reading the call's *result* rather than an out-parameter.
-  const entry = r.thunks.get(r.read32(r.read32(reflection) + 4 * 4));
-  const buffer = await entry.invoke(r, (i) => [reflection, 0][i]);
-  assert.ok(buffer.result, 'the shader declares a constant buffer');
-  const bufferPointer = buffer.result;
   const iidOut = alloc(4);
-  assert.equal(
-    (await call(bufferPointer, 0, guid('66c66a94-dddd-4b62-a66a-f0da33c2b4d0'), iidOut)).result,
-    0,
-    'a constant buffer answers IID_ID3D10ShaderReflectionConstantBuffer',
-  );
-  assert.equal(r.read32(iidOut), bufferPointer);
+  assert.equal((await call(reflection, 0, guid('d40e20b6-f8f7-42ad-ab20-4baf8f15dfaa'), iidOut)).result, 0);
+  assert.equal(r.read32(iidOut), reflection);
+  await call(reflection, 2); // balance QueryInterface
+  const buffer = (await call(reflection, 4, 0)).result;
+  const desc = alloc(32);
+  r.data.fill(0xa5, desc, desc + 32);
+  const response = await call(buffer, 0, desc); // GetDesc, not QueryInterface
+  assert.equal(response.argc, 2);
+  assert.equal(response.result ?? 0, 0);
+  assert.equal(r.string(r.read32(desc)), 'Transform');
+  assert.equal(r.read32(desc + 8), 4);
+  assert.equal(r.read32(desc + 12), 64);
+  assert.equal(r.read32(desc + 20), 0xa5a5a5a5);
+  const variable = (await call(buffer, 1, 0)).result;
+  assert.equal((await call(variable, 0, desc)).argc, 2);
+  assert.equal(r.string(r.read32(desc)), 'row0');
+  assert.equal(r.read32(desc + 8), 16);
+  const type = (await call(variable, 1)).result;
+  assert.equal((await call(type, 0, desc)).argc, 2);
+  assert.equal((await call(buffer, 1, 0)).result, variable);
+  await call(reflection, 2);
+  await assert.rejects(call(buffer, 0, desc), /Released shader reflection/);
+  await assert.rejects(call(variable, 0, desc), /Released shader reflection/);
+  await assert.rejects(call(type, 0, desc), /Released shader reflection/);
 });
