@@ -102,13 +102,11 @@ try {
       await route.fulfill({ response, body: bytes });
     });
     await page.goto(base);
-    await page
-      .locator('#file')
-      .setInputFiles({
-        name: 'native-base.exe',
-        mimeType: 'application/octet-stream',
-        buffer: crc,
-      });
+    await page.locator('#file').setInputFiles({
+      name: 'native-base.exe',
+      mimeType: 'application/octet-stream',
+      buffer: crc,
+    });
     await page.waitForFunction(
       () => document.querySelector('#state')?.textContent === 'ERROR',
       null,

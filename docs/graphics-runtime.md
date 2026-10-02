@@ -45,6 +45,17 @@ D3D9 separate alpha/constants, including correct per-primitive RGB565 rounding.
 Other texture types, shader sampling, other FVF layouts,
 reset, stencil and the rest of D3D8/9 remain unfinished.
 
+The D3D8/9 geometry snapshot budget is now 64 MiB per frame and 1,048,576
+expanded vertices per draw. Index width limits index values, not the number
+of indices: 32-bit-indexed terrain meshes and strips with more than 65,535
+vertices are supported within these budgets. Strip/fan expansion checks its
+byte and vertex limits before allocating. Native buffer locks allow multiple
+outstanding calls and draws require every lock to have a matching Unlock.
+FVF declarations accept eight coordinate sets of one to four components;
+fixed-function sampling uses the first set and programmable shaders map all
+sets by semantic index. Cube and volume views pass exact pixel checks through
+both shader paths, including backend draws larger than 8 MiB.
+
 `src/webgpu-renderer.js` owns the browser backend inside the runtime worker.
 It receives those bounded frame snapshots, creates an `OffscreenCanvas` WebGPU
 target, renders with a small fixed-function WGSL shader and `depth16unorm`,

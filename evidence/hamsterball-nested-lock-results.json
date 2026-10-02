@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-02T07:49:45.457Z",
+  "targetId": "hamsterball-original-x86",
+  "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+  "frames": 55,
+  "browser": "154.0.8037.97",
+  "crossOriginIsolated": true,
+  "status": "diagnostic-deadline-during-asset-loading",
+  "scope": "Original EXE and supplied native BASS/MO3 with pinned local Wine base inputs; browser-local x86 translation. Normal upload and gameplay are not verified.",
+  "nestedBufferLockRegression": {
+    "priorFault": "Hamsterball.exe+0x85c2c read using stale 0xfefe adjacency index",
+    "vertexLocks": 28,
+    "vertexUnlocks": 28,
+    "indexLocks": 28,
+    "indexUnlocks": 28
+  },
+  "stop": {
+    "message": "Wine target diagnostic execution deadline exceeded",
+    "ip": {
+      "address": "0x4add62",
+      "module": "hamsterball.exe",
+      "offset": "0xadd62"
+    },
+    "instructions": 1354234386
+  },
+  "frameSamples": [
+    {
+      "windowId": 131072,
+      "width": 800,
+      "height": 600,
+      "graphicsFrames": 1,
+      "graphicsDraws": 5,
+      "corner": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "colors": [
+        "123,158,206",
+        "123,158,214",
+        "123,162,214",
+        "123,162,222",
+        "123,166,222",
+        "123,190,255",
+        "123,194,255",
+        "132,162,206"
+      ],
+      "nonBackground": 479981,
+      "hash": "dc6b1384dae52df4549810caf40a3235dc9b3783da304a8ff989a1fd7862600d"
+    },
+    {
+      "windowId": 131072,
+      "width": 800,
+      "height": 600,
+      "graphicsFrames": 2,
+      "graphicsDraws": 10,
+      "corner": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "colors": [
+        "123,162,197",
+        "123,166,197",
+        "123,166,206",
+        "132,166,197",
+        "132,166,206",
+        "132,170,206",
+        "140,170,197",
+        "140,170,206"
+      ],
+      "nonBackground": 479981,
+      "hash": "d19277bbd3a04367ac38f9ab3a6f19015712c09d39ac9aa6384b09d7650fc045"
+    },
+    {
+      "windowId": 131072,
+      "width": 800,
+      "height": 600,
+      "graphicsFrames": 3,
+      "graphicsDraws": 15,
+      "corner": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "colors": [
+        "0,0,255",
+        "0,4,255",
+        "107,105,255",
+        "107,113,222",
+        "115,117,255",
+        "123,121,206",
+        "123,121,247",
+        "123,125,255"
+      ],
+      "nonBackground": 479981,
+      "hash": "fc563955452bd5a1a43c3e3736e5d0700c324567964b9ded8880091cb16311ef"
+    }
+  ],
+  "limitations": [
+    "Last inspected frame is the animated loading screen, not gameplay.",
+    "Stopped at 900000 ms while decoding additional PNG data.",
+    "No proprietary EXE, assets or installed Wine DLLs are redistributed in this evidence."
+  ]
+}

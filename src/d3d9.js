@@ -8,6 +8,7 @@ import {
 import { blendDefaults, setBlendState } from './d3d-blending.js';
 import { FOG_STATES, validFogValue, fogSnapshot } from './d3d-fog.js';
 import { fvfLayout } from './d3d-fvf.js';
+import { MAX_DRAW_VERTICES as MAX_VERTICES, MAX_FRAME_BYTES } from './d3d-limits.js';
 import {
   initLighting,
   setLightingState,
@@ -63,8 +64,6 @@ import {
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_COMMANDS = 256;
-const MAX_FRAME_BYTES = 8 * 1024 * 1024;
-const MAX_VERTICES = 65535;
 const number = (value) => value >>> 0;
 const IDENTITY = Float32Array.from([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const floatBits = new DataView(new ArrayBuffer(4));
@@ -140,6 +139,8 @@ function primitiveVertexCount(primitive, primitiveCount) {
 // alternates, so odd triangles swap their first two vertices to preserve the
 // facing the D3D rasterizer would compute.
 function expandTriangles(primitive, primitiveCount, stride, vertices) {
+  if (primitiveCount * 3 > MAX_VERTICES || primitiveCount * 3 * stride > MAX_FRAME_BYTES)
+    throw Error('D3D9 expanded draw limit exceeded');
   if (primitive === D3DPT.TRIANGLELIST) return { vertices, vertexCount: primitiveCount * 3 };
   const sourceCount = primitiveCount + 2;
   if (vertices.length < sourceCount * stride) throw Error('D3D9 draw exceeds the vertex buffer');
@@ -665,6 +666,8 @@ function deviceMethods(version = 9) {
         if (!vertexCount || vertexCount > MAX_VERTICES)
           throw Error('Unsupported D3D9 primitive type or vertex count limit');
         const size = vertexCount * stride;
+        if (stride < 4 || stride > 256 || stride % 4 || size > MAX_FRAME_BYTES)
+          throw Error('D3D9 draw byte limit or stride exceeded');
         runtime.check(pointer, size);
         const expanded = expandTriangles(
           primitive,
@@ -719,6 +722,7 @@ function deviceMethods(version = 9) {
           return D3DERR_INVALIDCALL;
         runtime.check(indices, count * width);
         runtime.check(pointer + minIndex * stride, numVertices * stride);
+        if (count * stride > MAX_FRAME_BYTES) return D3DERR_INVALIDCALL;
         const gathered = new Uint8Array(count * stride);
         for (let i = 0; i < count; i++) {
           const index =

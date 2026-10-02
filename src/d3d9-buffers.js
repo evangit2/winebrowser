@@ -1,10 +1,10 @@
 import { getBoundObject, releaseComReference } from './d3d9-programmable.js';
 import { fvfLayout } from './d3d-fvf.js';
+import { MAX_DRAW_VERTICES, MAX_FRAME_BYTES } from './d3d-limits.js';
 
 const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_BUFFER_BYTES = 8 * 1024 * 1024;
-const MAX_VERTICES = 65535;
 const MAX_OUTSTANDING_LOCKS = 65535;
 const D3DPT_TRIANGLELIST = 4;
 const D3DPT_TRIANGLESTRIP = 5;
@@ -332,7 +332,7 @@ function primitiveVertexCount(primitive, primitiveCount) {
         ? primitiveCount + 2
         : 0;
   if (!vertexCount) throw Error(`Unsupported D3D9 primitive type ${primitive}`);
-  if (vertexCount > MAX_VERTICES) throw Error('D3D9 vertex count limit exceeded');
+  if (vertexCount > MAX_DRAW_VERTICES) throw Error('D3D9 vertex count limit exceeded');
   return vertexCount;
 }
 
@@ -371,6 +371,7 @@ export function indexedVertices(runtime, device, primitive, primitiveCount, para
   const { offset, stride } = binding;
   const streamCapacity = Math.floor((binding.object.state.size - offset) / stride);
   const view = new DataView(runtime.data.buffer, runtime.data.byteOffset, runtime.data.byteLength);
+  if (vertexCount * stride > MAX_FRAME_BYTES) throw Error('D3D9 draw byte limit exceeded');
   const out = new Uint8Array(vertexCount * stride);
   const windowStart = params.minVertexIndex >>> 0;
   const windowEnd = windowStart + (params.numVertices >>> 0);

@@ -118,30 +118,40 @@ try {
           fixedView.setFloat32(i * 28 + 16 + c * 4, vertices[i * 8 + 4 + c], true);
       }
       const identity = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+      const fixedCommand = {
+        type: 'draw',
+        vertices: fixedBytes,
+        vertexCount: 36,
+        stride: 28,
+        fvf: 0x10142,
+        world: identity,
+        view: identity,
+        projection: identity,
+        depthTest: false,
+        depthWrite: false,
+        cullMode: 'none',
+        texturing: {
+          texture: command.textures.get(0).snapshot,
+          stage: defaultStage(0),
+          sampler: defaultSampler(),
+          lod: 0,
+        },
+      };
       await renderer.present({
         id: 1,
-        commands: [
-          {
-            type: 'draw',
-            vertices: fixedBytes,
-            vertexCount: 36,
-            stride: 28,
-            fvf: 0x10142,
-            world: identity,
-            view: identity,
-            projection: identity,
-            depthTest: false,
-            depthWrite: false,
-            cullMode: 'none',
-            texturing: {
-              texture: command.textures.get(0).snapshot,
-              stage: defaultStage(0),
-              sampler: defaultSampler(),
-              lod: 0,
-            },
-          },
-        ],
+        commands: [fixedCommand],
       });
+      // The final vertices form degenerate triangles: validate a genuine
+      // >8 MiB draw without thousands of copies of the same fragment work.
+      const largeVertexCount = 400002;
+      for (const template of [fixedCommand, command]) {
+        const largeVertices = new Uint8Array(largeVertexCount * template.stride);
+        largeVertices.set(template.vertices);
+        await renderer.present({
+          id: 1,
+          commands: [{ ...template, vertices: largeVertices, vertexCount: largeVertexCount }],
+        });
+      }
       const mismatch = {
         ...command,
         textures: new Map([
@@ -165,7 +175,7 @@ try {
         rejected = /dimension/.test(e.message);
       }
       await renderer.device.queue.onSubmittedWorkDone();
-      return { pixels, errors, mismatchedDimensionRejected: rejected };
+      return { pixels, errors, mismatchedDimensionRejected: rejected, largeVertexCount };
     } finally {
       renderer.dispose();
     }
@@ -178,7 +188,7 @@ try {
     [255, 0, 255, 255],
     [0, 255, 255, 255],
   ];
-  assert.deepEqual(report.pixels, [...expectedFaces, ...expectedFaces]);
+  assert.deepEqual(report.pixels, Array.from({ length: 4 }, () => expectedFaces).flat());
   assert.deepEqual(report.errors, []);
   assert.equal(report.mismatchedDimensionRejected, true);
   await writeFile(
@@ -189,7 +199,7 @@ try {
         browser: browser.version(),
         ...report,
         scope:
-          'Real PS2 samplerCube compilation and all six directed face pixels through both programmable and fixed-function paths; no third-party scene claim.',
+          'All six cube face pixels through programmable and fixed-function paths, repeated with 400002-vertex draws exceeding 8 MiB; no third-party scene claim.',
       },
       null,
       2,

@@ -1,5 +1,6 @@
 // PE32 D3DCAPS8 (53 DWORDs) and D3DCAPS9 (76 DWORDs), from the pinned
 // Wine/MinGW headers. This bounded profile describes implemented paths only.
+import { MAX_DRAW_VERTICES } from './d3d-limits.js';
 export function deviceCaps(version) {
   const caps = new Uint32Array(version === 8 ? 53 : 76);
   caps[0] = 1; // D3DDEVTYPE_HAL: browser GPU rasterization.
@@ -22,7 +23,7 @@ export function deviceCaps(version) {
   caps[22] = caps[23] = 2048; // Maximum 2D texture dimensions.
   caps[25] = caps[26] = 2048; // Repeat and aspect ratio.
   caps[27] = 1; // No anisotropic filtering.
-  caps[35] = 1; // One FVF texture coordinate set.
+  caps[35] = 8; // FVF declarations accept eight sized coordinate sets.
   // StencilCaps: KEEP | ZERO | REPLACE | INCRSAT | DECRSAT | INVERT | INCR | DECR,
   // matching the WebGPU operations the renderer maps them onto. Two-sided
   // stencil stays unadvertised.
@@ -32,7 +33,8 @@ export function deviceCaps(version) {
   caps[40] = 8; // Active fixed-function lights.
   caps[37] = caps[38] = 1; // One blend stage and sampled texture.
   new Float32Array(caps.buffer)[28] = 1e10; // Finite homogeneous W range.
-  caps[45] = 21845; // Triangle-list primitive count (65,535 vertices).
+  caps[45] = Math.floor(MAX_DRAW_VERTICES / 3); // Expanded triangle-list primitive count.
+  caps[46] = MAX_DRAW_VERTICES - 1; // Maximum 32-bit index value within bounded buffers.
   // Legacy bytecode is compiled by vkd3d-shader at draw time. D3D9 supports
   // the SM2 vertex path; D3D8 retains its VS1.1 API profile.
   caps[49] = version === 9 ? 0xfffe0200 : 0xfffe0101;

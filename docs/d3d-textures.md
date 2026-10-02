@@ -57,7 +57,7 @@ groups are reused. Conversion writes directly into RGBA arrays without per-texel
 objects. Old GPU revisions are removed after their final submitted frame completes.
 
 Guest texture storage is capped at 32 MiB per runtime. Frames accept up to 32 MiB
-of unique expanded RGBA texture data in addition to the existing 8 MiB geometry
+of unique expanded RGBA texture data in addition to the 64 MiB D3D8/9 geometry
 budget. Caps advertise one texture/stage/coordinate set, 2048×2048 NPOT mipmapped
 2D textures, and only the implemented filter, addressing and operation flags.
 Cube/volume/compressed textures, surface-level interfaces, render-to-texture,

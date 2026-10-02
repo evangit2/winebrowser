@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T07:06:09.718Z",
+  "date": "2026-10-02T07:41:58.173Z",
   "browser": "154.0.8037.97",
   "crossOriginIsolated": true,
   "externalRequests": [],
@@ -14,22 +14,22 @@
     "combinedImports": [
       {
         "name": "EXE + asset ZIP + loose file",
-        "readyMs": 70.45512500000041,
-        "completedMs": 221.77579100000003,
+        "readyMs": 137.6256659999999,
+        "completedMs": 314.0499580000005,
         "compiledBlocks": 30,
         "passed": true
       },
       {
         "name": "Folder picker with nested assets",
-        "readyMs": 71.31629199999952,
-        "completedMs": 226.323625,
+        "readyMs": 67.83987499999967,
+        "completedMs": 224.42724999999973,
         "compiledBlocks": 30,
         "passed": true
       },
       {
         "name": "Multiple files dropped together",
-        "readyMs": 109.30408299999999,
-        "completedMs": 312.34762500000033,
+        "readyMs": 128.38770899999963,
+        "completedMs": 296.3886249999996,
         "compiledBlocks": 30,
         "passed": true
       }

@@ -1,36 +1,19 @@
 {
-  "date": "2026-09-29T14:10:07.764Z",
-  "url": "http://127.0.0.1:4193/winebrowser/",
-  "browser": "154.0.8037.58",
+  "date": "2026-10-02T07:58:56.602Z",
+  "url": "http://127.0.0.1:4197/winebrowser/",
+  "browser": "154.0.8037.97",
   "nativeGame": "d3d9-cube",
   "browserCompilation": true,
   "workerWebGPU": true,
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "b4263226a362d4e79ebb7035a6a3276ec64d6d12986f67ee66bc17040288fda4",
+      "exeSha256": "5ed9cbc96e17b37cc20cb7980de06235cb4f22f252abb19351cc2e2984a5cb76",
       "first": {
         "width": 640,
         "height": 480,
-        "frames": 4,
-        "hash": "9f940b40c2ed9ec399cb14a5083a2ef98bb3ab1908d8bc604686ce33189c500c",
-        "corner": [
-          23,
-          29,
-          49,
-          255
-        ],
-        "coloredPixels": 77812,
-        "colors": [
-          "121,216,117",
-          "93,197,239"
-        ]
-      },
-      "second": {
-        "width": 640,
-        "height": 480,
-        "frames": 17,
-        "hash": "60a119531d0a6dcc5eba31188ab53f3374570d24f89f85243ffb41220beeaa58",
+        "frames": 5,
+        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
         "corner": [
           23,
           29,
@@ -40,7 +23,24 @@
         "coloredPixels": 74972,
         "colors": [
           "93,197,239",
-          "242,207,91"
+          "121,216,117"
+        ]
+      },
+      "second": {
+        "width": 640,
+        "height": 480,
+        "frames": 17,
+        "hash": "bae19a8481e706983324edab1ce0f6e34c79e2450a34fcd8d4827c6225807c35",
+        "corner": [
+          23,
+          29,
+          49,
+          255
+        ],
+        "coloredPixels": 74972,
+        "colors": [
+          "242,207,91",
+          "93,197,239"
         ]
       },
       "exitCode": 0,
@@ -50,7 +50,7 @@
     },
     {
       "mode": "hosted-zip",
-      "exeSha256": "b4263226a362d4e79ebb7035a6a3276ec64d6d12986f67ee66bc17040288fda4",
+      "exeSha256": "5ed9cbc96e17b37cc20cb7980de06235cb4f22f252abb19351cc2e2984a5cb76",
       "first": {
         "width": 640,
         "height": 480,
@@ -87,8 +87,8 @@
       },
       "exitCode": 0,
       "compiledBlocks": 174,
-      "instructions": 3608,
-      "apiCalls": 258
+      "instructions": 3802,
+      "apiCalls": 276
     }
   ],
   "errors": []

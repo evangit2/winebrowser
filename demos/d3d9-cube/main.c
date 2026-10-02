@@ -94,7 +94,7 @@ static int run(void)
         (caps.PrimitiveMiscCaps & (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW)) !=
             (D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW) ||
         caps.ZCmpCaps != 0xff || !(caps.RasterCaps & D3DPRASTERCAPS_DITHER) ||
-        caps.MaxPrimitiveCount != 21845 || caps.MaxVertexW <= 0 ||
+        caps.MaxPrimitiveCount < 21845 || caps.MaxVertexW <= 0 ||
         // The runtime implements stencil KEEP/ZERO/REPLACE/INCRSAT/DECRSAT/INVERT/
         // INCR/DECR but not two-sided stencil, and one fixed-function stage.
         caps.MaxTextureWidth != 2048 || caps.MaxSimultaneousTextures != 1 ||

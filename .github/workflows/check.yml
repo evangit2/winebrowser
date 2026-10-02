@@ -29,6 +29,12 @@ jobs:
       - run: npm run test:webgpu
         env:
           BROWSER_CHANNEL: chromium
+      - run: npm run test:d3d9-cubemap-backend
+        env:
+          BROWSER_CHANNEL: chromium
+      - run: npm run test:d3d9-volume-backend
+        env:
+          BROWSER_CHANNEL: chromium
       - run: npm run test:d3d12-backend
         env:
           BROWSER_CHANNEL: chromium

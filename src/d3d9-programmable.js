@@ -428,7 +428,10 @@ export function programmableDrawFromVertices(state, vertices, stride, vertexCoun
   const declaration = state.vertexDeclaration;
   if (!vertex && !pixel) return null;
   if (!vertex || !pixel || (!declaration && !fvfLayout(state.fvf)))
-    throw Error('Programmable D3D9 draw requires a vertex layout and both shaders');
+    throw Error(
+      'Programmable D3D9 draw requires a vertex layout and both shaders' +
+        ` (vertex=${!!vertex}, pixel=${!!pixel}, declaration=${!!declaration}, FVF=0x${state.fvf.toString(16)})`,
+    );
   const attributes = programmableAttributes(state, stride);
   if (vertexCount * stride > vertices.length)
     throw Error('Programmable D3D9 draw exceeds the supplied vertex bytes');
@@ -487,7 +490,10 @@ export function programmableDraw(runtime, state, pointer, stride, vertexCount) {
   const declaration = state.vertexDeclaration;
   if (!vertex && !pixel) return null;
   if (!vertex || !pixel || (!declaration && !fvfLayout(state.fvf)))
-    throw Error('Programmable D3D9 draw requires a vertex layout and both shaders');
+    throw Error(
+      'Programmable D3D9 draw requires a vertex layout and both shaders' +
+        ` (vertex=${!!vertex}, pixel=${!!pixel}, declaration=${!!declaration}, FVF=0x${state.fvf.toString(16)})`,
+    );
   const size = vertexCount * stride;
   runtime.check(pointer, size);
   return programmableDrawFromVertices(

@@ -4,6 +4,7 @@ import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { validStencil, validAlphaTest, stencilState } from './d3d-stencil.js';
 import { validFog } from './d3d-fog.js';
 import { ShaderCompiler } from './shader-compiler.js';
+import { MAX_DRAW_VERTICES } from './d3d-limits.js';
 
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 const CONSTANT_BYTES = { vertex: 256 * 16, pixel: 224 * 16 };
@@ -73,7 +74,7 @@ export class D3D9ProgrammableRenderer {
   validate(surface, command) {
     if (
       !(command.vertices instanceof Uint8Array) ||
-      !integer(command.vertexCount, 3, 65535) ||
+      !integer(command.vertexCount, 3, MAX_DRAW_VERTICES) ||
       command.vertexCount % 3 ||
       !integer(command.stride, 4, 256) ||
       command.stride % 4 ||

@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { d3d9Apis } from '../src/d3d9.js';
+import { MAX_DRAW_VERTICES, MAX_FRAME_BYTES } from '../src/d3d-limits.js';
 
-function fixture(version = 9) {
-  const buffer = new ArrayBuffer(1024 * 1024);
+function fixture(version = 9, memoryBytes = 1024 * 1024) {
+  const buffer = new ArrayBuffer(memoryBytes);
   const data = new Uint8Array(buffer);
   const view = new DataView(buffer);
   let next = 0x1000;
@@ -485,6 +486,41 @@ test('XYZRHW ignores an undefined depth slot when depth is disabled but rejects 
   await call(device, 42);
 });
 
+test('D3D9 INDEX32 terrain strips exceed 16-bit vertex counts with bounded immutable snapshots', async () => {
+  const { runtime: r, create, call, events } = fixture(9, 4 * 1024 * 1024);
+  const device = await create(),
+    out = r.allocate(4),
+    lock = r.allocate(4);
+  const uniqueCount = 257 * 257,
+    indexCount = 256 * 515;
+  await call(device, 26, uniqueCount * 16, 0, 0x42, 1, out, 0);
+  const vb = r.read32(out);
+  await call(vb, 11, 0, 0, lock, 0);
+  const vertexBase = r.read32(lock);
+  for (let i = 0; i < uniqueCount; i++) r.view.setFloat32(vertexBase + i * 16, i, true);
+  await call(vb, 12);
+  await call(device, 27, indexCount * 4, 0, 102, 1, out, 0);
+  const ib = r.read32(out);
+  await call(ib, 11, 0, 0, lock, 0);
+  const indexBase = r.read32(lock);
+  for (let i = 0; i < indexCount; i++) r.write32(indexBase + i * 4, i % uniqueCount);
+  await call(ib, 12);
+  await call(device, 89, 0x42);
+  await call(device, 100, 0, vb, 0, 16);
+  await call(device, 104, ib);
+  await call(device, 41);
+  assert.equal((await call(device, 82, 5, 0, 0, uniqueCount, 0, indexCount - 2)).result, 0);
+  await assert.rejects(call(device, 82, 5, 0, 0, uniqueCount, 0, 0xffffffff), /vertex count limit/);
+  r.data.fill(0, vertexBase, vertexBase + uniqueCount * 16);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  const draw = events.find((e) => e.type === 'present').commands[0];
+  assert.equal(draw.vertexCount, (indexCount - 2) * 3);
+  const snapshot = new DataView(draw.vertices.buffer);
+  assert.equal(snapshot.getFloat32(65536 * 3 * 16, true), 65536);
+  assert.equal(snapshot.getFloat32(65536 * 3 * 16 + 32, true), 65538);
+});
+
 test('triangle strips and fans expand to lists with correct winding', async () => {
   for (const [primitive, count, expected] of [
     [4, 2, [0, 1, 2, 3, 4, 5]],
@@ -623,7 +659,10 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
   await call(device, 89, 0x42);
   await call(device, 41);
   await assert.rejects(call(device, 83, 4, 1, 0, 16), /Guest memory violation/);
-  await assert.rejects(call(device, 83, 4, 21846, 0x1000, 16), /vertex count limit/);
+  await assert.rejects(
+    call(device, 83, 4, Math.ceil(MAX_DRAW_VERTICES / 3), 0x1000, 16),
+    /vertex count limit/,
+  );
   await call(device, 42);
   await call(device, 43, 0, 0, 1, 0xff000000, 0x3f800000, 0);
   const present = runtime.graphics.present;
@@ -789,7 +828,7 @@ test('programmable DrawPrimitiveUP owns shaders and snapshots declaration, verti
 
   const payloadBytes = 96 + vsWords.length * 4 + psWords.length * 4 + 256 * 16 + 224 * 16;
   const deviceState = runtime.comObjects.objects.get(device).state;
-  deviceState.frameBytes = 8 * 1024 * 1024 - payloadBytes + 1;
+  deviceState.frameBytes = MAX_FRAME_BYTES - payloadBytes + 1;
   await call(device, 41);
   await assert.rejects(call(device, 83, 4, 1, vertices, 32), /frame command limit/);
   await call(device, 42);

@@ -1,7 +1,79 @@
 {
-  "date": "2026-10-02T07:36:53.248Z",
+  "date": "2026-10-02T07:42:35.096Z",
   "browser": "154.0.8037.97",
   "pixels": [
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      255,
+      255
+    ],
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      255,
+      255
+    ],
     [
       255,
       0,
@@ -77,5 +149,6 @@
   ],
   "errors": [],
   "mismatchedDimensionRejected": true,
-  "scope": "Real PS2 samplerCube compilation and all six directed face pixels through both programmable and fixed-function paths; no third-party scene claim."
+  "largeVertexCount": 400002,
+  "scope": "All six cube face pixels through programmable and fixed-function paths, repeated with 400002-vertex draws exceeding 8 MiB; no third-party scene claim."
 }

@@ -10,6 +10,7 @@ import { defaultViewport, validViewport, validRegion } from './d3d-viewport.js';
 import { D3DClearRenderer } from './d3d-clear-renderer.js';
 import { validStencil, validAlphaTest, stencilFace, stencilState } from './d3d-stencil.js';
 import { validFog } from './d3d-fog.js';
+import { MAX_DRAW_VERTICES, MAX_FRAME_BYTES } from './d3d-limits.js';
 
 // Browser graphics backend. Guest API objects and pointers stay in d3d9.js;
 // this module consumes bounded, immutable geometry/state snapshots in a worker.
@@ -17,7 +18,6 @@ const COLOR_SHADER = fixedShader();
 const MAX_DEVICES = 4;
 const MAX_DIMENSION = 2048;
 const MAX_COMMANDS = 256;
-const MAX_FRAME_BYTES = 8 * 1024 * 1024;
 const integer = (value, low, high) => Number.isInteger(value) && value >= low && value <= high;
 // A disabled stencil test passes every fragment and changes nothing.
 const PASS_THROUGH_STENCIL = Object.freeze({
@@ -249,7 +249,7 @@ export class WebGPURenderer {
         }
         if (
           !(command.vertices instanceof Uint8Array) ||
-          !integer(command.vertexCount, 3, 65535) ||
+          !integer(command.vertexCount, 3, MAX_DRAW_VERTICES) ||
           command.vertexCount % 3 ||
           !integer(command.stride, layout.size, 256) ||
           command.stride % 4 ||
