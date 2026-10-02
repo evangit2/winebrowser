@@ -86,3 +86,22 @@ test('the Microsoft sample import surface is present', async () => {
     'the versioned root-signature serializer is missing',
   );
 });
+
+test('host heap grows into committed arenas without overlapping native reservations', async () => {
+  const exe = new Uint8Array(
+    await readFile(new URL('../public/demos/console/console.exe', import.meta.url)),
+  );
+  const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
+  const native = r.virtualMemory.allocate(0, 8 * 1024 * 1024, 0x3000, 0x04);
+  assert.equal(native.status, 0);
+  const allocations = Array.from({ length: 3 }, () => r.allocate(10 * 1024 * 1024, true));
+  for (const address of allocations) {
+    assert.ok(address + 10 * 1024 * 1024 <= native.base || address >= native.base + native.size);
+    r.guestMemory.write32(address, 0x12345678);
+    r.guestMemory.write32(address + 10 * 1024 * 1024 - 4, 0x87654321);
+    assert.equal(r.guestMemory.read32(address), 0x12345678);
+    assert.equal(r.guestMemory.read32(address + 10 * 1024 * 1024 - 4), 0x87654321);
+  }
+  r.free(allocations[1]);
+  assert.equal(r.allocate(10 * 1024 * 1024), allocations[1], 'a freed arena is reused');
+});

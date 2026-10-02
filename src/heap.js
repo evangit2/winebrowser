@@ -1,15 +1,34 @@
 /** Bounded guest heap. Windows pointers are offsets; host objects never enter guest memory. */
 export class GuestHeap {
-  constructor(memory, start = 0x3000000, end = 0x3c00000) {
+  constructor(memory, start = 0x3000000, end = 0x3c00000, grow = null) {
     this.bytes = new Uint8Array(memory.buffer);
     this.freeRanges = [[start, end]];
     this.allocations = new Map();
+    this.grow = grow;
   }
   allocate(size, zero = false) {
     if (!Number.isInteger(size) || size < 0 || size > 16 * 1024 * 1024)
       throw Error('Invalid heap allocation size');
-    const count = Math.max(16, Math.ceil(size / 16) * 16),
-      index = this.freeRanges.findIndex(([a, b]) => b - a >= count);
+    const count = Math.max(16, Math.ceil(size / 16) * 16);
+    let index = this.freeRanges.findIndex(([a, b]) => b - a >= count);
+    if (index < 0 && this.grow) {
+      const range = this.grow(count);
+      if (range) {
+        const [start, end] = range;
+        if (
+          !Number.isInteger(start) ||
+          !Number.isInteger(end) ||
+          start < 0 ||
+          end > this.bytes.length ||
+          end - start < count ||
+          start % 16
+        )
+          throw Error('Invalid heap growth range');
+        this.freeRanges.push([start, end]);
+        this.freeRanges.sort((a, b) => a[0] - b[0]);
+        index = this.freeRanges.findIndex(([a, b]) => b - a >= count);
+      }
+    }
     if (index < 0) throw Error('Guest heap exhausted');
     const [address, end] = this.freeRanges[index];
     if (address + count === end) this.freeRanges.splice(index, 1);

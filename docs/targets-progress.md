@@ -108,3 +108,18 @@ attachment mip chains and automatic mip generation remain unsupported. All 777
 unit tests, the volume/BC/mip browser regression and the production build pass.
 Inferno passes the ten-level 512x512 RGBA chain and continues loading assets;
 it has not presented frames yet.
+
+D3D8/9 D24X8 now creates a depth-only WebGPU depth24plus attachment, preserves
+its native surface format/32-bit storage and reports support through depth
+matching. Clearing stencil on a depth-only attachment returns INVALIDCALL; the
+browser regression verifies nearer geometry occludes farther geometry and
+stencil use is rejected. Instancing passes device creation and next fails on its
+multi-stream vertex declaration. 780 unit tests and the WebGPU backend regression
+pass. The normal package path still has no verified Instancing scene.
+
+The host heap retains its low address ABI and acquires additional committed
+arenas from VirtualMemory when the initial 12 MiB is exhausted. The existing
+bounded address space and allocation-size limits still apply. Tests exhaust the
+initial arena, verify readable/writable expanded allocations, protect a separate
+native reservation from overlap and reuse freed blocks. Inferno reaches its
+six-face, ten-level cube-map request after this change.

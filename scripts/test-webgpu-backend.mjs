@@ -598,11 +598,32 @@ try {
           colorCases,
         );
       }
+      await renderer.createDevice({
+        id: 100,
+        windowId: 1,
+        width: 130,
+        height: 128,
+        depth: true,
+        depthFormat: 'depth24plus',
+      });
+      await renderer.present({
+        id: 100,
+        commands: [clear, draw(0.25, 0xffff0000), draw(0.75, 0xff0000ff)],
+      });
+      const depth24Only = frames.at(-1);
+      let depth24StencilRejected = false;
+      try {
+        await renderer.present({ id: 100, commands: [{ ...clear, clearStencil: true }] });
+      } catch {
+        depth24StencilRejected = true;
+      }
       return {
         scope:
           'WebGPU backend geometry/depth/transform tests, separate from Windows executable acceptance',
         frames: initialFrames,
         submittedFrames,
+        depth24Only,
+        depth24StencilRejected,
         draws,
         flipped,
         copied,
@@ -638,6 +659,8 @@ try {
   assert.ok(
     report.frames.every((f) => JSON.stringify(f.corner) === JSON.stringify([37, 45, 65, 255])),
   );
+  assert.deepEqual(report.depth24Only.center, [255, 0, 0, 255]);
+  assert.equal(report.depth24StencilRejected, true);
   assert.equal(report.submittedFrames, 5);
   assert.equal(report.draws, 7);
   assert.deepEqual(

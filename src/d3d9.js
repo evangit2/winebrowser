@@ -403,7 +403,7 @@ function deviceMethods(version = 9) {
           !height ||
           width > 2048 ||
           height > 2048 ||
-          ![75, 80].includes(format) ||
+          ![75, 77, 80].includes(format) ||
           number(a(4)) ||
           number(a(5)) ||
           number(a(6)) ||
@@ -416,7 +416,7 @@ function deviceMethods(version = 9) {
           format,
           pool: 0,
           usage: 2,
-          bpp: format === 75 ? 4 : 2,
+          bpp: format === 80 ? 2 : 4,
         });
         if (!surface) return D3DERR_INVALIDCALL;
         r.write32(out, surface.pointer);
@@ -491,7 +491,7 @@ function deviceMethods(version = 9) {
           return D3D_OK;
         }
         const surface = deviceSurface(r, pointer, device);
-        if (!surface || ![75, 80].includes(surface.state.format)) return D3DERR_INVALIDCALL;
+        if (!surface || ![75, 77, 80].includes(surface.state.format)) return D3DERR_INVALIDCALL;
         state.depthStencil = surface;
         return D3D_OK;
       },
@@ -538,10 +538,11 @@ function deviceMethods(version = 9) {
           depth < 0 ||
           depth > 1 ||
           stencil > 0xff ||
-          (flags & 4 && (!object.state.stencil || count))
+          (flags & 4 && count)
         )
           throw Error('Unsupported IDirect3DDevice9.Clear parameters');
         if (flags & 2 && !object.state.hasDepth) return D3DERR_INVALIDCALL;
+        if (flags & 4 && !object.state.hasStencil) return D3DERR_INVALIDCALL;
         const regions = clearRegions(runtime, rects, count, object.state.viewport);
         if (!regions) return D3DERR_INVALIDCALL;
         queue(
@@ -881,9 +882,9 @@ function createDevice(runtime, argument, version) {
     (!windowed &&
       (!read(0) || !read(4) || !fullscreenMode || runtime.d3dFullscreen || window?.parentId)) ||
     // The shared renderer supplies the attachments the guest asked for: D16
-    // maps to a depth16unorm texture and D24S8 to a combined
+    // maps to depth16unorm, D24X8 to depth24plus and D24S8 to a combined
     // depth24plus-stencil8 attachment that carries the guest stencil buffer.
-    (depth ? ![75, 80].includes(autoDepthFormat) : autoDepthFormat !== 0) ||
+    (depth ? ![75, 77, 80].includes(autoDepthFormat) : autoDepthFormat !== 0) ||
     read(44) ||
     (windowed ? read(48) !== 0 : ![0, 60].includes(read(48))) ||
     ![0, 1, 0x80000000].includes(read(52))
@@ -894,7 +895,10 @@ function createDevice(runtime, argument, version) {
     width,
     height,
     depth,
-    depthFormat: depth ? (autoDepthFormat === 75 ? 'depth24plus-stencil8' : 'depth16unorm') : null,
+    depthFormat: depth
+      ? { 75: 'depth24plus-stencil8', 77: 'depth24plus', 80: 'depth16unorm' }[autoDepthFormat]
+      : null,
+    autoDepthFormat,
     stencil: depth && autoDepthFormat === 75,
     windowed,
     colorFormat: format || displayFormat(currentDisplayMode(runtime)),
@@ -947,6 +951,7 @@ function factoryMethods(version = 9) {
           clipping: true,
           cullMode: 'ccw',
           hasDepth: options.depth,
+          hasStencil: options.stencil,
           depthTest: options.depth,
           depthWrite: options.depth,
           depthCompare: 'less-equal',
@@ -1028,10 +1033,10 @@ function factoryMethods(version = 9) {
             state.depthSurface = createDeviceSurface(runtime, object, {
               width: options.width,
               height: options.height,
-              format: options.depthFormat === 'depth24plus-stencil8' ? 75 : 80,
+              format: options.autoDepthFormat,
               pool: 0,
               usage: 2,
-              bpp: options.depthFormat === 'depth24plus-stencil8' ? 4 : 2,
+              bpp: options.autoDepthFormat === 80 ? 2 : 4,
             });
             if (!state.depthSurface) throw Error('D3D depth-stencil allocation failed');
             state.depthStencil = state.depthSurface;

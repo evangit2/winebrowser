@@ -108,7 +108,7 @@ export class WebGPURenderer {
       !integer(height, 1, MAX_DIMENSION) ||
       typeof depth !== 'boolean' ||
       (depth
-        ? !['depth16unorm', 'depth24plus-stencil8'].includes(depthFormat)
+        ? !['depth16unorm', 'depth24plus', 'depth24plus-stencil8'].includes(depthFormat)
         : depthFormat !== null) ||
       ![21, 22, 23].includes(colorFormat) ||
       ![1, 2, 3].includes(swapEffect) ||

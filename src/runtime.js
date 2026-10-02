@@ -120,7 +120,13 @@ export class Runtime {
     });
     this.refreshCodeRanges();
     this.thunks = this.graph.thunks;
-    this.heap = new GuestHeap(this.memory);
+    this.heap = new GuestHeap(this.memory, undefined, undefined, (count) => {
+      // Keep the fixed low heap ABI, then acquire committed arenas through the
+      // same allocator native VirtualAlloc uses, avoiding mapped images/stacks.
+      const size = Math.ceil(Math.max(count, 4 * 1024 * 1024) / 0x10000) * 0x10000;
+      const allocation = this.virtualMemory.allocate(0, size, 0x3000, 0x04);
+      return allocation.status === 0 ? [allocation.base, allocation.base + allocation.size] : null;
+    });
     this.tls = new StaticTLS(this);
     this.windows = new WindowManager(this);
     this.allocations = this.heap.allocations;

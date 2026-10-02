@@ -101,12 +101,12 @@ export function displayMethods(version) {
       invoke(_r, a) {
         if (a(1) !== 0) return INVALID;
         // The shared renderer supplies the attachments the guest asks for: D16
-        // maps to a depth16unorm texture and D24S8 to a combined
+        // maps to depth16unorm, D24X8 to depth24plus and D24S8 to a combined
         // depth24plus-stencil8 attachment that carries the guest stencil buffer.
         return a(2) === 1 &&
           [22, 23].includes(a(3)) &&
           [21, 22, 23].includes(a(4)) &&
-          [75, 80].includes(a(5))
+          [75, 77, 80].includes(a(5))
           ? 0
           : NOT_AVAILABLE;
       },

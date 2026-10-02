@@ -602,7 +602,7 @@ test('frontend enforces renderer dimensions, command budget, and depth-format su
   runtime.write32(params + 0, 2049);
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0x8876086c);
   runtime.write32(params + 0, 0);
-  runtime.write32(params + 40, 77); // D16_LOCKABLE is not a supported depth attachment.
+  runtime.write32(params + 40, 70); // D16_LOCKABLE is not a supported depth attachment.
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0x8876086c);
   runtime.write32(params + 40, 75); // D24S8 maps to a depth24plus attachment.
   assert.equal((await call(factory, 16, 0, 1, 0x20000, 0x20, params, output)).result, 0);
@@ -839,12 +839,12 @@ for (const version of [8, 9]) {
 }
 
 for (const version of [8, 9]) {
-  test(`D3D${version} depth matching exposes only the implemented D16/D24S8 attachments`, async () => {
+  test(`D3D${version} depth matching exposes only the implemented D16/D24X8/D24S8 attachments`, async () => {
     const { call, factory } = fixture(version);
     for (const color of [21, 22])
-      for (const depth of [75, 80])
+      for (const depth of [75, 77, 80])
         assert.deepEqual(await call(factory, 12, 0, 1, 22, color, depth), { result: 0, argc: 6 });
-    for (const depth of [0, 70, 77, 79])
+    for (const depth of [0, 70, 79])
       assert.equal((await call(factory, 12, 0, 1, 22, 22, depth)).result, 0x8876086a);
     assert.equal((await call(factory, 12, 0, 1, 23, 22, 80)).result, 0);
     assert.equal((await call(factory, 12, 0, 1, 22, 23, 80)).result, 0);
@@ -1866,3 +1866,23 @@ test('D3D9 buffer Lock accepts discard and no-sys-lock hints on any pool', async
   await call(vb, 2);
   await call(device, 2);
 });
+
+for (const version of [8, 9])
+  test(`D3D${version} D24X8 creates a depth-only 24-bit attachment`, async () => {
+    const { runtime: r, params, create, events, call } = fixture(version);
+    r.write32(params + (version === 8 ? 36 : 40), 77);
+    const device = await create();
+    assert.equal(events[0].depthFormat, 'depth24plus');
+    assert.equal(events[0].stencil, false);
+    const object = r.comObjects.objects.get(device);
+    assert.equal(object.state.depthSurface.state.format, 77);
+    assert.equal(object.state.depthSurface.state.bpp, 4);
+    assert.equal(
+      (await call(device, version === 8 ? 36 : 43, 0, 0, 2, 0, 0x3f800000, 0)).result,
+      0,
+    );
+    assert.equal(
+      (await call(device, version === 8 ? 36 : 43, 0, 0, 4, 0, 0x3f800000, 0)).result,
+      0x8876086c,
+    );
+  });
