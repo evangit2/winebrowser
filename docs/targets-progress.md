@@ -181,7 +181,6 @@ storage. Compressed volumes, fixed-function volume coordinates and automatic
 mip generation remain unsupported. A fresh RollerCoaster ZIP passes volume
 creation/filling and next reaches unsupported CreateCubeTexture, with no frames.
 
-
 October 2 continuation: the pinned source-built base closure now starts through
 ordinary `Runtime.run()` when its patched NTDLL is supplied. The source-base
 gate also uploads a ZIP with the console EXE, six source DLLs and seven NLS
@@ -202,7 +201,6 @@ A one-byte write trace finds the suspect FE byte written at EXE +0xadd32 and
 subsequently processed by the PNG RGB/BGR swap at +0xa5151. This does not yet
 establish why image data reaches the later table lookup; gameplay is unverified.
 
-
 Native D3D8/9 cube textures now store all six faces and supplied/full mip
 chains, including compressed formats, shared face surfaces and immutable draw
 snapshots. The real PS2 samplerCube gate checks exact pixels from all six
@@ -214,3 +212,10 @@ The D3D8/9 surface LockRect ABI was corrected from five stack words to four;
 a native fixture writes through a face/level view and verifies all pixels and
 exit zero in EXE and ZIP modes. A fresh original Hamsterball probe still reaches
 the same FE-filled adjacency/table read fault, so this fix does not prove gameplay.
+
+The normal worker now ships the pinned source-built Wine base closure on demand.
+`test:wine-base-upload` verifies a bare native-CRC EXE and a nested ZIP with a
+later dynamically loaded guest DLL using the runtime's automatic assets. Both
+exit zero; corrupted assets fail verification. Source, patch, licenses and
+rebuild scripts accompany the runtime payload. Static/dynamic import coverage
+and browser services remain bounded; this is not arbitrary compatibility.

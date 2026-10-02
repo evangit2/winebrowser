@@ -20,6 +20,9 @@ jobs:
       - run: npm run test:browser
         env:
           BROWSER_CHANNEL: chromium
+      - run: npm run test:wine-base-upload
+        env:
+          BROWSER_CHANNEL: chromium
       - run: npm run test:controls
         env:
           BROWSER_CHANNEL: chromium
@@ -49,6 +52,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:wine-base-upload
           npm run test:windows
           npm run test:tetris
           npm run test:d3d9

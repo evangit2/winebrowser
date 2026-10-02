@@ -1,6 +1,6 @@
 # Wine browser loader bridge experiment
 
-This is a **source-built loader bridge**. The ordinary runtime bootstraps it when a supplied ntdll exports the bridge; the default worker does not yet bundle the native base closure. `runtime/wine/browser-loader.patch` applies to the clean Wine 11.0 source tree at commit `db11d0fe6a169c457e23d007e20404643d067aa8` (the dereferenced `wine-11.0` tag and pinned installed-DLL source revision). It changes only `dlls/ntdll/loader.c` and `dlls/ntdll/ntdll.spec`. Rebuilt Wine artifacts retain Wine's LGPL-2.1-or-later obligations. Do not apply the patch to the installed DLL or patch its private data by address.
+This is a **source-built loader bridge**. The ordinary runtime bootstraps it when a supplied ntdll exports the bridge; the worker automatically supplies the source-built base closure when it resolves missing imports, including those discovered in supplied DLLs before startup. `runtime/wine/browser-loader.patch` applies to the clean Wine 11.0 source tree at commit `db11d0fe6a169c457e23d007e20404643d067aa8` (the dereferenced `wine-11.0` tag and pinned installed-DLL source revision). It changes only `dlls/ntdll/loader.c` and `dlls/ntdll/ntdll.spec`. Rebuilt Wine artifacts retain Wine's LGPL-2.1-or-later obligations. Do not apply the patch to the installed DLL or patch its private data by address.
 
 The source-built PE32 ntdll exports private `WineBrowserLoaderBootstrap(batch*)`. It is versioned (`version == 1`) and accepts one atomic batch of 2–64 **already mapped and linked** modules. The host remains responsible for image mapping, relocations, import resolution, static TLS, guest heap and process parameters, NLS sections, attach order, and image rollback. The export creates Wine's `PEB_LDR_DATA` reference and internal `WINE_MODREF` list/hash/address-index entries through `alloc_module()`, initializes Wine's dynamic TLS bitmaps, then calls Wine's own `version_init()`. It never creates another heap, maps an image, or calls a DLL entry point.
 
@@ -236,5 +236,19 @@ a ZIP containing the unchanged console EXE, the source DLL closure and NLS
 through the ordinary file picker. It requires native Kernel32/KernelBase/NTDLL,
 NLS setup, real NT stdout, source-loader shutdown and exit zero without any
 diagnostic bootstrap. The source-built shell/format helpers are still shared
-with normal uploads. The closure remains local; automatic worker asset supply
-and redistribution packaging are unfinished.
+with normal uploads. `npm run package:wine-base` publishes hash-verified DLL/NLS copies, the matching
+51 MiB source archive, loader patch, licenses and rebuild scripts under
+`public/runtime/wine-base/`. Installed Wine binaries are never copied. The worker
+fetches these six DLLs and seven tables (12,095,871 bytes) if the native graph
+resolves missing imports better than the host graph. It also scans supplied
+DLLs before process startup, so a DLL reached later through LoadLibrary can
+share a native system-library graph. Supplied package DLLs retain precedence.
+It cannot swap an already initialized host Kernel32 for Wine during a run.
+
+`npm run test:wine-base-upload` uses the actual upload worker and published assets,
+with no diagnostic bootstrap or installed-Wine inputs. A bare EXE computes
+CRC32 through native NTDLL; a nested ZIP dynamically loads and unloads its own
+DLL, whose body calls native NTDLL. Both print through NT stdout and exit zero.
+A corrupted base asset is rejected. The test also runs against the built Pages
+path in CI. This supplies a bounded native closure, not every Windows library,
+Win32 service or instruction. Original Hamsterball gameplay remains unverified.

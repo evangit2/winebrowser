@@ -1,0 +1,7 @@
+Wine 11.0 base libraries, LGPL-2.1-or-later. See LICENSE and COPYING.LIB.
+Corresponding upstream source: wine-source.tar.gz (revision db11d0fe6a169c457e23d007e20404643d067aa8).
+Local changes: browser-loader.patch. No installed Wine binaries are used.
+Rebuild in the WineBrowser repository: npm run build:wine-base, then npm run package:wine-base.
+The included builders preserve the source, patch, compiler and NLS provenance checks.
+Source URL: https://codeload.github.com/wine-mirror/wine/tar.gz/db11d0fe6a169c457e23d007e20404643d067aa8
+Source/build instructions: https://github.com/evangit2/winebrowser/blob/main/docs/wine-loader-bridge.md

@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-02T06:30:20.823Z",
-  "scope": "Pinned source-built Wine base DLLs and source NLS, real CRT/TLS/file services, Runtime.run() console startup and ordinary packaged ZIP upload in Chromium. The worker does not yet supply the native base assets itself.",
+  "date": "2026-10-02T07:06:14.950Z",
+  "scope": "Pinned source-built Wine base DLLs and source NLS, real CRT/TLS/file services, Runtime.run() console startup and ordinary packaged ZIP upload in Chromium. Supplied package DLLs keep their precedence over automatic runtime base assets.",
   "inputs": {
     "manifest": ".cache/wine-loader/manifest.json",
     "wineDirectory": null,
@@ -2567,7 +2567,7 @@
       "compiledBlocks": 1709,
       "wasmBytes": 1329573,
       "apiCalls": 41,
-      "elapsedMs": 1173.7599999904633,
+      "elapsedMs": 462.8400001525879,
       "outputs": []
     }
   }

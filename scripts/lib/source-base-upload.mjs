@@ -5,8 +5,8 @@ import { zipSync } from 'fflate';
 import { webgpuBrowserOptions } from './webgpu-browser.mjs';
 
 // Exercise the actual upload worker, with no intercepted routes or diagnostic
-// bootstrap. Supplying DLLs and NLS in the ZIP is deliberate until the base
-// closure is shipped by the normal worker.
+// bootstrap. Supplied DLLs must retain package search precedence even when
+// the normal worker also provides the source-built base closure.
 export async function verifySourceBaseUpload(root, executable, builtinFiles, nlsFiles) {
   const entries = { 'console.exe': executable };
   for (const [name, bytes] of builtinFiles) entries[name] = bytes;

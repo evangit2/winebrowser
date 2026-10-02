@@ -1,0 +1,109 @@
+{
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "sourceUrl": "https://codeload.github.com/wine-mirror/wine/tar.gz/db11d0fe6a169c457e23d007e20404643d067aa8",
+  "sourceSha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a",
+  "patchSha256": "0df452640390563e2ea215e134b57a17f4aa318738a6329f779d66417e23650e",
+  "artifactPathBase": "manifest-directory",
+  "strip": "GNU strip (GNU Binutils) 2.47.20260726",
+  "dlls": [
+    {
+      "name": "ntdll.dll",
+      "path": "ntdll.dll",
+      "bytes": 987285,
+      "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43"
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "kernelbase.dll",
+      "bytes": 3314461,
+      "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca"
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "kernel32.dll",
+      "bytes": 889074,
+      "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c"
+    },
+    {
+      "name": "msvcrt.dll",
+      "path": "msvcrt.dll",
+      "bytes": 975547,
+      "sha256": "1070168fd7ed6af4bcc4c3e518b0ae15890169ae6af6a77bfd5491185e85e6a4"
+    },
+    {
+      "name": "msacm32.dll",
+      "path": "msacm32.dll",
+      "bytes": 178336,
+      "sha256": "f3ad24df332a83ba86e85e833a9c1774f2af14f1a5622aabaf0e30686172f78c"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "path": "ucrtbase.dll",
+      "bytes": 1311270,
+      "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6"
+    }
+  ],
+  "nls": [
+    {
+      "name": "locale.nls",
+      "path": "locale.nls",
+      "bytes": 794914,
+      "sha256": "868e5d3a3f115c2649706f566f9741aa3e2c6927c10b3f07d5e4c76b0e403115"
+    },
+    {
+      "name": "sortdefault.nls",
+      "path": "sortdefault.nls",
+      "bytes": 3380468,
+      "sha256": "2e58e6165d423c8764af40ebd30a9567e4ca710e230f93817e36df7bed3fd433"
+    },
+    {
+      "name": "l_intl.nls",
+      "path": "l_intl.nls",
+      "bytes": 5564,
+      "sha256": "ad190cb85aa387d3d92a9d97ff254e20bf982a2ea9c11c2cad651ba0f8d20584"
+    },
+    {
+      "name": "normnfc.nls",
+      "path": "normnfc.nls",
+      "bytes": 60194,
+      "sha256": "d89888aee9e19d046d3d13aa5d385b81e86655285ce04cb7d4e6cb27132b7c0a"
+    },
+    {
+      "name": "c_1252.nls",
+      "path": "c_1252.nls",
+      "bytes": 66082,
+      "sha256": "e2634ee32da7977d762d2d45be2053309ee718572a7d8bb0034180dc1b0b6b76"
+    },
+    {
+      "name": "c_437.nls",
+      "path": "c_437.nls",
+      "bytes": 66594,
+      "sha256": "04d741575060dfcd57d8650f70e65db154944bae95e8dfbe058fadee639e21d0"
+    },
+    {
+      "name": "c_20127.nls",
+      "path": "c_20127.nls",
+      "bytes": 66082,
+      "sha256": "951a19ce0d3c785d12ea94cb28ce5c2c096d302e35b3fb3e8b35248a006435ba"
+    }
+  ],
+  "toolchain": {
+    "native": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
+    "i386": "i686-w64-mingw32-gcc (GCC) 16.1.0",
+    "bison": "bison (GNU Bison) 3.8.2",
+    "make": "GNU Make 3.81",
+    "objdump": "GNU objdump (GNU Binutils) 2.47.20260726"
+  },
+  "build": [
+    "--enable-archs=i386",
+    "--disable-tests",
+    "make -j4 dlls/ntdll/i386-windows/ntdll.dll dlls/kernelbase/i386-windows/kernelbase.dll dlls/kernel32/i386-windows/kernel32.dll dlls/msvcrt/i386-windows/msvcrt.dll dlls/msacm32/i386-windows/msacm32.dll dlls/ucrtbase/i386-windows/ucrtbase.dll"
+  ],
+  "scope": "Source-built PE32 base libraries and NLS for automatic missing-import fallback. Win32/NT browser services remain bounded; this is not arbitrary Windows compatibility.",
+  "sourceArchive": {
+    "path": "wine-source.tar.gz",
+    "bytes": 53844515,
+    "sha256": "18aaee150ad540885b9706ae73ccf6febca904049de2792199a9dc18a2772e6a"
+  },
+  "licenses": ["LICENSE", "COPYING.LIB"]
+}

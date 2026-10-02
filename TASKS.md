@@ -8,6 +8,22 @@ DLLs, browser-time translation, the original Hamsterball, and DirectX through
 version 12. Existing D3D12 triangle/cube tests must remain regression gates;
 D3D10/11 and broader D3D12 support are still required.
 
+## October 2 checkpoint
+
+- [x] Ordinary uploads automatically obtain six source-built Wine DLLs and seven
+      NLS tables when they resolve missing imports; supplied DLL imports are
+      inspected before startup for later LoadLibrary calls. Bare EXE/native DLL
+      ZIP checks run real native CRC code, stdout and unload, then exit zero.
+      Hash-corrupted runtime DLLs are rejected. Corresponding source and LGPL
+      notices ship with the base package.
+- [x] D3D8/9 cube mip storage and programmable cube sampling; six exact face
+      pixels pass. Surface LockRect now pops its four COM arguments correctly.
+- [ ] Cube render targets and three-component fixed-function texture coordinates
+      block additional Humus candidates. No new third-party scene is published.
+- [ ] Original Hamsterball still reaches a read at EXE +0x85c2c with index FEFE.
+      A late write trace identifies native heap metadata writes into the reused
+      image buffer; the buffer's later table lifetime remains under investigation.
+
 ## Current original-Hamsterball gate
 
 - [x] Recover the exact original EXE from the retained Theseus PE sections and

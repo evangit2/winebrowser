@@ -5,6 +5,7 @@ import { inspect, Runtime } from './runtime.js';
 import { createCanvasTextRasterizer } from './gdi-text.js';
 import { WebGPURenderer } from './webgpu-renderer.js';
 import { D3D12Renderer } from './d3d12-renderer.js';
+import { loadWineBaseAssets, packageNeedsNativeBase } from './wine-base-assets.js';
 import {
   packageId,
   packageFilesId,
@@ -17,6 +18,8 @@ let pkg,
   id,
   iced,
   builtinFiles = new Map(),
+  nativeBase,
+  executableProfiles = new Map(),
   pending = new Map(),
   seq = 0,
   busy = false;
@@ -65,13 +68,38 @@ onmessage = async ({ data }) => {
       } catch (e) {
         emit({ type: 'log', text: 'Package cache unavailable: ' + e.message });
       }
-      const executables = pkg.executables.map((path) => {
+      const inspectExecutable = (path, components) => {
         try {
-          return { path, pe: inspect(pkg.files.get(path), pkg.files, path, builtinFiles) };
+          return { path, pe: inspect(pkg.files.get(path), pkg.files, path, components) };
         } catch (e) {
           return { path, error: e.message };
         }
-      });
+      };
+      executableProfiles = new Map();
+      const dynamicNativeBase = packageNeedsNativeBase(pkg.files);
+      const executables = [];
+      for (const path of pkg.executables) {
+        let entry = inspectExecutable(path, builtinFiles);
+        if (
+          dynamicNativeBase ||
+          /^Missing DLL /.test(entry.error ?? '') ||
+          entry.pe?.unsupported.length
+        ) {
+          nativeBase ??= await loadWineBaseAssets(import.meta.env.BASE_URL);
+          const components = new Map([...builtinFiles, ...nativeBase.builtinFiles]);
+          const nativeEntry = inspectExecutable(path, components);
+          if (
+            !nativeEntry.error &&
+            ((dynamicNativeBase && !nativeEntry.pe.unsupported.length) ||
+              !entry.pe ||
+              nativeEntry.pe.unsupported.length < entry.pe.unsupported.length)
+          ) {
+            entry = { ...nativeEntry, wineBase: true };
+            executableProfiles.set(path, components);
+          }
+        }
+        executables.push(entry);
+      }
       delete pkg.original;
       emit({
         type: 'loaded',
@@ -97,7 +125,8 @@ onmessage = async ({ data }) => {
         files: pkg.files,
         exe: data.exe,
         args: data.args ?? [],
-        builtinFiles,
+        builtinFiles: executableProfiles.get(data.exe) ?? builtinFiles,
+        nlsFiles: executableProfiles.has(data.exe) ? nativeBase.nlsFiles : undefined,
         graphics,
         graphics12,
         emit,

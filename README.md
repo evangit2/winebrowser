@@ -20,6 +20,12 @@ The hosted PE32 x86 examples below have passed the browser suite. Open a ZIP in 
 
 These examples demonstrate specific tested behavior, not broad Windows compatibility. WineBrowser is an experimental PE32 x86 runtime with a small supported instruction and Windows API subset; it is not Wine, a Windows emulator, or a general desktop-app/game runner. See [test target details](docs/test-targets.md) and [architecture notes](docs/architecture.md).
 
+The worker can now supply source-built Wine 11 base DLLs and matching NLS when
+they resolve missing imports, including imports in a supplied DLL reached later
+through `LoadLibrary`. Package DLLs keep their search precedence. The native
+code still translates in the browser. The package includes corresponding source,
+licenses and rebuild instructions; see [the native loader scope](docs/wine-loader-bridge.md).
+
 ## Run
 
 **Native 3D demo:** choose **Load d3d9-cube**, then **Run executable** in the live harness. [Cube EXE](https://evangit2.github.io/winebrowser/demos/d3d9-cube/d3d9-cube.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/d3d9-cube.zip) · [source](demos/d3d9-cube/main.c). The Windows PE32 program rotates a colored cube using D3D9 transforms, depth testing and `DrawPrimitiveUP`; its x86 code compiles to Wasm during browser execution and a worker submits graphics to WebGPU. Close its window to exit. This is an original API fixture using a narrow bootstrap frontend; WineD3D and D3D10/11 are not implemented yet. See [graphics scope and acceptance path](docs/graphics-runtime.md).

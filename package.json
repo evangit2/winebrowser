@@ -160,7 +160,10 @@
     "test:d3d9-volume-backend": "node scripts/test-d3d9-volume-backend.mjs",
     "build:wine-base": "python3 scripts/build-wine-base.py",
     "test:wine-source-base": "node scripts/test-wine-source-base.mjs",
-    "test:d3d9-cubemap-backend": "node scripts/test-d3d9-cubemap-backend.mjs"
+    "test:d3d9-cubemap-backend": "node scripts/test-d3d9-cubemap-backend.mjs",
+    "package:wine-base": "python3 scripts/package-wine-base.py",
+    "build:wine-base-auto": "sh scripts/build-wine-base-auto-fixture.sh",
+    "test:wine-base-upload": "node scripts/test-wine-base-upload.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

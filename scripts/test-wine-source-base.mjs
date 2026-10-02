@@ -36,7 +36,7 @@ await writeFile(
     {
       date: new Date().toISOString(),
       scope:
-        'Pinned source-built Wine base DLLs and source NLS, real CRT/TLS/file services, Runtime.run() console startup and ordinary packaged ZIP upload in Chromium. The worker does not yet supply the native base assets itself.',
+        'Pinned source-built Wine base DLLs and source NLS, real CRT/TLS/file services, Runtime.run() console startup and ordinary packaged ZIP upload in Chromium. Supplied package DLLs keep their precedence over automatic runtime base assets.',
       inputs,
       services,
       application,
