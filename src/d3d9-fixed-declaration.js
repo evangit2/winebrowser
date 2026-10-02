@@ -10,15 +10,25 @@ export function fixedDeclarationVertices(state, vertices, stride, vertexCount) {
   const find = (usage, index = 0) =>
     elements.find((e) => e.usage === usage && e.usageIndex === index);
   const position = find(0) ?? find(9),
-    normal = find(2),
+    normal = find(3),
     diffuse = find(10),
     specular = find(10, 1);
+  // TANGENT/BINORMAL are programmable-shader inputs. A shared mesh declaration
+  // can retain these
+  // elements when an application temporarily switches to fixed processing.
+  const unusedUsage = (usage) => [6, 7].includes(usage);
   if (
     !position ||
     ![2, 3].includes(position.type) ||
     (position.usage === 9 && position.type !== 3) ||
-    elements.some((e) => ![0, 2, 5, 9, 10].includes(e.usage) || e.offset + e.size > stride) ||
-    elements.some((e) => e.usage !== 5 && e.usageIndex > (e.usage === 10 ? 1 : 0)) ||
+    elements.some(
+      (e) =>
+        (!unusedUsage(e.usage) && ![0, 3, 5, 9, 10].includes(e.usage)) ||
+        e.offset + e.size > stride,
+    ) ||
+    elements.some(
+      (e) => !unusedUsage(e.usage) && e.usage !== 5 && e.usageIndex > (e.usage === 10 ? 1 : 0),
+    ) ||
     (normal && normal.type !== 2) ||
     [diffuse, specular].some((e) => e && ![3, 4].includes(e.type))
   )

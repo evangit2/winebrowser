@@ -369,7 +369,7 @@ function programmableAttributes(state, stride) {
             usageIndex: 0,
           },
           ...[
-            ['normal', 2, 0, 2, 'float32x3', 12],
+            ['normal', 3, 0, 2, 'float32x3', 12],
             ['diffuse', 10, 0, 4, 'unorm8x4', 4],
             ['specular', 10, 1, 4, 'unorm8x4', 4],
           ]

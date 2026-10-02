@@ -2197,6 +2197,52 @@ test('Programmable FVF maps multiple sized texture sets by semantic index', asyn
   ]);
 });
 
+test('FVF normals bind to the Windows NORMAL=3 vertex shader semantic', async () => {
+  const { runtime: r, create, call, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4);
+  const makeShader = async (slot, words) => {
+    const bytes = new Uint8Array(new Uint32Array(words).buffer),
+      p = r.allocate(bytes.length);
+    r.data.set(bytes, p);
+    await call(device, slot, p, out);
+    return r.read32(out);
+  };
+  const vertex = await makeShader(91, [
+    0xfffe0200,
+    0x0200001f,
+    0x80000000,
+    0x900f0000, // dcl_position v0
+    0x0200001f,
+    0x80000003,
+    0x900f0001, // dcl_normal v1
+    0x02000001,
+    0xc00f0000,
+    0x90e40000, // mov oPos, v0
+    0x02000001,
+    0xd00f0000,
+    0x90e40001, // mov oD0, v1
+    0xffff,
+  ]);
+  const pixel = await makeShader(
+    106,
+    [0xffff0200, 0x0200001f, 0x80000000, 0x900f0000, 0x02000001, 0x800f0800, 0x90e40000, 0xffff],
+  );
+  await call(device, 92, vertex);
+  await call(device, 107, pixel);
+  await call(device, 89, 0x12); // XYZ + NORMAL.
+  const vertices = r.allocate(72);
+  for (let i = 0; i < 3; i++) r.view.setFloat32(vertices + i * 24 + 20, 1, true);
+  await call(device, 41);
+  await call(device, 83, 4, 1, vertices, 24);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  assert.deepEqual(events.at(-1).commands[0].attributes, [
+    { shaderLocation: 0, offset: 0, format: 'float32x3' },
+    { shaderLocation: 1, offset: 12, format: 'float32x3' },
+  ]);
+});
+
 test('Fixed declarations pack particle float colors and UVs while charging the shared frame budget', async () => {
   const { runtime: r, create, call, events } = fixture();
   const device = await create(),
