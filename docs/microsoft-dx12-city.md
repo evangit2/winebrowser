@@ -74,3 +74,9 @@ dependency closure and clean exit. Static Pages and live evidence are recorded
 separately after deployment. CI runs the same acceptance on the built static site.
 
 Production static acceptance passed on 2026-10-02T22:22:32.078Z in ordinary Chrome 154.0.8037.97. All three loading paths passed after a build with `/winebrowser/` as the base path, on a server without isolation headers. Evidence: `evidence/microsoft-dx12-city-static-results.json`.
+
+## Live Pages acceptance
+
+GitHub run [37072641670](https://github.com/evangit2/winebrowser/actions/runs/37072641670) passed all **901 unit tests**, backend and browser gates, including the city test in Linux Chromium. Pages successfully deployed commit `789aef07289777c88cc5449b090931c46f4aaba9`.
+
+The live site was independently verified on 2026-10-02T22:46:36.339Z in ordinary Chrome 154.0.8037.97. ZIP upload, EXE plus assets upload, and the hosted example all rendered the textured 30-city scene, moved/turned/reset the camera, audited the complete DLL provider closure, compiled 4,891 x86 blocks in the browser, and exited with code 0. Evidence: `evidence/microsoft-dx12-city-live-results.json` and `evidence/microsoft-dx12-city-live.png`.
