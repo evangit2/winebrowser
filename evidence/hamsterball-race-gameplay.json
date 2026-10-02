@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-02",
+  "input": {
+    "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+    "mode": "ordinary ZIP upload, automatically selected native Wine base",
+    "patches": false,
+    "pretranslatedGame": false
+  },
+  "run": "fresh v9, WebGPU canvas presentation",
+  "navigation": "normal keyboard input: N, ArrowDown, Enter, Enter",
+  "observations": [
+    {
+      "stage": "race-baseline",
+      "timer": "60.3",
+      "score": "000000",
+      "scene": "hamster at green start on pink course"
+    },
+    {
+      "stage": "race-down",
+      "input": "ArrowDown held for 60 presented frames",
+      "timer": "54.9",
+      "score": "000043",
+      "scene": "hamster moves along course, camera follows"
+    },
+    {
+      "stage": "race-right",
+      "input": "ArrowRight held for 60 presented frames",
+      "timer": "49.5",
+      "score": "000063",
+      "scene": "hamster falls off course"
+    },
+    {
+      "stage": "sustained",
+      "frame": 14050,
+      "state": "RUNNING",
+      "guestInstructions": 12324269868,
+      "apiCalls": 17267942,
+      "scene": "automatic recovery after fall and further normal ArrowLeft input observed",
+      "screenshotSha256": "6ddbff8dd9d2bc84b0e168c5db19645f3c5b926ff0539d0bcafb3e4ffe9153f5"
+    }
+  ],
+  "samples": [
+    {
+      "stage": "race-baseline",
+      "date": "2026-10-02T16:50:13.853Z",
+      "screenshotSha256": "d1b414978242044f81a83980a80f6a213df8d88efe7c7c97178cefcc37a95175",
+      "state": "RUNNING",
+      "metrics": "6257 Wasm blocks \u00b7 1784289280 dispatches \u00b7 9805774695 x86 instructions \u00b7 16658270 API calls",
+      "status": "Running in worker\u2026",
+      "canvas": {
+        "renderer": "webgpu",
+        "graphicsApi": "d3d9",
+        "graphicsFrames": "13635",
+        "graphicsDraws": "3083083"
+      },
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder\u2026\nWebGPU graphics initialized in the runtime worker (canvas presentation)"
+    },
+    {
+      "stage": "race-down",
+      "date": "2026-10-02T16:51:08.251Z",
+      "screenshotSha256": "c88ac4102b38f4a1e4f4dea0904cad2af33e50b5fd37574c19d13b9aa9246a04",
+      "state": "RUNNING",
+      "metrics": "6758 Wasm blocks \u00b7 1830801408 dispatches \u00b7 10110449806 x86 instructions \u00b7 16730777 API calls",
+      "status": "Running in worker\u2026",
+      "canvas": {
+        "renderer": "webgpu",
+        "graphicsApi": "d3d9",
+        "graphicsFrames": "13695",
+        "graphicsDraws": "3090177"
+      },
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder\u2026\nWebGPU graphics initialized in the runtime worker (canvas presentation)"
+    },
+    {
+      "stage": "race-right",
+      "date": "2026-10-02T16:52:07.140Z",
+      "screenshotSha256": "6db56f504b8d8df9b7e3e46e7c3f76d4c2179687bb121f31510a58fbdc6acc0d",
+      "state": "RUNNING",
+      "metrics": "7069 Wasm blocks \u00b7 1881350144 dispatches \u00b7 10445953970 x86 instructions \u00b7 16824327 API calls",
+      "status": "Running in worker\u2026",
+      "canvas": {
+        "renderer": "webgpu",
+        "graphicsApi": "d3d9",
+        "graphicsFrames": "13755",
+        "graphicsDraws": "3099237"
+      },
+      "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder\u2026\nWebGPU graphics initialized in the runtime worker (canvas presentation)"
+    }
+  ],
+  "limitations": [
+    "Race completion and subsequent levels not verified",
+    "Audio not verified",
+    "Startup and gameplay are slow; no real-time performance claim",
+    "This establishes original-game race rendering and input/physics progress, not arbitrary Windows compatibility"
+  ]
+}

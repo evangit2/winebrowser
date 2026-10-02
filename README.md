@@ -94,8 +94,10 @@ now includes RGB565 rounding after each overlapping primitive. The unchanged ori
 load through ordinary ZIP upload with an automatically selected source-built
 Wine base. The browser translates their x86 code to Wasm during execution.
 Hamsterball presents its loading screen, reaches “CLICK HERE TO PLAY!” and
-responds to mouse input with its original menu. Startup is slow and gameplay
-remains unverified; [the current gate](TASKS.md#current-original-hamsterball-gate)
+responds to mouse input with its original menu, then renders a normal tournament
+warm-up race. Arrow-key input moves the hamster, follows the camera and changes
+the score; falling and recovery also render. Startup and gameplay are slow; race
+completion, further levels and audio remain unverified. See [the current gate](TASKS.md#current-original-hamsterball-gate)
 records the remaining work. No Theseus-translated game executable is used.
 DirectSound PCM buffers also pass native EXE/ZIP tests for actual browser playback,
 wrapped locks, shared duplicates, timed cursors and playback controls; see the

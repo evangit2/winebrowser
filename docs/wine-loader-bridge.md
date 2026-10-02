@@ -257,4 +257,5 @@ CRC32 through native NTDLL; a nested ZIP dynamically loads and unloads its own
 DLL, whose body calls native NTDLL. Both print through NT stdout and exit zero.
 A corrupted base asset is rejected. The test also runs against the built Pages
 path in CI. This supplies a bounded native closure, not every Windows library,
-Win32 service or instruction. Original Hamsterball gameplay remains unverified.
+Win32 service or instruction. Original Hamsterball now renders a race and responds to arrow keys; completion
+and audio remain unverified. See [race evidence](../evidence/hamsterball-race-gameplay.json).

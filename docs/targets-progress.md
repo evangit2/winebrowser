@@ -272,3 +272,11 @@ and user-pointer paths selected with normal keyboard input, then exit zero.
 See [the report](../evidence/instancing-browser-results.json). The author permits
 redistribution with the readme retained; the published archive is unchanged.
 Hardware stream-frequency instancing remains unsupported.
+
+A fresh unchanged original-game ZIP now reaches the normal tournament warm-up
+race through ordinary upload and browser-time x86 translation. ArrowDown and
+ArrowRight held for 60 presented frames each produce movement, camera following,
+score progress and a fall. Automatic recovery renders and execution remains
+RUNNING beyond 400 additional race frames. See [race evidence](../evidence/hamsterball-race-gameplay.json).
+This supersedes the earlier unverified-race observations above. Completion,
+later levels, sustained real-time speed and audio remain unverified.

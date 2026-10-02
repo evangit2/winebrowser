@@ -38,7 +38,10 @@ D3D10/11 and broader D3D12 support are still required.
 - [x] Align dynamic managed/system-memory buffers with Wine's D3D8/9 buffer path.
       Both native cube EXEs and hosted ZIPs alternate direct, managed and
       system-memory indexed draws; descriptors, locks, animation and exit pass.
-- [ ] Verify actual race gameplay in a fresh run with the combined fixes.
+- [x] Fresh unchanged original-game ZIP reaches a normal tournament warm-up race.
+      ArrowDown/ArrowRight input moves the hamster, follows the camera and changes
+      the score. More than 400 subsequent frames remain RUNNING; falling and
+      recovery render. Race completion, further levels and audio remain unverified.
 
 ## Current original-Hamsterball gate
 
@@ -47,16 +50,15 @@ selects the source-built native Wine base automatically for BASS/CRT dependencie
 The unchanged EXE presents its loading screen, reaches “CLICK HERE TO PLAY!” and
 responds to a mouse action with its original menu. See
 [ordinary upload evidence](evidence/hamsterball-pages-startup-results.json).
-Gameplay remains unverified. A priority-15 BASS worker exposed starvation of the
-ready main thread; bounded ready-thread priority boosts restore progress, with
-native thread fixtures passing. A fresh Pages run reaches the normal tournament's
-warm-up race selection after the unused-UV fix. Timed execution quanta improve
-starvation boosts beyond two host checkpoints; race loading then reveals a
-dynamic managed-buffer restriction. A clean combined run passes that restriction
-and reaches a race-rendering rejection of non-affine world/view matrices. The
-lighting backend now uses Wine's full inverse-transpose and singular fallback;
-819 unit tests and 30 pixel cases in each presentation mode pass. A fresh run
-is checking the game with this fix; race gameplay remains unverified.
+A fresh run with the lighting correction now renders the normal tournament warm-up
+race. Holding ArrowDown for 60 presented frames moves the hamster from the green
+start toward a checkpoint, follows the camera and changes the score from 000000
+to 000043. ArrowRight produces a fall, and the game recovers; more than 400
+subsequent frames remain RUNNING. See [race evidence](evidence/hamsterball-race-gameplay.json).
+No game or runtime patch is injected into this run. Startup and gameplay remain
+slow. Race completion, subsequent levels, audio and arbitrary compatibility are
+still open. The renderer retains regression coverage for the original rejected
+matrix (`world[15]` one Float32 step below 1) and full projective transforms.
 
 - [x] Recover the exact original EXE from the retained Theseus PE sections and
       original import lookup table; verify SHA-256
