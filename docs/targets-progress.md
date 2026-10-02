@@ -255,3 +255,9 @@ new full-image GPU cases; all 30 lighting cases pass in canvas and readback
 modes (122,880 pixels each). The full unit suite passes 819 tests, and the
 native D3D8 cube passes EXE/ZIP rendering and clean exit. A fresh original-game
 run is underway; these checks do not establish race gameplay.
+
+A read-only breakpoint in a separate reproduction captured the rejected
+matrices unchanged: `world[15]` is `0.9999999403953552`, one Float32 step below
+1, while its projective row entries are zero. The old exact affine check rejects
+this otherwise ordinary finite transform. The captured matrix has regression
+coverage and [recorded evidence](../evidence/hamsterball-race-normal-transform.json).

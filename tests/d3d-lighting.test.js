@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { fvfLayout } from '../src/d3d-fvf.js';
 import {
   normalMatrix,
@@ -8,6 +9,9 @@ import {
   initLighting,
 } from '../src/d3d-lighting.js';
 const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+const raceMatrices = JSON.parse(
+  await readFile(new URL('../evidence/hamsterball-race-normal-transform.json', import.meta.url)),
+);
 test('FVF optional normals, colors and UVs retain the native packed offsets', () => {
   assert.deepEqual(fvfLayout(0x1d2).attributes, [
     { shaderLocation: 0, offset: 0, format: 'float32x3' },
@@ -86,6 +90,17 @@ test('singular normals preserve Wine modelview transpose and reject nonfinite in
   invalid[3] = Infinity;
   assert.throws(() => normalMatrix(invalid, identity), /Invalid/);
   assert.throws(() => normalMatrix(identity.slice(1), identity), /Invalid/);
+});
+test('captured native race matrix accepts a homogeneous value one Float32 step below one', () => {
+  const { world, view } = raceMatrices;
+  assert.equal(world[15], Math.fround(1 - 2 ** -24));
+  const canonical = [...world];
+  canonical[15] = 1;
+  // A block triangular matrix's spatial inverse does not depend on its
+  // translation or nonzero homogeneous diagonal; this is an independent
+  // comparison with the established affine path, without changing guest state.
+  assert.deepEqual([...normalMatrix(world, view)], [...normalMatrix(canonical, view)]);
+  assert.equal(world[15], Math.fround(1 - 2 ** -24));
 });
 test('lighting defaults, snapshots and validation keep unsupported data out of the GPU', () => {
   const state = initLighting(),

@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-02T16:18:37.102Z",
+  "targetId": "hamsterball-original-x86",
+  "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+  "runtimeCommit": "c1b06382f159a7b5dd0b0eb49c0b36f1883ef11e",
+  "input": "ordinary original EXE/assets/native BASS ZIP with automatic source-built Wine base",
+  "capture": "Read-only debugger breakpoint at the existing normal-transform rejection; resumed unchanged after copying matrices.",
+  "stage": "Normal tournament warm-up race rendering; gameplay not verified",
+  "error": "D3D lighting requires affine world and view transforms",
+  "metrics": {
+    "compiledBlocks": 6060,
+    "dispatches": 913715200,
+    "instructions": 5213416062,
+    "apiCalls": 8562203
+  },
+  "world": [
+    0.9301508069038391,
+    0,
+    0.24923303723335266,
+    0,
+    -0.0018321521347388625,
+    0.9629369378089905,
+    0.00683768792077899,
+    0,
+    -0.24922633171081543,
+    -0.007078894879668951,
+    0.9301256537437439,
+    0,
+    23.35999870300293,
+    66.11259460449219,
+    -13.354804039001465,
+    0.9999999403953552
+  ],
+  "view": [
+    0.7071070671081543,
+    -0.4730302691459656,
+    -0.5255889296531677,
+    0,
+    0,
+    0.7432953119277954,
+    -0.6689653992652893,
+    0,
+    0.7071072459220886,
+    0.473030149936676,
+    0.5255888104438782,
+    0,
+    -36.41172409057617,
+    28.745166778564453,
+    1110.42431640625,
+    1
+  ],
+  "observation": "world[15] is one Float32 step below 1, with zero projective row entries. Exact affine validation rejects this finite matrix."
+}
