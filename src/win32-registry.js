@@ -34,6 +34,10 @@ const SUPPORTED_ACCESS =
   KEY_ENUMERATE_SUB_KEYS |
   KEY_NOTIFY |
   READ_CONTROL;
+// Like the NT registry boundary, process-owned keys permit the standard
+// KEY_ALL_ACCESS mask. Granted rights do not create APIs for security editing
+// or symbolic links; those operations still require their implementations.
+const KEY_ALL_ACCESS = 0x000f003f;
 const ROOT_ACCESS = 0xffffffff;
 const MAX_KEYS = 4096;
 const MAX_HANDLES = 4096;
@@ -219,7 +223,10 @@ function createPath(state, rootHandle, node, parts, className) {
 }
 
 function supportedAccess(mask) {
-  return (mask & ~SUPPORTED_ACCESS) === 0;
+  // This runtime exposes a 32-bit Windows registry. As on 32-bit Windows,
+  // either WOW64 view selector is ignored; contradictory selectors are invalid.
+  const view = mask & 0x300;
+  return view !== 0x300 && (mask & ~(KEY_ALL_ACCESS | 0x300)) === 0;
 }
 
 function accessDenied(opened, required) {

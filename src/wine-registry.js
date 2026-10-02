@@ -34,10 +34,10 @@ function checked(runtime, address, length, write = false) {
 function unicodeString(runtime, address, maxLength) {
   if (!checked(runtime, address, 8)) return { status: ACCESS_VIOLATION };
   const length = runtime.view.getUint16(address, true);
-  const maximumLength = runtime.view.getUint16(address + 2, true);
   const buffer = runtime.read32(address + 4);
-  if (length & 1 || length > maximumLength || length > maxLength * 2)
-    return { status: INVALID_PARAMETER };
+  // NT consumes Length bytes of an input UNICODE_STRING. Wine's native
+  // registry traversal initializes Length/Buffer without MaximumLength.
+  if (length & 1 || length > maxLength * 2) return { status: INVALID_PARAMETER };
   if (length && !checked(runtime, buffer, length)) return { status: ACCESS_VIOLATION };
   let text = '';
   for (let offset = 0; offset < length; offset += 2)
@@ -91,6 +91,8 @@ function objectPath(runtime, address) {
 }
 
 function desiredAccess(mask) {
+  if ((mask & 0x300) === 0x300) return null;
+  mask &= ~0x300; // WOW64 selectors are ignored on this 32-bit Windows registry.
   if (mask & MAXIMUM_ALLOWED) return mask === MAXIMUM_ALLOWED ? KEY_ALL_ACCESS : null;
   return (mask & ~KEY_ALL_ACCESS) === 0 ? mask : null;
 }

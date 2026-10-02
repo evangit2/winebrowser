@@ -51,6 +51,7 @@ import { systemApis, systemApis2, systemApis3, systemApis4 } from './win32-syste
 import { ws2Apis, WS2_NAMES } from './ws2_32.js';
 import { msvcrtApis, msacmApis } from './msvcrt.js';
 import { VERSIONED_CRT_EXPORT_NAMES } from './msvcrt-versioned-exports.js';
+import { WINE_KERNELBASE_EXPORTS } from './wine-kernelbase-exports.js';
 
 // This small API provider is a bootstrap shim for the imported Win32 calls.
 // Once Wine guest DLLs are available, this provider can be replaced by them.
@@ -146,6 +147,18 @@ for (const key of [
 }
 
 export const importKey = (dll, name) => `${dll.toLowerCase()}!${name}`;
+
+// Share implemented services within Wine's actual KernelBase export boundary.
+// Unknown APIs and native-only forwarders remain absent. Supplied/source-built
+// KernelBase images retain normal DLL search precedence.
+const kernelbaseAliases = new Map();
+for (const dll of ['kernel32.dll', 'advapi32.dll', 'user32.dll'])
+  for (const symbol of API_NAMES[dll] ?? []) {
+    const key = importKey(dll, symbol);
+    if (WINE_KERNELBASE_EXPORTS.has(symbol) && !nativeForwarderApis[key])
+      kernelbaseAliases.set(symbol, key);
+  }
+API_NAMES['kernelbase.dll'] = [...kernelbaseAliases.keys()];
 
 // The versioned CRT names belong to the module graph's DLL table, which is read
 // before any Runtime exists, so publish the full union here at module load. The
@@ -530,5 +543,8 @@ export function createWin32ApiProvider() {
     ['user32.dll!MessageBoxW', (r, a) => messageBox(r, a, true)],
   ]);
   registerCrtAliases(provider, API_NAMES);
+  for (const [symbol, source] of kernelbaseAliases)
+    if (provider.has(source))
+      provider.set(importKey('kernelbase.dll', symbol), provider.get(source));
   return provider;
 }

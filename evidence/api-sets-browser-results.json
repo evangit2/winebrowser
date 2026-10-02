@@ -1,0 +1,115 @@
+{
+  "date": "2026-10-02T22:08:15.120Z",
+  "url": "http://127.0.0.1:4197/winebrowser/",
+  "normalChromium": true,
+  "browser": "153.0.8010.12",
+  "scope": "Native authored EXE uploads import seven Windows API-set families, execute heap/file/registry/character services, read the real guest PEB namespace, preserve module identities and fail missing exports. Native variant automatically selects source-built Wine and queries schema presence through unchanged NTDLL.",
+  "runs": [
+    {
+      "profile": "host",
+      "exeSha256": "17e3baf50f56656155315ad8c7d6374f2f695a161d883d1841e7c56d3d02469e",
+      "exitCode": 0,
+      "x86TranslationMs": 32.349999986588955,
+      "elapsedMs": 39.105000004172325,
+      "totalCompiledBlocks": 81,
+      "instructions": 623,
+      "modules": [
+        {
+          "name": "host.exe",
+          "path": "host.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@host/kernelbase.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@host/kernel32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        }
+      ],
+      "output": "HOST API SET SERVICES PASS\n"
+    },
+    {
+      "profile": "native",
+      "exeSha256": "e462c327f762fe7ead71d6fdb3ec7a61d77907fc3cc54e9a027e24ecf429e68c",
+      "exitCode": 0,
+      "x86TranslationMs": 1151.525000065565,
+      "elapsedMs": 1402.7250000014901,
+      "totalCompiledBlocks": 2303,
+      "instructions": 148262,
+      "modules": [
+        {
+          "name": "native.exe",
+          "path": "native.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 19529728,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 20316160,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 20774912,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        }
+      ],
+      "output": "NATIVE API SET SCHEMA PASS\n"
+    }
+  ],
+  "errors": []
+}

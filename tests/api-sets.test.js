@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
-import { resolveApiSet } from '../src/api-sets.js';
+import { apiSetContract, resolveApiSet } from '../src/api-sets.js';
+import { API_NAMES, createWin32ApiProvider } from '../src/win32.js';
+import { WINE_KERNELBASE_EXPORTS } from '../src/wine-kernelbase-exports.js';
 const bytes = async (p) => new Uint8Array(await readFile(p));
 const contract = 'api-ms-win-crt-heap-l1-1-0.dll';
 async function runtime(include = true) {
@@ -17,11 +19,12 @@ async function runtime(include = true) {
       : new Map(),
   });
 }
-test('UCRT contracts resolve exactly, with case-insensitivity and no path/version guessing', () => {
+test('UCRT contracts preserve major/minor versions, paths and case-insensitive Wine revision matching', () => {
   for (const name of 'conio convert environment filesystem heap locale math multibyte private process runtime stdio string time utility'.split(
     ' ',
   ))
     assert.equal(resolveApiSet(`API-MS-WIN-CRT-${name.toUpperCase()}-L1-1-0.DLL`), 'ucrtbase.dll');
+  assert.equal(resolveApiSet('api-ms-win-crt-heap-l1-1-99'), 'ucrtbase.dll');
   for (const name of [
     'other.dll',
     'api-ms-win-crt-heap-l1-2-0.dll',
@@ -30,6 +33,60 @@ test('UCRT contracts resolve exactly, with case-insensitivity and no path/versio
     'C:/winebrowser/' + contract,
   ])
     assert.equal(resolveApiSet(name), name);
+});
+test('Wine contracts cover desktop, security, COM, graphics and file services without inventing destinations', () => {
+  for (const [contract, target] of [
+    ['api-ms-win-core-file-l1-2-0', 'kernelbase.dll'],
+    ['api-ms-win-core-synch-l1-2-0', 'kernelbase.dll'],
+    ['api-ms-win-core-processthreads-l1-1-0', 'kernel32.dll'],
+    ['api-ms-win-core-com-l1-1-1', 'combase.dll'],
+    ['ext-ms-win-ntuser-chartranslation-l1-1-0', 'user32.dll'],
+    ['api-ms-win-security-base-l1-1-0', 'kernelbase.dll'],
+    ['api-ms-win-base-util-l1-1-0', 'advapi32.dll'],
+  ])
+    assert.equal(resolveApiSet(contract), target);
+  const unassigned = 'ext-ms-win-xaudio-platform-l1-1-0';
+  assert.equal(apiSetContract(unassigned)?.target, null);
+  assert.equal(resolveApiSet(unassigned), unassigned);
+  for (const unknown of [
+    'api-ms-win-core-file-l9-1-0',
+    'ext-ms-win-made-up-l1-1-0',
+    'C:\\Windows\\System32\\api-ms-win-core-file-l1-1-0.dll',
+  ])
+    assert.equal(apiSetContract(unknown), undefined);
+});
+test('KernelBase exports share implemented services only within the pinned export boundary', async () => {
+  const provider = createWin32ApiProvider();
+  assert.ok(API_NAMES['kernelbase.dll'].length > 250);
+  for (const symbol of API_NAMES['kernelbase.dll']) {
+    assert.ok(WINE_KERNELBASE_EXPORTS.has(symbol), symbol);
+    assert.equal(typeof provider.get(`kernelbase.dll!${symbol}`), 'function', symbol);
+  }
+  assert.equal(
+    provider.has('kernelbase.dll!CharLowerW'),
+    false,
+    'native-only forwarder cannot recurse into itself',
+  );
+  const r = await runtime(false);
+  try {
+    const base = await r.loadLibrary('api-ms-win-core-heap-l1-1-0');
+    const module = r.graph.findLoaded('kernelbase.dll');
+    assert.equal(module.base, base);
+    assert.equal(await r.loadLibrary('kernelbase.dll'), base);
+    assert.equal(await r.loadLibrary('api-ms-win-core-file-l1-2-0'), base);
+    const heap = await r.callGuest(await r.resolveExport(module, 'GetProcessHeap'));
+    const address = await r.callGuest(await r.resolveExport(module, 'HeapAlloc'), [heap, 8, 48]);
+    assert.ok(address);
+    assert.deepEqual([...r.data.slice(address, address + 48)], Array(48).fill(0));
+    assert.equal(
+      await r.callGuest(await r.resolveExport(module, 'HeapFree'), [heap, 0, address]),
+      1,
+    );
+    await assert.rejects(r.resolveExport(module, 'AnUnsupportedAPI'), /Unsupported import/);
+  } finally {
+    r.windows.dispose();
+    r.cpu.dispose();
+  }
 });
 test('contracts and implementation share native exports, image identity, references and unload', async () => {
   const r = await runtime();

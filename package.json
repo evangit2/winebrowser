@@ -189,7 +189,9 @@
     "package:water": "python3 scripts/package-humus-water.py",
     "test:water": "node scripts/test-water-browser.mjs",
     "test:rgba16-backend": "node scripts/test-rgba16-backend.mjs",
-    "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs"
+    "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs",
+    "build:api-sets": "sh scripts/build-api-set-fixtures.sh",
+    "test:api-sets": "node scripts/test-api-sets-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -19,6 +19,7 @@ import { parsePE } from './pe.js';
 import { ModuleGraph } from './modules.js';
 import { GuestMemory } from './memory.js';
 import { API_NAMES, createWin32ApiProvider, importKey } from './win32.js';
+import { initializeApiSetNamespace } from './api-set-namespace.js';
 import { GuestPerformanceClock } from './guest-clock.js';
 import { createSharedUserData, systemFileTime } from './shared-user-data.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
@@ -135,6 +136,7 @@ export class Runtime {
     this.allocations = this.heap.allocations;
     this.callDepth = 0;
     initializeProcessLayout(this);
+    this.apiSetMap = initializeApiSetNamespace(this);
     this.handles = new Map();
     this.nextHandle = 256;
     this.lastError = 0;
