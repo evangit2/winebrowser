@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-02T21:23:34.761769+00:00",
+  "normalChromium": true,
+  "exeSha256": "435463c13f528a9012daa03004441e4187a7668ed0871f941633d8d53b6d4b0d",
+  "scope": "Unchanged Water upload, browser x86 translation, 30 scene frames and clean exit. Developer instrumentation counted compilations; control reinstated the previous full-cache rollback/unload policy. Single runs, not a general startup benchmark.",
+  "fullCacheControl": {
+    "exitCode": 0,
+    "instructions": 304301806,
+    "compiledBlocks": 4045,
+    "totalCompiledBlocks": 46616,
+    "x86TranslationMs": 13896.894999682903,
+    "wasmBytes": 37379491,
+    "sceneElapsedMs": 33130,
+    "frames": 32,
+    "errors": [],
+    "maxCompilationsPerAddress": 7
+  },
+  "scopedInvalidation": {
+    "exitCode": 0,
+    "instructions": 304324528,
+    "compiledBlocks": 13522,
+    "totalCompiledBlocks": 13522,
+    "x86TranslationMs": 2957.659999616444,
+    "wasmBytes": 10895940,
+    "sceneElapsedMs": 17709,
+    "frames": 33,
+    "errors": [],
+    "maxCompilationsPerAddress": 1
+  }
+}

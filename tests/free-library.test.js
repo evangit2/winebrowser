@@ -72,15 +72,21 @@ test('FreeLibrary balances dynamic references, detaches TLS, unloads, and permit
 
 test('FreeLibrary unloads unreferenced forwarded dependencies but preserves startup roots', async () => {
   const runtime = await dynamicRuntime();
+  const hotAddress = runtime.graph.main.pe.entryPoint;
+  const hotBlock = runtime.cpu.compile(hotAddress);
   const base = await runtime.loadLibrary('forward.dll');
   const module = runtime.graph.modules.get('forward.dll');
   const address = await runtime.resolveExport(module, 'ForwardSum');
   const math = runtime.graph.modules.get('math.dll');
   assert.ok(math?.initialized);
   assert.equal(await runtime.callGuest(address, [17, 25], 'cdecl'), 42);
+  assert.ok(runtime.cpu.cache.has(address));
   assert.equal(await runtime.freeLibrary(base), true);
   assert.equal(runtime.graph.modules.has('forward.dll'), false);
   assert.equal(runtime.graph.modules.has('math.dll'), false);
+  assert.equal(runtime.cpu.cache.has(address), false, 'unloaded dependency code is invalidated');
+  assert.equal(runtime.cpu.cache.get(hotAddress), hotBlock, 'unrelated main code stays compiled');
+  await assert.rejects(runtime.callGuest(address, [17, 25], 'cdecl'), /Execute outside code/);
 
   const reloaded = await runtime.loadLibrary('forward.dll');
   assert.notEqual(reloaded, base);

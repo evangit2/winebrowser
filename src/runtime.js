@@ -663,15 +663,19 @@ export class Runtime {
       for (const module of this.graph.modules.values()) {
         if (module.ntBridge?.tebSlot && !checkpoint.modules.get(module.key)?.state.ntBridge)
           this.write32(module.ntBridge.tebSlot, 0);
-        if (module.mapped && !checkpoint.modules.get(module.key)?.state.mapped)
+        if (module.mapped && !checkpoint.modules.get(module.key)?.state.mapped) {
+          this.cpu.invalidateRange(module.base, module.pe.imageSize);
           this.data.fill(0, module.base, module.base + module.pe.imageSize);
-        else if (module.ntBridge && !checkpoint.modules.get(module.key)?.state.ntBridge)
+        } else if (module.ntBridge && !checkpoint.modules.get(module.key)?.state.ntBridge)
           this.write32(module.ntBridge.slot, 0);
       }
       if (this.wineProcess && this.wineProcess !== wineProcess) {
         cleanupWineNlsProcess(this, this.wineProcess.nls);
         for (const base of this.wineProcess.reservations) this.virtualMemory.free(base, 0, 0x8000);
-        if (ntdllBeforeBootstrap) this.data.set(ntdllBeforeBootstrap, existingNtdll.base);
+        if (ntdllBeforeBootstrap) {
+          this.cpu.invalidateRange(existingNtdll.base, existingNtdll.pe.imageSize);
+          this.data.set(ntdllBeforeBootstrap, existingNtdll.base);
+        }
       }
       this.graph.restore(checkpoint);
       await this.wineLoader?.sync();
@@ -684,7 +688,6 @@ export class Runtime {
       );
       this.regions.splice(0, this.regions.length, ...retained);
       this.refreshCodeRanges();
-      this.cpu.clearCache(); // Compiled code may refer to unloaded guest addresses.
       if (!guestStarted) error.win32Error ??= missingError;
       throw error;
     }
@@ -766,6 +769,10 @@ export class Runtime {
       if (candidate.ntBridge && this.read32(candidate.ntBridge.slot) === candidate.ntBridge.address)
         this.write32(candidate.ntBridge.slot, 0);
       if (candidate.mapped) {
+        // Blocks read guest memory and dispatch branch addresses at execution
+        // time. Only bytes in the disappearing image become stale; callers
+        // and other DLLs can retain their already translated blocks.
+        this.cpu.invalidateRange(candidate.base, candidate.pe.imageSize);
         this.data.fill(0, candidate.base, candidate.base + candidate.pe.imageSize);
         candidate.mapped = false;
         candidate.base = 0;
@@ -780,7 +787,6 @@ export class Runtime {
       ...this.regions.filter((region) => !removedKeys.has(region.module)),
     );
     this.refreshCodeRanges();
-    this.cpu.clearCache();
     await this.wineLoader?.sync();
     return true;
   }

@@ -91,6 +91,14 @@ test('rejected native DllMain rolls back mapping and repeated loads both fail', 
   bytes.set([0x31, 0xc0, 0xc2, 12, 0], section.rawOffset + pe.entryPointRva - section.rva);
   const r = await dynamicRuntime(bytes),
     regions = r.regions.length;
+  const hotAddress = r.graph.main.pe.entryPoint;
+  const hotBlock = r.cpu.compile(hotAddress);
+  const failedEntries = [];
+  const callGuest = r.callGuest.bind(r);
+  r.callGuest = async (address, ...args) => {
+    failedEntries.push(address);
+    return callGuest(address, ...args);
+  };
   const dllName = r.allocString('math.dll');
   for (let attempt = 0; attempt < 2; attempt++) {
     const result = await r.apiProvider.get('kernel32.dll!LoadLibraryA')(r, () => dllName);
@@ -98,7 +106,25 @@ test('rejected native DllMain rolls back mapping and repeated loads both fail', 
     assert.equal(r.lastError, 1114);
     assert.equal(r.graph.modules.has('math.dll'), false);
     assert.equal(r.regions.length, regions);
+    assert.equal(r.cpu.cache.get(hotAddress), hotBlock, 'failed attach preserves unrelated code');
+    assert.ok(failedEntries.length);
+    assert.equal(
+      r.cpu.cache.has(failedEntries.at(-1)),
+      false,
+      'rejected entry cannot remain cached',
+    );
   }
+  // Rollback reuses the discarded mapping address. It must execute the new
+  // DLL bytes, not the rejected DllMain cached at that same address.
+  r.graph.builtinFiles.set(
+    'math.dll',
+    new Uint8Array(await readFile('tests/fixtures/modules/math.dll')),
+  );
+  const validBase = await r.loadLibrary('math.dll');
+  assert.equal(r.graph.modules.get('math.dll').pe.entryPoint, failedEntries[0]);
+  assert.equal(r.graph.modules.get('math.dll').base, validBase);
+  assert.equal(r.graph.modules.get('math.dll').initialized, true);
+  assert.equal(r.cpu.cache.get(hotAddress), hotBlock);
   // A failed load must not poison unrelated subsequent dynamic loads.
   assert.ok(await r.loadLibrary('forward.dll'));
 });

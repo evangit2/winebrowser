@@ -45,3 +45,19 @@ allocations took the initialized loop from 1091.7 ms to 722.4 ms. This is a
 Startup in a few seconds and broad Windows application compatibility remain
 unfinished. Program-specific precomputed geometry or replacement EXEs are not
 used to obtain these results.
+
+DLL unload and failed-load rollback now invalidate only blocks overlapping
+discarded images. Restoring a bootstrapped NTDLL image also invalidates that
+image. Generated blocks read guest memory and dispatch branch targets at
+execution time, so unrelated code can remain compiled. Native DLL lifecycle
+tests verify retention, removal, rejected execution at unloaded addresses,
+and fresh code when rollback reuses an address.
+
+An unchanged Water upload in ordinary Chromium compiled 13,522 blocks instead
+of 46,616 with the previous whole-cache policy. The most repeatedly compiled
+addresses dropped from seven compilations to one. These single developer
+profile runs measured 2.96 versus 13.90 seconds of x86 translation and 17.7
+versus 33.1 seconds through 30 scene frames; they are not a repeated startup
+benchmark. Both exited zero with about 304 million guest instructions.
+See `evidence/module-cache-browser-results.json`; the full Water scene tests
+separately check original ZIP/catalog paths, animated pixels and clean exit.
