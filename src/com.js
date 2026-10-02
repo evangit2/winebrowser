@@ -37,6 +37,24 @@ export class ComObjects {
     this.liveObjects = 0;
   }
 
+  retain(object) {
+    if (this.objects.get(object.pointer) !== object || !object.refs)
+      throw Error('Invalid COM reference');
+    if (object.refs >= 0x7fffffff) throw Error('COM reference count limit exceeded');
+    return ++object.refs;
+  }
+
+  async release(object) {
+    if (this.objects.get(object.pointer) !== object || !object.refs)
+      throw Error('Invalid COM reference');
+    const refs = --object.refs;
+    if (!refs) {
+      this.liveObjects--;
+      await object.onRelease?.(object);
+    }
+    return refs;
+  }
+
   create({
     name,
     iid,
@@ -116,16 +134,10 @@ export class ComObjects {
             return { result: 0, argc: 3 };
           }
           if (slot === 1) {
-            if (object.refs >= 0x7fffffff) throw Error(`${name} reference count limit exceeded`);
-            return { result: ++object.refs, argc: 1 };
+            return { result: this.retain(object), argc: 1 };
           }
           if (slot === 2) {
-            const refs = --object.refs;
-            if (!refs) {
-              this.liveObjects--;
-              await object.onRelease?.(object);
-            }
-            return { result: refs, argc: 1 };
+            return { result: await this.release(object), argc: 1 };
           }
           const method = methods[slot];
           if (!method) throw Error(`Unsupported COM method ${name}.${methodName}`);

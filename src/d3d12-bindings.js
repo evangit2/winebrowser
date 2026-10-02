@@ -327,7 +327,12 @@ function resourceBindingLayout(descriptor) {
       : { storageTexture: { access: 'write-only', format: 'rgba8unorm' } };
   // SRV: buffers are read-only storage, everything else is a sampled texture.
   if (descriptor.resourceType === RESOURCE_BUFFER) return { buffer: { type: 'read-only-storage' } };
-  return { texture: { sampleType: sampleTypeFor(descriptor.dataType) } };
+  return {
+    texture: {
+      sampleType: sampleTypeFor(descriptor.dataType),
+      ...(descriptor.resourceType === RESOURCE_TEXTURE_3D ? { viewDimension: '3d' } : {}),
+    },
+  };
 }
 
 function sampleTypeFor(dataType) {

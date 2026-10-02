@@ -473,7 +473,13 @@ function make(r, kind, methods, itemState = {}, device = null, onRelease = null)
     if (METADATA_METHODS[methodName]) table[slot] = METADATA_METHODS[methodName];
     else if (methodName === 'GetDevice') table[slot] = GET_DEVICE;
   }
+  const retainedResource = itemState.resource;
+  let resourceRetained = false;
   try {
+    if (retainedResource) {
+      r.comObjects.retain(retainedResource);
+      resourceRetained = true;
+    }
     return r.comObjects.create({
       name: name[kind],
       iid: iids[kind],
@@ -490,10 +496,12 @@ function make(r, kind, methods, itemState = {}, device = null, onRelease = null)
       // explicitly so a module-level factory can reach the graphics backend.
       onRelease: async (item) => {
         await onRelease?.(item, r);
+        if (retainedResource) await r.comObjects.release(retainedResource);
         if (device) device.refs--;
       },
     });
   } catch (error) {
+    if (resourceRetained) retainedResource.refs--;
     if (device) device.refs--;
     throw error;
   }
@@ -527,7 +535,7 @@ function resourceMethods() {
         const out = number(a(1));
         if (!out) throw Error('D3D10 GetType requires an output pointer');
         r.check(out, 4, true);
-        r.write32(out, DIMENSION[o.state.kind] ?? 3);
+        r.write32(out, o.state.resourceDimension ?? DIMENSION[o.state.kind] ?? 3);
         return undefined;
       },
     },
@@ -648,6 +656,30 @@ function texture2dMethods() {
   };
 }
 
+function texture3dMethods() {
+  return {
+    ...resourceMethods(),
+    10: { argc: 5, invoke: () => E_INVALIDARG }, // CPU mapping is not advertised.
+    11: {
+      argc: 2,
+      invoke: () => {
+        throw Error('D3D10 volume is not mapped');
+      },
+    },
+    12: {
+      argc: 2,
+      invoke(r, a, o) {
+        const out = number(a(1));
+        r.check(out, 36, true);
+        const s = o.state;
+        [s.width, s.height, s.depth, 1, s.format, s.usage, s.bindFlags, 0, 0].forEach(
+          (value, index) => r.write32(out + index * 4, value),
+        );
+      },
+    },
+  };
+}
+
 function viewMethods(withDesc) {
   const methods = {
     7: {
@@ -670,12 +702,12 @@ function viewMethods(withDesc) {
       argc: 2,
       invoke(r, a, o) {
         const out = number(a(1));
-        r.check(out, 20, true);
-        r.data.fill(0, out, out + 20);
+        const size = o.name === name.shaderResourceView ? 24 : 20;
+        r.check(out, size, true);
+        r.data.fill(0, out, out + size);
         r.write32(out, o.state.format);
         r.write32(out + 4, o.state.viewDimension);
-        r.write32(out + 8, o.state.descBuffer);
-        r.write32(out + 12, o.state.descBuffer + 4);
+        if (o.name === name.shaderResourceView) r.write32(out + 12, 1);
         return undefined;
       },
     };
@@ -1327,6 +1359,92 @@ function texture2dParse(r, a) {
   };
 }
 
+// Non-compressed, single-mip sampled volumes. Preserve the caller's row and
+// slice pitches while storing a tight copy; WebGPU owns an actual 3D texture.
+function texture3dParse(r, a) {
+  const desc = number(a(1));
+  if (!desc) return E_INVALIDARG;
+  r.check(desc, 36);
+  const [width, height, depth, levels, format, usage, bindFlags, cpuAccess, misc] = Array.from(
+    { length: 9 },
+    (_, i) => u32(r, desc, i * 4),
+  );
+  if (
+    !width ||
+    !height ||
+    !depth ||
+    width > 2048 ||
+    height > 2048 ||
+    depth > 2048 ||
+    (levels !== 0 && levels !== 1) ||
+    (levels === 0 && Math.max(width, height, depth) !== 1) ||
+    format !== 28 ||
+    usage > USAGE_IMMUTABLE ||
+    bindFlags !== BIND.SRV ||
+    cpuAccess ||
+    misc
+  )
+    return E_INVALIDARG;
+  const size = width * height * depth * 4;
+  if (size > MAX_RESOURCE_BYTES) return E_INVALIDARG;
+  const initial = number(a(2));
+  if (usage === USAGE_IMMUTABLE && !initial) return E_INVALIDARG;
+  let source = 0,
+    rowPitch = width * 4,
+    slicePitch = rowPitch * height;
+  if (initial) {
+    r.check(initial, 12);
+    source = u32(r, initial);
+    rowPitch = u32(r, initial, 4);
+    slicePitch = u32(r, initial, 8);
+    if (!source || rowPitch < width * 4 || slicePitch < rowPitch * height) return E_INVALIDARG;
+    r.check(source, (depth - 1) * slicePitch + (height - 1) * rowPitch + width * 4);
+  }
+  const storage = r.allocate(size);
+  if (initial) {
+    for (let z = 0; z < depth; z++)
+      for (let y = 0; y < height; y++) {
+        const from = source + z * slicePitch + y * rowPitch;
+        r.data.set(r.data.subarray(from, from + width * 4), storage + (z * height + y) * width * 4);
+      }
+  } else r.data.fill(0, storage, storage + size);
+  return {
+    kind: 'texture',
+    resourceDimension: 4,
+    width,
+    height,
+    depth,
+    format,
+    usage,
+    bindFlags,
+    cpuAccess: 0,
+    storage,
+    evictionPriority: 0,
+    async after(item) {
+      const backend = requireBackend(r);
+      await backend.createResource({
+        id: item.pointer,
+        kind: 'texture',
+        width,
+        height,
+        depth,
+        dimension: '3d',
+        format: 'rgba8unorm',
+      });
+      if (initial)
+        await backend.uploadTexture({
+          id: item.pointer,
+          width,
+          height,
+          depth,
+          bytesPerRow: width * 4,
+          rowsPerImage: height,
+          rows: r.data.slice(storage, storage + size),
+        });
+    },
+  };
+}
+
 // Bytes one 4x4 block of a DXGI block-compressed format occupies.
 function compressedBytesPerBlock(format) {
   return format === 70 || format === 71 || format === 72 ? 8 : 16;
@@ -1389,7 +1507,9 @@ const RESOURCE_SHAPES = {
 function viewParse(r, a, device, viewKind) {
   const resource = checkDeviceChild(r, a(1), device);
   const desc = number(a(2));
-  let dimension = DEFAULT_VIEW_DIMENSION[viewKind];
+  const volume = resource.name === name.texture3d;
+  if (volume && viewKind !== 'shaderResourceView') return E_INVALIDARG;
+  let dimension = volume ? 8 : DEFAULT_VIEW_DIMENSION[viewKind];
   if (desc) {
     r.check(desc, 20);
     // A zero format means "the resource's own format", which is the documented
@@ -1409,6 +1529,11 @@ function viewParse(r, a, device, viewKind) {
     // The union members a dimension does not use are still the caller's stack
     // and may hold anything, so they are deliberately not read.
     dimension = u32(r, desc, 4);
+    if (
+      volume &&
+      (dimension !== 8 || u32(r, desc, 8) !== 0 || ![1, 0xffffffff].includes(u32(r, desc, 12)))
+    )
+      return E_INVALIDARG;
   }
   return {
     resource,
@@ -1963,13 +2088,10 @@ function deviceMethods() {
       runtime.graphics12?.destroyResource({ id: item.pointer });
       runtime.free(item.state.storage);
     }),
-    74: {
-      argc: 4,
-      invoke: (r, a) => {
-        output(r, number(a(3)));
-        return E_INVALIDARG;
-      },
-    },
+    74: creator('texture3d', 4, texture3dParse, texture3dMethods(), (item, runtime) => {
+      runtime.graphics12?.destroyResource({ id: item.pointer });
+      runtime.free(item.state.storage);
+    }),
     75: creator(
       'shaderResourceView',
       4,
@@ -2928,6 +3050,8 @@ function makeReflection(r, description) {
     state,
     (o) => {
       for (const pointer of o.state.strings.values()) r.free(pointer);
+      for (const child of o.state.children)
+        if (child.state.defaultPointer) r.free(child.state.defaultPointer);
     },
   );
 }
@@ -2960,11 +3084,7 @@ function constantBufferReflection(r, owner, index) {
           r,
           'ID3D10ShaderReflectionConstantBuffer',
           owner,
-          [
-            'GetDesc',
-            'GetVariableByIndex',
-            'GetVariableByName',
-          ],
+          ['GetDesc', 'GetVariableByIndex', 'GetVariableByName'],
           {
             0: {
               argc: 2,
@@ -2973,8 +3093,10 @@ function constantBufferReflection(r, owner, index) {
                 runtime.check(out, 20, true);
                 runtime.data.fill(0, out, out + 20);
                 runtime.write32(out, ownerString(runtime, o, buffer.name));
+                runtime.write32(out + 4, buffer.type);
                 runtime.write32(out + 8, o.state.variables.length);
                 runtime.write32(out + 12, buffer.size);
+                runtime.write32(out + 16, buffer.flags);
                 return undefined;
               },
             },
@@ -3022,6 +3144,12 @@ function variableReflection(r, owner, index) {
           runtime.write32(out, ownerString(runtime, o, variable.name));
           runtime.write32(out + 4, variable.offset);
           runtime.write32(out + 8, variable.size);
+          runtime.write32(out + 12, variable.flags);
+          if (variable.defaultValue) {
+            o.state.defaultPointer ??= runtime.allocate(variable.defaultValue.length);
+            runtime.data.set(variable.defaultValue, o.state.defaultPointer);
+            runtime.write32(out + 16, o.state.defaultPointer);
+          }
           return undefined;
         },
       },
@@ -3036,37 +3164,63 @@ function variableReflection(r, owner, index) {
   return item;
 }
 
-function typeReflection(r, owner) {
-  if (owner.state.names.has('type')) return owner.state.names.get('type');
+function typeReflection(r, owner, type = owner.state.variable.type, offset = 0, key = 'type') {
+  if (owner.state.names.has(key)) return owner.state.names.get(key);
   const item = makeBorrowedReflection(
     r,
     'ID3D10ShaderReflectionType',
     owner,
-    [
-      'GetDesc',
-      'GetMemberTypeByIndex',
-      'GetMemberTypeByName',
-      'GetMemberTypeName',
-    ],
+    ['GetDesc', 'GetMemberTypeByIndex', 'GetMemberTypeByName', 'GetMemberTypeName'],
     {
       0: {
         argc: 2,
         invoke(runtime, a) {
           const out = number(a(1));
           runtime.check(out, 28, true);
-          runtime.data.fill(0, out, out + 28);
-          return undefined;
+          [
+            type.class,
+            type.type,
+            type.rows,
+            type.columns,
+            type.elements,
+            type.members.length,
+            offset,
+          ].forEach((value, index) => runtime.write32(out + index * 4, value));
+          return S_OK;
         },
       },
-      // The bounded reflection describes no aggregate members, so a member
-      // request is the documented null rather than an invented type.
-      1: { argc: 2, invoke: () => 0 },
-      2: { argc: 2, invoke: () => 0 },
-      3: { argc: 2, invoke: () => 0 },
+      1: {
+        argc: 2,
+        invoke(runtime, a, o) {
+          const index = number(a(1));
+          const member = type.members[index];
+          return member
+            ? typeReflection(runtime, o, member.type, member.offset, `member:${index}`).pointer
+            : 0;
+        },
+      },
+      2: {
+        argc: 2,
+        invoke(runtime, a, o) {
+          const name = runtime.string(number(a(1)));
+          const index = type.members.findIndex((member) => member.name === name);
+          const member = type.members[index];
+          return member
+            ? typeReflection(runtime, o, member.type, member.offset, `member:${index}`).pointer
+            : 0;
+        },
+      },
+      3: {
+        argc: 2,
+        invoke(runtime, a, o) {
+          const member = type.members[number(a(1))];
+          return member ? ownerString(runtime, o, member.name) : 0;
+        },
+      },
     },
-    { owner },
+    { owner, names: new Map() },
   );
-  owner.state.names.set('type', item);
+  owner.state.names.set(key, item);
   return item;
 }
 
@@ -3102,16 +3256,19 @@ function makeBorrowedReflection(r, label, owner, methodNames, methods, state) {
   root.state.children.add(object);
   for (const [slot, methodName] of methodNames.entries()) {
     const method = methods[slot];
-    r.write32(vtable + slot * 4, registerThunk(r.thunks, {
-      kind: 'com',
-      name: `${label}.${methodName}`,
-      async invoke(runtime, argument) {
-        if (runtime !== r || (argument(0) >>> 0) !== pointer)
-          throw Error(`Invalid ${label} this pointer`);
-        if (!root.refs) throw Error(`Released shader reflection ${label}`);
-        return { result: await method.invoke(runtime, argument, object), argc: method.argc };
-      },
-    }));
+    r.write32(
+      vtable + slot * 4,
+      registerThunk(r.thunks, {
+        kind: 'com',
+        name: `${label}.${methodName}`,
+        async invoke(runtime, argument) {
+          if (runtime !== r || argument(0) >>> 0 !== pointer)
+            throw Error(`Invalid ${label} this pointer`);
+          if (!root.refs) throw Error(`Released shader reflection ${label}`);
+          return { result: await method.invoke(runtime, argument, object), argc: method.argc };
+        },
+      }),
+    );
   }
   return object;
 }

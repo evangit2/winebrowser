@@ -334,7 +334,7 @@ export class D3D12Renderer {
     }
   }
 
-  async createResource({ id, kind, width, height, format }) {
+  async createResource({ id, kind, width, height, depth = 1, dimension = '2d', format }) {
     if (
       !integer(id, 1, 0xffffffff) ||
       this.resources.has(id) ||
@@ -342,6 +342,10 @@ export class D3D12Renderer {
       !['depth', 'texture', 'render-texture'].includes(kind) ||
       !integer(width, 1, 2048) ||
       !integer(height, 1, 2048) ||
+      !integer(depth, 1, 2048) ||
+      !['2d', '3d'].includes(dimension) ||
+      (dimension === '2d' && depth !== 1) ||
+      (dimension === '3d' && (kind !== 'texture' || COMPRESSED_FORMATS.includes(format))) ||
       typeof format !== 'string'
     )
       throw Error('Unsupported D3D12 texture resource');
@@ -357,7 +361,8 @@ export class D3D12Renderer {
     // a shader, so it needs both a copy destination and a binding usage.
     const texture = this.device.createTexture({
       label: `D3D12 ${kind} resource`,
-      size: [width, height],
+      size: [width, height, depth],
+      dimension,
       format,
       usage:
         kind === 'depth'
@@ -375,7 +380,7 @@ export class D3D12Renderer {
       texture.destroy();
       throw Error(error.message);
     }
-    this.resources.set(id, { kind, width, height, format, texture });
+    this.resources.set(id, { kind, width, height, depth, dimension, format, texture });
   }
 
   async createPipeline({
@@ -1082,12 +1087,18 @@ export class D3D12Renderer {
    * `rows` already carries the source row pitch, so the copy preserves the
    * D3D12 layout the application computed through GetCopyableFootprints.
    */
-  async uploadTexture({ id, width, height, bytesPerRow, rows }) {
+  async uploadTexture({ id, width, height, depth = 1, bytesPerRow, rowsPerImage, rows }) {
     await this.initialize();
     const resource = this.resources.get(id);
     if (!resource || resource.kind !== 'texture')
       throw Error('D3D12 texture upload target is missing');
-    if (!(rows instanceof Uint8Array) || !bytesPerRow)
+    if (
+      !(rows instanceof Uint8Array) ||
+      !integer(bytesPerRow, 1, 0x7fffffff) ||
+      !integer(width, 1, resource.width) ||
+      !integer(height, 1, resource.height) ||
+      !integer(depth, 1, resource.depth ?? 1)
+    )
       throw Error('D3D12 texture upload data is invalid');
     // A block-compressed texture is addressed in 4x4 blocks: a "row" is a block
     // row of ceil(width/4) blocks, and the region is ceil(height/4) block rows.
@@ -1097,13 +1108,19 @@ export class D3D12Renderer {
       : width * TEXTURE_FORMAT_BYTES[resource.format];
     if (bytesPerRow < rowBytes) throw Error('D3D12 texture upload row pitch is too small');
     const rowCount = compressed ? Math.ceil(height / 4) : height;
-    if (rows.length < bytesPerRow * rowCount)
-      throw Error('D3D12 texture upload covers too few rows');
+    rowsPerImage ??= rowCount;
+    if (!integer(rowsPerImage, rowCount, 0x7fffffff))
+      throw Error('D3D12 texture slice pitch is invalid');
+    const byteLength =
+      (depth - 1) * rowsPerImage * bytesPerRow + (rowCount - 1) * bytesPerRow + rowBytes;
+    if (rows.length < byteLength) throw Error('D3D12 texture upload covers too few rows');
     this.device.queue.writeTexture(
       { texture: resource.texture },
-      rows.subarray(0, bytesPerRow * rowCount),
-      { bytesPerRow, rowsPerImage: rowCount },
-      compressed ? [Math.ceil(width / 4) * 4, Math.ceil(height / 4) * 4, 1] : [width, height, 1],
+      rows.subarray(0, byteLength),
+      { bytesPerRow, rowsPerImage },
+      compressed
+        ? [Math.ceil(width / 4) * 4, Math.ceil(height / 4) * 4, depth]
+        : [width, height, depth],
     );
   }
 
@@ -1120,7 +1137,12 @@ export class D3D12Renderer {
       this.textureViews.set(key, view);
     }
     return {
-      layout: { texture: { sampleType: sampleTypeForFormat(resource.format) } },
+      layout: {
+        texture: {
+          sampleType: sampleTypeForFormat(resource.format),
+          viewDimension: resource.dimension ?? '2d',
+        },
+      },
       resource: view,
     };
   }

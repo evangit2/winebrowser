@@ -29,6 +29,7 @@ import {
   DESCRIPTOR_UAV,
   DEFAULT_LIMITS,
   RESOURCE_BUFFER,
+  RESOURCE_TEXTURE_3D,
   SAMPLER_GROUP,
   UAV_GROUP,
 } from './d3d12-bindings.js';
@@ -163,7 +164,12 @@ function resourceBindingLayout(descriptor) {
       ? { buffer: { type: 'storage' } }
       : { storageTexture: { access: 'write-only', format: 'rgba8unorm' } };
   if (descriptor.resourceType === RESOURCE_BUFFER) return { buffer: { type: 'read-only-storage' } };
-  return { texture: { sampleType: sampleTypeFor(descriptor.dataType) } };
+  return {
+    texture: {
+      sampleType: sampleTypeFor(descriptor.dataType),
+      ...(descriptor.resourceType === RESOURCE_TEXTURE_3D ? { viewDimension: '3d' } : {}),
+    },
+  };
 }
 
 function sampleTypeFor(dataType) {

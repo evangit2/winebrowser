@@ -66,7 +66,7 @@ export function reflectShader(bytes) {
   const chunks = dxbcChunks(bytes);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const result = {
-    version: view.getUint32(4, true),
+    version: 0,
     creator: '',
     flags: 0,
     instructionCount: 0,
@@ -76,6 +76,14 @@ export function reflectShader(bytes) {
     inputs: [],
     outputs: [],
   };
+  const program = chunks.get('SHDR') ?? chunks.get('SHEX');
+  if (program) {
+    if (program.byteLength < 8) invalid('shader program header is truncated');
+    result.version = new DataView(program.buffer, program.byteOffset, program.byteLength).getUint32(
+      0,
+      true,
+    );
+  }
   const rdef = chunks.get('RDEF');
   if (rdef) readRdef(rdef, result);
   const sgn = (name) => {
@@ -102,11 +110,13 @@ function readRdef(body, result) {
   const minorVersion = body[16];
   result.flags = u32(20);
   const creatorOffset = u32(24);
-  result.version = ((majorVersion << 4) | minorVersion) >>> 0;
+  if (!result.version)
+    result.version = ((u32(16) & 0xffff0000) | (majorVersion << 4) | minorVersion) >>> 0;
   if (creatorOffset) result.creator = readString(body, creatorOffset);
 
   let variableSize = 24;
   let bindingSize = 32;
+  let typeSize = 16;
   if (majorVersion >= 5) {
     if (body.byteLength < 60) invalid('RDEF RD11 block is truncated');
     if (tag(body, 28) !== 'RD11') invalid('RD11 magic is missing');
@@ -114,11 +124,50 @@ function readRdef(body, result) {
     // buffer_size, binding_size, variable_size, type_size, field_size, zero.
     bindingSize = u32(28 + 12);
     variableSize = u32(28 + 16);
+    typeSize = u32(28 + 20);
+    if (typeSize !== 16 && typeSize !== 36) invalid('unexpected type size');
     if (variableSize !== 40 && variableSize !== 24) invalid('unexpected variable size');
     if (bindingSize !== 40 && bindingSize !== 32) invalid('unexpected binding size');
   }
   if (bufferCount > MAX_ELEMENTS || bindingCount > MAX_ELEMENTS)
     invalid('RDEF element count exceeds the limit');
+
+  const types = new Map();
+  const visiting = new Set();
+  let totalVariables = 0,
+    totalMembers = 0;
+  function readType(offset, depth = 0) {
+    if (visiting.has(offset) || depth > 32) invalid('recursive type exceeds the limit');
+    if (types.has(offset)) return types.get(offset);
+    if (!offset || offset + typeSize > body.byteLength) invalid('type record is out of bounds');
+    if (types.size >= MAX_ELEMENTS) invalid('type count exceeds the limit');
+    visiting.add(offset);
+    const fieldCount = view.getUint16(offset + 10, true);
+    if ((totalMembers += fieldCount) > MAX_ELEMENTS)
+      invalid('total member count exceeds the limit');
+    const fieldsOffset = u32(offset + 12);
+    if (fieldCount > MAX_ELEMENTS || fieldsOffset + fieldCount * 12 > body.byteLength)
+      invalid('type member table is out of bounds');
+    const type = {
+      class: view.getUint16(offset, true),
+      type: view.getUint16(offset + 2, true),
+      rows: view.getUint16(offset + 4, true),
+      columns: view.getUint16(offset + 6, true),
+      elements: view.getUint16(offset + 8, true),
+      members: [],
+    };
+    types.set(offset, type);
+    for (let i = 0; i < fieldCount; i++) {
+      const record = fieldsOffset + i * 12;
+      type.members.push({
+        name: readString(body, u32(record)),
+        type: readType(u32(record + 4), depth + 1),
+        offset: u32(record + 8),
+      });
+    }
+    visiting.delete(offset);
+    return type;
+  }
 
   for (let i = 0; i < bufferCount; i++) {
     const base = buffersOffset + i * 24;
@@ -126,15 +175,23 @@ function readRdef(body, result) {
     const varCount = u32(base + 4);
     const varsOffset = u32(base + 8);
     const size = u32(base + 12);
-    if (varCount > MAX_ELEMENTS) invalid('constant buffer variable count exceeds the limit');
-    result.constantBuffers.push({ name, size });
+    if ((totalVariables += varCount) > MAX_ELEMENTS)
+      invalid('total variable count exceeds the limit');
+    result.constantBuffers.push({ name, size, flags: u32(base + 16), type: u32(base + 20) });
     const variables = [];
     for (let v = 0; v < varCount; v++) {
       const record = varsOffset + v * variableSize;
+      const size = u32(record + 8);
+      const defaultOffset = u32(record + 20);
+      if (defaultOffset && defaultOffset + size > body.byteLength)
+        invalid('variable default value is out of bounds');
       variables.push({
         name: readString(body, u32(record)),
         offset: u32(record + 4),
-        size: u32(record + 8),
+        size,
+        flags: u32(record + 12),
+        type: readType(u32(record + 16)),
+        defaultValue: defaultOffset ? body.slice(defaultOffset, defaultOffset + size) : null,
       });
     }
     result.variables.push(variables);

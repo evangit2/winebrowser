@@ -71,3 +71,20 @@ Chromium probe gets through the font shader's constant-buffer descriptors and
 then reports `Couldn't create texture` after `ID3D10Device.CreateTexture3D`.
 No Inferno frames have been presented; volume resources and geometry shader
 execution remain required. Probe inputs stay local and hash-checked.
+
+Sampled Direct3D 10 volumes now allocate real WebGPU 3D textures and upload
+single-mip RGBA8 data with independent row and slice pitches. Shader descriptor
+scanning preserves the 3D binding dimension through pipeline creation. The
+resource reports its native 36-byte descriptor and TEXTURE3D dimension; its SRV
+retains the resource until the view is released. CPU-mapped volumes, volume render
+targets, compressed volumes and multiple mip levels remain unsupported.
+`npm run test:volume-backend` compiles SM4 HLSL in Chromium and reads exact red
+and blue pixels from two different depth slices, with zero WebGPU errors.
+775 unit tests and the production build pass. The unchanged Inferno EXE loads
+its explosion volume and now fails creating the separate BC4 terrain texture.
+
+Reflection also reads the shader program's version word, buffer/variable flags,
+actual scalar/vector/matrix/aggregate type records, member offsets and default
+values from DXBC RDEF metadata. Count, recursion and byte bounds are checked;
+malformed type/default records are regression-tested. Borrowed descriptors still
+share their root's lifetime.

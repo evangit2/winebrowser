@@ -155,7 +155,8 @@
     "build:d3d12-knot": "bash scripts/build-d3d12-knot.sh",
     "test:d3d10": "node scripts/test-d3d10-browser.mjs",
     "test:d3d10-backend": "node scripts/test-d3d10-backend.mjs",
-    "test:d3d12-knot": "node scripts/test-d3d12-knot-browser.mjs"
+    "test:d3d12-knot": "node scripts/test-d3d12-knot-browser.mjs",
+    "test:volume-backend": "node scripts/test-volume-backend.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

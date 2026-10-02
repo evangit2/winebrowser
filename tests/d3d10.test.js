@@ -713,7 +713,10 @@ test('reflection children use the non-IUnknown ABI and share root lifetime', asy
   assert.equal((await api('D3D10ReflectShader', source, shader.length, out)).result, 0);
   const reflection = r.read32(out);
   const iidOut = alloc(4);
-  assert.equal((await call(reflection, 0, guid('d40e20b6-f8f7-42ad-ab20-4baf8f15dfaa'), iidOut)).result, 0);
+  assert.equal(
+    (await call(reflection, 0, guid('d40e20b6-f8f7-42ad-ab20-4baf8f15dfaa'), iidOut)).result,
+    0,
+  );
   assert.equal(r.read32(iidOut), reflection);
   await call(reflection, 2); // balance QueryInterface
   const buffer = (await call(reflection, 4, 0)).result;
@@ -732,9 +735,66 @@ test('reflection children use the non-IUnknown ABI and share root lifetime', asy
   assert.equal(r.read32(desc + 8), 16);
   const type = (await call(variable, 1)).result;
   assert.equal((await call(type, 0, desc)).argc, 2);
+  assert.deepEqual(
+    Array.from({ length: 7 }, (_, index) => r.read32(desc + index * 4)),
+    [1, 3, 1, 4, 0, 0, 0],
+  ); // vector, float, one row, four columns
+  assert.equal((await call(type, 1, 0)).result, 0);
   assert.equal((await call(buffer, 1, 0)).result, variable);
   await call(reflection, 2);
   await assert.rejects(call(buffer, 0, desc), /Released shader reflection/);
   await assert.rejects(call(variable, 0, desc), /Released shader reflection/);
   await assert.rejects(call(type, 0, desc), /Released shader reflection/);
+});
+
+test('D3D10 sampled volume copies padded rows and slices and reports its native descriptor', async () => {
+  const { runtime: r, api, alloc, call, events } = fixture();
+  const out = alloc(4);
+  await api('D3D10CreateDevice', 0, 0, 0, 0, 29, out);
+  const device = r.read32(out);
+  const desc = alloc(36);
+  [2, 2, 2, 1, 28, 1, 8, 0, 0].forEach((value, i) => r.write32(desc + i * 4, value));
+  const source = alloc(56),
+    initial = alloc(12);
+  r.data.fill(0xee, source, source + 56);
+  const expected = Uint8Array.from({ length: 32 }, (_, i) => i + 1);
+  for (let z = 0; z < 2; z++)
+    for (let y = 0; y < 2; y++)
+      r.data.set(expected.subarray((z * 2 + y) * 8, (z * 2 + y + 1) * 8), source + z * 32 + y * 12);
+  [source, 12, 32].forEach((value, i) => r.write32(initial + i * 4, value));
+  assert.equal((await call(device, 74, desc, initial, out)).result, 0);
+  const volume = r.read32(out);
+  const created = events.find((event) => event.type === 'resource');
+  assert.equal(created.dimension, '3d');
+  assert.equal(created.depth, 2);
+  const upload = events.find((event) => event.type === 'uploadTexture');
+  assert.deepEqual(upload.rows, expected);
+  assert.equal(upload.depth, 2);
+  assert.equal(upload.bytesPerRow, 8);
+  assert.equal(upload.rowsPerImage, 2);
+  const returned = alloc(40);
+  r.write32(returned + 36, 0xa5a5a5a5);
+  await call(volume, 12, returned);
+  assert.deepEqual(
+    Array.from({ length: 9 }, (_, i) => r.read32(returned + i * 4)),
+    [2, 2, 2, 1, 28, 1, 8, 0, 0],
+  );
+  assert.equal(r.read32(returned + 36), 0xa5a5a5a5);
+  await call(volume, 7, returned);
+  assert.equal(r.read32(returned), 4, 'GetType reports TEXTURE3D');
+  assert.equal((await call(device, 75, volume, 0, out)).result, 0);
+  const view = r.read32(out);
+  await call(view, 8, returned);
+  assert.equal(r.read32(returned + 4), 8, 'default SRV dimension is TEXTURE3D');
+  r.write32(initial + 8, 8); // overlapping slices
+  assert.equal((await call(device, 74, desc, initial, out)).result, 0x80070057);
+  assert.equal(r.read32(out), 0);
+  await call(volume, 2);
+  assert.equal(
+    events.some((event) => event.type === 'destroyResource' && event.id === volume),
+    false,
+    'the shader resource view retains the volume',
+  );
+  await call(view, 2);
+  assert.ok(events.some((event) => event.type === 'destroyResource' && event.id === volume));
 });
