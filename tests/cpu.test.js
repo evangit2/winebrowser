@@ -47,3 +47,38 @@ test('parity reflects low byte even parity', () => {
     assert.equal(c.f.pf, Number([...n.toString(2)].filter((x) => x === '1').length % 2 === 0));
   }
 });
+
+test('CBW sign extends every AL value into AX without changing upper EAX, other registers or flags', () => {
+  const c = cpu([0x66, 0x98]);
+  try {
+    for (let byte = 0; byte < 256; byte++) {
+      c.r[0].value = 0x12340000 | byte;
+      c.r[2].value = 0x76543210;
+      c.f = { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 };
+      c.af = 1;
+      assert.equal(c.step(0x1000), 0x1002);
+      assert.equal(c.r[0].value >>> 0, 0x12340000 | (byte < 128 ? byte : 0xff00 | byte));
+      assert.equal(c.r[2].value, 0x76543210);
+      assert.deepEqual(c.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
+      assert.equal(c.af, 1);
+    }
+  } finally {
+    c.dispose();
+  }
+});
+test('CWD sign extends AX into DX without changing upper EDX or EAX', () => {
+  const c = cpu([0x66, 0x99]);
+  try {
+    for (const ax of [0, 1, 0x7fff, 0x8000, 0xffff]) {
+      c.r[0].value = 0x98760000 | ax;
+      c.r[2].value = 0x12345678;
+      const flags = { ...c.f };
+      c.step(0x1000);
+      assert.equal(c.r[2].value >>> 0, 0x12340000 | (ax & 0x8000 ? 0xffff : 0));
+      assert.equal(c.r[0].value >>> 0, (0x98760000 | ax) >>> 0);
+      assert.deepEqual(c.f, flags);
+    }
+  } finally {
+    c.dispose();
+  }
+});

@@ -72,6 +72,7 @@ function createWorker() {
   loadWait = runWait = null;
   worker?.terminate();
   $('messagebox').close();
+  $('folder-dialog').close();
   desktop.reset();
   $('desktop').hidden = true;
   stopAudio(false);
@@ -164,6 +165,28 @@ function createWorker() {
     }
     if (message.type === 'request') {
       requests.push(message);
+      if (message.kind === 'browse-folder') {
+        if (suiteMode) reply(instance, message, message.selected ?? null);
+        else {
+          $('folder-dialog-title').textContent = message.title;
+          $('folder-dialog-selection').replaceChildren(
+            ...message.folders.map((folder) => new Option(folder.label, folder.path)),
+          );
+          $('folder-dialog-selection').value = message.selected ?? '';
+          $('folder-dialog-ok').disabled = message.enabled === false;
+          const choose = (value) => {
+            $('folder-dialog').close();
+            reply(instance, message, value);
+          };
+          $('folder-dialog-ok').onclick = () => choose($('folder-dialog-selection').value);
+          $('folder-dialog-cancel').onclick = () => choose(null);
+          $('folder-dialog').oncancel = (event) => {
+            event.preventDefault();
+            choose(null);
+          };
+          $('folder-dialog').showModal();
+        }
+      }
       if (message.kind === 'messagebox') {
         if (suiteMode) {
           reply(instance, message, 1);
@@ -394,6 +417,7 @@ $('stop').onclick = () => {
   $('desktop').hidden = true;
   entries = [];
   $('messagebox').close();
+  $('folder-dialog').close();
   $('selection').hidden = true;
   stopAudio();
   runWait?.resolve(null);

@@ -580,7 +580,9 @@ export class VirtualDesktop {
     control.parentId = state.parentId ?? control.parentId;
     if (state.controlStyle !== undefined) control.controlStyle = state.controlStyle;
     if (state.font !== undefined) control.font = state.font;
-    control.parent = this.windows.get(control.parentId) ?? control.parent;
+    const parent = this.windows.get(control.parentId) ?? control.parent;
+    if (parent && parent !== control.parent) parent.viewport.append(control.container);
+    control.parent = parent;
     control.zOrder = state.zOrder ?? control.zOrder ?? 0;
     this.#applyControlGeometry(control);
   }

@@ -180,7 +180,10 @@
     "build:learning-dx12": "python3 scripts/build-learning-dx12-cube.py",
     "test:learning-dx12": "node scripts/test-learning-dx12-cube-browser.mjs",
     "fetch:opengl": "python3 scripts/fetch-opengl-demo.py",
-    "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs"
+    "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs",
+    "build:installer-apis": "sh scripts/build-installer-apis.sh",
+    "test:installer-apis": "node scripts/test-installer-apis-browser.mjs",
+    "benchmark:x87-dispatch": "node scripts/benchmark-x87-dispatch.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

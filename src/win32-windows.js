@@ -1,3 +1,4 @@
+import { resolveGuestPath } from './guest-paths.js';
 import {
   builtinControlClass,
   controlStyle,
@@ -371,6 +372,24 @@ export class WindowManager {
       this.runtime.lastError = 1400;
       return 0;
     }
+    if (window.browseFolder) {
+      const folder = window.browseFolder;
+      if (message === 0x465) {
+        folder.enabled = !!lParam;
+        return 0;
+      }
+      if (message === 0x466 || message === 0x467) {
+        if (wParam) {
+          const input =
+            message === 0x467 ? this.runtime.wideString(lParam) : this.runtime.string(lParam);
+          try {
+            const path = resolveGuestPath(input, this.runtime.cwd, { allowRoot: true });
+            if (folder.choices.includes(path)) folder.selection = path;
+          } catch {}
+        }
+        return 0;
+      }
+    }
     if (window.controlType)
       return controlMessage(
         this.runtime,
@@ -387,7 +406,19 @@ export class WindowManager {
             )
           ).result,
       );
-    return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
+    if (window.dialogProc) {
+      const handled = await this.runtime.callGuest(window.dialogProc, [
+        hwnd,
+        message,
+        wParam,
+        lParam,
+      ]);
+      if (handled || message === 0x110) return handled;
+    } else if (window.proc)
+      return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
+    return (
+      await defaultProc(this.runtime, (i) => [hwnd, message, wParam, lParam][i], window.cls.wide)
+    ).result;
   }
   async destroy(hwnd) {
     const window = this.windows.get(hwnd);
@@ -410,6 +441,9 @@ export class WindowManager {
     if (this.capture === hwnd) this.capture = 0;
     destroyWindowSurface(this.runtime, hwnd);
     this.windows.delete(hwnd);
+    this.runtime.dialogs?.byWindow.delete(hwnd);
+    this.wake?.();
+    this.wake = null;
     if (window.presented) this.emit(window, 'destroy');
     return 1;
   }
@@ -1055,7 +1089,7 @@ export async function createWindowFromHost(r, spec) {
   try {
     const style = (spec.style ?? 0) >>> 0;
     const parent = spec.parent >>> 0;
-    const child = !!parent;
+    const child = !!parent && !spec.owner;
     const args = [
       (spec.exStyle ?? 0) >>> 0,
       classPointer,
@@ -1070,7 +1104,8 @@ export async function createWindowFromHost(r, spec) {
       spec.instance ?? r.pe.imageBase,
       0,
     ];
-    return await create(r, (i) => args[i] ?? 0, false);
+    const response = await create(r, (i) => args[i] ?? 0, false);
+    return response.result ? { id: response.result } : { error: r.lastError };
   } finally {
     if (classPointer) r.free(classPointer);
     if (titlePointer) r.free(titlePointer);

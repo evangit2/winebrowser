@@ -1,6 +1,7 @@
 // Published Windows ordinals, matching Wine's dsound.spec. Keep unsupported
 // exports absent: an ordinal mapping alone does not advertise an API service.
 export const HOST_EXPORT_ORDINALS = {
+  'comctl32.dll': { InitCommonControls: 17 },
   // OLE Automation's published ordinals (Wine's oleaut32.spec lists the same
   // numbering). 7zr imports SysAllocString, SysAllocStringLen, SysFreeString,
   // SysStringLen, VariantClear and VariantCopy by ordinal.

@@ -30,85 +30,135 @@ function dialogState(r) {
 // DS_SETFONT is set, then DLGITEMTEMPLATE records that each begin on a DWORD
 // boundary. Strings are NUL-terminated UTF-16; 0xffff introduces an ordinal.
 export function readDialogTemplate(bytes, offset = 0, maxItems = MAX_DIALOG_ITEMS) {
-  if (!(bytes instanceof Uint8Array) || bytes.length < 18) return null;
+  if (!(bytes instanceof Uint8Array)) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const align4 = (value) => (value + 3) & ~3;
-  const readString = (at) => {
-    if (at + 2 > bytes.length) return null;
-    if (view.getUint16(at, true) === 0xffff) {
-      if (at + 4 > bytes.length) return null;
-      return { value: view.getUint16(at + 2, true), ordinal: true, at: at + 4 };
-    }
-    let value = '';
-    let cursor = at;
-    while (cursor + 2 <= bytes.length) {
-      const unit = view.getUint16(cursor, true);
-      cursor += 2;
-      if (unit === 0) return { value, ordinal: false, at: cursor };
-      value += String.fromCharCode(unit);
-    }
-    return null;
+  let at = offset;
+  const need = (size) => {
+    if (at < 0 || at + size > bytes.length) throw Error('Truncated dialog template');
   };
-  const style = view.getUint32(offset, true);
-  const exStyle = view.getUint32(offset + 4, true);
-  const itemCount = view.getInt16(offset + 8, true);
-  if (itemCount < 0 || itemCount > maxItems) return null;
-  const x = view.getInt16(offset + 10, true);
-  const y = view.getInt16(offset + 12, true);
-  const cx = view.getInt16(offset + 14, true);
-  const cy = view.getInt16(offset + 16, true);
-  let at = offset + 18;
-  for (const field of ['menu', 'class']) {
-    const value = readString(at);
-    if (!value) return null;
-    at = value.at;
-  }
-  const title = readString(at);
-  if (!title) return null;
-  at = title.at;
-  let font = null;
-  if (style & 0x40) {
-    // DS_SETFONT: a 16-bit point size, then the typeface.
-    if (at + 2 > bytes.length) return null;
+  const word = () => {
+    need(2);
+    const value = view.getUint16(at, true);
     at += 2;
-    const face = readString(at);
-    if (!face) return null;
-    font = { value: face.value };
-    at = face.at;
-  }
-  const items = [];
-  at = align4(at);
-  for (let i = 0; i < itemCount; i++) {
-    if (at + 18 > bytes.length) return null;
-    const itemStyle = view.getUint32(at, true);
-    const itemExStyle = view.getUint32(at + 4, true);
-    const id = view.getUint16(at + 16, true);
-    const geometry = {
-      x: view.getInt16(at + 8, true),
-      y: view.getInt16(at + 10, true),
-      width: view.getInt16(at + 12, true),
-      height: view.getInt16(at + 14, true),
+    return value;
+  };
+  const signed = () => (word() << 16) >> 16;
+  const dword = () => {
+    need(4);
+    const value = view.getUint32(at, true);
+    at += 4;
+    return value;
+  };
+  const align = () => {
+    at = (at + 3) & ~3;
+  };
+  const string = () => {
+    let unit = word();
+    if (unit === 0xffff) return { value: word(), ordinal: true };
+    let value = '';
+    while (unit) {
+      value += String.fromCharCode(unit);
+      unit = word();
+    }
+    return { value, ordinal: false };
+  };
+  try {
+    need(4);
+    const extended = view.getUint16(at, true) === 1 && view.getUint16(at + 2, true) === 0xffff;
+    let style, exStyle;
+    if (extended) {
+      word();
+      word();
+      dword();
+      exStyle = dword();
+      style = dword();
+    } else {
+      style = dword();
+      exStyle = dword();
+    }
+    const itemCount = word();
+    if (itemCount > maxItems) return null;
+    const x = signed(),
+      y = signed(),
+      cx = signed(),
+      cy = signed();
+    const menu = string(),
+      klass = string(),
+      title = string();
+    let font = null;
+    if (style & 0x40) {
+      const size = word();
+      if (extended) {
+        word();
+        need(2);
+        at += 2;
+      }
+      const face = string();
+      font = { value: face.value, size };
+    }
+    const items = [];
+    for (let i = 0; i < itemCount; i++) {
+      align();
+      let itemStyle, itemExStyle;
+      if (extended) {
+        dword();
+        itemExStyle = dword();
+        itemStyle = dword();
+      } else {
+        itemStyle = dword();
+        itemExStyle = dword();
+      }
+      const ix = signed(),
+        iy = signed(),
+        width = signed(),
+        height = signed(),
+        id = extended ? dword() : word();
+      const itemClass = string(),
+        text = string(),
+        extra = word();
+      // The standard creation-data size includes the WORD size itself.
+      if (extra) {
+        need(extended ? extra : Math.max(0, extra - 2));
+        at += extended ? extra : Math.max(0, extra - 2);
+      }
+      items.push({
+        style: itemStyle,
+        exStyle: itemExStyle,
+        id,
+        className: itemClass.ordinal
+          ? ({
+              128: 'button',
+              129: 'edit',
+              130: 'static',
+              131: 'listbox',
+              132: 'scrollbar',
+              133: 'combobox',
+            }[itemClass.value] ?? String(itemClass.value))
+          : String(itemClass.value),
+        text: text.ordinal ? '' : text.value,
+        x: ix,
+        y: iy,
+        width,
+        height,
+      });
+    }
+    return {
+      style,
+      exStyle,
+      items,
+      title: title.value,
+      font,
+      x,
+      y,
+      cx,
+      cy,
+      menu: menu.value,
+      className: klass.value,
+      extended,
     };
-    at += 18;
-    const klass = readString(at);
-    if (!klass) return null;
-    at = klass.at;
-    const text = readString(at);
-    if (!text) return null;
-    at = text.at;
-    if (at + 2 > bytes.length) return null;
-    const extra = view.getUint16(at, true);
-    at = align4(at + 2 + extra);
-    items.push({
-      style: itemStyle >>> 0,
-      exStyle: itemExStyle >>> 0,
-      id,
-      className: klass.ordinal ? String(klass.value) : klass.value,
-      text: text.ordinal ? '' : text.value,
-      ...geometry,
-    });
+  } catch {
+    return null;
   }
-  return { style, exStyle, items, title: title.value, font, x, y, cx, cy };
 }
 
 // The dialog renders with its own class: an owned top-level window whose client
@@ -123,6 +173,8 @@ export const dialogApis = {
   'user32.dll!DialogBoxIndirectParamW': (r, a) => dialogBoxIndirect(r, a, true),
   'user32.dll!CreateDialogParamA': (r, a) => createDialogParam(r, a, false),
   'user32.dll!CreateDialogParamW': (r, a) => createDialogParam(r, a, true),
+  'user32.dll!CreateDialogIndirectParamA': (r, a) => dialogBoxIndirect(r, a, false, true),
+  'user32.dll!CreateDialogIndirectParamW': (r, a) => dialogBoxIndirect(r, a, true, true),
   // EndDialog records the result and ends the modal loop.
   'user32.dll!EndDialog': (r, a) => {
     const dialog = dialogState(r).byWindow.get(a(0));
@@ -175,18 +227,20 @@ async function buildDialog(r, template, owner, proc, instance) {
     width: Math.max(80, dialogUnitsToPixels(template.cx)),
     height: Math.max(40, dialogUnitsToPixels(template.cy)),
     parent: owner,
+    owner: true,
     style: template.style,
     exStyle: template.exStyle,
     instance,
     proc,
   });
   if (created.error !== undefined || !created.id) return { error: created.error ?? 1407 };
+  r.windows.windows.get(created.id).dialogProc = proc;
   const dialog = { id: created.id, result: 0, finished: false, proc };
   dialogState(r).byWindow.set(created.id, dialog);
   // Create the template's child controls through the same path a guest
   // CreateWindowEx takes, so every control style is honoured.
   for (const item of template.items) {
-    await createWindowFromHost(r, {
+    const child = await createWindowFromHost(r, {
       className: item.className,
       title: item.text,
       x: dialogUnitsToPixels(item.x),
@@ -199,6 +253,11 @@ async function buildDialog(r, template, owner, proc, instance) {
       exStyle: item.exStyle,
       instance,
     });
+    if (child.error) {
+      await r.windows.destroy(created.id);
+      dialogState(r).byWindow.delete(created.id);
+      return { error: child.error };
+    }
   }
   return { dialog, window: created };
 }
@@ -223,7 +282,7 @@ async function dialogBoxParam(r, a, wide) {
   return runDialog(r, built.dialog, a(4));
 }
 
-async function dialogBoxIndirect(r, a, wide) {
+async function dialogBoxIndirect(r, a, wide, modeless = false) {
   const owner = a(2) >>> 0;
   if (owner && !r.windows.windows.has(owner)) return fail(r, 1400, 5);
   const proc = a(3);
@@ -245,6 +304,10 @@ async function dialogBoxIndirect(r, a, wide) {
   const built = await buildDialog(r, template, owner, proc, r.pe.imageBase);
   if (built.error) return fail(r, built.error, 5);
   void wide;
+  if (modeless) {
+    await r.callGuest(proc, [built.dialog.id, WM_INITDIALOG, 0, a(4) || 0]);
+    return ok(built.window.id, 5);
+  }
   return runDialog(r, built.dialog, a(4));
 }
 
@@ -278,24 +341,40 @@ function moduleAt(r, base) {
 // destroyed) ends it.
 async function runDialog(r, dialog, param) {
   const m = r.windows;
-  await r.callGuest(dialog.proc, [dialog.id, WM_INITDIALOG, 0, param || 0]);
-  while (!dialog.finished && m.windows.has(dialog.id)) {
-    const message = m.next(dialog.id, 0, 0, false);
-    if (!message) {
-      await r.threads.block(
-        new Promise((resolve) => {
-          m.dialogWake = resolve;
-        }),
-      );
-      continue;
-    }
-    m.next(dialog.id, 0, 0, true);
-    await dispatchGuestMessage(r, message);
+  const window = m.windows.get(dialog.id),
+    owner = m.windows.get(window?.ownerId);
+  const wasEnabled = owner?.enabled !== false;
+  if (owner && wasEnabled) {
+    owner.enabled = false;
+    m.emit(owner);
+    await m.send(owner.id, 0xa, 0, 0);
   }
-  const result = dialog.result;
-  dialogState(r).byWindow.delete(dialog.id);
-  if (m.windows.has(dialog.id)) await m.destroy(dialog.id);
-  return ok(result, 5);
+  try {
+    await r.callGuest(dialog.proc, [dialog.id, WM_INITDIALOG, 0, param || 0]);
+    while (!dialog.finished && m.windows.has(dialog.id) && r.exitCode === null) {
+      // A modal loop still dispatches posted messages for the process; only
+      // user input to its disabled owner is suppressed by the window manager.
+      const message = m.next(0, 0, 0, true);
+      if (!message) {
+        await r.threads.block(
+          new Promise((resolve) => {
+            m.wake = resolve;
+          }),
+        );
+        continue;
+      }
+      await dispatchGuestMessage(r, message);
+    }
+    return ok(dialog.result, 5);
+  } finally {
+    dialogState(r).byWindow.delete(dialog.id);
+    if (m.windows.has(dialog.id)) await m.destroy(dialog.id);
+    if (owner && wasEnabled && m.windows.has(owner.id)) {
+      owner.enabled = true;
+      m.emit(owner);
+      await m.send(owner.id, 0xa, 1, 0);
+    }
+  }
 }
 
 // Delivers one queued message the way DispatchMessage does, but without going

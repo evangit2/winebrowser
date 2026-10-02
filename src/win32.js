@@ -1,3 +1,6 @@
+import { shellFolderApis } from './win32-shell-folders.js';
+import { lzApis } from './win32-lz.js';
+import { legacyUiApis } from './win32-legacy-ui.js';
 import { dpiApis } from './win32-dpi.js';
 import { pathApis } from './win32-paths.js';
 import { registryApis } from './win32-registry.js';
@@ -87,6 +90,9 @@ export const API_NAMES = {
 };
 
 for (const key of [
+  ...Object.keys(shellFolderApis),
+  ...Object.keys(lzApis),
+  ...Object.keys(legacyUiApis),
   ...Object.keys(dpiApis),
   ...Object.keys(pathApis),
   ...Object.keys(processApis),
@@ -452,6 +458,9 @@ function closeHandle(runtime, argument) {
 /** Provide the explicitly supported Win32 imports for a single Runtime. */
 export function createWin32ApiProvider() {
   const provider = new Map([
+    ...Object.entries(shellFolderApis),
+    ...Object.entries(lzApis),
+    ...Object.entries(legacyUiApis),
     ...Object.entries(dpiApis),
     ...Object.entries(pathApis),
     ...Object.entries(processApis),

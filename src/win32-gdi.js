@@ -795,6 +795,189 @@ function createFontIndirect(runtime, argument, wide) {
 }
 // CreateBitmap(Width, Height, Planes, BitCount, Bits): an in-memory bitmap. The
 // runtime only models the 1/4/8/24/32-bit colour layouts it can rasterize.
+// CreateDIBitmap converts the caller's BITMAPINFO and DIB rows into a display
+// bitmap. Unlike CreateBitmap, indexed DIB colours come from its actual palette.
+function createDIBitmap(r, a) {
+  const state = stateFor(r),
+    header = a(1),
+    flags = a(2),
+    bits = a(3),
+    info = a(4),
+    usage = a(5);
+  if (a(0) && !getDc(r, state, a(0))) return badDc(r, 6);
+  if (!header || flags & ~4 || usage !== 0) return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+  r.check(header, 12);
+  const size = r.read32(header),
+    core = size === 12;
+  if (!core && size < 40) return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+  r.check(header, core ? 12 : 40);
+  const width = core ? r.view.getUint16(header + 4, true) : r.read32(header + 4) | 0;
+  const signedHeight = core ? r.view.getUint16(header + 6, true) : r.read32(header + 8) | 0;
+  const height = Math.abs(signedHeight),
+    planes = r.view.getUint16(header + (core ? 8 : 12), true),
+    depth = r.view.getUint16(header + (core ? 10 : 14), true);
+  const compression = core ? 0 : r.read32(header + 16);
+  if (
+    width < 1 ||
+    height < 1 ||
+    width > 4096 ||
+    height > 4096 ||
+    planes !== 1 ||
+    ![1, 4, 8, 16, 24, 32].includes(depth) ||
+    ![0, 3].includes(compression) ||
+    (compression === 3 && ![16, 32].includes(depth))
+  )
+    return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+  if (width * height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
+    return failure(r, ERROR_NOT_ENOUGH_MEMORY, 0, 6);
+  const pixels = opaquePixels(width, height);
+  if (flags & 4) {
+    if (!bits || !info) return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+    r.check(info, core ? 12 : 40);
+    const stride = Math.ceil((width * depth) / 32) * 4;
+    r.check(bits, stride * height);
+    let palette = [],
+      masks = depth === 16 ? [0x7c00, 0x3e0, 0x1f] : [0xff0000, 0xff00, 0xff];
+    if (depth <= 8) {
+      const count = core ? 1 << depth : r.read32(info + 32) || 1 << depth;
+      if (count > 1 << depth) return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+      const start = info + (core ? 12 : r.read32(info)),
+        entry = core ? 3 : 4;
+      r.check(start, count * entry);
+      for (let i = 0; i < count; i++)
+        palette.push([
+          r.data[start + i * entry + 2],
+          r.data[start + i * entry + 1],
+          r.data[start + i * entry],
+        ]);
+    }
+    if (compression === 3) {
+      const at = info + 40;
+      r.check(at, 12);
+      masks = [0, 4, 8].map((n) => r.read32(at + n));
+      if (
+        masks.some((m) => {
+          if (!m || (depth === 16 && m > 0xffff)) return true;
+          const low = (m & -m) >>> 0,
+            shifted = (m >>> 0) / low;
+          return (shifted & (shifted + 1)) !== 0;
+        }) ||
+        masks[0] & masks[1] ||
+        masks[0] & masks[2] ||
+        masks[1] & masks[2]
+      )
+        return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+    }
+    const channel = (v, mask) => {
+      const low = mask & -mask,
+        maximum = (mask >>> 0) / (low >>> 0);
+      return Math.round(((((v & mask) >>> 0) / (low >>> 0)) * 255) / maximum);
+    };
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const row = bits + (signedHeight < 0 ? y : height - 1 - y) * stride;
+        let rgb;
+        if (depth <= 8) {
+          const index =
+            depth === 8
+              ? r.data[row + x]
+              : depth === 4
+                ? (r.data[row + (x >> 1)] >> (x & 1 ? 0 : 4)) & 15
+                : (r.data[row + (x >> 3)] >> (7 - (x & 7))) & 1;
+          rgb = palette[index];
+          if (!rgb) return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+        } else if (depth === 24)
+          rgb = [r.data[row + x * 3 + 2], r.data[row + x * 3 + 1], r.data[row + x * 3]];
+        else {
+          const v =
+            depth === 16
+              ? r.view.getUint16(row + x * 2, true)
+              : r.view.getUint32(row + x * 4, true);
+          rgb = masks.map((mask) => channel(v, mask));
+        }
+        pixels.set([...rgb, 255], (y * width + x) * 4);
+      }
+  }
+  const allocated = allocateHandle(r, state, 6);
+  if (!allocated.result) return allocated;
+  state.bitmaps.set(allocated.result, {
+    kind: 'bitmap',
+    stock: false,
+    width,
+    height,
+    monochrome: depth === 1,
+    pixels,
+    dirty: false,
+  });
+  return allocated;
+}
+
+async function enumFontFamilies(r, a, wide) {
+  const state = stateFor(r),
+    dc = getDc(r, state, a(0));
+  if (!dc) return badDc(r, 5);
+  const pointer = a(1),
+    proc = a(2);
+  if (!pointer || !proc || a(4)) return failure(r, ERROR_INVALID_PARAMETER, 0, 5);
+  const logSize = wide ? 92 : 60;
+  r.check(pointer, logSize);
+  const face = wide ? r.wideString(pointer + 28) : r.string(pointer + 28),
+    charset = r.data[pointer + 23];
+  if (![0, 1].includes(charset)) return success(1, 5);
+  // Logical device fonts use the same browser CSS stack as TextOut. This is
+  // the virtual display's font set, without pretending to expose host font files.
+  const families = new Map([
+    ['Arial', 'sans-serif'],
+    ['Times New Roman', 'serif'],
+    ['Courier New', 'monospace'],
+  ]);
+  for (const font of state.fonts.values())
+    if (font.face !== 'sans-serif') families.set(font.face, font.face);
+  const chosen = face
+    ? [...families].filter(([name]) => name.toLowerCase() === face.toLowerCase())
+    : [...families];
+  let last = 1;
+  for (const [name, family] of chosen) {
+    const font = { ...DEFAULT_GDI_FONT, face: name, css: `16px ${JSON.stringify(family)}` };
+    const measured = rasterizeGdiText(r, 'W', font);
+    if (measured.error) return failure(r, ERROR_CALL_NOT_IMPLEMENTED, 0, 5);
+    const enumSize = wide ? 348 : 188,
+      tmSize = wide ? 60 : 56,
+      record = r.allocate(enumSize + tmSize),
+      tm = record + enumSize;
+    try {
+      r.write32(record, -16);
+      r.write32(record + 16, 400);
+      r.data[record + 23] = 0;
+      const put = (at, text, count) => {
+        for (let i = 0; i < Math.min(text.length, count - 1); i++)
+          r.guestMemory.write(at + i * (wide ? 2 : 1), text.charCodeAt(i), wide ? 2 : 1);
+      };
+      put(record + 28, name, 32);
+      put(record + logSize, name, 64);
+      put(record + logSize + (wide ? 128 : 64), 'Regular', 32);
+      put(record + logSize + (wide ? 192 : 96), 'Western', 32);
+      const ascent = measured.mask.ascent ?? 12,
+        width = Math.max(1, measured.mask.width);
+      [16, ascent, 16 - ascent, 0, 0, width, width, 400, 0, 96, 96].forEach((v, i) =>
+        r.write32(tm + i * 4, v),
+      );
+      if (wide) {
+        [32, 255, 63, 32].forEach((v, i) => r.view.setUint16(tm + 44 + i * 2, v, true));
+        r.data[tm + 55] = family === 'monospace' ? 0x30 : 0x21;
+        r.data[tm + 56] = 0;
+      } else {
+        r.data.set([32, 255, 63, 32, 0, 0, 0, family === 'monospace' ? 0x30 : 0x21, 0], tm + 44);
+      }
+      last = await r.callGuest(proc, [record, tm, 2, a(3)]); // DEVICE_FONTTYPE
+      if (!last) break;
+    } finally {
+      r.free(record);
+    }
+  }
+  return success(last, 5);
+}
+
 function createBitmap(runtime, argument) {
   const state = stateFor(runtime);
   const width = signed(argument(0));
@@ -2029,6 +2212,9 @@ export const gdiApis = {
   'gdi32.dll!GetCharABCWidthsFloatA': (runtime, argument) =>
     charWidths(runtime, argument, false, true),
   'gdi32.dll!GetDIBits': getDIBits,
+  'gdi32.dll!CreateDIBitmap': createDIBitmap,
+  'gdi32.dll!EnumFontFamiliesExA': (r, a) => enumFontFamilies(r, a, false),
+  'gdi32.dll!EnumFontFamiliesExW': (r, a) => enumFontFamilies(r, a, true),
   'gdi32.dll!CreateFontW': (runtime, argument) => createFont(runtime, argument, true),
   'user32.dll!DrawTextA': (runtime, argument) => drawText(runtime, argument, false, false),
   'user32.dll!DrawTextW': (runtime, argument) => drawText(runtime, argument, true, false),

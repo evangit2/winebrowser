@@ -1143,6 +1143,38 @@ export class CPU {
                 ]),
               );
             } else throw Error('Unsupported conditional instruction');
+          } else if (m === M.Cbw) {
+            // AL -> AX, preserving EAX's upper half and all flags.
+            code.push(
+              ...get(0),
+              ...constant(0xffff0000),
+              0x71,
+              ...get(0),
+              ...constant(24),
+              0x74,
+              ...constant(24),
+              0x75,
+              ...constant(0xffff),
+              0x71,
+              0x72,
+              ...set(0),
+            );
+          } else if (m === M.Cwd) {
+            // AX's sign fills DX; EDX's upper half is unchanged.
+            code.push(
+              ...get(2),
+              ...constant(0xffff0000),
+              0x71,
+              ...get(0),
+              ...constant(16),
+              0x74,
+              ...constant(31),
+              0x75,
+              ...constant(0xffff),
+              0x71,
+              0x72,
+              ...set(2),
+            );
           } else if (m === M.Cdq) code.push(...get(0), ...constant(31), 0x75, ...set(2));
           else if (m === M.Cwde)
             code.push(...get(0), ...constant(16), 0x74, ...constant(16), 0x75, ...set(0));

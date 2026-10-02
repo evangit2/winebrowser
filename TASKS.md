@@ -681,3 +681,6 @@ Scope and reproduction: [Vulkan runtime](docs/vulkan-runtime.md).
 Evidence: [native uploads](evidence/vulkan-browser-results.json) and
 [readback presentation](evidence/vulkan-readback-results.json).
 This does not establish x64 or arbitrary Vulkan-program compatibility.
+
+- Added shared services for the imports reported by the ATI Treasure Chest installer. The authored native installer-service client passes in the browser; see [installer scope](docs/installer-runtime.md). Keep exact ATI installer installation/rendering acceptance open.
+- Humus Dynamic Branching and RollerCoaster both rendered on the live Pages site in ordinary headed Chromium 153, with no unsafe WebGPU flags. Startup is still approximately 90–120 seconds. First x87 dispatch optimization removes repeated initialization awaits; few-second startup is not achieved.
