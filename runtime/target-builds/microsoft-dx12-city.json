@@ -1,0 +1,54 @@
+{
+  "upstream": "https://github.com/microsoft/DirectX-Graphics-Samples",
+  "revision": "be8195fc324c97c6550b710ace15e18b560c07c8",
+  "directory": "Samples/Desktop/D3D12Bundles/src",
+  "license": "MIT",
+  "licenseSha256": "cf248820bf1178370bb4f1670a59f8748d46bc96d0f64080cd631511c6046409",
+  "files": {
+    "D3D12Bundles.cpp": "2dae9f0ff84b22472a64e79126ab907999bfde65ae8c9ece5e9baae8814b50e7",
+    "D3D12Bundles.h": "c50c72695ee50f517894d7c261bd436ae9329e46cb1a1f8fb9aabe7c844b9957",
+    "DXSample.cpp": "25c51d42cb06880a505c5d98cf6e1cbf2d63b65170279c5eca4f7c0186891dd3",
+    "DXSample.h": "ceea5ae9bbd10ca2b6b32cfc033e31ab943fe81b12fe1f8bc35963759d409a86",
+    "DXSampleHelper.h": "86af1d04592653df95ffcdf3317a5ba385cb80da4e30288d855824ac36df67fb",
+    "FrameResource.cpp": "8d30169d7098aec2de72a0737e2f8bddba8ce595bdf08e460d6b6cb793b07846",
+    "FrameResource.h": "45fac6d244a66a23d01a34c54e1a07f08295f2200458690a3359e053da6931c3",
+    "Main.cpp": "d05f70a7e9540a5f27e37a10099ddefac238aa3faad7e02baa0b80ffdd4d5703",
+    "SimpleCamera.cpp": "a3c629a796a8cf68f5ea10b983b5ec2c9dde8a6a52c4e3d0ff64d96a070f0ef1",
+    "SimpleCamera.h": "9813c1d4647cc9a0943c26b59d64192271a23cd328d2cc9bc58573bbc61217a5",
+    "StepTimer.h": "352e84dd13a334bd67c60dae1cda0e338eafbcc24190d9007004857f7c6e3771",
+    "Win32Application.cpp": "ac26ca37c04af681d474f4ad0999e5095a2c52410e2867f38236e050521d6043",
+    "Win32Application.h": "95c2397c40a2d6a5b3a8c0bae3c78626fc516436d3bbc9d588cc56b3fe6ddf9d",
+    "occcity.bin": "7e2ef2e708a636b4d46d3bfc8103431a0ee9d3916234a19072af8aaf09a832f2",
+    "occcity.h": "85f1889c1a1123d843364000c9f49da448820af11301dc374d4b6f09ec16beb3",
+    "shader_mesh_alt_pixel.hlsl": "84ad7e51a42851a4f8771ada8d19ee31da761f2164b01a15915f392d86290e06",
+    "shader_mesh_simple_pixel.hlsl": "5266826184f9ddde40684a7fb5ea17ae78d27642b3881a3ebe46abf1fab0abcd",
+    "shader_mesh_simple_vert.hlsl": "aae5d73f9fe9ca916ca42f8ad3d62515d1430156f468daedde40c2b8f4d9b455",
+    "stdafx.cpp": "4e1e06e897454f22c0d3c880e23f4114109bf912ff311a28b88d10eeae9b8518",
+    "stdafx.h": "c984042893aff3ca02451d967acf8a325f518f2f0e47850a31c9e73f140c0404",
+    "d3dx12.h": "8c93513dc3e9f5bb2a607df96334add9684846fc249b69d2fea08c430edf1169"
+  },
+  "directXMath": {
+    "upstream": "https://github.com/microsoft/DirectXMath",
+    "revision": "abced86db5d790d3463b118f2f716db30374a1f7",
+    "license": "MIT",
+    "files": {
+      "LICENSE": "d5f67216f1301a781226f9f4e15c9519e9126ba16aef602a256b387c10a5a851",
+      "Inc/DirectXMathConvert.inl": "3e814e1c15e4ce5db3d0d8f79ee292e47865601ff646e150041fe69b8478a51e",
+      "Inc/DirectXCollision.inl": "f8df9957c3f9e3d0bd0376362384115d8b005155aaabb1e54d78d827d600a727",
+      "Inc/DirectXMathMisc.inl": "03b588dfd5c6161a782e777e739f0bc9f973c3747f77be642e3eb5649374215b",
+      "Inc/DirectXPackedVector.inl": "caa49c6bf9538b92a15bc69017c0ccdd1ae575daf160a8a26c3d785b33667640",
+      "Inc/DirectXCollision.h": "13acf064d26bcb5121dbcf459524e5028d012d7ca319cc368d0e904880b9fd50",
+      "Inc/DirectXMath.h": "121368161b6e5461fb6fa0c24fd81699536de1ac0f288fc5fc46c51e99aacac4",
+      "Inc/DirectXColors.h": "81816969fd75ac891be4bd066d8e84233b6fb2fce7a33c1167a912e1c8685775",
+      "Inc/DirectXMathVector.inl": "8486f33481250179f4c1178cd64f1122fe9ee62c837b8148f3b5d2b9bd47bbb5",
+      "Inc/DirectXPackedVector.h": "f2a8b5935f57dd37edd6854b9bcc59fc8429fdb15407c69fde43c1b65e23ce60",
+      "Inc/DirectXMathMatrix.inl": "7a321e6029771bea728b9ff94e4c6d1d20e925be8e10c5900f4fef3460319c97"
+    }
+  },
+  "buildNote": "Unchanged Microsoft D3D12Bundles C++ and OCC city mesh/BC1 texture. Native PE32 build with MinGW header compatibility and upstream DirectXMath scalar path. Profiling-only PIX macros have their disabled SDK behavior. Original HLSL compiled with the browser shader compiler; no scene or shader substitutions. The compatibility preinclude rewrites MSVC wide-string naming macros with standard token-pasting and makes std::min/max available.",
+  "shaders": {
+    "shader_mesh_alt_pixel.cso": "f9843a468568627030f2826396269124b37bd707359ae726a0ba7e4dfca9f0eb",
+    "shader_mesh_simple_pixel.cso": "a13c75102bea76151bb22bdc74bcc05abdd64de93958cc50fa4f59428afeef34",
+    "shader_mesh_simple_vert.cso": "43564a12664f9a83f9aeccabaaa8233d30826483216b7020eeefa48247a312b2"
+  }
+}
