@@ -20,6 +20,7 @@ export class GuestThreads {
     this.current = this.main;
     this.schedulerNow = () => performance.now();
     this.starvationMilliseconds = 3000;
+    this.quantumMilliseconds = 20;
     this.records = new Map([[1, this.main]]);
     this.nextId = 2;
     this.queue = [];
@@ -34,6 +35,7 @@ export class GuestThreads {
     if (thread?.stop && !thread.detaching) throw new ThreadStopped('Guest thread stopped');
   }
   save(thread) {
+    this.accountBoost(thread);
     thread.context = this.r.cpu.captureContext();
     thread.depth = this.r.callDepth;
   }
@@ -41,6 +43,7 @@ export class GuestThreads {
     this.current = thread;
     this.r.cpu.restoreContext(thread.context);
     this.r.callDepth = thread.depth;
+    if (thread.boostQuanta) thread.boostSince = this.schedulerNow();
   }
   pump() {
     if (this.current) return;
@@ -61,7 +64,10 @@ export class GuestThreads {
     // Windows temporarily boosts starved variable-priority threads. Without
     // this, a CPU-bound priority-15 codec worker can prevent the UI thread
     // from ever resuming, even though both are in the ready queue.
-    if (this.starved(next)) next.boostQuanta = 2;
+    if (this.starved(next)) {
+      next.boostQuanta = 2;
+      next.boostElapsed = 0;
+    }
     next.readySince = undefined;
     const index = this.queue.indexOf(next);
     const [thread] = this.queue.splice(index, 1);
@@ -117,7 +123,7 @@ export class GuestThreads {
   }
   async yield() {
     this.checkRunning();
-    if (this.current.boostQuanta) this.current.boostQuanta--;
+    this.accountBoost(this.current);
     if (
       this.current.suspend ||
       this.queue.some(
@@ -125,6 +131,16 @@ export class GuestThreads {
       )
     )
       await this.block(Promise.resolve());
+  }
+  accountBoost(thread) {
+    if (!thread.boostQuanta || thread.boostSince === undefined) return;
+    const now = this.schedulerNow();
+    thread.boostElapsed = (thread.boostElapsed ?? 0) + Math.max(0, now - thread.boostSince);
+    while (thread.boostQuanta && thread.boostElapsed >= this.quantumMilliseconds) {
+      thread.boostElapsed -= this.quantumMilliseconds;
+      thread.boostQuanta--;
+    }
+    thread.boostSince = thread.boostQuanta ? now : undefined;
   }
   starved(thread) {
     return (

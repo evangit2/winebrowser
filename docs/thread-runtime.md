@@ -12,8 +12,10 @@ the CPU. Their JavaScript continuations resume only after the owning context and
 guest call depth are restored. CPU-only loops yield at dispatcher checkpoints
 every 2,048 blocks. Runnable threads are selected by base priority, with round-robin
 ordering among equals. A thread waiting in the ready queue for three seconds
-receives a temporary priority-15 boost for two dispatcher quanta; its requested
-base priority remains intact. This prevents a runnable priority-15 worker from
+receives a temporary priority-15 boost for two 20 ms execution quanta; its requested
+base priority remains intact. The boost accounts time across context switches,
+excludes blocked waits, and does not expire merely at a 2,048-block host checkpoint.
+This prevents a runnable priority-15 worker from
 permanently starving the UI. Suspended threads remain excluded. Other dynamic
 boosts, affinity and scheduling classes are not implemented. Module transactions and DLL notifications share a reentrant
 loader lock across guest callbacks and suspension.
@@ -65,9 +67,12 @@ including dynamic TLS/FLS and process shutdown. Reports are in
 and `evidence/threads-native-browser-results.json`.
 
 Original Hamsterball creates two workers and presents its loading screen and
-menu through ordinary Pages upload with the native Wine base. An actual BASS
+menus and normal tournament's warm-up race selection through ordinary Pages upload
+with the native Wine base. An actual BASS
 priority-15 worker exposed starvation of the ready main thread; the bounded
-priority boost restores main-thread progress. Gameplay remains unverified.
+priority boost restores main-thread progress. The two-checkpoint implementation
+still gave too little execution time during race loading; timed quanta are now
+being checked in a diagnostic game session. Gameplay remains unverified.
 The reference Theseus `kernel32/thread.rs` uses host `std::thread::spawn`; this
 browser scheduler instead uses the existing guest CPU and Wine’s lifecycle routines.
 

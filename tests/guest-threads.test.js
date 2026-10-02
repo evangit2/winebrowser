@@ -261,6 +261,7 @@ test('a starved ready UI thread receives a bounded priority boost and suspended 
   const resumed = [];
   scheduler.activate = (thread) => {
     scheduler.current = thread;
+    if (thread.boostQuanta) thread.boostSince = now;
     resumed.push(thread.id);
   };
   for (const thread of [low, high, suspended]) thread.resume = () => {};
@@ -284,10 +285,39 @@ test('a starved ready UI thread receives a bounded priority boost and suspended 
   assert.equal(scheduler.priority(low), 6, 'boost leaves the requested base priority intact');
   assert.equal(scheduler.schedulingPriority(low), 15);
   scheduler.block = async () => {};
+  now += 10;
+  await scheduler.yield();
+  assert.equal(low.boostQuanta, 2, 'a dispatcher checkpoint is not a full quantum');
+  now += 10;
   await scheduler.yield();
   assert.equal(low.boostQuanta, 1);
+  now += 20;
   await scheduler.yield();
   assert.equal(low.boostQuanta, 0);
   assert.equal(scheduler.schedulingPriority(low), 6, 'boost expires after two quanta');
   assert.ok(scheduler.queue.includes(suspended));
+});
+
+test('starvation boost accounts running time across switches and excludes blocked time', async () => {
+  const { GuestThreads } = await import('../src/guest-threads.js');
+  let now = 0;
+  const runtime = { cpu: { captureContext: () => ({}), restoreContext: () => {} }, callDepth: 1 };
+  const scheduler = new GuestThreads(runtime);
+  scheduler.schedulerNow = () => now;
+  const thread = { id: 2, depth: 1, context: {}, boostQuanta: 2, boostElapsed: 0 };
+  scheduler.activate(thread);
+  now = 10;
+  scheduler.save(thread);
+  assert.equal(thread.boostElapsed, 10);
+  // A blocked guest waits on a host API while another guest owns the CPU.
+  now = 1010;
+  scheduler.activate(thread);
+  now = 1020;
+  scheduler.accountBoost(thread);
+  assert.equal(thread.boostQuanta, 1);
+  assert.equal(thread.boostElapsed, 0);
+  now = 1040;
+  scheduler.accountBoost(thread);
+  assert.equal(thread.boostQuanta, 0);
+  assert.equal(scheduler.schedulingPriority(thread), 8);
 });
