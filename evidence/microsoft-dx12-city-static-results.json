@@ -1,0 +1,1303 @@
+{
+  "demo": "microsoft-dx12-city",
+  "date": "2026-10-02T22:22:32.078Z",
+  "url": "http://127.0.0.1:4217/winebrowser/",
+  "browser": "154.0.8037.97",
+  "ordinaryBrowser": true,
+  "upstreamRevision": "be8195fc324c97c6550b710ace15e18b560c07c8",
+  "exeSha256": "3bd477ccddbe9a50aa07db1b7408d901188a2d90391b3cde135f1ab0084ba524",
+  "zipSha256": "328b2eaa5c0ea2b8401377dd7e8fa2b2912dc962e17f6f9aa449aad215709ee2",
+  "browserCompilation": true,
+  "browserShaderCompilation": true,
+  "scene": "30 OCC city meshes, 18,642 indices per mesh, two original shaders, BC1 texture and D32 depth",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "firstFramesMs": 3151,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 7,
+        "draws": 210,
+        "foreground": 162129,
+        "green": 61902,
+        "gray": 97302,
+        "colors": 12232,
+        "hash": "58cf4ddd1837e5f15af17cb6ff5af58346b666772fd92ff008c5afcaa1d637ec"
+      },
+      "moved": {
+        "width": 1280,
+        "height": 720,
+        "frames": 25,
+        "draws": 750,
+        "foreground": 252825,
+        "green": 126191,
+        "gray": 124122,
+        "colors": 11644,
+        "hash": "a87172c3ff2c7b576c75cc8f3d25b670787a03cffb71618da5099563bf3db6f4"
+      },
+      "turned": {
+        "width": 1280,
+        "height": 720,
+        "frames": 35,
+        "draws": 1050,
+        "foreground": 44936,
+        "green": 17696,
+        "gray": 26755,
+        "colors": 5309,
+        "hash": "691a9f26a66f492e02d7dec094129c09e6feb855181f33cb65f6faf54063eb8b"
+      },
+      "reset": {
+        "width": 1280,
+        "height": 720,
+        "frames": 38,
+        "draws": 1140,
+        "foreground": 162129,
+        "green": 61902,
+        "gray": 97302,
+        "colors": 12232,
+        "hash": "58cf4ddd1837e5f15af17cb6ff5af58346b666772fd92ff008c5afcaa1d637ec"
+      },
+      "dependencies": [
+        {
+          "dll": "d3d12.dll",
+          "provider": "d3d12.dll",
+          "host": true,
+          "imports": [
+            "D3D12CreateDevice",
+            "D3D12SerializeRootSignature",
+            "D3D12SerializeVersionedRootSignature"
+          ]
+        },
+        {
+          "dll": "dxgi.dll",
+          "provider": "dxgi.dll",
+          "host": true,
+          "imports": [
+            "CreateDXGIFactory2"
+          ]
+        },
+        {
+          "dll": "kernel32.dll",
+          "provider": "kernel32.dll",
+          "host": false,
+          "imports": [
+            "CloseHandle",
+            "CreateEventA",
+            "CreateEventW",
+            "CreateFile2",
+            "CreateSemaphoreA",
+            "DeleteCriticalSection",
+            "DuplicateHandle",
+            "EnterCriticalSection",
+            "FormatMessageA",
+            "GetCommandLineW",
+            "GetCurrentProcess",
+            "GetCurrentProcessId",
+            "GetCurrentThread",
+            "GetCurrentThreadId",
+            "GetFileInformationByHandleEx",
+            "GetLastError",
+            "GetModuleFileNameW",
+            "GetModuleHandleA",
+            "GetProcAddress",
+            "GetProcessAffinityMask",
+            "GetProcessHeap",
+            "GetStartupInfoA",
+            "GetSystemTimeAsFileTime",
+            "GetThreadContext",
+            "GetThreadPriority",
+            "GetTickCount",
+            "HeapAlloc",
+            "HeapFree",
+            "InitializeCriticalSection",
+            "IsDBCSLeadByte",
+            "LeaveCriticalSection",
+            "LocalFree",
+            "OpenProcess",
+            "OutputDebugStringA",
+            "QueryPerformanceCounter",
+            "QueryPerformanceFrequency",
+            "RaiseException",
+            "ReadFile",
+            "ReleaseSemaphore",
+            "ResetEvent",
+            "ResumeThread",
+            "SetEvent",
+            "SetLastError",
+            "SetProcessAffinityMask",
+            "SetThreadContext",
+            "SetThreadPriority",
+            "SetUnhandledExceptionFilter",
+            "Sleep",
+            "SuspendThread",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TryEnterCriticalSection",
+            "VirtualProtect",
+            "VirtualQuery",
+            "WaitForMultipleObjects",
+            "WaitForSingleObject"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "mbsrtowcs",
+            "strtoul"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-environment-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__p__environ",
+            "getenv"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_set_new_mode",
+            "calloc",
+            "free",
+            "malloc",
+            "realloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_configthreadlocale"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__setusermatherr",
+            "cos",
+            "sin"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_setjmp3",
+            "longjmp",
+            "memchr",
+            "memcmp",
+            "memcpy",
+            "memmove",
+            "strchr",
+            "wcsrchr"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__p___argc",
+            "__p___argv",
+            "__p__acmdln",
+            "_assert",
+            "_beginthreadex",
+            "_cexit",
+            "_configure_narrow_argv",
+            "_crt_atexit",
+            "_endthreadex",
+            "_errno",
+            "_exit",
+            "_initialize_narrow_environment",
+            "_initterm",
+            "_initterm_e",
+            "_set_app_type",
+            "_set_invalid_parameter_handler",
+            "abort",
+            "exit",
+            "signal",
+            "strerror"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__acrt_iob_func",
+            "__p__commode",
+            "__p__fmode",
+            "__stdio_common_vfprintf",
+            "__stdio_common_vsprintf",
+            "__stdio_common_vswprintf_s",
+            "_fileno",
+            "_read",
+            "_setmode",
+            "fflush",
+            "fputc",
+            "fputs",
+            "fwrite",
+            "setvbuf"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_strdup",
+            "_wcsnicmp",
+            "memset",
+            "strcmp",
+            "strlen",
+            "strncmp",
+            "wcslen"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-utility-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "rand_s"
+          ]
+        },
+        {
+          "dll": "shell32.dll",
+          "provider": "shell32.dll",
+          "host": false,
+          "imports": [
+            "CommandLineToArgvW"
+          ]
+        },
+        {
+          "dll": "user32.dll",
+          "provider": "user32.dll",
+          "host": true,
+          "imports": [
+            "AdjustWindowRect",
+            "CreateWindowExW",
+            "DefWindowProcW",
+            "DispatchMessageW",
+            "GetWindowLongW",
+            "LoadCursorW",
+            "PeekMessageW",
+            "PostQuitMessage",
+            "RegisterClassExW",
+            "SetWindowLongW",
+            "SetWindowTextW",
+            "ShowWindow",
+            "TranslateMessage"
+          ]
+        }
+      ],
+      "nativeClosure": [
+        {
+          "name": "ntdll.dll",
+          "path": "runtime/wine-base/ntdll.dll",
+          "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43",
+          "importedSymbols": 0,
+          "providers": []
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "runtime/wine-base/kernel32.dll",
+          "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c",
+          "importedSymbols": 925,
+          "providers": [
+            "kernelbase.dll",
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "runtime/wine-base/kernelbase.dll",
+          "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca",
+          "importedSymbols": 428,
+          "providers": [
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "runtime/wine-base/ucrtbase.dll",
+          "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6",
+          "importedSymbols": 150,
+          "providers": [
+            "kernel32.dll",
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "shell32.dll",
+          "path": "runtime/shell32.dll",
+          "sha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea",
+          "importedSymbols": 6,
+          "providers": [
+            "kernel32.dll"
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "name": "d3d12bundles.exe",
+          "path": "d3d12bundles.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "d3d12.dll",
+          "path": "@host/d3d12.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "dxgi.dll",
+          "path": "@host/dxgi.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16908288,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 17367040,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "@runtime/ucrtbase.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "host": false,
+          "base": 19070976,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 19136512,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 19202048,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4891,
+      "instructions": 3356227,
+      "x86TranslationMs": 1731.2600001692772,
+      "wasmBytes": 3995915,
+      "apiCalls": 1941
+    },
+    {
+      "mode": "exe-and-assets-upload",
+      "firstFramesMs": 3561,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 8,
+        "draws": 240,
+        "foreground": 162129,
+        "green": 61902,
+        "gray": 97302,
+        "colors": 12232,
+        "hash": "58cf4ddd1837e5f15af17cb6ff5af58346b666772fd92ff008c5afcaa1d637ec"
+      },
+      "moved": {
+        "width": 1280,
+        "height": 720,
+        "frames": 27,
+        "draws": 810,
+        "foreground": 254205,
+        "green": 134563,
+        "gray": 117305,
+        "colors": 10861,
+        "hash": "a7f627ffac43b8e51983480a85024a9566498f5059aba333cce67ac03eabdbe8"
+      },
+      "turned": {
+        "width": 1280,
+        "height": 720,
+        "frames": 41,
+        "draws": 1230,
+        "foreground": 1707,
+        "green": 0,
+        "gray": 1707,
+        "colors": 32,
+        "hash": "5f5631adde62bcf7d699672dde81036b14dab7e6de56059190fe7e7f96dc0d05"
+      },
+      "reset": {
+        "width": 1280,
+        "height": 720,
+        "frames": 44,
+        "draws": 1320,
+        "foreground": 162129,
+        "green": 61902,
+        "gray": 97302,
+        "colors": 12232,
+        "hash": "58cf4ddd1837e5f15af17cb6ff5af58346b666772fd92ff008c5afcaa1d637ec"
+      },
+      "dependencies": [
+        {
+          "dll": "d3d12.dll",
+          "provider": "d3d12.dll",
+          "host": true,
+          "imports": [
+            "D3D12CreateDevice",
+            "D3D12SerializeRootSignature",
+            "D3D12SerializeVersionedRootSignature"
+          ]
+        },
+        {
+          "dll": "dxgi.dll",
+          "provider": "dxgi.dll",
+          "host": true,
+          "imports": [
+            "CreateDXGIFactory2"
+          ]
+        },
+        {
+          "dll": "kernel32.dll",
+          "provider": "kernel32.dll",
+          "host": false,
+          "imports": [
+            "CloseHandle",
+            "CreateEventA",
+            "CreateEventW",
+            "CreateFile2",
+            "CreateSemaphoreA",
+            "DeleteCriticalSection",
+            "DuplicateHandle",
+            "EnterCriticalSection",
+            "FormatMessageA",
+            "GetCommandLineW",
+            "GetCurrentProcess",
+            "GetCurrentProcessId",
+            "GetCurrentThread",
+            "GetCurrentThreadId",
+            "GetFileInformationByHandleEx",
+            "GetLastError",
+            "GetModuleFileNameW",
+            "GetModuleHandleA",
+            "GetProcAddress",
+            "GetProcessAffinityMask",
+            "GetProcessHeap",
+            "GetStartupInfoA",
+            "GetSystemTimeAsFileTime",
+            "GetThreadContext",
+            "GetThreadPriority",
+            "GetTickCount",
+            "HeapAlloc",
+            "HeapFree",
+            "InitializeCriticalSection",
+            "IsDBCSLeadByte",
+            "LeaveCriticalSection",
+            "LocalFree",
+            "OpenProcess",
+            "OutputDebugStringA",
+            "QueryPerformanceCounter",
+            "QueryPerformanceFrequency",
+            "RaiseException",
+            "ReadFile",
+            "ReleaseSemaphore",
+            "ResetEvent",
+            "ResumeThread",
+            "SetEvent",
+            "SetLastError",
+            "SetProcessAffinityMask",
+            "SetThreadContext",
+            "SetThreadPriority",
+            "SetUnhandledExceptionFilter",
+            "Sleep",
+            "SuspendThread",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TryEnterCriticalSection",
+            "VirtualProtect",
+            "VirtualQuery",
+            "WaitForMultipleObjects",
+            "WaitForSingleObject"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "mbsrtowcs",
+            "strtoul"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-environment-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__p__environ",
+            "getenv"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_set_new_mode",
+            "calloc",
+            "free",
+            "malloc",
+            "realloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_configthreadlocale"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__setusermatherr",
+            "cos",
+            "sin"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_setjmp3",
+            "longjmp",
+            "memchr",
+            "memcmp",
+            "memcpy",
+            "memmove",
+            "strchr",
+            "wcsrchr"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__p___argc",
+            "__p___argv",
+            "__p__acmdln",
+            "_assert",
+            "_beginthreadex",
+            "_cexit",
+            "_configure_narrow_argv",
+            "_crt_atexit",
+            "_endthreadex",
+            "_errno",
+            "_exit",
+            "_initialize_narrow_environment",
+            "_initterm",
+            "_initterm_e",
+            "_set_app_type",
+            "_set_invalid_parameter_handler",
+            "abort",
+            "exit",
+            "signal",
+            "strerror"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__acrt_iob_func",
+            "__p__commode",
+            "__p__fmode",
+            "__stdio_common_vfprintf",
+            "__stdio_common_vsprintf",
+            "__stdio_common_vswprintf_s",
+            "_fileno",
+            "_read",
+            "_setmode",
+            "fflush",
+            "fputc",
+            "fputs",
+            "fwrite",
+            "setvbuf"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_strdup",
+            "_wcsnicmp",
+            "memset",
+            "strcmp",
+            "strlen",
+            "strncmp",
+            "wcslen"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-utility-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "rand_s"
+          ]
+        },
+        {
+          "dll": "shell32.dll",
+          "provider": "shell32.dll",
+          "host": false,
+          "imports": [
+            "CommandLineToArgvW"
+          ]
+        },
+        {
+          "dll": "user32.dll",
+          "provider": "user32.dll",
+          "host": true,
+          "imports": [
+            "AdjustWindowRect",
+            "CreateWindowExW",
+            "DefWindowProcW",
+            "DispatchMessageW",
+            "GetWindowLongW",
+            "LoadCursorW",
+            "PeekMessageW",
+            "PostQuitMessage",
+            "RegisterClassExW",
+            "SetWindowLongW",
+            "SetWindowTextW",
+            "ShowWindow",
+            "TranslateMessage"
+          ]
+        }
+      ],
+      "nativeClosure": [
+        {
+          "name": "ntdll.dll",
+          "path": "runtime/wine-base/ntdll.dll",
+          "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43",
+          "importedSymbols": 0,
+          "providers": []
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "runtime/wine-base/kernel32.dll",
+          "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c",
+          "importedSymbols": 925,
+          "providers": [
+            "kernelbase.dll",
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "runtime/wine-base/kernelbase.dll",
+          "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca",
+          "importedSymbols": 428,
+          "providers": [
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "runtime/wine-base/ucrtbase.dll",
+          "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6",
+          "importedSymbols": 150,
+          "providers": [
+            "kernel32.dll",
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "shell32.dll",
+          "path": "runtime/shell32.dll",
+          "sha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea",
+          "importedSymbols": 6,
+          "providers": [
+            "kernel32.dll"
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "name": "d3d12bundles.exe",
+          "path": "d3d12bundles.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "d3d12.dll",
+          "path": "@host/d3d12.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "dxgi.dll",
+          "path": "@host/dxgi.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16908288,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 17367040,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "@runtime/ucrtbase.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "host": false,
+          "base": 19070976,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 19136512,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 19202048,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4891,
+      "instructions": 3451668,
+      "x86TranslationMs": 2160.6500000581145,
+      "wasmBytes": 3995915,
+      "apiCalls": 2071
+    },
+    {
+      "mode": "hosted-example",
+      "firstFramesMs": 2524,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 7,
+        "draws": 210,
+        "foreground": 162129,
+        "green": 61902,
+        "gray": 97302,
+        "colors": 12232,
+        "hash": "58cf4ddd1837e5f15af17cb6ff5af58346b666772fd92ff008c5afcaa1d637ec"
+      },
+      "moved": {
+        "width": 1280,
+        "height": 720,
+        "frames": 26,
+        "draws": 780,
+        "foreground": 254205,
+        "green": 134563,
+        "gray": 117305,
+        "colors": 10861,
+        "hash": "a7f627ffac43b8e51983480a85024a9566498f5059aba333cce67ac03eabdbe8"
+      },
+      "turned": {
+        "width": 1280,
+        "height": 720,
+        "frames": 38,
+        "draws": 1140,
+        "foreground": 76,
+        "green": 76,
+        "gray": 0,
+        "colors": 4,
+        "hash": "178ca09b8792004edc8b740aa4397eb14bfedd1fed0b0ce8c0d1faa55218b964"
+      },
+      "reset": {
+        "width": 1280,
+        "height": 720,
+        "frames": 41,
+        "draws": 1230,
+        "foreground": 162129,
+        "green": 61902,
+        "gray": 97302,
+        "colors": 12232,
+        "hash": "58cf4ddd1837e5f15af17cb6ff5af58346b666772fd92ff008c5afcaa1d637ec"
+      },
+      "dependencies": [
+        {
+          "dll": "d3d12.dll",
+          "provider": "d3d12.dll",
+          "host": true,
+          "imports": [
+            "D3D12CreateDevice",
+            "D3D12SerializeRootSignature",
+            "D3D12SerializeVersionedRootSignature"
+          ]
+        },
+        {
+          "dll": "dxgi.dll",
+          "provider": "dxgi.dll",
+          "host": true,
+          "imports": [
+            "CreateDXGIFactory2"
+          ]
+        },
+        {
+          "dll": "kernel32.dll",
+          "provider": "kernel32.dll",
+          "host": false,
+          "imports": [
+            "CloseHandle",
+            "CreateEventA",
+            "CreateEventW",
+            "CreateFile2",
+            "CreateSemaphoreA",
+            "DeleteCriticalSection",
+            "DuplicateHandle",
+            "EnterCriticalSection",
+            "FormatMessageA",
+            "GetCommandLineW",
+            "GetCurrentProcess",
+            "GetCurrentProcessId",
+            "GetCurrentThread",
+            "GetCurrentThreadId",
+            "GetFileInformationByHandleEx",
+            "GetLastError",
+            "GetModuleFileNameW",
+            "GetModuleHandleA",
+            "GetProcAddress",
+            "GetProcessAffinityMask",
+            "GetProcessHeap",
+            "GetStartupInfoA",
+            "GetSystemTimeAsFileTime",
+            "GetThreadContext",
+            "GetThreadPriority",
+            "GetTickCount",
+            "HeapAlloc",
+            "HeapFree",
+            "InitializeCriticalSection",
+            "IsDBCSLeadByte",
+            "LeaveCriticalSection",
+            "LocalFree",
+            "OpenProcess",
+            "OutputDebugStringA",
+            "QueryPerformanceCounter",
+            "QueryPerformanceFrequency",
+            "RaiseException",
+            "ReadFile",
+            "ReleaseSemaphore",
+            "ResetEvent",
+            "ResumeThread",
+            "SetEvent",
+            "SetLastError",
+            "SetProcessAffinityMask",
+            "SetThreadContext",
+            "SetThreadPriority",
+            "SetUnhandledExceptionFilter",
+            "Sleep",
+            "SuspendThread",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "TryEnterCriticalSection",
+            "VirtualProtect",
+            "VirtualQuery",
+            "WaitForMultipleObjects",
+            "WaitForSingleObject"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "mbsrtowcs",
+            "strtoul"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-environment-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__p__environ",
+            "getenv"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_set_new_mode",
+            "calloc",
+            "free",
+            "malloc",
+            "realloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_configthreadlocale"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__setusermatherr",
+            "cos",
+            "sin"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_setjmp3",
+            "longjmp",
+            "memchr",
+            "memcmp",
+            "memcpy",
+            "memmove",
+            "strchr",
+            "wcsrchr"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__p___argc",
+            "__p___argv",
+            "__p__acmdln",
+            "_assert",
+            "_beginthreadex",
+            "_cexit",
+            "_configure_narrow_argv",
+            "_crt_atexit",
+            "_endthreadex",
+            "_errno",
+            "_exit",
+            "_initialize_narrow_environment",
+            "_initterm",
+            "_initterm_e",
+            "_set_app_type",
+            "_set_invalid_parameter_handler",
+            "abort",
+            "exit",
+            "signal",
+            "strerror"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "__acrt_iob_func",
+            "__p__commode",
+            "__p__fmode",
+            "__stdio_common_vfprintf",
+            "__stdio_common_vsprintf",
+            "__stdio_common_vswprintf_s",
+            "_fileno",
+            "_read",
+            "_setmode",
+            "fflush",
+            "fputc",
+            "fputs",
+            "fwrite",
+            "setvbuf"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "_strdup",
+            "_wcsnicmp",
+            "memset",
+            "strcmp",
+            "strlen",
+            "strncmp",
+            "wcslen"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-utility-l1-1-0.dll",
+          "provider": "ucrtbase.dll",
+          "host": false,
+          "imports": [
+            "rand_s"
+          ]
+        },
+        {
+          "dll": "shell32.dll",
+          "provider": "shell32.dll",
+          "host": false,
+          "imports": [
+            "CommandLineToArgvW"
+          ]
+        },
+        {
+          "dll": "user32.dll",
+          "provider": "user32.dll",
+          "host": true,
+          "imports": [
+            "AdjustWindowRect",
+            "CreateWindowExW",
+            "DefWindowProcW",
+            "DispatchMessageW",
+            "GetWindowLongW",
+            "LoadCursorW",
+            "PeekMessageW",
+            "PostQuitMessage",
+            "RegisterClassExW",
+            "SetWindowLongW",
+            "SetWindowTextW",
+            "ShowWindow",
+            "TranslateMessage"
+          ]
+        }
+      ],
+      "nativeClosure": [
+        {
+          "name": "ntdll.dll",
+          "path": "runtime/wine-base/ntdll.dll",
+          "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43",
+          "importedSymbols": 0,
+          "providers": []
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "runtime/wine-base/kernel32.dll",
+          "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c",
+          "importedSymbols": 925,
+          "providers": [
+            "kernelbase.dll",
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "runtime/wine-base/kernelbase.dll",
+          "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca",
+          "importedSymbols": 428,
+          "providers": [
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "runtime/wine-base/ucrtbase.dll",
+          "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6",
+          "importedSymbols": 150,
+          "providers": [
+            "kernel32.dll",
+            "ntdll.dll"
+          ]
+        },
+        {
+          "name": "shell32.dll",
+          "path": "runtime/shell32.dll",
+          "sha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea",
+          "importedSymbols": 6,
+          "providers": [
+            "kernel32.dll"
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "name": "d3d12bundles.exe",
+          "path": "d3d12bundles.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "d3d12.dll",
+          "path": "@host/d3d12.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "dxgi.dll",
+          "path": "@host/dxgi.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 16908288,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 17367040,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ucrtbase.dll",
+          "path": "@runtime/ucrtbase.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "host": false,
+          "base": 19070976,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 19136512,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 19202048,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "exitCode": 0,
+      "compiledBlocks": 4891,
+      "instructions": 3375125,
+      "x86TranslationMs": 1518.9799997583032,
+      "wasmBytes": 3995915,
+      "apiCalls": 1967
+    }
+  ],
+  "errors": []
+}

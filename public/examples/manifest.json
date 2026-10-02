@@ -2,6 +2,17 @@
   "format": 1,
   "interactive": [
     {
+      "name": "microsoft-dx12-city",
+      "description": "Microsoft DirectX 12 city demo: 30 textured city meshes and a movable camera. WASD moves, arrows turn, Escape resets. Native x86 build from unchanged MIT source; close the window to exit.",
+      "exe": "microsoft-dx12-city/D3D12Bundles.exe",
+      "exeSha256": "3bd477ccddbe9a50aa07db1b7408d901188a2d90391b3cde135f1ab0084ba524",
+      "zip": "microsoft-dx12-city/D3D12City-x86.zip",
+      "zipSha256": "328b2eaa5c0ea2b8401377dd7e8fa2b2912dc962e17f6f9aa449aad215709ee2",
+      "sourceZip": "microsoft-dx12-city/source.zip",
+      "sourceZipSha256": "3137f167323ebc32df208613c058542cf875c77f126f744d2d71ad91e92f18ab",
+      "provenance": "MIT, Microsoft DirectX-Graphics-Samples revision be8195fc324c97c6550b710ace15e18b560c07c8. Unchanged native C++, original OCC city mesh and BC1 texture, original HLSL compiled to SM5 DXBC."
+    },
+    {
       "name": "humus-dynamic-branching",
       "description": "Unchanged Humus \"Dynamic Branching\" Direct3D 9 demo: a stencil-shadow pillar room with programmable shaders and DXT textures. F1 opens settings.",
       "exe": "humus-dynamic-branching/DynamicBranching.exe",

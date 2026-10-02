@@ -191,7 +191,9 @@
     "test:rgba16-backend": "node scripts/test-rgba16-backend.mjs",
     "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs",
     "build:api-sets": "sh scripts/build-api-set-fixtures.sh",
-    "test:api-sets": "node scripts/test-api-sets-browser.mjs"
+    "test:api-sets": "node scripts/test-api-sets-browser.mjs",
+    "build:dx12-city": "python3 scripts/build-microsoft-dx12-city.py",
+    "test:dx12-city": "node scripts/test-microsoft-dx12-city-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
