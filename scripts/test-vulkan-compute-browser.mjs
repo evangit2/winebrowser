@@ -3,7 +3,11 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 const url = process.env.WINEBROWSER_TEST_URL || 'http://127.0.0.1:4193/winebrowser/';
-const browser = await chromium.launch(webgpuBrowserOptions);
+const browser = await chromium.launch(
+  process.env.WINEBROWSER_NORMAL_CHROMIUM === '1'
+    ? { channel: process.env.BROWSER_CHANNEL || 'chrome', headless: false }
+    : webgpuBrowserOptions,
+);
 try {
   const page = await browser.newPage();
   await page.goto(url);

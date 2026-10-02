@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T23:03:00.237Z",
+  "date": "2026-10-02T23:07:05.320Z",
   "url": "http://127.0.0.1:4207/winebrowser/",
   "browser": "154.0.8037.97",
   "exeSha256": "ff42fb88664b336ccd70f29615689ef1ca8c20c6bbb8d210db235f174522c608",
@@ -20,12 +20,12 @@
           64,
           255
         ],
-        "geometry": 15875,
-        "green": 3013,
-        "blue": 3943,
-        "white": 2997,
-        "colors": 2973,
-        "hash": "35df7f15f2d1bad4c290b961988f27fa1ae01bbf314d1d010d34768c3baca325"
+        "geometry": 15743,
+        "green": 2876,
+        "blue": 3922,
+        "white": 2964,
+        "colors": 2966,
+        "hash": "fe663d11e6b3c26074e9dc14cda89d8e0ddd5e9b194bc5c9d02b4821c07cc919"
       },
       "animated": {
         "width": 640,
@@ -38,12 +38,12 @@
           64,
           255
         ],
-        "geometry": 16231,
-        "green": 2828,
-        "blue": 4410,
-        "white": 3091,
-        "colors": 3145,
-        "hash": "429b18011998f6ea32a55b357047f1d564ca6a7f77e17b02392d8184766c9fab"
+        "geometry": 16460,
+        "green": 3002,
+        "blue": 3946,
+        "white": 3225,
+        "colors": 3098,
+        "hash": "6e5b2580a9cc53d2b22d0799730bbf42d3ca0f1f40ed789de51e22ffb33b546e"
       },
       "paused": {
         "width": 640,
@@ -56,54 +56,54 @@
           64,
           255
         ],
-        "geometry": 16426,
-        "green": 3119,
-        "blue": 4163,
-        "white": 3069,
-        "colors": 3145,
-        "hash": "1cb35032ac39f66aa5f6b7718b21934599a911ff08e172e239619a9214bdb517"
+        "geometry": 15957,
+        "green": 2904,
+        "blue": 3970,
+        "white": 3105,
+        "colors": 2967,
+        "hash": "d050e1ff4cbc6b9e6dde22393920eaccd4d39ea123b0bba316c384a253fa450d"
       },
       "moved": {
         "width": 640,
         "height": 480,
-        "frames": 122,
-        "draws": 222,
+        "frames": 121,
+        "draws": 221,
         "corner": [
           64,
           64,
           64,
           255
         ],
-        "geometry": 23697,
-        "green": 3712,
-        "blue": 6392,
-        "white": 1341,
-        "colors": 2844,
-        "hash": "cc59632a0d964bd6cbeca2873ec1f5ba8453d5fbafa885338b4da1fc90a0fd67"
+        "geometry": 23279,
+        "green": 3626,
+        "blue": 5950,
+        "white": 1991,
+        "colors": 2776,
+        "hash": "27537496268d68609372ad903179c00205f0ab406a42bdecced7cd3d8dfa2656"
       },
       "resumed": {
         "width": 640,
         "height": 480,
-        "frames": 146,
-        "draws": 246,
+        "frames": 145,
+        "draws": 245,
         "corner": [
           64,
           64,
           64,
           255
         ],
-        "geometry": 21876,
-        "green": 3129,
-        "blue": 5714,
-        "white": 1552,
-        "colors": 3222,
-        "hash": "c4e8ada17ebbe8664eb002478da6fb73f1c1975265590da62cb3cc0d5fbb0538"
+        "geometry": 21669,
+        "green": 2538,
+        "blue": 5724,
+        "white": 1515,
+        "colors": 2966,
+        "hash": "975bdafbcb374d575900777600cb244d14269dbd832f1a0a3fb56f0c446c6a61"
       },
       "exitCode": 0,
-      "elapsedMs": 22266,
-      "compiledBlocks": 15755,
-      "wasmBytes": 13140688,
-      "instructions": 224988612,
+      "elapsedMs": 23499,
+      "compiledBlocks": 15816,
+      "wasmBytes": 13190968,
+      "instructions": 225024353,
       "modules": [
         {
           "name": "gltfskinning.exe",
@@ -332,12 +332,12 @@
           64,
           255
         ],
-        "geometry": 15945,
-        "green": 3006,
-        "blue": 3955,
-        "white": 3034,
-        "colors": 2947,
-        "hash": "7ed6a45a36ae9e2a6b12923324c5562d7b3ebbae058504bf0f51906c58a44564"
+        "geometry": 15885,
+        "green": 3007,
+        "blue": 3949,
+        "white": 3036,
+        "colors": 2946,
+        "hash": "a4d1535b3ce091502d5e2643b89ebea48805fc0bcf183f0c9e07a75c1d67cb81"
       },
       "animated": {
         "width": 640,
@@ -350,12 +350,12 @@
           64,
           255
         ],
-        "geometry": 16224,
-        "green": 2846,
-        "blue": 4421,
-        "white": 3065,
-        "colors": 3176,
-        "hash": "46fbf42854fd4232ca4e186b37d9e9935267c1031da4dcac91880b7ae048f948"
+        "geometry": 16252,
+        "green": 2833,
+        "blue": 4399,
+        "white": 3141,
+        "colors": 3125,
+        "hash": "915e76add27f88bf18adae1508a2217152d84ad92cb9e060d19407f828d0681a"
       },
       "paused": {
         "width": 640,
@@ -368,12 +368,12 @@
           64,
           255
         ],
-        "geometry": 16350,
-        "green": 2939,
-        "blue": 4401,
-        "white": 3162,
-        "colors": 3173,
-        "hash": "ab88e306c764f9ee60045956b47fd62c3ca60db646335af68d6dafd522b7b516"
+        "geometry": 16431,
+        "green": 3050,
+        "blue": 4335,
+        "white": 3157,
+        "colors": 3172,
+        "hash": "a2968ad3cba4dbf98eb3045e86e12419de957aad774888c2c4356503aea7f2a6"
       },
       "moved": {
         "width": 640,
@@ -386,12 +386,12 @@
           64,
           255
         ],
-        "geometry": 21549,
-        "green": 3362,
-        "blue": 6047,
-        "white": 1564,
-        "colors": 2899,
-        "hash": "8bb9570b3643054c36660890043ee53fd3c3a98175e29ac59b668f5729922405"
+        "geometry": 23285,
+        "green": 3498,
+        "blue": 6418,
+        "white": 1284,
+        "colors": 2806,
+        "hash": "798850450fdf86a7c005011a4b076a47ef4404c48acdaad073968965205e2c71"
       },
       "resumed": {
         "width": 640,
@@ -404,18 +404,18 @@
           64,
           255
         ],
-        "geometry": 23833,
-        "green": 3518,
-        "blue": 6003,
-        "white": 1272,
-        "colors": 2993,
-        "hash": "8436b690ccfa9ce16bc317270938dace9b3f1287aca21702c8d7a65091f7b5d1"
+        "geometry": 22312,
+        "green": 3214,
+        "blue": 5906,
+        "white": 1518,
+        "colors": 3221,
+        "hash": "aeb487f543e9cd5ea4135ec909a202c14e6517b99fe19356fbd5db5c9361d0c7"
       },
       "exitCode": 0,
-      "elapsedMs": 17722,
-      "compiledBlocks": 15756,
-      "wasmBytes": 13141623,
-      "instructions": 224708168,
+      "elapsedMs": 17600,
+      "compiledBlocks": 15805,
+      "wasmBytes": 13181286,
+      "instructions": 224560114,
       "modules": [
         {
           "name": "gltfskinning.exe",
@@ -644,12 +644,12 @@
           64,
           255
         ],
-        "geometry": 15636,
-        "green": 2850,
-        "blue": 3952,
-        "white": 2942,
-        "colors": 2981,
-        "hash": "ea1d7595a5847238ece464ec09f50a3efeaba42d8e576dd6797dbe34b8ccde3a"
+        "geometry": 15881,
+        "green": 3005,
+        "blue": 3937,
+        "white": 3038,
+        "colors": 2986,
+        "hash": "37805511af4ed60f62c611b912b9f1aa8a7d30f2e4a9c3cba5ec3ef8a6eeb7da"
       },
       "animated": {
         "width": 640,
@@ -662,12 +662,12 @@
           64,
           255
         ],
-        "geometry": 16381,
-        "green": 3171,
-        "blue": 3910,
-        "white": 3041,
-        "colors": 3233,
-        "hash": "093d276af191d7bc5fd9b8bfdac0b0a2f44f21da1dd2e8f9b9bbf9290cbb57a3"
+        "geometry": 16236,
+        "green": 2827,
+        "blue": 4429,
+        "white": 3057,
+        "colors": 3174,
+        "hash": "d3059349ddc74b2b0d62a8b53bf8921e97e1fd87a5810d1cf3ae2086999f8b16"
       },
       "paused": {
         "width": 640,
@@ -680,54 +680,54 @@
           64,
           255
         ],
-        "geometry": 16557,
-        "green": 3124,
-        "blue": 3901,
-        "white": 3187,
-        "colors": 3153,
-        "hash": "931a3c58f984a0557fd0eedd238ea53d4ebba7ba76711bc0366d36ba203f86d0"
+        "geometry": 16369,
+        "green": 2946,
+        "blue": 4415,
+        "white": 3168,
+        "colors": 3160,
+        "hash": "cf82307b163680067c6c526aa507cb2c5eb393812de00d04d41cea2d1fece507"
       },
       "moved": {
         "width": 640,
         "height": 480,
-        "frames": 119,
-        "draws": 219,
+        "frames": 121,
+        "draws": 221,
         "corner": [
           64,
           64,
           64,
           255
         ],
-        "geometry": 23849,
-        "green": 3869,
-        "blue": 6377,
-        "white": 1803,
-        "colors": 3017,
-        "hash": "b1b9225ad41dd0b50db34efbe5b960aaac1c88df0924dbb165d6d1b62e513567"
+        "geometry": 22029,
+        "green": 3472,
+        "blue": 6176,
+        "white": 1603,
+        "colors": 2901,
+        "hash": "f724fbc8f018a54c317e0cb56e3c42dd5088992a712e03e88cf0d1a8846d84cb"
       },
       "resumed": {
         "width": 640,
         "height": 480,
-        "frames": 143,
-        "draws": 243,
+        "frames": 145,
+        "draws": 245,
         "corner": [
           64,
           64,
           64,
           255
         ],
-        "geometry": 20550,
-        "green": 2619,
-        "blue": 5621,
-        "white": 1276,
-        "colors": 2912,
-        "hash": "0e9e7963a8c0a896002c8eecdf7c0ce73cb15f8f173165173ceb1a698cf2a5b1"
+        "geometry": 23994,
+        "green": 3519,
+        "blue": 6055,
+        "white": 1250,
+        "colors": 3038,
+        "hash": "4b40390fab8927e556bbb5289445048a9379b94ec4df1938f66438195564c443"
       },
       "exitCode": 0,
-      "elapsedMs": 17798,
-      "compiledBlocks": 15758,
-      "wasmBytes": 13143100,
-      "instructions": 224071126,
+      "elapsedMs": 17514,
+      "compiledBlocks": 15809,
+      "wasmBytes": 13184502,
+      "instructions": 224308341,
       "modules": [
         {
           "name": "gltfskinning.exe",

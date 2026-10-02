@@ -5,7 +5,11 @@ import { chromium } from '@playwright/test';
 import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 const url = process.env.WINEBROWSER_TEST_URL || 'http://127.0.0.1:4193/winebrowser/';
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
-const browser = await chromium.launch(webgpuBrowserOptions);
+const browser = await chromium.launch(
+  process.env.WINEBROWSER_NORMAL_CHROMIUM === '1'
+    ? { channel: process.env.BROWSER_CHANNEL || 'chrome', headless: false }
+    : webgpuBrowserOptions,
+);
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 1600 } }),
     errors = [];
@@ -227,6 +231,7 @@ try {
     date: new Date().toISOString(),
     url,
     browser: browser.version(),
+    ordinaryBrowser: process.env.WINEBROWSER_NORMAL_CHROMIUM === '1',
     exeSha256: entry.exeSha256,
     zipSha256: entry.zipSha256,
     upstreamApplicationAndSceneUnchanged: true,

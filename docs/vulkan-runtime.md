@@ -124,6 +124,8 @@ npm run test:vulkan
 npm run test:vulkan-compute
 npm run test:skinning
 WINEBROWSER_FORCE_READBACK=1 npm run test:skinning
+# On a desktop with WebGPU support, verify ordinary Chrome without GPU flags:
+WINEBROWSER_NORMAL_CHROMIUM=1 npm run test:skinning
 ```
 
 Select the skinning catalog entry, upload `gltfskinning.zip`, or open its entire

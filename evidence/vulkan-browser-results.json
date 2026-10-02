@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T23:02:15.551Z",
+  "date": "2026-10-02T23:06:23.813Z",
   "url": "http://127.0.0.1:4207/winebrowser/",
   "browser": "154.0.8037.97",
   "exeSha256": "dec190257ab619a49a0c5d4c7454e04fd958d3d4596b3be185a868dd2220defa",
@@ -13,43 +13,43 @@
       "first": {
         "width": 500,
         "height": 500,
-        "frames": 20,
-        "draws": 20,
+        "frames": 18,
+        "draws": 18,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 67645,
-        "teal": 20328,
-        "white": 1648,
-        "colors": 3110,
-        "hash": "460b3e9d9ef72dae349a71b52b0c4e1b1524c857b5f56ce83ba244a94ea3d8be"
+        "geometry": 69904,
+        "teal": 19522,
+        "white": 1646,
+        "colors": 3055,
+        "hash": "82c1eb497f3554bf96b634fd8d84d968a4641e8de8835f8108e950e30b1ff793"
       },
       "second": {
         "width": 500,
         "height": 500,
-        "frames": 50,
-        "draws": 50,
+        "frames": 49,
+        "draws": 49,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 70608,
-        "teal": 21119,
-        "white": 1660,
-        "colors": 3399,
-        "hash": "21f581e172efd776e33d87ad164069f8012683f587c772da0dca3d30f5c21fa7"
+        "geometry": 69146,
+        "teal": 20743,
+        "white": 1646,
+        "colors": 3360,
+        "hash": "8465c17ad50bede2400fc448c815802de9665dc2910711fc18519ab70e9bd1fd"
       },
       "pauseResume": true,
       "exitCode": 0,
-      "compiledBlocks": 4197,
-      "wasmBytes": 3425378,
-      "instructions": 5634091,
-      "elapsedMs": 4679,
+      "compiledBlocks": 4246,
+      "wasmBytes": 3465216,
+      "instructions": 5465874,
+      "elapsedMs": 3464,
       "vulkanCalls": [
         "vulkan-1.dll!vkAcquireNextImageKHR",
         "vulkan-1.dll!vkAllocateCommandBuffers",
@@ -142,43 +142,43 @@
       "first": {
         "width": 500,
         "height": 500,
-        "frames": 17,
-        "draws": 17,
+        "frames": 23,
+        "draws": 23,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 71252,
-        "teal": 19027,
-        "white": 1566,
-        "colors": 3227,
-        "hash": "b27fff339a85a04ade4cd4cbec8e481023c39963ac59b348f429970bfb6d1055"
+        "geometry": 68804,
+        "teal": 20701,
+        "white": 1622,
+        "colors": 3120,
+        "hash": "167192c82ecbc190f74da13549bdcbefd7dfe737a0626d70376141ce2aa19a24"
       },
       "second": {
         "width": 500,
         "height": 500,
-        "frames": 45,
-        "draws": 45,
+        "frames": 57,
+        "draws": 57,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 68844,
-        "teal": 20839,
-        "white": 1748,
-        "colors": 3148,
-        "hash": "be433427238bc500c3857a7468ce18bc5b13c2232771297946a2239622bbf29d"
+        "geometry": 74731,
+        "teal": 21927,
+        "white": 1370,
+        "colors": 3700,
+        "hash": "9f5c960e6f598370d7561553e66c0b0fea6fbf7bec2c3bcded5f8e385bb08811"
       },
       "pauseResume": true,
       "exitCode": 0,
-      "compiledBlocks": 4197,
-      "wasmBytes": 3424802,
-      "instructions": 5448935,
-      "elapsedMs": 3330,
+      "compiledBlocks": 4246,
+      "wasmBytes": 3464640,
+      "instructions": 5502898,
+      "elapsedMs": 4064,
       "vulkanCalls": [
         "vulkan-1.dll!vkAcquireNextImageKHR",
         "vulkan-1.dll!vkAllocateCommandBuffers",
@@ -271,25 +271,25 @@
       "first": {
         "width": 500,
         "height": 500,
-        "frames": 17,
-        "draws": 17,
+        "frames": 19,
+        "draws": 19,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 71252,
-        "teal": 19027,
-        "white": 1566,
-        "colors": 3227,
-        "hash": "b27fff339a85a04ade4cd4cbec8e481023c39963ac59b348f429970bfb6d1055"
+        "geometry": 68326,
+        "teal": 19957,
+        "white": 1655,
+        "colors": 3039,
+        "hash": "8812f7049543bb8bab38da56f51e8148e9f09cae6bc8974a34df54ad06ae33bd"
       },
       "second": {
         "width": 500,
         "height": 500,
-        "frames": 44,
-        "draws": 44,
+        "frames": 46,
+        "draws": 46,
         "corner": [
           51,
           51,
@@ -297,17 +297,17 @@
           255
         ],
         "geometry": 68653,
-        "teal": 20667,
-        "white": 1769,
-        "colors": 3207,
-        "hash": "7bca197acb88a779d175ca4da68b443d746a08477b11feeb742f8ba2a4a2853a"
+        "teal": 20673,
+        "white": 1716,
+        "colors": 3141,
+        "hash": "761d15bdc52f5fc047d809444efa391b23e98c2fd0a7cd9bbe6da40c50f45217"
       },
       "pauseResume": true,
       "exitCode": 0,
-      "compiledBlocks": 4197,
-      "wasmBytes": 3424802,
-      "instructions": 5460044,
-      "elapsedMs": 2506,
+      "compiledBlocks": 4246,
+      "wasmBytes": 3464640,
+      "instructions": 5476977,
+      "elapsedMs": 2604,
       "vulkanCalls": [
         "vulkan-1.dll!vkAcquireNextImageKHR",
         "vulkan-1.dll!vkAllocateCommandBuffers",
@@ -400,43 +400,43 @@
       "first": {
         "width": 500,
         "height": 500,
-        "frames": 16,
-        "draws": 16,
+        "frames": 20,
+        "draws": 20,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 72381,
-        "teal": 20469,
-        "white": 1553,
-        "colors": 3409,
-        "hash": "f469af33dd6328ec8b06a4c13f7eb47ee14479498d68f20a6d5f82d74490a1d8"
+        "geometry": 67645,
+        "teal": 20328,
+        "white": 1648,
+        "colors": 3110,
+        "hash": "460b3e9d9ef72dae349a71b52b0c4e1b1524c857b5f56ce83ba244a94ea3d8be"
       },
       "second": {
         "width": 500,
         "height": 500,
-        "frames": 44,
-        "draws": 44,
+        "frames": 51,
+        "draws": 51,
         "corner": [
           51,
           51,
           51,
           255
         ],
-        "geometry": 68653,
-        "teal": 20667,
-        "white": 1769,
-        "colors": 3207,
-        "hash": "7bca197acb88a779d175ca4da68b443d746a08477b11feeb742f8ba2a4a2853a"
+        "geometry": 71844,
+        "teal": 21533,
+        "white": 891,
+        "colors": 3530,
+        "hash": "11f071198f1e8c7cc99f1ab7d50b87dd426e8b94fc737802cd16ddf559e4e469"
       },
       "pauseResume": true,
       "exitCode": 0,
-      "compiledBlocks": 4247,
-      "wasmBytes": 3468367,
-      "instructions": 5457699,
-      "elapsedMs": 2911,
+      "compiledBlocks": 4296,
+      "wasmBytes": 3508205,
+      "instructions": 5463523,
+      "elapsedMs": 2671,
       "vulkanCalls": [
         "vulkan-1.dll!vkAcquireNextImageKHR",
         "vulkan-1.dll!vkAllocateCommandBuffers",
