@@ -1119,7 +1119,9 @@ test('D3D9 and D3D8 texture levels expose IDirect3DSurface views with shared sto
     // Surface LockRect shares the texture's level storage.
     const locked = r.allocate(8),
       lockSlot = version === 8 ? 9 : 13;
-    assert.equal((await call(surface, lockSlot, locked, 0, 0)).result, 0);
+    const surfaceLock = await call(surface, lockSlot, locked, 0, 0);
+    assert.equal(surfaceLock.result, 0);
+    assert.equal(surfaceLock.argc, 4, 'LockRect pops this, locked-rect, rect and flags');
     assert.equal(r.read32(locked), 16);
     assert.equal(r.read32(locked + 4), r.comObjects.objects.get(texture).state.base);
     const pixel = r.read32(locked + 4);

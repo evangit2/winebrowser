@@ -8,6 +8,7 @@
 #define IDirect3DDevice9 IDirect3DDevice8
 #define IDirect3DTexture9 IDirect3DTexture8
 #define IDirect3DBaseTexture9 IDirect3DBaseTexture8
+#define IDirect3DSurface9 IDirect3DSurface8
 #define D3DVIEWPORT9 D3DVIEWPORT8
 #define Direct3DCreate9 Direct3DCreate8
 #define IDirect3D9_CreateDevice IDirect3D8_CreateDevice
@@ -33,6 +34,10 @@
 #define IDirect3DTexture9_LockRect IDirect3DTexture8_LockRect
 #define IDirect3DTexture9_UnlockRect IDirect3DTexture8_UnlockRect
 #define IDirect3DTexture9_Release IDirect3DTexture8_Release
+#define IDirect3DTexture9_GetSurfaceLevel IDirect3DTexture8_GetSurfaceLevel
+#define IDirect3DSurface9_LockRect IDirect3DSurface8_LockRect
+#define IDirect3DSurface9_UnlockRect IDirect3DSurface8_UnlockRect
+#define IDirect3DSurface9_Release IDirect3DSurface8_Release
 #else
 #include <d3d9.h>
 #endif
@@ -48,13 +53,18 @@ static const struct vertex quad[] = {
 };
 static const DWORD colors[2][4]={{0xffff0000,0xff00ff00,0xff0000ff,0xffffffff},{0xffffff00,0xff00ffff,0xffff00ff,0xff808080}};
 static int fill(IDirect3DTexture9*t,int phase) {
+    IDirect3DSurface9 *surface=0;
+    if(phase && FAILED(IDirect3DTexture9_GetSurfaceLevel(t,0,&surface))) return 0;
     for(unsigned y=0;y<2;y++) {
         D3DLOCKED_RECT locked;
         RECT row={0,(LONG)y,2,(LONG)y+1};
-        if(FAILED(IDirect3DTexture9_LockRect(t,0,&locked,&row,0)) || locked.Pitch<8) return 0;
+        HRESULT hr=surface ? IDirect3DSurface9_LockRect(surface,&locked,&row,0) : IDirect3DTexture9_LockRect(t,0,&locked,&row,0);
+        if(FAILED(hr) || locked.Pitch<8) return 0;
         for(unsigned x=0;x<2;x++) ((DWORD*)locked.pBits)[x]=colors[phase][y*2+x];
-        if(FAILED(IDirect3DTexture9_UnlockRect(t,0))) return 0;
+        hr=surface ? IDirect3DSurface9_UnlockRect(surface) : IDirect3DTexture9_UnlockRect(t,0);
+        if(FAILED(hr)) return 0;
     }
+    if(surface) IDirect3DSurface9_Release(surface);
     return 1;
 }
 static int run(void) {

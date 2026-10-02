@@ -95,7 +95,7 @@ function surfaceMethods(version, texture) {
       },
     },
     [9 + shift]: {
-      argc: 5,
+      argc: 4,
       invoke(r, a, surface) {
         const { state } = texture;
         const { level } = surface.state;
@@ -203,7 +203,7 @@ function deviceSurfaceMethods(version) {
       },
     },
     [9 + shift]: {
-      argc: 5,
+      argc: 4,
       invoke(r, a, surface) {
         const { level, bpp } = surface.state;
         const flags = a(3) >>> 0;
