@@ -31,11 +31,12 @@ instancing remains unsupported; the demo's title does not establish that path.
 | Metaballs2               | 1,645,308 | Vulkan demo with an x64 EXE. The PE32 frontend rejects it before execution; x64 translation and a Vulkan frontend remain required.                                                        |
 
 These candidates remain in the ignored research cache. Inspecting source and
-imports establishes prerequisites, not compatibility. In particular, D3D9
-standalone render-target surfaces can currently be created, but queued draws
-still route to the implicit backbuffer. Real offscreen/cube rendering, target
-sampling and correct pipeline formats must be implemented before publishing
-shadow-mapping examples as working scenes.
+imports establishes prerequisites, not compatibility. The previous implicit-backbuffer routing gap is now fixed for selected
+standalone, 2D and cube targets. Native regressions verify six faces, shared
+D16 storage, exact sampling and RGB565 partial clears; see
+[offscreen scope](d3d-render-targets.md). Transfers currently pass through CPU
+readback at target boundaries. The original shadow candidate is undergoing
+scene, animation and shutdown verification before catalog publication.
 
 To reproduce Instancing after downloading the pinned archive into
 `.cache/demo-research/Instancing.zip`, run `npm run package:instancing`, build

@@ -18,7 +18,8 @@ export class D3DClearRenderer {
   }
 
   pipeline(surface, command) {
-    const { device, format } = this.owner;
+    const { device } = this.owner;
+    const format = surface.gpuFormat ?? this.owner.format;
     this.shader ??= device.createShaderModule({ code: SHADER });
     this.layout ??= device.createBindGroupLayout({
       entries: [
@@ -30,6 +31,7 @@ export class D3DClearRenderer {
       ],
     });
     const key = [
+      format,
       !!surface.depthTexture,
       surface.depthFormat,
       command.clearColor,

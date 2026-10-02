@@ -37,6 +37,17 @@
       "apiCalls": 17267942,
       "scene": "automatic recovery after fall and further normal ArrowLeft input observed",
       "screenshotSha256": "6ddbff8dd9d2bc84b0e168c5db19645f3c5b926ff0539d0bcafb3e4ffe9153f5"
+    },
+    {
+      "stage": "race-timeout",
+      "frame": 17083,
+      "state": "RUNNING",
+      "guestInstructions": 18221468265,
+      "apiCalls": 24493139,
+      "timer": "0.0",
+      "score": "000070",
+      "scene": "original TIME'S UP! results overlay, RACES FINISHED: 0, final score 70",
+      "screenshotSha256": "17446a1856adaf893211f1d327ea37b708a1879e2304bedc7e4fc72a294c79bd"
     }
   ],
   "samples": [
@@ -90,6 +101,7 @@
     "Race completion and subsequent levels not verified",
     "Audio not verified",
     "Startup and gameplay are slow; no real-time performance claim",
-    "This establishes original-game race rendering and input/physics progress, not arbitrary Windows compatibility"
+    "This establishes original-game race rendering and input/physics progress, not arbitrary Windows compatibility",
+    "Window-close action did not establish clean game shutdown; owned test browser closed after recording timeout outcome"
   ]
 }

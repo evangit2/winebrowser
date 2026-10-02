@@ -26,7 +26,7 @@ export class D3DBlendRenderer {
       surface.blendFeedback = device.createTexture({
         label: 'RGB565 previous triangle',
         size: [surface.width, surface.height],
-        format: this.owner.format,
+        format: surface.gpuFormat ?? this.owner.format,
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       });
       surface.blendFeedbackView = surface.blendFeedback.createView();

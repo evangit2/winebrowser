@@ -1,3 +1,13 @@
+import {
+  flushTargets,
+  depthDescription,
+  setTarget,
+  initializeTargetBindings,
+  releaseTargetBindings,
+  returnTargetSurface,
+  getRenderTargetData,
+  readTargetPixels,
+} from './d3d9-targets.js';
 import { INACTIVE_EFFECT_DEFAULTS, setInactiveEffect } from './d3d-inactive-effects.js';
 import {
   defaultStencil,
@@ -288,20 +298,6 @@ function bufferedDraw(runtime, state, source, primitive, primitiveCount) {
 }
 
 // Hand a device-owned surface back to the guest with a fresh reference count.
-function returnDeviceSurface(r, surface, out) {
-  if (out) {
-    r.check(out, 4, true);
-    r.write32(out, 0);
-  }
-  if (!surface || !surface.refs) {
-    if (!out) return D3DERR_INVALIDCALL;
-    return D3D_OK;
-  }
-  if (surface.refs >= 0x7fffffff) throw Error('D3D surface reference limit exceeded');
-  surface.refs++;
-  if (out) r.write32(out, surface.pointer);
-  return D3D_OK;
-}
 function queue(state, command, bytes = 0) {
   if (state.commands.length >= MAX_COMMANDS || state.frameBytes + bytes > MAX_FRAME_BYTES)
     throw Error('D3D9 frame command limit exceeded');
@@ -354,7 +350,12 @@ function deviceMethods(version = 9) {
           throw Error('Unsupported IDirect3DDevice9.Present rectangles or window override');
         const state = object.state;
         if (state.inScene) return D3DERR_INVALIDCALL;
-        await requireGraphics(runtime).present({ id: state.id, commands: [...state.commands] });
+        if (state.renderTarget !== state.backBuffer) await flushTargets(runtime, object);
+        await requireGraphics(runtime).present({
+          id: state.id,
+          commands: [...state.commands],
+          depth: state.renderTarget === state.backBuffer ? depthDescription(runtime, object) : null,
+        });
         state.commands = [];
         state.frameBytes = 0;
         state.textureSnapshots.clear();
@@ -370,9 +371,9 @@ function deviceMethods(version = 9) {
         const out = number(a(4));
         if (!out) return D3DERR_INVALIDCALL;
         const state = device.state;
-        if (number(a(1)) !== 0 || number(a(2)) !== 0 || number(a(3)) !== 1)
+        if (number(a(1)) !== 0 || number(a(2)) !== 0 || number(a(3)) !== 0)
           return D3DERR_INVALIDCALL;
-        return returnDeviceSurface(r, state.backBuffer, out);
+        return returnTargetSurface(r, state.backBuffer, out);
       },
     },
     // CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality,
@@ -433,7 +434,7 @@ function deviceMethods(version = 9) {
           ![75, 77, 80].includes(format) ||
           number(a(4)) ||
           number(a(5)) ||
-          number(a(6)) ||
+          number(a(6)) > 1 ||
           number(a(8))
         )
           return D3DERR_INVALIDCALL;
@@ -480,22 +481,11 @@ function deviceMethods(version = 9) {
         return D3D_OK;
       },
     },
-    // SetRenderTarget(RenderTargetIndex, pRenderTarget)
+    // SetRenderTarget(RenderTargetIndex, pRenderTarget): slot zero is mandatory.
     37: {
       argc: 3,
-      invoke(r, a, device) {
-        const state = device.state;
-        if (number(a(1)) !== 0) return D3DERR_INVALIDCALL;
-        const pointer = number(a(2));
-        if (!pointer) {
-          state.renderTarget = state.backBuffer;
-          return D3D_OK;
-        }
-        const surface = deviceSurface(r, pointer, device);
-        if (!surface || surface.state.format > 23) return D3DERR_INVALIDCALL;
-        state.renderTarget = surface;
-        return D3D_OK;
-      },
+      invoke: (r, a, device) =>
+        number(a(1)) === 0 ? setTarget(r, device, number(a(2))) : D3DERR_INVALIDCALL,
     },
     // GetRenderTarget(RenderTargetIndex, ppRenderTarget)
     38: {
@@ -504,24 +494,14 @@ function deviceMethods(version = 9) {
         const out = number(a(2));
         if (!out) return D3DERR_INVALIDCALL;
         if (number(a(1)) !== 0) return D3DERR_INVALIDCALL;
-        return returnDeviceSurface(r, device.state.renderTarget, out);
+        return returnTargetSurface(r, device.state.renderTarget, out);
       },
     },
-    // SetDepthStencilSurface(pNewZStencil)
-    39: {
-      argc: 2,
-      invoke(r, a, device) {
-        const state = device.state;
-        const pointer = number(a(1));
-        if (!pointer) {
-          state.depthStencil = state.depthSurface;
-          return D3D_OK;
-        }
-        const surface = deviceSurface(r, pointer, device);
-        if (!surface || ![75, 77, 80].includes(surface.state.format)) return D3DERR_INVALIDCALL;
-        state.depthStencil = surface;
-        return D3D_OK;
-      },
+    // NULL detaches depth/stencil; it does not restore the automatic surface.
+    39: { argc: 2, invoke: (r, a, device) => setTarget(r, device, number(a(1)), true) },
+    32: {
+      argc: 3,
+      invoke: (r, a, device) => getRenderTargetData(r, device, number(a(1)), number(a(2))),
     },
     // GetDepthStencilSurface(ppZStencilSurface)
     40: {
@@ -529,7 +509,7 @@ function deviceMethods(version = 9) {
       invoke(r, a, device) {
         const out = number(a(1));
         if (!out) return D3DERR_INVALIDCALL;
-        return returnDeviceSurface(r, device.state.depthStencil, out);
+        return returnTargetSurface(r, device.state.depthStencil, out);
       },
     },
     41: {
@@ -612,7 +592,18 @@ function deviceMethods(version = 9) {
         return 0;
       },
     },
-    47: { argc: 2, invoke: (r, a, o) => setViewport(r, a(1), o.state) },
+    47: {
+      argc: 2,
+      invoke: (r, a, o) =>
+        setViewport(r, a(1), {
+          ...o.state,
+          width: o.state.renderTarget.state.level.width,
+          height: o.state.renderTarget.state.level.height,
+          set viewport(value) {
+            o.state.viewport = value;
+          },
+        }),
+    },
     48: { argc: 2, invoke: (r, a, o) => getViewport(r, a(1), o.state) },
     57: {
       argc: 3,
@@ -1066,7 +1057,8 @@ function factoryMethods(version = 9) {
           state,
           onRelease: async () => {
             unbindTextures(runtime, object);
-            for (const field of ['backBuffer', 'depthSurface', 'renderTarget', 'depthStencil']) {
+            if (state.targetBindingsInitialized) releaseTargetBindings(runtime, object);
+            for (const field of ['backBuffer', 'depthSurface']) {
               const surface = state[field];
               if (surface && surface.refs) {
                 surface.refs = 0;
@@ -1110,6 +1102,7 @@ function factoryMethods(version = 9) {
             pool: 0,
             usage: 1,
             bpp: colorBpp,
+            implicit: true,
           });
           if (!state.backBuffer) throw Error('D3D backbuffer allocation failed');
           state.renderTarget = state.backBuffer;
@@ -1121,12 +1114,15 @@ function factoryMethods(version = 9) {
               pool: 0,
               usage: 2,
               bpp: options.autoDepthFormat === 80 ? 2 : 4,
+              implicit: true,
             });
             if (!state.depthSurface) throw Error('D3D depth-stencil allocation failed');
             state.depthStencil = state.depthSurface;
           }
+          initializeTargetBindings(object);
+          state.targetBindingsInitialized = true;
         } catch (error) {
-          for (const field of ['backBuffer', 'depthSurface', 'renderTarget', 'depthStencil']) {
+          for (const field of ['backBuffer', 'depthSurface']) {
             const surface = state[field];
             if (surface && surface.refs) {
               surface.refs = 0;
@@ -1172,7 +1168,12 @@ function createFactory(runtime, argument, version) {
 export const copyRectsMethod = {
   // CopyRects(src, srcRects, rectCount, dst, dstPoints)
   argc: 6,
-  invoke: (r, a, d) => copyRects(r, d, a(1) >>> 0, a(2) >>> 0, a(3) >>> 0, a(4) >>> 0, a(5) >>> 0),
+  async invoke(r, a, d) {
+    const source = deviceSurface(r, a(1) >>> 0, d);
+    const usage = source?.state.texture?.state.usage ?? source?.state.usage ?? 0;
+    if (usage & 1) await readTargetPixels(r, d, source);
+    return copyRects(r, d, a(1) >>> 0, a(2) >>> 0, a(3) >>> 0, a(4) >>> 0, a(5) >>> 0);
+  },
 };
 
 export const d3d9Apis = {

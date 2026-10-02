@@ -1,0 +1,140 @@
+{
+  "passed": true,
+  "date": "2026-10-02T17:39:39.755Z",
+  "browser": "154.0.8037.97",
+  "scope": "Native D3D8/9 EXE and ZIP uploads render all six cube faces with a shared D16 depth attachment, validate center/border readback and standalone RGB565 full/partial clears in guest code, sample those faces in 12,288 exact displayed pixels, animate and exit zero.",
+  "runs": [
+    {
+      "name": "d3d8.exe",
+      "exeSha256": "86b2ac098669f6ce7978a5b79eb4c928529cee8b7f5119b2ea47be67851f2513",
+      "samples": [
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 5,
+          "bad": 0,
+          "phase": 0,
+          "verifiedPixels": 12288
+        },
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 8,
+          "bad": 0,
+          "phase": 1,
+          "verifiedPixels": 12288
+        }
+      ],
+      "animated": {
+        "width": 192,
+        "height": 64,
+        "frames": 8,
+        "bad": 0,
+        "phase": 1,
+        "verifiedPixels": 12288
+      },
+      "exitCode": 0,
+      "instructions": 37473,
+      "errors": []
+    },
+    {
+      "name": "d3d8.zip",
+      "exeSha256": "86b2ac098669f6ce7978a5b79eb4c928529cee8b7f5119b2ea47be67851f2513",
+      "samples": [
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 4,
+          "bad": 0,
+          "phase": 1,
+          "verifiedPixels": 12288
+        },
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 7,
+          "bad": 0,
+          "phase": 0,
+          "verifiedPixels": 12288
+        }
+      ],
+      "animated": {
+        "width": 192,
+        "height": 64,
+        "frames": 9,
+        "bad": 0,
+        "phase": 0,
+        "verifiedPixels": 12288
+      },
+      "exitCode": 0,
+      "instructions": 37473,
+      "errors": []
+    },
+    {
+      "name": "d3d9.exe",
+      "exeSha256": "419ac94974dd247307b60c5747954a57fa9965b323782e9318a2d8b16610e4f9",
+      "samples": [
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 4,
+          "bad": 0,
+          "phase": 1,
+          "verifiedPixels": 12288
+        },
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 7,
+          "bad": 0,
+          "phase": 0,
+          "verifiedPixels": 12288
+        }
+      ],
+      "animated": {
+        "width": 192,
+        "height": 64,
+        "frames": 7,
+        "bad": 0,
+        "phase": 0,
+        "verifiedPixels": 12288
+      },
+      "exitCode": 0,
+      "instructions": 30983,
+      "errors": []
+    },
+    {
+      "name": "d3d9.zip",
+      "exeSha256": "419ac94974dd247307b60c5747954a57fa9965b323782e9318a2d8b16610e4f9",
+      "samples": [
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 4,
+          "bad": 0,
+          "phase": 1,
+          "verifiedPixels": 12288
+        },
+        {
+          "width": 192,
+          "height": 64,
+          "frames": 7,
+          "bad": 0,
+          "phase": 0,
+          "verifiedPixels": 12288
+        }
+      ],
+      "animated": {
+        "width": 192,
+        "height": 64,
+        "frames": 7,
+        "bad": 0,
+        "phase": 0,
+        "verifiedPixels": 12288
+      },
+      "exitCode": 0,
+      "instructions": 30983,
+      "errors": []
+    }
+  ]
+}

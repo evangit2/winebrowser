@@ -89,7 +89,9 @@ a bounded D3D8 path, not full Hamsterball compatibility. Native D3D8/9 texture
 EXEs and ZIPs also pass pixel and resource-lifetime checks; see the
 [texture scope and evidence](docs/d3d-textures.md). Native GPU lighting, materials
 and point/directional/spot lights also pass EXE/ZIP and pixel tests; see
-[lighting scope](docs/d3d-lighting.md). [Framebuffer blending](docs/d3d-blending.md)
+[lighting scope](docs/d3d-lighting.md). Selected D3D8/9 standalone, 2D and cube targets now
+receive real offscreen draws and native surface readback; see the
+[offscreen scope and limits](docs/d3d-render-targets.md). [Framebuffer blending](docs/d3d-blending.md)
 now includes RGB565 rounding after each overlapping primitive. The unchanged original Hamsterball EXE and its native BASS/CRT dependencies now
 load through ordinary ZIP upload with an automatically selected source-built
 Wine base. The browser translates their x86 code to Wasm during execution.

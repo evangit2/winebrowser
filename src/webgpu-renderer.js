@@ -190,6 +190,11 @@ export class WebGPURenderer {
       colors,
       colorIndex: 0,
       colorFormat,
+      gpuFormat: this.format,
+      implicitDepth: depthTexture,
+      implicitDepthFormat: depthFormat,
+      targets: new Map(),
+      depthTargets: new Map(),
       swapEffect,
       interval,
       lastPresented: 0,
@@ -299,6 +304,7 @@ export class WebGPURenderer {
       command.depthCompare ?? 'less-equal',
       command.cullMode,
       surface.colorFormat,
+      surface.gpuFormat ?? this.format,
       !!command.dither,
       command.fvf ?? 0x42,
       command.lighting
@@ -366,7 +372,7 @@ export class WebGPURenderer {
           fragment: {
             module: shader,
             entryPoint: 'fragmentMain',
-            targets: [colorTarget(surface, command, this.format)],
+            targets: [colorTarget(surface, command, surface.gpuFormat ?? this.format)],
           },
           primitive: primitiveState(command.cullMode),
           ...(surface.depthTexture ? { depthStencil: this.depthStencil(surface, command) } : {}),
@@ -442,9 +448,21 @@ export class WebGPURenderer {
     return slot;
   }
 
-  async present({ id, commands }) {
-    const surface = this.surfaces.get(id);
-    if (!surface) throw Error('Graphics device has been released');
+  async render({ id, commands, target = null, depth = undefined, readback = false }) {
+    const root = this.surfaces.get(id);
+    if (!root) throw Error('Graphics device has been released');
+    const surface = target ? this.targetSurface(root, target) : root;
+    const depthResource = this.depthTarget(root, depth);
+    surface.depthTexture = depthResource?.texture ?? null;
+    surface.depthFormat = depthResource?.format ?? null;
+    surface.depthInitialized = depthResource?.initialized ?? false;
+    if (
+      surface.depthTexture &&
+      (depthResource.width !== surface.width || depthResource.height !== surface.height)
+    )
+      throw Error(
+        `Unsupported D3D depth/color attachment size mismatch: color ${surface.width}x${surface.height}, depth ${depthResource.width}x${depthResource.height}, ${commands.length} queued commands`,
+      );
     if (this.failure) throw Error(this.failure);
     this.validate(surface, commands);
     const drawCount = commands.filter((command) => command.type === 'draw').length;
@@ -573,22 +591,20 @@ export class WebGPURenderer {
       if (!pass) begin();
       pass.end();
       this.clears.trim(surface, clearIndex);
-      if (surface.readback)
+      let buffer = null;
+      if (readback) {
+        const bytesPerRow = Math.ceil((surface.width * 4) / 256) * 256;
+        buffer = this.device.createBuffer({
+          size: bytesPerRow * surface.height,
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
         encoder.copyTextureToBuffer(
           { texture },
-          {
-            buffer: surface.readback,
-            bytesPerRow: surface.bytesPerRow,
-            rowsPerImage: surface.height,
-          },
+          { buffer, bytesPerRow, rowsPerImage: surface.height },
           [surface.width, surface.height],
         );
-      else
-        encoder.copyTextureToTexture(
-          { texture },
-          { texture: surface.context.getCurrentTexture() },
-          [surface.width, surface.height],
-        );
+        surface.pendingReadback = { buffer, bytesPerRow };
+      }
       this.device.queue.submit([encoder.finish()]);
       await this.device.queue.onSubmittedWorkDone();
       this.textures.trim(surface, commands);
@@ -596,8 +612,162 @@ export class WebGPURenderer {
       error = caught;
     }
     const validation = await this.device.popErrorScope();
-    if (error || validation)
+    if (error || validation) {
+      surface.pendingReadback?.buffer.destroy();
+      surface.pendingReadback = null;
       throw error ?? Error('WebGPU validation failed: ' + validation.message);
+    }
+    if (depthResource) depthResource.initialized = surface.depthInitialized;
+    this.draws += drawCount + programmable.length;
+    const pending = surface.pendingReadback;
+    surface.pendingReadback = null;
+    if (!pending) return null;
+    const { buffer, bytesPerRow } = pending;
+    try {
+      await buffer.mapAsync(GPUMapMode.READ);
+      const mapped = new Uint8Array(buffer.getMappedRange());
+      const pixels = new Uint8Array(surface.width * surface.height * 4);
+      for (let row = 0; row < surface.height; row++)
+        pixels.set(
+          mapped.subarray(row * bytesPerRow, row * bytesPerRow + surface.width * 4),
+          row * surface.width * 4,
+        );
+      if (surface.gpuFormat === 'bgra8unorm')
+        for (let i = 0; i < pixels.length; i += 4)
+          [pixels[i], pixels[i + 2]] = [pixels[i + 2], pixels[i]];
+      return pixels;
+    } finally {
+      buffer.unmap();
+      buffer.destroy();
+    }
+  }
+
+  targetSurface(root, description) {
+    const { id, width, height, colorFormat } = description;
+    if (
+      !integer(id, 1, 0xffffffff) ||
+      !integer(width, 1, MAX_DIMENSION) ||
+      !integer(height, 1, MAX_DIMENSION) ||
+      ![21, 22, 23].includes(colorFormat)
+    )
+      throw Error('Invalid D3D offscreen target');
+    let surface = root.targets.get(id);
+    if (surface) {
+      if (
+        surface.width !== width ||
+        surface.height !== height ||
+        surface.colorFormat !== colorFormat
+      )
+        throw Error('Conflicting D3D offscreen target description');
+      return surface;
+    }
+    if ((root.targetBytes ?? 0) + width * height * 4 > 32 * 1024 * 1024)
+      throw Error('D3D offscreen target storage limit exceeded');
+    const texture = this.device.createTexture({
+      label: 'D3D offscreen color target',
+      size: [width, height],
+      format: 'rgba8unorm',
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
+    });
+    surface = {
+      width,
+      height,
+      colorFormat,
+      gpuFormat: 'rgba8unorm',
+      colors: [texture],
+      colorIndex: 0,
+      slots: [],
+    };
+    root.targets.set(id, surface);
+    root.targetBytes = (root.targetBytes ?? 0) + width * height * 4;
+    return surface;
+  }
+
+  depthTarget(root, description) {
+    if (description === null) return null;
+    if (description === undefined || description.implicit) {
+      if (!root.implicitDepth) return null;
+      return (root.implicitDepthResource ??= {
+        texture: root.implicitDepth,
+        format: root.implicitDepthFormat,
+        width: root.width,
+        height: root.height,
+        initialized: false,
+      });
+    }
+    const { id, width, height, format } = description;
+    if (
+      !integer(id, 1, 0xffffffff) ||
+      !integer(width, 1, MAX_DIMENSION) ||
+      !integer(height, 1, MAX_DIMENSION) ||
+      !['depth16unorm', 'depth24plus', 'depth24plus-stencil8'].includes(format)
+    )
+      throw Error('Invalid D3D offscreen depth target');
+    let resource = root.depthTargets.get(id);
+    if (resource) {
+      if (resource.width !== width || resource.height !== height || resource.format !== format)
+        throw Error('Conflicting D3D depth target description');
+      return resource;
+    }
+    if ((root.depthTargetBytes ?? 0) + width * height * 4 > 32 * 1024 * 1024)
+      throw Error('D3D offscreen depth storage limit exceeded');
+    resource = {
+      width,
+      height,
+      format,
+      initialized: false,
+      texture: this.device.createTexture({
+        label: 'D3D offscreen depth target',
+        size: [width, height],
+        format,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      }),
+    };
+    root.depthTargets.set(id, resource);
+    root.depthTargetBytes = (root.depthTargetBytes ?? 0) + width * height * 4;
+    return resource;
+  }
+
+  destroyTarget({ id, targetId }) {
+    const root = this.surfaces.get(id);
+    if (!root) return;
+    const surface = root.targets.get(targetId);
+    if (surface) {
+      this.destroySurfaceResources(surface);
+      root.targets.delete(targetId);
+      root.targetBytes -= surface.width * surface.height * 4;
+    }
+    const depth = root.depthTargets.get(targetId);
+    if (depth) {
+      depth.texture.destroy();
+      root.depthTargets.delete(targetId);
+      root.depthTargetBytes -= depth.width * depth.height * 4;
+    }
+  }
+
+  async present({ id, commands, depth = undefined }) {
+    await this.render({ id, commands, depth });
+    const surface = this.surfaces.get(id);
+    const texture = surface.colors[surface.colorIndex];
+    const encoder = this.device.createCommandEncoder();
+    if (surface.readback)
+      encoder.copyTextureToBuffer(
+        { texture },
+        {
+          buffer: surface.readback,
+          bytesPerRow: surface.bytesPerRow,
+          rowsPerImage: surface.height,
+        },
+        [surface.width, surface.height],
+      );
+    else
+      encoder.copyTextureToTexture({ texture }, { texture: surface.context.getCurrentTexture() }, [
+        surface.width,
+        surface.height,
+      ]);
+    this.device.queue.submit([encoder.finish()]);
+    await this.device.queue.onSubmittedWorkDone();
     // The virtual display refreshes at 60 Hz. This bounds virtual presentation;
     // the browser still owns physical compositor/vblank timing.
     if (surface.interval !== 0x80000000 && surface.lastPresented) {
@@ -626,7 +796,6 @@ export class WebGPURenderer {
     const bitmap = surface.canvas.transferToImageBitmap();
     surface.lastPresented = performance.now();
     if (surface.swapEffect === 2) surface.colorIndex = 1 - surface.colorIndex;
-    this.draws += drawCount + programmable.length;
     this.frames++;
     this.emit({
       type: 'frame',
@@ -643,6 +812,16 @@ export class WebGPURenderer {
   destroyDevice({ id }) {
     const surface = this.surfaces.get(id);
     if (!surface) return;
+    for (const target of surface.targets.values()) this.destroySurfaceResources(target);
+    for (const depth of surface.depthTargets.values()) depth.texture.destroy();
+    surface.implicitDepth?.destroy();
+    this.destroySurfaceResources(surface);
+    surface.readback?.destroy();
+    surface.context?.unconfigure();
+    this.surfaces.delete(id);
+  }
+
+  destroySurfaceResources(surface) {
     for (const slot of surface.slots) {
       slot.vertex?.destroy();
       slot.uniform.destroy();
@@ -653,11 +832,8 @@ export class WebGPURenderer {
     this.textures.trim(surface);
     this.clears.trim(surface, 0);
     surface.blendFeedback?.destroy();
-    surface.depthTexture?.destroy();
-    surface.readback?.destroy();
+    surface.pendingReadback?.buffer.destroy();
     for (const texture of surface.colors) texture.destroy();
-    surface.context?.unconfigure();
-    this.surfaces.delete(id);
   }
 
   dispose() {

@@ -127,6 +127,7 @@ export class D3D9ProgrammableRenderer {
       command.depthCompare ?? 'less-equal',
       command.cullMode,
       surface.colorFormat,
+      surface.gpuFormat ?? this.owner.format,
       !!command.dither,
       JSON.stringify(stencilState(command)),
       JSON.stringify(command.alphaTest ?? null),
@@ -227,7 +228,7 @@ export class D3D9ProgrammableRenderer {
                 : pixelShader,
           }),
           entryPoint: 'main',
-          targets: [colorTarget(surface, command, this.owner.format)],
+          targets: [colorTarget(surface, command, surface.gpuFormat ?? this.owner.format)],
         },
         primitive: primitiveState(command.cullMode),
         ...(surface.depthTexture

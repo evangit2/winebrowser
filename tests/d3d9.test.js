@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { d3d9Apis } from '../src/d3d9.js';
 import { MAX_DRAW_VERTICES, MAX_FRAME_BYTES, MAX_FRAME_COMMANDS } from '../src/d3d-limits.js';
+import { textureSnapshot } from '../src/d3d9-textures.js';
 
 function fixture(version = 9, memoryBytes = 1024 * 1024) {
   const buffer = new ArrayBuffer(memoryBytes);
@@ -37,6 +38,16 @@ function fixture(version = 9, memoryBytes = 1024 * 1024) {
       view.setUint32(this.check(address, 4), value >>> 0, true);
     },
     graphics: {
+      async render(batch) {
+        events.push({ type: 'render', ...batch });
+        if (!batch.readback) return null;
+        const rgba = new Uint8Array(batch.target.width * batch.target.height * 4);
+        for (let i = 0; i < rgba.length; i += 4) rgba.set([17, 33, 65, 129], i);
+        return rgba;
+      },
+      destroyTarget(options) {
+        events.push({ type: 'destroy-target', ...options });
+      },
       async createDevice(options) {
         events.push({ type: 'create', ...options });
       },
@@ -2603,4 +2614,145 @@ test('declaration creation retains unused stream metadata and rejects consumed s
     call(device, 86, source, out),
     /Unsupported D3D9 vertex declaration element/,
   );
+});
+
+test('D3D9 target switches flush preceding draws, update viewport and preserve native texture bytes', async () => {
+  const { runtime: r, call, create, events, freed } = fixture();
+  const device = await create(),
+    out = r.allocate(4),
+    viewOut = r.allocate(4),
+    viewport = r.allocate(24);
+  const d = r.comObjects.objects.get(device),
+    back = d.state.backBuffer.pointer;
+  assert.equal((await call(device, 23, 8, 4, 1, 1, 21, 0, out, 0)).result, 0);
+  const texturePointer = r.read32(out),
+    texture = r.comObjects.objects.get(texturePointer);
+  await call(texturePointer, 18, 0, viewOut);
+  const surface = r.read32(viewOut),
+    surfaceObject = r.comObjects.objects.get(surface),
+    locked = r.allocate(8);
+  assert.equal((await call(texturePointer, 19, 0, locked, 0, 0)).result, 0x8876086c);
+  assert.equal((await call(surface, 13, locked, 0, 0)).result, 0x8876086c);
+  const initial = textureSnapshot(r, texture);
+  await call(device, 43, 0, 0, 1, 0xff010203, 0x3f800000, 0);
+  assert.equal((await call(device, 37, 0, surface)).result, 0);
+  assert.equal(events.at(-1).type, 'render');
+  assert.equal(
+    events.at(-1).target,
+    null,
+    'the previous backbuffer batch is rendered before switching',
+  );
+  await call(device, 48, viewport);
+  assert.deepEqual(
+    [r.read32(viewport), r.read32(viewport + 4), r.read32(viewport + 8), r.read32(viewport + 12)],
+    [0, 0, 8, 4],
+  );
+  assert.throws(() => textureSnapshot(r, texture), /current render target/);
+  assert.equal((await call(device, 37, 0, 0)).result, 0x8876086c);
+  assert.equal((await call(device, 37, 1, back)).result, 0x8876086c);
+  assert.equal((await call(device, 39, 0)).result, 0);
+  assert.equal(d.state.depthStencil, null);
+  assert.equal((await call(device, 43, 0, 0, 2, 0, 0x3f800000, 0)).result, 0x8876086c);
+  await call(device, 43, 0, 0, 1, 0xff112141, 0x3f800000, 0);
+  assert.equal((await call(surface, 2)).result, 0, 'a bound surface survives its external release');
+  assert.equal(
+    (await call(texturePointer, 2)).result,
+    0,
+    'binding retains texture storage without an external reference',
+  );
+  assert.equal(texture.state.freed, false);
+  assert.equal((await call(device, 38, 0, viewOut)).result, 0);
+  assert.equal(r.read32(viewOut), surface);
+  assert.equal(surfaceObject.refs, 1);
+  assert.equal((await call(device, 37, 0, back)).result, 0);
+  const batch = events.findLast((e) => e.type === 'render');
+  assert.deepEqual([batch.target.width, batch.target.height, batch.target.colorFormat], [8, 4, 21]);
+  assert.equal(batch.readback, true);
+  assert.equal(batch.depth, null);
+  assert.deepEqual([...textureSnapshot(r, texture).levels[0].rgba.slice(0, 4)], [17, 33, 65, 129]);
+  assert.deepEqual(
+    [...initial.levels[0].rgba.slice(0, 4)],
+    [0, 0, 0, 0],
+    'previous draw snapshots remain immutable',
+  );
+  assert.deepEqual(
+    [...r.data.slice(texture.state.base, texture.state.base + 4)],
+    [65, 33, 17, 129],
+  );
+  await call(surface, 2);
+  assert.equal(texture.state.freed, true);
+  assert.ok(freed.includes(texture.state.base));
+  assert.ok(events.some((e) => e.type === 'destroy-target'));
+  assert.equal((await call(device, 2)).result, 0);
+});
+
+test('D3D9 reads standalone targets into matching SYSTEMMEM surfaces with exact BGRA storage', async () => {
+  const { runtime: r, call, create, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4),
+    dstOut = r.allocate(4),
+    lock = r.allocate(8);
+  const d = r.comObjects.objects.get(device),
+    back = d.state.backBuffer.pointer;
+  assert.equal((await call(device, 28, 4, 4, 21, 0, 0, 0, out, 0)).result, 0);
+  const src = r.read32(out);
+  assert.equal((await call(device, 36, 4, 4, 21, 2, dstOut, 0)).result, 0);
+  const dst = r.read32(dstOut);
+  await call(device, 37, 0, src);
+  await call(device, 39, 0);
+  await call(device, 43, 0, 0, 1, 0xff112141, 0x3f800000, 0);
+  assert.equal((await call(device, 32, src, dst)).result, 0);
+  assert.equal(
+    events.filter((e) => e.type === 'render').length,
+    2,
+    'pending rendering precedes source readback',
+  );
+  assert.equal((await call(dst, 13, lock, 0, 0x10)).result, 0);
+  assert.equal(r.read32(lock), 16);
+  assert.deepEqual(
+    [...r.data.slice(r.read32(lock + 4), r.read32(lock + 4) + 4)],
+    [65, 33, 17, 129],
+  );
+  assert.equal(
+    (await call(device, 32, src, dst)).result,
+    0x8876086c,
+    'locked readback destination rejected',
+  );
+  await call(dst, 14);
+  assert.equal((await call(device, 32, dst, src)).result, 0x8876086c);
+  assert.equal((await call(device, 32, src, src)).result, 0x8876086c);
+  await call(device, 37, 0, back);
+  await call(src, 2);
+  await call(dst, 2);
+  assert.equal((await call(device, 2)).result, 0);
+});
+
+test('D3D8 render/depth/image surface methods adapt argument counts and target selection', async () => {
+  const { runtime: r, call, create, events } = fixture(8);
+  const device = await create(),
+    colorOut = r.allocate(4),
+    depthOut = r.allocate(4),
+    imageOut = r.allocate(4),
+    backOut = r.allocate(4);
+  assert.equal((await call(device, 16, 0, 0, backOut)).argc, 4);
+  const back = r.read32(backOut);
+  const colorResult = await call(device, 25, 16, 16, 21, 0, 0, colorOut);
+  assert.deepEqual([colorResult.argc, colorResult.result], [7, 0]);
+  const depthResult = await call(device, 26, 16, 16, 80, 0, depthOut);
+  assert.deepEqual([depthResult.argc, depthResult.result], [6, 0]);
+  assert.equal((await call(device, 27, 16, 16, 21, imageOut)).result, 0);
+  const color = r.read32(colorOut),
+    depth = r.read32(depthOut),
+    image = r.read32(imageOut);
+  assert.equal((await call(device, 31, color, depth)).result, 0);
+  await call(device, 36, 0, 0, 3, 0xff102040, 0x3f800000, 0);
+  assert.equal((await call(device, 31, 0, 0)).result, 0, 'D3D8 NULL color restores its backbuffer');
+  const batch = events.findLast((e) => e.type === 'render');
+  assert.deepEqual(
+    [batch.target.width, batch.target.height, batch.depth.format],
+    [16, 16, 'depth16unorm'],
+  );
+  assert.equal(r.comObjects.objects.get(device).state.renderTarget.pointer, back);
+  for (const surface of [color, depth, image, back]) await call(surface, 2);
+  assert.equal((await call(device, 2)).result, 0);
 });

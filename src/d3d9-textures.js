@@ -102,6 +102,7 @@ function surfaceMethods(version, texture) {
         const flags = a(3) >>> 0;
         if (
           level.locked ||
+          state.usage & 1 ||
           !a(1) ||
           (state.pool === 0 && !state.usage) ||
           flags & ~(0x10 | 0x800 | 0x1000 | 0x2000) ||
@@ -207,7 +208,13 @@ function deviceSurfaceMethods(version) {
       invoke(r, a, surface) {
         const { level, bpp } = surface.state;
         const flags = a(3) >>> 0;
-        if (level.locked || !a(1) || flags & ~(0x10 | 0x800 | 0x1000 | 0x2000)) return INVALID;
+        if (
+          level.locked ||
+          !a(1) ||
+          surface.state.usage ||
+          flags & ~(0x10 | 0x800 | 0x1000 | 0x2000)
+        )
+          return INVALID;
         const region = rect(r, a(2), level);
         if (!region) return INVALID;
         const base = surfaceStorage(r, surface);
@@ -233,12 +240,13 @@ function deviceSurfaceMethods(version) {
 export function createDeviceSurface(
   r,
   device,
-  { width, height, format, pool = 0, usage = 0, bpp = 4 },
+  { width, height, format, pool = 0, usage = 0, bpp = 4, implicit = false },
 ) {
   const version = device.state.version;
   if (device.refs >= 0x7fffffff) throw Error('D3D device reference limit exceeded');
   const { pitch, rows, blockBytes } = levelGeometry(format, bpp, width, height);
   const bytes = pitch * rows;
+  if (!implicit) device.refs++;
   // Storage is allocated lazily: a device creates an implicit backbuffer and
   // depth surface at startup, but many programs never read their pixels. This
   // keeps creation cheap and avoids reserving megabytes for untouched targets.
@@ -250,6 +258,7 @@ export function createDeviceSurface(
     methods: deviceSurfaceMethods(version),
     state: {
       device,
+      implicit,
       format,
       pool,
       usage,
@@ -260,7 +269,10 @@ export function createDeviceSurface(
       internalRefs: 0,
       freed: false,
     },
-    onRelease: () => releaseDeviceSurface(r, { state: { base: 0, bytes: 0 } }),
+    onRelease: async (surface) => {
+      if (!surface.state.internalRefs) releaseDeviceSurface(r, surface);
+      if (!implicit) await releaseComReference(device);
+    },
   });
 }
 // Materialize a device surface's pixel storage on first use. Returns the base
@@ -281,6 +293,8 @@ export function releaseDeviceSurface(r, surface) {
   const state = surface.state;
   if (!state || state.freed) return;
   state.freed = true;
+  if (state.level?.targetId)
+    r.graphics?.destroyTarget?.({ id: state.device.state.id, targetId: state.level.targetId });
   if (state.base) {
     r.free(state.base);
     r.d3dTextureBytes = (r.d3dTextureBytes ?? 0) - state.bytes;
@@ -294,8 +308,7 @@ export function deviceSurface(r, pointer, device) {
     !object ||
     !object.refs ||
     (object.name !== 'IDirect3DSurface8' && object.name !== 'IDirect3DSurface9') ||
-    object.state.device !== device ||
-    object.state.texture
+    object.state.device !== device
   )
     return null;
   return object;
@@ -313,6 +326,9 @@ export function initTextures() {
 export function freeTexture(r, o) {
   const s = o.state;
   if (o.refs || s.internalRefs || s.freed) return;
+  for (const level of s.levels)
+    if (level.targetId)
+      r.graphics?.destroyTarget?.({ id: s.device.state.id, targetId: level.targetId });
   r.free(s.base);
   r.d3dTextureBytes -= s.bytes;
   s.snapshot = null;
@@ -409,7 +425,8 @@ export function createTextureMethod(version, cube = false) {
         height > 2048 ||
         !bpp ||
         ![0, 1, 2, 3].includes(pool) ||
-        ![0, 0x200].includes(usage) ||
+        ![0, 1, 0x200].includes(usage) ||
+        (usage === 1 && ![21, 22, 23].includes(format)) ||
         (usage && pool !== 0) ||
         count < 1 ||
         count > 1 + Math.floor(Math.log2(Math.max(width, height))) ||
@@ -515,6 +532,7 @@ export function createTextureMethod(version, cube = false) {
               if (
                 !level ||
                 level.locked ||
+                usage & 1 ||
                 !a(2) ||
                 (pool === 0 && !usage) ||
                 flags & ~(0x10 | 0x800 | 0x1000 | 0x2000) ||
@@ -590,6 +608,7 @@ export function createTextureMethod(version, cube = false) {
             lod: 0,
             revision: 0,
             snapshot: null,
+            freed: false,
           },
           onRelease: async (o) => {
             freeTexture(r, o);
@@ -637,12 +656,14 @@ export function surfaceImage(r, pointer, device) {
   )
     return null;
   const texture = object.state.texture;
+  const usage = texture?.state.usage ?? object.state.usage;
   return texture
     ? {
         level: object.state.level,
         base: texture.state.base,
         bpp: texture.state.bpp,
         format: texture.state.format,
+        usage,
         invalidate: () => invalidate(texture),
       }
     : {
@@ -650,6 +671,7 @@ export function surfaceImage(r, pointer, device) {
         base: surfaceStorage(r, object),
         bpp: object.state.bpp,
         format: object.state.format,
+        usage,
         invalidate: () => {},
       };
 }
@@ -669,6 +691,8 @@ export function copyRects(
   const srcImage = surfaceImage(r, srcPointer, device),
     dstImage = surfaceImage(r, dstPointer, device);
   if (!srcImage || !dstImage) return INVALID;
+  // CPU uploads into GPU-owned targets need an explicit synchronization path.
+  if (dstImage.usage & 1) return INVALID;
   if (src.locked || dst.locked) return INVALID;
   if (srcImage.format !== dstImage.format) return INVALID;
   const compressed = compressedFormat(srcImage.format);
@@ -728,6 +752,8 @@ export function copyRects(
 
 export function textureSnapshot(r, object) {
   const s = object.state;
+  if (s.usage === 1 && s.device.state.renderTarget?.state.texture === object)
+    throw Error('D3D draw samples its current render target texture');
   if (s.levels.some((l) => l.locked)) throw Error('D3D draw uses a locked texture');
   if (s.freed) throw Error('D3D draw uses a freed texture');
   if (!s.snapshot) {

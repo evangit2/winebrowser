@@ -10,6 +10,15 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## October 2 checkpoint
 
+- [x] D3D8/9 clears/draws now reach selected standalone, 2D and cube targets,
+      preserve shared depth, and update native texture bytes before sampling.
+      Native EXE/ZIP checks cover all six faces, exact displayed pixels,
+      RGB565 partial/full clears and clean exit. Equal-size attachments only;
+      GPU-only sampling, target uploads and broader formats remain open.
+- [x] Publication builds check private Hamsterball asset hashes and archive
+      contents, including renamed entries. Hamsterball/BASS/MO3 binaries and
+      game assets remain outside the public repository and Pages output.
+
 - [x] Unchanged Humus Instancing archive renders animated additive particle
       clouds through its own shader-constant, vertex-buffer and user-pointer
       paths. ZIP upload and catalog checks pass 48 frames, then exit zero.

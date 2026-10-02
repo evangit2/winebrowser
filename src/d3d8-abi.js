@@ -3,6 +3,7 @@
 // and rendering. Shader handles and resource descriptors have different ABIs;
 // they must be translated explicitly as those paths are implemented.
 import { copyRectsMethod } from './d3d9.js';
+import { setTarget, validatedTarget } from './d3d9-targets.js';
 
 export const D3D8_METHODS =
   `QueryInterface AddRef Release RegisterSoftwareDevice GetAdapterCount GetAdapterIdentifier GetAdapterModeCount EnumAdapterModes GetAdapterDisplayMode CheckDeviceType CheckDeviceFormat CheckDeviceMultiSampleType CheckDepthStencilMatch GetDeviceCaps GetAdapterMonitor CreateDevice`.split(
@@ -56,6 +57,40 @@ export function device8Methods(methods9, names9) {
     methods[DEVICE8_METHODS.indexOf(name)] = methods9[names9.indexOf(name)];
   // D3D8-only device methods that have no D3D9 vtable slot.
   methods[DEVICE8_METHODS.indexOf('CopyRects')] = copyRectsMethod;
+  const adapt = (name, argc, translate) => {
+    methods[DEVICE8_METHODS.indexOf(name)] = {
+      argc,
+      invoke: (r, a, d) => methods9[names9.indexOf(name)].invoke(r, translate(a), d),
+    };
+  };
+  adapt('GetBackBuffer', 4, (a) => (i) => [a(0), 0, a(1), a(2), a(3)][i]);
+  adapt('CreateRenderTarget', 7, (a) => (i) => [a(0), a(1), a(2), a(3), a(4), 0, a(5), a(6), 0][i]);
+  adapt(
+    'CreateDepthStencilSurface',
+    6,
+    (a) => (i) => [a(0), a(1), a(2), a(3), a(4), 0, 0, a(5), 0][i],
+  );
+  methods[DEVICE8_METHODS.indexOf('CreateImageSurface')] = {
+    argc: 5,
+    invoke: (r, a, d) => methods9[36].invoke(r, (i) => [a(0), a(1), a(2), a(3), 2, a(4), 0][i], d),
+  };
+  methods[DEVICE8_METHODS.indexOf('SetRenderTarget')] = {
+    argc: 3,
+    async invoke(r, a, d) {
+      const color = a(1) >>> 0 || d.state.backBuffer.pointer,
+        depth = a(2) >>> 0;
+      if (
+        validatedTarget(r, d, color) === undefined ||
+        validatedTarget(r, d, depth, true) === undefined
+      )
+        return 0x8876086c;
+      const result = await setTarget(r, d, color);
+      if (result) return result;
+      return setTarget(r, d, depth, true);
+    },
+  };
+  adapt('GetRenderTarget', 2, (a) => (i) => [a(0), 0, a(1)][i]);
+  adapt('GetDepthStencilSurface', 2, (a) => a);
   // GetInfo reports driver resource/vertex statistics. This runtime keeps none,
   // so every query fills an all-zero structure of the requested bounded size.
   methods[DEVICE8_METHODS.indexOf('GetInfo')] = {

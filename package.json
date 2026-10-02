@@ -70,7 +70,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "inspect:targets": "node scripts/inspect-targets.mjs",
-    "prebuild": "node scripts/prepare-decoder.mjs",
+    "prebuild": "npm run check:public-assets && node scripts/prepare-decoder.mjs",
     "predev": "node scripts/prepare-decoder.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "probe:characters": "node scripts/probe-wine-target.mjs tests/fixtures/characters",
@@ -167,7 +167,10 @@
     "package:rollercoaster": "python3 scripts/package-humus-rollercoaster.py",
     "test:rollercoaster": "node scripts/test-rollercoaster-browser.mjs",
     "package:instancing": "python3 scripts/package-humus-instancing.py",
-    "test:instancing": "node scripts/test-instancing-browser.mjs"
+    "test:instancing": "node scripts/test-instancing-browser.mjs",
+    "build:render-targets": "sh scripts/build-render-targets-fixture.sh",
+    "test:render-targets": "node scripts/test-render-targets-browser.mjs",
+    "check:public-assets": "node scripts/check-public-assets.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
