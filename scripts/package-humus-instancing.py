@@ -41,7 +41,9 @@ The executable renders animated additive particle clouds using its original
 shader-constant batching path. WineBrowser translates its x86 blocks to Wasm
 and its native D3D9 shaders to WebGPU during execution. The program chooses
 this fallback itself from the advertised shader versions. Hardware stream
-frequency instancing remains unsupported. Keys 2, 3 and 4 select shader-constant batching, vertex-buffer upload and
+frequency instancing remains unsupported.
+
+Keys 2, 3 and 4 select shader-constant batching, vertex-buffer upload and
 user-pointer arrays. These three paths are covered by the browser regression.
 Load the ZIP to include the assets.
 ''')
