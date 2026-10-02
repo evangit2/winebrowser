@@ -283,6 +283,61 @@ test('D3D9 vertex and index buffers drive buffered and indexed draws', async () 
 });
 
 for (const version of [8, 9]) {
+  test(`D3D${version} nested buffer locks share storage and require balanced unlocks before drawing`, async () => {
+    const { runtime, call, create } = fixture(version);
+    const device = await create();
+    const vbOut = runtime.allocate(4),
+      ibOut = runtime.allocate(4),
+      output = runtime.allocate(4);
+    const slots =
+      version === 8
+        ? { vertex: 23, index: 24, fvf: 76, stream: 83, indices: 85, begin: 34, end: 35, draw: 71 }
+        : {
+            vertex: 26,
+            index: 27,
+            fvf: 89,
+            stream: 100,
+            indices: 104,
+            begin: 41,
+            end: 42,
+            draw: 82,
+          };
+    await call(device, slots.vertex, ...[48, 0, 0x42, 0, vbOut, ...(version === 9 ? [0] : [])]);
+    await call(device, slots.index, ...[6, 0, 101, 0, ibOut, ...(version === 9 ? [0] : [])]);
+    const vb = runtime.read32(vbOut),
+      ib = runtime.read32(ibOut);
+    for (const [buffer, size] of [
+      [vb, 48],
+      [ib, 6],
+    ]) {
+      assert.equal((await call(buffer, 11, 0, 0, output, 0)).result, 0);
+      const base = runtime.read32(output);
+      runtime.data[base + 2] = 0x5a;
+      assert.equal((await call(buffer, 11, 2, size - 2, output, 0x810)).result, 0);
+      assert.equal(runtime.read32(output), base + 2);
+      assert.equal(runtime.data[runtime.read32(output)], 0x5a);
+      // A failed range check clears its output without consuming a lock.
+      assert.equal((await call(buffer, 11, size - 1, 2, output, 0x810)).result, 0x8876086c);
+      assert.equal(runtime.read32(output), 0);
+      assert.equal((await call(buffer, 12)).result, 0);
+      assert.equal(runtime.comObjects.objects.get(buffer).state.locked, 1);
+      runtime.data.fill(0, base, base + size);
+    }
+    await call(device, slots.fvf, 0x42);
+    await call(device, slots.stream, ...[0, vb, ...(version === 9 ? [0] : []), 16]);
+    await call(device, slots.indices, ...[ib, ...(version === 8 ? [0] : [])]);
+    await call(device, slots.begin);
+    const draw = () => call(device, slots.draw, ...[4, ...(version === 9 ? [0] : []), 0, 3, 0, 1]);
+    await assert.rejects(draw(), /unlocked index buffer/);
+    assert.equal((await call(ib, 12)).result, 0);
+    await assert.rejects(draw(), /unlocked vertex buffer/);
+    assert.equal((await call(vb, 12)).result, 0);
+    assert.equal((await call(vb, 12)).result, 0x8876086c);
+    assert.equal((await call(ib, 12)).result, 0x8876086c);
+    assert.equal((await draw()).result, 0);
+    await call(device, slots.end);
+  });
+
   test(`D3D${version} buffers use the version-specific ABI for creation, streaming and indexed draws`, async () => {
     const { runtime, events, call, create } = fixture(version);
     const device = await create();
@@ -1864,9 +1919,10 @@ test('D3D9 buffer Lock accepts discard and no-sys-lock hints on any pool', async
   assert.equal((await call(vb, 12)).result, 0);
   // An unknown flag bit is still rejected explicitly.
   await assert.rejects(call(vb, 11, 0, 16, locked, 0x4), /Lock flags/);
-  // A second lock while locked fails.
+  // Overlapping locks are balanced independently.
   assert.equal((await call(vb, 11, 0, 16, locked, 0)).result, 0);
-  assert.equal((await call(vb, 11, 0, 16, locked, 0)).result, 0x8876086c);
+  assert.equal((await call(vb, 11, 0, 16, locked, 0)).result, 0);
+  assert.equal((await call(vb, 12)).result, 0);
   assert.equal((await call(vb, 12)).result, 0);
   await call(vb, 2);
   await call(device, 2);

@@ -5,6 +5,7 @@ const D3D_OK = 0;
 const D3DERR_INVALIDCALL = 0x8876086c;
 const MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 const MAX_VERTICES = 65535;
+const MAX_OUTSTANDING_LOCKS = 65535;
 const D3DPT_TRIANGLELIST = 4;
 const D3DPT_TRIANGLESTRIP = 5;
 const D3DPT_TRIANGLEFAN = 6;
@@ -73,7 +74,7 @@ function lockMethod() {
       const flags = argument(4) >>> 0;
       runtime.check(output, 4, true);
       runtime.write32(output, 0);
-      if (state.locked || offset >= state.size) return D3DERR_INVALIDCALL;
+      if (state.locked >= MAX_OUTSTANDING_LOCKS || offset >= state.size) return D3DERR_INVALIDCALL;
       const size = requestedSize || state.size - offset;
       if (size > state.size - offset) return D3DERR_INVALIDCALL;
       const allowed = D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK | D3DLOCK_NOOVERWRITE | D3DLOCK_DISCARD;
@@ -84,7 +85,10 @@ function lockMethod() {
       // are rejected. D3DLOCK_NOSYSLOCK is likewise a no-op hint.
       if (flags & ~allowed || (flags & D3DLOCK_READONLY && state.usage & D3DUSAGE_WRITEONLY))
         throw Error(`Unsupported ${object.name}.Lock flags or range`);
-      state.locked = { offset, size, flags };
+      // D3D permits multiple outstanding buffer locks, including overlapping
+      // read-only locks used by mesh helpers. Unlock balances one Lock; draws
+      // remain invalid until the entire count is balanced.
+      state.locked++;
       runtime.write32(output, state.address + offset);
       return D3D_OK;
     },
@@ -131,7 +135,7 @@ function bufferMethods(device, kind) {
       argc: 1,
       invoke(_runtime, _argument, object) {
         if (!object.state.locked) return D3DERR_INVALIDCALL;
-        object.state.locked = null;
+        object.state.locked--;
         return D3D_OK;
       },
     },
@@ -180,7 +184,7 @@ export function createBufferObject(runtime, device, kind, version, options) {
         format,
         width,
         priority: 0,
-        locked: null,
+        locked: 0,
         internalRefs: 0,
       },
       onRelease: () => releaseComReference(device),
