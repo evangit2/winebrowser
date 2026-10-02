@@ -53,6 +53,21 @@
       "maxError": 0
     },
     {
+      "name": "full projective inverse transpose",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "projective NORMALIZENORMALS",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
+      "name": "singular transform uses modelview transpose",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
       "name": "nonunit normals preserved when disabled",
       "pixels": 4096,
       "maxError": 0
@@ -138,8 +153,8 @@
       "maxError": 0
     }
   ],
-  "pixels": 110592,
-  "frames": 27,
-  "browser": "154.0.8037.57",
-  "date": "2026-09-26T11:09:35.993Z"
+  "pixels": 122880,
+  "frames": 30,
+  "browser": "154.0.8037.97",
+  "date": "2026-10-02T15:56:28.460Z"
 }

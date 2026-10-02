@@ -151,11 +151,15 @@ export function validLighting(value) {
     })
   );
 }
-// Inverse transpose of the world-view linear part. D3D row-vector matrices
-// arrive transposed as WGSL column matrices. Translation does not affect normals.
+// D3D8/9 use the upper 3x3 of the full world-view inverse transpose,
+// including projective terms. D3D row matrices arrive as WGSL column matrices.
+// Wine's compute_normal_matrix keeps the transposed modelview when inversion
+// fails; singular transforms are valid application state, not a device error.
 export function normalMatrix(world, view) {
+  if ([world, view].some((m) => m.length !== 16 || !Array.from(m).every(Number.isFinite)))
+    throw Error('Invalid D3D normal transform');
   if ([world, view].some((m) => m[3] || m[7] || m[11] || m[15] !== 1))
-    throw Error('D3D lighting requires affine world and view transforms');
+    return projectiveNormalMatrix(world, view);
   const m = Array.from({ length: 3 }, (_, row) =>
     Array.from(
       { length: 3 },
@@ -173,11 +177,42 @@ export function normalMatrix(world, view) {
   ];
   const cof = [cross(b, c), cross(c, a), cross(a, b)],
     det = a.reduce((s, v, i) => s + v * cof[0][i], 0);
-  if (!Number.isFinite(det) || det === 0)
-    throw Error('D3D lighting requires an invertible world-view transform');
   const result = new Float32Array(12);
   for (let col = 0; col < 3; col++)
-    for (let row = 0; row < 3; row++) result[col * 4 + row] = cof[row][col] / det;
+    for (let row = 0; row < 3; row++)
+      result[col * 4 + row] = det === 0 ? m[col][row] : cof[row][col] / det;
+  if (!result.every(Number.isFinite)) throw Error('D3D normal transform exceeds finite precision');
+  return result;
+}
+function projectiveNormalMatrix(world, view) {
+  const matrix = Array.from({ length: 4 }, (_, row) =>
+    Array.from({ length: 4 }, (_, col) =>
+      [0, 1, 2, 3].reduce((sum, k) => sum + view[k * 4 + row] * world[col * 4 + k], 0),
+    ),
+  );
+  const augmented = matrix.map((row, i) => [...row, ...[0, 1, 2, 3].map((j) => +(i === j))]);
+  let singular = false;
+  for (let column = 0; column < 4; column++) {
+    let pivot = column;
+    for (let row = column + 1; row < 4; row++)
+      if (Math.abs(augmented[row][column]) > Math.abs(augmented[pivot][column])) pivot = row;
+    if (augmented[pivot][column] === 0) {
+      singular = true;
+      break;
+    }
+    [augmented[column], augmented[pivot]] = [augmented[pivot], augmented[column]];
+    const divisor = augmented[column][column];
+    for (let j = 0; j < 8; j++) augmented[column][j] /= divisor;
+    for (let row = 0; row < 4; row++) {
+      if (row === column) continue;
+      const factor = augmented[row][column];
+      for (let j = 0; j < 8; j++) augmented[row][j] -= factor * augmented[column][j];
+    }
+  }
+  const result = new Float32Array(12);
+  for (let col = 0; col < 3; col++)
+    for (let row = 0; row < 3; row++)
+      result[col * 4 + row] = singular ? matrix[col][row] : augmented[col][row + 4];
   if (!result.every(Number.isFinite)) throw Error('D3D normal transform exceeds finite precision');
   return result;
 }

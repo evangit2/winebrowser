@@ -26,10 +26,11 @@ or offline game translation is used.
   and specular colors and one float2 UV. Strides can include padding up to the
   existing 256-byte limit. Missing diffuse is white when lighting is disabled;
   missing specular is zero. XYZ-only lit vertices receive ambient/emissive terms.
-- Normals use the inverse transpose of the world-view linear transform, with
-  optional normalization. Lit normals require affine, invertible world/view
-  transforms whose inverse fits finite Float32 values. The projection remains a
-  separate clip transform. Singular/projective normal transforms fail explicitly.
+- Normals use the upper 3×3 of the full world-view inverse transpose, with
+  optional normalization. Projective world/view terms participate in inversion;
+  the projection remains a separate clip transform. Singular matrices follow
+  Wine's `compute_normal_matrix` fallback to the modelview transpose. Inputs
+  and the resulting normal matrix must fit finite Float32 values.
 - Lighting runs per vertex on the GPU. Point lights use range cutoff and
   constant/linear/quadratic attenuation; spotlights add inner/outer cone and
   falloff. Directional lights do not attenuate. Ambient and emissive contributions

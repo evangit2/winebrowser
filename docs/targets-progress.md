@@ -245,3 +245,13 @@ permissions. Protection changes, removal, index shifts, collisions and executabl
 write callbacks have regression coverage. `node scripts/benchmark-memory-regions.mjs`
 exercises a synthetic alternating-region workload; its timing is not a game-speed
 measurement. The full unit suite passes 812 tests after this change.
+
+The clean combined Hamsterball upload reaches the normal tournament warm-up
+selection and passes the previously captured dynamic managed-buffer request.
+Race rendering then stops on the backend's affine-only lighting check. The
+renderer now follows pinned Wine's full world-view inverse transpose and
+singular-matrix fallback. Projective terms and translation interact in three
+new full-image GPU cases; all 30 lighting cases pass in canvas and readback
+modes (122,880 pixels each). The full unit suite passes 819 tests, and the
+native D3D8 cube passes EXE/ZIP rendering and clean exit. A fresh original-game
+run is underway; these checks do not establish race gameplay.

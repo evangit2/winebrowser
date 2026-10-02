@@ -277,6 +277,23 @@ try {
         make({ world: scaled, projection: inverse, states: { 143: 1 } }),
         () => [0.5, 0.25, 0.125],
       );
+      const projective = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0.25, 0, 0, 2, 1],
+        undoProjective = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2 / 3, -1 / 6, 0, 0, -4 / 3, 4 / 3];
+      await run(
+        'full projective inverse transpose',
+        make({ world: projective, projection: undoProjective }),
+        () => [1 / 3, 1 / 6, 1 / 12],
+      );
+      await run(
+        'projective NORMALIZENORMALS',
+        make({ world: projective, projection: undoProjective, states: { 143: 1 } }),
+        () => [0.5, 0.25, 0.125],
+      );
+      const flattened = [...identity];
+      flattened[10] = 0;
+      await run('singular transform uses modelview transpose', make({ world: flattened }), () => [
+        0, 0, 0,
+      ]);
       await run(
         'nonunit normals preserved when disabled',
         make({ normals: Array(3).fill([0, 0, -0.25]) }),

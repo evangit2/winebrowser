@@ -45,7 +45,11 @@ ready main thread; bounded ready-thread priority boosts restore progress, with
 native thread fixtures passing. A fresh Pages run reaches the normal tournament's
 warm-up race selection after the unused-UV fix. Timed execution quanta improve
 starvation boosts beyond two host checkpoints; race loading then reveals a
-dynamic managed-buffer restriction. A fresh run is checking the combined fixes.
+dynamic managed-buffer restriction. A clean combined run passes that restriction
+and reaches a race-rendering rejection of non-affine world/view matrices. The
+lighting backend now uses Wine's full inverse-transpose and singular fallback;
+819 unit tests and 30 pixel cases in each presentation mode pass. A fresh run
+is checking the game with this fix; race gameplay remains unverified.
 
 - [x] Recover the exact original EXE from the retained Theseus PE sections and
       original import lookup table; verify SHA-256

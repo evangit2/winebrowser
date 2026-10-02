@@ -62,8 +62,30 @@ test('normal inverse transpose preserves orthogonality through shear, scale and 
   assert.deepEqual([...normalMatrix(identity, identity)], [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]);
   const singular = [...identity];
   singular[0] = 0;
-  assert.throws(() => normalMatrix(singular, identity), /invertible/);
-  assert.throws(() => normalMatrix(Array(16).fill(0), identity), /affine/);
+  assert.deepEqual([...normalMatrix(singular, identity)], [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]);
+  assert.deepEqual([...normalMatrix(Array(16).fill(0), identity)], Array(12).fill(0));
+});
+test('projective normals include translation and homogeneous terms of the full inverse', () => {
+  // The z/w block is [[2, 2], [1/4, 1]], whose determinant is 3/2.
+  // Inverting only the spatial 3x3 would incorrectly return 1/2 for z.
+  const projective = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0.25, 0, 0, 2, 1];
+  const expected = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, Math.fround(2 / 3), 0];
+  assert.deepEqual([...normalMatrix(projective, identity)], expected);
+  assert.deepEqual([...normalMatrix(identity, projective)], expected);
+  // Its upper 3x3 can be singular while the full matrix is invertible.
+  const swapped = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0];
+  assert.deepEqual([...normalMatrix(swapped, identity)], [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual([...normalMatrix(swapped, swapped)], [...normalMatrix(identity, identity)]);
+});
+test('singular normals preserve Wine modelview transpose and reject nonfinite input', () => {
+  const singular = [2, 1, 0, 0.5, 0, 0, 0, 0, 0, 0, 3, 0, 4, 0, 0, 1];
+  assert.deepEqual([...normalMatrix(singular, identity)], [2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0]);
+  const invalid = [...identity];
+  invalid[3] = NaN;
+  assert.throws(() => normalMatrix(invalid, identity), /Invalid/);
+  invalid[3] = Infinity;
+  assert.throws(() => normalMatrix(invalid, identity), /Invalid/);
+  assert.throws(() => normalMatrix(identity.slice(1), identity), /Invalid/);
 });
 test('lighting defaults, snapshots and validation keep unsupported data out of the GPU', () => {
   const state = initLighting(),
