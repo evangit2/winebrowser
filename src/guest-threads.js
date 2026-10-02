@@ -18,6 +18,8 @@ export class GuestThreads {
       started: true,
     };
     this.current = this.main;
+    this.schedulerNow = () => performance.now();
+    this.starvationMilliseconds = 3000;
     this.records = new Map([[1, this.main]]);
     this.nextId = 2;
     this.queue = [];
@@ -53,7 +55,14 @@ export class GuestThreads {
         ),
     );
     if (!eligible.length) return;
-    const next = eligible.reduce((a, b) => (this.priority(b) > this.priority(a) ? b : a));
+    const next = eligible.reduce((a, b) =>
+      this.schedulingPriority(b) > this.schedulingPriority(a) ? b : a,
+    );
+    // Windows temporarily boosts starved variable-priority threads. Without
+    // this, a CPU-bound priority-15 codec worker can prevent the UI thread
+    // from ever resuming, even though both are in the ready queue.
+    if (this.starved(next)) next.boostQuanta = 2;
+    next.readySince = undefined;
     const index = this.queue.indexOf(next);
     const [thread] = this.queue.splice(index, 1);
     this.activate(thread);
@@ -62,7 +71,10 @@ export class GuestThreads {
     resume();
   }
   ready(thread) {
-    if (!this.queue.includes(thread)) this.queue.push(thread);
+    if (!this.queue.includes(thread)) {
+      thread.readySince = this.schedulerNow();
+      this.queue.push(thread);
+    }
     this.pump();
   }
   block(promise) {
@@ -105,11 +117,23 @@ export class GuestThreads {
   }
   async yield() {
     this.checkRunning();
+    if (this.current.boostQuanta) this.current.boostQuanta--;
     if (
       this.current.suspend ||
-      this.queue.some((t) => !t.suspend && this.priority(t) >= this.priority(this.current))
+      this.queue.some(
+        (t) => !t.suspend && this.schedulingPriority(t) >= this.schedulingPriority(this.current),
+      )
     )
       await this.block(Promise.resolve());
+  }
+  starved(thread) {
+    return (
+      thread.readySince !== undefined &&
+      this.schedulerNow() - thread.readySince >= this.starvationMilliseconds
+    );
+  }
+  schedulingPriority(thread) {
+    return thread.boostQuanta || this.starved(thread) ? 15 : this.priority(thread);
   }
   priority(thread) {
     const delta = thread.relativePriority ?? 0;

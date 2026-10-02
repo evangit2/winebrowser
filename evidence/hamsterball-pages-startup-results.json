@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-02T09:28:44.179Z",
+  "errors": [],
+  "state": "RUNNING",
+  "status": "Running in worker\u2026",
+  "output": "",
+  "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder\u2026\nWebGPU graphics initialized in the runtime worker (canvas presentation)",
+  "metrics": "4063 Wasm blocks \u00b7 948686848 dispatches \u00b7 3266746902 x86 instructions \u00b7 479759 API calls",
+  "lastRun": null,
+  "canvas": {
+    "renderer": "webgpu",
+    "graphicsApi": "d3d9",
+    "graphicsFrames": "1944",
+    "graphicsDraws": "41420"
+  },
+  "inputExeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+  "mode": "ordinary ZIP upload to built Pages harness; automatic native Wine base",
+  "observation": "Original loading screen reaches CLICK HERE TO PLAY and responds to mouse input with original menu. Gameplay not verified. A high-priority BASS worker subsequently starved the ready main thread."
+}

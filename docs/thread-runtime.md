@@ -11,8 +11,11 @@ Blocking event/thread waits, delays, host requests and window-message waits rele
 the CPU. Their JavaScript continuations resume only after the owning context and
 guest call depth are restored. CPU-only loops yield at dispatcher checkpoints
 every 2,048 blocks. Runnable threads are selected by base priority, with round-robin
-ordering among equals. Dynamic priority boosts, affinity and scheduling classes
-are not implemented. Module transactions and DLL notifications share a reentrant
+ordering among equals. A thread waiting in the ready queue for three seconds
+receives a temporary priority-15 boost for two dispatcher quanta; its requested
+base priority remains intact. This prevents a runnable priority-15 worker from
+permanently starving the UI. Suspended threads remain excluded. Other dynamic
+boosts, affinity and scheduling classes are not implemented. Module transactions and DLL notifications share a reentrant
 loader lock across guest callbacks and suspension.
 
 The ordinary upload path implements `CreateThread`, suspended creation,
@@ -61,13 +64,12 @@ including dynamic TLS/FLS and process shutdown. Reports are in
 `evidence/threads-browser-results.json`, `evidence/threads-native-results.json`
 and `evidence/threads-native-browser-results.json`.
 
-Original Hamsterball now initializes two workers, creates its 800×600 window and
-passes D3D8 display/depth queries. Chromium now creates its fullscreen device
-and passes capability/viewport/transform setup and custom cursor loading before mapping the first texture file and stopping at the `IDirect3DTexture8.GetSurfaceLevel`;
-Node stops at creation without WebGPU.
-See [presentation support](d3d-display.md). No game frame renders yet. The reference Theseus
-`kernel32/thread.rs` uses host `std::thread::spawn`; this browser scheduler instead
-uses the existing guest CPU and Wine's lifecycle routines.
+Original Hamsterball creates two workers and presents its loading screen and
+menu through ordinary Pages upload with the native Wine base. An actual BASS
+priority-15 worker exposed starvation of the ready main thread; the bounded
+priority boost restores main-thread progress. Gameplay remains unverified.
+The reference Theseus `kernel32/thread.rs` uses host `std::thread::spawn`; this
+browser scheduler instead uses the existing guest CPU and Wine’s lifecycle routines.
 
 Same-process real and pseudo thread handles can now be duplicated. Aliases
 share completion and identity, and main-thread completion wakes workers waiting

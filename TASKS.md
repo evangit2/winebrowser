@@ -26,6 +26,15 @@ D3D10/11 and broader D3D12 support are still required.
 
 ## Current original-Hamsterball gate
 
+Latest verification (2026-10-02): ordinary ZIP upload into the built Pages harness
+selects the source-built native Wine base automatically for BASS/CRT dependencies.
+The unchanged EXE presents its loading screen, reaches “CLICK HERE TO PLAY!” and
+responds to a mouse action with its original menu. See
+[ordinary upload evidence](evidence/hamsterball-pages-startup-results.json).
+Gameplay remains unverified. A priority-15 BASS worker exposed starvation of the
+ready main thread; bounded ready-thread priority boosts restore progress, with
+native thread fixtures passing. A fresh Pages run is checking the combined fixes.
+
 - [x] Recover the exact original EXE from the retained Theseus PE sections and
       original import lookup table; verify SHA-256
       `3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d`.

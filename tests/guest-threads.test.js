@@ -249,3 +249,45 @@ test('process cancellation unwinds a sleeping guest and clears its host timer', 
     r.cpu.dispose();
   }
 });
+
+test('a starved ready UI thread receives a bounded priority boost and suspended threads stay parked', async () => {
+  const { GuestThreads } = await import('../src/guest-threads.js');
+  let now = 0;
+  const scheduler = new GuestThreads({ cpu: { captureContext: () => ({}) } });
+  scheduler.schedulerNow = () => now;
+  const low = { id: 2, relativePriority: -2, suspend: 0, readySince: 0 };
+  const high = { id: 3, relativePriority: 15, suspend: 0, readySince: 0 };
+  const suspended = { id: 4, relativePriority: 15, suspend: 1, readySince: 0 };
+  const resumed = [];
+  scheduler.activate = (thread) => {
+    scheduler.current = thread;
+    resumed.push(thread.id);
+  };
+  for (const thread of [low, high, suspended]) thread.resume = () => {};
+  scheduler.current = null;
+  scheduler.queue = [low, high, suspended];
+  scheduler.pump();
+  assert.deepEqual(resumed, [3], 'base priority wins before starvation');
+  now = 3001;
+  scheduler.block = async () => {
+    scheduler.current = null;
+    high.resume = () => {};
+    scheduler.ready(high);
+  };
+  await scheduler.yield();
+  assert.deepEqual(
+    resumed,
+    [3, 2],
+    'starved low-priority thread resumes despite runnable priority 15',
+  );
+  assert.equal(low.boostQuanta, 2);
+  assert.equal(scheduler.priority(low), 6, 'boost leaves the requested base priority intact');
+  assert.equal(scheduler.schedulingPriority(low), 15);
+  scheduler.block = async () => {};
+  await scheduler.yield();
+  assert.equal(low.boostQuanta, 1);
+  await scheduler.yield();
+  assert.equal(low.boostQuanta, 0);
+  assert.equal(scheduler.schedulingPriority(low), 6, 'boost expires after two quanta');
+  assert.ok(scheduler.queue.includes(suspended));
+});
