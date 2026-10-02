@@ -680,6 +680,19 @@ actually executed.
 
 ## Vulkan upload milestone (2026-10-02)
 
+- [x] Run Sascha Willems's pinned glTF skinning application with CesiumMan,
+      indexed vertex buffers, skeletal storage buffers, node push constants,
+      textures and original native ImGui controls. Static dependency audit
+      resolves all eight modules; C++/GLM/tinyglTF/STB/JSON/KTX/ImGui are linked
+      into the source-built Windows x86 EXE. Original scene/shaders are retained.
+- [x] Check ordinary ZIP/folder upload and hosted catalog with real textured
+      mesh pixels, animation outside FPS text, pause/resume, mouse camera input,
+      browser x86/SPIR-V compilation and native exit zero. Repeat all three
+      modes through alternate readback presentation; retain licensed source,
+      build recipe, import audit and the same application in the Pages catalog.
+- [x] Verify exact native GPU compute and coherent readback across repeated
+      submissions, including partial buffer copies and preserved destination
+      bytes. Graphics storage buffers remain read-only; wireframe is unsupported.
 - [x] Pin and build the free Apache-2.0 Khronos Vulkan-Tools cube for Windows
       x86, preserving its original scene, embedded texture and SPIR-V shaders.
 - [x] Implement a reusable bounded Vulkan 1.0/Win32 frontend with shader

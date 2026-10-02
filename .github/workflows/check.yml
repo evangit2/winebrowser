@@ -95,6 +95,8 @@ jobs:
           npm run test:d3d12-knot
           npm run test:d3d10
           npm run test:vulkan
+          npm run test:vulkan-compute
+          npm run test:skinning
           npm run test:seh
           npm run test:d3d12-blend
           npm run test:exec-memory

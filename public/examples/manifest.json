@@ -76,6 +76,17 @@
       "zip": "vkcube/vkcube.zip",
       "zipSha256": "0947a3ec59edd93679fc6dbd713eb465ffb77e63c12e638215a24e0815ee61c8",
       "provenance": "Apache-2.0, Khronos/Valve/LunarG. Windows x86 build of unchanged upstream scene and SPIR-V shaders; source and build pins included."
+    },
+    {
+      "name": "gltfskinning",
+      "description": "Sascha Willems / CesiumMan: textured skeletal animation, joint storage buffers, node transforms and native ImGui. P pauses, drag rotates, wheel zooms, F1 toggles overlay.",
+      "exe": "gltfskinning/bin/gltfskinning.exe",
+      "exeSha256": "ff42fb88664b336ccd70f29615689ef1ca8c20c6bbb8d210db235f174522c608",
+      "zip": "gltfskinning/gltfskinning.zip",
+      "zipSha256": "6794a432dc5b556b8fad7afac6c430ee003d3c00278dc01be9ecc868c36e4375",
+      "sourceZip": "gltfskinning/source.zip",
+      "sourceZipSha256": "b6360728dcb9d2067e4bfebba9480eab2409e66368a8d49afdd4489ec44a7961",
+      "provenance": "Windows x86 source build of the current upstream glTF skinning demo; original application, animation, assets and SPIR-V are unchanged. A SIZE_MAX guard in the common helper avoids duplicate overload definitions on 32-bit Windows. GLM, tinyglTF/STB/nlohmann JSON, KTX, ImGui and the GNU C++ runtime are linked into the EXE. Wine source UCRT/kernel32/kernelbase/ntdll and host user32/gdi32/vulkan-1 supply Windows services in the browser."
     }
   ]
 }

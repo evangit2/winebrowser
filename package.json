@@ -174,6 +174,9 @@
     "package:transparent-shadows": "python3 scripts/package-humus-transparent-shadows.py",
     "test:transparent-shadows": "node scripts/test-transparent-shadows-browser.mjs",
     "build:vulkan": "sh scripts/build-vkcube.sh && python3 scripts/package-vkcube.py",
+    "build:skinning": "python3 scripts/build-willems-skinning.py",
+    "test:skinning": "node scripts/test-willems-skinning-browser.mjs",
+    "test:vulkan-compute": "node scripts/test-vulkan-compute-browser.mjs",
     "test:vulkan": "node scripts/test-vulkan-browser.mjs",
     "build:opengl": "python3 scripts/build-opengl-demo.py",
     "test:opengl": "node scripts/test-opengl-browser.mjs",
@@ -189,7 +192,8 @@
     "package:water": "python3 scripts/package-humus-water.py",
     "test:water": "node scripts/test-water-browser.mjs",
     "test:rgba16-backend": "node scripts/test-rgba16-backend.mjs",
-    "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs"
+    "test:shared-depth-extent-backend": "node scripts/test-shared-depth-extent-backend.mjs",
+    "build:vulkan-compute": "sh scripts/build-vulkan-compute.sh"
   },
   "dependencies": {
     "fflate": "0.8.3",

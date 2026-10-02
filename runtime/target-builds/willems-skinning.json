@@ -1,0 +1,39 @@
+{
+  "project": "SaschaWillems/Vulkan",
+  "revision": "41a4410243fca7640a2dd0115a5ff5cb9a29494b",
+  "sourceArchiveSha256": "c0703bd1055a0a47439f8872831b81f04996a62236e3f40c198c820532a2f105",
+  "glm": {
+    "revision": "1ad55c5016339b83b7eec98c31007e0aee57d2bf",
+    "archiveSha256": "cec07d19a13df44030d0a3fac920303aa3bb72add52a3b80bfeb3187e71d7015"
+  },
+  "headers": {
+    "revision": "c46850864f4661461b0f6cb9922c058ffea4915e",
+    "archiveSha256": "539ff8eaa4abf22fddbd98225c68a0c5ddb940075a4048c8b7f5d04449070a4e"
+  },
+  "assets": {
+    "project": "SaschaWillems/Vulkan-Assets",
+    "revision": "a27c0e584434d59b7c7a714e9180eefca6f0ec4b",
+    "files": {
+      "Roboto-Medium.ttf": "8559132c89ad51d8a2ba5b171887a44a7ba93776e205f553573de228e64b45f8",
+      "models/CesiumMan/README.md": "45f8a29cf18f4818e206bd26932c92087e5138bff6fce4c3e03ba4ba2354e421",
+      "models/CesiumMan/glTF/CesiumMan_img0.jpg": "30eb36a39f78303a4675348e9507c58d2cb4f29d28ef5688359bb62938feca3e",
+      "models/CesiumMan/glTF/CesiumMan.gltf": "bbb66a129c906e015620197b683edbc6e7a27510169ffa5adec2114046f14919",
+      "models/CesiumMan/glTF/CesiumMan_data.bin": "2115d3c8df0519cea62f7def76d66d2346c5ac2216319859d3c79e3784dafd3f"
+    }
+  },
+  "modelLicense": {
+    "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/CesiumMan/README.md",
+    "sha256": "1bf7fa794013d2e0de8c244518936b04d95cba780f4510c8cceee4c23dbc04a8"
+  },
+  "buildNote": "Windows x86 source build of the current upstream glTF skinning demo; original application, animation, assets and SPIR-V are unchanged. A SIZE_MAX guard in the common helper avoids duplicate overload definitions on 32-bit Windows. GLM, tinyglTF/STB/nlohmann JSON, KTX, ImGui and the GNU C++ runtime are linked into the EXE. Wine source UCRT/kernel32/kernelbase/ntdll and host user32/gdi32/vulkan-1 supply Windows services in the browser.",
+  "notices": {
+    "APACHE-2.0.txt": {
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "CESIUM-TRADEMARK.txt": {
+      "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/LICENSES/LicenseRef-LegalMark-Cesium.txt",
+      "sha256": "7bafc8dbff0b9d04297bced53a47809e3ab6721cb35b4a2d780533476b28ebd4"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "project": "SaschaWillems/Vulkan",
+  "revision": "41a4410243fca7640a2dd0115a5ff5cb9a29494b",
+  "compiler": "i686-w64-mingw32-g++ (GCC) 16.1.0",
+  "flags": "-O2 -DNDEBUG -mfpmath=387 -mno-sse -mno-sse2 -fno-tree-vectorize -ffunction-sections -fdata-sections",
+  "exeSha256": "ff42fb88664b336ccd70f29615689ef1ca8c20c6bbb8d210db235f174522c608",
+  "exeBytes": 1920512,
+  "buildNote": "Windows x86 source build of the current upstream glTF skinning demo; original application, animation, assets and SPIR-V are unchanged. A SIZE_MAX guard in the common helper avoids duplicate overload definitions on 32-bit Windows. GLM, tinyglTF/STB/nlohmann JSON, KTX, ImGui and the GNU C++ runtime are linked into the EXE. Wine source UCRT/kernel32/kernelbase/ntdll and host user32/gdi32/vulkan-1 supply Windows services in the browser."
+}

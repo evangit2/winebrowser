@@ -1,0 +1,7309 @@
+{
+  "scope": "Static Windows x86 import closure resolves through the ordinary module graph. Rendering/input/exit are independently verified by the browser acceptance test; this audit does not execute every export or establish arbitrary DLL compatibility.",
+  "executable": "bin/gltfskinning.exe",
+  "modules": [
+    {
+      "name": "gltfskinning.exe",
+      "path": "bin/gltfskinning.exe",
+      "provider": "uploaded native Windows x86 code",
+      "sha256": "ff42fb88664b336ccd70f29615689ef1ca8c20c6bbb8d210db235f174522c608",
+      "imports": [
+        {
+          "dll": "GDI32.dll",
+          "symbol": "GetStockObject"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "AllocConsole"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "AttachConsole"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "CloseHandle"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "CreateEventA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "CreateSemaphoreA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "DeleteCriticalSection"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "DuplicateHandle"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "EnterCriticalSection"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "ExpandEnvironmentStringsA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "FormatMessageA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "FreeConsole"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "FreeLibrary"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetConsoleMode"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetCurrentProcess"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetCurrentProcessId"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetCurrentThread"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetCurrentThreadId"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetLastError"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetModuleHandleA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetProcAddress"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetProcessAffinityMask"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetStartupInfoA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetStdHandle"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetSystemTimeAsFileTime"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetThreadContext"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetThreadPriority"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetTickCount"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GetTimeZoneInformation"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GlobalAlloc"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GlobalFree"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GlobalLock"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "GlobalUnlock"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "InitializeCriticalSection"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "IsDBCSLeadByte"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "LeaveCriticalSection"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "LoadLibraryA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "LocalFree"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "MultiByteToWideChar"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "OpenProcess"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "OutputDebugStringA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "QueryPerformanceCounter"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "QueryPerformanceFrequency"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "RaiseException"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "ReleaseSemaphore"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "ResetEvent"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "ResumeThread"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetConsoleMode"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetConsoleTitleA"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetEvent"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetLastError"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetProcessAffinityMask"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetThreadContext"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetThreadPriority"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SetUnhandledExceptionFilter"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "Sleep"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "SuspendThread"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "TlsAlloc"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "TlsGetValue"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "TlsSetValue"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "TryEnterCriticalSection"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "VirtualProtect"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "VirtualQuery"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "WaitForMultipleObjects"
+        },
+        {
+          "dll": "KERNEL32.dll",
+          "symbol": "WaitForSingleObject"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "atof"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "mbrtowc"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "mbsrtowcs"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "strtol"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "strtoll"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "strtoul"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "strtoull"
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "symbol": "wcrtomb"
+        },
+        {
+          "dll": "api-ms-win-crt-environment-l1-1-0.dll",
+          "symbol": "__p__environ"
+        },
+        {
+          "dll": "api-ms-win-crt-environment-l1-1-0.dll",
+          "symbol": "getenv"
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "symbol": "_fstat64"
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "symbol": "_fstat64i32"
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "symbol": "_lock_file"
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "symbol": "_stat64i32"
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "symbol": "_unlock_file"
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "symbol": "_set_new_mode"
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "symbol": "calloc"
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "symbol": "free"
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "symbol": "malloc"
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "symbol": "realloc"
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "symbol": "___mb_cur_max_func"
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "symbol": "_configthreadlocale"
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "symbol": "localeconv"
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "symbol": "setlocale"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "__setusermatherr"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "_fdopen"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "cos"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "frexp"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "pow"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "sin"
+        },
+        {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "symbol": "tan"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "_setjmp3"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "longjmp"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "memchr"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "memcmp"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "memcpy"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "memmove"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "strchr"
+        },
+        {
+          "dll": "api-ms-win-crt-private-l1-1-0.dll",
+          "symbol": "strstr"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "__p___argc"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "__p___argv"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "__p__acmdln"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_assert"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_beginthreadex"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_cexit"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_configure_narrow_argv"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_crt_atexit"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_endthreadex"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_errno"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_exit"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_initialize_narrow_environment"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_initterm"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_initterm_e"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_set_app_type"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "_set_invalid_parameter_handler"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "abort"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "exit"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "signal"
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "symbol": "strerror"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "__acrt_iob_func"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "__p__commode"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "__p__fmode"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "__stdio_common_vfprintf"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "__stdio_common_vsprintf"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_get_osfhandle"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_fileno"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_fseeki64"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_ftelli64"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_lseeki64"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_read"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_setmode"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_wfopen"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_wfopen_s"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_wopen"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "_write"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fclose"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "feof"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fflush"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "ungetwc"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fopen"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fputc"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fputs"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fread"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "freopen_s"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fseek"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fseek"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "ftell"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "ftell"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "fwrite"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "getc"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "getwc"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "putc"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "putwc"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "setvbuf"
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "symbol": "ungetc"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "_strdup"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "isalnum"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "isdigit"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "isprint"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "iswctype"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "isspace"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "isxdigit"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "mbrlen"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "memset"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strcmp"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strcoll"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strlen"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strncmp"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strncpy"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strnlen"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strtok"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "strxfrm"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "tolower"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "toupper"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "towlower"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "towupper"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "wcscoll"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "wcslen"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "wcsnlen"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "wcsxfrm"
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "symbol": "wctype"
+        },
+        {
+          "dll": "api-ms-win-crt-time-l1-1-0.dll",
+          "symbol": "_ctime64"
+        },
+        {
+          "dll": "api-ms-win-crt-time-l1-1-0.dll",
+          "symbol": "_time64"
+        },
+        {
+          "dll": "api-ms-win-crt-time-l1-1-0.dll",
+          "symbol": "strftime"
+        },
+        {
+          "dll": "api-ms-win-crt-time-l1-1-0.dll",
+          "symbol": "wcsftime"
+        },
+        {
+          "dll": "api-ms-win-crt-utility-l1-1-0.dll",
+          "symbol": "qsort"
+        },
+        {
+          "dll": "api-ms-win-crt-utility-l1-1-0.dll",
+          "symbol": "rand_s"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "AdjustWindowRectEx"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "ChangeDisplaySettingsA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "CloseClipboard"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "CreateWindowExA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "DefWindowProcA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "DestroyWindow"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "DispatchMessageA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "EmptyClipboard"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "GetClipboardData"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "GetSystemMetrics"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "IsIconic"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "LoadCursorA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "LoadIconA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "MessageBoxA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "OpenClipboard"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "PeekMessageA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "PostQuitMessage"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "RegisterClassExA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "SetClipboardData"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "SetFocus"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "SetForegroundWindow"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "SetWindowPos"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "SetWindowTextA"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "ShowWindow"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "TranslateMessage"
+        },
+        {
+          "dll": "USER32.dll",
+          "symbol": "ValidateRect"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkAcquireNextImageKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkAllocateCommandBuffers"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkAllocateDescriptorSets"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkAllocateMemory"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkBeginCommandBuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkBindBufferMemory"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkBindImageMemory"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdBeginRenderPass"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdBeginRendering"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdBindDescriptorSets"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdBindIndexBuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdBindPipeline"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdBindVertexBuffers"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdCopyBuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdCopyBufferToImage"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdDrawIndexed"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdEndRenderPass"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdEndRendering"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdPipelineBarrier"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdPushConstants"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdSetScissor"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCmdSetViewport"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateBuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateCommandPool"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateDescriptorPool"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateDescriptorSetLayout"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateDevice"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateFence"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateFramebuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateGraphicsPipelines"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateImage"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateImageView"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateInstance"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreatePipelineCache"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreatePipelineLayout"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateRenderPass"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateSampler"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateSemaphore"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateShaderModule"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateSwapchainKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkCreateWin32SurfaceKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyBuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyCommandPool"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyDescriptorPool"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyDescriptorSetLayout"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyDevice"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyFence"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyFramebuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyImage"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyImageView"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyInstance"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyPipeline"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyPipelineCache"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyPipelineLayout"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyRenderPass"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroySampler"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroySemaphore"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroyShaderModule"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroySurfaceKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDestroySwapchainKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkDeviceWaitIdle"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkEndCommandBuffer"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkEnumerateDeviceExtensionProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkEnumerateInstanceExtensionProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkEnumerateInstanceLayerProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkEnumeratePhysicalDevices"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkFlushMappedMemoryRanges"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkFreeCommandBuffers"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkFreeMemory"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetBufferMemoryRequirements"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetDeviceQueue"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetImageMemoryRequirements"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetInstanceProcAddr"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceFeatures"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceFormatProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceMemoryProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceQueueFamilyProperties"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceSurfaceCapabilitiesKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceSurfaceFormatsKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceSurfacePresentModesKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetPhysicalDeviceSurfaceSupportKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkGetSwapchainImagesKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkInvalidateMappedMemoryRanges"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkMapMemory"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkQueuePresentKHR"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkQueueSubmit"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkResetFences"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkUnmapMemory"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkUpdateDescriptorSets"
+        },
+        {
+          "dll": "vulkan-1.dll",
+          "symbol": "vkWaitForFences"
+        }
+      ]
+    },
+    {
+      "name": "gdi32.dll",
+      "provider": "WineBrowser host implementation",
+      "imports": []
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "provider": "bundled Wine source Windows x86 code",
+      "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c",
+      "imports": [
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ActivateActCtx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AddConsoleAliasA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AddConsoleAliasW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AddDllDirectory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AddRefActCtx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AllocConsole"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AllocateUserPhysicalPages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AllocateUserPhysicalPagesNuma"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AreFileApisANSI"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "AttachConsole"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "BaseFlushAppcompatCache"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "BaseGetNamedObjectDirectory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Beep"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CallNamedPipeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CallbackMayRunLong"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CancelIo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CancelIoEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CancelSynchronousIo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CancelWaitableTimer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ChangeTimerQueueTimer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CheckRemoteDebuggerPresent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ClearCommBreak"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ClearCommError"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CloseHandle"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ClosePseudoConsole"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CompareFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CompareStringA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CompareStringEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CompareStringOrdinal"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CompareStringW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ConnectNamedPipe"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ContinueDebugEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ConvertDefaultLocale"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ConvertFiberToThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ConvertThreadToFiber"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ConvertThreadToFiberEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CopyContext"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CopyFile2"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CopyFileExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CopyFileW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateActCtxW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateBoundaryDescriptorW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateConsoleScreenBuffer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateDirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateDirectoryExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateDirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateEventA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateEventExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateEventExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateEventW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFiber"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFiberEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFile2"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFileA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFileMappingNumaW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFileMappingW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateFileW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateHardLinkA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateHardLinkW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateIoCompletionPort"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateMemoryResourceNotification"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateMutexA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateMutexExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateMutexExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateMutexW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateNamedPipeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreatePipe"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateProcessA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateProcessAsUserA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateProcessAsUserW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateProcessInternalA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateProcessInternalW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateProcessW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreatePseudoConsole"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateRemoteThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateRemoteThreadEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateSemaphoreExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateSemaphoreW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateSymbolicLinkW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThreadpool"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThreadpoolCleanupGroup"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThreadpoolIo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThreadpoolTimer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThreadpoolWait"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateThreadpoolWork"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateTimerQueue"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateTimerQueueTimer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateWaitableTimerExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "CreateWaitableTimerW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeactivateActCtx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DebugActiveProcess"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DebugActiveProcessStop"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DebugBreak"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DefineDosDeviceW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DelayLoadFailureHook"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteFiber"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteFileA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteFileW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteProcThreadAttributeList"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteSynchronizationBarrier"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteTimerQueueEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteTimerQueueTimer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeleteVolumeMountPointW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DeviceIoControl"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DisableThreadLibraryCalls"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DisconnectNamedPipe"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DnsHostnameToComputerNameExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "DuplicateHandle"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnterCriticalSection"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnterSynchronizationBarrier"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumCalendarInfoExEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumCalendarInfoExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumCalendarInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumDateFormatsExEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumDateFormatsExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumDateFormatsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumLanguageGroupLocalesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceLanguagesExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceLanguagesExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceNamesExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceNamesExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceNamesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceTypesExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumResourceTypesExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemCodePagesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemFirmwareTables"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemGeoID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemLanguageGroupsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemLocalesA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemLocalesEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumSystemLocalesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumTimeFormatsEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumTimeFormatsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EnumUILanguagesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "EscapeCommFunction"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ExitThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ExpandEnvironmentStringsA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ExpandEnvironmentStringsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ExpungeConsoleCommandHistoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ExpungeConsoleCommandHistoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FatalAppExitA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FatalAppExitW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FileTimeToLocalFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FileTimeToSystemTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FillConsoleOutputAttribute"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FillConsoleOutputCharacterA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FillConsoleOutputCharacterW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindActCtxSectionGuid"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindActCtxSectionStringW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindClose"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindCloseChangeNotification"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstChangeNotificationA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstChangeNotificationW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstFileA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstFileExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstFileExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstFileW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstStreamW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindFirstVolumeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNLSString"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNLSStringEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNextChangeNotification"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNextFileA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNextFileW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNextStreamW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindNextVolumeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindResourceExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindResourceW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindStringOrdinal"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FindVolumeClose"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlsAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlsFree"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlsGetValue"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlsSetValue"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlushConsoleInputBuffer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlushFileBuffers"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlushInstructionCache"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FlushViewOfFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FoldStringW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FormatMessageA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FormatMessageW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FreeConsole"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FreeEnvironmentStringsA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FreeEnvironmentStringsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FreeLibrary"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FreeResource"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "FreeUserPhysicalPages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GenerateConsoleCtrlEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetACP"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetApplicationRestartSettings"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCPInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCPInfoExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCalendarInfoEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCalendarInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommConfig"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommMask"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommModemStatus"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommProperties"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommState"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommTimeouts"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommandLineA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCommandLineW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCompressedFileSizeA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCompressedFileSizeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetComputerNameExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetComputerNameExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleAliasA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleAliasExesLengthA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleAliasExesLengthW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleAliasW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleAliasesLengthA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleAliasesLengthW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleCP"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleCommandHistoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleCommandHistoryLengthA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleCommandHistoryLengthW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleCommandHistoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleCursorInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleDisplayMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleFontSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleInputExeNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleInputExeNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleOriginalTitleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleOriginalTitleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleOutputCP"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleProcessList"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleScreenBufferInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleScreenBufferInfoEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleTitleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleTitleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetConsoleWindow"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrencyFormatEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrencyFormatW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrentActCtx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrentConsoleFont"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrentConsoleFontEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrentDirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrentDirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetCurrentThreadStackLimits"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDateFormatA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDateFormatEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDateFormatW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDiskFreeSpaceA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDiskFreeSpaceExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDiskFreeSpaceExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDiskFreeSpaceW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDiskSpaceInformationA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDiskSpaceInformationW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDriveTypeA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDriveTypeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDynamicTimeZoneInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetDynamicTimeZoneInformationEffectiveYears"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetEnabledXStateFeatures"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetEnvironmentStrings"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetEnvironmentStringsA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetEnvironmentStringsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetEnvironmentVariableA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetEnvironmentVariableW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetErrorMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetExitCodeThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileAttributesA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileAttributesExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileAttributesExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileAttributesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileInformationByHandle"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileInformationByHandleEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileMUIInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileMUIPath"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileSizeEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFileType"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFinalPathNameByHandleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFinalPathNameByHandleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFullPathNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetFullPathNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetGeoInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetGeoInfoEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetHandleInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLargePageMinimum"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLargestConsoleWindowSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLastError"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLocalTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLocaleInfoA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLocaleInfoEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLocaleInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLogicalDriveStringsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLogicalDrives"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLogicalProcessorInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLogicalProcessorInformationEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLongPathNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetLongPathNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetModuleFileNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetModuleFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetModuleHandleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetModuleHandleExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetModuleHandleExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetModuleHandleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNLSVersion"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNLSVersionEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNamedPipeHandleStateW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNamedPipeInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNativeSystemInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumaHighestNodeNumber"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumaNodeProcessorMaskEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumaProximityNodeEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumberFormatEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumberFormatW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumberOfConsoleInputEvents"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetNumberOfConsoleMouseButtons"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetOEMCP"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetOverlappedResult"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetOverlappedResultEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetPhysicallyInstalledSystemMemory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetPriorityClass"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessGroupAffinity"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessHandleCount"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessHeap"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessId"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessIdOfThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessMitigationPolicy"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessPreferredUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessPriorityBoost"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessShutdownParameters"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessTimes"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessVersion"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProcessWorkingSetSizeEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetProductInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetQueuedCompletionStatus"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetQueuedCompletionStatusEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetShortPathNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetStartupInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetStdHandle"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetStringTypeA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetStringTypeExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetStringTypeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemCpuSetInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemDefaultLCID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemDefaultLangID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemDefaultLocaleName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemDefaultUILanguage"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemFileCacheSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemFirmwareTable"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemPreferredUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemTimeAdjustment"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemTimeAsFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemTimePreciseAsFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemTimes"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemWindowsDirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemWindowsDirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemWow64DirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetSystemWow64DirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTempFileNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTempFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTempPath2W"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTempPath2A"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTempPathA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTempPathW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadContext"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadDescription"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadErrorMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadGroupAffinity"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadIOPendingFlag"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadId"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadIdealProcessorEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadLocale"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadPreferredUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadPriority"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadPriorityBoost"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadTimes"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetThreadUILanguage"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTimeFormatA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTimeFormatEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTimeFormatW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTimeZoneInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetTimeZoneInformationForYear"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserDefaultGeoName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserDefaultLCID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserDefaultLangID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserDefaultLocaleName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserDefaultUILanguage"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserGeoID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetUserPreferredUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVersion"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVersionExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVersionExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVolumeInformationA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVolumeInformationByHandleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVolumeInformationW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVolumeNameForVolumeMountPointW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVolumePathNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetVolumePathNamesForVolumeNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetWindowsDirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetWindowsDirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetWriteWatch"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GetXStateFeaturesMask"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GlobalAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GlobalFree"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "GlobalMemoryStatusEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapCompact"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapFree"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapLock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapQueryInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapReAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapSetInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapSummary"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapUnlock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapValidate"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "HeapWalk"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IdnToAscii"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IdnToNameprepUnicode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IdnToUnicode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "InitializeContext"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "InitializeContext2"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "InitializeCriticalSectionAndSpinCount"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "InitializeCriticalSectionEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "InitializeProcThreadAttributeList"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "InitializeSynchronizationBarrier"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumCalendarInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumDateFormats"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumLanguageGroupLocales"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumSystemCodePages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumSystemLanguageGroups"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumTimeFormats"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Internal_EnumUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsDBCSLeadByte"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsDBCSLeadByteEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsDebuggerPresent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsNLSDefinedString"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsNormalizedString"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsProcessInJob"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsProcessorFeaturePresent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsThreadAFiber"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsValidCodePage"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsValidLanguageGroup"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsValidLocale"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsValidLocaleName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsValidNLSVersion"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsWow64Process"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "IsWow64Process2"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EmptyWorkingSet"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EnumDeviceDrivers"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EnumPageFilesA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EnumPageFilesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EnumProcessModules"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EnumProcessModulesEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32EnumProcesses"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetDeviceDriverBaseNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetDeviceDriverBaseNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetDeviceDriverFileNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetDeviceDriverFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetMappedFileNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetMappedFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetModuleBaseNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetModuleBaseNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetModuleFileNameExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetModuleFileNameExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetModuleInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetPerformanceInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetProcessImageFileNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetProcessImageFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetProcessMemoryInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetWsChanges"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32GetWsChangesEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32InitializeProcessForWsWatch"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32QueryWorkingSet"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "K32QueryWorkingSetEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "KernelBaseGetGlobalData"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LCIDToLocaleName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LCMapStringA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LCMapStringEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LCMapStringW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LeaveCriticalSection"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadAppInitDlls"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadLibraryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadLibraryExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadLibraryExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadLibraryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadPackagedLibrary"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LoadResource"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocalAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocalFileTimeToFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocalFree"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocalLock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocalReAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocalUnlock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocaleNameToLCID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LocateXStateFeature"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LockFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LockFileEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "LockResource"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MapUserPhysicalPages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MapViewOfFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MapViewOfFileEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MapViewOfFileExNuma"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MoveFileExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MoveFileWithProgressW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "MultiByteToWideChar"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "NeedCurrentDirectoryForExePathA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "NeedCurrentDirectoryForExePathW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "NlsValidateLocale"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "NormalizeString"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenEventA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenEventW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenFileById"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenFileMappingW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenMutexW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenProcess"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenProcessToken"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenSemaphoreW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenThreadToken"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OpenWaitableTimerW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "OutputDebugStringW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PackageIdFromFullName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PathFindFileNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PeekConsoleInputA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PeekConsoleInputW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PeekNamedPipe"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PostQueuedCompletionStatus"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PrefetchVirtualMemory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ProcessIdToSessionId"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PulseEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "PurgeComm"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryActCtxSettingsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryActCtxW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryDosDeviceW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryFullProcessImageNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryFullProcessImageNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryIdleProcessorCycleTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryIdleProcessorCycleTimeEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryMemoryResourceNotification"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryPerformanceCounter"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryPerformanceFrequency"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryProcessCycleTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryThreadCycleTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryThreadpoolStackInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueryUnbiasedInterruptTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueueUserAPC"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueueUserAPC2"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "QueueUserWorkItem"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RaiseException"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RaiseFailFastException"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReOpenFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleInputA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleInputW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleOutputA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleOutputAttribute"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleOutputCharacterA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleOutputCharacterW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleOutputW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadConsoleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadDirectoryChangesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadFileEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadFileScatter"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReadProcessMemory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegCloseKey"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegCreateKeyExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegCreateKeyExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegDeleteKeyExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegDeleteKeyExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegDeleteTreeA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegDeleteTreeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegDeleteValueA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegDeleteValueW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegEnumKeyExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegEnumKeyExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegEnumValueA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegEnumValueW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegFlushKey"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegGetKeySecurity"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegGetValueA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegGetValueW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegLoadKeyA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegLoadKeyW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegLoadMUIStringA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegLoadMUIStringW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegNotifyChangeKeyValue"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegOpenCurrentUser"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegOpenKeyExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegOpenKeyExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegOpenUserClassesRoot"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegQueryInfoKeyA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegQueryInfoKeyW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegQueryValueExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegQueryValueExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegRestoreKeyA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegRestoreKeyW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegSaveKeyExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegSaveKeyExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegSetKeySecurity"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegSetValueExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegSetValueExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegUnLoadKeyA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegUnLoadKeyW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RegisterWaitForSingleObjectEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReleaseActCtx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReleaseMutex"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReleaseSemaphore"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RemoveDirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RemoveDirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "RemoveDllDirectory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ReplaceFileW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ResetEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ResetWriteWatch"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ResizePseudoConsole"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ResolveLocaleName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ResumeThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ScrollConsoleScreenBufferA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ScrollConsoleScreenBufferW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SearchPathA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SearchPathW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCachedSigningLevel"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCalendarInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCommBreak"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCommConfig"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCommMask"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCommState"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCommTimeouts"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetComputerNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetComputerNameExA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetComputerNameExW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetComputerNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleActiveScreenBuffer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleCP"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleCtrlHandler"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleCursorInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleCursorPosition"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleDisplayMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleInputExeNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleInputExeNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleOutputCP"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleScreenBufferInfoEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleScreenBufferSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleTextAttribute"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleTitleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleTitleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetConsoleWindowInfo"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCurrentConsoleFontEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCurrentDirectoryA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetCurrentDirectoryW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetDefaultDllDirectories"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetEndOfFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetEnvironmentStringsA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetEnvironmentStringsW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetEnvironmentVariableA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetEnvironmentVariableW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetErrorMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileApisToANSI"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileApisToOEM"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileAttributesA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileAttributesW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileInformationByHandle"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFilePointer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFilePointerEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetFileValidData"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetHandleInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetLocalTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetLocaleInfoW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetNamedPipeHandleState"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetPriorityClass"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessAffinityUpdateMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessDefaultCpuSets"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessMitigationPolicy"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessPreferredUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessPriorityBoost"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessShutdownParameters"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetProcessWorkingSetSizeEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetStdHandle"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetStdHandleEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetSystemFileCacheSize"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetSystemTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetSystemTimeAdjustment"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadContext"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadDescription"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadErrorMode"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadGroupAffinity"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadIdealProcessor"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadIdealProcessorEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadLocale"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadPreferredUILanguages"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadPriority"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadPriorityBoost"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadSelectedCpuSets"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadStackGuarantee"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadUILanguage"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetThreadpoolStackInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetTimeZoneInformation"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetUnhandledExceptionFilter"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetUserGeoID"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetUserGeoName"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetWaitableTimer"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetWaitableTimerEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetXStateFeaturesMask"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SetupComm"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SignalObjectAndWait"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SizeofResource"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Sleep"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SleepConditionVariableCS"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SleepConditionVariableSRW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SleepEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SuspendThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SwitchToFiber"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SwitchToThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SystemTimeToFileTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "SystemTimeToTzSpecificLocalTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TerminateProcess"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TerminateThread"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TlsAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TlsFree"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TlsGetValue"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TlsSetValue"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TransactNamedPipe"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TransmitCommChar"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TrySubmitThreadpoolCallback"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "TzSpecificLocalTimeToSystemTime"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UnhandledExceptionFilter"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UnlockFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UnlockFileEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UnmapViewOfFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UnmapViewOfFileEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UnregisterWaitEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "UpdateProcThreadAttribute"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VerLanguageNameA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VerLanguageNameW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualAlloc"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualAllocEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualAllocExNuma"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualFree"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualFreeEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualLock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualProtect"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualProtectEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualQuery"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualQueryEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "VirtualUnlock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitCommEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitForDebugEvent"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitForDebugEventEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitForMultipleObjects"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitForMultipleObjectsEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitForSingleObject"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitForSingleObjectEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WaitNamedPipeW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerGetFlags"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerRegisterCustomMetadata"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerRegisterFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerRegisterMemoryBlock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerRegisterRuntimeExceptionModule"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerSetFlags"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerUnregisterCustomMetadata"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerUnregisterFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerUnregisterMemoryBlock"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WerUnregisterRuntimeExceptionModule"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WideCharToMultiByte"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Wow64DisableWow64FsRedirection"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Wow64EnableWow64FsRedirection"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Wow64GetThreadContext"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Wow64RevertWow64FsRedirection"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "Wow64SetThreadContext"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleInputA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleInputW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleOutputA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleOutputAttribute"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleOutputCharacterA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleOutputCharacterW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleOutputW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteConsoleW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteFile"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteFileEx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteFileGather"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "WriteProcessMemory"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "ZombifyActCtx"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcmp"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcmpA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcmpW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcmpi"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcmpiA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcmpiW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcpyn"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcpynA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrcpynW"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrlen"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrlenA"
+        },
+        {
+          "dll": "kernelbase.dll",
+          "symbol": "lstrlenW"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiGetThreadDebugObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiIssueRemoteBreakin"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrFindEntryForAddress"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrGetDllDirectory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrGetProcedureAddress"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrSetDllDirectory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAddAtom"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAssignProcessToJobObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtClose"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateJobObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateMailslotFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateSemaphore"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDeleteAtom"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDeviceIoControlFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFindAtom"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFsControlFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenJobObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtPowerInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtProtectVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationAtom"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationJobObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySystemInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySystemTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationDebugObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationJobObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetThreadExecutionState"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtTerminateJobObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAcquirePebLock"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAtomToAtomTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAllocateHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAnsiStringToUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCaptureContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCharToInteger"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateAtomTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateUnicodeStringFromAsciiz"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteAtomFromAtomTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeregisterWait"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDestroyAtomTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDestroyHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDetermineDosPathNameType_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDosPathNameToNtPathName_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDosPathNameToNtPathName_U_WithStatus"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlEnterCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlExitUserProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlExitUserThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetProcessHeaps"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetUserInfoHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlImageDirectoryEntryToData"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlImageNtHeader"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitAnsiString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitializeCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIsNameLegalDOS8Dot3"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIsTextUnicode"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLeaveCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLockHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLookupAtomInAtomTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNtStatusToDosError"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlOemStringToUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryAtomInAtomTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRegisterWait"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlReleasePebLock"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRestoreContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetIoCompletionCallback"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetLastWin32Error"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetSearchPathMode"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetUnhandledExceptionFilter"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetUserValueHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlTimeFieldsToTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlTimeToTimeFields"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToAnsiSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToAnsiString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToInteger"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToOemSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToOemString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToMultiByteN"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToMultiByteSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToOemN"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnlockHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnwind"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUpcaseUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUpperChar"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_vsnprintf"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_wcsicmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_wcsnicmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "isalpha"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "islower"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memcpy"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memmove"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memset"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strcat"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strchr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strcmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strcpy"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strlen"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strpbrk"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strrchr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "tolower"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscat"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcschr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscpy"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcslen"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsncmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsrchr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcstoul"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_header"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_output"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_strdup"
+        }
+      ]
+    },
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "provider": "bundled Wine source Windows x86 code",
+      "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43",
+      "imports": []
+    },
+    {
+      "name": "ucrtbase.dll",
+      "path": "@runtime/ucrtbase.dll",
+      "provider": "bundled Wine source Windows x86 code",
+      "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6",
+      "imports": [
+        {
+          "dll": "kernel32.dll",
+          "symbol": "Beep"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CloseHandle"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CompareStringA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CompareStringW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CreateDirectoryW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CreateFileA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CreateFileW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CreatePipe"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CreateProcessW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "CreateThread"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "DebugBreak"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "DelayLoadFailureHook"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "DeleteCriticalSection"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "DeleteFileW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "DuplicateHandle"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "EnterCriticalSection"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "EnumSystemLocalesEx"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ExitProcess"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ExitThread"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FileTimeToSystemTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FindClose"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FindFirstFileA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FindFirstFileW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FindNextFileA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FindNextFileW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FlushFileBuffers"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FreeEnvironmentStringsA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FreeEnvironmentStringsW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FreeLibrary"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "FreeLibraryAndExitThread"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetACP"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetCPInfo"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetCommandLineA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetCommandLineW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetConsoleMode"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetCurrentDirectoryW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetDateFormatW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetDiskFreeSpaceW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetDriveTypeW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetEnvironmentStringsA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetEnvironmentStringsW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetEnvironmentVariableW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetExitCodeProcess"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetFileAttributesA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetFileAttributesExW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetFileAttributesW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetFileSizeEx"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetFileType"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetFullPathNameW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetLocalTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetLocaleInfoA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetLocaleInfoW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetLocaleInfoEx"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetModuleFileNameA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetModuleFileNameW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetModuleHandleExW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetModuleHandleW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetNumberOfConsoleInputEvents"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetOEMCP"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetProcAddress"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetStartupInfoA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetStartupInfoW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetStdHandle"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetStringTypeExA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetStringTypeW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetSystemTimeAsFileTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetSystemTimePreciseAsFileTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetTempFileNameW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetTimeFormatW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetTimeZoneInformation"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetUserDefaultLocaleName"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "GetVersionExW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapAlloc"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapCompact"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapCreate"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapDestroy"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapFree"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapReAlloc"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapSize"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapValidate"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "HeapWalk"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "InitializeCriticalSection"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "InitializeCriticalSectionEx"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "InterlockedFlushSList"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "InterlockedPushEntrySList"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "IsBadReadPtr"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "IsBadStringPtrA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "IsBadStringPtrW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "IsProcessorFeaturePresent"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "IsValidCodePage"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "IsValidLocaleName"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "LCMapStringA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "LCMapStringW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "LeaveCriticalSection"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "LoadLibraryW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "LocaleNameToLCID"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "LockFile"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "MoveFileExW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "MultiByteToWideChar"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "PeekConsoleInputA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "RaiseException"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ReadConsoleA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ReadConsoleInputA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ReadConsoleInputW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ReadFile"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "RemoveDirectoryW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ResolveDelayLoadedAPI"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "ResumeThread"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetConsoleCtrlHandler"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetConsoleMode"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetCurrentDirectoryW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetEndOfFile"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetEnvironmentVariableW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetErrorMode"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetFileAttributesW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetFilePointer"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetFileTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetStdHandle"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SetUnhandledExceptionFilter"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "Sleep"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SystemTimeToFileTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "SystemTimeToTzSpecificLocalTime"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "TerminateProcess"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "TlsAlloc"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "TlsFree"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "TlsGetValue"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "TlsSetValue"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "TryEnterCriticalSection"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "UnhandledExceptionFilter"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "UnlockFile"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "VerifyConsoleIoHandle"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "VirtualProtect"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "WaitForSingleObject"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "WideCharToMultiByte"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "WriteConsoleA"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "WriteConsoleW"
+        },
+        {
+          "dll": "kernel32.dll",
+          "symbol": "WriteFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySystemTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAreBitsClear"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAreBitsSet"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitializeBitMap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetBits"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlTimeToSecondsSince1970"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnwind"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_vsnprintf"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_get_channel_flags"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_header"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_output"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_strdup"
+        }
+      ]
+    },
+    {
+      "name": "user32.dll",
+      "provider": "WineBrowser host implementation",
+      "imports": []
+    },
+    {
+      "name": "vulkan-1.dll",
+      "provider": "WineBrowser host implementation",
+      "imports": []
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "provider": "bundled Wine source Windows x86 code",
+      "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca",
+      "imports": [
+        {
+          "dll": "ntdll.dll",
+          "symbol": "ApiSetQueryApiSetPresenceEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgBreakPoint"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiConnectToDbg"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiContinue"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiConvertStateChangeStructure"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiDebugActiveProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiGetThreadDebugObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiStopDebugging"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "DbgUiWaitStateChange"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrAccessResource"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrAddDllDirectory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrAddRefDll"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrDisableThreadCalloutsForDll"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrFindResourceDirectory_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrFindResource_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrGetDllFullName"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrGetDllHandleEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrGetDllPath"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrGetProcedureAddress"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrLoadDll"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrRemoveDllDirectory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrResolveDelayLoadedAPI"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrSetDefaultDllDirectories"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "LdrUnloadDll"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAccessCheck"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAdjustGroupsToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAdjustPrivilegesToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAllocateLocallyUniqueId"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAllocateVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtAllocateVirtualMemoryEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCancelIoFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCancelIoFileEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCancelSynchronousIoFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCancelTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtClose"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCompareObjects"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtConvertBetweenAuxiliaryCounterAndPerformanceCounter"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateEvent"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateIoCompletion"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateMutant"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateNamedPipeFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateSectionEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateSemaphore"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateSymbolicLinkObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateThreadEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtCreateUserProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDelayExecution"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDeleteKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDeleteValueKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDeviceIoControlFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDuplicateObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtDuplicateToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtEnumerateKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtEnumerateValueKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFilterToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFlushBuffersFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFlushInstructionCache"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFlushKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFlushVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFreeVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtFsControlFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtGetContextThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtGetNlsSectionPtr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtGetTickCount"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtGetWriteWatch"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtImpersonateAnonymousToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtIsProcessInJob"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtLoadKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtLockFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtLockVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtMakeTemporaryObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtMapViewOfSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtMapViewOfSectionEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtNotifyChangeDirectoryFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtNotifyChangeKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenDirectoryObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenEvent"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenKeyEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenMutant"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenProcessToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenSemaphore"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenSymbolicLinkObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenThreadToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtOpenTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtPrivilegeCheck"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtProtectVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtPulseEvent"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryAttributesFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryDefaultLocale"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryDefaultUILanguage"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryDirectoryFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryDirectoryObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryFullAttributesFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInformationToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryInstallUILanguage"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryPerformanceCounter"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySecurityObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySymbolicLinkObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySystemInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySystemInformationEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQuerySystemTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryValueKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueryVolumeInformationFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueueApcThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtQueueApcThreadEx2"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtRaiseException"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtReadFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtReadFileScatter"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtReadVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtReleaseMutant"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtReleaseSemaphore"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtRemoveIoCompletion"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtRemoveIoCompletionEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtResetEvent"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtResetWriteWatch"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtResumeThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSaveKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetContextThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetEvent"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationToken"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetInformationVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetIoCompletion"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetSecurityObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetSystemInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetSystemTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSetValueKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSignalAndWaitForSingleObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtSuspendThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtTerminateProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtTerminateThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtUnloadKey"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtUnlockFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtUnlockVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtUnmapViewOfSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtUnmapViewOfSectionEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtWaitForMultipleObjects"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtWaitForSingleObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtWriteFile"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtWriteFileGather"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtWriteVirtualMemory"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "NtYieldExecution"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAcquirePebLock"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlActivateActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlActivateActivationContextEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAccessAllowedAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAccessAllowedAceEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAccessAllowedObjectAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAccessDeniedAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAccessDeniedAceEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAccessDeniedObjectAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAuditAccessAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAuditAccessAceEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddAuditAccessObjectAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddMandatoryAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAddRefActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAllocateAndInitializeSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAllocateHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAnsiStringToUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAreAllAccessesGranted"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAreAnyAccessesGranted"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlAreBitsSet"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlBarrier"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCaptureContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCharToInteger"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlClearBits"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCompactHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCompareUnicodeStrings"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlConvertSidToUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlConvertToAutoInheritSecurityObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCopyContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCopySid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateAcl"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateEnvironment"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateProcessParametersEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateTimerQueue"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateUnicodeStringFromAsciiz"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlCreateUserStack"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeactivateActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteBarrier"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteSecurityObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeleteTimerQueueEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeregisterWaitEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDeriveCapabilitySidsFromName"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDestroyEnvironment"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDestroyHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDestroyProcessParameters"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDetermineDosPathNameType_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDoesFileExists_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDosPathNameToNtPathName_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDosPathNameToNtPathName_U_WithStatus"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDosSearchPath_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDowncaseUnicodeChar"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlDuplicateUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlEnterCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlEqualPrefixSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlEqualSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlExitUserProcess"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlExitUserThread"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlExpandEnvironmentStrings_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFindActivationContextSectionGuid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFindActivationContextSectionString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFindClearBitsAndSet"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFindMessage"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFirstFreeAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFlsAlloc"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFlsFree"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFlsGetValue"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFlsSetValue"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFormatMessage"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeActivationContextStack"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeAnsiString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlFreeUserStack"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGUIDFromString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetAce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetActiveActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetControlSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetCurrentDirectory_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetCurrentPeb"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetDaclSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetEnabledExtendedFeatures"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetExePath"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetExtendedContextLength2"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetExtendedFeaturesMask"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetFullPathName_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetGroupSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetLocaleFileMappingAddress"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetNativeSystemInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetOwnerSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetProductInfo"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetProcessHeaps"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetProcessPreferredUILanguages"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetSaclSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetSearchPath"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetSystemPreferredUILanguages"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetSystemTimePrecise"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetThreadErrorMode"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetThreadPreferredUILanguages"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetUserPreferredUILanguages"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlGetVersion"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIdentifierAuthoritySid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIdnToAscii"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIdnToNameprepUnicode"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIdnToUnicode"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlImageDirectoryEntryToData"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlImageNtHeader"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlImpersonateSelf"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitAnsiString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitBarrier"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitCodePageTable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitializeCriticalSectionAndSpinCount"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitializeCriticalSectionEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitializeExtendedContext2"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlInitializeSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIsDosDeviceName_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIsNameLegalDOS8Dot3"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIsNormalizedString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlIsProcessorFeaturePresent"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLeaveCriticalSection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLengthRequiredSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLengthSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLengthSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLocalTimeToSystemTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLocateExtendedFeature"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlLockHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlMakeSelfRelativeSD"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlMapGenericMask"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlMultiByteToUnicodeN"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlMultiByteToUnicodeSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNewSecurityObject"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNewSecurityObjectEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNewSecurityObjectWithMultipleInheritance"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNormalizeProcessParams"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNormalizeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlNtStatusToDosError"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlOemStringToUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlOpenCurrentUser"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlPcToFileHeader"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlProcessFlsData"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryActivationContextApplicationSettings"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryDynamicTimeZoneInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryEnvironmentVariable_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryHeapInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryInformationAcl"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryInformationActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryTimeZoneInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueryUnbiasedInterruptTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlQueueWorkItem"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRaiseException"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRaiseStatus"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlReAllocateHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRegisterWait"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlReleaseActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlReleasePath"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlReleasePebLock"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRunOnceBeginInitialize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRunOnceComplete"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlRunOnceExecuteOnce"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSelfRelativeToAbsoluteSD"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetControlSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetCurrentDirectory_U"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetCurrentEnvironment"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetDaclSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetEnvironmentVariable"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetExtendedFeaturesMask"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetGroupSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetHeapInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetOwnerSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetProcessPreferredUILanguages"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetSaclSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetThreadErrorMode"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetThreadPreferredUILanguages"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetTimeZoneInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSetUserValueHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSleepConditionVariableCS"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSleepConditionVariableSRW"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSubAuthorityCountSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSubAuthoritySid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlSystemTimeToLocalTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlTimeFieldsToTime"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlTimeToTimeFields"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUTF8ToUnicodeN"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToAnsiSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToAnsiString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToInteger"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToOemSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeStringToOemString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToMultiByteN"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToMultiByteSize"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToOemN"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnicodeToUTF8N"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnlockHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUnwind"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUpcaseUnicodeString"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlUpdateTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlValidAcl"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlValidSecurityDescriptor"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlValidSid"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlValidateHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlWaitOnAddress"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlWalkHeap"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlWow64EnableFsRedirection"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlWow64EnableFsRedirectionEx"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlWow64GetProcessMachines"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "RtlZombifyActivationContext"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpAllocCleanupGroup"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpAllocIoCompletion"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpAllocPool"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpAllocTimer"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpAllocWait"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpAllocWork"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpCallbackMayRunLong"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpQueryPoolStackInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpSetPoolStackInformation"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "TpSimpleTryPost"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_strnicmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_vsnprintf"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_vsnwprintf"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_wcsicmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "_wcsnicmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "isalnum"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "isalpha"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "iswalnum"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "isxdigit"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memcmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memcpy"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memmove"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "memset"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strcat"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strchr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strcmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strcpy"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strlen"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strncmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strrchr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "strtol"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "tolower"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "towupper"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscat"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcschr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscpy"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcscspn"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcslen"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsncmp"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsnlen"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcspbrk"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsrchr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsspn"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcsstr"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcstol"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "wcstoul"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_get_channel_flags"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_header"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_output"
+        },
+        {
+          "dll": "ntdll.dll",
+          "symbol": "__wine_dbg_strdup"
+        }
+      ]
+    }
+  ],
+  "unresolved": []
+}

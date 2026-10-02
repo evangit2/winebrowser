@@ -8,13 +8,23 @@ An experimental **browser-local Windows PE runtime**. Choose one or more EXEs, Z
 
 **Try the [live WineBrowser test harness](https://evangit2.github.io/winebrowser/).** It runs locally in your browser. Use a modern Chromium browser such as Chrome or Edge.
 
-**Native Vulkan uploads now run the free Khronos 3D cube demo.** Download the
+**Native Vulkan uploads run the free Sascha Willems glTF skinning demo.**
+Choose **Load gltfskinning** or upload
+[the complete Windows ZIP](https://evangit2.github.io/winebrowser/examples/gltfskinning/gltfskinning.zip).
+The original textured CesiumMan character, skeletal animation and native ImGui
+controls execute through Vulkan → WebGPU. Its C++ libraries are linked into
+the EXE, and the full native Wine/host DLL closure is verified. This is a pinned
+Windows x86 source build. P pauses, drag rotates the camera, F1 toggles the
+overlay; keep the unsupported optional wireframe checkbox unchecked.
+
+The Khronos 3D cube remains available: download the
 [Windows x86 EXE](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.exe)
 or [ZIP with source and license](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.zip),
 upload it and click Run, or use **Load vkcube** in the catalog. The original
 textured cube executes through Vulkan → WebGPU, with x86 and SPIR-V compilation
 inside the browser. This is a pinned Windows x86 build of the current upstream
-Vulkan-Tools source. See [Vulkan scope and verification](docs/vulkan-runtime.md).
+Vulkan-Tools source. See [Vulkan scope and verification](docs/vulkan-runtime.md),
+including the skinning source/license pins and DLL audit.
 
 The free MIT [LearningDirectX12 cube](docs/learning-dx12-cube.md) now runs its
 unchanged native C++ and original release shaders through browser CPU and shader
