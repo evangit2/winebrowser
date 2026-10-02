@@ -438,7 +438,7 @@ function regSetValueExA(runtime, argument) {
   return regSetValueEx(runtime, argument, true);
 }
 
-function regEnumValueA(runtime, argument) {
+function regEnumValue(runtime, argument, ansi) {
   const nameAddress = argument(2) >>> 0;
   const nameSizeAddress = argument(3) >>> 0;
   const reserved = argument(4) >>> 0;
@@ -459,8 +459,14 @@ function regEnumValueA(runtime, argument) {
 
   const value = [...opened.node.values.values()][argument(1) >>> 0];
   if (!value) return response(ERROR_NO_MORE_ITEMS, 8);
-  const name = encodeAnsi(value.name).bytes;
-  const data = unicodeValueData(value.type, value.data);
+  const name = ansi
+    ? encodeAnsi(value.name).bytes
+    : new Uint8Array(
+        Uint16Array.from({ length: value.name.length }, (_, i) => value.name.charCodeAt(i)).buffer,
+      );
+  const nameLength = ansi ? name.length : value.name.length;
+  const unit = ansi ? 1 : 2;
+  const data = ansi ? unicodeValueData(value.type, value.data) : value.data;
   let status = ERROR_SUCCESS;
 
   if (dataAddress) {
@@ -473,23 +479,74 @@ function regEnumValueA(runtime, argument) {
   }
   if (status === ERROR_SUCCESS) {
     const capacity = runtime.read32(nameSizeAddress) >>> 0;
-    if (capacity <= name.length) {
+    if (capacity <= nameLength) {
       status = ERROR_MORE_DATA;
       if (capacity) {
-        runtime.check(nameAddress, capacity, true);
-        runtime.data.set(name.subarray(0, capacity - 1), nameAddress);
-        runtime.data[nameAddress + capacity - 1] = 0;
+        runtime.check(nameAddress, capacity * unit, true);
+        runtime.data.set(name.subarray(0, (capacity - 1) * unit), nameAddress);
+        runtime.data.fill(0, nameAddress + (capacity - 1) * unit, nameAddress + capacity * unit);
       }
     } else {
-      runtime.check(nameAddress, name.length + 1, true);
+      runtime.check(nameAddress, name.length + unit, true);
       runtime.data.set(name, nameAddress);
-      runtime.data[nameAddress + name.length] = 0;
-      writeOutput(runtime, nameSizeAddress, name.length);
+      runtime.data.fill(0, nameAddress + name.length, nameAddress + name.length + unit);
+      writeOutput(runtime, nameSizeAddress, nameLength);
     }
   }
   if (typeAddress) writeOutput(runtime, typeAddress, value.type);
   if (dataSizeAddress) writeOutput(runtime, dataSizeAddress, data.length);
   return response(status, 8);
+}
+
+function regQueryInfoKey(runtime, argument, ansi) {
+  const opened = keyFor(argument(0), stateFor(runtime));
+  if (!opened) return response(ERROR_INVALID_HANDLE, 12);
+  if (opened.node.deletePending) return response(ERROR_KEY_DELETED, 12);
+  if (argument(3) || (argument(1) && !argument(2))) return response(ERROR_INVALID_PARAMETER, 12);
+  if (accessDenied(opened, KEY_QUERY_VALUE)) return response(ERROR_ACCESS_DENIED, 12);
+  if (argument(10)) throw Error('Registry security descriptor sizing is unsupported');
+  const node = opened.node,
+    children = [...node.children.values()].filter((n) => !n.deletePending),
+    values = [...node.values.values()];
+  const length = (name) => (ansi ? encodeAnsi(name).bytes.length : name.length);
+  const maximum = (items, project) => items.reduce((n, item) => Math.max(n, project(item)), 0);
+  for (const [index, value] of [
+    [4, children.length],
+    [5, maximum(children, (n) => length(n.name))],
+    [6, maximum(children, (n) => length(n.className))],
+    [7, values.length],
+    [8, maximum(values, (v) => length(v.name))],
+    [9, maximum(values, (v) => (ansi ? unicodeValueData(v.type, v.data) : v.data).length)],
+  ])
+    if (argument(index)) writeOutput(runtime, argument(index), value);
+  if (argument(11)) {
+    runtime.check(argument(11), 8, true);
+    runtime.write32(argument(11), 0);
+    runtime.write32(argument(11) + 4, 0);
+  }
+  let status = ERROR_SUCCESS;
+  if (argument(2)) {
+    const needed = length(node.className),
+      capacity = runtime.read32(argument(2));
+    if (argument(1)) {
+      if (capacity <= needed) status = ERROR_MORE_DATA;
+      else {
+        const bytes = ansi
+          ? encodeAnsi(node.className).bytes
+          : new Uint8Array(
+              Uint16Array.from({ length: node.className.length }, (_, i) =>
+                node.className.charCodeAt(i),
+              ).buffer,
+            );
+        const unit = ansi ? 1 : 2;
+        runtime.check(argument(1), bytes.length + unit, true);
+        runtime.data.set(bytes, argument(1));
+        runtime.data.fill(0, argument(1) + bytes.length, argument(1) + bytes.length + unit);
+      }
+    }
+    writeOutput(runtime, argument(2), needed);
+  }
+  return response(status, 12);
 }
 
 function storeValue(state, opened, valueName, type, bytes) {
@@ -942,7 +999,10 @@ export const registryApis = {
   'advapi32.dll!RegQueryValueExW': regQueryValueExW,
   'advapi32.dll!RegSetValueExA': regSetValueExA,
   'advapi32.dll!RegSetValueExW': regSetValueExW,
-  'advapi32.dll!RegEnumValueA': regEnumValueA,
+  'advapi32.dll!RegEnumValueA': (r, a) => regEnumValue(r, a, true),
+  'advapi32.dll!RegEnumValueW': (r, a) => regEnumValue(r, a, false),
+  'advapi32.dll!RegQueryInfoKeyA': (r, a) => regQueryInfoKey(r, a, true),
+  'advapi32.dll!RegQueryInfoKeyW': (r, a) => regQueryInfoKey(r, a, false),
   'advapi32.dll!AllocateAndInitializeSid': allocateAndInitializeSid,
   'advapi32.dll!GetLengthSid': sidLength,
   'advapi32.dll!CopySid': copySid,

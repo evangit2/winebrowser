@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-02T08:21:52.733Z",
+  "targetId": "hamsterball-original-x86",
+  "exeSha256": "3379e9041c7ab83abd07da1bcf974529280aeff36b3c52e7a3d3bbb93e2da94d",
+  "frames": 240,
+  "browser": "154.0.8037.97",
+  "crossOriginIsolated": true,
+  "status": "startup-click-to-play-presented",
+  "scope": "Unchanged original game with source-built Wine base supplied through the diagnostic probe; native BASS/MO3 and assets stay local. Gameplay and ordinary upload are not yet verified.",
+  "inputs": {
+    "mode": "source-built-base",
+    "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+    "dlls": [
+      {
+        "name": "ntdll.dll",
+        "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43"
+      },
+      {
+        "name": "kernelbase.dll",
+        "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca"
+      },
+      {
+        "name": "kernel32.dll",
+        "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c"
+      },
+      {
+        "name": "msvcrt.dll",
+        "sha256": "1070168fd7ed6af4bcc4c3e518b0ae15890169ae6af6a77bfd5491185e85e6a4"
+      },
+      {
+        "name": "msacm32.dll",
+        "sha256": "f3ad24df332a83ba86e85e833a9c1774f2af14f1a5622aabaf0e30686172f78c"
+      },
+      {
+        "name": "ucrtbase.dll",
+        "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6"
+      },
+      {
+        "name": "shell32.dll",
+        "sha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea"
+      },
+      {
+        "name": "wine-format.dll",
+        "sha256": "3282328d00f3d902afce977bd58e1fd2b5515ad26c537f0829d65d94a4dd13d3"
+      }
+    ]
+  },
+  "stop": {
+    "message": "Wine target presented the requested frames",
+    "ip": {
+      "address": "0x455ab2",
+      "module": "hamsterball.exe",
+      "offset": "0x55ab2"
+    },
+    "instructions": 2339814196
+  },
+  "limitations": [
+    "Probe stopped at requested 240 frames.",
+    "Last inspected frame is CLICK HERE TO PLAY, not gameplay.",
+    "No proprietary game content is redistributed."
+  ]
+}

@@ -245,6 +245,12 @@ DLLs before process startup, so a DLL reached later through LoadLibrary can
 share a native system-library graph. Supplied package DLLs retain precedence.
 It cannot swap an already initialized host Kernel32 for Wine during a run.
 
+Supplied DLLs that import MSVCRT, UCRT or ACM now select the native base even
+when their import names have host handlers. The native CRT closure also uses
+the implemented Unicode value enumeration and key metadata registry APIs.
+NULL and process/thread pseudo handles passed to NT close return
+STATUS_INVALID_HANDLE, allowing native cleanup paths to report errors normally.
+
 `npm run test:wine-base-upload` uses the actual upload worker and published assets,
 with no diagnostic bootstrap or installed-Wine inputs. A bare EXE computes
 CRC32 through native NTDLL; a nested ZIP dynamically loads and unloads its own

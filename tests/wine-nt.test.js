@@ -127,11 +127,12 @@ test('Wine NT clock services dispatch through the guest dispatcher and preserve 
   );
 
   const close = exportAddress(runtime, module, 'NtClose');
-  await assert.rejects(
-    runtime.callGuest(close, [0]),
-    /Unsupported Wine NT service NtClose/,
-    'unimplemented NT services fail explicitly instead of inventing an NTSTATUS',
-  );
+  for (const invalid of [0, 0xffffffff, 0xfffffffe])
+    assert.equal(
+      await runtime.callGuest(close, [invalid]),
+      0xc0000008,
+      'NULL and process/thread pseudo handles cannot be closed',
+    );
   const queryProcess = exportAddress(runtime, module, 'NtQueryInformationProcess');
   const stackBeforeUnknown = runtime.cpu.r[4].value;
   await assert.rejects(

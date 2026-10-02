@@ -17,6 +17,9 @@ const registryApiSignatures = {
   RegSetValueExW: 6,
   RegSetValueExA: 6,
   RegEnumValueA: 8,
+  RegEnumValueW: 8,
+  RegQueryInfoKeyW: 12,
+  RegQueryInfoKeyA: 12,
   RegDeleteKeyW: 2,
   RegCloseKey: 1,
 };
@@ -305,6 +308,56 @@ test('ANSI string values convert through CP1252 while binary data stays byte-exa
     ERROR_SUCCESS,
   );
   assert.deepEqual(runtime.data.slice(output, output + binary.length), binary);
+});
+
+test('Unicode value enumeration and key information share real names, counts and byte lengths', () => {
+  const r = fakeRuntime();
+  const { handle } = createKey(r, 'Software\\WideEnumeration', KEY_READ | KEY_WRITE);
+  const valueName = 'Café😀',
+    name = r.wide(valueName),
+    data = r.wide('€');
+  assert.equal(call(r, 'RegSetValueExW', [handle, name, 0, REG_SZ, data, 4]), 0);
+  const nameOut = 0x2040,
+    nameSize = 0x2020,
+    dataSize = 0x2024,
+    dataOut = 0x2080;
+  r.write32(nameSize, valueName.length);
+  r.write32(dataSize, 4);
+  assert.equal(
+    call(r, 'RegEnumValueW', [handle, 0, nameOut, nameSize, 0, 0, dataOut, dataSize]),
+    ERROR_MORE_DATA,
+  );
+  r.write32(nameSize, valueName.length + 1);
+  assert.equal(
+    call(r, 'RegEnumValueW', [handle, 0, nameOut, nameSize, 0, 0, dataOut, dataSize]),
+    0,
+  );
+  assert.equal(r.read32(nameSize), valueName.length);
+  assert.deepEqual(
+    r.data.slice(nameOut, nameOut + (valueName.length + 1) * 2),
+    r.data.slice(name, name + (valueName.length + 1) * 2),
+  );
+  assert.deepEqual(r.data.slice(dataOut, dataOut + 4), Uint8Array.of(0xac, 0x20, 0, 0));
+  const count = 0x20a0,
+    maxName = 0x20a4,
+    maxData = 0x20a8;
+  assert.equal(
+    call(r, 'RegQueryInfoKeyW', [handle, 0, 0, 0, 0, 0, 0, count, maxName, maxData, 0, 0]),
+    0,
+  );
+  assert.equal(r.read32(count), 1);
+  assert.equal(r.read32(maxName), valueName.length);
+  assert.equal(r.read32(maxData), 4);
+  assert.equal(
+    call(r, 'RegQueryInfoKeyA', [handle, 0, 0, 0, 0, 0, 0, count, maxName, maxData, 0, 0]),
+    0,
+  );
+  assert.equal(r.read32(maxName), encodeAnsi(valueName).bytes.length);
+  assert.equal(r.read32(maxData), 2);
+  assert.equal(
+    call(r, 'RegQueryInfoKeyW', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ERROR_INVALID_HANDLE,
+  );
 });
 
 test('RegEnumValueA enumerates named/default values with independent name and data byte sizing', () => {

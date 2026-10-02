@@ -20,6 +20,10 @@ export function packageNeedsNativeBase(files) {
     } // The regular loader diagnoses a malformed DLL when requested.
     for (const entry of pe.imports) {
       const dll = resolveApiSet(entry.dll).toLowerCase();
+      // A native third-party codec/CRT client needs the complete native
+      // library semantics even when every imported name has a host handler.
+      // Export-name coverage alone does not establish behavioral equivalence.
+      if (['msvcrt.dll', 'ucrtbase.dll', 'msacm32.dll'].includes(dll)) return true;
       if (
         names.has(dll) &&
         !API_NAMES[dll]?.includes(
@@ -32,7 +36,7 @@ export function packageNeedsNativeBase(files) {
   return false;
 }
 
-// Load the published source-built closure only when a missing import needs it.
+// Load the source-built closure for missing imports or native CRT/codec clients.
 // Package DLLs still precede runtime DLLs in ModuleGraph's normal search order.
 export async function loadWineBaseAssets(baseUrl, fetchAsset = fetch) {
   const builtinFiles = new Map(),

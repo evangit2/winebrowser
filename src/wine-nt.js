@@ -285,6 +285,7 @@ export const ntServices = {
   NtClose: {
     argc: 1,
     call: (r, a) => {
+      if ([0, 0xffffffff, 0xfffffffe].includes(a(0) >>> 0)) return 0xc0000008;
       const syncResult = r.syncObjects?.close(a(0)) ?? null;
       if (syncResult !== null) return syncResult;
       const result = closeRegistryHandle(r, a(0));

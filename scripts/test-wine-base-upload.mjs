@@ -23,12 +23,22 @@ try {
   const crc = await readFile(fixture + 'native-base.exe');
   const dynamic = await readFile(fixture + 'dynamic-base.exe');
   const helper = await readFile(fixture + 'helper.dll');
+  const helperCrt = await readFile(fixture + 'helper-crt.dll');
+  const dynamicCrt = await readFile(fixture + 'dynamic-crt.exe');
   const cases = [
     { name: 'native-base.exe', bytes: crc, output: 'native Wine base: CRC32 verified\r\n' },
     {
       name: 'dynamic.zip',
       bytes: Buffer.from(zipSync({ 'app/dynamic-base.exe': dynamic, 'app/helper.dll': helper })),
       output: 'native Wine base: dynamic DLL verified\r\n',
+    },
+    {
+      name: 'dynamic-crt.zip',
+      bytes: Buffer.from(
+        zipSync({ 'app/dynamic-crt.exe': dynamicCrt, 'app/helper.dll': helperCrt }),
+      ),
+      output: 'native Wine base: dynamic DLL verified\r\n',
+      nativeCrt: true,
     },
   ];
   const runs = [];
@@ -80,6 +90,12 @@ try {
       );
     assert.ok(result.result.apiNames.includes('ntdll.dll!NtWriteFile'));
     assert.ok(result.result.apiNames.includes('WineBrowserLoaderCallback'));
+    if (item.nativeCrt)
+      assert.ok(
+        result.result.modules.some(
+          (m) => m.name === 'msvcrt.dll' && m.path === '@runtime/msvcrt.dll' && !m.host,
+        ),
+      );
     assert.ok(result.result.compiledBlocks > 0);
     runs.push({
       name: item.name,

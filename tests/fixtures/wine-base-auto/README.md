@@ -7,7 +7,12 @@ These small repository-owned PE32 inputs need no application Wasm build.
 looks up its checksum export, calls into native NTDLL, unloads and exits zero.
 The nested ZIP therefore also exercises preflight of later-loaded DLL imports.
 
-`npm run build:wine-base-auto` rebuilds all three native inputs with MinGW.
+`dynamic-crt.exe` loads a supplied `helper-crt.dll` as `helper.dll`. That DLL
+imports only host-covered CRT names (`strlen` and `strtoul`), yet the worker
+selects the native source-built CRT before startup. The EXE retains a CRT
+reference so the final module inventory verifies its native provenance.
+
+`npm run build:wine-base-auto` rebuilds the native inputs with MinGW.
 `npm run test:wine-base-upload` uploads the original files through the actual
 worker and requires automatic fetches of the six source DLLs and seven NLS
 tables, native mapped modules, real output and exit zero. Its dev gate rejects
