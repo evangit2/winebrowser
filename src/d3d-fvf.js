@@ -61,5 +61,9 @@ export function fvfLayout(fvf = 0x42) {
   ])
     if (layout[field] !== null)
       layout.attributes.push({ shaderLocation: location, offset: layout[field], format });
+  for (let index = 1; index < layout.texcoords.length; index++) {
+    const uv = layout.texcoords[index];
+    layout.attributes.push({ shaderLocation: 5 + index, offset: uv.offset, format: uv.format });
+  }
   return layout;
 }

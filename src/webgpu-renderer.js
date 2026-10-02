@@ -2,7 +2,12 @@ import { blendKey, blendConstant, colorTarget, needsBlendFeedback } from './d3d-
 import { D3DBlendRenderer } from './d3d-blend-renderer.js';
 import { fvfLayout } from './d3d-fvf.js';
 import { validLighting, lightingUniforms } from './d3d-lighting.js';
-import { D3DTextureRenderer, fixedShader, validateTexturing } from './d3d-texture-renderer.js';
+import {
+  D3DTextureRenderer,
+  fixedShader,
+  validateTexturing,
+  textureStages,
+} from './d3d-texture-renderer.js';
 import { primitiveState, validRasterState } from './d3d-render-state.js';
 import { D3D9ProgrammableRenderer } from './d3d9-programmable-renderer.js';
 import { clearColor, rgb565Shader } from './d3d-presentation.js';
@@ -237,9 +242,11 @@ export class WebGPURenderer {
           (command.specularEnable !== undefined && typeof command.specularEnable !== 'boolean')
         )
           throw Error('Invalid graphics fixed-function state');
-        const textureBytes = validateTexturing(command.texturing);
-        const texture = command.texturing?.texture;
-        if (texture) {
+        validateTexturing(command.texturing);
+        for (const stage of textureStages(command.texturing)) {
+          const textureBytes = validateTexturing(stage),
+            texture = stage.texture;
+          if (!texture) continue;
           const key = `${texture.id}:${texture.revision}`;
           if (textures.has(key) && textures.get(key) !== texture)
             throw Error('Conflicting graphics texture snapshots');
@@ -298,16 +305,23 @@ export class WebGPURenderer {
         ? [29, 141, 142, 143, 145, 146, 147, 148].map((k) => command.lighting.states[k]).join(',')
         : 'unlit',
       !!command.specularEnable,
-      JSON.stringify(command.texturing?.stage),
-      !!command.texturing?.texture,
-      command.texturing?.texture?.dimension ?? '2d',
-      !!command.texturing?.sampler[7],
+      JSON.stringify(
+        textureStages(command.texturing).map((t) => [
+          t.stage,
+          !!t.texture,
+          t.texture?.dimension ?? '2d',
+          !!t.sampler[7],
+        ]),
+      ),
       JSON.stringify(stencilState(command)),
       JSON.stringify(command.alphaTest ?? null),
       JSON.stringify(command.fog ?? null),
     ].join(':');
     if (!this.pipelines.has(key)) {
-      if (command.texturing) this.textures.initialize(command.texturing.texture?.dimension ?? '2d');
+      if (command.texturing)
+        this.textures.initialize(
+          textureStages(command.texturing).map((t) => t.texture?.dimension ?? '2d'),
+        );
       const feedback = needsBlendFeedback(surface, command);
       if (feedback) this.blending.initialize();
       const code = fixedShader(command);
@@ -444,7 +458,7 @@ export class WebGPURenderer {
     for (const slot of surface.slots.splice(drawCount)) {
       slot.vertex?.destroy();
       slot.uniform.destroy();
-      slot.textureUniform?.destroy();
+      this.textures.releaseSlot(slot);
       slot.blendUniform?.destroy();
     }
     this.device.pushErrorScope('validation');
@@ -632,7 +646,7 @@ export class WebGPURenderer {
     for (const slot of surface.slots) {
       slot.vertex?.destroy();
       slot.uniform.destroy();
-      slot.textureUniform?.destroy();
+      this.textures.releaseSlot(slot);
       slot.blendUniform?.destroy();
     }
     this.programmable.destroySurface(surface);

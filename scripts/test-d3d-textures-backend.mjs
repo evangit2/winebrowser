@@ -310,6 +310,72 @@ try {
         if (maxError > 1) throw Error(`Alpha operation ${op}/${arg}: error ${maxError}`);
         cases.push({ name: `attachment-alpha-op${op}-arg${arg}`, pixels: 4096, maxError });
       }
+      // Eight distinct bound textures, independent UV sets, CURRENT cascades,
+      // and mixed 2D/volume/cube views exercise the advertised stage count.
+      const multi = makeDraw(texture, {}, { 1: 2 });
+      multi.fvf = 0x842 | (1 << 20); // TEX8, coordinate set 2 has three components.
+      multi.stride = 84;
+      multi.vertices = new Uint8Array(3 * multi.stride);
+      const multiView = new DataView(multi.vertices.buffer);
+      for (let vertex = 0; vertex < 3; vertex++) {
+        multi.vertices.set(
+          makeDraw().vertices.slice(vertex * 24, vertex * 24 + 16),
+          vertex * multi.stride,
+        );
+        let offset = 16;
+        for (let set = 0; set < 8; set++) {
+          const u = [0, 2, 0][vertex],
+            v = [1, 1, -1][vertex];
+          const values = set === 2 ? [1, 0, 0] : set === 1 ? [1 - u, v] : [u, v];
+          values.forEach((value) => {
+            multiView.setFloat32(vertex * multi.stride + offset, value, true);
+            offset += 4;
+          });
+        }
+      }
+      const stages = Array.from({ length: 8 }, (_, index) => ({
+        texture:
+          index < 2
+            ? { ...texture, id: 100 + index }
+            : {
+                id: 100 + index,
+                revision: 0,
+                ...(index === 2 ? { dimension: 'cube' } : index === 3 ? { dimension: '3d' } : {}),
+                levels: [
+                  {
+                    width: 1,
+                    height: 1,
+                    ...(index === 3 ? { depth: 1 } : {}),
+                    rgba: new Uint8Array(
+                      Array.from({ length: index === 2 ? 6 : 1 }, () => [
+                        128, 128, 128, 255,
+                      ]).flat(),
+                    ),
+                  },
+                ],
+              },
+        stage: { ...defaultStage(), 11: index, 1: index === 0 ? 2 : 4, 2: 2, 3: 1 },
+        sampler: defaultSampler(),
+        lod: 0,
+      }));
+      multi.texturing = { ...stages[0], stages };
+      await renderer.present({ id: 1, commands: [clear, multi] });
+      check('eight mixed texture stages and independent coordinates', (x, y) => {
+        const a = colors[(y >= 32 ? 2 : 0) + (x >= 32 ? 1 : 0)],
+          b = colors[(y >= 32 ? 2 : 0) + (x < 32 ? 1 : 0)];
+        return a.map((value, c) => ((value * b[c]) / 255) * (128 / 255) ** 6);
+      });
+      if (renderer.surfaces.get(1).textures.size !== 8)
+        throw Error('Stage textures were not retained');
+      // Use CURRENT alpha replicated and complemented in a later stage.
+      const alphaStages = [
+        { ...stages[0], stage: { ...stages[0].stage, 4: 2, 5: 0 } },
+        { ...stages[1], stage: { ...stages[1].stage, 1: 2, 2: 0x31 } },
+      ];
+      const alpha = makeDraw(texture, {}, {}, 1, 0, 0x80402010);
+      alpha.texturing = { ...alphaStages[0], stages: alphaStages };
+      await renderer.present({ id: 1, commands: [clear, alpha] });
+      check('later stage complement and alpha replicate use CURRENT', () => [127, 127, 127]);
       const revised = {
         ...texture,
         revision: 1,

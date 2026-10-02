@@ -808,21 +808,22 @@ export function textureSnapshot(r, object) {
   return s.snapshot;
 }
 export function fixedTextureDraw(r, state) {
-  const stage = state.textureStages[0],
-    texture = state.textures[0];
-  // D3D disables this and following stages when COLOROP is disabled, or a
-  // color argument used by the operation requests an unbound texture.
+  const stages = [];
   const uses = (op, a, b) => (op !== 3 && (a & 15) === 2) || (op !== 2 && (b & 15) === 2);
-  if (stage[1] === 1 || (!texture && uses(stage[1], stage[2], stage[3]))) return null;
-  if (state.textureStages[1][1] !== 1)
-    throw Error('Multiple D3D texture stages are not yet supported');
-  if (stage[4] === 1) throw Error('D3D alpha operation disabled while color operation is enabled');
-  if (texture?.state.pool >= 2) throw Error('System-memory D3D textures cannot be sampled');
-  const snapshot = texture ? textureSnapshot(r, texture) : null;
-  return {
-    texture: snapshot,
-    stage: { ...stage },
-    sampler: { ...state.samplers[0] },
-    lod: texture?.state.lod ?? 0,
-  };
+  for (let index = 0; index < 8; index++) {
+    const stage = state.textureStages[index],
+      texture = state.textures[index];
+    // A disabled COLOROP or an unbound texture argument terminates the cascade.
+    if (stage[1] === 1 || (!texture && uses(stage[1], stage[2], stage[3]))) break;
+    if (stage[4] === 1)
+      throw Error('D3D alpha operation disabled while color operation is enabled');
+    if (texture?.state.pool >= 2) throw Error('System-memory D3D textures cannot be sampled');
+    stages.push({
+      texture: texture ? textureSnapshot(r, texture) : null,
+      stage: { ...stage },
+      sampler: { ...state.samplers[index] },
+      lod: texture?.state.lod ?? 0,
+    });
+  }
+  return stages.length ? { ...stages[0], ...(stages.length > 1 ? { stages } : {}) } : null;
 }

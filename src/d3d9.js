@@ -175,11 +175,15 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
   if (!layout || stride < layout.size || stride > 256 || stride % 4)
     throw Error('Unsupported D3D9 draw format or render state');
   const texturing = fixedTextureDraw(runtime, state);
-  const texture = texturing?.texture;
-  const textureBytes =
-    texture && !state.textureSnapshots.has(texture)
-      ? texture.levels.reduce((n, l) => n + l.rgba.length, 0)
-      : 0;
+  const textures = new Set(
+    (texturing?.stages ?? (texturing ? [texturing] : []))
+      .map((stage) => stage.texture)
+      .filter((texture) => texture && !state.textureSnapshots.has(texture)),
+  );
+  const textureBytes = [...textures].reduce(
+    (bytes, texture) => bytes + texture.levels.reduce((n, level) => n + level.rgba.length, 0),
+    0,
+  );
   const size = vertexCount * stride;
   if (state.frameBytes + size > MAX_FRAME_BYTES) throw Error('D3D9 frame vertex limit exceeded');
   if (state.frameTextureBytes + textureBytes > 32 * 1024 * 1024)
@@ -190,8 +194,8 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
   if (layout.rhw) floatOffsets.push(12);
   if (layout.normal !== null)
     floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
-  if (layout.uv !== null)
-    for (let i = 0; i < layout.uvSize; i++) floatOffsets.push(layout.uv + i * 4);
+  for (const coordinate of layout.texcoords)
+    for (let i = 0; i < coordinate.components; i++) floatOffsets.push(coordinate.offset + i * 4);
   // D3D disables depth writes whenever depth testing is off, so the depth
   // component is unused then and pre-transformed overlays may leave it
   // undefined (commonly NaN). Normalize that slot; any other non-finite
@@ -241,10 +245,8 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
     },
     size,
   );
-  if (texture) {
-    frameState.textureSnapshots.add(texture);
-    frameState.frameTextureBytes += textureBytes;
-  }
+  for (const texture of textures) frameState.textureSnapshots.add(texture);
+  frameState.frameTextureBytes += textureBytes;
   return D3D_OK;
 }
 

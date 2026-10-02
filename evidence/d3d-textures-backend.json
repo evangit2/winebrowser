@@ -233,14 +233,24 @@
       "maxError": 0
     },
     {
+      "name": "eight mixed texture stages and independent coordinates",
+      "pixels": 4096,
+      "maxError": 0.07904893764798615
+    },
+    {
+      "name": "later stage complement and alpha replicate use CURRENT",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
       "name": "two revisions of one texture in one frame",
       "pixels": 4096,
       "maxError": 0
     }
   ],
-  "pixels": 192512,
-  "frames": 48,
-  "draws": 48,
+  "pixels": 200704,
+  "frames": 50,
+  "draws": 50,
   "browser": "154.0.8037.97",
-  "date": "2026-10-02T08:43:18.262Z"
+  "date": "2026-10-02T09:35:44.943Z"
 }

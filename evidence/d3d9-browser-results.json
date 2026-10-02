@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T07:58:56.602Z",
+  "date": "2026-10-02T10:14:18.583Z",
   "url": "http://127.0.0.1:4197/winebrowser/",
   "browser": "154.0.8037.97",
   "nativeGame": "d3d9-cube",
@@ -8,29 +8,29 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "exeSha256": "5ed9cbc96e17b37cc20cb7980de06235cb4f22f252abb19351cc2e2984a5cb76",
+      "exeSha256": "1b9a41348c30bea477efe3ccff0e5e7e23474eefcd54e2ba1124da44671d001c",
       "first": {
         "width": 640,
         "height": 480,
         "frames": 5,
-        "hash": "bc62ec5c37928192d3f8064817538fc52bf5ddb938320b618eadd29ae26dc400",
+        "hash": "bb2d9c9d6fa63361bfe42c829ea6da0440617677422e1062d77b7a51416f1988",
         "corner": [
           23,
           29,
           49,
           255
         ],
-        "coloredPixels": 74972,
+        "coloredPixels": 77812,
         "colors": [
-          "93,197,239",
-          "121,216,117"
+          "242,207,91",
+          "232,101,84"
         ]
       },
       "second": {
         "width": 640,
         "height": 480,
         "frames": 17,
-        "hash": "bae19a8481e706983324edab1ce0f6e34c79e2450a34fcd8d4827c6225807c35",
+        "hash": "5ab8124708f47b993059850dba9e937b1ba31c8b804ece0507ae69bb40b12399",
         "corner": [
           23,
           29,
@@ -39,18 +39,18 @@
         ],
         "coloredPixels": 74972,
         "colors": [
-          "242,207,91",
-          "93,197,239"
+          "232,101,84",
+          "121,216,117"
         ]
       },
       "exitCode": 0,
       "compiledBlocks": 174,
-      "instructions": 3705,
-      "apiCalls": 267
+      "instructions": 3802,
+      "apiCalls": 276
     },
     {
       "mode": "hosted-zip",
-      "exeSha256": "5ed9cbc96e17b37cc20cb7980de06235cb4f22f252abb19351cc2e2984a5cb76",
+      "exeSha256": "1b9a41348c30bea477efe3ccff0e5e7e23474eefcd54e2ba1124da44671d001c",
       "first": {
         "width": 640,
         "height": 480,
@@ -87,8 +87,8 @@
       },
       "exitCode": 0,
       "compiledBlocks": 174,
-      "instructions": 3802,
-      "apiCalls": 276
+      "instructions": 3705,
+      "apiCalls": 267
     }
   ],
   "errors": []

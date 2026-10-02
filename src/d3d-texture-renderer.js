@@ -4,7 +4,18 @@ import { validSamplerValue, validStageValue, floatState } from './d3d-texture-st
 import { alphaTestCode } from './d3d-stencil.js';
 import { fogCode } from './d3d-fog.js';
 const ADDRESS = { 1: 'repeat', 2: 'mirror-repeat', 3: 'clamp-to-edge' };
+export const textureStages = (texturing) => texturing?.stages ?? (texturing ? [texturing] : []);
 export function validateTexturing(t) {
+  if (t?.stages !== undefined) {
+    if (
+      !Array.isArray(t.stages) ||
+      t.stages.length < 2 ||
+      t.stages.length > 8 ||
+      t.stages.some((s) => !s || s.stages !== undefined)
+    )
+      throw Error('Invalid graphics texture stages');
+    return t.stages.reduce((bytes, stage) => bytes + validateTexturing(stage), 0);
+  }
   if (!t) return 0;
   if (
     !t.stage ||
@@ -62,7 +73,14 @@ export function validateTexturing(t) {
   return bytes;
 }
 const argument = (value, texture) => {
-  let expr = (value & 15) === 2 ? (texture ? 'texel' : 'input.color') : 'input.color';
+  let expr =
+    (value & 15) === 2
+      ? texture
+        ? 'texel'
+        : 'input.color'
+      : (value & 15) === 1
+        ? 'current'
+        : 'input.color';
   if (value & 32) expr = `vec4(${expr}.a)`;
   if (value & 16) expr = `(vec4(1.0) - ${expr})`;
   return expr;
@@ -71,60 +89,75 @@ function operation(op, a, b) {
   return op === 2 ? a : op === 3 ? b : op === 4 ? `(${a} * ${b})` : `min(${a} + ${b}, vec4(1.0))`;
 }
 export function fixedShader(command = {}) {
-  const t = command.texturing,
-    layout = fvfLayout(command.fvf),
-    uv = layout.uv !== null,
-    stage = t?.stage,
-    dimension = t?.texture?.dimension ?? '2d',
-    coordinateType = dimension === '2d' ? 'vec2<f32>' : 'vec3<f32>',
-    inputType = layout.uvSize === 1 ? 'f32' : `vec${layout.uvSize}<f32>`,
-    coordinate =
-      !uv || stage?.[11] !== 0
-        ? `${coordinateType}(0.0)`
-        : dimension === '2d'
-          ? layout.uvSize === 1
-            ? 'vec2(uv,0.0)'
-            : 'uv.xy'
-          : layout.uvSize === 1
-            ? 'vec3(uv,0.0,0.0)'
-            : layout.uvSize === 2
-              ? 'vec3(uv,0.0)'
-              : 'uv.xyz';
-  const output = t
-    ? `vec4(${operation(stage[1], argument(stage[2], t.texture), argument(stage[3], t.texture))}.rgb,
-    ${operation(stage[4], argument(stage[5], t.texture), argument(stage[6], t.texture))}.a)`
-    : 'input.color';
+  const stages = textureStages(command.texturing),
+    layout = fvfLayout(command.fvf);
+  const coordinate = (t) => {
+    const index = t.stage[11],
+      uv = layout.texcoords[index],
+      dimension = t.texture?.dimension ?? '2d';
+    const size = dimension === '2d' ? 2 : 3,
+      name = `uv${index}`;
+    if (!uv) return `vec${size}<f32>(0.0)`;
+    if (uv.components === 1) return size === 2 ? `vec2(${name},0.0)` : `vec3(${name},0.0,0.0)`;
+    if (uv.components < size) return `vec3(${name},0.0)`;
+    return `${name}.${size === 2 ? 'xy' : 'xyz'}`;
+  };
+  const textureDeclarations = stages
+    .map(
+      (
+        t,
+        i,
+      ) => `@group(1) @binding(${4 * i}) var image${i}: texture_${t.texture?.dimension ?? '2d'}<f32>;
+@group(1) @binding(${4 * i + 1}) var imageSampler${i}: sampler;
+@group(1) @binding(${4 * i + 2}) var<uniform> lodBias${i}: vec4<f32>;
+@group(1) @binding(${4 * i + 3}) var magnificationSampler${i}: sampler;`,
+    )
+    .join('\n');
+  const cascade = stages
+    .map((t, i) => {
+      const dimension = t.texture?.dimension ?? '2d',
+        stage = t.stage;
+      return `{
+    let dimensions = ${dimension === '3d' ? 'vec3' : 'vec2'}<f32>(textureDimensions(image${i}));
+    ${
+      dimension === 'cube'
+        ? `let major = max(max(abs(input.uv${i}.x),abs(input.uv${i}.y)),abs(input.uv${i}.z));
+    var faceUv = input.uv${i}.xy;
+    if(abs(input.uv${i}.x) >= abs(input.uv${i}.y) && abs(input.uv${i}.x) >= abs(input.uv${i}.z)) { faceUv = input.uv${i}.zy; }
+    else if(abs(input.uv${i}.y) >= abs(input.uv${i}.z)) { faceUv = input.uv${i}.xz; }
+    let footprintUv = faceUv / max(major, 1e-20) * 0.5;`
+        : `let footprintUv = input.uv${i};`
+    }
+    let rho = max(length(dpdx(footprintUv) * dimensions), length(dpdy(footprintUv) * dimensions));
+    let minifying = log2(max(rho, 1e-20)) + lodBias${i}.x > 0.0;
+    let small = ${t.sampler[7] ? `textureSampleBias(image${i}, imageSampler${i}, input.uv${i}, lodBias${i}.x)` : `textureSampleLevel(image${i}, imageSampler${i}, input.uv${i}, 0.0)`};
+    let large = textureSampleLevel(image${i}, magnificationSampler${i}, input.uv${i}, 0.0);
+    let texel = select(large, small, minifying);
+    current = vec4(${operation(stage[1], argument(stage[2], t.texture), argument(stage[3], t.texture))}.rgb,
+      ${operation(stage[4], argument(stage[5], t.texture), argument(stage[6], t.texture))}.a);
+  }`;
+    })
+    .join('\n');
   return `
 ${command.lighting ? lightingStruct : ''}
 struct Transforms { world: mat4x4<f32>, view: mat4x4<f32>, projection: mat4x4<f32> ${command.lighting ? lightingFields : ''} }
 @group(0) @binding(0) var<uniform> transforms: Transforms;
-${
-  t
-    ? `@group(1) @binding(0) var image: texture_${dimension}<f32>;
-@group(1) @binding(1) var imageSampler: sampler;
-@group(1) @binding(2) var<uniform> lodBias: vec4<f32>;
-@group(1) @binding(3) var magnificationSampler: sampler;`
-    : ''
-}
+${textureDeclarations}
 ${command.lighting ? lightingCode(command, layout) : ''}
 ${command.fog ? fogCode(command.fog).factor : ''}
 struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: vec4<f32>,
   @location(2) specular: vec4<f32>,
   ${command.fog ? '@location(5) viewDepth: f32,' : ''}
-  ${t ? `@location(1) uv: ${coordinateType},` : ''} }
+  ${stages.map((t, i) => `@location(${6 + i}) uv${i}: vec${(t.texture?.dimension ?? '2d') === '2d' ? 2 : 3}<f32>,`).join('\n')} }
 @vertex fn vertexMain(@location(0) position: ${layout.rhw ? 'vec4<f32>' : 'vec3<f32>'}
   ${layout.diffuse !== null ? ', @location(1) bgra: vec4<f32>' : ''}
   ${layout.specular !== null ? ', @location(4) specularBgra: vec4<f32>' : ''}
   ${layout.normal !== null ? ', @location(3) normal: vec3<f32>' : ''}
-  ${t && uv ? `, @location(2) uv: ${inputType}` : ''}) -> VertexOut {
+  ${stages.length ? layout.texcoords.map((uv, i) => `, @location(${i === 0 ? 2 : 5 + i}) uv${i}: ${uv.components === 1 ? 'f32' : `vec${uv.components}<f32>`}`).join('') : ''}) -> VertexOut {
   var output: VertexOut;
-  // D3D row-major row-vector storage is transposed when read by WGSL.
   ${
     layout.rhw
-      ? `// XYZRHW is pre-transformed: x,y are screen pixels, z is depth and w is
-  // rhw (1/w). The transform maps pixels to clip space; scaling by rhw lets
-  // the hardware divide reproduce the position with correct perspective.
-  let clip = transforms.projection * vec4(position.xyz, 1.0);
+      ? `let clip = transforms.projection * vec4(position.xyz, 1.0);
   output.position = vec4(clip.xyz * position.w, position.w);`
       : 'output.position = transforms.projection * transforms.view * transforms.world * vec4(position, 1.0);'
   }
@@ -136,42 +169,19 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
   output.color=lit[0];output.specular=lit[1];`
       : 'output.color=color1;output.specular=color2;'
   }
-  ${t ? `output.uv = ${coordinate};` : ''}
+  ${stages.map((t, i) => `output.uv${i} = ${coordinate(t)};`).join('\n')}
   ${command.fog ? 'output.viewDepth = output.position.w;' : ''}
   return output;
 }
 @fragment fn fragmentMain(input: VertexOut) -> @location(0) vec4<f32> {
-  ${
-    !t
-      ? ''
-      : `
-  // WebGPU chooses MAGFILTER after clamping LOD. D3D still uses MINFILTER
-  // when shrinking a texture with mipmapping disabled or only one mip level.
-  let dimensions = ${dimension === '3d' ? 'vec3' : 'vec2'}<f32>(textureDimensions(image));
-  ${
-    dimension === 'cube'
-      ? `let major = max(max(abs(input.uv.x),abs(input.uv.y)),abs(input.uv.z));
-  var faceUv = input.uv.xy;
-  if(abs(input.uv.x) >= abs(input.uv.y) && abs(input.uv.x) >= abs(input.uv.z)) { faceUv = input.uv.zy; }
-  else if(abs(input.uv.y) >= abs(input.uv.z)) { faceUv = input.uv.xz; }
-  let footprintUv = faceUv / max(major, 1e-20) * 0.5;`
-      : 'let footprintUv = input.uv;'
-  }
-  let rho = max(length(dpdx(footprintUv) * dimensions), length(dpdy(footprintUv) * dimensions));
-  let minifying = log2(max(rho, 1e-20)) + lodBias.x > 0.0;
-  let small = ${t.sampler[7] ? 'textureSampleBias(image, imageSampler, input.uv, lodBias.x)' : 'textureSampleLevel(image, imageSampler, input.uv, 0.0)'};
-  let large = textureSampleLevel(image, magnificationSampler, input.uv, 0.0);
-  let texel = select(large, small, minifying);`
-  }
-
-  let color = ${output};
+  var current = input.color;
+  ${cascade}
+  let color = current;
   ${alphaTestCode('color.a', command)}
   let lit = ${command.specularEnable ? 'vec4(clamp(color.rgb + input.specular.rgb,vec3(0.0),vec3(1.0)),color.a)' : 'color'};
   ${
     command.fog
-      ? `// D3D fog replaces toward the fog colour by (1 - fog): Wine's own GLSL
-  // mixes fogColor with the fragment by the clamped factor.
-  let fog = clamp(winebrowser_fogFactor(input.viewDepth), 0.0, 1.0);
+      ? `let fog = clamp(winebrowser_fogFactor(input.viewDepth), 0.0, 1.0);
   return vec4(mix(${fogCode(command.fog).color}, lit.rgb, fog), lit.a);`
       : 'return lit;'
   }
@@ -182,40 +192,86 @@ export class D3DTextureRenderer {
     this.owner = owner;
     this.samplers = new Map();
   }
-  initialize(dimension = '2d') {
+  initialize(dimensions = ['2d']) {
+    if (!Array.isArray(dimensions)) dimensions = [dimensions];
     this.layouts ??= new Map();
-    const cached = this.layouts.get(dimension);
+    const key = dimensions.join(',');
+    const cached = this.layouts.get(key);
     if (cached) {
       Object.assign(this, cached);
       return;
     }
     this.layout = this.owner.device.createBindGroupLayout({
-      entries: [
+      entries: dimensions.flatMap((dimension, index) => [
         {
-          binding: 0,
+          binding: 4 * index,
           visibility: GPUShaderStage.FRAGMENT,
           texture: { sampleType: 'float', viewDimension: dimension },
         },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
-      ],
+        {
+          binding: 4 * index + 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: 'filtering' },
+        },
+        {
+          binding: 4 * index + 3,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: 'filtering' },
+        },
+        {
+          binding: 4 * index + 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { type: 'uniform' },
+        },
+      ]),
     });
     this.pipelineLayout = this.owner.device.createPipelineLayout({
       bindGroupLayouts: [this.owner.bindLayout, this.layout],
     });
-    this.layouts.set(dimension, { layout: this.layout, pipelineLayout: this.pipelineLayout });
+    this.layouts.set(key, { layout: this.layout, pipelineLayout: this.pipelineLayout });
+  }
+  releaseSlot(slot) {
+    slot.textureUniform?.destroy();
+    slot.textureUniform = null;
+    for (const extra of slot.textureExtraSlots ?? []) extra.textureUniform?.destroy();
+    slot.textureExtraSlots = [];
+    slot.textureBindGroup = slot.textureView = slot.sampler = null;
+    slot.textureEntries = null;
   }
   upload(surface, slot, command) {
-    const t = command.texturing;
-    if (!t) {
-      slot.textureUniform?.destroy();
-      slot.textureUniform = null;
-      slot.textureBindGroup = slot.textureView = slot.sampler = null;
+    const stages = textureStages(command.texturing);
+    if (!stages.length) {
+      this.releaseSlot(slot);
       return;
     }
+    slot.textureExtraSlots ??= [];
+    for (const extra of slot.textureExtraSlots.splice(stages.length - 1))
+      extra.textureUniform?.destroy();
+    this.initialize(stages.map((t) => t.texture?.dimension ?? '2d'));
+    const entries = stages.flatMap((t, index) =>
+      this.uploadStage(
+        surface,
+        index ? (slot.textureExtraSlots[index - 1] ??= {}) : slot,
+        t,
+        index,
+      ),
+    );
+    if (
+      slot.textureEntries?.length === entries.length &&
+      slot.textureLayout === this.layout &&
+      entries.every(
+        (entry, index) =>
+          (entry.resource.buffer ?? entry.resource) ===
+          (slot.textureEntries[index].resource.buffer ?? slot.textureEntries[index].resource),
+      )
+    )
+      return;
+    slot.textureEntries = entries;
+    slot.textureLayout = this.layout;
+    slot.textureBindGroup = this.owner.device.createBindGroup({ layout: this.layout, entries });
+  }
+  uploadStage(surface, slot, t, index) {
     const dimension = t.texture?.dimension ?? '2d';
-    this.initialize(dimension);
     const { device } = this.owner;
     surface.textures ??= new Map();
     const snapshot = t.texture;
@@ -285,27 +341,15 @@ export class D3DTextureRenderer {
       0,
       new Float32Array([Math.min(floatState(s[8]), 15.99), 0, 0, 0]),
     );
-    if (
-      slot.textureView === view &&
-      slot.sampler === sampler &&
-      slot.magnification === magnification
-    )
-      return;
     slot.magnification = magnification;
     slot.textureView = view;
     slot.sampler = sampler;
-    slot.textureBindGroup = device.createBindGroup({
-      layout: this.layout,
-      entries: [
-        {
-          binding: 0,
-          resource: view,
-        },
-        { binding: 1, resource: sampler },
-        { binding: 3, resource: magnification },
-        { binding: 2, resource: { buffer: slot.textureUniform } },
-      ],
-    });
+    return [
+      { binding: 4 * index, resource: view },
+      { binding: 4 * index + 1, resource: sampler },
+      { binding: 4 * index + 3, resource: magnification },
+      { binding: 4 * index + 2, resource: { buffer: slot.textureUniform } },
+    ];
   }
   // A programmable shader samples its guest textures through the same decoded
   // snapshot cache the fixed-function path uses. Legacy sampler registers map
@@ -416,7 +460,7 @@ export class D3DTextureRenderer {
     const used = new Set(['white-2d', 'white-3d', 'white-cube']);
     const key = (snapshot) => (snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white');
     for (const c of commands) {
-      if (c.texturing) used.add(key(c.texturing.texture));
+      for (const stage of textureStages(c.texturing)) used.add(key(stage.texture));
       for (const binding of c.textures?.values() ?? []) used.add(key(binding.snapshot));
     }
     for (const [key, value] of surface.textures ?? [])

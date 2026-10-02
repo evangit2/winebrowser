@@ -31,7 +31,7 @@ export function deviceCaps(version) {
   caps[36] = 0x4f; // DISABLE | SELECTARG1/2 | MODULATE | ADD.
   caps[39] = 0x3a; // Material sources, directional/positional lights, local viewer.
   caps[40] = 8; // Active fixed-function lights.
-  caps[37] = caps[38] = 1; // One blend stage and sampled texture.
+  caps[37] = caps[38] = 8; // Eight fixed blend stages and shader sampler registers.
   new Float32Array(caps.buffer)[28] = 1e10; // Finite homogeneous W range.
   caps[45] = Math.floor(MAX_DRAW_VERTICES / 3); // Expanded triangle-list primitive count.
   caps[46] = MAX_DRAW_VERTICES - 1; // Maximum 32-bit index value within bounded buffers.

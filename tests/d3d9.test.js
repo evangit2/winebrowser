@@ -989,7 +989,8 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 15 * 4), 0x1e805);
     assert.equal(runtime.read32(p + 16 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 22 * 4), 2048);
-    assert.equal(runtime.read32(p + 38 * 4), 1);
+    assert.equal(runtime.read32(p + 37 * 4), 8);
+    assert.equal(runtime.read32(p + 38 * 4), 8);
     assert.equal(runtime.read32(p + 39 * 4), 0x3a);
     assert.equal(runtime.read32(p + 40 * 4), 8);
     assert.equal((await call(factory, 10, 0, 1, 22, 0, 3, 21)).result, 0);
@@ -1367,6 +1368,55 @@ for (const version of [8, 9]) {
     await call(bound, 2);
     await call(d, 2);
     assert.equal(r.d3dTextureBytes, 0, 'device destruction frees internally owned textures');
+  });
+  test(`D3D${version} fixed stage cascades snapshot all revisions and account for unique uploads`, async () => {
+    const { runtime: r, call, create, output, events } = fixture(version),
+      d = await create();
+    const textures = [],
+      locked = r.allocate(8),
+      vertices = r.allocate(240);
+    for (let index = 0; index < 8; index++) {
+      await call(d, slots.create, 2, 2, 1, 0, 21, 1, output, 0);
+      const texture = r.read32(output);
+      textures.push(texture);
+      await call(texture, slots.lock, 0, locked, 0, 0);
+      r.write32(r.read32(locked + 4), 0xff000000 | index);
+      await call(texture, slots.unlock, 0);
+      await call(d, slots.bind, index, texture);
+      await call(d, slots.stage, index, 1, 4);
+      await call(d, slots.stage, index, 4, 2);
+    }
+    await call(d, slots.render, 137, 0);
+    await call(d, slots.fvf, 0x842);
+    await call(d, slots.scene);
+    await call(d, slots.draw, 4, 1, vertices, 80);
+    const state = r.comObjects.objects.get(d).state;
+    assert.equal(state.textureSnapshots.size, 8);
+    assert.equal(state.frameTextureBytes, 128);
+    await call(d, slots.draw, 4, 1, vertices, 80);
+    assert.equal(state.frameTextureBytes, 128, 'unchanged stage snapshots are charged once');
+    await call(textures[6], slots.lock, 0, locked, 0, 0);
+    r.write32(r.read32(locked + 4), 0xffaabbcc);
+    await call(textures[6], slots.unlock, 0);
+    await call(d, slots.draw, 4, 1, vertices, 80);
+    assert.equal(state.frameTextureBytes, 144, 'only the changed revision adds an upload');
+    await call(d, slots.stage, 3, 1, 1);
+    await call(d, slots.draw, 4, 1, vertices, 80);
+    await call(d, slots.end);
+    await call(d, slots.present, 0, 0, 0, 0);
+    const draws = events.at(-1).commands;
+    assert.equal(draws[0].texturing.stages.length, 8);
+    assert.equal(draws[3].texturing.stages.length, 3, 'COLOROP disable terminates the cascade');
+    assert.equal(draws[0].texturing.stages[6].texture, draws[1].texturing.stages[6].texture);
+    assert.notEqual(draws[0].texturing.stages[6].texture, draws[2].texturing.stages[6].texture);
+    assert.equal(draws[0].texturing.stages[6].stage[11], 6);
+    assert.deepEqual(
+      [...draws[2].texturing.stages[6].texture.levels[0].rgba.slice(0, 4)],
+      [170, 187, 204, 255],
+    );
+    for (const texture of textures) await call(texture, 2);
+    await call(d, 2);
+    assert.equal(r.d3dTextureBytes, 0);
   });
   test(`D3D${version} texture/sampler state and immutable draw snapshots`, async () => {
     const { runtime: r, call, create, output, events } = fixture(version),
