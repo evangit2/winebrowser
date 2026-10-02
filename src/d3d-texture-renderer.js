@@ -158,7 +158,8 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
   ${
     layout.rhw
       ? `let clip = transforms.projection * vec4(position.xyz, 1.0);
-  output.position = vec4(clip.xyz * position.w, position.w);`
+  let w = 1.0 / position.w;
+  output.position = vec4(clip.xyz * w, w);`
       : 'output.position = transforms.projection * transforms.view * transforms.world * vec4(position, 1.0);'
   }
   let color1 = ${layout.diffuse !== null ? 'bgra.bgra' : 'vec4(1.0)'};

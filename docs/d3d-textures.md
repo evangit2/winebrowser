@@ -76,11 +76,12 @@ remain missing.
   Every displayed pixel is checked and all four runs exit with code zero:
   [native results](../evidence/textures-browser-results.json).
 - `npm run test:textures-backend` and the same script with `--force-readback`
-  check 49 cases / 200,704 pixels per mode: addressing, RGB32/RGB565 color
+  check 50 cases / 204,800 pixels per mode: addressing, RGB32/RGB565 color
   operations, alpha operations in the persistent attachment, mip selection/bias,
   managed LOD, point/linear minification including single-level textures, revision
   ordering and cache cleanup, eight mixed 2D/cube/volume stages, independent
-  coordinates and CURRENT alpha replication/complement. See [canvas](../evidence/d3d-textures-backend.json)
+  coordinates, CURRENT alpha replication/complement and varying XYZRHW
+  reciprocal-W perspective interpolation. See [canvas](../evidence/d3d-textures-backend.json)
   and [readback](../evidence/d3d-textures-backend-readback.json) results.
 - Unit tests cover D3D8/9 ABI differences, raw sampler queries, formats, locks,
   snapshots, cross-device rejection, reference revival, allocation rollback and

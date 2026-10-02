@@ -233,6 +233,11 @@
       "maxError": 0
     },
     {
+      "name": "XYZRHW perspective uses reciprocal W",
+      "pixels": 4096,
+      "maxError": 0
+    },
+    {
       "name": "eight mixed texture stages and independent coordinates",
       "pixels": 4096,
       "maxError": 0.07904893764798615
@@ -248,9 +253,9 @@
       "maxError": 0
     }
   ],
-  "pixels": 200704,
-  "frames": 50,
-  "draws": 50,
+  "pixels": 204800,
+  "frames": 51,
+  "draws": 51,
   "browser": "154.0.8037.97",
-  "date": "2026-10-02T09:55:47.160Z"
+  "date": "2026-10-02T10:46:09.576Z"
 }

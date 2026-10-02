@@ -310,6 +310,40 @@ try {
         if (maxError > 1) throw Error(`Alpha operation ${op}/${arg}: error ${maxError}`);
         cases.push({ name: `attachment-alpha-op${op}-arg${arg}`, pixels: 4096, maxError });
       }
+      // XYZRHW carries reciprocal W. Perspective UV interpolation must use
+      // RHW weights, rather than treating RHW itself as clip-space W.
+      const transformed = makeDraw(texture, {}, { 1: 2 });
+      transformed.fvf = 0x144;
+      transformed.stride = 28;
+      transformed.vertices = new Uint8Array(84);
+      const screen = new DataView(transformed.vertices.buffer),
+        rhws = [1, 0.5, 0.25];
+      [
+        [0, 64, 0, 1],
+        [128, 64, 2, 1],
+        [0, -64, 0, -1],
+      ].forEach(([x, y, u, v], index) => {
+        [x, y, 0.5, rhws[index]].forEach((value, component) =>
+          screen.setFloat32(index * 28 + component * 4, value, true),
+        );
+        screen.setUint32(index * 28 + 16, 0xffffffff, true);
+        screen.setFloat32(index * 28 + 20, u, true);
+        screen.setFloat32(index * 28 + 24, v, true);
+      });
+      transformed.projection = [1 / 32, 0, 0, 0, 0, -1 / 32, 0, 0, 0, 0, 1, 0, -1, 1, 0, 1];
+      await renderer.present({ id: 1, commands: [clear, transformed] });
+      check('XYZRHW perspective uses reciprocal W', (x, y) => {
+        const b = (x + 0.5) / 128,
+          c = (64 - y - 0.5) / 128,
+          a = 1 - b - c;
+        const denominator = a * rhws[0] + b * rhws[1] + c * rhws[2];
+        return sample(
+          (2 * b * rhws[1]) / denominator,
+          (a * rhws[0] + b * rhws[1] - c * rhws[2]) / denominator,
+          1,
+          false,
+        );
+      });
       // Eight distinct bound textures, independent UV sets, CURRENT cascades,
       // and mixed 2D/volume/cube views exercise the advertised stage count.
       const multi = makeDraw(texture, {}, { 1: 2 });
