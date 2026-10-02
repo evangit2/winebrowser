@@ -1909,6 +1909,15 @@ export function describeGdiFont(runtime, handle) {
   return font ? { ...font } : null;
 }
 
+/** WGL needs the live window owning a display DC, never a memory bitmap DC. */
+export function describeDisplayDC(runtime, handle) {
+  const state = states.get(runtime);
+  const dc = state && getDc(runtime, state, handle);
+  if (!dc || dc.kind !== 'display-dc' || !dc.hwnd) return null;
+  const window = runtime.windows?.windows?.get(dc.hwnd);
+  return window ? { windowId: dc.hwnd, width: window.width, height: window.height } : null;
+}
+
 // Ellipse(hdc, left, top, right, bottom): the bounding box is exclusive of the
 // right/bottom edge, and the outline is drawn with the selected pen.
 function ellipse(runtime, argument) {

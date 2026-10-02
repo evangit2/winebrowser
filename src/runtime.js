@@ -63,6 +63,7 @@ export class Runtime {
       nlsFiles,
       graphics,
       graphics12,
+      opengl,
       performanceNow,
       systemNow = () => Date.now(),
       hostModuleImages = true,
@@ -82,6 +83,7 @@ export class Runtime {
     this.args = args;
     this.graphics = graphics;
     this.graphics12 = graphics12;
+    this.opengl = opengl;
     this.performanceClock = new GuestPerformanceClock(performanceNow);
     this.systemNow = systemNow;
     this.packageFileTime = systemFileTime(systemNow());

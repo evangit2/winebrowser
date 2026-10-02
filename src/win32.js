@@ -6,6 +6,7 @@ import { dinput8Apis } from './dinput8.js';
 import { d3d9Apis } from './d3d9.js';
 import { d3d12Apis, dxgiApis } from './d3d12.js';
 import { d3d10Apis } from './d3d10.js';
+import { openglApis } from './opengl.js';
 import { d3dCompilerApis } from './d3dcompiler.js';
 import { formatApis } from './win32-format.js';
 import { processApis } from './win32-process.js';
@@ -125,6 +126,7 @@ for (const key of [
   ...Object.keys(dinput8Apis),
   ...Object.keys(d3d12Apis),
   ...Object.keys(d3d10Apis),
+  ...Object.keys(openglApis),
   ...Object.keys(d3dCompilerApis),
   ...Object.keys(dxgiApis),
 ]) {
@@ -476,6 +478,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(dinput8Apis),
     ...Object.entries(d3d12Apis),
     ...Object.entries(d3d10Apis),
+    ...Object.entries(openglApis),
     ...Object.entries(d3dCompilerApis),
     ...Object.entries(dxgiApis),
     ...Object.entries(startupApis),

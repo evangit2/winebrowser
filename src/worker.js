@@ -5,6 +5,7 @@ import { inspect, Runtime } from './runtime.js';
 import { createCanvasTextRasterizer } from './gdi-text.js';
 import { WebGPURenderer } from './webgpu-renderer.js';
 import { D3D12Renderer } from './d3d12-renderer.js';
+import { OpenGLRenderer } from './opengl-renderer.js';
 import { loadWineBaseAssets, packageNeedsNativeBase } from './wine-base-assets.js';
 import {
   packageId,
@@ -121,6 +122,7 @@ onmessage = async ({ data }) => {
       }
       const graphics = new WebGPURenderer({ emit });
       const graphics12 = new D3D12Renderer(graphics);
+      const opengl = new OpenGLRenderer({ emit });
       const runtime = new Runtime(iced, {
         files: pkg.files,
         exe: data.exe,
@@ -129,6 +131,7 @@ onmessage = async ({ data }) => {
         nlsFiles: executableProfiles.has(data.exe) ? nativeBase.nlsFiles : undefined,
         graphics,
         graphics12,
+        opengl,
         emit,
         request,
         // Manual sessions last until the guest exits or the user presses Stop.
@@ -144,6 +147,7 @@ onmessage = async ({ data }) => {
         activeRuntime = null;
         graphics12.dispose();
         graphics.dispose();
+        opengl.dispose();
       }
       try {
         await saveOutputs(id, result.outputs);
