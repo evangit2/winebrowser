@@ -69,6 +69,7 @@ export class D3D9ProgrammableRenderer {
     // those URLs only when the first programmable draw actually needs them.
     this.compiler = null;
     this.pipelines = new Map();
+    this.pendingPipelines = new Map();
   }
 
   validate(surface, command) {
@@ -132,6 +133,23 @@ export class D3D9ProgrammableRenderer {
     ].join('|');
     let cached = this.pipelines.get(key);
     if (cached) return cached;
+    const pending = this.pendingPipelines.get(key);
+    if (pending) return pending;
+    // A frame prepares hundreds of draws concurrently. Publish the promise
+    // before yielding so identical draws share one translation and GPU pipeline.
+    const creating = this.createPipeline(surface, command).then((compiled) => {
+      this.pipelines.set(key, compiled);
+      return compiled;
+    });
+    this.pendingPipelines.set(key, creating);
+    try {
+      return await creating;
+    } finally {
+      this.pendingPipelines.delete(key);
+    }
+  }
+
+  async createPipeline(surface, command) {
     this.compiler ??= new ShaderCompiler();
     const translated = await this.compiler.compileLegacyPair(
       command.vertexShader,
@@ -229,7 +247,7 @@ export class D3D9ProgrammableRenderer {
       set.add(binding);
       groupBindings.set(group, set);
     }
-    cached = {
+    return {
       pipeline,
       usesVertexConstants,
       usesPixelConstants,
@@ -239,8 +257,6 @@ export class D3D9ProgrammableRenderer {
       groupBindings,
       pipelineGroupCount,
     };
-    this.pipelines.set(key, cached);
-    return cached;
   }
 
   buffer(slot, field, bytes, usage) {
