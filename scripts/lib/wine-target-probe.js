@@ -489,6 +489,18 @@ export async function probeWineTarget(
         }
       }
       const record = { name, args, threadId: runtime.threads.current?.id };
+      if (name === 'NtReadFile') {
+        const file = runtime.handles.get(args[0]);
+        report.fileReads ??= [];
+        report.fileReads.push({
+          path: file?.path,
+          offset: file?.position,
+          destination: hex(args[5]),
+          requestedBytes: args[6],
+          instructions: runtime.cpu.instructions,
+        });
+        if (report.fileReads.length > 256) report.fileReads.shift();
+      }
       if (
         name === 'user32.dll!EnumDisplaySettingsA' ||
         name === 'user32.dll!ChangeDisplaySettingsA'
@@ -850,80 +862,88 @@ export async function probeWineTarget(
     });
     report.watchValue = watchValue;
     report.phases.push({ name: phase, passed: true, modules: runtime.graph.describe() });
-    phase = 'Wine process bootstrap';
-    const ntdll = runtime.graph.modules.get('ntdll.dll');
-    installWineNtBridge(runtime, ntdll);
-    await initializeWineProcess(runtime, ntdll);
-    report.phases.push({ name: phase, passed: true });
-    phase = 'source loader registration';
-    runtime.tls.prepare(runtime.graph.modules.values());
-    const modules = guestModules().filter((module) => !module.proxy);
-    const entry = ntdll.pe.exports.find((e) => e.name === 'WineBrowserLoaderBootstrap');
-    if (!entry || entry.forwarder) throw Error('Source-built loader export missing');
-    const allocated = [];
-    try {
-      const table = runtime.allocate(modules.length * 16);
-      allocated.push(table);
-      modules.forEach((module, i) => {
-        const name = runtime.allocString(wineModulePath(module), true);
-        allocated.push(name);
-        [
-          16,
-          module.base,
-          name,
-          (module === runtime.graph.main ? 1 : module === ntdll ? 2 : 0) |
-            (module.initialized ? 4 : 0) |
-            (runtime.tls.records.has(module) ? 8 : 0),
-        ].forEach((value, n) => runtime.write32(table + i * 16 + n * 4, value));
-      });
-      const batch = runtime.allocate(16);
-      allocated.push(batch);
-      [16, 1, modules.length, table].forEach((value, n) => runtime.write32(batch + n * 4, value));
-      if (testStaticTLS) {
-        const index = modules.findIndex((m) => runtime.tls.records.has(m));
-        if (index < 0) throw Error('Static TLS validation requires a TLS image');
-        const module = modules[index],
-          flag = table + index * 16 + 12;
-        const value = runtime.read32(flag),
-          vectorAddress = 0x2e0002c;
-        const tlsIndexAddress = module.base + module.pe.tls.indexRva;
-        for (const [label, address, invalid, expected] of [
-          ['missing ownership flag', flag, value & ~8, 0xc00000bb],
-          ['unprepared vector', vectorAddress, 0, 0xc000000d],
-          ['out-of-range static slot', tlsIndexAddress, 128, 0xc000000d],
-        ]) {
-          const saved = runtime.read32(address);
-          try {
-            runtime.write32(address, invalid);
-            const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
-            if (status !== expected) throw Error(`TLS ${label}: unexpected ${hex(status)}`);
-            const peb = runtime.read32(0x2e00030);
-            if (runtime.read32(peb + 0xc) || runtime.read32(peb + 0xa0))
-              throw Error('Invalid TLS batch published Wine loader metadata');
-            report.phases.push({ name: 'static TLS rejects ' + label, passed: true });
-          } finally {
-            runtime.write32(address, saved);
+    if (limits.useRuntimeStartup) {
+      phase = 'Runtime process startup';
+      const result = await runtime.run();
+      report.exitCode = result.exitCode;
+      report.status = 'entry-returned';
+      report.phases.push({ name: phase, passed: true });
+    } else {
+      phase = 'Wine process bootstrap';
+      const ntdll = runtime.graph.modules.get('ntdll.dll');
+      installWineNtBridge(runtime, ntdll);
+      await initializeWineProcess(runtime, ntdll);
+      report.phases.push({ name: phase, passed: true });
+      phase = 'source loader registration';
+      runtime.tls.prepare(runtime.graph.modules.values());
+      const modules = guestModules().filter((module) => !module.proxy);
+      const entry = ntdll.pe.exports.find((e) => e.name === 'WineBrowserLoaderBootstrap');
+      if (!entry || entry.forwarder) throw Error('Source-built loader export missing');
+      const allocated = [];
+      try {
+        const table = runtime.allocate(modules.length * 16);
+        allocated.push(table);
+        modules.forEach((module, i) => {
+          const name = runtime.allocString(wineModulePath(module), true);
+          allocated.push(name);
+          [
+            16,
+            module.base,
+            name,
+            (module === runtime.graph.main ? 1 : module === ntdll ? 2 : 0) |
+              (module.initialized ? 4 : 0) |
+              (runtime.tls.records.has(module) ? 8 : 0),
+          ].forEach((value, n) => runtime.write32(table + i * 16 + n * 4, value));
+        });
+        const batch = runtime.allocate(16);
+        allocated.push(batch);
+        [16, 1, modules.length, table].forEach((value, n) => runtime.write32(batch + n * 4, value));
+        if (testStaticTLS) {
+          const index = modules.findIndex((m) => runtime.tls.records.has(m));
+          if (index < 0) throw Error('Static TLS validation requires a TLS image');
+          const module = modules[index],
+            flag = table + index * 16 + 12;
+          const value = runtime.read32(flag),
+            vectorAddress = 0x2e0002c;
+          const tlsIndexAddress = module.base + module.pe.tls.indexRva;
+          for (const [label, address, invalid, expected] of [
+            ['missing ownership flag', flag, value & ~8, 0xc00000bb],
+            ['unprepared vector', vectorAddress, 0, 0xc000000d],
+            ['out-of-range static slot', tlsIndexAddress, 128, 0xc000000d],
+          ]) {
+            const saved = runtime.read32(address);
+            try {
+              runtime.write32(address, invalid);
+              const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
+              if (status !== expected) throw Error(`TLS ${label}: unexpected ${hex(status)}`);
+              const peb = runtime.read32(0x2e00030);
+              if (runtime.read32(peb + 0xc) || runtime.read32(peb + 0xa0))
+                throw Error('Invalid TLS batch published Wine loader metadata');
+              report.phases.push({ name: 'static TLS rejects ' + label, passed: true });
+            } finally {
+              runtime.write32(address, saved);
+            }
           }
         }
+        const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
+        if (status) throw Error(`WineBrowserLoaderBootstrap returned ${hex(status)}`);
+      } finally {
+        for (const pointer of allocated) runtime.free(pointer);
       }
-      const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
-      if (status) throw Error(`WineBrowserLoaderBootstrap returned ${hex(status)}`);
-    } finally {
-      for (const pointer of allocated) runtime.free(pointer);
+      report.phases.push({ name: phase, passed: true });
+      phase = 'source loader callbacks';
+      await new WineLoader(runtime, ntdll).enable();
+      report.phases.push({ name: phase, passed: true });
+      phase = 'guest DLL attach';
+      await runtime.initializeModules();
+      report.phases.push({ name: phase, passed: true });
+      phase = 'native EXE entry point';
+      await runtime.tls.attach(runtime.graph.main);
+      const result = await runtime.runEntryPoint();
+      report.exitCode = runtime.exitCode ?? result;
+      report.status = 'entry-returned';
+      report.phases.push({ name: phase, passed: true });
     }
-    report.phases.push({ name: phase, passed: true });
-    phase = 'source loader callbacks';
-    await new WineLoader(runtime, ntdll).enable();
-    report.phases.push({ name: phase, passed: true });
-    phase = 'guest DLL attach';
-    await runtime.initializeModules();
-    report.phases.push({ name: phase, passed: true });
-    phase = 'native EXE entry point';
-    await runtime.tls.attach(runtime.graph.main);
-    const result = await runtime.runEntryPoint();
-    report.exitCode = runtime.exitCode ?? result;
-    report.status = 'entry-returned';
-    report.phases.push({ name: phase, passed: true });
   } catch (error) {
     if (error.message === FRAME_GOAL) {
       report.status = 'frames-presented';

@@ -180,3 +180,24 @@ check mip extent, shared sub-box writes, immutable previous snapshots and freed
 storage. Compressed volumes, fixed-function volume coordinates and automatic
 mip generation remain unsupported. A fresh RollerCoaster ZIP passes volume
 creation/filling and next reaches unsupported CreateCubeTexture, with no frames.
+
+
+October 2 continuation: the pinned source-built base closure now starts through
+ordinary `Runtime.run()` when its patched NTDLL is supplied. The source-base
+gate also uploads a ZIP with the console EXE, six source DLLs and seven NLS
+tables through the normal UI; native NT output and shutdown exit zero. It does
+not yet make the worker supply the closure automatically. The example packager
+now preserves and validates unrelated catalog entries when rebuilding Tetris.
+
+Additional Humus PE32 candidates were downloaded from the upstream 3D archive.
+Their readmes permit redistribution when retained. ASCII (540,843 bytes) and
+RollerCoaster (910,932 bytes) reach the shared CreateCubeTexture blocker;
+RollerCoaster now passes volume texture creation and filling. Water (714,714),
+TransparentShadowMapping (1,206,184), and SelfShadowBump (1,138,848) remain
+unverified. These local research archives have not been added to the public
+catalog. Metaballs2 uses x64 Vulkan, outside the current PE32/D3D path.
+
+The original Hamsterball still faults at EXE +0x85c2c after six transition frames.
+A one-byte write trace finds the suspect FE byte written at EXE +0xadd32 and
+subsequently processed by the PNG RGB/BGR swap at +0xa5151. This does not yet
+establish why image data reaches the later table lookup; gameplay is unverified.

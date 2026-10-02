@@ -10,6 +10,7 @@ import {
   snapshotWineProcessPointers,
   restoreWineProcessPointers,
 } from './wine-process.js';
+import { bootstrapWineLoader } from './wine-loader.js';
 import { StaticTLS } from './tls.js';
 import { WindowManager } from './win32-windows.js';
 import { flushGdi } from './win32-gdi.js';
@@ -834,6 +835,7 @@ export class Runtime {
   }
   async #runProcess() {
     const started = performance.now();
+    await bootstrapWineLoader(this);
     await this.initializeModules();
     await this.tls.attach(this.graph.main);
     const entryResult = await this.runEntryPoint();

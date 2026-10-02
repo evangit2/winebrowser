@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-02T05:59:30.240Z",
-  "scope": "Pinned source-built Wine base DLLs and source NLS, real CRT/TLS/file services and console EXE startup in Chromium. Diagnostic loader setup; normal drop worker integration remains separate.",
+  "date": "2026-10-02T06:30:20.823Z",
+  "scope": "Pinned source-built Wine base DLLs and source NLS, real CRT/TLS/file services, Runtime.run() console startup and ordinary packaged ZIP upload in Chromium. The worker does not yet supply the native base assets itself.",
   "inputs": {
     "manifest": ".cache/wine-loader/manifest.json",
     "wineDirectory": null,
@@ -1174,23 +1174,7 @@
         ]
       },
       {
-        "name": "Wine process bootstrap",
-        "passed": true
-      },
-      {
-        "name": "source loader registration",
-        "passed": true
-      },
-      {
-        "name": "source loader callbacks",
-        "passed": true
-      },
-      {
-        "name": "guest DLL attach",
-        "passed": true
-      },
-      {
-        "name": "native EXE entry point",
+        "name": "Runtime process startup",
         "passed": true
       }
     ],
@@ -2470,5 +2454,121 @@
     "crossOriginIsolated": true,
     "browser": "154.0.8037.97",
     "outboundRequests": []
+  },
+  "upload": {
+    "isolated": true,
+    "state": "EXITED",
+    "output": "console demo: hello from WriteFile\r\n",
+    "result": {
+      "type": "done",
+      "exitCode": 0,
+      "modules": [
+        {
+          "name": "console.exe",
+          "path": "console.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "kernel32.dll",
+          "host": false,
+          "base": 16777216,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "kernelbase.dll",
+          "host": false,
+          "base": 17235968,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "ntdll.dll",
+          "host": false,
+          "base": 19988480,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "apiTrace": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtTerminateProcess",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtTerminateProcess",
+        "WineBrowserLoaderCallback"
+      ],
+      "blocks": 22586,
+      "instructions": 106376,
+      "compiledBlocks": 1709,
+      "wasmBytes": 1329573,
+      "apiCalls": 41,
+      "elapsedMs": 1173.7599999904633,
+      "outputs": []
+    }
   }
 }

@@ -197,3 +197,48 @@ export class WineLoader {
     }
   }
 }
+
+// Startup for the source-built loader bridge. Ordinary Runtime.run() uses the
+// same mapped-module ownership and native process setup as the diagnostic gate.
+// Unpatched ntdll images keep their existing startup path.
+export async function bootstrapWineLoader(runtime) {
+  if (runtime.wineLoader) return true;
+  const ntdll = runtime.graph.modules.get('ntdll.dll');
+  const entry = ntdll?.pe?.exports.find((e) => e.name === 'WineBrowserLoaderBootstrap');
+  if (!entry) return false;
+  if (entry.forwarder || !runtime.graph.hostModuleImages)
+    throw Error('Wine loader startup requires a direct bridge and mapped host DLLs');
+  const { installWineNtBridge } = await import('./wine-nt.js');
+  const { initializeWineProcess } = await import('./wine-process.js');
+  installWineNtBridge(runtime, ntdll);
+  await initializeWineProcess(runtime, ntdll);
+  runtime.tls.prepare(runtime.graph.modules.values());
+  const modules = [...runtime.graph.modules.values()].filter((m) => m.mapped && !m.proxy);
+  const allocated = [];
+  try {
+    const table = runtime.allocate(modules.length * 16);
+    allocated.push(table);
+    modules.forEach((module, i) => {
+      const name = runtime.allocString(wineModulePath(module), true);
+      allocated.push(name);
+      const flags =
+        (module === runtime.graph.main ? 1 : module === ntdll ? 2 : 0) |
+        (module.initialized ? 4 : 0) |
+        (runtime.tls.records.has(module) ? 8 : 0);
+      [16, module.base, name, flags].forEach((value, word) =>
+        runtime.write32(table + i * 16 + word * 4, value),
+      );
+    });
+    const batch = runtime.allocate(16);
+    allocated.push(batch);
+    [16, 1, modules.length, table].forEach((value, word) =>
+      runtime.write32(batch + word * 4, value),
+    );
+    const status = await runtime.callGuest(ntdll.base + entry.rva, [batch]);
+    if (status) throw failure(status);
+  } finally {
+    for (const pointer of allocated) runtime.free(pointer);
+  }
+  await new WineLoader(runtime, ntdll).enable();
+  return true;
+}
