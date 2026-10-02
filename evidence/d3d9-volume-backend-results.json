@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-02T05:42:14.020Z",
+  "browser": "154.0.8037.97",
+  "pixels": [
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
+    ]
+  ],
+  "errors": [],
+  "mismatchedDimensionRejected": true,
+  "scope": "Real PS2 sampler3D compilation and two depth-slice pixels; no third-party scene claim."
+}

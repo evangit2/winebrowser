@@ -26,6 +26,7 @@ export function device8Methods(methods9, names9) {
     'LightEnable',
     'GetLightEnable',
     'CreateTexture',
+    'CreateVolumeTexture',
     'SetTexture',
     'GetTexture',
     'SetTextureStageState',

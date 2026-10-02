@@ -254,13 +254,20 @@ export class D3DTextureRenderer {
   // snapshot cache the fixed-function path uses. Legacy sampler registers map
   // one-to-one onto the vkd3d binding layout: SRV at 16 + 2*register and its
   // sampler at 17 + 2*register.
-  programmableBindings(surface, textures, expected) {
+  programmableBindings(surface, textures, expected, types = new Map()) {
     // The programmable pipeline uses an automatic layout, so the entries must
     // match exactly the bindings that group declared. expected is the set of
     // binding numbers the translated shaders use.
     const entries = [];
-    const view = (snapshot) => {
-      const key = snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white';
+    const view = (snapshot, type) => {
+      const dimension = /texture_3d</.test(type ?? '') ? '3d' : '2d';
+      if (snapshot && (snapshot.dimension ?? '2d') !== dimension)
+        throw Error('D3D9 sampled texture dimension does not match its shader');
+      const key = snapshot
+        ? `${snapshot.id}:${snapshot.revision}`
+        : dimension === '3d'
+          ? 'white-3d'
+          : 'white';
       surface.textures ??= new Map();
       let cached = surface.textures.get(key);
       if (!cached) {
@@ -268,7 +275,8 @@ export class D3DTextureRenderer {
           { width: 1, height: 1, rgba: new Uint8Array([255, 255, 255, 255]) },
         ];
         const texture = this.owner.device.createTexture({
-          size: [levels[0].width, levels[0].height],
+          size: [levels[0].width, levels[0].height, levels[0].depth ?? 1],
+          dimension,
           mipLevelCount: levels.length,
           format: 'rgba8unorm',
           usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
@@ -278,7 +286,7 @@ export class D3DTextureRenderer {
             { texture, mipLevel: i },
             l.rgba,
             { bytesPerRow: l.width * 4, rowsPerImage: l.height },
-            [l.width, l.height],
+            [l.width, l.height, l.depth ?? 1],
           ),
         );
         cached = { texture, views: new Map() };
@@ -288,6 +296,7 @@ export class D3DTextureRenderer {
         cached.views.set(
           0,
           cached.texture.createView({
+            dimension,
             baseMipLevel: 0,
             mipLevelCount: snapshot?.levels.length ?? 1,
           }),
@@ -297,7 +306,8 @@ export class D3DTextureRenderer {
     for (const binding of expected) {
       const register = (binding - 16) >> 1;
       const entry = textures.get(register);
-      if (binding % 2 === 0) entries.push({ binding, resource: view(entry?.snapshot) });
+      if (binding % 2 === 0)
+        entries.push({ binding, resource: view(entry?.snapshot, types.get(binding)) });
       else
         entries.push({
           binding,
@@ -315,6 +325,7 @@ export class D3DTextureRenderer {
     const descriptor = {
       addressModeU: ADDRESS[state[1]],
       addressModeV: ADDRESS[state[2]],
+      addressModeW: ADDRESS[state[3] ?? 1],
       minFilter: state[5] === 2 ? 'linear' : 'nearest',
       magFilter: state[6] === 2 ? 'linear' : 'nearest',
       mipmapFilter: state[7] === 2 ? 'linear' : 'nearest',
@@ -341,7 +352,7 @@ export class D3DTextureRenderer {
     // texture in texturing, programmable draws one per sampler register. A
     // snapshot missing from here would be destroyed and re-uploaded every
     // frame, which for a 512x512 mip chain dominates the frame time.
-    const used = new Set();
+    const used = new Set(['white-3d']);
     const key = (snapshot) => (snapshot ? `${snapshot.id}:${snapshot.revision}` : 'white');
     for (const c of commands) {
       if (c.texturing) used.add(key(c.texturing.texture));

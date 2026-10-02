@@ -310,7 +310,7 @@ export function initTextures() {
     frameTextureBytes: 0,
   };
 }
-function freeTexture(r, o) {
+export function freeTexture(r, o) {
   const s = o.state;
   if (o.refs || s.internalRefs || s.freed) return;
   r.free(s.base);
@@ -329,7 +329,12 @@ export function unbindTextures(r, device) {
 export function bindTexture(r, device, stage, pointer) {
   if (stage >= 8) return INVALID;
   const next = pointer ? r.comObjects.objects.get(pointer) : null;
-  if (pointer && (!next?.refs || next.state.kind !== 'texture2d' || next.state.device !== device))
+  if (
+    pointer &&
+    (!next?.refs ||
+      !['texture2d', 'texture3d'].includes(next.state.kind) ||
+      next.state.device !== device)
+  )
     return INVALID;
   const prev = device.state.textures[stage];
   if (prev === next) return 0;
@@ -378,7 +383,7 @@ function levelOffset(level, left, top, bpp) {
     ? (top >> 2) * level.pitch + (left >> 2) * level.blockBytes
     : top * level.pitch + left * bpp;
 }
-function invalidate(o) {
+export function invalidate(o) {
   o.state.revision++;
   o.state.snapshot = null;
 }
@@ -711,63 +716,71 @@ export function textureSnapshot(r, object) {
   if (s.freed) throw Error('D3D draw uses a freed texture');
   if (!s.snapshot) {
     const levels = s.levels.map((l) => {
-      const rgba = new Uint8Array(l.width * l.height * 4);
+      const rgba = new Uint8Array(l.width * l.height * (l.depth ?? 1) * 4);
       if (l.blockBytes) {
         decodeCompressed(r.data, s.base + l.offset, s.format, l.width, l.height, rgba);
-        return { width: l.width, height: l.height, rgba };
+        return { width: l.width, height: l.height, ...(l.depth ? { depth: l.depth } : {}), rgba };
       }
-      for (let y = 0; y < l.height; y++)
-        for (let x = 0; x < l.width; x++) {
-          const p = s.base + l.offset + y * l.pitch + x * s.bpp,
-            q = (y * l.width + x) * 4;
-          const value = s.bpp === 2 ? r.view.getUint16(p, true) : 0;
-          if (s.bpp === 4) {
-            rgba[q] = r.data[p + 2];
-            rgba[q + 1] = r.data[p + 1];
-            rgba[q + 2] = r.data[p];
-            rgba[q + 3] = s.format === 21 ? r.data[p + 3] : 255;
-          } else if (s.format === 23) {
-            rgba[q] = Math.round(((value >>> 11) * 255) / 31);
-            rgba[q + 1] = Math.round((((value >>> 5) & 63) * 255) / 63);
-            rgba[q + 2] = Math.round(((value & 31) * 255) / 31);
-            rgba[q + 3] = 255;
-          } else if (s.format === 24 || s.format === 25) {
-            rgba[q] = Math.round((((value >>> 10) & 31) * 255) / 31);
-            rgba[q + 1] = Math.round((((value >>> 5) & 31) * 255) / 31);
-            rgba[q + 2] = Math.round(((value & 31) * 255) / 31);
-            rgba[q + 3] = s.format === 24 || value & 0x8000 ? 255 : 0;
-          } else if (s.format === 26) {
-            rgba[q] = ((value >>> 8) & 15) * 17;
-            rgba[q + 1] = ((value >>> 4) & 15) * 17;
-            rgba[q + 2] = (value & 15) * 17;
-            rgba[q + 3] = (value >>> 12) * 17;
-          } else if (s.format === 50) {
-            // L8 carries one luminance byte and samples as opaque grey.
-            rgba[q] = rgba[q + 1] = rgba[q + 2] = r.data[p];
-            rgba[q + 3] = 255;
-          } else if (s.format === 51) {
-            // A8L8: luminance in the low byte, alpha in the high byte.
-            const l = r.data[p];
-            rgba[q] = rgba[q + 1] = rgba[q + 2] = l;
-            rgba[q + 3] = r.data[p + 1];
-          } else if (s.format === 52) {
-            // A4L4: alpha in the high nibble, luminance in the low nibble.
-            const byte = r.data[p],
-              l = (byte & 15) * 17;
-            rgba[q] = rgba[q + 1] = rgba[q + 2] = l;
-            rgba[q + 3] = ((byte >>> 4) & 15) * 17;
-          } else {
-            rgba[q] = rgba[q + 1] = rgba[q + 2] = 255;
-            rgba[q + 3] = r.data[p];
+      for (let z = 0; z < (l.depth ?? 1); z++)
+        for (let y = 0; y < l.height; y++)
+          for (let x = 0; x < l.width; x++) {
+            const p = s.base + l.offset + z * (l.slicePitch ?? 0) + y * l.pitch + x * s.bpp,
+              q = ((z * l.height + y) * l.width + x) * 4;
+            const value = s.bpp === 2 ? r.view.getUint16(p, true) : 0;
+            if (s.bpp === 4) {
+              rgba[q] = r.data[p + 2];
+              rgba[q + 1] = r.data[p + 1];
+              rgba[q + 2] = r.data[p];
+              rgba[q + 3] = s.format === 21 ? r.data[p + 3] : 255;
+            } else if (s.format === 23) {
+              rgba[q] = Math.round(((value >>> 11) * 255) / 31);
+              rgba[q + 1] = Math.round((((value >>> 5) & 63) * 255) / 63);
+              rgba[q + 2] = Math.round(((value & 31) * 255) / 31);
+              rgba[q + 3] = 255;
+            } else if (s.format === 24 || s.format === 25) {
+              rgba[q] = Math.round((((value >>> 10) & 31) * 255) / 31);
+              rgba[q + 1] = Math.round((((value >>> 5) & 31) * 255) / 31);
+              rgba[q + 2] = Math.round(((value & 31) * 255) / 31);
+              rgba[q + 3] = s.format === 24 || value & 0x8000 ? 255 : 0;
+            } else if (s.format === 26) {
+              rgba[q] = ((value >>> 8) & 15) * 17;
+              rgba[q + 1] = ((value >>> 4) & 15) * 17;
+              rgba[q + 2] = (value & 15) * 17;
+              rgba[q + 3] = (value >>> 12) * 17;
+            } else if (s.format === 50) {
+              // L8 carries one luminance byte and samples as opaque grey.
+              rgba[q] = rgba[q + 1] = rgba[q + 2] = r.data[p];
+              rgba[q + 3] = 255;
+            } else if (s.format === 51) {
+              // A8L8: luminance in the low byte, alpha in the high byte.
+              const l = r.data[p];
+              rgba[q] = rgba[q + 1] = rgba[q + 2] = l;
+              rgba[q + 3] = r.data[p + 1];
+            } else if (s.format === 52) {
+              // A4L4: alpha in the high nibble, luminance in the low nibble.
+              const byte = r.data[p],
+                l = (byte & 15) * 17;
+              rgba[q] = rgba[q + 1] = rgba[q + 2] = l;
+              rgba[q + 3] = ((byte >>> 4) & 15) * 17;
+            } else {
+              rgba[q] = rgba[q + 1] = rgba[q + 2] = 255;
+              rgba[q + 3] = r.data[p];
+            }
           }
-        }
-      return { width: l.width, height: l.height, rgba };
+      return { width: l.width, height: l.height, ...(l.depth ? { depth: l.depth } : {}), rgba };
     });
-    s.snapshot = { id: object.pointer, revision: s.revision, levels };
+    s.snapshot = {
+      id: object.pointer,
+      revision: s.revision,
+      ...(s.kind === 'texture3d' ? { dimension: '3d' } : {}),
+      levels,
+    };
   }
   return s.snapshot;
 }
 export function fixedTextureDraw(r, state) {
+  if (state.textures[0]?.state.kind === 'texture3d')
+    throw Error('Fixed-function volume texture coordinates are unsupported');
   const stage = state.textureStages[0],
     texture = state.textures[0];
   // D3D disables this and following stages when COLOROP is disabled, or a

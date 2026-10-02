@@ -882,15 +882,19 @@ for (const version of [8, 9]) {
     assert.equal(runtime.read32(p + 9 * 4) & 1, 1); // D3DPRASTERCAPS_DITHER.
     assert.ok(runtime.view.getFloat32(p + 28 * 4, true) > 0);
     // StencilCaps advertises exactly the D3DSTENCILOP operations the WebGPU
-    // renderer maps; cube/volume texture and stream caps stay unadvertised.
+    // renderer maps; cube texture and stream caps stay unadvertised.
     assert.equal(runtime.read32(p + 34 * 4), 0xff);
-    for (const index of [17, 18, 47]) assert.equal(runtime.read32(p + index * 4), 0);
+    for (const index of [17, 47]) assert.equal(runtime.read32(p + index * 4), 0);
+    assert.equal(runtime.read32(p + 18 * 4), 0x03030300);
+    assert.equal(runtime.read32(p + 20 * 4), 0x17);
+    assert.equal(runtime.read32(p + 24 * 4), 256);
+    assert.equal(runtime.read32(p + 15 * 4) & 0xa000, 0xa000);
     // The programmable path compiles VS 1.1 and PS 2.0, so those versions are
     // advertised while other shader models stay unadvertised.
     assert.equal(runtime.read32(p + 49 * 4), version === 9 ? 0xfffe0200 : 0xfffe0101);
     assert.equal(runtime.read32(p + 50 * 4), 256);
     assert.equal(runtime.read32(p + 51 * 4), 0xffff0200);
-    assert.equal(runtime.read32(p + 15 * 4), 0x4005);
+    assert.equal(runtime.read32(p + 15 * 4), 0xe005);
     assert.equal(runtime.read32(p + 16 * 4), 0x03030300);
     assert.equal(runtime.read32(p + 22 * 4), 2048);
     assert.equal(runtime.read32(p + 38 * 4), 1);
@@ -1968,3 +1972,74 @@ test('FVF supplies shader semantics and programmable fans expand with immutable 
   ]);
   assert.deepEqual([...command.vertices.slice(12, 16)], [0x11, 0x22, 0x33, 0xff]);
 });
+
+for (const version of [8, 9])
+  test(`D3D${version} volume locks preserve padded rows, slice pitches, mip descriptors and view lifetime`, async () => {
+    const { runtime: r, call, output, create, freed } = fixture(version);
+    const device = await create(),
+      slot = version === 8 ? 21 : 24,
+      shift = version === 8 ? 0 : 3;
+    const args = [3, 2, 2, 0, 0, 50, 1, output, ...(version === 9 ? [0] : [])];
+    const created = await call(device, slot, ...args);
+    assert.equal(created.result, 0);
+    assert.equal(created.argc, version === 8 ? 9 : 10);
+    const texture = r.read32(output),
+      desc = r.allocate(32),
+      locked = r.allocate(12);
+    const object = r.comObjects.objects.get(texture);
+    assert.equal((await call(texture, 13)).result, 2);
+    assert.equal((await call(texture, 10)).result, 4);
+    assert.equal((await call(texture, 14 + shift, 0, desc)).result, 0);
+    assert.deepEqual(
+      Array.from({ length: version === 8 ? 8 : 7 }, (_, i) => r.read32(desc + i * 4)),
+      [50, 2, 0, 1, ...(version === 8 ? [16] : []), 3, 2, 2],
+    );
+    assert.equal((await call(texture, 16 + shift, 0, locked, 0, 0)).result, 0);
+    assert.equal(r.read32(locked), 4);
+    assert.equal(r.read32(locked + 4), 8);
+    const base = r.read32(locked + 8);
+    r.data.set([1, 2, 3, 99, 4, 5, 6, 99, 7, 8, 9, 99, 10, 11, 12, 99], base);
+    assert.equal((await call(texture, 16 + shift, 0, locked, 0, 0)).result, 0x8876086c);
+    const { textureSnapshot } = await import('../src/d3d9-textures.js');
+    assert.throws(() => textureSnapshot(r, object), /locked/);
+    assert.equal((await call(texture, 17 + shift, 0)).result, 0);
+    const snapshot = textureSnapshot(r, object);
+    assert.equal(snapshot.dimension, '3d');
+    assert.deepEqual(
+      snapshot.levels.map((l) => [l.width, l.height, l.depth]),
+      [
+        [3, 2, 2],
+        [1, 1, 1],
+      ],
+    );
+    assert.deepEqual(
+      Array.from(snapshot.levels[0].rgba).filter((_, i) => i % 4 === 0),
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    );
+    assert.ok(
+      Array.from(snapshot.levels[0].rgba)
+        .filter((_, i) => i % 4 === 3)
+        .every((v) => v === 255),
+    );
+    assert.equal((await call(texture, 15 + shift, 0, output)).result, 0);
+    const volume = r.read32(output),
+      box = r.allocate(24);
+    [1, 1, 3, 2, 1, 2].forEach((v, i) => r.write32(box + i * 4, v));
+    assert.equal((await call(volume, 9, locked, box, 0)).result, 0);
+    assert.equal(r.read32(locked + 8), base + 13);
+    r.data[r.read32(locked + 8)] = 37;
+    assert.equal((await call(volume, 10)).result, 0);
+    assert.equal(textureSnapshot(r, object).levels[0].rgba[40], 37);
+    assert.equal(snapshot.levels[0].rgba[40], 11, 'previous snapshots are immutable');
+    assert.equal((await call(texture, 2)).result, 1, 'volume owns the texture');
+    assert.ok(!freed.includes(base));
+    assert.equal((await call(volume, 2)).result, 0);
+    assert.ok(freed.includes(base));
+    assert.equal(r.d3dTextureBytes, 0);
+    assert.equal(
+      (await call(device, slot, 3, 2, 2, 1, 0, 0x31545844, 1, output, 0)).result,
+      0x8876086c,
+      'compressed volumes are rejected',
+    );
+    assert.equal(r.read32(output), 0);
+  });

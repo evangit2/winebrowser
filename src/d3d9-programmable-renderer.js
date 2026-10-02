@@ -13,11 +13,13 @@ const CONSTANT_BYTES = { vertex: 256 * 16, pixel: 224 * 16 };
 function validTextures(textures) {
   if (textures === undefined) return true;
   if (!(textures instanceof Map) || textures.size > 16) return false;
+  let bytes = 0;
   for (const [register, binding] of textures) {
     if (!integer(register, 0, 15) || !binding || typeof binding !== 'object') return false;
     const { snapshot, sampler } = binding;
     if (
       !snapshot ||
+      ![undefined, '2d', '3d'].includes(snapshot.dimension) ||
       !Array.isArray(snapshot.levels) ||
       !snapshot.levels.length ||
       snapshot.levels.some(
@@ -25,12 +27,34 @@ function validTextures(textures) {
           !integer(l.width, 1, 2048) ||
           !integer(l.height, 1, 2048) ||
           !(l.rgba instanceof Uint8Array) ||
-          l.rgba.length !== l.width * l.height * 4,
+          (snapshot.dimension === '3d' && !integer(l.depth, 1, 256)) ||
+          (snapshot.dimension !== '3d' && l.depth !== undefined) ||
+          l.rgba.length !== l.width * l.height * (l.depth ?? 1) * 4,
       )
     )
       return false;
+    const first = snapshot.levels[0],
+      dimension = snapshot.dimension ?? '2d';
+    if (
+      snapshot.levels.length >
+      1 + Math.floor(Math.log2(Math.max(first.width, first.height, first.depth ?? 1)))
+    )
+      return false;
+    for (const [mip, level] of snapshot.levels.entries()) {
+      if (
+        level.width !== Math.max(1, first.width >> mip) ||
+        level.height !== Math.max(1, first.height >> mip) ||
+        (dimension === '3d' &&
+          (level.depth !== Math.max(1, first.depth >> mip) ||
+            level.width > 256 ||
+            level.height > 256))
+      )
+        return false;
+      bytes += level.rgba.length;
+      if (bytes > 32 * 1024 * 1024) return false;
+    }
     if (!sampler || typeof sampler !== 'object') return false;
-    for (const key of [1, 2, 5, 6, 7]) if (!integer(sampler[key], 0, 8)) return false;
+    for (const key of [1, 2, 3, 5, 6, 7]) if (!integer(sampler[key], 0, 8)) return false;
   }
   return true;
 }
@@ -274,6 +298,7 @@ export class D3D9ProgrammableRenderer {
             surface,
             command.textures ?? new Map(),
             textures,
+            compiled.textureTypes.get(group),
           ),
         );
       if (!entries.length) continue;
