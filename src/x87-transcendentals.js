@@ -42,6 +42,42 @@ const invalid = () => answer(pack(J | Q, 0x7fff, true), 1);
 const infinity = (negative, flags = 0) => answer(pack(J, 0x7fff, negative), flags);
 const zero = (negative, flags = 0) => answer(pack(0n, 0, negative), flags);
 
+// FPREM truncates the quotient; FPREM1 rounds it to the nearest even integer.
+// Both ignore the precision/rounding control word. Remainders are exact dyadic
+// values. Large exponent differences perform a permitted 32-bit partial
+// reduction, leaving C2 set so guest code can repeat the instruction.
+export function fprem(aBytes, bBytes, nearest = false) {
+  const a = unpack(aBytes),
+    b = unpack(bBytes),
+    nan = specialNaN(a, b);
+  if (nan) return { ...nan, condition: null };
+  if (a.infinity || b.zero) return { ...invalid(), condition: null };
+  const denormal = a.denormal || b.denormal ? 2 : 0;
+  if (a.zero || b.infinity) return { ...answer(aBytes.slice(), denormal), condition: 0 };
+  const difference = a.shift + a.sig.toString(2).length - b.shift - b.sig.toString(2).length;
+  const partial = difference >= 64,
+    quotientShift = partial ? difference - 32 : 0;
+  const shift = Math.min(a.shift, b.shift + quotientShift);
+  const numerator = a.sig << BigInt(a.shift - shift);
+  const denominator = b.sig << BigInt(b.shift + quotientShift - shift);
+  let quotient = numerator / denominator;
+  if (nearest && !partial) {
+    const residue = numerator % denominator;
+    if (residue * 2n > denominator || (residue * 2n === denominator && quotient & 1n)) quotient++;
+  }
+  let residue = numerator - quotient * denominator;
+  if (a.negative) residue = -residue;
+  const result = residue ? roundDyadic(residue, shift, 0) : zero(a.negative);
+  if (result.flags) throw Error('x87 remainder was not exactly representable');
+  const bits = Number(quotient & 7n);
+  return {
+    ...result,
+    flags: denormal,
+    condition: partial ? 0x400 : ((bits & 4) << 6) | ((bits & 2) << 13) | ((bits & 1) << 9),
+    partial,
+  };
+}
+
 function specialNaN(...operands) {
   if (operands.some((v) => v.invalid)) return invalid();
   const nan = operands.find((v) => v.signaling) ?? operands.find((v) => v.nan);

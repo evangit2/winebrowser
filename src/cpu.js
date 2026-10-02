@@ -985,6 +985,29 @@ export class CPU {
               ...call(Host.x87),
             );
             usesX87 = true;
+          } else if (m === M.Xlatb) {
+            if (![R.BX, R.EBX].includes(i.memoryBase)) throw Error('Invalid XLAT address');
+            if (![R.None, R.DS, R.SS, R.CS, R.ES, R.FS].includes(i.segmentPrefix))
+              throw Error('Unsupported XLAT segment override');
+            const address = [...get(3), ...get(0), ...constant(255), 0x71, 0x6a];
+            if (i.memoryBase === R.BX) address.push(...constant(65535), 0x71);
+            if (i.segmentPrefix === R.FS) {
+              if (!this.fsBase) throw Error('FS requires guest TEB');
+              usesFS = true;
+              address.push(...get(FS_BASE_GLOBAL), 0x6a);
+            }
+            // AL is an unsigned table index; only AL changes, after a checked
+            // byte read succeeds. The address wraps before adding the segment.
+            code.push(
+              ...get(0),
+              ...constant(~255),
+              0x71,
+              ...address,
+              ...constant(1),
+              ...call(Host.load),
+              0x72,
+              ...set(0),
+            );
           } else if (m === M.Mov) code.push(...write(i, 0, operand(i, 1)));
           else if (m === M.Sahf) {
             code.push(

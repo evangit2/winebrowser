@@ -183,7 +183,9 @@
     "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs",
     "build:installer-apis": "sh scripts/build-installer-apis.sh",
     "test:installer-apis": "node scripts/test-installer-apis-browser.mjs",
-    "benchmark:x87-dispatch": "node scripts/benchmark-x87-dispatch.mjs"
+    "benchmark:x87-dispatch": "node scripts/benchmark-x87-dispatch.mjs",
+    "build:x87-remainder": "sh scripts/build-x87-remainder.sh",
+    "test:x87-remainder": "node scripts/test-x87-remainder-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

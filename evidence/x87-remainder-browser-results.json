@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-02T20:35:46.164Z",
+  "url": "http://127.0.0.1:53491/",
+  "browser": "154.0.8037.97",
+  "sha256": "50a7f5ca2f993308983143c6501258b0c7784296fc02fde3fcb326504135b872",
+  "scope": "Unchanged authored PE32 executes FPREM/FPREM1 over 422 independent ext80 oracle cases, three precision settings and four rounding modes; byte results, exceptions and quotient bits",
+  "exitCode": 0,
+  "instructions": 1110590,
+  "compiledBlocks": 25,
+  "x86TranslationMs": 22.05000001192093,
+  "elapsedMs": 309.4949999973178,
+  "output": "X87 REMAINDER PASS\n",
+  "errors": []
+}

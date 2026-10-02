@@ -1,6 +1,6 @@
 // Bounded x87 state and instruction classification. Arithmetic is delegated to
 // the repository's deterministic Berkeley SoftFloat ext80 module.
-import { fyl2x, fpatan, sincos, f2xm1, fscale, fptan } from './x87-transcendentals.js';
+import { fyl2x, fpatan, sincos, f2xm1, fscale, fptan, fprem } from './x87-transcendentals.js';
 import { classifyExtendedFloat } from './x87-classification.js';
 import { roundedMagnitudeUp } from './x87-rounding.js';
 export const X87Op = Object.freeze({
@@ -36,6 +36,7 @@ export const X87Op = Object.freeze({
   tangent: 29,
   storeExtendedState: 30,
   loadExtendedState: 31,
+  remainder: 32,
 });
 
 const POP = 1,
@@ -136,6 +137,7 @@ export function classifyX87(i, iced) {
   if (m === M.F2xm1) return result(X87Op.exponential);
   // FSCALE multiplies ST(0) by 2^trunc(ST(1)); ST(0) is both source and result.
   if (m === M.Fscale) return result(X87Op.scale);
+  if (m === M.Fprem || m === M.Fprem1) return result(X87Op.remainder, m === M.Fprem1 ? 1 : 0);
   if (m === M.Frndint) return result(X87Op.round);
   if (m === M.Fyl2x) return result(X87Op.logarithm);
   // FPATAN: arctan(ST(1)/ST(0)); the density reflects two stack operands.
@@ -672,6 +674,14 @@ export class X87State {
       this.status &= ~0x200;
       if (result.flags) this.#exception(result.flags, false);
       if (result.roundedUp) this.status |= 0x200;
+      return this.#set(0, result.bytes);
+    }
+    if (op === X87Op.remainder) {
+      const result = fprem(this.#value(0), this.#value(1), !!a);
+      if (result.flags) this.#exception(result.flags, false);
+      if (result.condition === null) this.status &= ~0x200;
+      else if (result.partial) this.status = (this.status & ~0x200) | 0x400;
+      else this.status = (this.status & ~0x4700) | result.condition;
       return this.#set(0, result.bytes);
     }
     if (op === X87Op.logarithm) {
