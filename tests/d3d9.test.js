@@ -617,7 +617,7 @@ test('Unsupported D3D9 methods and render modes fail explicitly; failed Present 
   const device = await create();
   assert.equal((await call(device, 25, 1, 1, 0, 21, 1, 0, 0)).result, 0x8876086c);
   await assert.rejects(call(device, 57, 22, 4), /Unsupported IDirect3DDevice9.SetRenderState/);
-  await assert.rejects(call(device, 89, 0x44 | 0x200), /Unsupported IDirect3DDevice9.SetFVF/);
+  await assert.rejects(call(device, 89, 0x944), /Unsupported IDirect3DDevice9.SetFVF/);
   await call(device, 57, 22, 1);
   await call(device, 57, 137, 0);
   await call(device, 89, 0x42);
@@ -2027,6 +2027,43 @@ test('FVF supplies shader semantics and programmable fans expand with immutable 
     { shaderLocation: 1, offset: 12, format: 'unorm8x4' },
   ]);
   assert.deepEqual([...command.vertices.slice(12, 16)], [0x11, 0x22, 0x33, 0xff]);
+});
+
+test('Programmable FVF maps multiple sized texture sets by semantic index', async () => {
+  const { runtime: r, create, call, events } = fixture();
+  const device = await create(),
+    out = r.allocate(4);
+  const shaders = [
+    [
+      91,
+      92,
+      [
+        0xfffe0101, 0x1f, 0x80000000, 0x900f0000, 0x1f, 0x80000005, 0x900f0001, 0x1f, 0x80010005,
+        0x900f0002, 0x1f, 0x80020005, 0x900f0003, 1, 0xc00f0000, 0x90e40000, 1, 0xe00f0000,
+        0x90e40001, 0xffff,
+      ],
+    ],
+    [106, 107, [0xffff0200, 0x02000001, 0x800f0800, 0xa0e40000, 0xffff]],
+  ];
+  for (const [createSlot, bindSlot, words] of shaders) {
+    const pointer = r.allocate(words.length * 4);
+    words.forEach((word, index) => r.write32(pointer + index * 4, word));
+    assert.equal((await call(device, createSlot, pointer, out)).result, 0);
+    await call(device, bindSlot, r.read32(out));
+  }
+  // TEX0 is scalar, TEX1 is vec4, TEX2 is vec3.
+  await call(device, 89, 0x1b0302);
+  const vertices = r.allocate(3 * 44);
+  await call(device, 41);
+  assert.equal((await call(device, 83, 4, 1, vertices, 44)).result, 0);
+  await call(device, 42);
+  await call(device, 17, 0, 0, 0, 0);
+  assert.deepEqual(events.find((e) => e.type === 'present').commands[0].attributes, [
+    { shaderLocation: 0, offset: 0, format: 'float32x3' },
+    { shaderLocation: 1, offset: 12, format: 'float32' },
+    { shaderLocation: 2, offset: 16, format: 'float32x4' },
+    { shaderLocation: 3, offset: 32, format: 'float32x3' },
+  ]);
 });
 
 for (const version of [8, 9])

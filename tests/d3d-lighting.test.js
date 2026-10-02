@@ -20,10 +20,31 @@ test('FVF optional normals, colors and UVs retain the native packed offsets', ()
   assert.equal(fvfLayout(0x112).size, 32);
   assert.equal(fvfLayout(2).size, 12);
   // XYZRHW (0x4) is supported; invalid combinations and other bits are not.
-  for (const fvf of [0, 6, 0x202, 0x10002, 0x100000002, NaN]) assert.equal(fvfLayout(fvf), null);
+  for (const fvf of [0, 6, 0x902, 0x10002, 0x100000002, NaN]) assert.equal(fvfLayout(fvf), null);
   assert.equal(fvfLayout(4).rhw, true);
   assert.equal(fvfLayout(4).size, 16);
   assert.equal(fvfLayout(0x144).size, 28);
+});
+test('FVF sized coordinates retain all eight packed sets and reject stray size bits', () => {
+  const layout = fvfLayout(0xe4e40842);
+  assert.deepEqual(
+    layout.texcoords.map(({ offset, components, format }) => [offset, components, format]),
+    [
+      [16, 2, 'float32x2'],
+      [24, 3, 'float32x3'],
+      [36, 4, 'float32x4'],
+      [52, 1, 'float32'],
+      [56, 2, 'float32x2'],
+      [64, 3, 'float32x3'],
+      [76, 4, 'float32x4'],
+      [92, 1, 'float32'],
+    ],
+  );
+  assert.equal(layout.size, 96);
+  assert.equal(layout.uv, 16);
+  assert.equal(fvfLayout(0x10142).uvSize, 3);
+  assert.equal(fvfLayout(0x50142), null);
+  assert.equal(fvfLayout(0x0902), null);
 });
 test('normal inverse transpose preserves orthogonality through shear, scale and camera rotation', () => {
   const world = [2, 1, 0, 0, 0, 3, 1, 0, 0.5, 0, 0.5, 0, 7, 8, 9, 1],

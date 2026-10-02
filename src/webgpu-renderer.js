@@ -297,13 +297,14 @@ export class WebGPURenderer {
       !!command.specularEnable,
       JSON.stringify(command.texturing?.stage),
       !!command.texturing?.texture,
+      command.texturing?.texture?.dimension ?? '2d',
       !!command.texturing?.sampler[7],
       JSON.stringify(stencilState(command)),
       JSON.stringify(command.alphaTest ?? null),
       JSON.stringify(command.fog ?? null),
     ].join(':');
     if (!this.pipelines.has(key)) {
-      if (command.texturing) this.textures.initialize();
+      if (command.texturing) this.textures.initialize(command.texturing.texture?.dimension ?? '2d');
       const feedback = needsBlendFeedback(surface, command);
       if (feedback) this.blending.initialize();
       const code = fixedShader(command);

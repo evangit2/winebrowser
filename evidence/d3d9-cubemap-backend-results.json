@@ -1,7 +1,43 @@
 {
-  "date": "2026-10-02T06:45:59.750Z",
+  "date": "2026-10-02T07:36:53.248Z",
   "browser": "154.0.8037.97",
   "pixels": [
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      255,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      255,
+      255
+    ],
+    [
+      0,
+      255,
+      255,
+      255
+    ],
     [
       255,
       0,
@@ -41,5 +77,5 @@
   ],
   "errors": [],
   "mismatchedDimensionRejected": true,
-  "scope": "Real PS2 samplerCube compilation and all six directed face pixels; no third-party scene claim."
+  "scope": "Real PS2 samplerCube compilation and all six directed face pixels through both programmable and fixed-function paths; no third-party scene claim."
 }

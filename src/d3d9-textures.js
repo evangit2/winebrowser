@@ -808,8 +808,6 @@ export function textureSnapshot(r, object) {
   return s.snapshot;
 }
 export function fixedTextureDraw(r, state) {
-  if (['texture3d', 'texturecube'].includes(state.textures[0]?.state.kind))
-    throw Error('Fixed-function volume/cube texture coordinates are unsupported');
   const stage = state.textureStages[0],
     texture = state.textures[0];
   // D3D disables this and following stages when COLOROP is disabled, or a

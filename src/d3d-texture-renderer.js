@@ -30,10 +30,14 @@ export function validateTexturing(t) {
     levels.length > 12
   )
     throw Error('Invalid graphics texture');
+  const dimension = t.texture.dimension ?? '2d';
+  if (!['2d', '3d', 'cube'].includes(dimension)) throw Error('Invalid graphics texture dimension');
   const first = levels[0];
   if (
     ![first.width, first.height].every((v) => Number.isInteger(v) && v > 0 && v <= 2048) ||
-    levels.length > 1 + Math.floor(Math.log2(Math.max(first.width, first.height)))
+    levels.length >
+      1 + Math.floor(Math.log2(Math.max(first.width, first.height, first.depth ?? 1))) ||
+    (dimension === 'cube' && first.width !== first.height)
   )
     throw Error('Invalid graphics texture dimensions');
   let bytes = 0;
@@ -42,7 +46,15 @@ export function validateTexturing(t) {
       l.width !== Math.max(1, first.width >> i) ||
       l.height !== Math.max(1, first.height >> i) ||
       !(l.rgba instanceof Uint8Array) ||
-      l.rgba.length !== l.width * l.height * 4
+      l.rgba.length !== l.width * l.height * (dimension === 'cube' ? 6 : (l.depth ?? 1)) * 4 ||
+      (dimension === '3d' &&
+        (!Number.isInteger(l.depth) ||
+          l.depth < 1 ||
+          l.depth > 256 ||
+          l.width > 256 ||
+          l.height > 256 ||
+          l.depth !== Math.max(1, first.depth >> i))) ||
+      (dimension !== '3d' && l.depth !== undefined)
     )
       throw Error('Invalid graphics mip level');
     bytes += l.rgba.length;
@@ -62,7 +74,22 @@ export function fixedShader(command = {}) {
   const t = command.texturing,
     layout = fvfLayout(command.fvf),
     uv = layout.uv !== null,
-    stage = t?.stage;
+    stage = t?.stage,
+    dimension = t?.texture?.dimension ?? '2d',
+    coordinateType = dimension === '2d' ? 'vec2<f32>' : 'vec3<f32>',
+    inputType = layout.uvSize === 1 ? 'f32' : `vec${layout.uvSize}<f32>`,
+    coordinate =
+      !uv || stage?.[11] !== 0
+        ? `${coordinateType}(0.0)`
+        : dimension === '2d'
+          ? layout.uvSize === 1
+            ? 'vec2(uv,0.0)'
+            : 'uv.xy'
+          : layout.uvSize === 1
+            ? 'vec3(uv,0.0,0.0)'
+            : layout.uvSize === 2
+              ? 'vec3(uv,0.0)'
+              : 'uv.xyz';
   const output = t
     ? `vec4(${operation(stage[1], argument(stage[2], t.texture), argument(stage[3], t.texture))}.rgb,
     ${operation(stage[4], argument(stage[5], t.texture), argument(stage[6], t.texture))}.a)`
@@ -73,7 +100,7 @@ struct Transforms { world: mat4x4<f32>, view: mat4x4<f32>, projection: mat4x4<f3
 @group(0) @binding(0) var<uniform> transforms: Transforms;
 ${
   t
-    ? `@group(1) @binding(0) var image: texture_2d<f32>;
+    ? `@group(1) @binding(0) var image: texture_${dimension}<f32>;
 @group(1) @binding(1) var imageSampler: sampler;
 @group(1) @binding(2) var<uniform> lodBias: vec4<f32>;
 @group(1) @binding(3) var magnificationSampler: sampler;`
@@ -84,12 +111,12 @@ ${command.fog ? fogCode(command.fog).factor : ''}
 struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: vec4<f32>,
   @location(2) specular: vec4<f32>,
   ${command.fog ? '@location(5) viewDepth: f32,' : ''}
-  ${t ? '@location(1) uv: vec2<f32>,' : ''} }
+  ${t ? `@location(1) uv: ${coordinateType},` : ''} }
 @vertex fn vertexMain(@location(0) position: ${layout.rhw ? 'vec4<f32>' : 'vec3<f32>'}
   ${layout.diffuse !== null ? ', @location(1) bgra: vec4<f32>' : ''}
   ${layout.specular !== null ? ', @location(4) specularBgra: vec4<f32>' : ''}
   ${layout.normal !== null ? ', @location(3) normal: vec3<f32>' : ''}
-  ${t && uv ? ', @location(2) uv: vec2<f32>' : ''}) -> VertexOut {
+  ${t && uv ? `, @location(2) uv: ${inputType}` : ''}) -> VertexOut {
   var output: VertexOut;
   // D3D row-major row-vector storage is transposed when read by WGSL.
   ${
@@ -109,7 +136,7 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
   output.color=lit[0];output.specular=lit[1];`
       : 'output.color=color1;output.specular=color2;'
   }
-  ${t ? `output.uv = ${uv && stage[11] === 0 ? 'uv' : 'vec2(0.0)'};` : ''}
+  ${t ? `output.uv = ${coordinate};` : ''}
   ${command.fog ? 'output.viewDepth = output.position.w;' : ''}
   return output;
 }
@@ -120,8 +147,17 @@ struct VertexOut { @builtin(position) position: vec4<f32>, @location(0) color: v
       : `
   // WebGPU chooses MAGFILTER after clamping LOD. D3D still uses MINFILTER
   // when shrinking a texture with mipmapping disabled or only one mip level.
-  let dimensions = vec2<f32>(textureDimensions(image));
-  let rho = max(length(dpdx(input.uv) * dimensions), length(dpdy(input.uv) * dimensions));
+  let dimensions = ${dimension === '3d' ? 'vec3' : 'vec2'}<f32>(textureDimensions(image));
+  ${
+    dimension === 'cube'
+      ? `let major = max(max(abs(input.uv.x),abs(input.uv.y)),abs(input.uv.z));
+  var faceUv = input.uv.xy;
+  if(abs(input.uv.x) >= abs(input.uv.y) && abs(input.uv.x) >= abs(input.uv.z)) { faceUv = input.uv.zy; }
+  else if(abs(input.uv.y) >= abs(input.uv.z)) { faceUv = input.uv.xz; }
+  let footprintUv = faceUv / max(major, 1e-20) * 0.5;`
+      : 'let footprintUv = input.uv;'
+  }
+  let rho = max(length(dpdx(footprintUv) * dimensions), length(dpdy(footprintUv) * dimensions));
   let minifying = log2(max(rho, 1e-20)) + lodBias.x > 0.0;
   let small = ${t.sampler[7] ? 'textureSampleBias(image, imageSampler, input.uv, lodBias.x)' : 'textureSampleLevel(image, imageSampler, input.uv, 0.0)'};
   let large = textureSampleLevel(image, magnificationSampler, input.uv, 0.0);
@@ -146,11 +182,20 @@ export class D3DTextureRenderer {
     this.owner = owner;
     this.samplers = new Map();
   }
-  initialize() {
-    if (this.layout) return;
+  initialize(dimension = '2d') {
+    this.layouts ??= new Map();
+    const cached = this.layouts.get(dimension);
+    if (cached) {
+      Object.assign(this, cached);
+      return;
+    }
     this.layout = this.owner.device.createBindGroupLayout({
       entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: 'float', viewDimension: dimension },
+        },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
@@ -159,6 +204,7 @@ export class D3DTextureRenderer {
     this.pipelineLayout = this.owner.device.createPipelineLayout({
       bindGroupLayouts: [this.owner.bindLayout, this.layout],
     });
+    this.layouts.set(dimension, { layout: this.layout, pipelineLayout: this.pipelineLayout });
   }
   upload(surface, slot, command) {
     const t = command.texturing;
@@ -168,7 +214,8 @@ export class D3DTextureRenderer {
       slot.textureBindGroup = slot.textureView = slot.sampler = null;
       return;
     }
-    this.initialize();
+    const dimension = t.texture?.dimension ?? '2d';
+    this.initialize(dimension);
     const { device } = this.owner;
     surface.textures ??= new Map();
     const snapshot = t.texture;
@@ -179,7 +226,12 @@ export class D3DTextureRenderer {
     ];
     if (!cached) {
       const texture = device.createTexture({
-        size: [levels[0].width, levels[0].height],
+        size: [
+          levels[0].width,
+          levels[0].height,
+          dimension === 'cube' ? 6 : (levels[0].depth ?? 1),
+        ],
+        dimension: dimension === 'cube' ? '2d' : dimension,
         mipLevelCount: levels.length,
         format: 'rgba8unorm',
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
@@ -189,7 +241,7 @@ export class D3DTextureRenderer {
           { texture, mipLevel: i },
           l.rgba,
           { bytesPerRow: l.width * 4, rowsPerImage: l.height },
-          [l.width, l.height],
+          [l.width, l.height, dimension === 'cube' ? 6 : (l.depth ?? 1)],
         ),
       );
       cached = { texture, views: new Map() };
@@ -200,6 +252,7 @@ export class D3DTextureRenderer {
     const descriptor = {
       addressModeU: ADDRESS[s[1]],
       addressModeV: ADDRESS[s[2]],
+      addressModeW: ADDRESS[s[3]],
       magFilter: s[6] === 2 ? 'linear' : 'nearest',
       minFilter: s[6] === 2 ? 'linear' : 'nearest',
       mipmapFilter: s[7] === 2 ? 'linear' : 'nearest',
@@ -215,7 +268,11 @@ export class D3DTextureRenderer {
     if (!cached.views.has(base))
       cached.views.set(
         base,
-        cached.texture.createView({ baseMipLevel: base, mipLevelCount: levels.length - base }),
+        cached.texture.createView({
+          dimension,
+          baseMipLevel: base,
+          mipLevelCount: levels.length - base,
+        }),
       );
     const view = cached.views.get(base);
     slot.textureUniform ??= device.createBuffer({

@@ -18,6 +18,7 @@ try {
   );
   const report = await page.evaluate(async () => {
     const { WebGPURenderer } = await import('/src/webgpu-renderer.js');
+    const { defaultSampler, defaultStage } = await import('/src/d3d-texture-state.js');
     const errors = [],
       pixels = [],
       canvas = new OffscreenCanvas(64, 64),
@@ -108,6 +109,39 @@ try {
     };
     try {
       await renderer.present({ id: 1, commands: [command] });
+      const fixedBytes = new Uint8Array(36 * 28),
+        fixedView = new DataView(fixedBytes.buffer);
+      for (let i = 0; i < 36; i++) {
+        for (let c = 0; c < 3; c++) fixedView.setFloat32(i * 28 + c * 4, vertices[i * 8 + c], true);
+        fixedView.setUint32(i * 28 + 12, 0xffffffff, true);
+        for (let c = 0; c < 3; c++)
+          fixedView.setFloat32(i * 28 + 16 + c * 4, vertices[i * 8 + 4 + c], true);
+      }
+      const identity = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+      await renderer.present({
+        id: 1,
+        commands: [
+          {
+            type: 'draw',
+            vertices: fixedBytes,
+            vertexCount: 36,
+            stride: 28,
+            fvf: 0x10142,
+            world: identity,
+            view: identity,
+            projection: identity,
+            depthTest: false,
+            depthWrite: false,
+            cullMode: 'none',
+            texturing: {
+              texture: command.textures.get(0).snapshot,
+              stage: defaultStage(0),
+              sampler: defaultSampler(),
+              lod: 0,
+            },
+          },
+        ],
+      });
       const mismatch = {
         ...command,
         textures: new Map([
@@ -136,14 +170,15 @@ try {
       renderer.dispose();
     }
   });
-  assert.deepEqual(report.pixels, [
+  const expectedFaces = [
     [255, 0, 0, 255],
     [0, 0, 255, 255],
     [0, 255, 0, 255],
     [255, 255, 0, 255],
     [255, 0, 255, 255],
     [0, 255, 255, 255],
-  ]);
+  ];
+  assert.deepEqual(report.pixels, [...expectedFaces, ...expectedFaces]);
   assert.deepEqual(report.errors, []);
   assert.equal(report.mismatchedDimensionRejected, true);
   await writeFile(
@@ -154,7 +189,7 @@ try {
         browser: browser.version(),
         ...report,
         scope:
-          'Real PS2 samplerCube compilation and all six directed face pixels; no third-party scene claim.',
+          'Real PS2 samplerCube compilation and all six directed face pixels through both programmable and fixed-function paths; no third-party scene claim.',
       },
       null,
       2,

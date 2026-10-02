@@ -183,7 +183,8 @@ function fixedFunctionDraw(runtime, state, vertices, stride, vertexCount) {
   if (layout.rhw) floatOffsets.push(12);
   if (layout.normal !== null)
     floatOffsets.push(layout.normal, layout.normal + 4, layout.normal + 8);
-  if (layout.uv !== null) floatOffsets.push(layout.uv, layout.uv + 4);
+  if (layout.uv !== null)
+    for (let i = 0; i < layout.uvSize; i++) floatOffsets.push(layout.uv + i * 4);
   // D3D disables depth writes whenever depth testing is off, so the depth
   // component is unused then and pre-transformed overlays may leave it
   // undefined (commonly NaN). Normalize that slot; any other non-finite

@@ -370,7 +370,6 @@ function programmableAttributes(state, stride) {
             ['normal', 2, 0, 2, 'float32x3', 12],
             ['diffuse', 10, 0, 4, 'unorm8x4', 4],
             ['specular', 10, 1, 4, 'unorm8x4', 4],
-            ['uv', 5, 0, 1, 'float32x2', 8],
           ]
             .filter(([field]) => layout[field] !== null)
             .map(([field, usage, usageIndex, type, format, size]) => ({
@@ -381,6 +380,14 @@ function programmableAttributes(state, stride) {
               format,
               size,
             })),
+          ...layout.texcoords.map((coordinate, index) => ({
+            offset: coordinate.offset,
+            usage: 5,
+            usageIndex: index,
+            type: coordinate.components - 1,
+            format: coordinate.format,
+            size: coordinate.size,
+          })),
         ]
       : []);
   // A D3D9 vertex declaration may carry elements the shader never reads (the
