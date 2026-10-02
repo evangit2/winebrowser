@@ -177,6 +177,8 @@
     "test:vulkan": "node scripts/test-vulkan-browser.mjs",
     "build:opengl": "python3 scripts/build-opengl-demo.py",
     "test:opengl": "node scripts/test-opengl-browser.mjs",
+    "build:learning-dx12": "python3 scripts/build-learning-dx12-cube.py",
+    "test:learning-dx12": "node scripts/test-learning-dx12-cube-browser.mjs",
     "fetch:opengl": "python3 scripts/fetch-opengl-demo.py",
     "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs"
   },

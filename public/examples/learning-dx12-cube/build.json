@@ -21,6 +21,7 @@
     "./compat.h",
     "-include",
     "./DX12Lib/inc/DX12LibPCH.h",
+    "-I./header-compat",
     "-I./DirectXMath/Inc",
     "-I./DX12Lib/inc",
     "-I./Tutorial2/inc",

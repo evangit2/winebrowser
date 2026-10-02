@@ -84,6 +84,17 @@ independent upstream D3D9 application.
 
 ## Current D3D12 boundary
 
+The independent free [LearningDirectX12 cube](learning-dx12-cube.md) now passes
+ordinary ZIP and multi-file uploads and the hosted catalog. Its unchanged C++
+is built as a native PE32 counterpart of the x64 release; the original released
+shaders compile in the browser. Acceptance covers graphics pipeline streams,
+copy queue uploads, root constants, indexed color interpolation, D32 depth,
+native animation and zero-object DXGI teardown. This uses the same
+vkd3d-shader → SPIR-V → Naga → WGSL approach as the DirectWebGPU setup;
+WineBrowser compiles the Windows CPU instructions to Wasm locally.
+Higher COM identities expose only the implemented bounded methods; compute
+dispatch and unsupported interface tails still fail explicitly.
+
 `src/d3d12.js` owns PE32 DXGI/D3D12 COM objects, checked guest descriptors,
 command recording, resource state transitions and fences. `src/d3d12-renderer.js`
 consumes validated submission snapshots and shares the worker WebGPU device

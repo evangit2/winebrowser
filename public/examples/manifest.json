@@ -2,6 +2,17 @@
   "format": 1,
   "interactive": [
     {
+      "name": "learning-dx12-cube",
+      "description": "Free LearningDirectX12 animated 3D cube: native 32-bit Windows build from unchanged MIT source, with original D3D12 shaders. Upload the ZIP or select EXE and both shaders; close the guest window to exit.",
+      "exe": "learning-dx12-cube/Tutorial2.exe",
+      "exeSha256": "e84a537aae6f7564f42533fcf69a09a861732605469a41998f623e02f419fc80",
+      "zip": "learning-dx12-cube/Tutorial2-x86.zip",
+      "zipSha256": "df1687db6d8d916097efe535c30c14b81c138bca77a536d0ef0bf726f83fce99",
+      "sourceZip": "learning-dx12-cube/source.zip",
+      "sourceZipSha256": "b7cc0e64a8f2f42d98cecdc392b3cb2585811d3c17d9d4c3cf5ee13394ba4a2c",
+      "provenance": "MIT, Jeremiah van Oosten, LearningDirectX12 revision 25b21e05f9a60a72f64c4c11cca824331ec39354. Source-built x86 counterpart of the x64 release; unchanged original release shaders."
+    },
+    {
       "name": "humus-dynamic-branching",
       "description": "Unchanged Humus \"Dynamic Branching\" Direct3D 9 demo: a stencil-shadow pillar room with programmable shaders and DXT textures. F1 opens settings.",
       "exe": "humus-dynamic-branching/DynamicBranching.exe",

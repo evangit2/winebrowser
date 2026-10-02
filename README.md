@@ -16,6 +16,12 @@ textured cube executes through Vulkan → WebGPU, with x86 and SPIR-V compilatio
 inside the browser. This is a pinned Windows x86 build of the current upstream
 Vulkan-Tools source. See [Vulkan scope and verification](docs/vulkan-runtime.md).
 
+The free MIT [LearningDirectX12 cube](docs/learning-dx12-cube.md) now runs its
+unchanged native C++ and original release shaders through browser CPU and shader
+compilation. Choose **Load learning-dx12-cube** and **Run executable**, or upload
+[the complete Windows ZIP](https://evangit2.github.io/winebrowser/examples/learning-dx12-cube/Tutorial2-x86.zip).
+This is a source-built 32-bit counterpart of the upstream 64-bit release.
+
 The hosted PE32 x86 examples below have passed the browser suite. Open a ZIP in the harness when the program needs packaged assets or a DLL; the ZIP contains the executable and its working directory.
 
 | Example    | Download                                                                                                                                           | What it exercises and expected result                                                                           |

@@ -72,6 +72,7 @@ jobs:
           npm run test:opengl-upstream
           npm run test:d3d12
           npm run test:d3d12-cube
+          npm run test:learning-dx12
           npm run test:d3d12-parade
           npm run test:d3d12-constbuffer
           npm run test:d3d12-rootcbv

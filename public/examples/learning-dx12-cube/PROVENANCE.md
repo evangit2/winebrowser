@@ -13,10 +13,15 @@ and both shader files together. Close the guest window to exit.
 CPU instructions compile from the supplied Windows PE to Wasm in the browser.
 Shader bytecode compiles through vkd3d-shader and Naga to WebGPU in the browser.
 No application Wasm or substituted shader is supplied.
-Browser execution acceptance is pending while shared runtime gaps are addressed.
+Browser acceptance passes for ordinary ZIP upload, EXE plus both shaders, and
+the hosted example button: 1280×720 animated colored cube, native indexed draws,
+D32 depth, periodic FPS output and window-close exit code 0. The native DXGI
+teardown reports zero live guest graphics objects. See
+[recorded browser evidence](../../../evidence/learning-dx12-cube-browser-results.json).
+This establishes this source-built sample, not general D3D12 game compatibility.
 
 - PE32 SHA-256: `e84a537aae6f7564f42533fcf69a09a861732605469a41998f623e02f419fc80`.
-- App ZIP SHA-256: `b3641bef2d253774fa00c191890e74a079bc1bd0bd457624c5fbbe5d763613cc`.
+- App ZIP SHA-256: `df1687db6d8d916097efe535c30c14b81c138bca77a536d0ef0bf726f83fce99`.
 - Original x64 EXE SHA-256: `9cb3c02f71a5f6cdfa8f2e9f3e68e7d48b450f86df82359d79ee5c43f5f6a941`.
 - Original release ZIP SHA-256: `513fc9681c6c20fafc659ec500e7a4784f19093d279c0fd0205527e43004d46f`.
 - DirectXMath revision: `abced86db5d790d3463b118f2f716db30374a1f7` (MIT).

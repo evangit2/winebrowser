@@ -78,3 +78,16 @@ The binary also links MinGW-w64 CRT and GCC runtime helpers; the retained GCC
 license/runtime-exception notices apply. The build manifest pins Vulkan-Headers
 at `c46850864f4661461b0f6cb9922c058ffea4915e` and the archive SHA-256. The GCC
 license/runtime-exception and MinGW-w64 runtime license texts accompany the ZIP.
+
+## LearningDirectX12 cube
+
+`public/examples/learning-dx12-cube/` contains a native PE32 build of Jeremiah
+van Oosten’s MIT LearningDirectX12 Tutorial 2 at revision
+`25b21e05f9a60a72f64c4c11cca824331ec39354`, with its unchanged released shader
+bytecode. The original upstream executable is x64. The unchanged source inputs,
+MinGW header compatibility, native build script, MIT notices and build metadata
+are retained in `source.zip`. DirectXMath at
+`abced86db5d790d3463b118f2f716db30374a1f7` is MIT; its complete pinned headers
+and license are retained there. The native static GCC/libstdc++ runtime uses
+the [GCC Runtime Library Exception](https://www.gnu.org/licenses/gcc-exception-3.1.html).
+The application and shaders are not rewritten or supplied as application Wasm.

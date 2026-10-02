@@ -48,13 +48,17 @@ with zipfile.ZipFile(cache / 'upstream-release.zip') as archive:
 (cache / 'compat.h').write_text(
     (ROOT / 'runtime/target-builds/mingw-wrl-compat.h').read_text() +
     '\n#include <cstdio>\n#include <cmath>\n')
+headers = cache / 'header-compat'
+headers.mkdir(exist_ok=True)
+for name in ['Windows.h', 'Shlwapi.h']:
+    (headers / name).write_text('#pragma once\n#include_next <' + name.lower() + '>\n')
 compiler = os.environ.get('CXX', 'i686-w64-mingw32-g++')
 version = subprocess.check_output([compiler, '--version'], text=True).splitlines()[0]
 output = cache / 'Tutorial2.exe'
 command = [compiler, '-std=c++17', '-O1', '-fpermissive', '-DUNICODE', '-D_UNICODE',
            '-DNDEBUG', '-D_XM_NO_INTRINSICS_', '-static', '-static-libgcc', '-static-libstdc++',
            '-include', str(cache / 'compat.h'), '-include', str(cache / 'DX12Lib/inc/DX12LibPCH.h'),
-           '-I' + str(cache / 'DirectXMath/Inc'), '-I' + str(cache / 'DX12Lib/inc'),
+           '-I' + str(headers), '-I' + str(cache / 'DirectXMath/Inc'), '-I' + str(cache / 'DX12Lib/inc'),
            '-I' + str(cache / 'Tutorial2/inc'), '-Wl,--no-insert-timestamp', '-municode',
            '-mwindows', '-o', str(output)]
 command += [str(cache / name) for name in sorted(pin['files']) if name.endswith('.cpp')]
@@ -88,6 +92,8 @@ source_files.update({'DirectXMath/' + name: (cache / 'DirectXMath' / name).read_
                      for name in math['files']})
 for name in ['LICENSE', 'compat.h', 'build.sh', 'build.json', *release['shaders']]:
     source_files[name] = (cache / name).read_bytes()
+for name in ['Windows.h', 'Shlwapi.h']:
+    source_files['header-compat/' + name] = (headers / name).read_bytes()
 source_files['source-pin.json'] = PIN.read_bytes()
 write_zip(cache / 'source.zip', source_files)
 destination = ROOT / 'public/examples/learning-dx12-cube'

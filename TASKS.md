@@ -341,6 +341,13 @@ matrix (`world[15]` one Float32 step below 1) and full projective transforms.
 - [ ] Continue from the original game entry through D3D8 resources, textures,
       input and audio, reusing the Hamsterball/DirectWebGPU implementation semantics.
 
+- [x] Run the free MIT LearningDirectX12 animated 3D cube from unchanged upstream
+      C++ and original release shaders. The source-built PE32 counterpart passes
+      ZIP upload, EXE plus shader upload, and the hosted catalog; browser CPU/shader
+      compilation, D32 depth, copy queues, pipeline streams, FPS logging and clean
+      exit are covered by `npm run test:learning-dx12`. The upstream release is x64.
+      See [acceptance and rebuild details](docs/learning-dx12-cube.md).
+
 ## Done and verified
 
 - [x] Public repository and GitHub Pages EXE/ZIP test harness, with CI deployment.

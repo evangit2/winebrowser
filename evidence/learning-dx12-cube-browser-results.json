@@ -1,0 +1,130 @@
+{
+  "demo": "learning-dx12-cube",
+  "date": "2026-10-02T19:09:38.153Z",
+  "url": "http://127.0.0.1:50088/",
+  "browser": "154.0.8037.97",
+  "provenance": "Native PE32 counterpart built from unchanged MIT upstream source; original release is x64. Original release shaders retained.",
+  "upstreamRevision": "25b21e05f9a60a72f64c4c11cca824331ec39354",
+  "exeSha256": "e84a537aae6f7564f42533fcf69a09a861732605469a41998f623e02f419fc80",
+  "zipSha256": "df1687db6d8d916097efe535c30c14b81c138bca77a536d0ef0bf726f83fce99",
+  "browserCompilation": true,
+  "browserShaderCompilation": true,
+  "graphics": "D3D12 graphics pipeline stream, copy queue uploads, R16 indexed draws, root constants and D32 depth; WebGPU presentation",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "firstFramesMs": 1848,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 8,
+        "draws": 8,
+        "colored": 40783,
+        "colors": 40783,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "75b05b8c62d373c9b92a361a8f538462a05b9d17909a7edf7bcd66c9ee2000ca"
+      },
+      "second": {
+        "width": 1280,
+        "height": 720,
+        "frames": 575,
+        "draws": 575,
+        "colored": 48574,
+        "colors": 48574,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "2dea0b0cf124f23b848279221ee3cdf8cd7d73b3ef313934e4d60a40947576d4"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 5164,
+      "instructions": 3765540,
+      "apiCalls": 33799
+    },
+    {
+      "mode": "exe-and-shaders-upload",
+      "firstFramesMs": 1612,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 11,
+        "draws": 11,
+        "colored": 41015,
+        "colors": 41015,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "ad28af91faddd834efd492513315ba972cad2a43b6d66fd6b070f43795f478f8"
+      },
+      "second": {
+        "width": 1280,
+        "height": 720,
+        "frames": 614,
+        "draws": 614,
+        "colored": 48729,
+        "colors": 48729,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "78223cff0eb5de0f91393c3fa7ae4da674009734bc85731beee9f49fc1eb0ad7"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 5161,
+      "instructions": 4017928,
+      "apiCalls": 36307
+    },
+    {
+      "mode": "hosted-example",
+      "firstFramesMs": 1879,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 17,
+        "draws": 17,
+        "colored": 43304,
+        "colors": 43304,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "81e61bccf7e6cf43811caf17ed5987b0cfe7c8595a321e1718cdf75bf4e343c3"
+      },
+      "second": {
+        "width": 1280,
+        "height": 720,
+        "frames": 621,
+        "draws": 621,
+        "colored": 49089,
+        "colors": 49024,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "35583572f124d6777448b469371519f1bd60eba56c565dcf9ff996585b7f53b7"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 5169,
+      "instructions": 4033786,
+      "apiCalls": 36422
+    }
+  ],
+  "errors": []
+}
