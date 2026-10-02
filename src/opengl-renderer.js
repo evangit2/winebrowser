@@ -2,6 +2,15 @@ import { browserGLSL } from './opengl-shaders.js';
 
 // One WebGL2 context per guest WGL context, owned by the terminable CPU worker.
 // Numeric guest names stay here; browser objects never enter guest memory.
+export function opaqueGLPixels(data, width, height) {
+  if (data.length !== width * height * 4) throw Error('Invalid OpenGL presentation pixels');
+  const output = new Uint8ClampedArray(data.length),
+    row = width * 4;
+  for (let y = 0; y < height; y++)
+    output.set(data.subarray(y * row, (y + 1) * row), (height - 1 - y) * row);
+  for (let i = 3; i < output.length; i += 4) output[i] = 255;
+  return output;
+}
 export class OpenGLRenderer {
   constructor({ emit = () => {}, canvasFactory = (w, h) => new OffscreenCanvas(w, h) } = {}) {
     this.emit = emit;
@@ -19,7 +28,8 @@ export class OpenGLRenderer {
       throw Error('Invalid OpenGL window dimensions');
     const canvas = this.canvasFactory(width, height);
     const gl = canvas.getContext('webgl2', {
-      alpha: false,
+      alpha: true,
+      premultipliedAlpha: false,
       depth: true,
       stencil: true,
       antialias: false,
@@ -82,8 +92,22 @@ export class OpenGLRenderer {
     if (context.windowId !== description.windowId)
       throw Error('SwapBuffers DC does not own the current context');
     context.gl.flush();
-    // createImageBitmap snapshots without discarding the GL drawing buffer.
-    const bitmap = await createImageBitmap(context.canvas);
+    // A normal Win32 window is opaque even when the GL framebuffer stores
+    // destination alpha for a later lighting pass. Preserve those guest alpha
+    // bytes, and present the actual RGB without browser alpha compositing.
+    const gl = context.gl,
+      width = context.canvas.width,
+      height = context.canvas.height;
+    const pixels = new Uint8Array(width * height * 4),
+      alignment = gl.getParameter(gl.PACK_ALIGNMENT);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, 1);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, alignment);
+    context.presentationCanvas ??= this.canvasFactory(width, height);
+    context.presentationCanvas
+      .getContext('2d', { alpha: false })
+      .putImageData(new ImageData(opaqueGLPixels(pixels, width, height), width, height), 0, 0);
+    const bitmap = await createImageBitmap(context.presentationCanvas);
     this.frames++;
     this.emit({
       type: 'frame',
@@ -95,6 +119,7 @@ export class OpenGLRenderer {
       graphicsApi: 'opengl',
       graphicsFrames: this.frames,
       graphicsDraws: this.draws,
+      graphicsModelView: context.perspectiveModelView,
     });
     await new Promise((resolve) => setTimeout(resolve, context.interval === 0 ? 0 : 16));
   }

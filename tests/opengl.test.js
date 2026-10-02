@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openglApis } from '../src/opengl.js';
 import { gdiApis } from '../src/win32-gdi.js';
-import { OpenGLRenderer } from '../src/opengl-renderer.js';
+import { OpenGLRenderer, opaqueGLPixels } from '../src/opengl-renderer.js';
 import { browserGLSL } from '../src/opengl-shaders.js';
 
 function runtime() {
@@ -138,4 +138,122 @@ test('GLSL interface conversion preserves the guest calculations and leaves comm
     /in vec3 p; out vec3 normal/,
   );
   assert.throws(() => browserGLSL('#version 999\nvoid main(){}', 0x8b30), /Unsupported/);
+});
+
+test('legacy matrix and vertex built-ins adapt their interface while preserving shader calculations', () => {
+  const shader = browserGLSL(
+    'void main(){ gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex; } // gl_Vertex in a comment',
+    0x8b31,
+  );
+  assert.match(shader, /layout\(location=0\) in vec4 _wbVertex/);
+  assert.match(shader, /uniform mat4 _wbMVP/);
+  assert.match(shader, /invariant gl_Position/);
+  assert.match(shader, /gl_Position=_wbMVP\*_wbVertex/);
+  assert.match(shader, /\/\/ gl_Vertex in a comment/);
+});
+test('opaque Windows presentation flips rows and preserves actual RGB and guest destination alpha', () => {
+  const input = new Uint8Array([200, 100, 50, 0, 10, 20, 30, 128, 70, 80, 90, 255, 1, 2, 3, 4]);
+  const before = input.slice();
+  assert.deepEqual(
+    [...opaqueGLPixels(input, 2, 2)],
+    [70, 80, 90, 255, 1, 2, 3, 255, 200, 100, 50, 255, 10, 20, 30, 255],
+  );
+  assert.deepEqual(input, before);
+});
+
+test('legacy BGR texture rows preserve padding boundaries and unpack state', () => {
+  const r = runtime(),
+    c = context(r),
+    uploads = [],
+    stores = [];
+  Object.assign(c.gl, {
+    RGBA: 0x1908,
+    RGB: 0x1907,
+    RGBA8: 0x8058,
+    UNSIGNED_BYTE: 0x1401,
+    UNPACK_ALIGNMENT: 0xcf5,
+    getParameter: () => 4,
+    pixelStorei: (...a) => stores.push(a),
+    texImage2D: (...a) => uploads.push(a),
+  });
+  const input = [
+    30, 20, 10, 60, 50, 40, 90, 80, 70, 0xaa, 0xaa, 0xaa, 120, 110, 100, 150, 140, 130, 180, 170,
+    160,
+  ];
+  const p = r.data.length - input.length;
+  r.data.set(input, p);
+  call(r, 'glTexImage2D', 0xde1, 0, 3, 3, 2, 0, 0x80e0, 0x1401, p);
+  assert.deepEqual(
+    [...uploads[0][8]],
+    [
+      10, 20, 30, 255, 40, 50, 60, 255, 70, 80, 90, 255, 100, 110, 120, 255, 130, 140, 150, 255,
+      160, 170, 180, 255,
+    ],
+  );
+  assert.deepEqual(stores, [
+    [0xcf5, 1],
+    [0xcf5, 4],
+  ]);
+  call(r, 'glTexImage2D', 0xde1, 0, 0x804b, 1, 1, 0, 0x1909, 0x1401, p);
+  assert.deepEqual(
+    [...uploads[1][8]],
+    [30, 30, 30, 30],
+    'GL_INTENSITY carries the luminance into alpha',
+  );
+});
+test('S3TC uploads decode the original block and validate size before submitting', () => {
+  const r = runtime(),
+    c = context(r),
+    uploads = [];
+  Object.assign(c.gl, {
+    RGBA: 0x1908,
+    RGBA8: 0x8058,
+    UNSIGNED_BYTE: 0x1401,
+    UNPACK_ALIGNMENT: 0xcf5,
+    getParameter: () => 4,
+    pixelStorei: () => {},
+    texImage2D: (...a) => uploads.push(a),
+  });
+  r.data.set([0, 0xf8, 0x1f, 0, 0, 0, 0, 0], 300);
+  call(r, 'glCompressedTexImage2DARB', 0xde1, 0, 0x83f0, 4, 4, 0, 8, 300);
+  assert.deepEqual([...uploads[0][8]], Array.from({ length: 16 }, () => [255, 0, 0, 255]).flat());
+  assert.throws(
+    () => call(r, 'glCompressedTexImage2DARB', 0xde1, 0, 0x83f0, 4, 4, 0, 7, 300),
+    /size mismatch/,
+  );
+  assert.equal(uploads.length, 1);
+});
+test('client-memory quads submit the correct triangles and reject out-of-bounds vertices before drawing', () => {
+  const r = runtime(),
+    c = context(r),
+    draws = [];
+  Object.assign(c.gl, {
+    ARRAY_BUFFER: 0x8892,
+    ELEMENT_ARRAY_BUFFER: 0x8893,
+    ARRAY_BUFFER_BINDING: 0x8894,
+    ELEMENT_ARRAY_BUFFER_BINDING: 0x8895,
+    FLOAT: 0x1406,
+    UNSIGNED_INT: 0x1405,
+    TRIANGLES: 4,
+    STREAM_DRAW: 0x88e0,
+    getParameter: () => null,
+    getUniformLocation: () => null,
+    useProgram: () => {},
+    createBuffer: () => ({}),
+    bindBuffer: () => {},
+    enableVertexAttribArray: () => {},
+    disableVertexAttribArray: () => {},
+    vertexAttribPointer: () => {},
+    vertexAttrib4fv: () => {},
+    drawElements: (...a) => draws.push(a),
+  });
+  c.program = r.opengl.name(c, 'program', {});
+  call(r, 'glVertexPointer', 3, 0x1406, 0, r.data.length - 48);
+  call(r, 'glEnableClientState', 0x8074);
+  call(r, 'glDrawArrays', 7, 0, 4);
+  assert.deepEqual(draws, [[4, 6, 0x1405, 0]]);
+  assert.deepEqual([...r.calls.find((a) => a[0] === 0x8893)[1]], [0, 1, 2, 0, 2, 3]);
+  call(r, 'glVertexPointer', 3, 0x1406, 0, r.data.length - 4);
+  assert.throws(() => call(r, 'glDrawArrays', 7, 0, 4), /outside memory/);
+  assert.equal(draws.length, 1);
 });
