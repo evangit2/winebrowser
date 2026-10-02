@@ -213,6 +213,15 @@
       "zip": "d3d10-cube.zip",
       "zipSha256": "83945e5e8e2ab5915e46ef4d7056f1938ac4d6eb3c54cfdadc60c80332e651fc",
       "provenance": "Original MIT-licensed freestanding C demo, built with i686-w64-mingw32; SM4.0 DXBC produced with Wine's d3dcompiler_47."
+    },
+    {
+      "name": "opengl-raymarch",
+      "description": "Native OpenGL 3.3 / GLSL 330 3D raymarch demo with soft shadows and ambient occlusion. Arrows orbit; Space pauses; Escape exits.",
+      "exe": "opengl-raymarch/opengl-raymarch.exe",
+      "exeSha256": "ff1b7984c46bd734ddb88df7efcb8ebc9d7ceb8b066592ae42fd2da1c8d9e53c",
+      "zip": "opengl-raymarch.zip",
+      "zipSha256": "f48c52d7275faccce3fcb13aae5ce988f30c82e0d4e6dcb426cbd407f1a6e6f6",
+      "provenance": "MIT-licensed WineBrowser source-built PE32 fixture. Guest x86 and original GLSL compile in the browser."
     }
   ]
 }

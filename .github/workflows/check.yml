@@ -67,6 +67,9 @@ jobs:
           npm run test:d3d8
           npm run test:d3d9
           npm run test:d3d9-shader-cube
+          npm run test:opengl
+          npm run fetch:opengl
+          npm run test:opengl-upstream
           npm run test:d3d12
           npm run test:d3d12-cube
           npm run test:d3d12-parade

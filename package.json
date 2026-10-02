@@ -174,7 +174,11 @@
     "package:transparent-shadows": "python3 scripts/package-humus-transparent-shadows.py",
     "test:transparent-shadows": "node scripts/test-transparent-shadows-browser.mjs",
     "build:vulkan": "sh scripts/build-vkcube.sh && python3 scripts/package-vkcube.py",
-    "test:vulkan": "node scripts/test-vulkan-browser.mjs"
+    "test:vulkan": "node scripts/test-vulkan-browser.mjs",
+    "build:opengl": "python3 scripts/build-opengl-demo.py",
+    "test:opengl": "node scripts/test-opengl-browser.mjs",
+    "fetch:opengl": "python3 scripts/fetch-opengl-demo.py",
+    "test:opengl-upstream": "node scripts/test-opengl-upstream-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
