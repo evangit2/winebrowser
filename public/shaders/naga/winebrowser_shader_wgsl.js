@@ -26,6 +26,33 @@ export function spirv_to_wgsl(bytes) {
         wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 }
+
+/**
+ * Vulkan resources keep descriptor set numbers; binding N maps to 2*N and
+ * a combined image sampler maps to image 2*N plus sampler 2*N+1.
+ * @param {Uint8Array} bytes
+ * @returns {string}
+ */
+export function vulkan_spirv_to_wgsl(bytes) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passArray8ToWasm0(bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.vulkan_spirv_to_wgsl(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

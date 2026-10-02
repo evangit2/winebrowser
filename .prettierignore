@@ -12,3 +12,5 @@ third_party/
 package-lock.json
 runtime/wine-format/manifest.json
 tests/fixtures/shaders/
+
+demos/vkcube/upstream/

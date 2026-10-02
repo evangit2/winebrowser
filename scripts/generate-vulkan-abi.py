@@ -34,14 +34,14 @@ names = [n for n in names if n in types]
 expressions = []
 layouts = {}
 for name in names:
-    fields = ['size'] + [m.findtext('name') for m in types[name].findall('member')]
+    fields = ['__size'] + [m.findtext('name') for m in types[name].findall('member')]
     layouts[name] = fields
     expressions.extend([f'sizeof({name})'] + [f'offsetof({name}, {field})' for field in fields[1:]])
 with tempfile.TemporaryDirectory() as tmp:
     temp = Path(tmp)
-    (temp / 'layout.c').write_text('#define VK_USE_PLATFORM_WIN32_KHR\n#include <stddef.h>\n#include <vulkan/vulkan.h>\nconst unsigned int offsets[] = {' + ','.join(expressions) + '};\n')
+    (temp / 'layout.c').write_text('#define VK_USE_PLATFORM_WIN32_KHR\n#include <stddef.h>\n#include <vulkan/vulkan.h>\nconst unsigned int __attribute__((section(".vkabi"))) offsets[] = {' + ','.join(expressions) + '};\n')
     subprocess.run(['i686-w64-mingw32-gcc', '-I', str(HEADERS / 'include'), '-c', str(temp / 'layout.c'), '-o', str(temp / 'layout.o')], check=True)
-    subprocess.run(['i686-w64-mingw32-objcopy', '-O', 'binary', '--only-section=.rdata', str(temp / 'layout.o'), str(temp / 'layout.bin')], check=True)
+    subprocess.run(['i686-w64-mingw32-objcopy', '-O', 'binary', '--only-section=.vkabi', str(temp / 'layout.o'), str(temp / 'layout.bin')], check=True)
     data = (temp / 'layout.bin').read_bytes()
 values = iter(struct.unpack('<' + 'I' * len(expressions), data[:4 * len(expressions)]))
 layouts = {name: {field: next(values) for field in fields} for name, fields in layouts.items()}

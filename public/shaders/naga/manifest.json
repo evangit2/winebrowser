@@ -2,12 +2,12 @@
   "api": "default init(); spirv_to_wgsl(Uint8Array): string",
   "artifacts": {
     "winebrowser_shader_wgsl.js": {
-      "bytes": 6086,
-      "sha256": "50b872681336444c823a9111e17b117ee859b92016eaa0554c13989ef25f22de"
+      "bytes": 6907,
+      "sha256": "19aa5430e6ba68598593163dbc479e17f7a7a7ba7ff51b98ae4b2fcf4707db57"
     },
     "winebrowser_shader_wgsl_bg.wasm": {
-      "bytes": 1456335,
-      "sha256": "b49cd080407dfe230403d106237fbfb9ecacce8a04300b1274f6e57a3e7b2d09"
+      "bytes": 1486664,
+      "sha256": "a1b7951e64414c7bc3eb5c90d21ef907dd41346d19f402f5d58cb39e2fc8d6c5"
     }
   },
   "drawParameters": {

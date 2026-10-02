@@ -75,6 +75,7 @@ for name in ('Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md'):
     shutil.copyfile(crate / name, source_out / name)
 shutil.copyfile(crate / 'src/lib.rs', source_out / 'src/lib.rs')
 shutil.copyfile(crate / 'src/draw_parameters.rs', source_out / 'src/draw_parameters.rs')
+shutil.copyfile(crate / 'src/combined_samplers.rs', source_out / 'src/combined_samplers.rs')
 shutil.copyfile(crate.parents[2] / 'scripts/build-shader-wgsl.sh', source_out / 'build-shader-wgsl.sh')
 (stage / 'README.md').write_text(
     '# WineBrowser SPIR-V to WGSL Wasm\n\n'

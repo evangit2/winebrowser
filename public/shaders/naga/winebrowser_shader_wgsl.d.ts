@@ -7,11 +7,18 @@
  */
 export function spirv_to_wgsl(bytes: Uint8Array): string;
 
+/**
+ * Vulkan resources keep descriptor set numbers; binding N maps to 2*N and
+ * a combined image sampler maps to image 2*N plus sampler 2*N+1.
+ */
+export function vulkan_spirv_to_wgsl(bytes: Uint8Array): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly spirv_to_wgsl: (a: number, b: number) => [number, number, number, number];
+    readonly vulkan_spirv_to_wgsl: (a: number, b: number) => [number, number, number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __externref_table_dealloc: (a: number) => void;
