@@ -1,0 +1,132 @@
+{
+  "demo": "learning-dx12-cube",
+  "date": "2026-10-02T19:39:17.032Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "browser": "154.0.8037.97",
+  "provenance": "Native PE32 counterpart built from unchanged MIT upstream source; original release is x64. Original release shaders retained.",
+  "upstreamRevision": "25b21e05f9a60a72f64c4c11cca824331ec39354",
+  "exeSha256": "e84a537aae6f7564f42533fcf69a09a861732605469a41998f623e02f419fc80",
+  "zipSha256": "df1687db6d8d916097efe535c30c14b81c138bca77a536d0ef0bf726f83fce99",
+  "browserCompilation": true,
+  "browserShaderCompilation": true,
+  "graphics": "D3D12 graphics pipeline stream, copy queue uploads, R16 indexed draws, root constants and D32 depth; WebGPU presentation",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "firstFramesMs": 3500,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 10,
+        "draws": 10,
+        "colored": 44970,
+        "colors": 44970,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "262eef2b8e650283941bcd22e25df38f324dc9f9dbe815718199aa61bc94fa03"
+      },
+      "second": {
+        "width": 1280,
+        "height": 720,
+        "frames": 738,
+        "draws": 738,
+        "colored": 35843,
+        "colors": 35843,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "a4065648a930475e211de47acbe695088d4bf7ce5390a1eae9ce0ac777196f0c"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 5174,
+      "instructions": 4726180,
+      "apiCalls": 43262
+    },
+    {
+      "mode": "exe-and-shaders-upload",
+      "firstFramesMs": 1483,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 10,
+        "draws": 10,
+        "colored": 40298,
+        "colors": 40298,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "0b5c16511e08bd73ae4c58493d22f0783a051dae31ea24a02b1bca5f70b7e1f8"
+      },
+      "second": {
+        "width": 1280,
+        "height": 720,
+        "frames": 725,
+        "draws": 725,
+        "colored": 48266,
+        "colors": 48266,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "81d652cd134381a46d42b90b71a006456f5ada52f3e22a5087fa22889db19606"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 5176,
+      "instructions": 4612283,
+      "apiCalls": 42178
+    },
+    {
+      "mode": "hosted-example",
+      "firstFramesMs": 1713,
+      "first": {
+        "width": 1280,
+        "height": 720,
+        "frames": 9,
+        "draws": 9,
+        "colored": 40024,
+        "colors": 40024,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "820cc1da792eb261894e154ec3cfc4114727760809f876f510d80cc48a68dacf"
+      },
+      "second": {
+        "width": 1280,
+        "height": 720,
+        "frames": 714,
+        "draws": 714,
+        "colored": 48206,
+        "colors": 48206,
+        "corner": [
+          102,
+          153,
+          229,
+          255
+        ],
+        "hash": "0b1cadf5f1abedb28caeb017c456d593d14061b5e244113046c75ccc529bc286"
+      },
+      "exitCode": 0,
+      "compiledBlocks": 5166,
+      "instructions": 4549526,
+      "apiCalls": 41551
+    }
+  ],
+  "errors": [],
+  "deployedCommit": "6e9860017a51a0fcf2e622697f6740ba9aef6b8f",
+  "deploymentRun": "https://github.com/evangit2/winebrowser/actions/runs/37052621447"
+}

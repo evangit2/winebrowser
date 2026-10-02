@@ -29,6 +29,8 @@ ZIP upload, EXE plus shaders and the hosted button. Each path produces a
 its native FPS output, compiles over 5,000 CPU blocks, and exits with code 0.
 The sample's native DXGI atexit report finds zero live guest graphics objects.
 The CI workflow runs the same test against the static Pages build.
+[Live Pages verification](../evidence/learning-dx12-cube-live-results.json)
+records all three paths against the published site and its deployment commit.
 
 ![Native LearningDirectX12 cube](../evidence/learning-dx12-cube-browser.png)
 
