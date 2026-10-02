@@ -42,3 +42,7 @@ The browser acceptance result is recorded in
 path; it does not establish that the proprietary ATI installer completes or
 that its extracted Direct3D demo renders. Full Wine-level compatibility and
 startup in a few seconds remain active work.
+
+The same ordinary ZIP-upload client also passed on live GitHub Pages, with
+each reported service reached and `INSTALLER APIS PASS`, exit code zero:
+`evidence/installer-apis-live-browser-results.json`.

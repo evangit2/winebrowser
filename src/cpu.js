@@ -38,6 +38,7 @@ export class CPU {
       x87ModuleUrl,
       x87WasmUrl,
       performanceCounter,
+      translationClock = () => performance.now(),
     },
   ) {
     if (typeof SharedArrayBuffer !== 'undefined' && memory.buffer instanceof SharedArrayBuffer)
@@ -96,6 +97,8 @@ export class CPU {
     // Total blocks compiled over the run; compared with cache.size it reveals
     // translation-cache eviction pressure on large/packed images.
     this.compilations = 0;
+    this.translationMs = 0;
+    this.translationClock = translationClock;
     this.instructions = 0;
     // A small ring of the most recent block entry IPs. It costs one array
     // store per dispatch and lets an unhandled guest fault report the path that
@@ -681,6 +684,16 @@ export class CPU {
     ][c];
   }
   compile(ip, conservativeWritable = false) {
+    const started = this.translationClock();
+    try {
+      return this.#compileBlock(ip, conservativeWritable);
+    } finally {
+      // Includes decoding, lowering, Wasm validation/instantiation and failed
+      // attempts. Cache hits and guest execution never enter this timer.
+      this.translationMs += this.translationClock() - started;
+    }
+  }
+  #compileBlock(ip, conservativeWritable = false) {
     const {
       Decoder,
       DecoderOptions,
@@ -1504,7 +1517,8 @@ export class CPU {
     } catch (error) {
       // A decrypting store may replace garbage or unsupported bytes ahead.
       // Fall back to ending at its first write before decoding those bytes.
-      if (range[2] && sawWritableStore && !conservativeWritable) return this.compile(ip, true);
+      if (range[2] && sawWritableStore && !conservativeWritable)
+        return this.#compileBlock(ip, true);
       throw Error(`x86 block 0x${ip.toString(16)}: ${error.message}`);
     } finally {
       d.free();

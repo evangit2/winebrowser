@@ -145,8 +145,9 @@ function createWorker() {
     if (message.type === 'audio-stream-stop') soundStream.stop();
     if (message.type === 'progress') {
       $('metrics').dataset.blocks = String(message.blocks);
+      $('metrics').dataset.translationMs = String(message.x86TranslationMs);
       $('metrics').textContent =
-        `${message.compiledBlocks} Wasm blocks · ${message.blocks} dispatches · ${message.instructions} x86 instructions · ${message.apiCalls} API calls`;
+        `${message.compiledBlocks} Wasm blocks · ${message.x86TranslationMs.toFixed(1)} ms x86 translation · ${message.instructions} x86 instructions · ${message.apiCalls} API calls`;
     }
     if (message.type === 'error') {
       stopAudio(false);
@@ -274,7 +275,7 @@ function createWorker() {
       window.__lastRun = message;
       status(`Exited with code ${message.exitCode}`, 'EXITED');
       $('metrics').textContent =
-        `${message.compiledBlocks} Wasm blocks · ${message.instructions} x86 instructions · ${message.apiCalls} API calls · ${message.elapsedMs.toFixed(1)} ms`;
+        `${message.compiledBlocks} Wasm blocks · ${message.x86TranslationMs.toFixed(1)} ms x86 translation · ${message.instructions} x86 instructions · ${message.apiCalls} API calls · ${message.elapsedMs.toFixed(1)} ms total`;
       $('outputs').replaceChildren();
       for (const output of message.outputs) {
         const link = document.createElement('a');

@@ -364,6 +364,8 @@ export class Runtime {
             type: 'progress',
             blocks: this.blocks,
             compiledBlocks: this.cpu.cache.size,
+            totalCompiledBlocks: this.cpu.compilations,
+            x86TranslationMs: this.cpu.translationMs,
             instructions: this.cpu.instructions,
             apiCalls: this.calls,
           });
@@ -853,6 +855,8 @@ export class Runtime {
       blocks: this.blocks,
       instructions: this.cpu.instructions,
       compiledBlocks: this.cpu.cache.size,
+      totalCompiledBlocks: this.cpu.compilations,
+      x86TranslationMs: this.cpu.translationMs,
       wasmBytes: this.cpu.compiledBytes,
       apiCalls: this.calls,
       elapsedMs: performance.now() - started,

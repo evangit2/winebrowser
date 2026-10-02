@@ -1,13 +1,10 @@
 {
-  "date": "2026-10-02T20:06:13.191Z",
-  "url": "http://127.0.0.1:4197/winebrowser/",
+  "date": "2026-10-02T19:58:44.274Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "scope": "Authored unchanged PE32 installer-service client uploaded as ZIP; not acceptance of the proprietary ATI installer",
   "exitCode": 0,
   "compiledBlocks": 192,
-  "totalCompiledBlocks": 192,
-  "x86TranslationMs": 147.25000002235174,
-  "elapsedMs": 334.25999999791384,
   "instructions": 1780,
   "apiNames": [
     "kernel32.dll!LoadLibraryA",

@@ -4,6 +4,19 @@ WineBrowser translates the uploaded program's x86 blocks to WebAssembly during
 execution in the browser worker. Its guest shaders compile there as well.
 That does not imply the program reaches its first frame in a few seconds.
 
+Progress and final results expose `x86TranslationMs`: cumulative time decoding
+and lowering x86 blocks, validating and instantiating their Wasm, including
+failed attempts. It excludes guest execution, cache hits, shader compilation
+and downloads. Engine background optimization is outside this synchronous
+measurement. `totalCompiledBlocks` includes blocks later invalidated or evicted;
+`compiledBlocks` is the number currently cached.
+
+An ordinary headed Chromium 153 run measured Dynamic Branching at 9.22–9.32
+seconds of x86 translation over 67.7–68.1 seconds through clean exit, with
+first frames at 60.5–61.0 seconds. The compiler cost is substantial but is
+only part of that elapsed time. See
+`evidence/humus-translation-timing-browser-results.json`.
+
 On October 2, ordinary headed Chromium 153, without unsafe WebGPU flags, passed
 both catalog ZIP and uploaded ZIP paths for the unchanged Humus Dynamic Branching
 and RollerCoaster demos. Dynamic Branching reached frames after 60.6–61.8 seconds;

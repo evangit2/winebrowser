@@ -188,6 +188,9 @@ try {
       exitCode: result.exitCode,
       instructions: result.instructions,
       compiledBlocks: result.compiledBlocks,
+      totalCompiledBlocks: result.totalCompiledBlocks,
+      x86TranslationMs: result.x86TranslationMs,
+      elapsedMs: result.elapsedMs,
       apiCalls: result.apiCalls,
     };
   };

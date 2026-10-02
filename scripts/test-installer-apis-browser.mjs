@@ -96,6 +96,8 @@ try {
   ])
     assert.ok(names.has(name), name);
   assert.ok(result.compiledBlocks > 0 && result.instructions > 0);
+  assert.ok(result.x86TranslationMs > 0 && result.x86TranslationMs < result.elapsedMs);
+  assert.ok(result.totalCompiledBlocks >= result.compiledBlocks);
   assert.deepEqual(errors, []);
   const report = {
     date: new Date().toISOString(),
@@ -105,6 +107,9 @@ try {
       'Authored unchanged PE32 installer-service client uploaded as ZIP; not acceptance of the proprietary ATI installer',
     exitCode: result.exitCode,
     compiledBlocks: result.compiledBlocks,
+    totalCompiledBlocks: result.totalCompiledBlocks,
+    x86TranslationMs: result.x86TranslationMs,
+    elapsedMs: result.elapsedMs,
     instructions: result.instructions,
     apiNames: result.apiNames,
     output: await page.locator('#output').textContent(),
