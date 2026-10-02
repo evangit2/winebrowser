@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T04:17:17.070Z",
+  "date": "2026-10-02T05:11:42.422Z",
   "browser": "154.0.8037.97",
   "pixels": [
     [
@@ -91,6 +91,34 @@
       255
     ]
   ],
+  "cubePixels": [
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      0,
+      0,
+      255,
+      255
+    ]
+  ],
+  "combinedDepthPixels": [
+    [
+      255,
+      0,
+      0,
+      255
+    ],
+    [
+      255,
+      0,
+      0,
+      255
+    ]
+  ],
   "errors": [],
   "descriptors": [
     {
@@ -107,5 +135,5 @@
       "binding": 0
     }
   ],
-  "scope": "Browser-compiled SM4 shaders sampling 3D slices and BC4/BC5 UNORM/SNORM textures and mip chains through successive pipelines"
+  "scope": "Browser-compiled SM4 shaders sampling 3D slices and BC4/BC5 UNORM/SNORM textures and mip/cube chains through successive pipelines"
 }

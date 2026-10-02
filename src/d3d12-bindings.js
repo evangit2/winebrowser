@@ -330,7 +330,11 @@ function resourceBindingLayout(descriptor) {
   return {
     texture: {
       sampleType: sampleTypeFor(descriptor.dataType),
-      ...(descriptor.resourceType === RESOURCE_TEXTURE_3D ? { viewDimension: '3d' } : {}),
+      ...(descriptor.resourceType === RESOURCE_TEXTURE_3D
+        ? { viewDimension: '3d' }
+        : descriptor.resourceType === RESOURCE_TEXTURE_CUBE
+          ? { viewDimension: 'cube' }
+          : {}),
     },
   };
 }

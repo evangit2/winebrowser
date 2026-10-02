@@ -346,6 +346,7 @@ export class D3D12Renderer {
     height,
     depth = 1,
     dimension = '2d',
+    arrayLayers = 1,
     format,
     mipLevelCount = 1,
   }) {
@@ -359,6 +360,8 @@ export class D3D12Renderer {
       !integer(depth, 1, 2048) ||
       !['2d', '3d'].includes(dimension) ||
       (dimension === '2d' && depth !== 1) ||
+      !integer(arrayLayers, 1, 6) ||
+      (arrayLayers !== 1 && (dimension !== '2d' || kind !== 'texture')) ||
       (dimension === '3d' && (kind !== 'texture' || COMPRESSED_FORMATS.includes(format))) ||
       !integer(
         mipLevelCount,
@@ -380,7 +383,7 @@ export class D3D12Renderer {
     // a shader, so it needs both a copy destination and a binding usage.
     const texture = this.device.createTexture({
       label: `D3D12 ${kind} resource`,
-      size: [width, height, depth],
+      size: [width, height, dimension === '3d' ? depth : arrayLayers],
       dimension,
       mipLevelCount,
       format,
@@ -407,6 +410,7 @@ export class D3D12Renderer {
       depth,
       dimension,
       mipLevelCount,
+      arrayLayers,
       format,
       texture,
     });
@@ -727,7 +731,10 @@ export class D3D12Renderer {
           resource.kind !== 'depth' ||
           !finite(command.depth) ||
           command.depth < 0 ||
-          command.depth > 1
+          command.depth > 1 ||
+          (command.clearDepth !== undefined && typeof command.clearDepth !== 'boolean') ||
+          (command.clearStencil &&
+            (!resource.format.includes('stencil') || !integer(command.stencil, 0, 255)))
         )
           throw Error('Invalid D3D12 depth clear');
         continue;
@@ -949,10 +956,12 @@ export class D3D12Renderer {
     try {
       const encoder = this.device.createCommandEncoder();
       for (const command of commands) {
-        const { texture } = this.resources.get(command.target);
+        const resource = this.resources.get(command.target);
+        const { texture } = resource;
         const clear = command.type === 'clear';
         const clearDepth = command.type === 'clear-depth';
-        const depth = clearDepth ? texture : this.resources.get(command.depthTarget)?.texture;
+        const depthResource = clearDepth ? resource : this.resources.get(command.depthTarget);
+        const depth = depthResource?.texture;
         const pass = encoder.beginRenderPass({
           colorAttachments: clearDepth
             ? []
@@ -968,9 +977,16 @@ export class D3D12Renderer {
             ? {
                 depthStencilAttachment: {
                   view: depth.createView(),
-                  depthLoadOp: clearDepth ? 'clear' : 'load',
+                  depthLoadOp: clearDepth && command.clearDepth !== false ? 'clear' : 'load',
                   depthStoreOp: 'store',
                   depthClearValue: clearDepth ? command.depth : 1,
+                  ...(depthResource.format.includes('stencil')
+                    ? {
+                        stencilLoadOp: command.clearStencil ? 'clear' : 'load',
+                        stencilStoreOp: 'store',
+                        stencilClearValue: command.clearStencil ? command.stencil : 0,
+                      }
+                    : {}),
                 },
               }
             : {}),
@@ -1122,6 +1138,7 @@ export class D3D12Renderer {
     height,
     depth = 1,
     mipLevel = 0,
+    arrayLayer = 0,
     bytesPerRow,
     rowsPerImage,
     rows,
@@ -1134,6 +1151,7 @@ export class D3D12Renderer {
       !(rows instanceof Uint8Array) ||
       !integer(bytesPerRow, 1, 0x7fffffff) ||
       !integer(mipLevel, 0, (resource.mipLevelCount ?? 1) - 1) ||
+      !integer(arrayLayer, 0, (resource.arrayLayers ?? 1) - 1) ||
       !integer(width, 1, Math.max(1, resource.width >> mipLevel)) ||
       !integer(height, 1, Math.max(1, resource.height >> mipLevel)) ||
       !integer(depth, 1, resource.depth ?? 1)
@@ -1154,7 +1172,7 @@ export class D3D12Renderer {
       (depth - 1) * rowsPerImage * bytesPerRow + (rowCount - 1) * bytesPerRow + rowBytes;
     if (rows.length < byteLength) throw Error('D3D12 texture upload covers too few rows');
     this.device.queue.writeTexture(
-      { texture: resource.texture, mipLevel },
+      { texture: resource.texture, mipLevel, origin: [0, 0, arrayLayer] },
       rows.subarray(0, byteLength),
       { bytesPerRow, rowsPerImage },
       compressed
@@ -1170,18 +1188,19 @@ export class D3D12Renderer {
       return null;
     const baseMipLevel = descriptor.baseMipLevel ?? 0;
     const mipLevelCount = descriptor.mipLevelCount ?? resource.mipLevelCount ?? 1;
-    const key = `${descriptor.resource.pointer}:${descriptor.format ?? resource.format}:${baseMipLevel}:${mipLevelCount}`;
+    const dimension = descriptor.viewDimension === 9 ? 'cube' : (resource.dimension ?? '2d');
+    const key = `${descriptor.resource.pointer}:${descriptor.format ?? resource.format}:${dimension}:${baseMipLevel}:${mipLevelCount}`;
     this.textureViews ??= new Map();
     let view = this.textureViews.get(key);
     if (!view) {
-      view = resource.texture.createView({ baseMipLevel, mipLevelCount });
+      view = resource.texture.createView({ dimension, baseMipLevel, mipLevelCount });
       this.textureViews.set(key, view);
     }
     return {
       layout: {
         texture: {
           sampleType: sampleTypeForFormat(resource.format),
-          viewDimension: resource.dimension ?? '2d',
+          viewDimension: dimension,
         },
       },
       resource: view,

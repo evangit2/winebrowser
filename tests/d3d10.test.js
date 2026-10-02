@@ -869,3 +869,40 @@ test('D3D10 mip chains preserve independent pitches, descriptors and SRV mip ran
   r.write32(initial + 16, 4); // second mip row needs eight bytes
   assert.equal((await call(device, 73, desc, initial, out)).result, 0x80070057);
 });
+
+test('D3D10 cube faces keep slice-major mip order and the native cube descriptor', async () => {
+  const { runtime: r, api, alloc, call, events } = fixture();
+  const out = alloc(4);
+  await api('D3D10CreateDevice', 0, 0, 0, 0, 29, out);
+  const device = r.read32(out),
+    desc = alloc(44),
+    initial = alloc(12 * 12);
+  [2, 2, 2, 6, 28, 1, 0, 1, 8, 0, 4].forEach((v, i) => r.write32(desc + i * 4, v));
+  for (let face = 0; face < 6; face++)
+    for (let mip = 0; mip < 2; mip++) {
+      const size = mip ? 4 : 16,
+        bytes = alloc(size),
+        at = initial + (face * 2 + mip) * 12;
+      r.data.fill(face * 2 + mip + 1, bytes, bytes + size);
+      [bytes, mip ? 4 : 8, 0].forEach((v, i) => r.write32(at + i * 4, v));
+    }
+  assert.equal((await call(device, 73, desc, initial, out)).result, 0);
+  const texture = r.read32(out);
+  assert.equal(events.find((e) => e.type === 'resource').arrayLayers, 6);
+  const uploads = events.filter((e) => e.type === 'uploadTexture');
+  assert.deepEqual(
+    uploads.map((e) => [e.arrayLayer, e.mipLevel]),
+    Array.from({ length: 12 }, (_, i) => [i >> 1, i % 2]),
+  );
+  uploads.forEach((e, i) => assert.ok(e.rows.every((v) => v === i + 1)));
+  const returned = alloc(44);
+  await call(texture, 12, returned);
+  assert.equal(r.read32(returned + 12), 6);
+  assert.equal(r.read32(returned + 40), 4);
+  assert.equal((await call(device, 75, texture, 0, out)).result, 0);
+  await call(r.read32(out), 8, returned);
+  assert.equal(r.read32(returned + 4), 9);
+  assert.equal(r.read32(returned + 12), 2);
+  r.write32(desc + 12, 5);
+  assert.equal((await call(device, 73, desc, initial, out)).result, 0x80070057);
+});

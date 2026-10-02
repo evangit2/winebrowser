@@ -260,15 +260,172 @@ try {
     await renderer.present({ id: 1, index: 0 });
     const mipPixels = pixels.slice(-2);
     renderer.destroyResource({ id: 8 });
+
+    const { bytes: cubePixel } = await renderer.compiler.compileHLSL(
+      encode(
+        'TextureCube<float4> tex : register(t0); SamplerState smp : register(s0); float4 main(float4 p : SV_Position) : SV_Target { return tex.SampleLevel(smp, p.x < 32.0 ? float3(1,0,0) : float3(0,0,1), 1.0); }',
+      ),
+      'main',
+      'ps_4_0',
+    );
+    const cubePlan = await renderer.planD3D10Bindings(vertex, cubePixel);
+    await renderer.createPipeline({
+      id: 11,
+      vertex,
+      pixel: cubePixel,
+      stagePlan: cubePlan,
+      inputLayout: [{ semanticName: 'POSITION', semanticIndex: 0, offset: 0, format: 'float32x4' }],
+      vertexStride: 16,
+    });
+    await renderer.createResource({
+      id: 10,
+      kind: 'texture',
+      width: 2,
+      height: 2,
+      format: 'rgba8unorm',
+      arrayLayers: 6,
+      mipLevelCount: 2,
+    });
+    for (let arrayLayer = 0; arrayLayer < 6; arrayLayer++)
+      for (let mipLevel = 0; mipLevel < 2; mipLevel++) {
+        const width = 2 >> mipLevel;
+        const color =
+          arrayLayer === 0
+            ? [255, 0, 0, 255]
+            : arrayLayer === 4
+              ? [0, 0, 255, 255]
+              : [0, 255, 0, 255];
+        await renderer.uploadTexture({
+          id: 10,
+          arrayLayer,
+          mipLevel,
+          width,
+          height: width,
+          bytesPerRow: width * 4,
+          rows: Uint8Array.from({ length: width * width * 4 }, (_, i) => color[i % 4]),
+        });
+      }
+    await renderer.execute({
+      commands: [
+        {
+          type: 'draw',
+          target: 2,
+          pipeline: 11,
+          bindings: cubePlan.bindings.map((b) =>
+            b.type === 0
+              ? {
+                  group: b.group,
+                  binding: b.binding,
+                  type: 0,
+                  kind: 'texture-view',
+                  descriptor: { resource: { pointer: 10 }, viewDimension: 9 },
+                }
+              : {
+                  group: b.group,
+                  binding: b.binding,
+                  type: 3,
+                  kind: 'sampler',
+                  sampler: { filter: 0, addressU: 3, addressV: 3, addressW: 3, comparison: false },
+                },
+          ),
+          vertices: new Uint8Array(
+            new Float32Array([-1, -1, 0, 1, 3, -1, 0, 1, -1, 3, 0, 1]).buffer,
+          ),
+          vertexStride: 16,
+          vertexCount: 3,
+          instanceCount: 1,
+          firstVertex: 0,
+          firstInstance: 0,
+          viewport: { x: 0, y: 0, width: 64, height: 64, minDepth: 0, maxDepth: 1 },
+          scissor: { left: 0, top: 0, right: 64, bottom: 64 },
+          depthTarget: 0,
+        },
+      ],
+    });
+    await renderer.present({ id: 1, index: 0 });
+    const cubePixels = pixels.slice(-2);
+    renderer.destroyResource({ id: 10 });
+
+    const { bytes: depthPixel } = await renderer.compiler.compileHLSL(
+      encode(
+        'float4 main(float4 p : SV_Position) : SV_Target { return p.z < 0.5 ? float4(1,0,0,1) : float4(0,0,1,1); }',
+      ),
+      'main',
+      'ps_4_0',
+    );
+    const depthPlan = await renderer.planD3D10Bindings(vertex, depthPixel);
+    await renderer.createResource({
+      id: 12,
+      kind: 'depth',
+      width: 64,
+      height: 64,
+      format: 'depth24plus-stencil8',
+    });
+    await renderer.createPipeline({
+      id: 13,
+      vertex,
+      pixel: depthPixel,
+      stagePlan: depthPlan,
+      inputLayout: [{ semanticName: 'POSITION', semanticIndex: 0, offset: 0, format: 'float32x4' }],
+      vertexStride: 16,
+      depth: {
+        format: 'depth24plus-stencil8',
+        testEnabled: true,
+        writeEnabled: true,
+        compare: 'less',
+      },
+    });
+    const depthDraw = (z) => ({
+      type: 'draw',
+      target: 2,
+      pipeline: 13,
+      bindings: [],
+      depthTarget: 12,
+      vertices: new Uint8Array(new Float32Array([-1, -1, z, 1, 3, -1, z, 1, -1, 3, z, 1]).buffer),
+      vertexStride: 16,
+      vertexCount: 3,
+      instanceCount: 1,
+      firstVertex: 0,
+      firstInstance: 0,
+      viewport: { x: 0, y: 0, width: 64, height: 64, minDepth: 0, maxDepth: 1 },
+      scissor: { left: 0, top: 0, right: 64, bottom: 64 },
+    });
+    await renderer.execute({
+      commands: [
+        {
+          type: 'clear-depth',
+          target: 12,
+          depth: 1,
+          clearDepth: true,
+          clearStencil: true,
+          stencil: 7,
+        },
+        depthDraw(0.25),
+        {
+          type: 'clear-depth',
+          target: 12,
+          depth: 1,
+          clearDepth: false,
+          clearStencil: true,
+          stencil: 3,
+        },
+        depthDraw(0.75),
+      ],
+    });
+    await renderer.present({ id: 1, index: 0 });
+    const combinedDepthPixels = pixels.slice(-2);
+    renderer.destroyResource({ id: 12 });
     renderer.destroyResource({ id: 4 });
     return {
       pixels: pixels.slice(0, 2),
       compressionCases,
       mipPixels,
+      cubePixels,
+      combinedDepthPixels,
       errors,
       descriptors: stagePlan.bindings,
       scope:
-        'Browser-compiled SM4 shaders sampling 3D slices and BC4/BC5 UNORM/SNORM textures and mip chains through successive pipelines',
+        'Browser-compiled SM4 shaders sampling 3D slices and BC4/BC5 UNORM/SNORM textures and mip/cube chains through successive pipelines',
     };
   });
   assert.deepEqual(report.pixels, [
@@ -276,6 +433,14 @@ try {
     [0, 0, 255, 255],
   ]);
   assert.deepEqual(report.errors, []);
+  assert.deepEqual(report.combinedDepthPixels, [
+    [255, 0, 0, 255],
+    [255, 0, 0, 255],
+  ]);
+  assert.deepEqual(report.cubePixels, [
+    [255, 0, 0, 255],
+    [0, 0, 255, 255],
+  ]);
   assert.deepEqual(report.mipPixels, [
     [0, 255, 0, 255],
     [0, 0, 255, 255],

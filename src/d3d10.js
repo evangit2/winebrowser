@@ -649,12 +649,13 @@ function texture2dMethods() {
         r.write32(out, o.state.width);
         r.write32(out + 4, o.state.height);
         r.write32(out + 8, o.state.mipLevels ?? 1); // MipLevels
-        r.write32(out + 12, 1); // ArraySize
+        r.write32(out + 12, o.state.arraySize ?? 1); // ArraySize
         r.write32(out + 16, o.state.format);
         r.write32(out + 20, 1); // SampleDesc.Count
         r.write32(out + 28, o.state.usage);
         r.write32(out + 32, o.state.bindFlags);
         r.write32(out + 36, o.state.cpuAccess);
+        r.write32(out + 40, o.state.miscFlags ?? 0);
         return undefined;
       },
     },
@@ -1263,6 +1264,9 @@ function texture2dParse(r, a) {
     height = u32(r, desc, 4);
   const maxMips = 1 + Math.floor(Math.log2(Math.max(width, height)));
   const mipLevels = u32(r, desc, 8) || maxMips;
+  const arraySize = u32(r, desc, 12),
+    miscFlags = u32(r, desc, 40);
+  const cube = miscFlags === 4 && arraySize === 6 && width === height;
   const format = u32(r, desc, 16);
   const usage = u32(r, desc, 28);
   const bindFlags = u32(r, desc, 32);
@@ -1273,13 +1277,12 @@ function texture2dParse(r, a) {
     width > 2048 ||
     height > 2048 ||
     mipLevels > maxMips ||
-    u32(r, desc, 12) !== 1 ||
+    (cube ? false : arraySize !== 1 || miscFlags !== 0) ||
     u32(r, desc, 20) !== 1 ||
     u32(r, desc, 24) ||
     usage > USAGE_STAGING ||
     bindFlags & ~BIND_MASK ||
-    cpuAccess & ~CPU_ACCESS ||
-    u32(r, desc, 40)
+    cpuAccess & ~CPU_ACCESS
   )
     return E_INVALIDARG;
   const depthBound = !!(bindFlags & BIND.DEPTH);
@@ -1301,43 +1304,46 @@ function texture2dParse(r, a) {
       : SHADER_RESOURCE_FORMATS;
   if (!allowed[format]) return E_INVALIDARG;
   // CPU-mapped and attachment resources retain their single-subresource path.
-  if (mipLevels > 1 && (kind !== 'texture' || cpuAccess)) return E_INVALIDARG;
+  if ((mipLevels > 1 || cube) && (kind !== 'texture' || cpuAccess)) return E_INVALIDARG;
   const initial = number(a(2));
   if (usage === USAGE_IMMUTABLE && !initial) return E_INVALIDARG;
-  if (initial) r.check(initial, mipLevels * 12);
+  if (initial) r.check(initial, mipLevels * arraySize * 12);
   // A block-compressed texture's guest storage holds the blocks themselves, so
   // its size follows the block footprint rather than the pixel count. It is
   // also the shape the backend uploads.
   const compressed = !depthBound && !renderBound && isCompressedFormat(format);
   const subresources = [];
   let storageBytes = 0;
-  for (let mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
-    const w = Math.max(1, width >> mipLevel),
-      h = Math.max(1, height >> mipLevel);
-    const rowBytes = compressed ? Math.ceil(w / 4) * compressedBytesPerBlock(format) : w * 4;
-    const rowCount = compressed ? Math.ceil(h / 4) : h;
-    const size = rowBytes * rowCount;
-    let source = 0,
-      sourcePitch = rowBytes;
-    if (initial) {
-      source = u32(r, initial, mipLevel * 12);
-      sourcePitch = u32(r, initial, mipLevel * 12 + 4);
-      if (!source || sourcePitch < rowBytes) return E_INVALIDARG;
-      r.check(source, (rowCount - 1) * sourcePitch + rowBytes);
+  for (let arrayLayer = 0; arrayLayer < arraySize; arrayLayer++)
+    for (let mipLevel = 0; mipLevel < mipLevels; mipLevel++) {
+      const subresource = arrayLayer * mipLevels + mipLevel;
+      const w = Math.max(1, width >> mipLevel),
+        h = Math.max(1, height >> mipLevel);
+      const rowBytes = compressed ? Math.ceil(w / 4) * compressedBytesPerBlock(format) : w * 4;
+      const rowCount = compressed ? Math.ceil(h / 4) : h;
+      const size = rowBytes * rowCount;
+      let source = 0,
+        sourcePitch = rowBytes;
+      if (initial) {
+        source = u32(r, initial, subresource * 12);
+        sourcePitch = u32(r, initial, subresource * 12 + 4);
+        if (!source || sourcePitch < rowBytes) return E_INVALIDARG;
+        r.check(source, (rowCount - 1) * sourcePitch + rowBytes);
+      }
+      subresources.push({
+        mipLevel,
+        arrayLayer,
+        width: w,
+        height: h,
+        rowBytes,
+        rowCount,
+        size,
+        offset: storageBytes,
+        source,
+        sourcePitch,
+      });
+      storageBytes += size;
     }
-    subresources.push({
-      mipLevel,
-      width: w,
-      height: h,
-      rowBytes,
-      rowCount,
-      size,
-      offset: storageBytes,
-      source,
-      sourcePitch,
-    });
-    storageBytes += size;
-  }
   if (storageBytes > MAX_RESOURCE_BYTES) return E_INVALIDARG;
   const storage = r.allocate(storageBytes);
   for (const sub of subresources)
@@ -1353,6 +1359,9 @@ function texture2dParse(r, a) {
     width,
     height,
     mipLevels,
+    arraySize,
+    miscFlags,
+    cube,
     subresources,
     format,
     usage,
@@ -1370,6 +1379,7 @@ function texture2dParse(r, a) {
         width,
         height,
         mipLevelCount: mipLevels,
+        ...(arraySize > 1 ? { arrayLayers: arraySize } : {}),
         format: allowed[format],
       });
       // A texture the caller supplied bytes for is uploaded straight into the
@@ -1380,6 +1390,7 @@ function texture2dParse(r, a) {
           await requireBackend(r).uploadTexture({
             id: item.pointer,
             mipLevel: sub.mipLevel,
+            arrayLayer: sub.arrayLayer,
             width: sub.width,
             height: sub.height,
             bytesPerRow: sub.rowBytes,
@@ -1539,7 +1550,11 @@ function viewParse(r, a, device, viewKind) {
   const desc = number(a(2));
   const volume = resource.name === name.texture3d;
   if (volume && viewKind !== 'shaderResourceView') return E_INVALIDARG;
-  let dimension = volume ? 8 : DEFAULT_VIEW_DIMENSION[viewKind];
+  let dimension = volume
+    ? 8
+    : resource.state.cube && viewKind === 'shaderResourceView'
+      ? 9
+      : DEFAULT_VIEW_DIMENSION[viewKind];
   let baseMipLevel = 0,
     mipLevelCount = resource.state.mipLevels ?? 1;
   if (desc) {
@@ -1562,7 +1577,7 @@ function viewParse(r, a, device, viewKind) {
     // and may hold anything, so they are deliberately not read.
     dimension = u32(r, desc, 4);
     if (viewKind === 'shaderResourceView') {
-      if ((volume && dimension !== 8) || (!volume && dimension !== 4)) return E_INVALIDARG;
+      if (dimension !== (volume ? 8 : resource.state.cube ? 9 : 4)) return E_INVALIDARG;
       baseMipLevel = u32(r, desc, 8);
       const count = u32(r, desc, 12);
       mipLevelCount = count === 0xffffffff ? (resource.state.mipLevels ?? 1) - baseMipLevel : count;
@@ -2050,17 +2065,22 @@ function deviceMethods() {
       invoke(r, a, o) {
         const view = object(r, a(1), 'depthStencilView', o);
         const flags = number(a(2));
-        if (!(flags & CLEAR_DEPTH) || flags & ~(CLEAR_DEPTH | CLEAR_STENCIL))
+        if (!flags || flags & ~(CLEAR_DEPTH | CLEAR_STENCIL))
           throw Error('Unsupported D3D10 clear flags');
         // Depth is a FLOAT passed by value, so the stack word *is* the bit
         // pattern; interference with a pointer would read guest memory.
         const depth = bitsToFloat(a(3));
-        if (!Number.isFinite(depth) || depth < 0 || depth > 1)
+        if (flags & CLEAR_DEPTH && (!Number.isFinite(depth) || depth < 0 || depth > 1))
           throw Error('Unsupported D3D10 depth clear value');
+        if (flags & CLEAR_STENCIL && ![20, 45].includes(view.state.resource.state.format))
+          throw Error('D3D10 stencil clear requires a stencil attachment');
         return submit(r, {
           type: 'clear-depth',
           target: view.state.resource.pointer,
-          depth,
+          depth: flags & CLEAR_DEPTH ? depth : 1,
+          clearDepth: !!(flags & CLEAR_DEPTH),
+          clearStencil: !!(flags & CLEAR_STENCIL),
+          stencil: number(a(4)) & 0xff,
         });
       },
     },

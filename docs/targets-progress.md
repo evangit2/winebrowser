@@ -123,3 +123,19 @@ bounded address space and allocation-size limits still apply. Tests exhaust the
 initial arena, verify readable/writable expanded allocations, protect a separate
 native reservation from overlap and reuse freed blocks. Inferno reaches its
 six-face, ten-level cube-map request after this change.
+
+Sampled D3D10 cube textures preserve all six faces in native slice-major mip
+order. Texture creation, GetDesc and default/explicit cube SRVs retain the array
+size, cube flag and mip range. The shared WebGPU renderer allocates six layers,
+uploads each face/level and binds a true cube view with a dimension-specific
+shader layout. The browser test reads exact red and blue pixels from +X/+Z at
+mip 1. Inferno passes its 512x512 six-face ten-mip environment map.
+
+Combined depth-stencil render passes now specify stencil load/store operations
+as WebGPU requires, even for a depth-only clear. D3D10 depth, stencil and combined
+clear flags reach the attachment. A browser regression draws nearer red geometry,
+clears only stencil, then proves farther blue geometry stays occluded: the clear
+preserves depth. Inferno now clears its attachment and proceeds into frame setup,
+where it has a null guest pointer at inferno.exe+0x6130. It still has no frames.
+785 unit tests, the extended volume/BC/mip/cube/depth browser regression and the
+production build pass.

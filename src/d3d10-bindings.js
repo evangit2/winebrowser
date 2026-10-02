@@ -30,6 +30,7 @@ import {
   DEFAULT_LIMITS,
   RESOURCE_BUFFER,
   RESOURCE_TEXTURE_3D,
+  RESOURCE_TEXTURE_CUBE,
   SAMPLER_GROUP,
   UAV_GROUP,
 } from './d3d12-bindings.js';
@@ -167,7 +168,11 @@ function resourceBindingLayout(descriptor) {
   return {
     texture: {
       sampleType: sampleTypeFor(descriptor.dataType),
-      ...(descriptor.resourceType === RESOURCE_TEXTURE_3D ? { viewDimension: '3d' } : {}),
+      ...(descriptor.resourceType === RESOURCE_TEXTURE_3D
+        ? { viewDimension: '3d' }
+        : descriptor.resourceType === RESOURCE_TEXTURE_CUBE
+          ? { viewDimension: 'cube' }
+          : {}),
     },
   };
 }
