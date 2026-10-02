@@ -656,3 +656,21 @@ actually executed.
       and the hosted ZIP and requires a lit, shaded, animating frame and a clean
       exit; `npm run test:d3d10-backend` compiles the real SM4 DXBC through the
       shared bridge.
+
+## Vulkan upload milestone (2026-10-02)
+
+- [x] Pin and build the free Apache-2.0 Khronos Vulkan-Tools cube for Windows
+      x86, preserving its original scene, embedded texture and SPIR-V shaders.
+- [x] Implement a reusable bounded Vulkan 1.0/Win32 frontend with shader
+      compilation, memory, descriptors, pipelines, commands, swapchain
+      presentation and native teardown through the worker WebGPU device.
+- [x] Verify ordinary EXE and ZIP uploads, hosted catalog loading and the
+      upstream staging-buffer path, with actual textured/animated cube pixels
+      and native exit zero. Repeat through explicit readback presentation.
+- [x] Add the demo source/license downloads and executable regression to the
+      GitHub Pages build workflow.
+
+Scope and reproduction: [Vulkan runtime](docs/vulkan-runtime.md).
+Evidence: [native uploads](evidence/vulkan-browser-results.json) and
+[readback presentation](evidence/vulkan-readback-results.json).
+This does not establish x64 or arbitrary Vulkan-program compatibility.
