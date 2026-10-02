@@ -1255,7 +1255,7 @@
       "name": "kernel32.dll",
       "path": "@runtime/kernel32.dll",
       "provider": "bundled Wine source Windows x86 code",
-      "sha256": "25d932218b7b275dc52e9cb9715fa066aec033512ee59148a4c60b7180c2301c",
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f",
       "imports": [
         {
           "dll": "kernelbase.dll",
@@ -4963,14 +4963,14 @@
       "name": "ntdll.dll",
       "path": "@runtime/ntdll.dll",
       "provider": "bundled Wine source Windows x86 code",
-      "sha256": "97bbb844ae38b9f398598d8980f604bfd4f79931d6b1fdfde7af6340c5e35a43",
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd",
       "imports": []
     },
     {
       "name": "ucrtbase.dll",
       "path": "@runtime/ucrtbase.dll",
       "provider": "bundled Wine source Windows x86 code",
-      "sha256": "7f3298102675e8e4c972453cb658ca887811e7d0d3e6891d133c84caec6b66b6",
+      "sha256": "f869a2cdec3acdd2d747dea1324ad354a5d4ac20674d1e5ae1b5ad216ace99e0",
       "imports": [
         {
           "dll": "kernel32.dll",
@@ -5588,7 +5588,7 @@
       "name": "kernelbase.dll",
       "path": "@runtime/kernelbase.dll",
       "provider": "bundled Wine source Windows x86 code",
-      "sha256": "cdb90b5d55aa2a799fa42d22c97945973d6622bab2e07222c5d84360e02119ca",
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d",
       "imports": [
         {
           "dll": "ntdll.dll",
