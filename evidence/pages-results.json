@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-03T02:02:39.548Z",
+  "date": "2026-10-03T02:10:11.593Z",
   "url": "http://127.0.0.1:4207/winebrowser/",
   "browser": "154.0.8037.97",
   "capabilities": {
@@ -307,6 +307,15 @@
     },
     {
       "name": "7zip",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "lua",
       "downloads": [
         "exe",
         "zip",
