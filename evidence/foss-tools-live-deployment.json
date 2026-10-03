@@ -1,0 +1,47 @@
+{
+  "verifiedAt": "2026-10-03T02:36:18.245Z",
+  "sourceCommit": "3fb8c5ae21e63b49a925b3da680998236fedb77d",
+  "runUrl": "https://github.com/evangit2/winebrowser/actions/runs/37088380848",
+  "deployment": {
+    "id": 6822151551,
+    "state": "success",
+    "url": "https://evangit2.github.io/winebrowser/",
+    "completedAt": "2026-10-03T02:24:36Z",
+    "logUrl": "https://github.com/evangit2/winebrowser/actions/runs/37088380848/job/111107181986"
+  },
+  "acceptance": {
+    "report": "foss-tools-live-results.json",
+    "runs": 10,
+    "browser": "154.0.8037.97",
+    "ordinary": true,
+    "errors": []
+  },
+  "assetObservation": {
+    "startedAt": "2026-10-03T02:30:16.434Z",
+    "unchangedDuringAcceptance": true,
+    "indexSha256": "9c5f74518512e64a4335521243c4e8c604e1ee36cb66d95ebe9a1a5f0f27a4c5",
+    "assets": [
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/index-BcZ1tSD1.js",
+        "bytes": 35852,
+        "sha256": "c2762ff4fbc33588d2daa5e270613b00de5565b73cf4eb1e998fe70847594fd8"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/index-CJf1-cVE.css",
+        "bytes": 5075,
+        "sha256": "00ff292e71554bba40a71e9054a43eecdbe792718a665e0ae548b6e4723c068e"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/manifest.json",
+        "bytes": 12196,
+        "sha256": "3060faa34be1ec51fb1eecea5812383ee2d31bae632a3d34375c19b01c30c619"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/runtime/wine-base/manifest.json",
+        "bytes": 4884,
+        "sha256": "08a3801a5492f35abfd2c69a43c5b922c67afd523f9912a2a83e8ede8e866671"
+      }
+    ]
+  },
+  "scope": "The deployed descendant includes the FOSS release and its successful CI. Public index, catalog, Wine runtime manifest and referenced top-level assets matched before and after all ten functional checks."
+}

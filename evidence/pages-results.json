@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T01:18:59.604Z",
-  "url": "http://127.0.0.1:4207/winebrowser/",
+  "date": "2026-10-03T01:31:40.326Z",
+  "url": "http://127.0.0.1:4217/winebrowser/",
   "browser": "154.0.8037.97",
   "capabilities": {
     "controlled": true,
@@ -280,6 +280,42 @@
     },
     {
       "name": "sqlite",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "gnu-diff",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "optipng",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "7zip",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "lua",
       "downloads": [
         "exe",
         "zip",

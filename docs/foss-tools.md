@@ -24,6 +24,17 @@ PORT=4217 node scripts/serve-pages.mjs
 WINEBROWSER_TEST_URL=http://127.0.0.1:4217/winebrowser/ npm run test:foss-tools -- --ordinary
 ```
 
+Run the same acceptance against the public deployment in ordinary Chrome:
+
+```sh
+WINEBROWSER_TEST_URL=https://evangit2.github.io/winebrowser/ \
+WINEBROWSER_FOSS_EVIDENCE=evidence/foss-tools-live-results.json \
+WINEBROWSER_FOSS_SCREENSHOT=evidence/foss-tools-live.png \
+npm run test:foss-tools -- --ordinary
+```
+
 The packager verifies every downloaded upstream archive before extraction, preserves the licensed binaries, and builds deterministic ZIPs. The browser gate checks the hosted package pins and normal example selection as well as loose-file uploads. GitHub Actions repeats acceptance against the static Pages build without isolation headers. Its service worker establishes the same isolation used on GitHub Pages.
+
+All ten functional checks passed on the public Pages URL in ordinary Chrome on 2026-10-03 UTC, against deployed commit `3fb8c5ae21e63b49a925b3da680998236fedb77d`. See the [live results](../evidence/foss-tools-live-results.json) for actual modules, APIs, output hashes and process exits, and the [deployment record](../evidence/foss-tools-live-deployment.json) for the successful Actions run and asset hashes observed before and after acceptance. OptiPNG reduced the input from 12,420 to 121 bytes with every decoded pixel preserved; 7-Zip recovered both the 17-byte text and 4,096-byte binary exactly. The preceding FOSS release CI also passed all 939 unit tests and the complete static-hosted browser acceptance suite.
 
 This validates the tested PE32 programs and exercised operations. BusyBox-w32 FRP-6075 was also inspected: its unchanged PE32 release still has unresolved security/crypto and networking imports. It is deliberately absent from the published working catalog. PE32+ x64 programs, general arbitrary DLLs, networking, subprocesses and unexercised APIs are not established by these results. A successful import audit alone is insufficient evidence of application compatibility.
