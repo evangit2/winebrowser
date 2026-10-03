@@ -8,8 +8,7 @@ An experimental **browser-local Windows PE runtime**. Choose one or more EXEs, Z
 
 **Try the [live WineBrowser test harness](https://evangit2.github.io/winebrowser/).** It runs locally in your browser. Use a modern Chromium browser such as Chrome or Edge.
 
-**[Download every demo's EXE and complete ZIP](docs/demo-downloads.md).** The live
-catalog also has EXE and ZIP download links beside every Load button. Compiled
+**[Download every demo's EXE and complete ZIP](docs/demo-downloads.md).** Compiled
 binaries are committed under `public/demos/` and `public/examples/`; the root
 `demos/` directory contains build sources. Use the full ZIP when a program needs
 supporting assets or DLLs.
@@ -17,7 +16,7 @@ supporting assets or DLLs.
 **Native Vulkan uploads run the free Sascha Willems glTF skinning demo.**
 Choose **Load gltfskinning** or upload
 [the complete Windows ZIP](https://evangit2.github.io/winebrowser/examples/gltfskinning/gltfskinning.zip).
-Its [Windows EXE](https://evangit2.github.io/winebrowser/examples/gltfskinning/bin/gltfskinning.exe)
+Its [Windows EXE](public/examples/gltfskinning/bin/gltfskinning.exe)
 is also available separately in `public/examples/gltfskinning/bin/`; running it
 requires the model and shaders from the ZIP.
 The original textured CesiumMan character, skeletal animation and native ImGui

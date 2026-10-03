@@ -15,48 +15,48 @@ CesiumMan model and SPIR-V shaders required to run it.
 
 ## Independent applications and demos
 
-| Demo                      | Executable                                                                                                    | Complete package                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| gnu-diff                  | [EXE](https://evangit2.github.io/winebrowser/examples/gnu-diff/diff.exe)                                      | [ZIP with companion DLLs](https://evangit2.github.io/winebrowser/examples/gnu-diff/gnu-diff.zip)              |
-| optipng                   | [EXE](https://evangit2.github.io/winebrowser/examples/optipng/optipng.exe)                                    | [ZIP](https://evangit2.github.io/winebrowser/examples/optipng/optipng.zip)                                    |
-| 7zip                      | [EXE](https://evangit2.github.io/winebrowser/examples/7zip/7zr.exe)                                           | [ZIP](https://evangit2.github.io/winebrowser/examples/7zip/7zip.zip)                                          |
-| gltfskinning              | [EXE](https://evangit2.github.io/winebrowser/examples/gltfskinning/bin/gltfskinning.exe)                      | [ZIP](https://evangit2.github.io/winebrowser/examples/gltfskinning/gltfskinning.zip)                          |
-| humus-dynamic-branching   | [EXE](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.exe)           | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.zip)           |
-| humus-instancing          | [EXE](https://evangit2.github.io/winebrowser/examples/humus-instancing/Instancing.exe)                        | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-instancing/Instancing.zip)                        |
-| humus-raytraced-shadows   | [EXE](https://evangit2.github.io/winebrowser/examples/humus-raytraced-shadows/RaytracedShadows.exe)           | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-raytraced-shadows/RaytracedShadows.zip)           |
-| humus-rollercoaster       | [EXE](https://evangit2.github.io/winebrowser/examples/humus-rollercoaster/RollerCoaster.exe)                  | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-rollercoaster/RollerCoaster.zip)                  |
-| humus-transparent-shadows | [EXE](https://evangit2.github.io/winebrowser/examples/humus-transparent-shadows/TransparentShadowMapping.exe) | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-transparent-shadows/TransparentShadowMapping.zip) |
-| humus-water               | [EXE](https://evangit2.github.io/winebrowser/examples/humus-water/Water.exe)                                  | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-water/Water.zip)                                  |
-| learning-dx12-cube        | [EXE](https://evangit2.github.io/winebrowser/examples/learning-dx12-cube/Tutorial2.exe)                       | [ZIP](https://evangit2.github.io/winebrowser/examples/learning-dx12-cube/Tutorial2-x86.zip)                   |
-| microsoft-dx12-city       | [EXE](https://evangit2.github.io/winebrowser/examples/microsoft-dx12-city/D3D12Bundles.exe)                   | [ZIP](https://evangit2.github.io/winebrowser/examples/microsoft-dx12-city/D3D12City-x86.zip)                  |
-| sqlite                    | [EXE](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite-client.exe)                               | [ZIP](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite.zip)                                      |
-| tetris                    | [EXE](https://evangit2.github.io/winebrowser/examples/tetris/tetris.exe)                                      | [ZIP](https://evangit2.github.io/winebrowser/examples/tetris/tetris.zip)                                      |
-| vkcube                    | [EXE](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.exe)                                      | [ZIP](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.zip)                                      |
-| lua                       | [EXE](https://evangit2.github.io/winebrowser/examples/lua/lua-client.exe)                                     | [ZIP](https://evangit2.github.io/winebrowser/examples/lua/lua.zip)                                            |
+| Demo                      | Executable                                                                       | Complete package                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| gnu-diff                  | [EXE](../public/examples/gnu-diff/diff.exe)                                      | [ZIP with companion DLLs](../public/examples/gnu-diff/gnu-diff.zip)              |
+| optipng                   | [EXE](../public/examples/optipng/optipng.exe)                                    | [ZIP](../public/examples/optipng/optipng.zip)                                    |
+| 7zip                      | [EXE](../public/examples/7zip/7zr.exe)                                           | [ZIP](../public/examples/7zip/7zip.zip)                                          |
+| gltfskinning              | [EXE](../public/examples/gltfskinning/bin/gltfskinning.exe)                      | [ZIP](../public/examples/gltfskinning/gltfskinning.zip)                          |
+| humus-dynamic-branching   | [EXE](../public/examples/humus-dynamic-branching/DynamicBranching.exe)           | [ZIP](../public/examples/humus-dynamic-branching/DynamicBranching.zip)           |
+| humus-instancing          | [EXE](../public/examples/humus-instancing/Instancing.exe)                        | [ZIP](../public/examples/humus-instancing/Instancing.zip)                        |
+| humus-raytraced-shadows   | [EXE](../public/examples/humus-raytraced-shadows/RaytracedShadows.exe)           | [ZIP](../public/examples/humus-raytraced-shadows/RaytracedShadows.zip)           |
+| humus-rollercoaster       | [EXE](../public/examples/humus-rollercoaster/RollerCoaster.exe)                  | [ZIP](../public/examples/humus-rollercoaster/RollerCoaster.zip)                  |
+| humus-transparent-shadows | [EXE](../public/examples/humus-transparent-shadows/TransparentShadowMapping.exe) | [ZIP](../public/examples/humus-transparent-shadows/TransparentShadowMapping.zip) |
+| humus-water               | [EXE](../public/examples/humus-water/Water.exe)                                  | [ZIP](../public/examples/humus-water/Water.zip)                                  |
+| learning-dx12-cube        | [EXE](../public/examples/learning-dx12-cube/Tutorial2.exe)                       | [ZIP](../public/examples/learning-dx12-cube/Tutorial2-x86.zip)                   |
+| microsoft-dx12-city       | [EXE](../public/examples/microsoft-dx12-city/D3D12Bundles.exe)                   | [ZIP](../public/examples/microsoft-dx12-city/D3D12City-x86.zip)                  |
+| sqlite                    | [EXE](../public/examples/sqlite/sqlite-client.exe)                               | [ZIP](../public/examples/sqlite/sqlite.zip)                                      |
+| tetris                    | [EXE](../public/examples/tetris/tetris.exe)                                      | [ZIP](../public/examples/tetris/tetris.zip)                                      |
+| vkcube                    | [EXE](../public/examples/vkcube/vkcube.exe)                                      | [ZIP](../public/examples/vkcube/vkcube.zip)                                      |
+| lua                       | [EXE](../public/examples/lua/lua-client.exe)                                     | [ZIP](../public/examples/lua/lua.zip)                                            |
 
 ## Runtime fixtures
 
-| Demo                | Executable                                                                                      | Complete package                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| beep                | [EXE](https://evangit2.github.io/winebrowser/demos/beep/beep.exe)                               | [ZIP](https://evangit2.github.io/winebrowser/demos/beep.zip)                |
-| breakout            | [EXE](https://evangit2.github.io/winebrowser/demos/breakout/breakout.exe)                       | [ZIP](https://evangit2.github.io/winebrowser/demos/breakout.zip)            |
-| console             | [EXE](https://evangit2.github.io/winebrowser/demos/console/console.exe)                         | [ZIP](https://evangit2.github.io/winebrowser/demos/console.zip)             |
-| d3d10-cube          | [EXE](https://evangit2.github.io/winebrowser/demos/d3d10-cube/d3d10-cube.exe)                   | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d10-cube.zip)          |
-| d3d12-blend         | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-blend/d3d12-blend.exe)                 | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-blend.zip)         |
-| d3d12-constants     | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-constants/d3d12-constants.exe)         | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-constants.zip)     |
-| d3d12-constbuffer   | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-constbuffer/d3d12-constbuffer.exe)     | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-constbuffer.zip)   |
-| d3d12-cube          | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-cube/d3d12-cube.exe)                   | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-cube.zip)          |
-| d3d12-knot          | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-knot/d3d12-knot.exe)                   | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-knot.zip)          |
-| d3d12-parade        | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-parade/d3d12-parade.exe)               | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-parade.zip)        |
-| d3d12-rendertexture | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-rendertexture/d3d12-rendertexture.exe) | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-rendertexture.zip) |
-| d3d12-rootcbv       | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-rootcbv/d3d12-rootcbv.exe)             | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-rootcbv.zip)       |
-| d3d12-terrain       | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-terrain/d3d12-terrain.exe)             | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-terrain.zip)       |
-| d3d12-texture       | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-texture/d3d12-texture.exe)             | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-texture.zip)       |
-| d3d12-triangle      | [EXE](https://evangit2.github.io/winebrowser/demos/d3d12-triangle/d3d12-triangle.exe)           | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d12-triangle.zip)      |
-| d3d8-cube           | [EXE](https://evangit2.github.io/winebrowser/demos/d3d8-cube/d3d8-cube.exe)                     | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d8-cube.zip)           |
-| d3d9-cube           | [EXE](https://evangit2.github.io/winebrowser/demos/d3d9-cube/d3d9-cube.exe)                     | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d9-cube.zip)           |
-| d3d9-shader-cube    | [EXE](https://evangit2.github.io/winebrowser/demos/d3d9-shader-cube/d3d9-shader-cube.exe)       | [ZIP](https://evangit2.github.io/winebrowser/demos/d3d9-shader-cube.zip)    |
-| files               | [EXE](https://evangit2.github.io/winebrowser/demos/files/files.exe)                             | [ZIP](https://evangit2.github.io/winebrowser/demos/files.zip)               |
-| messagebox          | [EXE](https://evangit2.github.io/winebrowser/demos/messagebox/messagebox.exe)                   | [ZIP](https://evangit2.github.io/winebrowser/demos/messagebox.zip)          |
-| opengl-raymarch     | [EXE](https://evangit2.github.io/winebrowser/demos/opengl-raymarch/opengl-raymarch.exe)         | [ZIP](https://evangit2.github.io/winebrowser/demos/opengl-raymarch.zip)     |
-| tls                 | [EXE](https://evangit2.github.io/winebrowser/demos/tls/tls.exe)                                 | [ZIP](https://evangit2.github.io/winebrowser/demos/tls.zip)                 |
+| Demo                | Executable                                                         | Complete package                               |
+| ------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
+| beep                | [EXE](../public/demos/beep/beep.exe)                               | [ZIP](../public/demos/beep.zip)                |
+| breakout            | [EXE](../public/demos/breakout/breakout.exe)                       | [ZIP](../public/demos/breakout.zip)            |
+| console             | [EXE](../public/demos/console/console.exe)                         | [ZIP](../public/demos/console.zip)             |
+| d3d10-cube          | [EXE](../public/demos/d3d10-cube/d3d10-cube.exe)                   | [ZIP](../public/demos/d3d10-cube.zip)          |
+| d3d12-blend         | [EXE](../public/demos/d3d12-blend/d3d12-blend.exe)                 | [ZIP](../public/demos/d3d12-blend.zip)         |
+| d3d12-constants     | [EXE](../public/demos/d3d12-constants/d3d12-constants.exe)         | [ZIP](../public/demos/d3d12-constants.zip)     |
+| d3d12-constbuffer   | [EXE](../public/demos/d3d12-constbuffer/d3d12-constbuffer.exe)     | [ZIP](../public/demos/d3d12-constbuffer.zip)   |
+| d3d12-cube          | [EXE](../public/demos/d3d12-cube/d3d12-cube.exe)                   | [ZIP](../public/demos/d3d12-cube.zip)          |
+| d3d12-knot          | [EXE](../public/demos/d3d12-knot/d3d12-knot.exe)                   | [ZIP](../public/demos/d3d12-knot.zip)          |
+| d3d12-parade        | [EXE](../public/demos/d3d12-parade/d3d12-parade.exe)               | [ZIP](../public/demos/d3d12-parade.zip)        |
+| d3d12-rendertexture | [EXE](../public/demos/d3d12-rendertexture/d3d12-rendertexture.exe) | [ZIP](../public/demos/d3d12-rendertexture.zip) |
+| d3d12-rootcbv       | [EXE](../public/demos/d3d12-rootcbv/d3d12-rootcbv.exe)             | [ZIP](../public/demos/d3d12-rootcbv.zip)       |
+| d3d12-terrain       | [EXE](../public/demos/d3d12-terrain/d3d12-terrain.exe)             | [ZIP](../public/demos/d3d12-terrain.zip)       |
+| d3d12-texture       | [EXE](../public/demos/d3d12-texture/d3d12-texture.exe)             | [ZIP](../public/demos/d3d12-texture.zip)       |
+| d3d12-triangle      | [EXE](../public/demos/d3d12-triangle/d3d12-triangle.exe)           | [ZIP](../public/demos/d3d12-triangle.zip)      |
+| d3d8-cube           | [EXE](../public/demos/d3d8-cube/d3d8-cube.exe)                     | [ZIP](../public/demos/d3d8-cube.zip)           |
+| d3d9-cube           | [EXE](../public/demos/d3d9-cube/d3d9-cube.exe)                     | [ZIP](../public/demos/d3d9-cube.zip)           |
+| d3d9-shader-cube    | [EXE](../public/demos/d3d9-shader-cube/d3d9-shader-cube.exe)       | [ZIP](../public/demos/d3d9-shader-cube.zip)    |
+| files               | [EXE](../public/demos/files/files.exe)                             | [ZIP](../public/demos/files.zip)               |
+| messagebox          | [EXE](../public/demos/messagebox/messagebox.exe)                   | [ZIP](../public/demos/messagebox.zip)          |
+| opengl-raymarch     | [EXE](../public/demos/opengl-raymarch/opengl-raymarch.exe)         | [ZIP](../public/demos/opengl-raymarch.zip)     |
+| tls                 | [EXE](../public/demos/tls/tls.exe)                                 | [ZIP](../public/demos/tls.zip)                 |
