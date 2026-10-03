@@ -113,6 +113,36 @@ function commandWords(message) {
   };
 }
 
+test('WS_EX_STATICEDGE uses one-pixel client geometry while CLIENTEDGE takes precedence', async (t) => {
+  const { runtime, events, parentId } = await makeHarness(t);
+  const rect = runtime.allocate(16);
+  for (const [exStyle, border] of [
+    [0x20000, 1],
+    [0x20200, 2],
+  ]) {
+    const child = await createChild(runtime, parentId, {
+      className: 'EDIT',
+      exStyle,
+      width: 120,
+      height: 30,
+    });
+    assert.ok(child.result);
+    const window = runtime.windows.windows.get(child.result);
+    assert.equal(window.controlBorder, border);
+    assert.equal((await call(runtime, 'user32.dll!GetClientRect', [child.result, rect])).result, 1);
+    assert.deepEqual(
+      [0, 4, 8, 12].map((i) => runtime.read32(rect + i)),
+      [0, 0, 120 - 2 * border, 30 - 2 * border],
+    );
+    const published = events.findLast(
+      (e) => e.type === 'window' && e.window.id === child.result,
+    ).window;
+    assert.equal(published.controlBorder, border);
+    assert.equal(published.width, 120);
+    assert.equal(published.height, 30);
+  }
+});
+
 function parentNotifyWords(message) {
   return {
     event: message.wParam & 0xffff,

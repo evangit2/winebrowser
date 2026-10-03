@@ -26,6 +26,11 @@ try {
   await window.waitFor();
   const canvas = window.locator('.virtual-desktop-canvas');
   assert.deepEqual(await canvas.evaluate((c) => [c.width, c.height]), [240, 140]);
+  const edit = window.locator('input[data-control-id="50"]');
+  assert.equal(await edit.inputValue(), 'Read only');
+  assert.equal(await edit.evaluate((el) => el.readOnly), true);
+  assert.equal(await edit.evaluate((el) => getComputedStyle(el).borderLeftWidth), '1px');
+  assert.deepEqual(await edit.evaluate((el) => [el.offsetWidth, el.offsetHeight]), [110, 24]);
   await window.getByRole('menuitem', { name: 'Actions', exact: true }).click();
   assert.equal(
     await window.getByRole('menuitem', { name: 'Disabled', exact: true }).isDisabled(),
@@ -79,6 +84,8 @@ try {
     exitCode: run.exitCode,
     checks: [
       'Native dynamic menu bar honors disabled and checked items and client geometry',
+      'Native WS_EX_STATICEDGE read-only edit preserves one-pixel frame and client dimensions',
+      'Native GetUserNameA size probe retries with BOOL success and ERROR_INSUFFICIENT_BUFFER',
       'TrackPopupMenu waits for the actual second command and returns ID 8',
       'TrackPopupMenuEx Escape cancels and returns zero',
       'Context-menu R mnemonic dispatches WM_COMMAND 7 without TPM_RETURNCMD',

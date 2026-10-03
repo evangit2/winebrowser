@@ -510,7 +510,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "Every import now resolves through the ordinary browser harness. Reaching zero from the original 144 required closing the GDI surface (indirect fonts, bitmaps, ExtTextOut, character widths, GetDIBits, palettes, outline metrics, character placement), the caret/scroll/placement/input-state services, dialog message handling, SystemParametersInfo, the registry enumeration and SID/security helpers, the imm32 IME context, the comdlg32 common dialogs, and the serial/named-pipe APIs. Execution is not yet verified end to end: PuTTY is a socket and serial client, so its remaining prerequisites are networking and the connection UI rather than unresolved imports."
+      "statusNote": "All imports resolve, but ordinary Chromium startup is still blocked before the configuration UI becomes interactive. The GUI probe corrected WS_EX_STATICEDGE edit geometry, multiline textarea password-state application, and GetUserNameA/W BOOL/LastError and character counts. The current failure is CreateWindowExA: Unsupported STATIC style 0xd (SS_OWNERDRAW). Owner-drawn child controls and broader common-control support remain required; networking is also unfinished. See evidence/putty-gui-progress.json."
     },
     {
       "id": "sgi-opengl-minimal-x86",

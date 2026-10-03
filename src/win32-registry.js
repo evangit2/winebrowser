@@ -13,6 +13,7 @@ const ERROR_FILE_NOT_FOUND = 2;
 const ERROR_ACCESS_DENIED = 5;
 const ERROR_INVALID_HANDLE = 6;
 const ERROR_INVALID_PARAMETER = 87;
+const ERROR_INSUFFICIENT_BUFFER = 122;
 const ERROR_MORE_DATA = 234;
 const ERROR_NOT_ENOUGH_MEMORY = 8;
 const ERROR_NO_MORE_ITEMS = 259;
@@ -817,18 +818,19 @@ function getUserName(r, a, wide) {
   const name = processUserName;
   const buffer = a(0);
   const sizeAddress = a(1);
-  if (!sizeAddress) return response(ERROR_INVALID_PARAMETER, 2);
+  if (!sizeAddress) return fail(r, ERROR_INVALID_PARAMETER, 2);
   r.check(sizeAddress, 4, true);
   const encoded = wide
     ? Uint8Array.from([...name].flatMap((ch) => [ch.charCodeAt(0) & 0xff, ch.charCodeAt(0) >> 8]))
     : encodeAnsi(name).bytes;
-  const needed = wide ? (name.length + 1) * 2 : encoded.length + 1;
+  const needed = (wide ? name.length : encoded.length) + 1;
+  const byteLength = wide ? needed * 2 : needed;
   const capacity = r.read32(sizeAddress) >>> 0;
   if (!buffer || capacity < needed) {
     r.write32(sizeAddress, needed);
-    return response(ERROR_INSUFFICIENT_BUFFER, 2);
+    return fail(r, ERROR_INSUFFICIENT_BUFFER, 2);
   }
-  r.check(buffer, needed, true);
+  r.check(buffer, byteLength, true);
   if (wide) {
     for (let i = 0; i <= name.length; i++)
       r.guestMemory.write(buffer + i * 2, i === name.length ? 0 : name.charCodeAt(i), 2);
@@ -836,8 +838,8 @@ function getUserName(r, a, wide) {
     r.data.set(encoded, buffer);
     r.data[buffer + encoded.length] = 0;
   }
-  r.write32(sizeAddress, wide ? name.length : encoded.length);
-  return response(ERROR_SUCCESS, 2);
+  r.write32(sizeAddress, needed);
+  return ok(1, 2);
 }
 const processUserName = 'WineBrowser';
 const ERROR_INVALID_SID = 1307;

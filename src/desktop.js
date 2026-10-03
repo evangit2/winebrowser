@@ -626,7 +626,11 @@ export class VirtualDesktop {
     for (const type of ['keydown', 'keyup'])
       element.addEventListener(type, (event) => {
         event.stopPropagation();
-        if (this.#topLevel(control)?.isDialog && ['Tab', 'Enter', 'Escape'].includes(event.key))
+        if (
+          this.#topLevel(control)?.isDialog &&
+          ['Tab', 'Enter', 'Escape'].includes(event.key) &&
+          !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn)
+        )
           event.preventDefault();
         this.#sendKey(event, type, control.id, false);
       });
@@ -759,7 +763,7 @@ export class VirtualDesktop {
       control.uppercase = !!(state.controlStyle?.uppercase ?? control.uppercase);
       control.lowercase = !!(state.controlStyle?.lowercase ?? control.lowercase);
       control.number = !!(state.controlStyle?.number ?? control.number);
-      if (state.controlStyle?.password !== undefined)
+      if (control.element.tagName === 'INPUT' && state.controlStyle?.password !== undefined)
         control.element.type = state.controlStyle.password ? 'password' : 'text';
       if (state.controlStyle?.verticalScroll !== undefined)
         control.element.style.overflowY = state.controlStyle.verticalScroll ? 'scroll' : '';

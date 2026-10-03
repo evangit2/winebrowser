@@ -1,0 +1,20 @@
+{
+  "state": "ERROR",
+  "details": "340 imports supported · PE32 x86 · 1484 KB image",
+  "log": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: putty.exe\nputty.exe: user32.dll!CreateDialogParamA: user32.dll!CreateWindowExA: Unsupported STATIC style 0xd\nuser32.dll!CreateDialogParamA: user32.dll!CreateWindowExA: Unsupported STATIC style 0xd",
+  "output": "\nputty.exe: user32.dll!CreateDialogParamA: user32.dll!CreateWindowExA: Unsupported STATIC style 0xd",
+  "windows": [],
+  "run": null,
+  "errors": [],
+  "date": "2026-10-03",
+  "url": "http://127.0.0.1:4371/winebrowser/",
+  "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
+  "status": "blocked",
+  "fixedSharedContracts": [
+    "WS_EX_STATICEDGE edit frame and client geometry",
+    "Multiline textarea password=false application and dialog ES_WANTRETURN newline",
+    "GetUserNameA/W BOOL, LastError, size probe and character counts including terminator"
+  ],
+  "remainingBlocker": "Dynamically created SS_OWNERDRAW STATIC style 0xd; configuration UI is not interactive",
+  "scope": "Unchanged privately cached MIT PuTTY executable uploaded to ordinary Chromium. Import resolution succeeds; GUI startup does not. No networking or complete application compatibility claim."
+}

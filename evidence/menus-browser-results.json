@@ -1,12 +1,14 @@
 {
-  "date": "2026-10-03T05:18:32.413Z",
-  "url": "http://127.0.0.1:4370/winebrowser/",
+  "date": "2026-10-03T05:39:35.040Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
-  "exeSha256": "2ed6ab5b31d4b34ce8c8dd5f8351b0cab463205fdd163e99b44584fcac2d044d",
+  "exeSha256": "e4794f13e7ffc01577bf19ece2342b223b5401075ee0fa7a89b86d6d0b24613a",
   "exitCode": 0,
   "checks": [
     "Native dynamic menu bar honors disabled and checked items and client geometry",
+    "Native WS_EX_STATICEDGE read-only edit preserves one-pixel frame and client dimensions",
+    "Native GetUserNameA size probe retries with BOOL success and ERROR_INSUFFICIENT_BUFFER",
     "TrackPopupMenu waits for the actual second command and returns ID 8",
     "TrackPopupMenuEx Escape cancels and returns zero",
     "Context-menu R mnemonic dispatches WM_COMMAND 7 without TPM_RETURNCMD",

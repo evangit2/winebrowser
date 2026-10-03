@@ -6,6 +6,10 @@ behavior, `TrackPopupMenuEx` cancellation, queued `WM_COMMAND`, and clean close.
 The browser must actually receive a selection; choosing the first enabled item
 in a shim cannot pass this test.
 
+The startup checks GetUserNameA's required-size retry, BOOL return and LastError.
+A read-only WS_EX_STATICEDGE edit verifies the one-pixel frame and native client
+dimensions before the popup sequence runs.
+
 Copyright (c) 2026 WineBrowser contributors. Permission is hereby granted, free
 of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without

@@ -6,11 +6,15 @@ import { Runtime } from '../src/runtime.js';
 import { parseMenuResource, menuApis, describeMenuItems } from '../src/win32-menus.js';
 import { gdiApis } from '../src/win32-gdi.js';
 import { windowApis } from '../src/win32-windows.js';
+import { registryApis } from '../src/win32-registry.js';
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
 const runtime = () =>
   new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
 const call = (r, name, ...args) =>
-  (gdiApis[name] ?? windowApis[name] ?? menuApis[name])(r, (i) => args[i] >>> 0);
+  (gdiApis[name] ?? windowApis[name] ?? menuApis[name] ?? registryApis[name])(
+    r,
+    (i) => args[i] >>> 0,
+  );
 const words = (...values) => Uint8Array.from(values.flatMap((v) => [v & 255, v >>> 8]));
 const text = (value) => [...value].map((c) => c.charCodeAt(0)).concat(0);
 
@@ -121,6 +125,32 @@ test('PtInRect reads a full signed POINT passed by value, with exclusive bottom/
     [0, 10, 0],
   ])
     assert.deepEqual(call(r, 'user32.dll!PtInRect', rect, x, y), { result: expected, argc: 3 });
+});
+
+test('GetUserName uses BOOL/LastError and counts ANSI bytes or UTF-16 units including the terminator', () => {
+  const r = runtime(),
+    size = r.allocate(4),
+    buffer = r.allocate(64);
+  for (const wide of [false, true]) {
+    const name = `advapi32.dll!GetUserName${wide ? 'W' : 'A'}`;
+    r.write32(size, 0);
+    assert.deepEqual(call(r, name, 0, size), { result: 0, argc: 2 });
+    assert.equal(r.lastError, 122);
+    assert.equal(r.read32(size), 12);
+    r.data.fill(0xcc, buffer, buffer + 64);
+    r.write32(size, 11);
+    assert.equal(call(r, name, buffer, size).result, 0);
+    assert.equal(r.read32(size), 12);
+    assert.ok(r.data.subarray(buffer, buffer + 64).every((b) => b === 0xcc));
+    r.lastError = 12345;
+    assert.deepEqual(call(r, name, buffer, size), { result: 1, argc: 2 });
+    assert.equal(r.read32(size), 12);
+    assert.equal(wide ? r.wideString(buffer) : r.string(buffer), 'WineBrowser');
+    assert.equal(r.data[buffer + (wide ? 24 : 12)], 0xcc);
+    assert.equal(r.lastError, 12345);
+    assert.equal(call(r, name, buffer, 0).result, 0);
+    assert.equal(r.lastError, 87);
+  }
 });
 
 test('SaveDC/RestoreDC restore nested attributes and retain saved bitmap selections', () => {

@@ -389,6 +389,52 @@ try {
     window.virtualDesktop.update({ operation: 'destroy', window: { id: 10 } }),
   );
   assert.equal(await page.locator('[data-window-id="11"]').count(), 0);
+  await page.evaluate(() => {
+    const desktop = window.virtualDesktop;
+    desktop.update({ operation: 'update', window: { id: 1, isDialog: true } });
+    desktop.update({
+      operation: 'create',
+      window: {
+        id: 12,
+        parentId: 1,
+        controlType: 'edit',
+        title: 'First',
+        controlStyle: { multiline: true, password: false, wantReturn: true },
+        x: 200,
+        y: 100,
+        width: 180,
+        height: 100,
+        visible: true,
+        enabled: true,
+      },
+    });
+  });
+  const multiline = page.locator('textarea[data-window-id="12"]');
+  await multiline.focus();
+  await multiline.press('End');
+  await multiline.press('Enter');
+  await multiline.pressSequentially('Second');
+  assert.equal(
+    await multiline.inputValue(),
+    'First\nSecond',
+    'ES_WANTRETURN accepts a newline inside a dialog',
+  );
+  assert.ok(
+    (await page.evaluate(() => window.desktopEvents)).some(
+      (e) => e.type === 'text' && e.windowId === 12 && e.text === 'First\nSecond',
+    ),
+  );
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 12, controlStyle: { multiline: true, password: false, readOnly: true } },
+    }),
+  );
+  assert.equal(await multiline.evaluate((el) => el.readOnly), true);
+  assert.equal(await multiline.inputValue(), 'First\nSecond');
+  await page.evaluate(() =>
+    window.virtualDesktop.update({ operation: 'destroy', window: { id: 12 } }),
+  );
   assert.deepEqual(pageErrors, []);
   console.log(
     JSON.stringify(
@@ -400,6 +446,7 @@ try {
         titlebarIconPixels: true,
         nestedControlGeometryFocusAndLifecycle: true,
         groupBoxCaptionsAndLifecycle: true,
+        multilineDialogNewlineAndReadOnly: true,
         pageErrors,
       },
       null,

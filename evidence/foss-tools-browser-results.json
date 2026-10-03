@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T05:19:45.145Z",
-  "url": "http://127.0.0.1:4370/winebrowser/",
+  "date": "2026-10-03T05:40:41.848Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
   "browser": "154.0.8037.97",
   "ordinary": true,
   "scope": "Unchanged upstream FOSS PE32 releases through hosted example selection, ordinary ZIP upload and loose-file uploads. Functional checks cover real GNU/libintl/libiconv/MSVCP60 code, PNG losslessness, LZMA round trip, dependency closure and application-level errors.",
@@ -129,7 +129,7 @@
         "ntdll.dll!NtWriteFile",
         "ntdll.dll!NtTerminateProcess"
       ],
-      "stdout": "--- before.txt\t2026-10-02 22:19:14.459000000 -0700\r\n+++ after.txt\t2026-10-02 22:19:14.459000000 -0700\r\n@@ -1,3 +1,4 @@\r\n alpha\r\n-beta\r\n+BETA\r\n gamma\r\n+delta\r\n",
+      "stdout": "--- before.txt\t2026-10-02 22:40:13.827000000 -0700\r\n+++ after.txt\t2026-10-02 22:40:13.827000000 -0700\r\n@@ -1,3 +1,4 @@\r\n alpha\r\n-beta\r\n+BETA\r\n gamma\r\n+delta\r\n",
       "outputs": []
     },
     {
@@ -761,15 +761,15 @@
         {
           "path": "out.7z",
           "bytes": 471,
-          "sha256": "a555aad345cc9eecc1f20335f6c69904c6c08449663245e6932e2dac9781f180"
+          "sha256": "e68333f2f112a48cf95b22c2ae01e47531554cd0cc98c810739c29be2395e711"
         }
       ]
     },
     {
       "label": "7-Zip: archive CRC/integrity test",
       "exitCode": 0,
-      "instructions": 1207853,
-      "compiledBlocks": 9744,
+      "instructions": 1207863,
+      "compiledBlocks": 9746,
       "modules": [
         {
           "name": "7zr.exe",
@@ -886,8 +886,8 @@
     {
       "label": "7-Zip: native LZMA decompression and extraction",
       "exitCode": 0,
-      "instructions": 1336333,
-      "compiledBlocks": 10203,
+      "instructions": 1336343,
+      "compiledBlocks": 10205,
       "modules": [
         {
           "name": "7zr.exe",

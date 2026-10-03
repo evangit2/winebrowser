@@ -22,6 +22,9 @@ static LRESULT CALLBACK proc(HWND window, UINT message, WPARAM wp, LPARAM lp) {
   return DefWindowProcA(window, message, wp, lp);
 }
 void start(void) {
+  char username[64];DWORD characters=0;
+  CHECK(!GetUserNameA(NULL,&characters));CHECK(GetLastError()==ERROR_INSUFFICIENT_BUFFER);
+  CHECK(characters<=sizeof(username));CHECK(GetUserNameA(username,&characters));CHECK(characters>1);
   HINSTANCE instance=GetModuleHandleA(NULL);
   WNDCLASSA cls={0}; cls.hInstance=instance;cls.lpfnWndProc=proc;cls.lpszClassName="NativeMenus";cls.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
   CHECK(RegisterClassA(&cls));
@@ -34,6 +37,8 @@ void start(void) {
   CHECK(GetMenuItemID(bar,0)==(UINT)-1);CHECK(GetMenuItemID(context,1)==7);
   RECT rect={0,0,240,140};CHECK(AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE));
   HWND window=CreateWindowA(cls.lpszClassName,"Native menus",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,bar,instance,NULL);CHECK(window);
+  HWND edit=CreateWindowExA(WS_EX_STATICEDGE,"EDIT","Read only",WS_CHILD|WS_VISIBLE|ES_READONLY,120,10,110,24,window,(HMENU)50,instance,NULL);CHECK(edit);
+  RECT client;CHECK(GetClientRect(edit,&client));CHECK(client.right==108&&client.bottom==22);
   MSG msg;while(GetMessageA(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageA(&msg);}
   CHECK(DestroyMenu(bar));ExitProcess((UINT)msg.wParam);
 }

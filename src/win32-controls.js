@@ -21,7 +21,9 @@ export function builtinControlClass(name, wide) {
 }
 export function controlStyle(kind, style, extended) {
   const local = style & 0xffff;
-  if (extended & ~0x204) throw Error('Unsupported child-control extended style');
+  // WS_EX_STATICEDGE is a one-pixel control frame, used by native read-only
+  // dialog edits. WS_EX_CLIENTEDGE retains its two-pixel inset precedence.
+  if (extended & ~0x20204) throw Error('Unsupported child-control extended style');
   // BUTTON styles: BS_PUSHBUTTON (0), DEFPUSHBUTTON (1), CHECKBOX (2),
   // AUTOCHECKBOX (3), RADIOBUTTON (4), 3STATE (5), AUTO3STATE (6), GROUPBOX (7),
   // USERBUTTON (8, undocumented), AUTORADIOBUTTON (9), PUSHBOX (0xa),
@@ -53,7 +55,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'button' && (local & 0xc0) === 0xc0)
     throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
   if (kind === 'static' && (local & ~0x83 || (local & 3) === 3))
-    throw Error('Unsupported STATIC style');
+    throw Error(`Unsupported STATIC style 0x${local.toString(16)}`);
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
   // LOWERCASE (0x10), PASSWORD (0x20), AUTOVSCROLL (0x40), AUTOHSCROLL (0x80),
   // NOHIDESEL (0x100), READONLY (0x800), WANTRETURN (0x1000), NUMBER (0x2000).
@@ -68,7 +70,7 @@ export function controlStyle(kind, style, extended) {
       throw Error('ES_NUMBER with multiline requires ES_AUTOHSCROLL');
   }
   return {
-    controlBorder: extended & 0x200 ? 2 : style & 0x800000 ? 1 : 0,
+    controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
     // BUTTON family. The desktop uses `buttonType` to pick an element and
     // `toggle`/`triState` to decide what a click does; `checkState` is the
     // current BM_GETCHECK value.
