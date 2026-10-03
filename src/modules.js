@@ -5,10 +5,10 @@ import { registerThunk } from './thunk-addresses.js';
 import { hostModuleImage } from './host-module-image.js';
 import { canonicalHostSymbol, isHostDataExport } from './host-export-ordinals.js';
 import { resolveApiSet } from './api-sets.js';
+import { isSystemDllPath } from './dll-search.js';
 
 // A DLL reached through the Windows system directory rather than the package
 // volume: such a path names a runtime-provided Windows module.
-const SYSTEM_DLL_PATH = /^(?:[a-z]:)?\/windows\/system32\//i;
 const dllName = (name) => {
   if (typeof name !== 'string' || !name || name.includes('\0')) throw Error('Invalid DLL name');
   name = name.replaceAll('\\', '/');
@@ -56,6 +56,7 @@ export class ModuleGraph {
       name,
       path,
       searchDirectories: options.searchDirectories,
+      searchRuntime: options.searchRuntime,
       bytes,
       pe,
       base: 0,
@@ -71,6 +72,15 @@ export class ModuleGraph {
   }
   paths(name, searchDirectories = [this.cwd, '']) {
     const paths = [];
+    // An absolute filename locates the requested image independently of the
+    // directory list, which continues to constrain its imported dependencies.
+    if (/^(?:[a-z]:|[\\/])/i.test(name)) {
+      try {
+        return [resolveGuestPath(name)];
+      } catch {
+        return [];
+      }
+    }
     for (const directory of searchDirectories) {
       try {
         const path = resolveGuestPath(name, directory);
@@ -114,8 +124,7 @@ export class ModuleGraph {
     // must resolve to the same provider a bare "ws2_32.dll" import reaches.
     // A path anywhere else is a literal package path, so a missing file there
     // is a genuine failure rather than a same-named module from elsewhere.
-    if (qualified && !SYSTEM_DLL_PATH.test(name.replaceAll('\\', '/')))
-      throw Error(`Missing DLL ${name}`);
+    if (qualified && !isSystemDllPath(name)) throw Error(`Missing DLL ${name}`);
     const basename = name.split(/[/\\]/).at(-1).toLowerCase();
     const rest = qualified ? basename : name.toLowerCase();
     if (qualified) {
@@ -125,14 +134,10 @@ export class ModuleGraph {
         return located;
       }
     }
+    if (!qualified && options.searchRuntime === false) throw Error(`Missing DLL ${name}`);
     if (this.builtinFiles.has(rest))
       return this.loadPath('@runtime/' + rest, true, retain ? 1 : 0, { ...options, builtin: true });
     if (this.apiNames[rest]) return this.loadHost(rest, retain ? 1 : 0);
-    throw Error(`Missing DLL ${name}`);
-    name = name.toLowerCase();
-    if (this.builtinFiles.has(name))
-      return this.loadPath('@runtime/' + name, true, retain ? 1 : 0, { ...options, builtin: true });
-    if (this.apiNames[name]) return this.loadHost(name, retain ? 1 : 0);
     throw Error(`Missing DLL ${name}`);
   }
   hostProxy(name) {
@@ -196,6 +201,7 @@ export class ModuleGraph {
         try {
           const dependency = this.load(entry.dll, false, {
             searchDirectories: module.searchDirectories,
+            searchRuntime: module.searchRuntime,
           });
           module.importModules.set(entry.iatRva, dependency);
           module.dependencies.push(dependency);
@@ -245,7 +251,10 @@ export class ModuleGraph {
       if (split < 1) throw Error(`Invalid forwarder ${entry.forwarder}`);
       const dll = entry.forwarder.slice(0, split),
         name = entry.forwarder.slice(split + 1);
-      const dependency = this.load(dll, false, { searchDirectories: module.searchDirectories });
+      const dependency = this.load(dll, false, {
+        searchDirectories: module.searchDirectories,
+        searchRuntime: module.searchRuntime,
+      });
       if (!module.dependencies.includes(dependency)) module.dependencies.push(dependency);
       return this.resolve(dependency, name.startsWith('#') ? Number(name.slice(1)) : name, seen);
     }

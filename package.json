@@ -211,7 +211,9 @@
     "package:foss-tools": "node scripts/package-foss-tools.mjs",
     "test:foss-tools": "node scripts/test-foss-tools-browser.mjs",
     "build:lua": "sh scripts/build-lua-fixture.sh && python3 scripts/package-lua.py",
-    "test:lua": "node scripts/test-lua-browser.mjs"
+    "test:lua": "node scripts/test-lua-browser.mjs",
+    "build:dll-search": "sh scripts/build-dll-search-fixtures.sh",
+    "test:dll-search": "node scripts/test-dll-search-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
