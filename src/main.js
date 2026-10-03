@@ -603,6 +603,9 @@ async function initialize() {
   ];
   $('demos').replaceChildren(
     ...packages.map((fixture) => {
+      const item = document.createElement('div');
+      item.className = 'demo-package';
+      item.dataset.demoPackage = fixture.name;
       const button = document.createElement('button');
       button.textContent = `Load ${fixture.name}`;
       button.title = fixture.description ?? fixture.name;
@@ -633,7 +636,28 @@ async function initialize() {
           }
         }
       };
-      return button;
+      item.append(button);
+      for (const [kind, label] of [
+        ['exe', 'EXE'],
+        ['zip', 'ZIP'],
+        ['sourceZip', 'Source'],
+      ]) {
+        if (!fixture[kind]) continue;
+        const link = document.createElement('a');
+        link.textContent = label;
+        link.href = `${import.meta.env.BASE_URL}${fixture.base}/${fixture[kind]}`;
+        link.download = fixture[kind].split('/').at(-1);
+        link.dataset.download = kind;
+        link.setAttribute('aria-label', `Download ${fixture.name} ${label}`);
+        link.title =
+          kind === 'exe'
+            ? 'Executable only; use the ZIP to include supporting assets and DLLs'
+            : kind === 'zip'
+              ? 'Complete program package with supporting assets and DLLs'
+              : 'Source archive';
+        item.append(link);
+      }
+      return item;
     }),
   );
 }

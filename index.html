@@ -26,7 +26,17 @@
         <label class="folder-picker"
           >Open a program folder <input id="folder" type="file" webkitdirectory multiple
         /></label>
-        <div id="demos" class="demos" aria-label="Bundled fixtures"></div>
+        <p id="catalog-help" class="catalog-help">
+          Load opens a complete demo package. Download EXE for the executable, or ZIP to include the
+          supporting assets and DLLs. Upload the ZIP or its extracted folder to run demos such as
+          gltfskinning.
+        </p>
+        <div
+          id="demos"
+          class="demos"
+          aria-label="Demo catalog and downloads"
+          aria-describedby="catalog-help"
+        ></div>
         <div id="selection" hidden>
           <label for="exe">Executable</label>
           <select id="exe"></select>

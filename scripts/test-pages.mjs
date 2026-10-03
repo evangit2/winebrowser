@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { chromium } from '@playwright/test';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -97,6 +98,73 @@ try {
   );
   const manifest = await manifestResponse.json();
   assert.ok(Array.isArray(manifest.fixtures) && manifest.fixtures.length > 0);
+
+  const examplesResponse = await page.request.get(new URL('examples/manifest.json', baseURL).href);
+  assert.ok(examplesResponse.ok(), 'Public example manifest is available');
+  const examples = await examplesResponse.json();
+  const catalog = [
+    ...[...manifest.fixtures, ...(manifest.interactive ?? [])].map((entry) => ({
+      ...entry,
+      base: 'demos',
+    })),
+    ...(examples.interactive ?? []).map((entry) => ({ ...entry, base: 'examples' })),
+  ];
+  await page.waitForFunction(() => !document.getElementById('run-suite').disabled);
+  assert.equal(await page.locator('#demos [data-demo]').count(), catalog.length);
+  const catalogDownloads = [];
+  for (const entry of catalog) {
+    const downloads = [];
+    for (const kind of ['exe', 'zip', 'sourceZip']) {
+      if (!entry[kind]) continue;
+      const link = page.locator(
+        `#demos [data-demo-package=${JSON.stringify(entry.name)}] a[data-download=${JSON.stringify(kind)}]`,
+      );
+      await link.waitFor({ state: 'visible' });
+      const url = new URL(`${entry.base}/${entry[kind]}`, baseURL);
+      assert.equal(new URL(await link.getAttribute('href'), baseURL).href, url.href);
+      assert.equal(await link.getAttribute('download'), entry[kind].split('/').at(-1));
+      const response = await page.request.get(url.href);
+      assert.ok(response.ok(), `Download is available: ${url.pathname}`);
+      const bytes = await response.body();
+      assert.equal(bytes.subarray(0, 2).toString(), kind === 'exe' ? 'MZ' : 'PK');
+      assert.equal(
+        createHash('sha256').update(bytes).digest('hex'),
+        entry[`${kind}Sha256`],
+        `Download matches the published hash: ${url.pathname}`,
+      );
+      downloads.push(kind);
+    }
+    assert.ok(downloads.includes('exe') && downloads.includes('zip'), entry.name);
+    catalogDownloads.push({ name: entry.name, downloads, passed: true });
+  }
+
+  // Exercise actual browser downloads for the nested gltfskinning EXE and its full package.
+  const skinning = catalog.find((entry) => entry.name === 'gltfskinning');
+  assert.ok(skinning, 'The catalog includes the gltfskinning demo');
+  const browserDownloads = [];
+  for (const kind of ['exe', 'zip']) {
+    const link = page.getByRole('link', {
+      name: `Download gltfskinning ${kind.toUpperCase()}`,
+      exact: true,
+    });
+    const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+    const filename = skinning[kind].split('/').at(-1);
+    assert.equal(download.suggestedFilename(), filename);
+    const tempPath = join(tmpdir(), `winebrowser-pages-${process.pid}-${filename}`);
+    try {
+      await download.saveAs(tempPath);
+      assert.equal(
+        createHash('sha256')
+          .update(await readFile(tempPath))
+          .digest('hex'),
+        skinning[`${kind}Sha256`],
+      );
+    } finally {
+      await rm(tempPath, { force: true });
+    }
+    browserDownloads.push({ filename, passed: true });
+  }
+  assert.equal(await page.locator('#exe option').count(), 0, 'Downloads keep selection untouched');
 
   await page.locator('#run-suite').click();
   await page.waitForFunction(
@@ -202,6 +270,8 @@ try {
     capabilities,
     freshVisits: 3,
     serviceWorkerReload: true,
+    catalogDownloads,
+    browserDownloads,
     fixtures: suiteRows,
     zipUpload: { fixture: zipFixture.name, downloadedFiles: fileNames, passed: true },
     exeUpload: {
