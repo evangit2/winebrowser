@@ -4,6 +4,7 @@
 // check/radio state) rather than flattening it to a bitmap, so TrackPopupMenu
 // can report the command the user chose.
 import { readPEResource } from './pe-resources.js';
+import { resizeWindowSurface } from './win32-gdi.js';
 
 const RT_MENU = 4;
 const MAX_ITEMS = 512;
@@ -26,66 +27,84 @@ function menuState(r) {
   r.menus ??= {
     nextHandle: 0x70000000,
     byHandle: new Map(),
-    fromResource: new Map(),
   };
   return r.menus;
 }
 
-// A PE MENU resource is a compact byte stream. It begins with the four-byte
-// MENUHEADER { wVersion, cbHeaderSize }, then repeated MENUITEMTEMPLATE records
-// that end when the flags word is zero. Each record is { mtOption, mtID } plus a
-// NUL-terminated UTF-16 string — the standard template does NOT length-prefix
-// its text (that is the MENUEX format, which begins with version 1). A popup
-// item's own item list follows its string immediately. See winuser.h
-// MENUITEMTEMPLATE and Wine's load_menu_name.
-function parseMenuResource(bytes, offset = 0, depth = 0) {
-  if (depth > 8 || offset < 0 || offset + 4 > bytes.length) return null;
+// Standard MENUHEADER + recursively nested MENUITEMTEMPLATE lists. Zero flags
+// are a valid command item; MF_END terminates each level, and popup items omit
+// the command-id WORD. Reject malformed input instead of publishing partial menus.
+export function parseMenuResource(bytes, offset = 0) {
+  if (!(bytes instanceof Uint8Array)) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  // Only the standard template is modelled; version 1 is MENUEX.
-  if (view.getUint16(offset, true) !== 0) return null;
-  let at = offset + 4;
-  const items = [];
-  while (at + 4 <= bytes.length) {
-    const flags = view.getUint16(at, true);
-    if (flags === 0) return { items, end: at + 2 };
-    const id = view.getUint16(at + 2, true);
-    at += 4;
-    if (flags & MF_SEPARATOR) {
-      items.push({ flags, id, text: '', separator: true });
-      continue;
+  let at = offset,
+    count = 0;
+  const word = () => {
+    if (at < 0 || at + 2 > bytes.length) throw Error('Truncated menu');
+    const value = view.getUint16(at, true);
+    at += 2;
+    return value;
+  };
+  const string = () => {
+    let text = '',
+      unit;
+    while ((unit = word())) text += String.fromCharCode(unit);
+    return text;
+  };
+  const list = (depth) => {
+    if (depth > 8) throw Error('Menu nesting limit');
+    const items = [];
+    for (;;) {
+      if (++count > MAX_ITEMS) throw Error('Menu item limit');
+      const raw = word(),
+        flags = raw & ~0x80;
+      const id = flags & MF_POPUP ? 0 : word();
+      const text = string();
+      const item = {
+        flags,
+        id,
+        text,
+        separator: !!(flags & MF_SEPARATOR) || (!(flags & MF_POPUP) && !id && !text),
+      };
+      if (flags & MF_POPUP) item.submenu = { items: list(depth + 1) };
+      items.push(item);
+      if (raw & 0x80) return items;
     }
-    let text = '';
-    while (at + 2 <= bytes.length) {
-      const unit = view.getUint16(at, true);
-      at += 2;
-      if (unit === 0) break;
-      text += String.fromCharCode(unit);
-    }
-    if (flags & MF_POPUP) {
-      // A popup's items follow its string directly: the nested list repeats the
-      // MENUHEADER record, which is what parseMenuResource consumes.
-      const child = parseMenuResource(bytes, at, depth + 1);
-      if (!child) return null;
-      items.push({ flags, id, text, submenu: child });
-      at = child.end;
-    } else items.push({ flags, id, text });
+  };
+  try {
+    if (word() !== 0) return null; // MENUEX requires its own layout.
+    const extra = word();
+    at += extra;
+    if (at > bytes.length) return null;
+    return { items: list(0), end: at };
+  } catch {
+    return null;
   }
-  // A truncated template still yields the items read so far.
-  return { items, end: at };
 }
 
-// Flattens a parsed menu into the JSON the desktop renderer consumes, keeping
-// the nesting that gives a submenu its arrow.
-function describe(items, checked) {
+function describe(items) {
   return items.map((item) => ({
-    text: item.separator ? '' : item.text.replaceAll('&&', '\u0000').replaceAll('&', ''),
+    text: item.text,
     separator: !!item.separator,
     id: item.id,
     enabled: !(item.flags & (MF_GRAYED | MF_DISABLED)),
-    checked: !!(item.flags & MF_CHECKED) || checked.has(item.id),
+    checked: !!(item.flags & MF_CHECKED),
     radio: !!(item.flags & MF_RADIOCHECK),
-    submenu: item.submenu ? describe(item.submenu.items, checked) : null,
+    submenu: item.submenu ? describe(item.submenu.items) : null,
   }));
+}
+
+function findItem(menu, value, byPosition = false) {
+  if (byPosition) return menu.items[value] ?? null;
+  for (const item of menu.items) {
+    if (!item.submenu && item.id === value) return item;
+    const found = item.submenu && findItem(item.submenu, value);
+    if (found) return found;
+  }
+  return null;
+}
+function emitMenus(r) {
+  for (const window of r.windows.windows.values()) if (window.menu) r.windows.emit(window);
 }
 
 function loadMenuFromModule(module, name) {
@@ -127,52 +146,72 @@ function readMenuText(r, pointer, wide) {
 // AppendMenu/InsertMenu share one implementation: MF_BYPOSITION selects a slot
 // by index, MF_BYCOMMAND by command id.
 function addMenuItem(r, a, wide, insert) {
-  const state = menuState(r);
-  const menu = state.byHandle.get(a(0));
-  if (!menu) return fail(r, 6, insert ? 5 : 5);
-  const flags = a(1) >>> 0;
-  const id = insert ? a(2) >>> 0 : a(2) >>> 0;
-  const data = insert ? a(3) >>> 0 : a(3) >>> 0;
-  const byPosition = !!(flags & 0x400);
-  let index = insert ? a(4) | 0 : menu.items.length;
-  if (insert && !byPosition) {
-    const found = menu.items.findIndex((item) => item.id === (a(4) | 0));
-    if (found >= 0) index = found;
-  }
-  if (index < 0 || index > menu.items.length) index = menu.items.length;
+  const state = menuState(r),
+    menu = state.byHandle.get(a(0));
+  const argc = insert ? 5 : 4;
+  if (!menu) return fail(r, 1401, argc);
+  const flags = a(insert ? 2 : 1) >>> 0;
+  if (flags & (MF_OWNERDRAW | MF_BITMAP)) return fail(r, 120, argc);
+  const id = a(insert ? 3 : 2) >>> 0,
+    data = a(insert ? 4 : 3) >>> 0;
   const entry = {
-    flags,
+    flags: flags & ~0x400,
     id,
-    text: flags & MF_OWNERDRAW || flags & MF_BITMAP ? '' : readMenuText(r, data, wide),
-    separator: false,
+    text: flags & MF_SEPARATOR ? '' : readMenuText(r, data, wide),
+    separator: !!(flags & MF_SEPARATOR),
   };
   if (flags & MF_POPUP) {
-    const child = state.byHandle.get(data);
-    if (!child) return fail(r, 6, 5);
-    entry.id = data;
-    entry.submenu = { items: child.items, end: 0 };
-    entry.popup = true;
+    const child = state.byHandle.get(id);
+    if (!child) return fail(r, 1401, argc);
+    // Reject cycles before serializing a menu tree.
+    const contains = (items, target, depth = 0) =>
+      depth > 8 ||
+      items === target ||
+      items.some((i) => i.submenu && contains(i.submenu.items, target, depth + 1));
+    if (contains(child.items, menu.items)) return fail(r, 87, argc);
+    entry.submenu = child;
+  }
+  if (menu.items.length >= MAX_ITEMS) return fail(r, 8, argc);
+  let index = menu.items.length;
+  if (insert && a(1) !== 0xffffffff) {
+    index = flags & 0x400 ? a(1) : menu.items.findIndex((i) => i.id === a(1));
+    if (index < 0 || index > menu.items.length) return fail(r, 1456, argc);
   }
   menu.items.splice(index, 0, entry);
   menu.count = menu.items.length;
-  for (const window of r.windows.windows.values()) if (window.menu === a(0)) r.windows.emit(window);
-  return ok(1, 5);
+  emitMenus(r);
+  return ok(1, argc);
 }
-function deleteMenuItem(r, a) {
-  const state = menuState(r);
-  const menu = state.byHandle.get(a(0));
-  if (!menu) return fail(r, 6, 3);
-  const flags = a(1) >>> 0;
-  const index =
-    flags & 0x400
-      ? a(2) | 0
-      : menu.items.findIndex((item) => item.id === a(2) >>> 0 && !item.separator);
-  if (index >= 0 && index < menu.items.length) {
-    menu.items.splice(index, 1);
-    menu.count = menu.items.length;
-  }
-  for (const window of r.windows.windows.values()) if (window.menu === a(0)) r.windows.emit(window);
+function destroyMenuTree(state, handle) {
+  const menu = state.byHandle.get(handle);
+  if (!menu) return;
+  state.byHandle.delete(handle);
+  for (const item of menu.items)
+    if (item.submenu?.handle) destroyMenuTree(state, item.submenu.handle);
+}
+function deleteMenuItem(r, a, destroy) {
+  const menu = menuState(r).byHandle.get(a(0));
+  if (!menu) return fail(r, 1401, 3);
+  const index = a(2) & 0x400 ? a(1) : menu.items.findIndex((i) => i.id === a(1));
+  if (index < 0 || index >= menu.items.length) return fail(r, 1456, 3);
+  const [removed] = menu.items.splice(index, 1);
+  if (destroy && removed.submenu?.handle) destroyMenuTree(menuState(r), removed.submenu.handle);
+  menu.count = menu.items.length;
+  emitMenus(r);
   return ok(1, 3);
+}
+function attachMenu(r, window, handle) {
+  const old = !!window.menu;
+  window.menu = handle;
+  const difference = (Number(!!handle) - Number(old)) * MENU_BAR_HEIGHT;
+  if (difference) {
+    const height = Math.max(1, window.height - difference);
+    resizeWindowSurface(r, window.id, window.width, height);
+    window.height = height;
+    r.windows.invalidate(window, null, true);
+    r.windows.post(window.id, 5, 0, ((height << 16) | window.width) >>> 0);
+  }
+  r.windows.emit(window);
 }
 function getSystemMenu(r, a) {
   // The system menu is the window-menu the browser desktop draws itself, so the
@@ -210,12 +249,24 @@ export const menuApis = {
   'user32.dll!AppendMenuW': (r, a) => addMenuItem(r, a, true, false),
   'user32.dll!InsertMenuA': (r, a) => addMenuItem(r, a, false, true),
   'user32.dll!InsertMenuW': (r, a) => addMenuItem(r, a, true, true),
-  'user32.dll!DeleteMenu': deleteMenuItem,
+  'user32.dll!DeleteMenu': (r, a) => deleteMenuItem(r, a, true),
+  'user32.dll!RemoveMenu': (r, a) => deleteMenuItem(r, a, false),
+  'user32.dll!GetSubMenu': (r, a) => {
+    const menu = menuState(r).byHandle.get(a(0));
+    return menu ? ok(menu.items[a(1)]?.submenu?.handle ?? 0, 2) : fail(r, 1401, 2);
+  },
+  'user32.dll!GetMenuItemID': (r, a) => {
+    const item = menuState(r).byHandle.get(a(0))?.items[a(1)];
+    return ok(!item || item.submenu ? 0xffffffff : item.id, 2);
+  },
   'user32.dll!GetSystemMenu': getSystemMenu,
   // DestroyMenu / SetMenu / GetMenu.
   'user32.dll!DestroyMenu': (r, a) => {
     const state = menuState(r);
-    if (!state.byHandle.delete(a(0))) return fail(r, 6, 1);
+    if (!state.byHandle.has(a(0))) return fail(r, 6, 1);
+    destroyMenuTree(state, a(0));
+    for (const window of r.windows.windows.values())
+      if (window.menu === a(0)) attachMenu(r, window, 0);
     return ok(1, 1);
   },
   'user32.dll!SetMenu': (r, a) => {
@@ -223,8 +274,7 @@ export const menuApis = {
     if (!window) return fail(r, 1400, 2);
     const state = menuState(r);
     if (a(1) && !state.byHandle.has(a(1))) return fail(r, 6, 2);
-    window.menu = a(1);
-    r.windows.emit(window);
+    attachMenu(r, window, a(1));
     return ok(1, 2);
   },
   'user32.dll!GetMenu': (r, a) => {
@@ -239,23 +289,21 @@ export const menuApis = {
   },
   // CheckMenuItem(hMenu, uIDCheckItem, uCheck): sets or clears the check mark.
   'user32.dll!CheckMenuItem': (r, a) => {
-    const state = menuState(r);
-    const menu = state.byHandle.get(a(0));
-    if (!menu) return fail(r, 6, 3);
-    const previous = menu.checked.has(a(1)) ? 0x8 : 0;
-    if (a(2) & 0x8) menu.checked.add(a(1));
-    else menu.checked.delete(a(1));
-    for (const window of r.windows.windows.values())
-      if (window.menu === a(0)) r.windows.emit(window);
+    const menu = menuState(r).byHandle.get(a(0));
+    const item = menu && findItem(menu, a(1), !!(a(2) & 0x400));
+    if (!item) return fail(r, 1456, 3, 0xffffffff);
+    const previous = item.flags & MF_CHECKED;
+    item.flags = (item.flags & ~MF_CHECKED) | (a(2) & MF_CHECKED);
+    emitMenus(r);
     return ok(previous, 3);
   },
   'user32.dll!EnableMenuItem': (r, a) => {
-    const state = menuState(r);
-    const menu = state.byHandle.get(a(0));
-    if (!menu) return fail(r, 6, 3);
-    const previous = menu.disabled.has(a(1)) ? 0x1 : 0;
-    if (a(2) & (0x1 | 0x2)) menu.disabled.add(a(1));
-    else menu.disabled.delete(a(1));
+    const menu = menuState(r).byHandle.get(a(0));
+    const item = menu && findItem(menu, a(1), !!(a(2) & 0x400));
+    if (!item) return fail(r, 1456, 3, 0xffffffff);
+    const previous = item.flags & 3;
+    item.flags = (item.flags & ~3) | (a(2) & 3);
+    emitMenus(r);
     return ok(previous, 3);
   },
   // GetMenuItemRect(hwnd, hMenu, item, RECT *): the browser desktop lays a menu
@@ -277,24 +325,8 @@ export const menuApis = {
     r.write32(out + 12, MENU_BAR_HEIGHT);
     return ok(1, 4);
   },
-  // TrackPopupMenu returns the command the user picked. The browser desktop
-  // renders the popup; the runtime reports the first enabled item as chosen so
-  // a caller that cannot be driven by a synthetic click still proceeds.
-  'user32.dll!TrackPopupMenu': (r, a) => {
-    const menu = menuState(r).byHandle.get(a(0));
-    if (!menu) return fail(r, 6, 7);
-    for (const item of menu.items) {
-      if (item.separator || item.submenu) continue;
-      if (menu.disabled.has(item.id)) continue;
-      return ok(item.id, 7);
-    }
-    return ok(0, 7);
-  },
-  'user32.dll!TrackPopupMenuEx': (r, a) => {
-    const menu = menuState(r).byHandle.get(a(0));
-    if (!menu) return fail(r, 6, 6);
-    return ok(0, 6);
-  },
+  'user32.dll!TrackPopupMenu': (r, a) => trackPopup(r, a, false),
+  'user32.dll!TrackPopupMenuEx': (r, a) => trackPopup(r, a, true),
   // The named/item lookups a menu handler uses to reflect state.
   'user32.dll!GetMenuStringA': (r, a) => getMenuString(r, a, false),
   'user32.dll!GetMenuStringW': (r, a) => getMenuString(r, a, true),
@@ -327,64 +359,56 @@ export const menuApis = {
   },
   'user32.dll!GetMenuState': (r, a) => {
     const menu = menuState(r).byHandle.get(a(0));
-    if (!menu) return fail(r, 6, 3);
-    let flags = 0;
-    if (menu.checked.has(a(1))) flags |= MF_CHECKED;
-    if (menu.disabled.has(a(1))) flags |= MF_GRAYED;
-    return { result: flags, argc: 3, resultHigh: 0xffffffff };
+    const item = menu && findItem(menu, a(1), !!(a(2) & 0x400));
+    return item
+      ? ok(item.flags | (item.submenu ? item.submenu.items.length << 8 : 0), 3)
+      : ok(0xffffffff, 3);
   },
 };
 export const MENU_BAR_HEIGHT = 20;
 
-function loadMenu(r, a, wide) {
+function registerMenuTree(r, parsed, argc) {
   const state = menuState(r);
+  const count = (menu) =>
+    1 + menu.items.reduce((n, item) => n + (item.submenu ? count(item.submenu) : 0), 0);
+  if (state.byHandle.size + count(parsed) > MAX_MENUS) return fail(r, 8, argc);
+  const register = (menu, popup) => {
+    menu.handle = state.nextHandle++;
+    menu.count = menu.items.length;
+    menu.popup = popup;
+    state.byHandle.set(menu.handle, menu);
+    for (const item of menu.items) if (item.submenu) register(item.submenu, true);
+    return menu.handle;
+  };
+  return ok(register(parsed, false), argc);
+}
+
+function loadMenu(r, a, wide) {
   const module = a(0) ? findModule(r, a(0)) : r.graph.main;
   const name = a(1) <= 0xffff ? a(1) : wide ? r.wideString(a(1)) : r.string(a(1));
-  const key = `${module?.base ?? 0}:${typeof name}:${String(name).toLowerCase()}`;
-  const cached = state.fromResource.get(key);
-  if (cached) return ok(cached, 2);
+
   const parsed = loadMenuFromModule(module, name);
   if (!parsed) return fail(r, 1414, 2);
-  if (state.byHandle.size >= MAX_MENUS) return fail(r, 8, 2);
-  if (parsed.items.length > MAX_ITEMS) return fail(r, 8, 2);
-  const handle = state.nextHandle++;
-  state.byHandle.set(handle, {
-    handle,
-    items: parsed.items,
-    count: parsed.items.length,
-    checked: new Set(),
-    disabled: new Set(),
-  });
-  state.fromResource.set(key, handle);
-  return ok(handle, 2);
+  return registerMenuTree(r, parsed, 2);
 }
 
 function loadMenuIndirect(r, pointer) {
   if (!pointer) return fail(r, 87, 1);
-  const state = menuState(r);
   // The in-memory template is the same byte layout the resource stores, so the
   // guest's own bytes are copied out and run through the same parser. The
   // template is self-delimiting, so a generous bounded window is enough.
   const bytes = new Uint8Array(4096);
-  for (let i = 0; i < bytes.length; i++) {
+  let length = 0;
+  for (; length < bytes.length; length++) {
     try {
-      bytes[i] = r.guestMemory.read(pointer + i, 1);
+      bytes[length] = r.guestMemory.read(pointer + length, 1);
     } catch {
-      return fail(r, 87, 1);
+      break;
     }
   }
-  const parsed = parseMenuResource(bytes, 0, 0);
+  const parsed = parseMenuResource(bytes.subarray(0, length));
   if (!parsed || !parsed.items.length) return fail(r, 1414, 1);
-  if (state.byHandle.size >= MAX_MENUS || parsed.items.length > MAX_ITEMS) return fail(r, 8, 1);
-  const handle = state.nextHandle++;
-  state.byHandle.set(handle, {
-    handle,
-    items: parsed.items,
-    count: parsed.items.length,
-    checked: new Set(),
-    disabled: new Set(),
-  });
-  return ok(handle, 1);
+  return registerMenuTree(r, parsed, 1);
 }
 
 function findModule(r, base) {
@@ -394,14 +418,15 @@ function findModule(r, base) {
 function getMenuString(r, a, wide) {
   const menu = menuState(r).byHandle.get(a(0));
   if (!menu) return fail(r, 6, 5);
-  const item = menu.items.find((entry) => !entry.separator && entry.id === a(1));
-  const value = item?.text ?? '';
+  const item = findItem(menu, a(1), !!(a(4) & 0x400));
+  let value = item?.text ?? '';
   const buffer = a(2);
   const capacity = a(3) | 0;
   const flags = a(4) >>> 0;
   if (flags & ~0x400) return fail(r, 87, 5);
   if (!buffer) return ok(value.length, 5);
-  if (capacity < value.length + 1) return fail(r, 122, 5);
+  if (capacity <= 0) return ok(0, 5);
+  value = value.slice(0, capacity - 1);
   if (wide) {
     r.check(buffer, (value.length + 1) * 2, true);
     for (let i = 0; i <= value.length; i++)
@@ -416,12 +441,60 @@ function getMenuString(r, a, wide) {
 
 // The desktop renderer reads this to draw the menu bar of each window.
 export function describeMenuItems(items, checked = new Set()) {
-  return describe(items, checked);
+  return describe(items);
 }
 export function describeWindowMenu(r, window) {
   const state = r.menus;
   if (!state || !window.menu) return null;
   const menu = state.byHandle.get(window.menu);
   if (!menu) return null;
-  return describe(menu.items, menu.checked);
+  return describe(menu.items);
+}
+
+export function loadClassMenu(r, instance, name, wide) {
+  let pointer = name;
+  if (typeof name === 'string') pointer = r.allocString(name, wide);
+  try {
+    return loadMenu(r, (i) => [instance, pointer][i], wide).result;
+  } finally {
+    if (typeof name === 'string') r.free(pointer);
+  }
+}
+export function menuCommandAllowed(r, window, id) {
+  const menu = r.menus?.byHandle.get(window.menu);
+  const item = menu && findItem(menu, id);
+  return !!item && !item.separator && !item.submenu && !(item.flags & 3);
+}
+
+async function trackPopup(r, a, extended) {
+  const argc = extended ? 6 : 7,
+    handle = a(0),
+    flags = a(1),
+    owner = a(extended ? 4 : 5);
+  const menu = menuState(r).byHandle.get(handle);
+  if (!menu) return fail(r, 1401, argc);
+  const window = r.windows.windows.get(owner);
+  if (!window) return fail(r, 1400, argc);
+  // Left/top aligned textual menus, both mouse buttons, explicit return-command
+  // and non-notify modes. Exclusion rectangles/alignment styles need layout support.
+  if ((!extended && a(4)) || flags & ~0x182 || (extended ? a(5) : a(6))) return fail(r, 120, argc);
+  await r.windows.send(owner, 0x211, 1, 0);
+  try {
+    await r.windows.send(owner, 0x117, handle, 0);
+    const selected = await r.request('popup-menu', {
+      owner,
+      x: a(2) | 0,
+      y: a(3) | 0,
+      items: describe(menu.items),
+    });
+    const item = findItem(menu, selected >>> 0);
+    const command =
+      selected && item && !item.separator && !item.submenu && !(item.flags & 3)
+        ? selected >>> 0
+        : 0;
+    if (!(flags & 0x180) && command) r.windows.post(owner, 0x111, command, 0);
+    return ok(flags & 0x100 ? command : command ? 1 : 0, argc);
+  } finally {
+    await r.windows.send(owner, 0x212, 1, 0);
+  }
 }

@@ -1,32 +1,26 @@
 {
-  "date": "2026-09-30",
+  "date": "2026-10-03T05:18:34.711Z",
+  "url": "http://127.0.0.1:4370/winebrowser/",
   "targetId": "wesmar-minesweeper-2026-02-x86",
-  "scope": "Unchanged upstream wesmar/minesweeper x86 release run through the ordinary browser harness. This records window and paint progress, not full gameplay.",
-  "unresolvedImportsBefore": 29,
-  "unresolvedImportsAfter": 0,
-  "observations": {
-    "window": {
-      "class": "Minesweeper",
-      "title": "Minesweeper",
-      "clientSize": [240, 310],
-      "frameSize": [242, 340]
-    },
-    "clientCanvas": {
-      "width": 240,
-      "height": 310,
-      "distinctColours": 75,
-      "dominant": ["#c8c8d2 (dialog face)", "#ffffff (client)", "#000000 (grid/text)", "#ff0000 (mine accents)", "#c0c0c0 (frame)"]
-    },
-    "messages": ["WM_CREATE 0x1", "WM_NCCALCSIZE 0x83", "WM_WINDOWPOSCHANGING 0x46", "WM_GETMINMAXINFO 0x24", "WM_WINDOWPOSCHANGED 0x47", "WM_SIZE 0x5", "WM_SHOWWINDOW 0x18", "WM_PAINT 0xf", "WM_ERASEBKGND 0x14"]
-  },
-  "runtimeWork": [
-    "RegisterClass accepts cbWndExtra/cbClsExtra and a class menu name",
-    "standard MENU templates parse with NUL-terminated strings after MENUHEADER",
-    "LoadString uses Wine's (id >> 4) + 1 block and id & 0x0f entry arithmetic",
-    "CreateFont accepts the charset/quality/pitch hints every application passes",
-    "GetSystemMetrics answers the full defined metric table",
-    "AdjustWindowRect(Ex) accounts for a menu bar",
-    "MoveWindow routes through the shared positioning path"
+  "sha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
+  "status": "passed",
+  "checks": [
+    "Unchanged upstream PE32 EXE and MIT public ZIP match pinned hashes; ordinary Chromium compiles guest x86 in the browser",
+    "Right-click cycles flag, question mark and empty cell",
+    "Left-click safely reveals a cell through original guest hit testing and painting",
+    "F2 guest accelerator restores the unopened board",
+    "Menu commands resize and redraw the original 9×9, 16×16 and 30×16 boards",
+    "Alt+G and C open the resource dialog; native EDIT notifications, Tab and Enter apply a 10×12 board with 20 mines and restore its owner",
+    "Escape cancels a resource dialog without applying edited dimensions",
+    "High-score resource dialog populates its static controls, resets scores and accepts guest-mediated close",
+    "ShellAbout treats HICON as a handle and presents an owned modal About box",
+    "Guest Exit menu command closes the game and returns zero after browser-local x86 translation",
+    "Hosted public ZIP starts through the same loader and Stop cleans up its windows"
   ],
-  "remaining": "The game reaches its own message loop and paints its dialog chrome; interactive play (menu commands, cell clicks) is not yet verified."
+  "exitCode": 0,
+  "instructions": 307005,
+  "compiledBlocks": 676,
+  "x86TranslationMs": 359.77500005811453,
+  "elapsedMs": 2475.929999999702,
+  "scope": "Interactive acceptance of this unchanged MIT release. No complete game-rule proof, pixel-exact native font comparison or universal Windows GUI compatibility claim."
 }

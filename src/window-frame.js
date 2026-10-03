@@ -5,11 +5,12 @@ export const MAX_WINDOW_HEIGHT = 2048;
 
 // Geometry of the browser desktop theme, in guest pixels. Overlapped windows
 // receive the default caption; WS_POPUP only gets explicitly requested chrome.
-export function windowFrame(style = 0) {
+export function windowFrame(style = 0, menu = false) {
   const popup = !!(style & 0x80000000);
   return {
     border: !popup || style & 0x00c40000 ? 1 : 0,
-    title: !popup || (style & 0x00c00000) === 0x00c00000 ? 28 : 0,
+    title: (!popup || (style & 0x00c00000) === 0x00c00000 ? 28 : 0) + (menu ? 20 : 0),
+    menu: menu ? 20 : 0,
     resizable: !popup || !!(style & 0x00040000),
   };
 }
@@ -17,7 +18,7 @@ export function windowFrame(style = 0) {
 export function frameForWindow(window) {
   return window.parentId
     ? { border: window.controlBorder ?? 0, title: 0, resizable: false }
-    : windowFrame(window.style);
+    : windowFrame(window.style, !!window.menu);
 }
 
 export function compareWindowOrder(a, b) {

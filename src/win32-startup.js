@@ -883,17 +883,14 @@ function shellExecute(r, a, wide) {
   return fail(r, 5, 6, 5); // SE_ERR_ACCESSDENIED
 }
 
-// ShellAboutW/A renders the standard About box: an optional icon, the
-// application name and version, a copyright line and a trailing comment. The
-// runtime reports the same values through its log so a headless run records
-// what the dialog would have shown.
-function shellAbout(r, a, wide) {
-  const read = (pointer) => (!pointer ? '' : wide ? r.wideString(pointer) : r.string(pointer));
+// ShellAbout's fourth parameter is an HICON, never a string pointer. Present
+// the application's caption and comment through the shared owned modal box.
+async function shellAbout(r, a, wide) {
   const owner = a(0);
   if (owner && !r.windows.windows.has(owner)) return fail(r, 1400, 4);
-  const lines = [read(a(1)), read(a(2)), read(a(3))].filter(Boolean);
-  if (lines.length) r.emit({ type: 'log', text: lines.join('\n') });
-  return ok(1, 4);
+  const handler = r.apiProvider.get(`user32.dll!MessageBox${wide ? 'W' : 'A'}`);
+  const response = await handler(r, (i) => [owner, a(2), a(1), 0x40][i]);
+  return ok(response.result ? 1 : 0, 4);
 }
 
 export const startupApis4 = {

@@ -478,16 +478,23 @@ matrix (`world[15]` one Float32 step below 1) and full projective transforms.
 - [ ] Reproducibly build and package the larger Wine DLL closure with retained sources/notices for browser use; installed-DLL probes alone do not provide plug-and-play distribution.
 - [ ] Audit NLS data redistribution notices before bundling system data publicly. Current NLS tests use synthetic bytes or explicitly supplied, hash-verified installed data.
 - [ ] Expand CPU coverage beyond the bounded x87 core: transcendental math, environment save/restore, additional SIMD, exception handling and broader thread semantics. x64 is a separate architectural task.
-- [x] Run an unchanged classic desktop target: the pinned wesmar/minesweeper
-      release now resolves every import, opens its `Minesweeper` window, runs
-      its message loop and paints a 75-colour dialog face. Driving it to
-      zero unresolved imports required real window-class extra data and class
-      menus, standard MENU resource parsing, Wine's LoadString arithmetic, the
-      full GetSystemMetrics table, menu-aware AdjustWindowRect and a CreateFont
-      that accepts the charset/quality/pitch hints applications pass. Interactive
-      play (menu commands, cell clicks) is not yet verified, so this is a
-      window-and-paint result rather than a compatibility claim.
-      See [the browser report](evidence/minesweeper-browser-results.json).
+- [x] Run an unchanged classic desktop target: the pinned MIT wesmar/minesweeper
+      release passes ordinary Chromium gameplay, right-click flags, F2 restart,
+      difficulty menus, Custom Field edits with Tab/Enter and Escape, scores,
+      owned About and clean Exit. Its original PE32 code compiles to Wasm in the
+      browser. The public catalog includes the unchanged EXE, ZIP, MIT notice
+      and pinned source archive. See [the browser report](evidence/minesweeper-browser-results.json).
+- [x] Support standard MENU resources, class/dynamic menu bars and actual
+      context-menu selection/cancellation. Queryable submenu handles, disabled
+      and checked states, mnemonics and WM_COMMAND are tested. The native menu
+      fixture must return the second selected item, rather than a fabricated
+      first command. MENUEX, owner-drawn/bitmap menus and advanced popup layout
+      remain incomplete.
+- [x] Improve resource-dialog client geometry, visibility, default focus and
+      owner restoration; route Tab/Shift+Tab, default Enter and Escape through
+      the modal loop. DrawEdge targets the supplied HDC and preserves drawing
+      state with SaveDC/RestoreDC. Group-box captions update without destroying
+      descendants. See [GUI scope](docs/window-runtime.md).
 - [x] Resolve every import of the pinned PuTTY 0.85 release (144 -> 0) through
       the ordinary browser harness. Closing that list added the whole GDI
       surface PuTTY needed (CreateFontIndirect, CreateBitmap, ExtTextOut,

@@ -130,8 +130,11 @@ for (const extended of [false, true])
       await call('user32.dll!CreateDialogIndirectParamA', r.pe.imageBase, p, 0, 0x401000, 123)
     ).result;
     assert.ok(dialog);
-    assert.equal(events.at(-1).args[1], 0x110);
-    assert.equal(events.at(-1).args[3], 123);
+    const initialized = events.find((event) => event.args[1] === 0x110);
+    assert.ok(initialized);
+    assert.equal(initialized.args[3], 123);
+    assert.equal(r.windows.windows.get(dialog).width, 360);
+    assert.equal(r.windows.windows.get(dialog).height, 200);
     const children = [...r.windows.windows.values()].filter((w) => w.parentId === dialog);
     assert.equal(children.length, 2);
     assert.equal(call('user32.dll!GetWindow', dialog, 5).result, children[0].id);

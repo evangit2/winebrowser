@@ -335,6 +335,60 @@ try {
     false,
   );
   assert.equal(await page.locator('.virtual-desktop-control-container').count(), 4);
+  await page.evaluate(() => {
+    const desktop = window.virtualDesktop;
+    desktop.update({
+      operation: 'create',
+      window: {
+        id: 10,
+        parentId: 1,
+        controlType: 'button',
+        title: '&Options && More',
+        controlStyle: { buttonType: 'group-box' },
+        x: 200,
+        y: 100,
+        width: 180,
+        height: 100,
+        visible: true,
+        enabled: true,
+      },
+    });
+    desktop.update({
+      operation: 'create',
+      window: {
+        id: 11,
+        parentId: 10,
+        controlType: 'static',
+        title: 'Inside group',
+        x: 8,
+        y: 28,
+        width: 100,
+        height: 20,
+        visible: true,
+        enabled: true,
+      },
+    });
+  });
+  const group = page.locator('fieldset[data-window-id="10"]');
+  assert.equal(await group.locator('legend').textContent(), 'Options & More');
+  const commandsBefore = await page.evaluate(
+    () => window.desktopEvents.filter((e) => e.type === 'command').length,
+  );
+  await group.locator('legend').click();
+  assert.equal(
+    await page.evaluate(() => window.desktopEvents.filter((e) => e.type === 'command').length),
+    commandsBefore,
+    'group-box captions are not push buttons',
+  );
+  await page.evaluate(() =>
+    window.virtualDesktop.update({ operation: 'update', window: { id: 10, title: '&Renamed' } }),
+  );
+  assert.equal(await group.locator('legend').textContent(), 'Renamed');
+  assert.equal(await page.locator('[data-window-id="11"]').textContent(), 'Inside group');
+  await page.evaluate(() =>
+    window.virtualDesktop.update({ operation: 'destroy', window: { id: 10 } }),
+  );
+  assert.equal(await page.locator('[data-window-id="11"]').count(), 0);
   assert.deepEqual(pageErrors, []);
   console.log(
     JSON.stringify(
@@ -345,6 +399,7 @@ try {
         editValueAndCaretPreserved: true,
         titlebarIconPixels: true,
         nestedControlGeometryFocusAndLifecycle: true,
+        groupBoxCaptionsAndLifecycle: true,
         pageErrors,
       },
       null,

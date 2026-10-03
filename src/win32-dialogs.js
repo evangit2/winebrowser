@@ -4,7 +4,8 @@
 // EndDialog. The runtime builds an ordinary owned window so the browser desktop
 // renders it and the existing control machinery drives it.
 import { readPEResource } from './pe-resources.js';
-import { createWindowFromHost } from './win32-windows.js';
+import { windowFrame } from './window-frame.js';
+import { createWindowFromHost, windowApis } from './win32-windows.js';
 
 const RT_DIALOG = 5;
 const MAX_DIALOG_ITEMS = 256;
@@ -219,23 +220,30 @@ function dialogUnitsToPixels(value) {
 }
 
 async function buildDialog(r, template, owner, proc, instance) {
+  const frame = windowFrame(template.style);
   const created = await createWindowFromHost(r, {
     className: DIALOG_CLASS,
     title: template.title || '',
     x: template.x === 0x8000 ? 40 : dialogUnitsToPixels(template.x),
     y: template.y === 0x8000 ? 40 : dialogUnitsToPixels(template.y),
-    width: Math.max(80, dialogUnitsToPixels(template.cx)),
-    height: Math.max(40, dialogUnitsToPixels(template.cy)),
+    width: Math.max(1, dialogUnitsToPixels(template.cx)) + 2 * frame.border,
+    height: Math.max(1, dialogUnitsToPixels(template.cy)) + frame.title + 2 * frame.border,
     parent: owner,
     owner: true,
-    style: template.style,
+    style: template.style & ~0x10000000,
     exStyle: template.exStyle,
     instance,
     proc,
   });
   if (created.error !== undefined || !created.id) return { error: created.error ?? 1407 };
   r.windows.windows.get(created.id).dialogProc = proc;
-  const dialog = { id: created.id, result: 0, finished: false, proc };
+  const dialog = {
+    id: created.id,
+    result: 0,
+    finished: false,
+    proc,
+    initialVisible: !!(template.style & 0x10000000),
+  };
   dialogState(r).byWindow.set(created.id, dialog);
   // Create the template's child controls through the same path a guest
   // CreateWindowEx takes, so every control style is honoured.
@@ -249,7 +257,7 @@ async function buildDialog(r, template, owner, proc, instance) {
       height: Math.max(1, dialogUnitsToPixels(item.height)),
       parent: created.id,
       controlId: item.id,
-      style: item.style,
+      style: item.style | 0x10000000,
       exStyle: item.exStyle,
       instance,
     });
@@ -305,7 +313,7 @@ async function dialogBoxIndirect(r, a, wide, modeless = false) {
   if (built.error) return fail(r, built.error, 5);
   void wide;
   if (modeless) {
-    await r.callGuest(proc, [built.dialog.id, WM_INITDIALOG, 0, a(4) || 0]);
+    await initializeDialog(r, built.dialog, a(4), built.dialog.initialVisible);
     return ok(built.window.id, 5);
   }
   return runDialog(r, built.dialog, a(4));
@@ -326,13 +334,27 @@ async function createDialogParam(r, a, wide) {
   if (!template) return fail(r, 1813, 5);
   const built = await buildDialog(r, template, owner, a(3), module.base);
   if (built.error) return fail(r, built.error, 5);
-  await r.callGuest(built.dialog.proc, [built.dialog.id, WM_INITDIALOG, 0, a(4) || 0]);
+  await initializeDialog(r, built.dialog, a(4), built.dialog.initialVisible);
   // The modeless form returns the window handle immediately.
   return ok(built.window.id, 5);
 }
 
 function moduleAt(r, base) {
   return [...r.graph.modules.values()].find((m) => m.base === base) ?? null;
+}
+
+async function initializeDialog(r, dialog, param, visible = true) {
+  const children = [...r.windows.windows.values()].filter(
+    (w) => w.parentId === dialog.id && w.enabled && w.visible && w.style & 0x10000,
+  );
+  const first = children[0]?.id ?? 0;
+  const focus = await r.callGuest(dialog.proc, [dialog.id, WM_INITDIALOG, first, param || 0]);
+  if (dialog.finished || !r.windows.windows.has(dialog.id)) return;
+  if (!visible) return;
+  await windowApis['user32.dll!ShowWindow'](r, (i) => [dialog.id, 5][i]);
+  if (focus && first) await r.windows.setFocus(first);
+  else if (!r.windows.focus || r.windows.topLevel(r.windows.focus) !== dialog.id)
+    await r.windows.setFocus(dialog.id);
 }
 
 // The modal loop. WM_INITDIALOG runs first; the procedure's return value
@@ -344,13 +366,14 @@ async function runDialog(r, dialog, param) {
   const window = m.windows.get(dialog.id),
     owner = m.windows.get(window?.ownerId);
   const wasEnabled = owner?.enabled !== false;
+  const previousFocus = m.focus;
   if (owner && wasEnabled) {
     owner.enabled = false;
     m.emit(owner);
     await m.send(owner.id, 0xa, 0, 0);
   }
   try {
-    await r.callGuest(dialog.proc, [dialog.id, WM_INITDIALOG, 0, param || 0]);
+    await initializeDialog(r, dialog, param);
     while (!dialog.finished && m.windows.has(dialog.id) && r.exitCode === null) {
       // A modal loop still dispatches posted messages for the process; only
       // user input to its disabled owner is suppressed by the window manager.
@@ -363,7 +386,25 @@ async function runDialog(r, dialog, param) {
         );
         continue;
       }
-      await dispatchGuestMessage(r, message);
+      const pointer = r.allocate(28);
+      try {
+        [
+          message.hwnd,
+          message.message,
+          message.wParam,
+          message.lParam,
+          message.time,
+          message.x,
+          message.y,
+        ].forEach((v, i) => r.write32(pointer + i * 4, v ?? 0));
+        const handled = await windowApis['user32.dll!IsDialogMessageW'](
+          r,
+          (i) => [dialog.id, pointer][i],
+        );
+        if (!handled.result) await dispatchGuestMessage(r, message);
+      } finally {
+        r.free(pointer);
+      }
     }
     return ok(dialog.result, 5);
   } finally {
@@ -373,6 +414,7 @@ async function runDialog(r, dialog, param) {
       owner.enabled = true;
       m.emit(owner);
       await m.send(owner.id, 0xa, 1, 0);
+      await m.setFocus(m.windows.has(previousFocus) ? previousFocus : owner.id);
     }
   }
 }

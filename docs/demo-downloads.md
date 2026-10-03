@@ -30,6 +30,7 @@ CesiumMan model and SPIR-V shaders required to run it.
 | learning-dx12-cube        | [EXE](../public/examples/learning-dx12-cube/Tutorial2.exe)                       | [ZIP](../public/examples/learning-dx12-cube/Tutorial2-x86.zip)                   |
 | microsoft-dx12-city       | [EXE](../public/examples/microsoft-dx12-city/D3D12Bundles.exe)                   | [ZIP](../public/examples/microsoft-dx12-city/D3D12City-x86.zip)                  |
 | sqlite                    | [EXE](../public/examples/sqlite/sqlite-client.exe)                               | [ZIP](../public/examples/sqlite/sqlite.zip)                                      |
+| minesweeper               | [EXE](../public/examples/minesweeper/minesweeper.exe)                            | [ZIP](../public/examples/minesweeper/minesweeper.zip)                            |
 | tetris                    | [EXE](../public/examples/tetris/tetris.exe)                                      | [ZIP](../public/examples/tetris/tetris.zip)                                      |
 | vkcube                    | [EXE](../public/examples/vkcube/vkcube.exe)                                      | [ZIP](../public/examples/vkcube/vkcube.zip)                                      |
 | lua                       | [EXE](../public/examples/lua/lua-client.exe)                                     | [ZIP](../public/examples/lua/lua.zip)                                            |

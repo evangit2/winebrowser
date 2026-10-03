@@ -23,7 +23,7 @@
     },
     {
       "name": "humus-instancing",
-      "description": "Animated Humus D3D9 particle clouds using the original shader-constant batching path. Keys 2–4 compare drawing paths; close its window to exit.",
+      "description": "Animated Humus D3D9 particle clouds using the original shader-constant batching path. Keys 2\u20134 compare drawing paths; close its window to exit.",
       "exe": "humus-instancing/Instancing.exe",
       "exeSha256": "37df64605e11c7a23df2d5befeb0bf38d2b9b6d2bf1322ffb1d0a437030b2903",
       "zip": "humus-instancing/Instancing.zip",
@@ -123,7 +123,11 @@
       "name": "gnu-diff",
       "description": "Unchanged GNU diffutils 2.8.7 Windows release with native libintl and libiconv DLLs. Shows a unified patch; exit 1 means files differ. Select cmp.exe to compare bytes.",
       "entry": "diff.exe",
-      "args": ["-u", "before.txt", "after.txt"],
+      "args": [
+        "-u",
+        "before.txt",
+        "after.txt"
+      ],
       "exe": "gnu-diff/diff.exe",
       "exeSha256": "f449ce40db50dd35c45c3dfa54bc79b6a3a4d9dc5ab0ff4d0fe91a4c9fefa310",
       "zip": "gnu-diff/gnu-diff.zip",
@@ -136,7 +140,12 @@
       "name": "optipng",
       "description": "Unchanged OptiPNG 0.7.8 Windows release: losslessly optimizes a four-colour PNG with its real libpng and zlib code. Download optimized.png after exit.",
       "entry": "optipng.exe",
-      "args": ["-o1", "-out", "optimized.png", "input.png"],
+      "args": [
+        "-o1",
+        "-out",
+        "optimized.png",
+        "input.png"
+      ],
       "exe": "optipng/optipng.exe",
       "exeSha256": "3464cd6c7fc9cb893f368111eb19b634b2acf14dcc94958d0758251071cfcbd9",
       "zip": "optipng/optipng.zip",
@@ -149,7 +158,12 @@
       "name": "7zip",
       "description": "Unchanged 7-Zip 26.03 standalone Windows archiver: compresses text and binary inputs to out.7z. Download the archive, or use t/x to test and extract an uploaded .7z.",
       "entry": "7zr.exe",
-      "args": ["a", "out.7z", "message.txt", "binary.bin"],
+      "args": [
+        "a",
+        "out.7z",
+        "message.txt",
+        "binary.bin"
+      ],
       "exe": "7zip/7zr.exe",
       "exeSha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
       "zip": "7zip/7zip.zip",
@@ -168,6 +182,17 @@
       "sourceZip": "lua/source.zip",
       "sourceZipSha256": "f21ad5ec9991d229c6ff75d36a827c9e8594b0311a777e692a08bdedd324f8c9",
       "provenance": "Original upstream MIT Windows Lua DLL, unchanged; full original source, binary archive, license and MIT authored script/client included."
+    },
+    {
+      "name": "minesweeper",
+      "description": "Unchanged MIT wesmar Minesweeper: reveal cells, flag mines, select difficulty and customize the board through original Win32 dialogs.",
+      "exe": "minesweeper/minesweeper.exe",
+      "exeSha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
+      "zip": "minesweeper/minesweeper.zip",
+      "zipSha256": "5a13aacfd082c1d11108ab1dd76acd4f661acd3bd61d02d2723cf13569bce712",
+      "sourceZip": "minesweeper/source.zip",
+      "sourceZipSha256": "cdddd02f30424da909f798b2ffb07e765fdba4355e704a334176cdaf764078e6",
+      "provenance": "MIT, wesmar/minesweeper commit a950b89de6946faa360dcd5febfcb4206a877af1; unchanged release EXE."
     }
   ]
 }

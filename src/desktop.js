@@ -40,6 +40,14 @@ export class VirtualDesktop {
     this.drag = null;
     this.cursorImages = new Map();
 
+    container.ownerDocument.addEventListener('pointerdown', (event) => {
+      if (
+        this.openMenu &&
+        !this.openMenu.window.menuBar.contains(event.target) &&
+        !this.openMenu.popup.contains(event.target)
+      )
+        this.#closeMenu();
+    });
     container.classList.add('virtual-desktop');
     if (!container.hasAttribute('tabindex')) container.tabIndex = 0;
     container.addEventListener('keydown', this.onKeyDown);
@@ -58,7 +66,9 @@ export class VirtualDesktop {
     );
   }
 
-  onKeyDown = (event) => this.#sendKey(event, 'keydown');
+  onKeyDown = (event) => {
+    if (!this.#menuKey(event)) this.#sendKey(event, 'keydown');
+  };
   onKeyUp = (event) => this.#sendKey(event, 'keyup');
 
   setCursor(css, handle) {
@@ -214,7 +224,7 @@ export class VirtualDesktop {
     window.element.style.height = `${window.height + title + 2 * border}px`;
     window.element.style.borderWidth = `${border}px`;
     window.element.classList.toggle('is-borderless', !border && !title);
-    window.titlebar.hidden = !title;
+    window.titlebar.hidden = !(title - (window.frame?.menu ?? 0));
     window.resizeHandle.hidden = !resizable;
     window.viewport.style.width = `${window.width}px`;
     window.viewport.style.height = `${window.height}px`;
@@ -242,6 +252,181 @@ export class VirtualDesktop {
     const image = window.iconContext.createImageData(icon.width, icon.height);
     image.data.set(bytes);
     window.iconContext.putImageData(image, 0, 0);
+  }
+
+  #closeMenu(restoreFocus = true, command = 0) {
+    const open = this.openMenu;
+    if (!open) return;
+    open.popup.remove();
+    open.button?.setAttribute('aria-expanded', 'false');
+    this.openMenu = null;
+    if (open.reply) open.reply(command);
+    else this.#emit(open.window.id, 'menu-close');
+    if (restoreFocus) open.window.canvas.focus({ preventScroll: true });
+  }
+
+  showPopupMenu({ owner, x, y, items }) {
+    this.#closeMenu(false);
+    const window = this.windows.get(owner);
+    if (!window || !this.#available(window)) return Promise.resolve(0);
+    const root = document.createElement('nav');
+    root.className = 'virtual-desktop-menubar virtual-desktop-context-menu';
+    root.style.left = `${x - window.x - (window.frame?.border ?? 1)}px`;
+    root.style.top = `${y - window.y - (window.frame?.border ?? 1)}px`;
+    const list = this.#menuList(window, items);
+    list.classList.add('virtual-desktop-menu-popup');
+    root.append(list);
+    window.element.append(root);
+    this.#focus(window);
+    const result = new Promise((reply) => {
+      this.openMenu = { window, popup: root, reply };
+    });
+    list.querySelector('button:not(:disabled)')?.focus();
+    return result;
+  }
+
+  #openMenu(window, button, items) {
+    this.#closeMenu(false);
+    const popup = this.#menuList(window, items);
+    popup.classList.add('virtual-desktop-menu-popup');
+    button.parentElement.append(popup);
+    button.setAttribute('aria-expanded', 'true');
+    this.openMenu = { window, button, popup };
+    this.#focus(window);
+    this.#emit(window.id, 'menu-open');
+    popup.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
+  }
+
+  #menuList(window, items) {
+    const list = document.createElement('div');
+    list.setAttribute('role', 'menu');
+    for (const item of items) {
+      if (item.separator) {
+        const separator = document.createElement('div');
+        separator.setAttribute('role', 'separator');
+        list.append(separator);
+        continue;
+      }
+      const row = document.createElement('div');
+      row.className = 'virtual-desktop-menu-row';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.disabled = !item.enabled;
+      const [caption, shortcut = ''] = item.text.split('\t');
+      const role = item.radio ? 'menuitemradio' : item.checked ? 'menuitemcheckbox' : 'menuitem';
+      button.setAttribute('role', role);
+      if (role !== 'menuitem') button.setAttribute('aria-checked', String(item.checked));
+      button.dataset.mnemonic = /(?<!&)&([^&])/.exec(caption)?.[1].toLowerCase() ?? '';
+      const label = document.createElement('span');
+      label.textContent = stripCaptionMnemonics(caption);
+      const mark = document.createElement('span');
+      mark.textContent = item.checked ? '✓' : '';
+      mark.setAttribute('aria-hidden', 'true');
+      const hint = document.createElement('span');
+      hint.textContent = item.submenu ? '›' : shortcut;
+      hint.setAttribute('aria-hidden', 'true');
+      button.append(mark, label, hint);
+      row.append(button);
+      if (item.submenu) {
+        const nested = this.#menuList(window, item.submenu);
+        nested.classList.add('virtual-desktop-menu-nested');
+        nested.hidden = true;
+        row.append(nested);
+        button.setAttribute('aria-haspopup', 'menu');
+        button.setAttribute('aria-expanded', 'false');
+        button.addEventListener('click', () => {
+          nested.hidden = !nested.hidden;
+          button.setAttribute('aria-expanded', String(!nested.hidden));
+          nested.querySelector('button:not(:disabled)')?.focus();
+        });
+      } else
+        button.addEventListener('click', () => {
+          const popup = !!this.openMenu?.reply;
+          this.#closeMenu(true, item.id);
+          if (!popup) this.#emit(window.id, 'menu-command', { command: item.id });
+        });
+      list.append(row);
+    }
+    return list;
+  }
+
+  #applyMenu(window, items) {
+    if (items === undefined) return;
+    const signature = JSON.stringify(items);
+    if (signature === window.menuSignature) return;
+    if (this.openMenu?.window === window) this.#closeMenu();
+    window.menuSignature = signature;
+    window.menuBar.replaceChildren();
+    window.menuBar.hidden = !items?.length;
+    for (const item of items ?? []) {
+      const row = document.createElement('div');
+      row.className = 'virtual-desktop-menu-root';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('role', 'menuitem');
+      button.disabled = !item.enabled;
+      button.textContent = stripCaptionMnemonics(item.text);
+      button.dataset.mnemonic = /(?<!&)&([^&])/.exec(item.text)?.[1].toLowerCase() ?? '';
+      if (item.submenu) {
+        button.setAttribute('aria-haspopup', 'menu');
+        button.setAttribute('aria-expanded', 'false');
+        button.addEventListener('click', () => {
+          if (this.openMenu?.button === button) this.#closeMenu();
+          else this.#openMenu(window, button, item.submenu);
+        });
+      } else
+        button.addEventListener('click', () =>
+          this.#emit(window.id, 'menu-command', { command: item.id }),
+        );
+      row.append(button);
+      window.menuBar.append(row);
+    }
+  }
+
+  #menuKey(event) {
+    const open = this.openMenu;
+    if (open) {
+      if (event.key === 'Escape') {
+        this.#closeMenu();
+        event.preventDefault();
+        return true;
+      }
+      const buttons = [...open.popup.querySelectorAll('button:not(:disabled)')].filter(
+        (b) => !b.closest('[hidden]'),
+      );
+      const current = buttons.indexOf(event.target);
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        const next =
+          event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+              ? buttons.length - 1
+              : (current + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+        buttons[next]?.focus();
+        event.preventDefault();
+        return true;
+      }
+      const match = buttons.find((b) => b.dataset.mnemonic === event.key.toLowerCase());
+      if (match && event.key.length === 1) {
+        match.click();
+        event.preventDefault();
+        return true;
+      }
+      // Menu navigation stays in the browser until a command is selected.
+      return true;
+    }
+    if (event.altKey && event.key.length === 1) {
+      const window = this.#topLevel(this.windows.get(this.activeWindowId));
+      const button = [...(window?.menuBar.querySelectorAll('button') ?? [])].find(
+        (b) => b.dataset.mnemonic === event.key.toLowerCase() && !b.disabled,
+      );
+      if (button) {
+        button.click();
+        event.preventDefault();
+        return true;
+      }
+    }
+    return false;
   }
 
   #createWindow(state) {
@@ -287,7 +472,12 @@ export class VirtualDesktop {
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'virtual-desktop-resize';
     resizeHandle.setAttribute('aria-hidden', 'true');
-    element.append(titlebar, viewport, resizeHandle);
+    const menuBar = document.createElement('nav');
+    menuBar.className = 'virtual-desktop-menubar';
+    menuBar.setAttribute('role', 'menubar');
+    menuBar.setAttribute('aria-label', `${title.textContent} menu`);
+    menuBar.hidden = true;
+    element.append(titlebar, menuBar, viewport, resizeHandle);
 
     const window = {
       ...state,
@@ -297,6 +487,7 @@ export class VirtualDesktop {
       height: Math.max(1, Number(state.height) || 200),
       element,
       titlebar,
+      menuBar,
       titleElement: title,
       iconCanvas,
       iconContext: iconCanvas.getContext('2d'),
@@ -346,6 +537,7 @@ export class VirtualDesktop {
 
     element.addEventListener('pointerdown', () => this.#focus(window));
     canvas.addEventListener('focus', () => this.#focus(window));
+    canvas.addEventListener('contextmenu', (event) => event.preventDefault());
     canvas.addEventListener('pointerdown', (event) => canvas.setPointerCapture(event.pointerId));
     canvas.addEventListener(
       'wheel',
@@ -366,6 +558,7 @@ export class VirtualDesktop {
     this.container.append(element);
     this.#applyGeometry(window);
     this.#applyIcon(window, state.icon);
+    this.#applyMenu(window, state.menu);
     this.#setVisibility(window, state.visible !== false);
     return window;
   }
@@ -377,16 +570,15 @@ export class VirtualDesktop {
     if (!['static', 'button', 'edit'].includes(controlType))
       throw new Error(`Unsupported child control type: ${controlType}`);
 
-    let element;
+    let element, legend;
     if (controlType === 'button') {
       const buttonType = state.controlStyle?.buttonType ?? 'push';
       // A group box is a labelled frame, not a clickable control.
       if (buttonType === 'group-box') {
         element = document.createElement('fieldset');
         element.className = 'virtual-desktop-control virtual-desktop-control-groupbox';
-        const legend = document.createElement('legend');
+        legend = document.createElement('legend');
         element.append(legend);
-        control.legend = legend;
       } else {
         const toggling = !!state.controlStyle?.toggle || !!state.controlStyle?.triState;
         element = document.createElement('button');
@@ -434,6 +626,8 @@ export class VirtualDesktop {
     for (const type of ['keydown', 'keyup'])
       element.addEventListener(type, (event) => {
         event.stopPropagation();
+        if (this.#topLevel(control)?.isDialog && ['Tab', 'Enter', 'Escape'].includes(event.key))
+          event.preventDefault();
         this.#sendKey(event, type, control.id, false);
       });
 
@@ -451,6 +645,7 @@ export class VirtualDesktop {
       parentId: state.parentId,
       parent,
       element,
+      legend,
       container,
       viewport,
       x: 0,
@@ -467,6 +662,7 @@ export class VirtualDesktop {
   }
 
   #applyControlState(control, state) {
+    if (state.controlId !== undefined) control.element.dataset.controlId = String(state.controlId);
     if (state.title !== undefined) control.titleText = String(state.title);
     const noPrefix = state.noPrefix ?? state.controlStyle?.noPrefix;
     if (state.title !== undefined || (noPrefix !== undefined && noPrefix !== control.noPrefix)) {
@@ -660,6 +856,7 @@ export class VirtualDesktop {
       throw new TypeError('Window update requires a window id');
     const existing = this.windows.get(state.id);
     if (message.operation === 'destroy') {
+      if (this.openMenu?.window === existing) this.#closeMenu();
       const removedIds = new Set([state.id]);
       let changed = true;
       while (changed) {
@@ -685,7 +882,7 @@ export class VirtualDesktop {
       return;
     }
 
-    if (state.parentId && state.controlType) {
+    if ((state.parentId && state.controlType) || existing?.isControl) {
       const control = existing ?? this.#createControl(state);
       this.#applyControlState(control, state);
       this.windows.set(state.id, control);
@@ -710,11 +907,13 @@ export class VirtualDesktop {
       width: Number.isFinite(state.width) ? Math.max(1, state.width) : window.width,
       height: Number.isFinite(state.height) ? Math.max(1, state.height) : window.height,
       frame: state.frame ?? window.frame,
+      isDialog: state.isDialog ?? window.isDialog,
       topmost: state.topmost ?? window.topmost ?? false,
       zOrder: state.zOrder ?? window.zOrder ?? ++this.nextZIndex,
     });
     window.titleElement.textContent = window.titleText;
     this.#applyIcon(window, state.icon);
+    this.#applyMenu(window, state.menu);
     if (state.enabled !== undefined) {
       window.enabled = !!state.enabled;
       window.element.inert = !window.enabled;
@@ -802,6 +1001,7 @@ export class VirtualDesktop {
   }
 
   reset() {
+    this.#closeMenu(false);
     this.container.style.removeProperty('--guest-cursor');
     this.cursorImages.clear();
     this.windows.clear();

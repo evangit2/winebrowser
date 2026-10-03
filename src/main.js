@@ -190,6 +190,10 @@ function createWorker() {
           $('folder-dialog').showModal();
         }
       }
+      if (message.kind === 'popup-menu') {
+        if (suiteMode) reply(instance, message, 0);
+        else desktop.showPopupMenu(message).then((value) => reply(instance, message, value));
+      }
       if (message.kind === 'messagebox') {
         if (suiteMode) {
           reply(instance, message, 1);

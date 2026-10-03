@@ -1473,6 +1473,54 @@ function getStockObject(runtime, argument) {
   return success(handle, 1);
 }
 
+// Each level owns a snapshot of the DC attributes, never its framebuffer.
+// Positive RestoreDC ids and negative relative levels both discard that level
+// and all younger saves. Saved selections keep objects alive until discarded.
+function getDcAttribute(runtime, a, key) {
+  const dc = getDc(runtime, stateFor(runtime), a(0));
+  return dc
+    ? success(dc[key], 1)
+    : failure(runtime, ERROR_INVALID_HANDLE, key === 'bkMode' ? 0 : 0xffffffff, 1);
+}
+function saveDC(runtime, a) {
+  const state = stateFor(runtime),
+    dc = getDc(runtime, state, a(0));
+  if (!dc) return badDc(runtime, 1);
+  const stack = (dc.savedStates ??= []);
+  if (stack.length >= 256) return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 1);
+  const { savedStates, surface, ...attributes } = dc;
+  stack.push({ ...attributes, currentPoint: { ...dc.currentPoint }, clip: dc.clip?.slice() });
+  return success(stack.length, 1);
+}
+function restoreDC(runtime, a) {
+  const state = stateFor(runtime),
+    dc = getDc(runtime, state, a(0));
+  if (!dc) return badDc(runtime, 2);
+  const stack = dc.savedStates ?? [],
+    level = a(1) | 0;
+  const index = level < 0 ? stack.length + level : level - 1;
+  if (!level || index < 0 || index >= stack.length)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  const snapshot = stack[index];
+  const previousBitmap = state.bitmaps.get(dc.bitmap);
+  if (previousBitmap && !previousBitmap.stock) previousBitmap.selectedBy = null;
+  for (const key of Object.keys(dc)) if (!['surface', 'savedStates'].includes(key)) delete dc[key];
+  Object.assign(dc, snapshot);
+  stack.splice(index);
+  if (dc.kind === 'memory-dc') {
+    const bitmap = state.bitmaps.get(dc.bitmap);
+    bitmap.selectedBy = a(0);
+    dc.surface = bitmap;
+  }
+  return success(1, 2);
+}
+function savedSelection(state, handle, key, except = null) {
+  for (const dc of state.dcs.values())
+    if (dc.active && dc !== except && dc.savedStates?.some((saved) => saved[key] === handle))
+      return true;
+  return false;
+}
+
 function selectObject(runtime, argument) {
   const state = stateFor(runtime);
   const dcHandle = argument(0) >>> 0;
@@ -1499,7 +1547,10 @@ function selectObject(runtime, argument) {
   }
   const bitmap = state.bitmaps.get(objectHandle);
   if (!bitmap || dc.kind !== 'memory-dc') return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
-  if (bitmap.selectedBy && bitmap.selectedBy !== dcHandle)
+  if (
+    (bitmap.selectedBy && bitmap.selectedBy !== dcHandle) ||
+    savedSelection(state, objectHandle, 'bitmap', dc)
+  )
     return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
   const previous = dc.bitmap;
   const previousBitmap = state.bitmaps.get(previous);
@@ -1517,7 +1568,11 @@ function deleteObject(runtime, argument) {
   if (brush) {
     if (brush.stock) return success(1, 1);
     for (const dc of state.dcs.values())
-      if (dc.active && dc.brush === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+      if (
+        dc.active &&
+        (dc.brush === handle || dc.savedStates?.some((saved) => saved.brush === handle))
+      )
+        return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
     state.brushes.delete(handle);
     return success(1, 1);
   }
@@ -1525,7 +1580,8 @@ function deleteObject(runtime, argument) {
   if (pen) {
     if (pen.stock) return success(1, 1);
     for (const dc of state.dcs.values())
-      if (dc.active && dc.pen === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+      if (dc.active && (dc.pen === handle || dc.savedStates?.some((saved) => saved.pen === handle)))
+        return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
     state.pens.delete(handle);
     return success(1, 1);
   }
@@ -1533,13 +1589,17 @@ function deleteObject(runtime, argument) {
   if (font) {
     if (font.stock) return success(1, 1);
     for (const dc of state.dcs.values())
-      if (dc.active && dc.font === handle) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+      if (
+        dc.active &&
+        (dc.font === handle || dc.savedStates?.some((saved) => saved.font === handle))
+      )
+        return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
     state.fonts.delete(handle);
     return success(1, 1);
   }
   const bitmap = state.bitmaps.get(handle);
   if (!bitmap) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
-  if (bitmap.stock || bitmap.selectedBy)
+  if (bitmap.stock || bitmap.selectedBy || savedSelection(state, handle, 'bitmap'))
     return bitmap.stock ? success(1, 1) : failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
   state.bitmaps.delete(handle);
   return success(1, 1);
@@ -2329,6 +2389,19 @@ export const gdiApis = {
   'gdi32.dll!GetStockObject': getStockObject,
   'gdi32.dll!SelectObject': selectObject,
   'gdi32.dll!DeleteObject': deleteObject,
+  'gdi32.dll!SaveDC': saveDC,
+  'gdi32.dll!GetCurrentPositionEx': (r, a) => {
+    const dc = getDc(r, stateFor(r), a(0));
+    if (!dc) return badDc(r, 2);
+    r.check(a(1), 8, true);
+    r.write32(a(1), dc.currentPoint.x);
+    r.write32(a(1) + 4, dc.currentPoint.y);
+    return success(1, 2);
+  },
+  'gdi32.dll!GetTextColor': (r, a) => getDcAttribute(r, a, 'textColor'),
+  'gdi32.dll!GetBkColor': (r, a) => getDcAttribute(r, a, 'backgroundColor'),
+  'gdi32.dll!GetBkMode': (r, a) => getDcAttribute(r, a, 'bkMode'),
+  'gdi32.dll!RestoreDC': restoreDC,
   'gdi32.dll!PatBlt': patBlt,
   'gdi32.dll!BitBlt': bitBlt,
   'gdi32.dll!StretchBlt': stretchBlt,

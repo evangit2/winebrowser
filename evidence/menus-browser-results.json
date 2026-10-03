@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-03T05:18:32.413Z",
+  "url": "http://127.0.0.1:4370/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exeSha256": "2ed6ab5b31d4b34ce8c8dd5f8351b0cab463205fdd163e99b44584fcac2d044d",
+  "exitCode": 0,
+  "checks": [
+    "Native dynamic menu bar honors disabled and checked items and client geometry",
+    "TrackPopupMenu waits for the actual second command and returns ID 8",
+    "TrackPopupMenuEx Escape cancels and returns zero",
+    "Context-menu R mnemonic dispatches WM_COMMAND 7 without TPM_RETURNCMD",
+    "Guest close exits zero"
+  ],
+  "scope": "Independent native Win32 contract fixture, translated inside ordinary Chromium. Left/top aligned text popups; no owner-drawn, bitmap, alignment/exclusion-rectangle or MENUEX claim."
+}

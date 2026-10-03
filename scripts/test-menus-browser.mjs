@@ -1,0 +1,95 @@
+import assert from 'node:assert/strict';
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createServer } from 'vite';
+import { chromium } from '@playwright/test';
+let server, browser;
+try {
+  let url = process.env.WINEBROWSER_TEST_URL;
+  if (!url) {
+    server = await createServer({
+      base: '/',
+      logLevel: 'error',
+      server: { host: '127.0.0.1', port: 0, watch: null, hmr: false },
+    });
+    await server.listen();
+    url = `http://127.0.0.1:${server.httpServer.address().port}/`;
+  }
+  browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome' });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } }),
+    errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(url);
+  await page.locator('#file').setInputFiles('tests/fixtures/menus/menus.exe');
+  await page.locator('#run').click();
+  const window = page.locator('.virtual-desktop-window');
+  await window.waitFor();
+  const canvas = window.locator('.virtual-desktop-canvas');
+  assert.deepEqual(await canvas.evaluate((c) => [c.width, c.height]), [240, 140]);
+  await window.getByRole('menuitem', { name: 'Actions', exact: true }).click();
+  assert.equal(
+    await window.getByRole('menuitem', { name: 'Disabled', exact: true }).isDisabled(),
+    true,
+  );
+  assert.equal(
+    await window
+      .getByRole('menuitemcheckbox', { name: 'Checked', exact: true })
+      .getAttribute('aria-checked'),
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  const popup = window.locator('.virtual-desktop-context-menu');
+  await canvas.click({ position: { x: 25, y: 40 }, button: 'right' });
+  await popup.waitFor();
+  assert.equal(
+    await popup.getByRole('menuitem', { name: 'Disabled', exact: true }).isDisabled(),
+    true,
+  );
+  await popup.getByRole('menuitemcheckbox', { name: 'Checked', exact: true }).click();
+  await popup.waitFor({ state: 'detached' });
+  await page.waitForFunction(
+    () => document.querySelector('.virtual-desktop-title')?.textContent === 'Returned 8',
+  );
+  await canvas.click({ position: { x: 45, y: 50 }, button: 'right' });
+  await popup.waitFor();
+  await page.keyboard.press('Escape');
+  await popup.waitFor({ state: 'detached' });
+  await page.waitForFunction(
+    () => document.querySelector('.virtual-desktop-title')?.textContent === 'Cancelled',
+  );
+  await canvas.click({ position: { x: 65, y: 60 }, button: 'right' });
+  await popup.waitFor();
+  await page.keyboard.press('r');
+  await page.waitForFunction(
+    () => document.querySelector('.virtual-desktop-title')?.textContent === 'WM_COMMAND 7',
+  );
+  await window.locator('.virtual-desktop-close').click();
+  await page.waitForFunction(() => window.__lastRun !== null);
+  const run = await page.evaluate(() => window.__lastRun);
+  assert.equal(run.exitCode, 0);
+  assert.deepEqual(errors, []);
+  const report = {
+    date: new Date().toISOString(),
+    url,
+    browser: browser.version(),
+    status: 'passed',
+    exeSha256: createHash('sha256')
+      .update(await readFile('tests/fixtures/menus/menus.exe'))
+      .digest('hex'),
+    exitCode: run.exitCode,
+    checks: [
+      'Native dynamic menu bar honors disabled and checked items and client geometry',
+      'TrackPopupMenu waits for the actual second command and returns ID 8',
+      'TrackPopupMenuEx Escape cancels and returns zero',
+      'Context-menu R mnemonic dispatches WM_COMMAND 7 without TPM_RETURNCMD',
+      'Guest close exits zero',
+    ],
+    scope:
+      'Independent native Win32 contract fixture, translated inside ordinary Chromium. Left/top aligned text popups; no owner-drawn, bitmap, alignment/exclusion-rectangle or MENUEX claim.',
+  };
+  await writeFile('evidence/menus-browser-results.json', JSON.stringify(report, null, 2) + '\n');
+  console.log(JSON.stringify(report, null, 2));
+} finally {
+  await browser?.close();
+  await server?.close();
+}

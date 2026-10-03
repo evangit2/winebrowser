@@ -8,7 +8,12 @@ import {
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
 import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
-import { describeWindowMenu, MENU_BAR_HEIGHT } from './win32-menus.js';
+import {
+  describeWindowMenu,
+  MENU_BAR_HEIGHT,
+  loadClassMenu,
+  menuCommandAllowed,
+} from './win32-menus.js';
 import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
@@ -67,15 +72,13 @@ function readRect(r, pointer) {
   return [0, 4, 8, 12].map((offset) => r.read32(pointer + offset) | 0);
 }
 function ptInRect(r, a) {
-  const rect = readRect(r, a(1));
-  if (!rect) return result(0, 2);
-  // A POINT is passed by value as a single 32-bit slot (x low, y high), which
-  // is how the i386 ABI marshals a two-short struct.
-  const x = (a(0) << 16) >> 16,
-    y = a(0) >> 16;
-
+  const rect = readRect(r, a(0));
+  if (!rect) return result(0, 3);
+  // POINT is two signed LONGs passed by value on PE32, after the RECT pointer.
+  const x = a(1) | 0,
+    y = a(2) | 0;
   const [left, top, right, bottom] = rect;
-  return result(x >= left && x < right && y >= top && y < bottom ? 1 : 0, 2);
+  return result(x >= left && x < right && y >= top && y < bottom ? 1 : 0, 3);
 }
 // InflateRect/OffsetRect/SetRect all report BOOL and write through lprc.
 function inflateRect(r, a) {
@@ -115,8 +118,7 @@ function mapWindowPoints(r, a) {
     if (!id || id === DESKTOP_WINDOW) return [0, 0];
     const w = r.windows.windows.get(id);
     if (!w) return null;
-    const [x, y] = r.windows.screenPosition(w);
-    return [x, y];
+    return r.windows.clientPosition(w);
   };
   const fromOrigin = originOf(from);
   const toOrigin = originOf(to);
@@ -144,41 +146,63 @@ async function moveWindow(r, a) {
   );
   return result(moved.result ? 1 : 0, 6);
 }
-// DrawEdge(hdc, rect, edge, flags) paints the single-pixel 3D border a button
-// or status bar asks for. EDGE_RAISED (0x5) and EDGE_SUNKEN (0xa) are the two
-// compound forms; either can be combined with the inner/outer variants.
+// DrawEdge paints into the caller's HDC, including compatible memory DCs.
+// Save/restore its selected objects and position; temporary pens never escape.
 function drawEdge(r, a) {
-  const dc = gdiApis['user32.dll!GetDC'](r, (i) => (i ? 0 : a(0))).result;
-  if (!dc) return result(0, 4);
+  const dc = a(0),
+    rect = readRect(r, a(1));
+  const edge = a(2) >>> 0,
+    flags = a(3) >>> 0;
+  if (!rect || edge & ~15 || flags & ~0xe80f || flags & 0x10) return result(0, 4);
+  const call = (name, args) => gdiApis[name](r, (i) => args[i]).result;
+  const saved = call('gdi32.dll!SaveDC', [dc]);
+  if (!saved) return result(0, 4);
+  const pens = new Map();
+  let [left, top, right, bottom] = rect;
+  const pen = (color) => {
+    if (!pens.has(color)) pens.set(color, call('gdi32.dll!CreatePen', [0, 1, color]));
+    return pens.get(color);
+  };
+  const line = (x1, y1, x2, y2, color) => {
+    const handle = pen(color);
+    if (!handle) return;
+    call('gdi32.dll!SelectObject', [dc, handle]);
+    call('gdi32.dll!MoveToEx', [dc, x1, y1, 0]);
+    call('gdi32.dll!LineTo', [dc, x2, y2]);
+  };
   try {
-    const rect = readRect(r, a(1));
-    if (!rect) return result(0, 4);
-    const edge = a(2) >>> 0;
-    if (edge & ~0xf) return result(0, 4);
-    const [left, top, right, bottom] = rect;
-    // EDGE_SUNKEN (0xa) puts the light face on the bottom-right; the raised
-    // form swaps it. A single solid pen is enough to read as a 3D border.
-    const sunken = (edge & 0xa) === 0xa && !(edge & 0x5);
-    const light = sunken ? 0xffffff : 0x808080;
-    const dark = sunken ? 0x808080 : 0xffffff;
-    const state = r.gdiState;
-    const penFor = (color) => gdiApis['gdi32.dll!CreatePen'](r, (i) => [0, 1, color][i]).result;
-    const lightPen = penFor(light),
-      darkPen = penFor(dark);
-    // Top and left edges, then bottom and right.
-    for (const [x1, y1, x2, y2, pen] of [
-      [left, top, right - 1, top, edge & 0x5 ? darkPen : lightPen],
-      [left, top, left, bottom - 1, edge & 0x5 ? darkPen : lightPen],
-      [left, bottom - 1, right - 1, bottom - 1, edge & 0x5 ? lightPen : darkPen],
-      [right - 1, top, right - 1, bottom - 1, edge & 0x5 ? lightPen : darkPen],
+    if ((edge & 3) === 3 || (edge & 12) === 12) return result(0, 4);
+    for (const [bits, raised, sunken] of [
+      [edge & 3, [0xc0c0c0, 0x000000], [0x808080, 0xffffff]],
+      [edge & 12, [0xffffff, 0x808080], [0x000000, 0xc0c0c0]],
     ]) {
-      void state;
-      gdiApis['gdi32.dll!MoveToEx'](r, (i) => [dc, x1, y1, 0][i]);
-      gdiApis['gdi32.dll!LineTo'](r, (i) => [dc, x2, y2][i]);
+      if (!bits || left >= right || top >= bottom) continue;
+      const colors = bits & 5 ? raised : sunken;
+      const [light, dark] =
+        flags & 0x8000 ? [0, 0] : flags & 0x4000 ? [0x808080, 0x808080] : colors;
+      if (flags & 2) line(left, top, right, top, light);
+      if (flags & 1) line(left, top, left, bottom, light);
+      if (flags & 8) line(left, bottom - 1, right, bottom - 1, dark);
+      if (flags & 4) line(right - 1, top, right - 1, bottom, dark);
+      if (flags & 1) left++;
+      if (flags & 2) top++;
+      if (flags & 4) right--;
+      if (flags & 8) bottom--;
     }
+    if (flags & 0x800) {
+      const inner = r.allocate(16);
+      try {
+        rectangle(r, inner, [left, top, right, bottom]);
+        call('user32.dll!FillRect', [dc, inner, 16]);
+      } finally {
+        r.free(inner);
+      }
+    }
+    if (flags & 0x2000) rectangle(r, a(1), [left, top, right, bottom]);
     return result(1, 4);
   } finally {
-    gdiApis['user32.dll!ReleaseDC'](r, (i) => [a(0), dc][i]);
+    call('gdi32.dll!RestoreDC', [dc, saved]);
+    for (const handle of pens.values()) if (handle) call('gdi32.dll!DeleteObject', [handle]);
   }
 }
 
@@ -316,6 +340,8 @@ export class WindowManager {
         // A top-level window's menu bar, rendered by the desktop. Null when the
         // window has no menu, so the frame stays as it was.
         menu: parentId ? undefined : describeWindowMenu(this.runtime, window),
+        isDialog: !parentId && !!window.dialogProc,
+        controlId: window.controlId,
       },
     });
   }
@@ -414,6 +440,8 @@ export class WindowManager {
         lParam,
       ]);
       if (handled || message === 0x110) return handled;
+      if (message === 0x10 && this.runtime.dialogs?.byWindow.has(hwnd))
+        return this.send(hwnd, 0x111, 2, 0);
     } else if (window.proc)
       return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
     return (
@@ -602,7 +630,14 @@ export class WindowManager {
     }
     if (directInput.input(event, window)) return;
     if (controlInput(this.runtime, window, event)) return;
-    if (event.type === 'close') this.post(hwnd, 0x10);
+    if (event.type === 'menu-command') {
+      if (menuCommandAllowed(this.runtime, window, event.command >>> 0))
+        this.post(hwnd, 0x111, event.command >>> 0, 0);
+    } else if (event.type === 'menu-open') {
+      this.post(hwnd, 0x211, 0);
+      this.post(hwnd, 0x116, window.menu);
+    } else if (event.type === 'menu-close') this.post(hwnd, 0x212, 0);
+    else if (event.type === 'close') this.post(hwnd, 0x10);
     else if (event.type === 'focus') {
       this.active = this.topLevel(hwnd);
       this.raise(hwnd);
@@ -890,7 +925,10 @@ async function create(r, a, wide) {
   if (count >= (child ? 256 : 8)) return m.fail(8, 12);
   const width = a(6) === 0x80000000 ? 480 : a(6) | 0,
     height = a(7) === 0x80000000 ? 320 : a(7) | 0;
-  const frame = windowFrame(a(3)),
+  const menu = child
+    ? 0
+    : a(9) || (cls.menuName ? loadClassMenu(r, a(10) || cls.instance, cls.menuName, wide) : 0);
+  const frame = windowFrame(a(3), !!menu),
     border = child ? control.controlBorder : frame.border,
     titleHeight = child ? 0 : frame.title;
   if (
@@ -934,7 +972,7 @@ async function create(r, a, wide) {
     // A class menu name (or the CreateWindow menu argument) selects the window's
     // menu. The runtime resolves it lazily when the menu module loads it.
     ownerId,
-    menu: !child ? a(9) >>> 0 : 0,
+    menu,
     classMenuName: cls.menuName ?? 0,
     invalid: null,
     erase: false,
@@ -1083,6 +1121,8 @@ async function defaultProc(r, a, wide) {
     }
     return result(0, 4);
   }
+  if (msg === 0x112 && (wp & 0xfff0) === 0xf060)
+    return result(await r.windows.send(hwnd, 0x10, 0, 0), 4);
   if (msg === 0x10) return result(await r.windows.destroy(hwnd), 4);
   if (msg === 0xc) {
     w.title = text(r, lp, wide);
@@ -1105,9 +1145,15 @@ async function defaultProc(r, a, wide) {
       r.guestMemory.write(lp + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
     return result(value.length, 4);
   }
-  if (msg === 0xf) {
-    w.invalid = null;
-    w.erase = false;
+  if (msg === 0xf && !w.controlType) {
+    const paint = r.allocate(64);
+    try {
+      const response = await beginPaint(r, (i) => [hwnd, paint][i]);
+      if (response.result) gdiApis['user32.dll!ReleaseDC'](r, (i) => [hwnd, response.result][i]);
+      flushGdi(r);
+    } finally {
+      r.free(paint);
+    }
   }
   return result(0, 4);
 }
@@ -1180,7 +1226,7 @@ const HOST_WINDOW_CLASSES = new Map([
       wide: false,
       proc: 0,
       extra: 0,
-      background: 0,
+      background: 16,
       cursor: 32512,
       icon: 0,
       style: 0,
@@ -1230,27 +1276,21 @@ async function setDlgItemInt(r, a) {
   return result(changed ? 1 : 0, 4);
 }
 async function getDlgItemInt(r, a) {
-  const control = dlgItem(r, a(0), a(1));
-  const translated = a(3);
-  if (!control) {
-    if (translated) {
-      r.check(translated, 4, true);
-      r.write32(translated, 0);
-    }
-    return result(0, 4);
-  }
-  const value = (control.title ?? '').trim();
-  // GetDlgItemInt accepts a leading sign only in the signed form, and reports
-  // success through lpTranslated.
-  const pattern = a(2) ? /^-?\\d+$/ : /^\\d+$/;
-  const valid = pattern.test(value);
+  const control = dlgItem(r, a(0), a(1)),
+    translated = a(2),
+    signed = !!a(3);
   if (translated) {
     r.check(translated, 4, true);
-    r.write32(translated, valid ? 1 : 0);
+    r.write32(translated, 0);
   }
-  if (!valid) return result(0, 4);
-  const number = Number(value);
-  return result(a(2) ? number | 0 : number >>> 0, 4);
+  if (!control) return result(0, 4);
+  const token = (signed ? /^[+-]?\d+/ : /^\+?\d+/).exec((control.title ?? '').trimStart())?.[0];
+  if (!token) return result(0, 4);
+  const value = BigInt(token);
+  if (value < (signed ? -2147483648n : 0n) || value > (signed ? 2147483647n : 4294967295n))
+    return result(0, 4);
+  if (translated) r.write32(translated, 1);
+  return result(Number(value), 4);
 }
 for (const wide of [false, true]) {
   const suffix = wide ? 'W' : 'A';
@@ -1778,7 +1818,7 @@ function setWindowPlacement(r, a) {
   if (right > left && bottom > top) {
     // The rectangle is the window's restored outer bounds, so the client size
     // follows from the frame the window already uses.
-    const frame = windowFrame(window.style ?? 0);
+    const frame = frameForWindow(window);
     window.x = left + frame.border;
     window.y = top + frame.border + frame.title;
     window.width = Math.max(1, right - left - 2 * frame.border);
@@ -1789,7 +1829,7 @@ function setWindowPlacement(r, a) {
   return result(1, 2);
 }
 function outerBounds(window) {
-  const frame = windowFrame(window.style ?? 0);
+  const frame = frameForWindow(window);
   return {
     border: frame.border,
     title: frame.title,
@@ -1803,38 +1843,42 @@ function outerBounds(window) {
 // IsDialogMessage/DefDlgProc route a dialog's keyboard navigation through the
 // same control-focus logic the window manager already applies; MapDialogRect
 // converts dialog units to pixels with the runtime's own font metrics.
-function isDialogMessage(r, a) {
+async function isDialogMessage(r, a) {
   const window = r.windows.windows.get(a(0));
   if (!window) return r.windows.fail(1400, 2);
   const message = a(1);
   if (!message) return r.windows.fail(87, 2);
   r.check(message, 28);
-  const id = r.read32(message + 4);
-  // Only the navigation keys belong to the dialog: Tab and the arrow keys move
-  // focus, Enter activates the default button and Escape the cancel button.
-  if (![0x100, 0x101, 0x102].includes(id)) return result(0, 2);
-  const vk = r.read32(message + 8);
-  if (![9, 13, 27, 37, 38, 39, 40].includes(vk)) return result(0, 2);
+  const hwnd = r.read32(message),
+    id = r.read32(message + 4),
+    vk = r.read32(message + 8);
+  if (hwnd !== window.id && r.windows.topLevel(hwnd) !== window.id) return result(0, 2);
+  if (![0x100, 0x101].includes(id) || ![9, 13, 27].includes(vk)) return result(0, 2);
+  const focused = r.windows.windows.get(r.windows.focus);
+  if (vk === 13 && focused?.multiline && focused.wantReturn) return result(0, 2);
+  if (id === 0x101) return result(1, 2);
   const children = [...r.windows.windows.values()].filter(
-    (child) => child.parentId === a(0) && child.controlType && child.visible,
+    (child) => child.parentId === a(0) && child.controlType && child.visible && child.enabled,
   );
   if (vk === 27) {
-    r.windows.post(a(0), 0x111, 2, 0); // IDCANCEL
+    r.windows.post(a(0), 0x111, 2, 0);
     return result(1, 2);
   }
   if (vk === 13) {
-    const defaultButton = children.find((c) => c.buttonType === 'default-push') ?? children[0];
-    if (defaultButton) r.windows.post(a(0), 0x111, defaultButton.controlId ?? 1, 0);
+    const button =
+      focused?.controlType === 'button' && focused.buttonType.includes('push')
+        ? focused
+        : children.find((c) => c.buttonType === 'default-push');
+    if (button) await r.windows.send(button.id, 0xf5, 0, 0);
     return result(1, 2);
   }
-  if (!children.length) return result(0, 2);
-  const current = children.findIndex((c) => c.id === r.windows.focus);
-  const step = vk === 37 || vk === 38 ? -1 : 1;
-  const next =
-    children[
-      (((current < 0 ? 0 : current + step) % children.length) + children.length) % children.length
-    ];
-  r.windows.setFocus(next.id);
+  const tabs = children.filter((child) => child.style & 0x10000);
+  if (!tabs.length) return result(0, 2);
+  const current = tabs.findIndex((c) => c.id === r.windows.focus),
+    step = r.windows.keys.get(16) & 0x8000 ? -1 : 1;
+  const index =
+    current < 0 ? (step < 0 ? tabs.length - 1 : 0) : (current + step + tabs.length) % tabs.length;
+  await r.windows.setFocus(tabs[index].id);
   return result(1, 2);
 }
 // DefDlgProcA/W is the default dialog procedure: a dialog ignores an unhandled

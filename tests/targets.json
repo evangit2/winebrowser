@@ -205,7 +205,7 @@
             "0",
             "$$:1"
           ],
-          "expected": "exit code 1; exact 640\u00d7480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
+          "expected": "exit code 1; exact 640×480 RGBA canvas, rectangle color RGB(17,34,51), pixel RGB(171,205,239); SHA-256 8e55faf1cd58d2ff2973506c0ee607086a3f6bd62996ca07ad8868c16a252f79",
           "status": "passed",
           "evidence": {
             "file": "evidence/external-browser-results.json",
@@ -397,7 +397,7 @@
             "0",
             "$$:1"
           ],
-          "expected": "Creates a 3\u00d72 compatible bitmap, paints it with a solid brush, changes one pixel, then BitBlt-copies it to the real display canvas. The full 640\u00d7480 RGBA canvas matches SHA-256 0de47aa0956b0ff3f4103256df87b71edd3f60a6cc7080857f6ebe2e616f261d; generated WAV is unrelated test data in the ZIP, and winapiexec.exe is unchanged upstream.",
+          "expected": "Creates a 3×2 compatible bitmap, paints it with a solid brush, changes one pixel, then BitBlt-copies it to the real display canvas. The full 640×480 RGBA canvas matches SHA-256 0de47aa0956b0ff3f4103256df87b71edd3f60a6cc7080857f6ebe2e616f261d; generated WAV is unrelated test data in the ZIP, and winapiexec.exe is unchanged upstream.",
           "status": "passed",
           "evidence": {
             "file": "evidence/external-browser-results.json",
@@ -425,7 +425,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "prints the upstream hello-world text and exits successfully",
-      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable\u2019s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
+      "statusNote": "Wine 11.0 runs it natively, but the browser PE parser rejects the executable’s header-overlapping, unaligned raw-pointer layout (PointerToRawData=2). Its import directory also extends beyond SizeOfImage. Kept as a cache-only compatibility probe."
     },
     {
       "id": "pts-tinype-hh4t-x86",
@@ -637,7 +637,7 @@
     },
     {
       "id": "wesmar-minesweeper-2026-02-x86",
-      "status": "partial",
+      "status": "working",
       "path": ".cache/targets/wesmar-minesweeper-x86.exe",
       "bytes": 29696,
       "sha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
@@ -667,7 +667,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens a playable Minesweeper window and responds to mouse input",
-      "statusNote": "The unchanged EXE now resolves every import through the ordinary browser harness: it opens its Minesweeper window (240x310 client area), runs its own message loop and paints a 75-colour dialog (classic #c8c8d2 face, white client, black grid/text, red accents). Reaching that required window-class extra data and class menus, standard MENU resource parsing, Wine's LoadString block arithmetic, the full GetSystemMetrics table, menu-aware AdjustWindowRect and a CreateFont that accepts the charset/quality/pitch hints applications pass. Interactive play (menu commands, cell clicks) is not yet driven by a test, so this is a window-and-paint result, not a compatibility claim. See evidence/minesweeper-browser-results.json."
+      "statusNote": "The unchanged hash-pinned MIT release passes ordinary Chromium gameplay acceptance: left-click reveal; right-click flag/question/empty cycle; F2 restart; Beginner/Intermediate/Expert menus; Alt+G/C Custom Field dialog, native edit notifications and Tab/Enter apply; Escape cancel; high-score reset/close; owned About dialog; Exit and public ZIP/Stop. See evidence/minesweeper-browser-results.json and npm run test:minesweeper. This is acceptance for this release and tested interactions, not universal Windows GUI support."
     }
   ]
 }

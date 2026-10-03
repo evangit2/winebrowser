@@ -219,7 +219,11 @@
     "build:native-services": "sh scripts/build-native-services-fixture.sh",
     "test:native-services": "node scripts/test-native-services-browser.mjs",
     "build:processes": "sh scripts/build-process-fixtures.sh",
-    "test:processes": "node scripts/test-processes-browser.mjs"
+    "test:processes": "node scripts/test-processes-browser.mjs",
+    "package:minesweeper": "python3 scripts/package-minesweeper.py",
+    "test:minesweeper": "node scripts/test-minesweeper-browser.mjs",
+    "build:menus": "sh scripts/build-menus-fixture.sh",
+    "test:menus": "node scripts/test-menus-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
