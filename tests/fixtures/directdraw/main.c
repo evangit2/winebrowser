@@ -105,12 +105,16 @@ static int run(void){
  OK(fill(back,frame++%2?0x7e0:0xf800),12);RECT area={32,32,96,64};DDBLTFX fx={0};fx.dwSize=sizeof(fx);fx.dwFillColor=0x1f;OK(SCALL(back,Blt,&area,0,0,DDBLT_COLORFILL|DDBLT_WAIT,&fx),13);
 #else
  OK(IDirect3DDevice7_Clear(gpu,0,0,D3DCLEAR_TARGET|D3DCLEAR_ZBUFFER,0xff000000,1,0),63);OK(IDirect3DDevice7_BeginScene(gpu),64);
- OK(IDirect3DDevice7_SetTexture(gpu,0,tex),65);OK(IDirect3DDevice7_SetTextureStageState(gpu,0,D3DTSS_COLORARG1,D3DTA_TEXTURE),66);
+ locked.dwSize=sizeof(locked);OK(SCALL(tex,Lock,0,&locked,DDLOCK_WRITEONLY,0),65);for(int y=0;y<2;y++)for(int x=0;x<2;x++)*(DWORD*)((BYTE*)locked.lpSurface+y*locked.lPitch+x*4)=colors[(y*2+x+frame%2)%4];OK(SCALL(tex,Unlock,0),74);
+ OK(IDirect3DDevice7_SetTextureStageState(gpu,0,D3DTSS_COLORARG1,D3DTA_TEXTURE),66);
  OK(IDirect3DDevice7_DrawIndexedPrimitive(gpu,D3DPT_TRIANGLELIST,D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1,quad,6,indices,6,0),67);
  OK(IDirect3DDevice7_SetTextureStageState(gpu,0,D3DTSS_COLORARG1,D3DTA_DIFFUSE),68);OK(IDirect3DDevice7_DrawPrimitive(gpu,D3DPT_TRIANGLELIST,D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1,farQuad,6,0),69);OK(IDirect3DDevice7_EndScene(gpu),70);
  if(frame++==0){locked.dwSize=sizeof(locked);OK(SCALL(back,Lock,0,&locked,DDLOCK_READONLY,0),71);for(int y=0;y<2;y++)for(int x=0;x<2;x++)if((*(DWORD*)((BYTE*)locked.lpSurface+(120+y*240)*locked.lPitch+(160+x*320)*4)&0xffffff)!=(colors[y*2+x]&0xffffff))return 72;OK(SCALL(back,Unlock,0),73);}
 #endif
  OK(SCALL(primary,Flip,0,DDFLIP_WAIT),14);
+#ifdef TEST_D3D7
+ if(frame==1){locked.dwSize=sizeof(locked);OK(SCALL(primary,Lock,0,&locked,DDLOCK_READONLY,0),75);if((*(DWORD*)((BYTE*)locked.lpSurface+120*locked.lPitch+160*4)&0xffffff)!=(colors[0]&0xffffff))return 76;OK(SCALL(primary,Unlock,0),77);}
+#endif
  }
 #ifdef TEST_D3D7
  IDirect3DDevice7_Release(gpu);SDROP(tex);SDROP(depth);IDirect3D7_Release(f);

@@ -32,13 +32,11 @@ try {
         null,
         { timeout: 60000 },
       );
-      await page
-        .locator('#file')
-        .setInputFiles({
-          name: variant + (packaged ? '.zip' : '.exe'),
-          mimeType: 'application/octet-stream',
-          buffer: packaged ? Buffer.from(zipSync({ [`test/${variant}.exe`]: bytes })) : bytes,
-        });
+      await page.locator('#file').setInputFiles({
+        name: variant + (packaged ? '.zip' : '.exe'),
+        mimeType: 'application/octet-stream',
+        buffer: packaged ? Buffer.from(zipSync({ [`test/${variant}.exe`]: bytes })) : bytes,
+      });
       await page.waitForFunction(() => !document.querySelector('#run').disabled);
       await page.locator('#run').click();
       const ready = async (min) =>
@@ -74,7 +72,12 @@ try {
             for (let x = 0; x < e.width; x++) {
               const expected =
                 variant === 'd3d7'
-                  ? colors[(y >= 240 ? 2 : 0) + (x >= 320 ? 1 : 0)]
+                  ? colors[
+                      ((y >= 240 ? 2 : 0) +
+                        (x >= 320 ? 1 : 0) +
+                        colors.findIndex((c) => c.every((v, i) => v === phase[i]))) %
+                        4
+                    ]
                   : x >= 32 && x < 96 && y >= 32 && y < 64
                     ? [0, 0, 255]
                     : phase;
@@ -102,12 +105,12 @@ try {
             [0, 255, 0],
           ].some((c) => c.every((v, i) => v === samples[0].phase[i])),
         );
-        await page.waitForFunction((phase) => {
-          const c = document.querySelector('.virtual-desktop-canvas'),
-            d = c.getContext('2d').getImageData(0, 0, 1, 1).data;
-          return phase.some((v, i) => v !== d[i]);
-        }, samples[0].phase);
       }
+      await page.waitForFunction((phase) => {
+        const c = document.querySelector('.virtual-desktop-canvas'),
+          d = c.getContext('2d').getImageData(0, 0, 1, 1).data;
+        return phase.some((v, i) => v !== d[i]);
+      }, samples[0].phase);
       await page.locator('.virtual-desktop-close').evaluate((e) => e.click());
       await page.waitForFunction(
         () => window.__lastRun !== null || document.querySelector('#state').textContent === 'ERROR',

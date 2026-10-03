@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-03T03:00:50.839784+00:00",
+  "method": "Ordinary unchanged ZIP upload on the integrated Pages-style static build; manually select each executable.",
+  "archiveSha256": "d4f77c84a6f798bf856aca296cf2cb1948267df18241bb0bc797b93f1b710df7",
+  "binariesRedistributed": false,
+  "runtimeExecutableSpecificBranches": false,
+  "gameFrameVerified": false,
+  "runs": [
+    {
+      "executable": "AirXonix.exe",
+      "bytes": 36864,
+      "sha256": "7c2ab0abeefd3e2d3426880a023b211e9e93724523068f2c178b6fc9804d0ddb",
+      "staticImportsSupported": 41,
+      "ddrawLookupFailureRemoved": true,
+      "state": "ERROR",
+      "blocker": "Unsupported Wine NT service NtCreateUserProcess",
+      "playable": false
+    },
+    {
+      "executable": "program.exe",
+      "bytes": 761856,
+      "sha256": "aaecaf0b3a201eedcaad1e9602a25f7e642f050fb70dca9461b2d7a341ce7de3",
+      "staticImportsSupported": 133,
+      "ddrawLookupFailureRemoved": true,
+      "state": "ERROR",
+      "blocker": "Unsupported Wine NT exception 0xe06d7363",
+      "playable": false
+    }
+  ]
+}

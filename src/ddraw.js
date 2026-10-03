@@ -147,6 +147,7 @@ export function setDDSurfacePixels(r, s, rgba) {
       storePixel(r, s, x, y, v);
     }
   s.dirty = true;
+  s.revision++;
 }
 async function present(r, s) {
   if (s.presentGPU) return s.presentGPU();
@@ -231,6 +232,7 @@ export async function ddBlt(r, dst, dest, src, source, flags, fx) {
       }
   }
   d.dirty = true;
+  d.revision++;
   if (d.caps & CAP.PRIMARY) return present(r, d);
   return 0;
 }
@@ -281,6 +283,7 @@ export async function createDDSurface(
     attachments: new Set(),
     sourceKey: null,
     dirty: true,
+    revision: 0,
   };
   r.comObjects.retain(owner.object);
   let surface;
@@ -331,7 +334,10 @@ export async function createDDSurface(
               },
               Unlock: () => {
                 if (!s.locked) return DD.NOTLOCKED;
-                if (!s.locked.readonly) s.dirty = true;
+                if (!s.locked.readonly) {
+                  s.dirty = true;
+                  s.revision++;
+                }
                 s.locked = null;
                 return 0;
               },

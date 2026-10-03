@@ -111,6 +111,7 @@ async function texture(r, surface, device) {
   }
   // DirectDraw format conversion is shared with CPU presentation. D3D9 texture
   // storage is BGRA, while the shared renderer consumes decoded RGBA snapshots.
+  if (t.state.ddRevision === s.revision) return t;
   const pixels = ddSurfacePixels(r, s),
     level = t.state.levels[0],
     base = t.state.base;
@@ -120,6 +121,7 @@ async function texture(r, surface, device) {
         q = base + level.offset + y * level.pitch + x * 4;
       r.data.set([pixels[p + 2], pixels[p + 1], pixels[p], pixels[p + 3]], q);
     }
+  t.state.ddRevision = s.revision;
   invalidate(t);
   return t;
 }
@@ -186,6 +188,12 @@ async function createDevice(r, owner, factory, a) {
   ts.presentGPU = () => callD3D(r, native, 17, 0, 0, 0, 0);
   ts.syncGPU = async () =>
     setDDSurfacePixels(r, ts, await readTargetPixels(r, native, native.state.renderTarget));
+  const refreshTextures = async () => {
+    if (ts.locked) return DD.BUSY;
+    for (const surface of state.textures.values())
+      if (surface && !(await texture(r, surface, native))) return DD.BUSY;
+    return 0;
+  };
   const h = {
     GetCaps: (r, a) => {
       writeD3D7Caps(r, a(1));
@@ -230,6 +238,8 @@ async function createDevice(r, owner, factory, a) {
       const layout = fvfLayout(a(2)),
         count = primitives(a(1), a(4));
       if (!layout || count === null) return DD.UNSUPPORTED;
+      const refreshed = await refreshTextures();
+      if (refreshed) return refreshed;
       const hr = await callD3D(r, native, 89, a(2));
       return hr || callD3D(r, native, 83, a(1), count, a(3), layout.size);
     },
@@ -238,6 +248,8 @@ async function createDevice(r, owner, factory, a) {
       const layout = fvfLayout(a(2)),
         count = primitives(a(1), a(6));
       if (!layout || count === null) return DD.UNSUPPORTED;
+      const refreshed = await refreshTextures();
+      if (refreshed) return refreshed;
       const hr = await callD3D(r, native, 89, a(2));
       return hr || callD3D(r, native, 84, a(1), 0, a(4), count, a(5), 101, a(3), layout.size);
     },

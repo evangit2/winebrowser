@@ -47,8 +47,9 @@ uploads on the Pages build or deployed site.
 
 The native code checks callbacks, descriptor/caps layouts, overlapping blits,
 source keys, busy lock behavior, reference releases, nearest texture sampling,
-indexed and nonindexed geometry, D16 occlusion and readback. The browser checks
-all 307,200 pixels in two frames per run, animation for CPU surfaces, normal guest
+indexed and nonindexed geometry, D16 occlusion, texture updates without rebinding,
+and backbuffer/frontbuffer readback. The browser checks
+all 307,200 pixels in two frames per run, animation for CPU and GPU surfaces, normal guest
 window-close handling, a PASS marker, exit zero and no page errors. The evidence
 is in `evidence/directdraw-browser-results.json`. Unit tests cover masks, budgets,
 24-bit row pitch, format conversion, cross-interface identity, clipping and cycles.
@@ -73,4 +74,5 @@ failure path; scheduler and I/O telemetry are not invented.
 AirXonix is **not yet verified playable**: no game frame or gameplay acceptance
 has passed. Native NT exception dispatch and child-process execution are the next
 shared runtime milestones. More D3D7 methods may be needed after those startup
-gaps are implemented. A supported-import count alone does not prove compatibility.
+gaps are implemented. The local probe metadata is in `evidence/directdraw-airxonix-results.json`.
+A supported-import count alone does not prove compatibility.
