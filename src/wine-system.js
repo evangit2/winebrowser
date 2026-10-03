@@ -9,6 +9,7 @@ const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 const STATUS_ACCESS_VIOLATION = 0xc0000005;
 const BASIC_INFORMATION_SIZE = 44; // PE32 SYSTEM_BASIC_INFORMATION.
 const PROCESSOR_INFORMATION_SIZE = 12; // PE32 SYSTEM_CPU_INFORMATION.
+const TIME_OF_DAY_SIZE = 48; // SYSTEM_TIMEOFDAY_INFORMATION.
 const TIME_ZONE_SIZE = 172; // PE32 RTL_TIME_ZONE_INFORMATION.
 const DYNAMIC_TIME_ZONE_SIZE = 432; // PE32 RTL_DYNAMIC_TIME_ZONE_INFORMATION.
 
@@ -83,17 +84,19 @@ export const systemNtServices = {
         }
         return 0xc0000003; // STATUS_INVALID_INFO_CLASS, never fabricated success.
       }
-      if (![0, 1, 44, 102].includes(informationClass))
+      if (![0, 1, 3, 44, 102].includes(informationClass))
         throw Error(`Unsupported Wine system information class ${informationClass}`);
       const value =
         informationClass === 0
           ? basicInformation(runtime)
           : informationClass === 1
             ? processorInformation(runtime)
-            : utcTimeZone.subarray(
-                0,
-                informationClass === 44 ? TIME_ZONE_SIZE : DYNAMIC_TIME_ZONE_SIZE,
-              );
+            : informationClass === 3
+              ? timeOfDayInformation(runtime)
+              : utcTimeZone.subarray(
+                  0,
+                  informationClass === 44 ? TIME_ZONE_SIZE : DYNAMIC_TIME_ZONE_SIZE,
+                );
       const size = value.length;
       const output = argument(1) >>> 0;
       const capacity = argument(2) >>> 0;
@@ -119,3 +122,13 @@ export const systemNtServices = {
     },
   },
 };
+
+function timeOfDayInformation(runtime) {
+  const bytes = new Uint8Array(TIME_OF_DAY_SIZE);
+  const view = new DataView(bytes.buffer);
+  // The virtual machine starts with this process. Both clocks use UTC FILETIME;
+  // timezone bias, DST id and suspend accounting are zero for this runtime.
+  view.setBigInt64(0, runtime.packageFileTime, true);
+  view.setBigInt64(8, BigInt(runtime.systemNow()) * 10000n + 116444736000000000n, true);
+  return bytes;
+}
