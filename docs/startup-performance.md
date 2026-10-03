@@ -78,3 +78,13 @@ than complete browser startup or steady frame rate. See
 ```sh
 node scripts/benchmark-compiler.mjs --baseline=56cabd8
 ```
+
+The same ten real GNU diff/cmp, OptiPNG and 7zr acceptance cases also passed in
+ordinary Chrome 154 on public Pages before and after this compiler deployment.
+In that single paired developer run, summed x86 translation time fell from
+20.63 to 10.26 seconds, and summed time from Run to UI completion fell from
+29.21 to 17.74 seconds (39.3%). The native binaries and inputs were unchanged;
+round trips, pixels and failure exits were checked in both runs. These numbers
+describe those short console workloads, not a repeated startup or 3D frame-rate
+benchmark. See `evidence/compiler-browser-comparison.json` and its linked raw
+reports for the deployed commits and per-case timings.

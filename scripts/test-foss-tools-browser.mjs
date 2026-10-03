@@ -98,6 +98,7 @@ try {
   async function run(label, args, exitCode = 0, exe) {
     if (exe) await page.locator('#exe').selectOption(exe);
     if (args) await page.locator('#args').fill(JSON.stringify(args));
+    const started = performance.now();
     await page.locator('#run').click();
     await page.waitForFunction(
       () => ['EXITED', 'ERROR'].includes(document.querySelector('#state')?.textContent),
@@ -122,6 +123,8 @@ try {
     const outputs = result.run.outputs.map((e) => ({ path: e.path, bytes: Buffer.from(e.bytes) }));
     runs.push({
       label,
+      elapsedMs: performance.now() - started,
+      x86TranslationMs: result.run.x86TranslationMs,
       exitCode,
       instructions: result.run.instructions,
       compiledBlocks: result.run.totalCompiledBlocks,

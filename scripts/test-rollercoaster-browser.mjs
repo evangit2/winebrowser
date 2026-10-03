@@ -5,7 +5,11 @@ import { chromium } from '@playwright/test';
 import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
 
 const url = process.env.WINEBROWSER_TEST_URL || 'http://127.0.0.1:4193/winebrowser/';
-const browser = await chromium.launch(webgpuBrowserOptions);
+const browser = await chromium.launch(
+  process.argv.includes('--ordinary')
+    ? { channel: process.env.BROWSER_CHANNEL || 'chrome' }
+    : webgpuBrowserOptions,
+);
 try {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1100 } }),
     errors = [];
@@ -124,6 +128,8 @@ try {
       samples,
       exitCode: result.exitCode,
       instructions: result.instructions,
+      x86TranslationMs: result.x86TranslationMs,
+      compiledBlocks: result.totalCompiledBlocks,
       apiCalls: result.apiCalls,
     });
   }
@@ -138,7 +144,7 @@ try {
     errors,
   };
   await writeFile(
-    'evidence/rollercoaster-browser-results.json',
+    process.env.WINEBROWSER_ROLLERCOASTER_EVIDENCE || 'evidence/rollercoaster-browser-results.json',
     JSON.stringify(report, null, 2) + '\n',
   );
   console.log(JSON.stringify(report, null, 2));

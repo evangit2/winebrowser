@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-03T21:41:19.237Z",
+  "scope": "One paired acceptance run of the same ten unchanged FOSS program workloads in ordinary Chrome on the public Pages URL. This developer measurement includes process startup and UI completion, and is not a repeated controlled startup or frame-rate benchmark. All functional, SHA-256, error and round-trip checks pass in each run.",
+  "browser": "154.0.8037.97",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "before": {
+    "commit": "dbd76735b5db99dbe1a9aaf3ccbc9c58dd302ec3",
+    "report": "foss-performance-before-results.json",
+    "date": "2026-10-03T21:03:17.084Z",
+    "elapsedMs": 29214.036041999996,
+    "translationMs": 20628.50000168383
+  },
+  "after": {
+    "commit": "d8e790dee36f512cbf150b01f2adb0a693edf4c2",
+    "report": "foss-performance-after-results.json",
+    "date": "2026-10-03T21:38:50.230Z",
+    "elapsedMs": 17741.406749,
+    "translationMs": 10257.525000989437
+  },
+  "elapsedReductionPercent": 39.27094933581309,
+  "translationReductionPercent": 50.274983638402446,
+  "cases": [
+    {
+      "label": "GNU diff: hosted native DLL closure and unified patch",
+      "beforeMs": 3076.962749999999,
+      "afterMs": 2177.696417,
+      "beforeTranslationMs": 1772.4100000709295,
+      "afterTranslationMs": 986.7750000804663,
+      "beforeInstructions": 957080,
+      "afterInstructions": 957014
+    },
+    {
+      "label": "GNU cmp: loose EXE plus two original companion DLLs",
+      "beforeMs": 2152.7097919999997,
+      "afterMs": 969.8065420000003,
+      "beforeTranslationMs": 1523.7900006324053,
+      "afterTranslationMs": 551.485000371933,
+      "beforeInstructions": 846906,
+      "afterInstructions": 846906
+    },
+    {
+      "label": "GNU cmp: identical files",
+      "beforeMs": 1957.726041,
+      "afterMs": 840.5584159999999,
+      "beforeTranslationMs": 1332.35000012815,
+      "afterTranslationMs": 479.6699997782707,
+      "beforeInstructions": 778482,
+      "afterInstructions": 778482
+    },
+    {
+      "label": "GNU diff: missing file is an application error",
+      "beforeMs": 2109.1937499999985,
+      "afterMs": 991.6410830000004,
+      "beforeTranslationMs": 1498.7200002223253,
+      "afterTranslationMs": 558.6149999499321,
+      "beforeInstructions": 851996,
+      "afterInstructions": 851996
+    },
+    {
+      "label": "OptiPNG: native libpng/zlib lossless optimization",
+      "beforeMs": 2471.3733329999995,
+      "afterMs": 1519.4260840000006,
+      "beforeTranslationMs": 1763.915000319481,
+      "afterTranslationMs": 879.945001155138,
+      "beforeInstructions": 1411110,
+      "afterInstructions": 1411110
+    },
+    {
+      "label": "OptiPNG: malformed image fails cleanly",
+      "beforeMs": 2093.7001659999987,
+      "afterMs": 1349.720874999999,
+      "beforeTranslationMs": 1567.2549995332956,
+      "afterTranslationMs": 763.4649997651577,
+      "beforeInstructions": 297504,
+      "afterInstructions": 297504
+    },
+    {
+      "label": "7-Zip: native text and binary compression",
+      "beforeMs": 4417.9075840000005,
+      "afterMs": 3671.679333000002,
+      "beforeTranslationMs": 3099.680000424385,
+      "afterTranslationMs": 2089.6199995726347,
+      "beforeInstructions": 3254688,
+      "afterInstructions": 3254584
+    },
+    {
+      "label": "7-Zip: archive CRC/integrity test",
+      "beforeMs": 3773.4328339999993,
+      "afterMs": 1993.388500000001,
+      "beforeTranslationMs": 2818.435000553727,
+      "afterTranslationMs": 1276.0899998396635,
+      "beforeInstructions": 1207760,
+      "afterInstructions": 1207845
+    },
+    {
+      "label": "7-Zip: native LZMA decompression and extraction",
+      "beforeMs": 4347.654917,
+      "afterMs": 2096.3508330000004,
+      "beforeTranslationMs": 3154.0100007653236,
+      "afterTranslationMs": 1330.5700002908707,
+      "beforeInstructions": 1336240,
+      "afterInstructions": 1336325
+    },
+    {
+      "label": "7-Zip: corrupt archive rejection",
+      "beforeMs": 2813.3748750000013,
+      "afterMs": 2131.138665999999,
+      "beforeTranslationMs": 2097.9349990338087,
+      "afterTranslationMs": 1341.2900001853704,
+      "beforeInstructions": 948111,
+      "afterInstructions": 948119
+    }
+  ]
+}

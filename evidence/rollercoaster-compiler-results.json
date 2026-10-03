@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-03T21:51:49.332Z",
+  "browser": "154.0.8037.97",
+  "url": "http://127.0.0.1:4223/winebrowser/",
+  "exeSha256": "acf1fed9b4863723b41600d4016e97dd3ec6313dbd5144622919f9b8103e912e",
+  "zipSha256": "fbb55c23ae94469ba12712ce830186d719de1a3abc983a3298a055331f0de0a0",
+  "runs": [
+    {
+      "mode": "zip-upload",
+      "elapsedMs": 90681,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 8,
+          "draws": 4926,
+          "lit": 386186,
+          "white": 61,
+          "colors": 4096,
+          "hash": "8e73b44b1eb5205a21245fab9028f96327b8b5f3f2f78d580ea4c8360857c494"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 16,
+          "draws": 9854,
+          "lit": 135031,
+          "white": 61,
+          "colors": 4096,
+          "hash": "5effc717cfeb1fa64ee44d673a0b24ee8396bd9b7610d38d8289fd3eb4c3f046"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 32,
+          "draws": 19710,
+          "lit": 353079,
+          "white": 61,
+          "colors": 4096,
+          "hash": "33f480d9b50408314b73057f1536946d06bf0fbdefb5838a02f265ee49a4a462"
+        }
+      ],
+      "exitCode": 0,
+      "instructions": 881496893,
+      "x86TranslationMs": 2513.72500012815,
+      "compiledBlocks": 15400,
+      "apiCalls": 72552
+    },
+    {
+      "mode": "hosted-zip",
+      "elapsedMs": 85622,
+      "samples": [
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 8,
+          "draws": 4926,
+          "lit": 429328,
+          "white": 61,
+          "colors": 4096,
+          "hash": "0a4ea677143b86389d9e082a8feca2d8990cc3e54406f81eaef9544c4391f439"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 16,
+          "draws": 9854,
+          "lit": 354413,
+          "white": 61,
+          "colors": 4096,
+          "hash": "4c922779bb18e31f9190ce447eddf2895c3aed826604a128012e5d5a8caac966"
+        },
+        {
+          "width": 798,
+          "height": 570,
+          "frames": 32,
+          "draws": 19710,
+          "lit": 449592,
+          "white": 61,
+          "colors": 4096,
+          "hash": "dcb59bc6abb7d2f4056eee2acc31af9f09ef3dddb9da620e5cbfb8a2db15d860"
+        }
+      ],
+      "exitCode": 0,
+      "instructions": 880313460,
+      "x86TranslationMs": 1840.1000007092953,
+      "compiledBlocks": 15400,
+      "apiCalls": 72572
+    }
+  ],
+  "errors": []
+}
