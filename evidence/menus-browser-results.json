@@ -1,18 +1,19 @@
 {
-  "date": "2026-10-03T05:39:35.040Z",
+  "date": "2026-10-03T18:10:10.534Z",
   "url": "http://127.0.0.1:4371/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
-  "exeSha256": "e4794f13e7ffc01577bf19ece2342b223b5401075ee0fa7a89b86d6d0b24613a",
+  "exeSha256": "03473d89829cef92ec6891b9caba1344eba4a13ae0d29bfb316053a1a999e128",
   "exitCode": 0,
   "checks": [
     "Native dynamic menu bar honors disabled and checked items and client geometry",
     "Native WS_EX_STATICEDGE read-only edit preserves one-pixel frame and client dimensions",
     "Native GetUserNameA size probe retries with BOOL success and ERROR_INSUFFICIENT_BUFFER",
+    "Native SS_OWNERDRAW parent callback paints an isolated child HDC and repaints after text, resize and disabled-state changes",
     "TrackPopupMenu waits for the actual second command and returns ID 8",
     "TrackPopupMenuEx Escape cancels and returns zero",
     "Context-menu R mnemonic dispatches WM_COMMAND 7 without TPM_RETURNCMD",
     "Guest close exits zero"
   ],
-  "scope": "Independent native Win32 contract fixture, translated inside ordinary Chromium. Left/top aligned text popups; no owner-drawn, bitmap, alignment/exclusion-rectangle or MENUEX claim."
+  "scope": "Independent native Win32 contract fixture, translated inside ordinary Chromium. Owner-drawn static controls and left/top aligned text popups are tested; owner-drawn/bitmap menus, alignment/exclusion rectangles and MENUEX are not."
 }

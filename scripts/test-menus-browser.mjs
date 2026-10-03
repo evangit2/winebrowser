@@ -20,6 +20,11 @@ try {
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url);
+  await page.waitForFunction(
+    () => document.querySelector('#platform')?.textContent === 'ISOLATED / WASM READY',
+    null,
+    { timeout: 60000 },
+  );
   await page.locator('#file').setInputFiles('tests/fixtures/menus/menus.exe');
   await page.locator('#run').click();
   const window = page.locator('.virtual-desktop-window');
@@ -31,6 +36,24 @@ try {
   assert.equal(await edit.evaluate((el) => el.readOnly), true);
   assert.equal(await edit.evaluate((el) => getComputedStyle(el).borderLeftWidth), '1px');
   assert.deepEqual(await edit.evaluate((el) => [el.offsetWidth, el.offsetHeight]), [110, 24]);
+  const childCanvas = window.locator('canvas[data-control-id="60"]');
+  await page.waitForFunction(
+    () => document.querySelector('canvas[data-control-id="60"]')?.width === 110,
+  );
+  const pixel = (x, y) =>
+    childCanvas.evaluate(
+      (c, [x, y]) => [...c.getContext('2d').getImageData(x, y, 1, 1).data],
+      [x, y],
+    );
+  assert.deepEqual(await pixel(10, 10), [17, 34, 51, 255]);
+  assert.deepEqual(await pixel(2, 3), [171, 205, 239, 255]);
+  await window.getByRole('button', { name: 'Repaint child', exact: true }).click();
+  await page.waitForFunction(
+    () => document.querySelector('canvas[data-control-id="60"]')?.width === 100,
+  );
+  assert.deepEqual(await childCanvas.evaluate((c) => [c.width, c.height]), [100, 50]);
+  assert.deepEqual(await pixel(10, 10), [90, 80, 70, 255]);
+  assert.equal(await childCanvas.getAttribute('aria-label'), 'Resized native child');
   await window.getByRole('menuitem', { name: 'Actions', exact: true }).click();
   assert.equal(
     await window.getByRole('menuitem', { name: 'Disabled', exact: true }).isDisabled(),
@@ -86,13 +109,14 @@ try {
       'Native dynamic menu bar honors disabled and checked items and client geometry',
       'Native WS_EX_STATICEDGE read-only edit preserves one-pixel frame and client dimensions',
       'Native GetUserNameA size probe retries with BOOL success and ERROR_INSUFFICIENT_BUFFER',
+      'Native SS_OWNERDRAW parent callback paints an isolated child HDC and repaints after text, resize and disabled-state changes',
       'TrackPopupMenu waits for the actual second command and returns ID 8',
       'TrackPopupMenuEx Escape cancels and returns zero',
       'Context-menu R mnemonic dispatches WM_COMMAND 7 without TPM_RETURNCMD',
       'Guest close exits zero',
     ],
     scope:
-      'Independent native Win32 contract fixture, translated inside ordinary Chromium. Left/top aligned text popups; no owner-drawn, bitmap, alignment/exclusion-rectangle or MENUEX claim.',
+      'Independent native Win32 contract fixture, translated inside ordinary Chromium. Owner-drawn static controls and left/top aligned text popups are tested; owner-drawn/bitmap menus, alignment/exclusion rectangles and MENUEX are not.',
   };
   await writeFile('evidence/menus-browser-results.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));

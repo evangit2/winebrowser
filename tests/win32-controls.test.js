@@ -143,6 +143,95 @@ test('WS_EX_STATICEDGE uses one-pixel client geometry while CLIENTEDGE takes pre
   }
 });
 
+test('SS_OWNERDRAW dispatches a PE32 DRAWITEMSTRUCT with an isolated child HDC and resize/disable repaint', async (t) => {
+  const { runtime, events, parentId, setParentHook } = await makeHarness(t);
+  await call(runtime, 'user32.dll!ShowWindow', [parentId, 5]);
+  const child = await createChild(runtime, parentId, {
+    className: 'STATIC',
+    style: WS_CHILD | WS_VISIBLE | 0xd,
+    controlId: 60,
+    width: 40,
+    height: 24,
+  });
+  assert.ok(child.result);
+  const painted = [];
+  setParentHook(([hwnd, message, wp, lp]) => {
+    if (message !== 0x2b) return;
+    const fields = Array.from({ length: 12 }, (_, i) => runtime.read32(lp + i * 4));
+    assert.equal(hwnd, parentId);
+    assert.deepEqual(fields.slice(0, 7), [
+      5,
+      60,
+      0,
+      1,
+      runtime.windows.isEnabled(child.result) ? 0 : 4,
+      child.result,
+      fields[6],
+    ]);
+    assert.equal(wp, 60);
+    const w = runtime.windows.windows.get(child.result);
+    assert.deepEqual(fields.slice(7), [0, 0, w.width, w.height, 0]);
+    const brush = call(runtime, 'gdi32.dll!CreateSolidBrush', [
+      fields[4] ? 0x46505a : 0x332211,
+    ]).result;
+    assert.equal(call(runtime, 'user32.dll!FillRect', [fields[6], lp + 28, brush]).result, 1);
+    assert.equal(call(runtime, 'gdi32.dll!DeleteObject', [brush]).result, 1);
+    painted.push({ dc: fields[6], width: w.width, height: w.height, disabled: !!fields[4] });
+  });
+  assert.equal(runtime.windows.next(child.result, 0xf, 0xf, false)?.message, 0xf);
+  assert.equal((await call(runtime, 'user32.dll!UpdateWindow', [child.result])).result, 1);
+  assert.equal(runtime.windows.windows.get(child.result).invalid, null);
+  const dc = call(runtime, 'user32.dll!GetDC', [child.result]).result;
+  assert.ok(dc);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', [dc, 10, 10]).result, 0x332211);
+  const parentDC = call(runtime, 'user32.dll!GetDC', [parentId]).result;
+  assert.notEqual(
+    call(runtime, 'gdi32.dll!GetPixel', [parentDC, 10, 10]).result,
+    0x332211,
+    'child paint does not alter its parent framebuffer',
+  );
+  assert.equal(call(runtime, 'user32.dll!ReleaseDC', [parentId, parentDC]).result, 1);
+  assert.equal(call(runtime, 'user32.dll!ReleaseDC', [child.result, dc]).result, 1);
+  assert.equal(
+    call(runtime, 'gdi32.dll!GetPixel', [painted[0].dc, 0, 0]).result,
+    0xffffffff,
+    'paint HDC is released after the callback',
+  );
+  assert.equal(
+    (await call(runtime, 'user32.dll!MoveWindow', [child.result, 10, 12, 52, 30, 1])).result,
+    1,
+  );
+  await call(runtime, 'user32.dll!EnableWindow', [child.result, 0]);
+  await call(runtime, 'user32.dll!UpdateWindow', [child.result]);
+  assert.deepEqual(
+    painted.map(({ width, height, disabled }) => [width, height, disabled]),
+    [
+      [40, 24, false],
+      [52, 30, true],
+    ],
+  );
+  const frame = events.findLast((e) => e.type === 'frame' && e.windowId === child.result);
+  assert.deepEqual([frame.width, frame.height], [52, 30]);
+  assert.deepEqual([...frame.pixels.slice(0, 4)], [90, 80, 70, 255]);
+  assert.equal((await call(runtime, 'user32.dll!DestroyWindow', [child.result])).result, 1);
+  assert.equal(call(runtime, 'user32.dll!GetDC', [child.result]).result, 0);
+});
+
+test('owner-drawn child surfaces do not consume the eight top-level framebuffer slots', async (t) => {
+  const { runtime, parentId } = await makeHarness(t);
+  for (let i = 0; i < 10; i++) {
+    const child = await createChild(runtime, parentId, {
+      className: 'STATIC',
+      style: WS_CHILD | WS_VISIBLE | 0xd,
+    });
+    assert.ok(child.result);
+    const dc = call(runtime, 'user32.dll!GetDC', [child.result]).result;
+    assert.ok(dc);
+    call(runtime, 'user32.dll!ReleaseDC', [child.result, dc]);
+  }
+  assert.ok(call(runtime, 'user32.dll!GetDC', [parentId]).result);
+});
+
 function parentNotifyWords(message) {
   return {
     event: message.wParam & 0xffff,

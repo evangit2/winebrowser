@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-03T05:39:38.237Z",
+  "date": "2026-10-03T17:51:15.750Z",
   "url": "http://127.0.0.1:4371/winebrowser/",
   "targetId": "wesmar-minesweeper-2026-02-x86",
   "sha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
@@ -18,9 +18,9 @@
     "Hosted public ZIP starts through the same loader and Stop cleans up its windows"
   ],
   "exitCode": 0,
-  "instructions": 306977,
+  "instructions": 307127,
   "compiledBlocks": 676,
-  "x86TranslationMs": 358.79500000178814,
-  "elapsedMs": 2630.164999999106,
+  "x86TranslationMs": 439.3550002425909,
+  "elapsedMs": 3387.0250000059605,
   "scope": "Interactive acceptance of this unchanged MIT release. No complete game-rule proof, pixel-exact native font comparison or universal Windows GUI compatibility claim."
 }

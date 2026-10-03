@@ -24,6 +24,7 @@ let stdout = '',
   requests = [];
 let exampleRequest = 0,
   downloadingExample = false;
+let platformReady = false;
 const activeTones = new Set();
 const soundStream = new BrowserAudioStream();
 
@@ -375,12 +376,14 @@ $('folder').onchange = () => {
 };
 $('drop').ondragover = (event) => {
   event.preventDefault();
-  $('drop').classList.add('drag');
+  if (event.dataTransfer) event.dataTransfer.dropEffect = platformReady ? 'copy' : 'none';
+  if (platformReady) $('drop').classList.add('drag');
 };
 $('drop').ondragleave = () => $('drop').classList.remove('drag');
 $('drop').ondrop = (event) => {
   event.preventDefault();
   $('drop').classList.remove('drag');
+  if (!platformReady) return;
   loadSelected(droppedFiles(event.dataTransfer));
 };
 $('exe').onchange = select;
@@ -593,6 +596,13 @@ async function initialize() {
   };
   $('platform').textContent = capabilities.isolated ? 'ISOLATED / WASM READY' : 'ISOLATION MISSING';
   log(JSON.stringify(capabilities));
+  // A static host's first document reloads to enable the runtime. Do not let
+  // an early file selection disappear with that bootstrap document.
+  platformReady = true;
+  $('file').disabled = false;
+  $('folder').disabled = false;
+  $('drop').setAttribute('aria-disabled', 'false');
+  if ($('state').textContent === 'IDLE') $('status').textContent = 'Ready';
   const response = await fetch(`${import.meta.env.BASE_URL}demos/manifest.json`);
   if (!response.ok) throw Error('Fixture manifest unavailable');
   manifest = await response.json();

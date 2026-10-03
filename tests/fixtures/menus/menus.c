@@ -3,7 +3,21 @@
 #define CHECK(x) do { if (!(x)) ExitProcess(__LINE__); } while (0)
 static HMENU context;
 static unsigned round_no;
+static HWND owner_draw;
 static LRESULT CALLBACK proc(HWND window, UINT message, WPARAM wp, LPARAM lp) {
+  if(message==WM_DRAWITEM) {
+    DRAWITEMSTRUCT *item=(DRAWITEMSTRUCT*)lp;
+    CHECK(item->CtlType==ODT_STATIC&&item->CtlID==60&&wp==60&&item->hwndItem==owner_draw);
+    CHECK(item->itemAction==ODA_DRAWENTIRE&&item->rcItem.left==0&&item->rcItem.top==0);
+    HBRUSH brush=CreateSolidBrush(item->itemState&ODS_DISABLED?RGB(90,80,70):RGB(17,34,51));CHECK(brush);
+    CHECK(FillRect(item->hDC,&item->rcItem,brush));CHECK(DeleteObject(brush));
+    CHECK(SetPixel(item->hDC,2,3,RGB(171,205,239))!=CLR_INVALID);return TRUE;
+  }
+  if(message==WM_COMMAND&&LOWORD(wp)==61) {
+    CHECK(SetWindowTextA(owner_draw,"Resized native child"));
+    CHECK(MoveWindow(owner_draw,120,40,100,50,TRUE));
+    EnableWindow(owner_draw,FALSE);CHECK(UpdateWindow(owner_draw));return 0;
+  }
   if (message == WM_RBUTTONUP) {
     POINT point; CHECK(GetCursorPos(&point));
     if (round_no == 0) {
@@ -39,6 +53,9 @@ void start(void) {
   HWND window=CreateWindowA(cls.lpszClassName,"Native menus",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,bar,instance,NULL);CHECK(window);
   HWND edit=CreateWindowExA(WS_EX_STATICEDGE,"EDIT","Read only",WS_CHILD|WS_VISIBLE|ES_READONLY,120,10,110,24,window,(HMENU)50,instance,NULL);CHECK(edit);
   RECT client;CHECK(GetClientRect(edit,&client));CHECK(client.right==108&&client.bottom==22);
+  owner_draw=CreateWindowA("STATIC","Native painted",WS_CHILD|WS_VISIBLE|SS_OWNERDRAW,120,40,110,55,window,(HMENU)60,instance,NULL);CHECK(owner_draw);
+  CHECK(CreateWindowA("BUTTON","Repaint child",WS_CHILD|WS_VISIBLE,120,100,110,24,window,(HMENU)61,instance,NULL));
+  CHECK(UpdateWindow(owner_draw));
   MSG msg;while(GetMessageA(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageA(&msg);}
   CHECK(DestroyMenu(bar));ExitProcess((UINT)msg.wParam);
 }

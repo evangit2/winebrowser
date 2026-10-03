@@ -159,7 +159,7 @@ export async function setWindowPos(r, a) {
     }
     if (!validAfter(m, w, after, flags)) return m.fail(1400, 7);
     if (
-      !w.controlType &&
+      (!w.controlType || w.ownerDraw) &&
       (sized || discardContents) &&
       !resizeWindowSurface(r, hwnd, width, height, !discardContents, !(flags & S.NOREDRAW))
     )

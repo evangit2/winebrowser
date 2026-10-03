@@ -19,12 +19,12 @@
         <a href="https://github.com/evangit2/winebrowser">Source and compatibility notes</a>
       </p>
       <section class="controls-panel" aria-label="Package controls">
-        <label id="drop" class="drop">
-          <input id="file" type="file" multiple />
+        <label id="drop" class="drop" aria-disabled="true">
+          <input id="file" type="file" multiple disabled />
           Drop EXEs, ZIPs, and supporting files or folders together
         </label>
         <label class="folder-picker"
-          >Open a program folder <input id="folder" type="file" webkitdirectory multiple
+          >Open a program folder <input id="folder" type="file" webkitdirectory multiple disabled
         /></label>
         <div id="demos" class="demos" aria-label="Bundled fixtures"></div>
         <div id="selection" hidden>
@@ -41,7 +41,7 @@
           <label class="check"
             ><input id="audio-enabled" type="checkbox" checked /> Play audio</label
           >
-          <span id="status">Ready</span>
+          <span id="status">Preparing browser runtime…</span>
         </div>
       </section>
       <section class="suite-panel" aria-label="Fixture results">

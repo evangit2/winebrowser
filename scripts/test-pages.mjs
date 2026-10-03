@@ -29,6 +29,14 @@ try {
 
   async function bootFreshContext() {
     const context = await browser.newContext({ acceptDownloads: true });
+    let releaseBootstrap;
+    const bootstrapGate = new Promise((resolve) => {
+      releaseBootstrap = resolve;
+    });
+    await context.route('**/coi-serviceworker.js', async (route) => {
+      await bootstrapGate;
+      await route.continue();
+    });
     const page = await context.newPage();
     page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
     page.on('console', (message) => {
@@ -47,6 +55,15 @@ try {
       // The first service-worker install can abort the initial document load.
     }
     if (response) assert.ok(response.ok(), `Harness page returned ${response.status()}`);
+    try {
+      if (!(await page.evaluate(() => crossOriginIsolated))) {
+        assert.equal(await page.locator('#file').isDisabled(), true);
+        assert.equal(await page.locator('#folder').isDisabled(), true);
+        assert.equal(await page.locator('#drop').getAttribute('aria-disabled'), 'true');
+      }
+    } finally {
+      releaseBootstrap();
+    }
     await page.waitForFunction(
       () => document.getElementById('platform')?.textContent === 'ISOLATED / WASM READY',
       undefined,
@@ -62,6 +79,10 @@ try {
       isolated: true,
       sharedArrayBuffer: true,
     });
+    assert.equal(await page.locator('#file').isEnabled(), true);
+    assert.equal(await page.locator('#folder').isEnabled(), true);
+    assert.equal(await page.locator('#drop').getAttribute('aria-disabled'), 'false');
+    await context.unroute('**/coi-serviceworker.js');
     return { context, page, capabilities };
   }
 

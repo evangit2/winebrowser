@@ -249,6 +249,7 @@ export class WindowManager {
       visible,
       parentId = 0,
       controlType,
+      ownerDraw,
       enabled,
       font,
       readOnly,
@@ -298,6 +299,7 @@ export class WindowManager {
         enabled,
         controlStyle: controlType
           ? {
+              ownerDraw: !!ownerDraw,
               readOnly: !!readOnly,
               buttonType,
               flat: !!flat,
@@ -416,6 +418,7 @@ export class WindowManager {
         return 0;
       }
     }
+    if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
     if (window.controlType)
       return controlMessage(
         this.runtime,
@@ -726,7 +729,7 @@ export class WindowManager {
       };
       if (
         this.isVisible(window.id) &&
-        !window.controlType &&
+        (!window.controlType || window.ownerDraw) &&
         (window.invalid || window.internalPaint) &&
         accepts(message)
       ) {
@@ -1183,6 +1186,40 @@ async function beginPaint(r, a) {
   return result(dc, 2);
 }
 
+// SS_OWNERDRAW is painted by the parent's WNDPROC, using a real child HDC.
+// DRAWITEMSTRUCT is 48 bytes on PE32; its RECT uses child-client coordinates.
+async function paintOwnerDraw(r, window) {
+  const paint = r.allocate(64),
+    item = r.allocate(48);
+  let dc = 0;
+  try {
+    dc = (await beginPaint(r, (i) => [window.id, paint][i])).result;
+    if (!dc) return 0;
+    r.data.fill(0, item, item + 48);
+    [
+      5,
+      window.controlId,
+      0,
+      1,
+      r.windows.isEnabled(window.id) ? 0 : 4,
+      window.id,
+      dc,
+      0,
+      0,
+      window.width,
+      window.height,
+      0,
+    ].forEach((v, i) => r.write32(item + i * 4, v));
+    await r.windows.send(window.parentId, 0x2b, window.controlId, item);
+    return 0;
+  } finally {
+    if (dc) gdiApis['user32.dll!ReleaseDC'](r, (i) => [window.id, dc][i]);
+    flushGdi(r);
+    r.free(item);
+    r.free(paint);
+  }
+}
+
 // Host-side window creation for the dialog module. It builds the same guest
 // call the class-create path expects, so register/create/defaultProc all run
 // exactly as they do for a guest CreateWindowEx.
@@ -1375,6 +1412,8 @@ Object.assign(windowApis, {
     if (!window) return r.windows.fail(1400, 2);
     const previous = window.enabled !== false;
     window.enabled = a(1) !== 0;
+    r.windows.emit(window);
+    if (window.ownerDraw) r.windows.invalidate(window, null, true);
     return result(previous ? 1 : 0, 2);
   },
   'user32.dll!IsWindowEnabled': (r, a) => {

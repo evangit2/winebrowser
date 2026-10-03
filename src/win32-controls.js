@@ -54,7 +54,8 @@ export function controlStyle(kind, style, extended) {
     throw Error('Unsupported BUTTON modifier bits');
   if (kind === 'button' && (local & 0xc0) === 0xc0)
     throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
-  if (kind === 'static' && (local & ~0x83 || (local & 3) === 3))
+  const ownerDraw = kind === 'static' && (local & 0x1f) === 0xd;
+  if (kind === 'static' && (ownerDraw ? local & ~0x9f : local & ~0x83 || (local & 3) === 3))
     throw Error(`Unsupported STATIC style 0x${local.toString(16)}`);
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
   // LOWERCASE (0x10), PASSWORD (0x20), AUTOVSCROLL (0x40), AUTOHSCROLL (0x80),
@@ -70,6 +71,7 @@ export function controlStyle(kind, style, extended) {
       throw Error('ES_NUMBER with multiline requires ES_AUTOHSCROLL');
   }
   return {
+    ownerDraw,
     controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
     // BUTTON family. The desktop uses `buttonType` to pick an element and
     // `toggle`/`triState` to decide what a click does; `checkState` is the
@@ -184,6 +186,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback) {
     window.fontHandle = wp;
     window.font = font;
     r.windows.emit(window);
+    if (window.ownerDraw) r.windows.invalidate(window, null, true);
     return 0;
   }
   if (message === 0x31) return window.fontHandle;
@@ -217,6 +220,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback) {
     return 0;
   }
   const value = await fallback();
+  if (message === 0xc && window.ownerDraw && value) r.windows.invalidate(window, null, true);
   if (message === 0xc && window.controlType === 'edit' && value) {
     await notify(r, window, 0x400); // EN_UPDATE, followed by EN_CHANGE
     if (r.windows.windows.has(window.id)) await notify(r, window, 0x300);

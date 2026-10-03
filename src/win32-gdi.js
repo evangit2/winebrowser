@@ -29,6 +29,7 @@ const STOCK_NULL_PEN = 0x11103;
 const STOCK_SYSTEM_FONT = 0x11104;
 const STOCK_DEFAULT_PALETTE = 0x10008;
 const MAX_WINDOW_SURFACES = 8;
+const MAX_CONTROL_SURFACES = 256;
 const MAX_TOTAL_SURFACE_PIXELS = 16 * 1024 * 1024;
 const PATCOPY = 0x00f00021;
 const BLACKNESS = 0x00000042;
@@ -234,7 +235,8 @@ function getDC(runtime, argument) {
   if (hwnd !== 0 && hwnd !== DESKTOP_WINDOW) {
     const window = runtime.windows?.windows?.get(hwnd);
     if (!window) return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
-    if (window.controlType) return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 1);
+    if (window.controlType && !window.ownerDraw)
+      return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 1);
     if (
       !state.windowSurfaces.has(hwnd) &&
       !resizeWindowSurface(runtime, hwnd, window.width, window.height)
@@ -289,7 +291,13 @@ export function resizeWindowSurface(
   const state = stateFor(runtime);
   const oldSurface = state.windowSurfaces.get(hwnd);
   if (preserveContents && oldSurface?.width === width && oldSurface?.height === height) return true;
-  if (!oldSurface && state.windowSurfaces.size >= MAX_WINDOW_SURFACES) return false;
+  if (!oldSurface) {
+    const control = !!window.controlType;
+    let count = 0;
+    for (const id of state.windowSurfaces.keys())
+      if (!!runtime.windows.windows.get(id)?.controlType === control) count++;
+    if (count >= (control ? MAX_CONTROL_SURFACES : MAX_WINDOW_SURFACES)) return false;
+  }
   const totalPixels =
     totalSurfacePixels(state) -
     (oldSurface ? oldSurface.width * oldSurface.height : 0) +

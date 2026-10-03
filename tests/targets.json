@@ -510,7 +510,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "All imports resolve, but ordinary Chromium startup is still blocked before the configuration UI becomes interactive. The GUI probe corrected WS_EX_STATICEDGE edit geometry, multiline textarea password-state application, and GetUserNameA/W BOOL/LastError and character counts. The current failure is CreateWindowExA: Unsupported STATIC style 0xd (SS_OWNERDRAW). Owner-drawn child controls and broader common-control support remain required; networking is also unfinished. See evidence/putty-gui-progress.json."
+      "statusNote": "All imports resolve. Shared GUI fixes cover static-edge edit geometry, multiline textarea state, GetUserNameA/W contracts and SS_OWNERDRAW static painting. PuTTY creates its configuration window, then faults at putty.exe+0x465e8 reading address 0xc. The resource requests PuTTYConfigBox and expects registered extra-window context storage at DLGWINDOWEXTRA; the current dialog builder substitutes its host class. The configuration UI remains unverified; custom dialog classes, broader common controls and networking still need work. See evidence/putty-gui-progress.json."
     },
     {
       "id": "sgi-opengl-minimal-x86",

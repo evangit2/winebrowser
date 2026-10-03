@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T03:09:39.771Z",
-  "url": "http://127.0.0.1:4207/winebrowser/",
+  "date": "2026-10-03T18:10:13.143Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
   "browser": "154.0.8037.97",
   "capabilities": {
     "controlled": true,
@@ -316,6 +316,15 @@
     },
     {
       "name": "lua",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "minesweeper",
       "downloads": [
         "exe",
         "zip",

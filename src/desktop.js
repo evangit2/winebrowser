@@ -570,7 +570,7 @@ export class VirtualDesktop {
     if (!['static', 'button', 'edit'].includes(controlType))
       throw new Error(`Unsupported child control type: ${controlType}`);
 
-    let element, legend;
+    let element, legend, canvas;
     if (controlType === 'button') {
       const buttonType = state.controlStyle?.buttonType ?? 'push';
       // A group box is a labelled frame, not a clickable control.
@@ -608,7 +608,8 @@ export class VirtualDesktop {
         this.#emit(control.id, 'text', { text: element.value }),
       );
     } else {
-      element = document.createElement('div');
+      element = document.createElement(state.controlStyle?.ownerDraw ? 'canvas' : 'div');
+      if (state.controlStyle?.ownerDraw) canvas = element;
       element.className = 'virtual-desktop-control virtual-desktop-control-static';
       element.tabIndex = -1;
       element.setAttribute('aria-readonly', 'true');
@@ -650,6 +651,8 @@ export class VirtualDesktop {
       parent,
       element,
       legend,
+      canvas,
+      context: canvas?.getContext('2d', { alpha: false }),
       container,
       viewport,
       x: 0,
@@ -673,6 +676,8 @@ export class VirtualDesktop {
       if (control.controlType === 'edit') {
         // Avoid disrupting caret selection during incremental WM_SETTEXT echo.
         if (control.element.value !== control.titleText) control.element.value = control.titleText;
+      } else if (control.canvas) {
+        control.element.setAttribute('aria-label', control.titleText);
       } else if (control.legend) {
         // A group box shows its caption in the legend, not as body text.
         control.legend.textContent =
@@ -955,7 +960,7 @@ export class VirtualDesktop {
   }) {
     const window = this.windows.get(windowId);
     if (
-      !window ||
+      !window?.canvas ||
       !Number.isInteger(width) ||
       !Number.isInteger(height) ||
       width < 1 ||
