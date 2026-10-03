@@ -209,7 +209,9 @@
     "build:delay-imports": "sh scripts/build-delay-import-fixtures.sh",
     "test:delay-imports": "node scripts/test-delay-imports-browser.mjs",
     "package:foss-tools": "node scripts/package-foss-tools.mjs",
-    "test:foss-tools": "node scripts/test-foss-tools-browser.mjs"
+    "test:foss-tools": "node scripts/test-foss-tools-browser.mjs",
+    "build:lua": "sh scripts/build-lua-fixture.sh && python3 scripts/package-lua.py",
+    "test:lua": "node scripts/test-lua-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
