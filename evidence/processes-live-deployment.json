@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-03T04:58:12.530Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedRevision": "041178f547a33495252a9cdf9a289be70cc6e989",
+  "workflow": "https://github.com/evangit2/winebrowser/actions/runs/37096795046",
+  "assets": [
+    {
+      "name": "index-BksjHa0p.js",
+      "bytes": 35510,
+      "sha256": "3b24e54fc7617c5bc79e2197d09c84b17265b4c3ea238d83eec8119957893ae5"
+    },
+    {
+      "name": "worker-BmJlWhjy.js",
+      "bytes": 1245224,
+      "sha256": "c1c61a8098969b0d178218a014a9640b5b69fb0aff5cdd183b388af02749f1ee"
+    }
+  ],
+  "scope": "Live main and worker bundles match the locally validated source build. Separate live browser evidence verifies original independent parent/child ZIP uploads and the private unchanged AirXonix launcher. No game binaries are published.",
+  "workflowConclusion": "success",
+  "unitTestsPassed": 970,
+  "liveAcceptanceProfiles": 6,
+  "openGLReport": "evidence/opengl-browser-results.json"
+}

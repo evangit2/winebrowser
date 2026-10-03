@@ -1,53 +1,53 @@
 {
   "format": 1,
-  "url": "http://127.0.0.1:4196/winebrowser/",
+  "url": "https://evangit2.github.io/winebrowser/",
   "executableSha256": "ff1b7984c46bd734ddb88df7efcb8ebc9d7ceb8b066592ae42fd2da1c8d9e53c",
   "zipSha256": "f48c52d7275faccce3fcb13aae5ce988f30c82e0d4e6dcb426cbd407f1a6e6f6",
   "backend": "desktop GLSL vertex/fragment subset on worker WebGL2",
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFramesMs": 2249,
+      "firstFramesMs": 1070,
       "first": {
         "width": 800,
         "height": 600,
-        "frames": 17,
-        "draws": 17,
-        "colors": 3167,
+        "frames": 8,
+        "draws": 8,
+        "colors": 3186,
         "bright": 469096,
-        "hash": "d088505f6b507d5351b975f91edeeb31b1c072ca133c734bb6d851ce8e888ac5"
+        "hash": "0a8df95a58aabefebd965830919aea7835d2a9c15781228105445c3cd0f3dc5b"
       },
       "animated": {
         "width": 800,
         "height": 600,
-        "frames": 25,
-        "draws": 25,
-        "colors": 3027,
+        "frames": 16,
+        "draws": 16,
+        "colors": 3168,
         "bright": 469096,
-        "hash": "edcc5c7d2e7669753e6f6a7d879df10c9eb48f5d5bdb52b552e7417a68b4cab2"
+        "hash": "8376ec1d529405d1b4f39609bd192b3fa83a4dc1deb18028093674bba7725a56"
       },
       "paused": {
         "width": 800,
         "height": 600,
-        "frames": 34,
-        "draws": 34,
-        "colors": 2996,
+        "frames": 24,
+        "draws": 24,
+        "colors": 3224,
         "bright": 469096,
-        "hash": "f379326d830df822d8636b78c47b417140574caaa96c88d6925c19c425b7fe2a"
+        "hash": "a25752c0cd54b989548412c6aa4e0364da71e569d9436c68bcbfbf585eb7ed9d"
       },
       "camera": {
         "width": 800,
         "height": 600,
-        "frames": 50,
-        "draws": 50,
-        "colors": 3492,
+        "frames": 40,
+        "draws": 40,
+        "colors": 3638,
         "bright": 469096,
-        "hash": "7d302a44a68d1a7fd6c96e5beeab821ee913c81429071e24fe026af78e0f204f"
+        "hash": "b0f28428cb1dd98c817a85910257b8949c20dc0eefaa973d24fbdc50e711b7fa"
       },
       "exitCode": 0,
       "compiledBlocks": 165,
       "wasmBytes": 130477,
-      "instructions": 5282,
+      "instructions": 4449,
       "apiNames": [
         "kernel32.dll!GetModuleHandleA",
         "user32.dll!RegisterClassA",
@@ -100,47 +100,47 @@
     },
     {
       "mode": "hosted-zip",
-      "firstFramesMs": 669,
+      "firstFramesMs": 448,
       "first": {
         "width": 800,
         "height": 600,
-        "frames": 9,
-        "draws": 9,
-        "colors": 3203,
+        "frames": 8,
+        "draws": 8,
+        "colors": 3161,
         "bright": 469096,
-        "hash": "8d15ec2564ff0ea9f260cd3a84eeb56e79ca0cfbcbdb051259c715eae94fa68b"
+        "hash": "56f62320daa396f8b3a6c3f2996677d227fac5b0fa5de4754cfc418f4011c6b6"
       },
       "animated": {
         "width": 800,
         "height": 600,
-        "frames": 17,
-        "draws": 17,
-        "colors": 3196,
+        "frames": 16,
+        "draws": 16,
+        "colors": 3194,
         "bright": 469096,
-        "hash": "1888a7f31b93aad337e154d43f74badbaef0d0e564ddb3190f6a93f23df07140"
+        "hash": "b811afe6116bd037c443d4c7dd2932d3856ab4b55934929338dc6c2adea5c2cc"
       },
       "paused": {
         "width": 800,
         "height": 600,
-        "frames": 25,
-        "draws": 25,
-        "colors": 3196,
+        "frames": 24,
+        "draws": 24,
+        "colors": 3215,
         "bright": 469096,
-        "hash": "ead45c7d94e2279b477fba1c907358e0c567a84d0201f2d7f06c7dd841fc50ab"
+        "hash": "3be14f6e8ff8967eae1a21bd178133879360f115dd2c7ee8f2dbb96b3539e1a5"
       },
       "camera": {
         "width": 800,
         "height": 600,
-        "frames": 41,
-        "draws": 41,
-        "colors": 3617,
+        "frames": 40,
+        "draws": 40,
+        "colors": 3632,
         "bright": 469096,
-        "hash": "f32689590bcabc133749b248a235065149c749115a8590158c904e299eefa352"
+        "hash": "8f9a40600524f13e8724cef25c383a60c1efacca7596fabf64a665972b3b6fed"
       },
       "exitCode": 0,
       "compiledBlocks": 165,
       "wasmBytes": 130477,
-      "instructions": 4510,
+      "instructions": 4395,
       "apiNames": [
         "kernel32.dll!GetModuleHandleA",
         "user32.dll!RegisterClassA",

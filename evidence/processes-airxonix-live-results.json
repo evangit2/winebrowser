@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-03T05:03:27.040738+00:00",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedRevision": "041178f547a33495252a9cdf9a289be70cc6e989",
+  "archiveSha256": "d4f77c84a6f798bf856aca296cf2cb1948267df18241bb0bc797b93f1b710df7",
+  "launcher": "airxonix/airxonix.exe",
+  "state": "ERROR",
+  "faultProcess": {
+    "id": 2,
+    "parentId": 1,
+    "exe": "airxonix/program.exe"
+  },
+  "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder\u2026\nProcess 1: airxonix/airxonix.exe\nProcess 2: airxonix/program.exe\nUnsupported IDirectDraw7.GetDeviceIdentifier\nairxonix/program.exe: Unsupported Wine NT exception 0xe06d7363\nUnsupported Wine NT exception 0xe06d7363",
+  "observed": "Unchanged private archive launches program.exe as process 2 through native Wine on live Pages. DirectDraw GetDeviceIdentifier is unsupported and the child then raises native C++ exception 0xe06d7363. No game frame or gameplay accepted.",
+  "redistributedGameBinaries": false
+}
