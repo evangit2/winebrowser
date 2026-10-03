@@ -76,3 +76,12 @@ has passed. Native NT exception dispatch and child-process execution are the nex
 shared runtime milestones. More D3D7 methods may be needed after those startup
 gaps are implemented. The local probe metadata is in `evidence/directdraw-airxonix-results.json`.
 A supported-import count alone does not prove compatibility.
+
+## Deployment verification
+
+The full GitHub gate passed for `aaf9e2c56ecf81d7caec1f8623f71fe3a7304fcb`.
+Live Pages uploads passed all six DD1/DD7/D3D7 acceptance runs, and the OpenGL
+shader compilation, animation, camera/pause controls and shutdown regression
+passed. The unchanged AirXonix ZIP reaches the same documented startup blockers
+on the live site. See `evidence/directdraw-live-deployment.json` and its linked
+reports for the deployed revision, workflow and observed results.
