@@ -146,13 +146,13 @@ test('rejects PE32+, DLLs, out-of-range and overlapping sections', () => {
   assert.throws(() => parsePE(two), /overlapping raw/);
 });
 
-test('rejects TLS and delay-import directories', () => {
+test('rejects malformed TLS and delay-import directories', () => {
   const tls = makePE();
   new DataView(tls.buffer).setUint32(0x98 + 96 + 9 * 8, 0x1000, true);
   assert.throws(() => parsePE(tls), /TLS/);
   const delay = makePE();
   new DataView(delay.buffer).setUint32(0x98 + 96 + 13 * 8 + 4, 8, true);
-  assert.throws(() => parsePE(delay), /delay imports/);
+  assert.throws(() => parsePE(delay), /delay import/);
 });
 
 test('normalizes safe virtual paths and rejects traversal and absolute paths', () => {

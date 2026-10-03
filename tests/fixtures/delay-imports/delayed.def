@@ -1,0 +1,4 @@
+LIBRARY delayed.dll
+EXPORTS
+DelayedAdd
+DelayedOrdinal @7 NONAME

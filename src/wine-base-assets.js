@@ -5,20 +5,24 @@ import { API_NAMES } from './win32.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
 import { resolveApiSet } from './api-sets.js';
 
-// A supplied DLL may only be reached later through LoadLibrary. Inspect its
-// imports before startup so it can share a native system-library graph with
+// Supplied DLLs and delay imports may only be reached after startup. Inspect
+// their dependencies first so they can share a native system-library graph with
 // the executable; switching an already initialized Kernel32 is not valid.
 export function packageNeedsNativeBase(files) {
   const names = new Set(manifest.dlls.map((row) => row.name));
   for (const [path, bytes] of files) {
-    if (!/\.dll$/i.test(path)) continue;
+    if (!/\.(dll|exe)$/i.test(path)) continue;
     let pe;
     try {
       pe = parsePE(bytes, { allowDll: true });
     } catch {
       continue;
     } // The regular loader diagnoses a malformed DLL when requested.
-    for (const entry of pe.imports) {
+    // EXE eager imports already undergo the ordinary graph inspection.
+    // Delay-only CRT dependencies must also select the native base before
+    // initialization; selecting it at the first lazy call would be too late.
+    const imports = /\.dll$/i.test(path) ? [...pe.imports, ...pe.delayImports] : pe.delayImports;
+    for (const entry of imports) {
       const dll = resolveApiSet(entry.dll).toLowerCase();
       // A native third-party codec/CRT client needs the complete native
       // library semantics even when every imported name has a host handler.

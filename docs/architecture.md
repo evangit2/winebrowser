@@ -11,10 +11,13 @@ handles dialogs, audio activation, and output in [`src/worker.js`](../src/worker
 [`src/main.js`](../src/main.js).
 
 This is a direct, dynamic translation path. It does not contain Theseus or pretranslated game
-images. It accepts PE32 executables and DLLs with imports, named/ordinal/forwarded exports,
-HIGHLOW relocation, static TLS for one guest thread, and guest initialization/callbacks. Delay-import directories remain unsupported. Wine's unchanged CommandLineToArgvW body now executes as a guest DLL; it is a
-single extracted component, not a full Wine runtime. It is not a Wine implementation and does not claim general Windows
-compatibility.
+images. It accepts PE32 executables and DLLs with eager and [delay imports](delay-imports.md),
+named/ordinal/forwarded exports, HIGHLOW relocation, per-thread static TLS and
+guest initialization/callbacks. Source-built Wine PE DLLs supply native NTDLL,
+Kernel32/KernelBase and several C/C++ runtimes. Uploaded third-party DLLs execute
+as original x86 through the same translator and loader. Browser host services
+still cover a bounded set of NT, UI, graphics, audio and filesystem contracts;
+full Wine-level application compatibility remains unfinished.
 
 The immediate goal should be controlled support for more ordinary PE programs while keeping
 guest-visible behavior explicit. Expand support behind tests for representative binaries and
