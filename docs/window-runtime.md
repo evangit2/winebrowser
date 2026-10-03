@@ -33,3 +33,10 @@ Custom nonclient geometry, minimize/maximize behavior, full input-method handlin
 API contracts were checked against Microsoft's [CreateWindowEx](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexa), [GetMessage](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessage), and [BeginPaint](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-beginpaint) documentation. Unsupported behavior must remain visible rather than returning success solely to advance a particular executable.
 
 A broader PuTTY 0.85 GUI probe exposed and corrected custom-dialog context, class metadata, list-control ABI and radio-state issues. The unchanged release now passes a bounded Configuration acceptance: Session category, edited hostname, registry-backed session Save, navigation to Terminal, return with the hostname preserved, and Cancel exiting zero. `winspool.drv` provides local/connected queue enumeration for the browser's empty printer installation, with correct A/W exports, output counts and errors; printing jobs and remote spoolers remain unsupported. Other PuTTY panels, networking and terminal rendering are unverified. Run `npm run fetch:targets -- putty-0.85-x86` then `npm run test:putty-gui` for the private cached executable. The executable is not published with this acceptance. See [the probe record](../evidence/putty-gui-progress.json).
+
+The public `gui-controls` showcase is an original MIT Windows x86 program using
+these controls and native callbacks. Its executable and ZIP are available in the
+Pages example picker, with source, license and a standalone MinGW build script.
+The source archive reproduces the published PE32 executable byte for byte. Its
+browser acceptance covers tree/list/combo interaction, check/radio state, menu
+Reset, close and ZIP/Stop cleanup. See [the acceptance record](../evidence/gui-controls-browser-results.json).

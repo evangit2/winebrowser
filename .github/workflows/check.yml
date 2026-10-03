@@ -91,6 +91,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:menus
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:treeview
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lists
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gui-controls
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:directdraw
           npm run test:d3d8
           npm run test:d3d9

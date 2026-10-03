@@ -228,7 +228,9 @@
     "test:treeview": "node scripts/test-treeview-browser.mjs",
     "build:lists": "sh scripts/build-lists-fixture.sh",
     "test:lists": "node scripts/test-lists-browser.mjs",
-    "test:putty-gui": "node scripts/test-putty-gui-browser.mjs"
+    "test:putty-gui": "node scripts/test-putty-gui-browser.mjs",
+    "build:gui-controls": "sh scripts/build-gui-controls.sh",
+    "test:gui-controls": "node scripts/test-gui-controls-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

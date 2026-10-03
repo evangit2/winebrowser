@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-03T20:53:44.857Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exeSha256": "464a98fb9959f43fcc5055be2d71e7449d474ca31fa821d7d66140ce28c3a812",
+  "exitCode": 0,
+  "compiledBlocks": 130,
+  "x86TranslationMs": 76.02500005066395,
+  "checks": [
+    "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
+    "Tree category, sorted list, editable combo, checkbox and radio interactions",
+    "Native menu Reset restores control state; close exits zero",
+    "Public source/license ZIP package runs and Stop removes its window"
+  ],
+  "scope": "Original MIT WineBrowser Win32 showcase, separate from upstream applications. This exercises the supported controls; no universal GUI/DLL compatibility claim."
+}

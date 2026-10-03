@@ -193,6 +193,17 @@
       "sourceZip": "minesweeper/source.zip",
       "sourceZipSha256": "cdddd02f30424da909f798b2ffb07e765fdba4355e704a334176cdaf764078e6",
       "provenance": "MIT, wesmar/minesweeper commit a950b89de6946faa360dcd5febfcb4206a877af1; unchanged release EXE."
+    },
+    {
+      "name": "gui-controls",
+      "description": "Native Win32 GUI showcase: tree categories, sorted list, editable combo, checkbox, radio group and menus. All callbacks run from the Windows x86 EXE inside the browser.",
+      "exe": "gui-controls/gui-controls.exe",
+      "exeSha256": "464a98fb9959f43fcc5055be2d71e7449d474ca31fa821d7d66140ce28c3a812",
+      "zip": "gui-controls/gui-controls.zip",
+      "zipSha256": "317494a92daf0866e8d9b64f15ed2329cb1a84a7f88683c1b508160e7afb7a2c",
+      "sourceZip": "gui-controls/source.zip",
+      "sourceZipSha256": "19a0010ddac139a258514eb65658eccc5bf043d4b1e35950fe4037489cd1df11",
+      "provenance": "Original WineBrowser contributors C program, MIT; source and standalone MinGW build included."
     }
   ]
 }
