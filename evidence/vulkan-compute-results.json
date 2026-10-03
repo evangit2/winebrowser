@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-02T23:38:21.427Z",
+  "date": "2026-10-03T00:29:04.885Z",
   "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "ordinaryBrowser": true,
@@ -136,10 +136,10 @@
     "instructions": 1032,
     "compiledBlocks": 189,
     "totalCompiledBlocks": 189,
-    "x86TranslationMs": 76.29500007629395,
+    "x86TranslationMs": 72.16000001132488,
     "wasmBytes": 151954,
     "apiCalls": 51,
-    "elapsedMs": 783.390000000596,
+    "elapsedMs": 603.4149999991059,
     "outputs": []
   },
   "output": "vulkan-compute-ok\n"

@@ -680,7 +680,7 @@ actually executed.
 
 ## Vulkan upload milestone (2026-10-02)
 
-- [x] Deploy the combined runtime to GitHub Pages after 912 unit tests and the
+- [x] Deploy the combined runtime to GitHub Pages after 913 unit tests and the
       full CI browser suite. Ordinary Chrome 154 on the live site passes all
       six skinning ZIP/folder/catalog and readback runs, plus exact GPU compute.
       EXE, ZIP and source-download hashes match the published catalog. See

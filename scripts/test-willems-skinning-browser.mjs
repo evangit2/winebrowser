@@ -47,6 +47,7 @@ try {
     'hosted-catalog',
   ];
   for (const mode of modes) {
+    console.log(`Checking ${mode} at ${url}`);
     if (mode === 'hosted-catalog') await page.locator('[data-demo="gltfskinning"]').click();
     else if (mode === 'folder-upload')
       await page.locator('#folder').setInputFiles('public/examples/gltfskinning');
@@ -55,7 +56,16 @@ try {
         .locator('#file')
         .setInputFiles({ name: 'gltfskinning.zip', mimeType: 'application/zip', buffer: zip });
     await page.waitForFunction(
-      () => document.querySelector('#state')?.textContent === 'LOADED',
+      () => {
+        const state = document.querySelector('#state')?.textContent;
+        if (state === 'ERROR')
+          throw Error(
+            document.querySelector('#details').textContent +
+              document.querySelector('#output').textContent +
+              document.querySelector('#logs').textContent,
+          );
+        return state === 'LOADED';
+      },
       null,
       { timeout: 60000 },
     );

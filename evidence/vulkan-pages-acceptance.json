@@ -1,14 +1,14 @@
 {
-  "date": "2026-10-02T23:46:03.504Z",
+  "date": "2026-10-03T00:45:52.573Z",
   "url": "https://evangit2.github.io/winebrowser/",
-  "deployedCommit": "0101b7f50bb65587f665c6834cf8367dcab5e846",
+  "deployedCommit": "a0fa86530aa131ce8ef61d323681abfc801531bf",
   "workflow": {
-    "url": "https://github.com/evangit2/winebrowser/actions/runs/37076070825",
+    "url": "https://github.com/evangit2/winebrowser/actions/runs/37079913688",
     "conclusion": "success",
-    "unitTestsPassed": 912
+    "unitTestsPassed": 913
   },
   "deployment": {
-    "id": 6820344263,
+    "id": 6820890615,
     "state": "success",
     "url": "https://evangit2.github.io/winebrowser/"
   },
@@ -16,7 +16,7 @@
   "ordinaryBrowserWithoutSpecialGpuFlags": true,
   "applicationFilesUnchangedSinceDeployment": true,
   "exeSha256": "ff42fb88664b336ccd70f29615689ef1ca8c20c6bbb8d210db235f174522c608",
-  "zipSha256": "6794a432dc5b556b8fad7afac6c430ee003d3c00278dc01be9ecc868c36e4375",
+  "zipSha256": "56c69971d1afcb9f046795d6dd4a814d3abeae308c2d624c66a90b33ad44d2b3",
   "sourceZipSha256": "b6360728dcb9d2067e4bfebba9480eab2409e66368a8d49afdd4489ec44a7961",
   "sourceZipDownloadVerified": true,
   "staticDependencyModules": [
@@ -34,8 +34,8 @@
     {
       "mode": "zip-upload",
       "exitCode": 0,
-      "compiledBlocks": 15811,
-      "elapsedMs": 20229,
+      "compiledBlocks": 15807,
+      "elapsedMs": 21325,
       "animationAndInput": true,
       "nativeOverlayToggle": true,
       "modules": [
@@ -52,8 +52,8 @@
     {
       "mode": "folder-upload",
       "exitCode": 0,
-      "compiledBlocks": 15816,
-      "elapsedMs": 18837,
+      "compiledBlocks": 15810,
+      "elapsedMs": 18733,
       "animationAndInput": true,
       "nativeOverlayToggle": true,
       "modules": [
@@ -70,8 +70,8 @@
     {
       "mode": "hosted-catalog",
       "exitCode": 0,
-      "compiledBlocks": 15811,
-      "elapsedMs": 18769,
+      "compiledBlocks": 15809,
+      "elapsedMs": 23920,
       "animationAndInput": true,
       "nativeOverlayToggle": true,
       "modules": [
@@ -90,8 +90,8 @@
     {
       "mode": "zip-upload",
       "exitCode": 0,
-      "compiledBlocks": 15811,
-      "elapsedMs": 19614,
+      "compiledBlocks": 15820,
+      "elapsedMs": 24426,
       "animationAndInput": true,
       "nativeOverlayToggle": true,
       "modules": [
@@ -108,8 +108,8 @@
     {
       "mode": "folder-upload",
       "exitCode": 0,
-      "compiledBlocks": 15809,
-      "elapsedMs": 20734,
+      "compiledBlocks": 15818,
+      "elapsedMs": 33950,
       "animationAndInput": true,
       "nativeOverlayToggle": true,
       "modules": [
@@ -126,8 +126,8 @@
     {
       "mode": "hosted-catalog",
       "exitCode": 0,
-      "compiledBlocks": 15806,
-      "elapsedMs": 19741,
+      "compiledBlocks": 15807,
+      "elapsedMs": 25947,
       "animationAndInput": true,
       "nativeOverlayToggle": true,
       "modules": [
@@ -146,5 +146,20 @@
     "exitCode": 0,
     "exactStorageResultsAndPartialCopies": true
   },
-  "scope": "Pinned Windows x86 source build. Original application, animation, assets and SPIR-V retained, with one size_t portability guard in the common helper. The selected application dependency closure is verified; x64, optional wireframe and arbitrary DLL/game compatibility remain unsupported."
+  "scope": "Pinned Windows x86 source build. Original application, animation, assets and SPIR-V retained, with one size_t portability guard in the common helper. The selected application dependency closure is verified; x64, optional wireframe and arbitrary DLL/game compatibility remain unsupported.",
+  "nativeWineDllDownloadsVerified": true,
+  "nativeWineDllHashes": {
+    "kernel32.dll": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f",
+    "ntdll.dll": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd",
+    "ucrtbase.dll": "f869a2cdec3acdd2d747dea1324ad354a5d4ac20674d1e5ae1b5ad216ace99e0",
+    "kernelbase.dll": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
+  },
+  "observedIssues": [
+    {
+      "stage": "package loading before native startup",
+      "kind": "one 60-second test timeout",
+      "cause": "not established",
+      "followup": "Added load-error diagnostics; a fresh ordinary Chrome run then passed all three readback modes."
+    }
+  ]
 }

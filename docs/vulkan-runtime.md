@@ -149,4 +149,7 @@ and deployment commit, matching live download hashes, and six ordinary Chrome
 also verify that F1 removes the native overlay and that resumed animation
 produces new poses beyond the paused frame-buffer phases. Native GPU compute
 passes on the same live site. These are checks of the deployed application;
-the final evidence commit changes only documentation and acceptance tooling.
+the report identifies the tested deployment commit and exact native DLL hashes.
+One readback attempt exceeded the test's 60-second package-loading deadline
+before native startup; a fresh run passed all three modes. Its cause was not
+established, and load-error diagnostics now make failures explicit.
