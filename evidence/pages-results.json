@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T02:33:10.113Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-03T03:09:39.771Z",
+  "url": "http://127.0.0.1:4207/winebrowser/",
   "browser": "154.0.8037.97",
   "capabilities": {
     "controlled": true,
@@ -324,16 +324,6 @@
       "passed": true
     }
   ],
-  "browserDownloads": [
-    {
-      "filename": "gltfskinning.exe",
-      "passed": true
-    },
-    {
-      "filename": "gltfskinning.zip",
-      "passed": true
-    }
-  ],
   "fixtures": [
     {
       "name": "beep",
@@ -374,11 +364,5 @@
     "exitCode": 0,
     "passed": true
   },
-  "errors": [],
-  "deployment": {
-    "id": 6822151551,
-    "sha": "3fb8c5ae21e63b49a925b3da680998236fedb77d",
-    "workflowRun": "https://github.com/evangit2/winebrowser/actions/runs/37088380848",
-    "state": "success"
-  }
+  "errors": []
 }

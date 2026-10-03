@@ -165,3 +165,38 @@ test('Wine Unix host metadata is explicitly unavailable without touching the out
   assert.equal(query(r, 1000, 0, 0), 0xc0000003);
   assert.equal(query(r, 1000, output, 256, 0x40000000), 0xc0000005);
 });
+
+test('time of day describes the process-local UTC clock with atomic bounded output', () => {
+  let now = 1700000000000;
+  const r = new Runtime(iced, {
+    files: new Map([['console.exe', exe]]),
+    exe: 'console.exe',
+    systemNow: () => now,
+  });
+  const output = r.allocate(56),
+    length = r.allocate(4);
+  r.data.fill(0xaa, output, output + 56);
+  assert.equal(query(r, 3, output, 47, length), 0xc0000004);
+  assert.equal(r.read32(length), 48);
+  assert.ok(r.data.slice(output, output + 56).every((v) => v === 0xaa));
+  assert.equal(query(r, 3, output, 48, 0x40000000), 0xc0000005);
+  assert.ok(r.data.slice(output, output + 56).every((v) => v === 0xaa));
+  now += 1234;
+  assert.equal(query(r, 3, output, 56, length), 0);
+  assert.equal(r.view.getBigInt64(output, true), 133444736000000000n);
+  assert.equal(r.view.getBigInt64(output + 8, true), 133444736012340000n);
+  assert.ok(r.data.slice(output + 16, output + 48).every((v) => v === 0));
+  assert.ok(r.data.slice(output + 48, output + 56).every((v) => v === 0xaa));
+  assert.equal(query(r, 3, 0, 48, length), 0xc0000005);
+});
+
+test('defined NT performance telemetry reports unavailable without inventing counters', () => {
+  const r = runtime(),
+    output = r.allocate(312),
+    length = r.allocate(4);
+  r.data.fill(0xaa, output, output + 312);
+  r.write32(length, 0x12345678);
+  assert.equal(query(r, 2, output, 312, length), 0xc0000002);
+  assert.ok(r.data.slice(output, output + 312).every((v) => v === 0xaa));
+  assert.equal(r.read32(length), 0x12345678);
+});

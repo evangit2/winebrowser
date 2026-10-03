@@ -795,6 +795,9 @@ export class VirtualDesktop {
     }
     window.imageData.data.set(bytes);
     window.context.putImageData(window.imageData, 0, 0);
+    if (graphicsApi !== undefined) window.canvas.dataset.graphicsApi = graphicsApi;
+    if (graphicsFrames !== undefined) window.canvas.dataset.graphicsFrames = String(graphicsFrames);
+    if (renderer !== undefined) window.canvas.dataset.renderer = renderer;
     return true;
   }
 

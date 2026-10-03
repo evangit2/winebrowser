@@ -1,0 +1,31 @@
+{
+  "verifiedAt": "2026-10-03T03:25:41.883223+00:00",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedCommit": "aaf9e2c56ecf81d7caec1f8623f71fe3a7304fcb",
+  "workflow": "https://github.com/evangit2/winebrowser/actions/runs/37091816593",
+  "ciConclusion": "success",
+  "nativeUploadAcceptance": "evidence/directdraw-live-browser-results.json",
+  "openglRegression": "evidence/directdraw-opengl-live-regression.json",
+  "airxonix": {
+    "archiveSha256": "d4f77c84a6f798bf856aca296cf2cb1948267df18241bb0bc797b93f1b710df7",
+    "gameFrameVerified": false,
+    "runs": [
+      {
+        "executable": "airxonix.exe",
+        "ddrawLookupFailureRemoved": true,
+        "supportedStaticImports": 41,
+        "state": "ERROR",
+        "blocker": "Unsupported Wine NT service NtCreateUserProcess",
+        "playable": false
+      },
+      {
+        "executable": "program.exe",
+        "ddrawLookupFailureRemoved": true,
+        "supportedStaticImports": 133,
+        "state": "ERROR",
+        "blocker": "Unsupported Wine NT exception 0xe06d7363",
+        "playable": false
+      }
+    ]
+  }
+}

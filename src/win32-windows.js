@@ -776,7 +776,8 @@ function register(r, a, wide, extended) {
   if (extended && r.read32(start) !== 48) return manager.fail(87, 1);
   const namePointer = r.read32(p + 36);
   if (!namePointer) return manager.fail(87, 1);
-  const name = text(r, namePointer, wide).toLowerCase();
+  const originalName = text(r, namePointer, wide);
+  const name = originalName.toLowerCase();
   const extra = r.read32(p + 12);
   const classExtra = r.read32(p + 8);
   // ERROR_CLASS_ALREADY_EXISTS is only correct when the same name is already
@@ -791,6 +792,7 @@ function register(r, a, wide, extended) {
   const menuName = r.read32(p + 32);
   const cls = {
     name,
+    originalName,
     atom: manager.nextAtom++,
     style: r.read32(p),
     proc: r.read32(p + 4),
@@ -806,6 +808,61 @@ function register(r, a, wide, extended) {
   manager.classes.set(name, cls);
   manager.atoms.set(cls.atom, cls);
   return result(cls.atom, 1);
+}
+
+function classInfo(r, a, wide, remove = false) {
+  const m = r.windows,
+    p = a(remove ? 0 : 1),
+    instance = a(remove ? 1 : 0);
+  const cls = p <= 0xffff ? m.atoms.get(p) : m.classes.get(text(r, p, wide).toLowerCase());
+  if (!cls || (cls.instance !== instance && !(cls.style & 0x4000)))
+    return m.fail(1411, remove ? 2 : 3);
+  if (remove) {
+    if ([...m.windows.values()].some((w) => w.cls === cls)) return m.fail(1412, 2);
+    for (const address of [
+      ...(cls.menuPointers?.values() ?? []),
+      ...(cls.namePointers?.values() ?? []),
+    ])
+      r.free(address);
+    m.classes.delete(cls.name);
+    m.atoms.delete(cls.atom);
+    return result(1, 2);
+  }
+  const out = a(2);
+  if (!out) return m.fail(87, 3);
+  r.check(out, 40, true);
+  const ownedString = (value) => {
+    if (wide) return r.allocString(value, true);
+    const { bytes } = encodeAnsi(value),
+      address = r.allocate(bytes.length + 1, true);
+    r.data.set(bytes, address);
+    return address;
+  };
+  cls.namePointers ??= new Map();
+  if (!cls.namePointers.has(wide))
+    cls.namePointers.set(wide, ownedString(cls.originalName ?? cls.name));
+  let menu = cls.menuName;
+  if (typeof menu === 'string') {
+    cls.menuPointers ??= new Map();
+    if (!cls.menuPointers.has(wide)) {
+      const address = ownedString(menu);
+      cls.menuPointers.set(wide, address);
+    }
+    menu = cls.menuPointers.get(wide);
+  }
+  [
+    cls.style,
+    cls.proc,
+    cls.classExtra,
+    cls.extra,
+    cls.instance,
+    cls.icon,
+    cls.cursor,
+    cls.background,
+    menu,
+    cls.namePointers.get(wide),
+  ].forEach((v, i) => r.write32(out + i * 4, v || 0));
+  return result(1, 3);
 }
 
 async function create(r, a, wide) {
@@ -1206,6 +1263,8 @@ for (const wide of [false, true]) {
   windowApis[`user32.dll!GetWindowTextLength${suffix}`] = async (r, a) =>
     result(await r.windows.send(a(0), 0xe), 1);
   Object.assign(windowApis, {
+    [`user32.dll!GetClassInfo${suffix}`]: (r, a) => classInfo(r, a, wide),
+    [`user32.dll!UnregisterClass${suffix}`]: (r, a) => classInfo(r, a, wide, true),
     [`user32.dll!RegisterClass${suffix}`]: (r, a) => register(r, a, wide, false),
     [`user32.dll!RegisterClassEx${suffix}`]: (r, a) => register(r, a, wide, true),
     [`user32.dll!CreateWindowEx${suffix}`]: (r, a) => create(r, a, wide),

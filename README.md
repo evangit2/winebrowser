@@ -8,8 +8,7 @@ An experimental **browser-local Windows PE runtime**. Choose one or more EXEs, Z
 
 **Try the [live WineBrowser test harness](https://evangit2.github.io/winebrowser/).** It runs locally in your browser. Use a modern Chromium browser such as Chrome or Edge.
 
-**[Download every demo's EXE and complete ZIP](docs/demo-downloads.md).** The live
-catalog also has EXE and ZIP download links beside every Load button. Compiled
+**[Download every demo's EXE and complete ZIP](docs/demo-downloads.md).** Compiled
 binaries are committed under `public/demos/` and `public/examples/`; the root
 `demos/` directory contains build sources. Use the full ZIP when a program needs
 supporting assets or DLLs.
@@ -17,7 +16,7 @@ supporting assets or DLLs.
 **Native Vulkan uploads run the free Sascha Willems glTF skinning demo.**
 Choose **Load gltfskinning** or upload
 [the complete Windows ZIP](https://evangit2.github.io/winebrowser/examples/gltfskinning/gltfskinning.zip).
-Its [Windows EXE](https://evangit2.github.io/winebrowser/examples/gltfskinning/bin/gltfskinning.exe)
+Its [Windows EXE](public/examples/gltfskinning/bin/gltfskinning.exe)
 is also available separately in `public/examples/gltfskinning/bin/`; running it
 requires the model and shaders from the ZIP.
 The original textured CesiumMan character, skeletal animation and native ImGui
@@ -281,3 +280,7 @@ An [optional source-built loader experiment](docs/wine-loader-bridge.md) now ini
 The [unchanged application startup diagnostic](docs/wine-loader-bridge.md#unchanged-application-startup-diagnostic) now enters Humus Dynamic Branching through real Wine base DLLs and records its next runtime failure. It remains a blocked independent target, separate from the passing public cube examples.
 
 **Legacy installers:** the shared User32/GDI/Shell32/LZ32 services cover modeless dialog templates, ownership/tab navigation, DIB palettes, font callbacks, package-folder selection and SZDD file expansion. [Supported behavior and limits](docs/installer-runtime.md). The authored installer-service upload passes; the ATI Treasure Chest installer itself is not yet verified.
+
+The bounded [DirectDraw1/7 and Direct3D7 profile](docs/directdraw.md) now supplies
+DDRAW.DLL for ordinary uploads, with independent native EXE/ZIP rendering tests.
+AirXonix still requires native NT exception dispatch and child-process support.
