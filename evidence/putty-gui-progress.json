@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-03T20:50:01.501Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-03T22:02:48.743Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
   "status": "partial",
   "guiAcceptance": "passed",
   "exitCode": 0,
   "compiledBlocks": 7764,
-  "x86TranslationMs": 2510.6299998760223,
+  "x86TranslationMs": 1558.4749996066093,
   "checks": [
     "Native custom-class Configuration dialog selects its Session category",
     "Typed hostname and saved-session name reach native code",

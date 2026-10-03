@@ -50,11 +50,41 @@ try {
     .getByText('Second radio selected; its group remains exclusive.', { exact: true })
     .waitFor();
   assert.equal(await first.getAttribute('aria-checked'), 'false');
+  const canvas = window.locator('canvas[data-control-id="50"]');
+  const swatch = () =>
+    canvas.evaluate((c) => Array.from(c.getContext('2d').getImageData(12, 12, 1, 1).data));
+  await page.waitForFunction(
+    () => document.querySelector('canvas[data-control-id="50"]')?.width === 312,
+  );
+  assert.deepEqual(await swatch(), [28, 110, 210, 255]);
+  await window.getByRole('button', { name: 'Change', exact: true }).click();
+  await status
+    .getByText('Nested button: native child window repainted with GDI.', { exact: true })
+    .waitFor();
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('canvas[data-control-id="50"]')
+        ?.getContext('2d')
+        .getImageData(12, 12, 1, 1).data[0] === 230,
+  );
+  assert.deepEqual(await swatch(), [230, 140, 30, 255]);
+  await canvas.click({ position: { x: 30, y: 30 } });
+  await status
+    .getByText('Custom canvas: mouse input reached its native window procedure.', { exact: true })
+    .waitFor();
   await window.getByRole('menuitem', { name: 'Demo', exact: true }).click();
   await window.getByRole('menuitem', { name: 'Reset', exact: true }).click();
   await status.getByText(reset, { exact: true }).waitFor();
   assert.equal(await checkbox.getAttribute('aria-checked'), 'false');
   assert.equal(await first.getAttribute('aria-checked'), 'true');
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('canvas[data-control-id="50"]')
+        ?.getContext('2d')
+        .getImageData(12, 12, 1, 1).data[0] === 28,
+  );
   await mkdir('.scratch', { recursive: true });
   await window.screenshot({ path: '.scratch/gui-controls-showcase.png' });
   await window.locator('.virtual-desktop-close').click();
@@ -82,6 +112,7 @@ try {
     checks: [
       'Public EXE loads from Pages examples; original x86 callbacks run in the browser',
       'Tree category, sorted list, editable combo, checkbox and radio interactions',
+      'Native registered child canvas, nested button command, independent GDI repaint and mouse callback',
       'Native menu Reset restores control state; close exits zero',
       'Public source/license ZIP package runs and Stop removes its window',
     ],

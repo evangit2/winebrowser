@@ -37,11 +37,21 @@ archive(DEST / 'gui-controls.zip', [(name, (DEST / name).read_bytes())
     for name in ['gui-controls.exe', 'LICENSE', 'README.md', 'PROVENANCE.md']])
 path = PUBLIC / 'manifest.json'
 manifest = json.loads(path.read_text())
-entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree categories, sorted list, editable combo, checkbox, radio group and menus. All callbacks run from the Windows x86 EXE inside the browser.',
+entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
     'exe': 'gui-controls/gui-controls.exe', 'exeSha256': exe_sha,
     'zip': 'gui-controls/gui-controls.zip', 'zipSha256': digest(DEST / 'gui-controls.zip'),
     'sourceZip': 'gui-controls/source.zip', 'sourceZipSha256': digest(DEST / 'source.zip'),
     'provenance': 'Original WineBrowser contributors C program, MIT; source and standalone MinGW build included.'}
-manifest['interactive'] = [item for item in manifest['interactive'] if item['name'] != entry['name']] + [entry]
-path.write_text(json.dumps(manifest, indent=2) + '\n')
+raw = path.read_text()
+marker = '    {\n      "name": "gui-controls",'
+if marker in raw:
+    # Replace this package's entry without reordering or reformatting unrelated examples.
+    start = raw.index(marker) + 4
+    previous, length = json.JSONDecoder().raw_decode(raw[start:])
+    assert previous['name'] == entry['name']
+    replacement = json.dumps(entry, indent=2, ensure_ascii=False).replace('\n', '\n    ')
+    path.write_text(raw[:start] + replacement + raw[start + length:])
+else:
+    manifest['interactive'].append(entry)
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n')
 print('Packaged native GUI controls:', exe_sha)
