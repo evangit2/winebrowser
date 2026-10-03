@@ -597,16 +597,42 @@ export class VirtualDesktop {
             this.#emit(control.id, 'command', { notification: 0 });
         });
       }
-    } else if (controlType === 'listbox' && state.list?.tabStops !== undefined) {
+    } else if (
+      controlType === 'listbox' &&
+      (state.list?.drag || state.list?.tabStops !== undefined)
+    ) {
       element = document.createElement('div');
       tabList = true;
       element.className = 'virtual-desktop-control virtual-desktop-control-tablist';
       element.setAttribute('role', 'listbox');
       element.setAttribute('aria-label', state.title || 'List');
       element.tabIndex = 0;
+      element.addEventListener('scroll', () => {
+        if (control.listState)
+          this.#emit(control.id, 'list-scroll', {
+            top: Math.floor(element.scrollTop / control.listState.itemHeight),
+          });
+      });
+      element.addEventListener('pointerdown', (event) => {
+        if (control.listState?.drag && event.button === 0)
+          element.setPointerCapture(event.pointerId);
+      });
+      element.addEventListener('contextmenu', (event) => {
+        if (control.listState?.drag) event.preventDefault();
+      });
+      for (const type of ['mousedown', 'mouseup'])
+        element.addEventListener(type, (event) => {
+          if (!control.listState?.drag) return;
+          event.stopPropagation();
+          if (type === 'mousedown') {
+            event.preventDefault();
+            element.focus({ preventScroll: true });
+          }
+          this.#sendMouse(control, type, event);
+        });
       element.addEventListener('keydown', (event) => {
         const s = control.listState;
-        if (!s?.items.length) return;
+        if (!s?.items.length || s.drag?.dragging) return;
         let index = s.selected;
         if (event.key === 'ArrowDown') index = Math.min(s.items.length - 1, index + 1);
         else if (event.key === 'ArrowUp') index = Math.max(0, index - 1);
@@ -802,7 +828,7 @@ export class VirtualDesktop {
           2,
       ),
     );
-    const stops = list.tabStops.map((value) => (value * base) / 4);
+    const stops = (list.tabStops ?? []).map((value) => (value * base) / 4);
     const nextTab = (x) =>
       stops.length === 1
         ? (Math.floor(x / stops[0]) + 1) * stops[0]
@@ -829,7 +855,8 @@ export class VirtualDesktop {
         x += measurement.measureText(text).width;
       }
       row.addEventListener('click', () => {
-        if (control.enabled) this.#emit(control.id, 'list-select', { index });
+        if (control.enabled && !control.listState?.drag)
+          this.#emit(control.id, 'list-select', { index });
       });
       fragment.append(row);
     }
@@ -838,6 +865,15 @@ export class VirtualDesktop {
     if (control.listState?.top !== list.top) element.scrollTop = list.top * list.itemHeight;
     else if (control.listState?.selected !== list.selected && list.selected >= 0)
       element.children[list.selected]?.scrollIntoView({ block: 'nearest' });
+    element.style.cursor = { 1: 'not-allowed', 2: 'copy', 3: 'move' }[list.drag?.cursor] ?? '';
+    control.viewport.querySelector('.virtual-desktop-list-insert')?.remove();
+    if (list.drag?.marker >= 0) {
+      const marker = document.createElement('div');
+      marker.className = 'virtual-desktop-list-insert';
+      marker.setAttribute('aria-hidden', 'true');
+      marker.style.top = `${(list.drag.marker - list.top) * list.itemHeight}px`;
+      control.viewport.append(marker);
+    }
   }
 
   #applyTree(control, tree) {
@@ -1080,7 +1116,8 @@ export class VirtualDesktop {
 
   #sendMouse(window, type, event) {
     const rect = (window.isControl ? window.element : window.canvas).getBoundingClientRect();
-    const border = window.controlType === 'custom' ? (window.controlBorder ?? 0) : 0;
+    const border =
+      window.controlType === 'custom' || window.tabList ? (window.controlBorder ?? 0) : 0;
     this.#emit(window.id, type, {
       x: Math.round(event.clientX - rect.left - border),
       y: Math.round(event.clientY - rect.top - border),
@@ -1140,7 +1177,14 @@ export class VirtualDesktop {
     }
 
     if ((state.parentId && state.controlType) || existing?.isControl) {
-      const control = existing ?? this.#createControl(state);
+      let control = existing;
+      if (control?.listSelect && state.controlType === 'listbox' && state.list?.drag) {
+        const replacement = this.#createControl(state);
+        replacement.viewport.append(...control.viewport.childNodes);
+        control.container.remove();
+        control = replacement;
+      }
+      control ??= this.#createControl(state);
       this.#applyControlState(control, state);
       this.windows.set(state.id, control);
       this.#restack();

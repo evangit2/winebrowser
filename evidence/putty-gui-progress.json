@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-03T22:32:14.171Z",
+  "date": "2026-10-03T23:11:56.464Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
   "status": "partial",
   "guiAcceptance": "passed",
   "exitCode": 0,
-  "compiledBlocks": 7922,
-  "x86TranslationMs": 2415.0849996209145,
+  "compiledBlocks": 8198,
+  "x86TranslationMs": 1281.9049994498491,
   "checks": [
     "Native custom-class Configuration dialog selects its Session category",
     "Typed hostname and saved-session name reach native code",
@@ -16,10 +16,11 @@
     "Connection/Data creates tabbed environment-variable list; native Add and Remove update it",
     "Tab-stop columns render separately; edited username and environment values survive category changes",
     "Returning to Session preserves the hostname",
+    "Kex, Host keys and Cipher lists reorder through native drag/drop and Up/Down callbacks",
+    "Escape cancels drags without closing Configuration; preference order survives category reconstruction",
     "Native Cancel ends the process with exit code zero"
   ],
   "remainingBlockers": [
-    "Exploratory SSH/Kex navigation reaches a native call to address zero; its cause remains unresolved",
     "Other configuration panels are unverified; multi-select and owner-drawn lists, callback text and full common-control coverage are incomplete",
     "SSH/Telnet connections and terminal rendering are unverified"
   ],

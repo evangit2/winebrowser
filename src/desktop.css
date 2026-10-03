@@ -169,6 +169,15 @@
   color: white;
 }
 
+.virtual-desktop-list-insert {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px solid #000080;
+  pointer-events: none;
+  z-index: 10;
+}
+
 .virtual-desktop-control-button {
   margin: 0;
   padding: 1px 4px;

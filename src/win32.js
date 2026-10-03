@@ -1,4 +1,5 @@
 import { printerApis } from './win32-printers.js';
+import { dragListApis } from './win32-draglist.js';
 import { releaseHandleLocks, fileLockConflict } from './file-locks.js';
 import { shellFolderApis } from './win32-shell-folders.js';
 import { lzApis } from './win32-lz.js';
@@ -111,6 +112,7 @@ for (const key of [
   ...Object.keys(audioApis),
   ...Object.keys(gdiApis),
   ...Object.keys(windowApis),
+  ...Object.keys(dragListApis),
   ...Object.keys(menuApis),
   ...Object.keys(imeApis),
   ...Object.keys(comDlgApis),
@@ -503,6 +505,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(audioApis),
     ...Object.entries(gdiApis),
     ...Object.entries(windowApis),
+    ...Object.entries(dragListApis),
     ...Object.entries(menuApis),
     ...Object.entries(imeApis),
     ...Object.entries(comDlgApis),

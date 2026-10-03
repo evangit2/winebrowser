@@ -218,7 +218,13 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
   }
   if (message === 0x31) return window.fontHandle;
   if (message === 0x87)
-    return window.controlType === 'edit' ? 0x89 : window.controlType === 'button' ? 0x2000 : 0x100;
+    return window.dragList?.dragging
+      ? 4
+      : window.controlType === 'edit'
+        ? 0x89
+        : window.controlType === 'button'
+          ? 0x2000
+          : 0x100;
   if (window.controlType === 'button' && message === 0xf0) return window.checkState ?? 0;
   if (window.controlType === 'button' && message === 0xf1) {
     // BM_SETCHECK: the state is one of unchecked, checked or indeterminate, and

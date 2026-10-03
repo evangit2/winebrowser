@@ -1959,6 +1959,8 @@ async function isDialogMessage(r, a) {
   if (hwnd !== window.id && r.windows.topLevel(hwnd) !== window.id) return result(0, 2);
   if (![0x100, 0x101].includes(id) || ![9, 13, 27].includes(vk)) return result(0, 2);
   const focused = r.windows.windows.get(r.windows.focus);
+  const code = await r.windows.send(hwnd, 0x87, vk, message);
+  if (code & 4 || (vk === 9 && code & 2)) return result(0, 2);
   if (vk === 13 && focused?.multiline && focused.wantReturn) return result(0, 2);
   if (id === 0x101) return result(1, 2);
   const children = [...r.windows.windows.values()].filter(

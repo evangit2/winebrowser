@@ -85,6 +85,101 @@ test('tab-stop messages preserve native text and validate dialog units without m
   assert.equal(describeList(plain.w).tabStops, undefined);
 });
 
+test('drag-list exports hit-test screen points, retain geometry and throttle bounded autoscroll', async (t) => {
+  const { r, w, hwnd, parent, send } = await setup(t, 'LISTBOX', 0x41);
+  const api = (name, ...args) => r.apiProvider.get(`comctl32.dll!${name}`)(r, (i) => args[i] >>> 0);
+  assert.deepEqual(api('MakeDragList', 0xdead), { result: 0, argc: 1 });
+  assert.equal(r.lastError, 1400);
+  assert.equal(api('MakeDragList', parent).result, 0);
+  assert.equal(r.lastError, 87);
+  for (let i = 0; i < 8; i++) await send(0x180, 0, r.allocString(String(i)));
+  assert.deepEqual(api('MakeDragList', hwnd), { result: 1, argc: 1 });
+  const state = w.dragList;
+  assert.equal(api('MakeDragList', hwnd).result, 1);
+  assert.equal(w.dragList, state);
+  const [x, y] = r.windows.clientPosition(w);
+  assert.deepEqual(api('LBItemFromPt', hwnd, x + 2, y + 42, 0), { result: 2, argc: 4 });
+  assert.equal(api('LBItemFromPt', hwnd, x + w.width, y + 20, 1).result, 0xffffffff);
+  assert.equal(w.list.top, 0);
+  assert.equal(api('LBItemFromPt', hwnd, x + 2, y + w.height + 2, 1).result, 0xffffffff);
+  assert.equal(w.list.top, 1);
+  api('LBItemFromPt', hwnd, x + 2, y + w.height + 2, 1);
+  assert.equal(w.list.top, 1);
+  w.dragList.lastScroll = -Infinity;
+  api('LBItemFromPt', hwnd, x + 2, y - 2, 1);
+  assert.equal(w.list.top, 0);
+  w.list.top = 3;
+  w.dragList.lastScroll = -Infinity;
+  api('LBItemFromPt', hwnd, x + 2, y + w.height + 2, 1);
+  assert.equal(w.list.top, 3);
+  const rect = r.allocate(16);
+  assert.equal(await send(0x198, 4, rect), 0);
+  assert.deepEqual(
+    [0, 4, 8, 12].map((o) => r.read32(rect + o)),
+    [0, 20, 150, 40],
+  );
+  assert.equal(await send(0x198, 8, rect), 0xffffffff);
+  assert.deepEqual(api('DrawInsert', parent, hwnd, 4), { result: 0, argc: 3 });
+  assert.equal(describeList(w).drag.marker, 4);
+  api('DrawInsert', parent, hwnd, -1);
+  assert.equal(describeList(w).drag.marker, -1);
+});
+
+test('drag-list parent callbacks receive PE32 structures, can reject, and cancellation releases capture and timers', async (t) => {
+  const { r, w, hwnd, parent, send, call } = await setup(t, 'LISTBOX', 0x41);
+  await send(0x180, 0, r.allocString('First'));
+  r.apiProvider.get('comctl32.dll!MakeDragList')(r, () => hwnd);
+  const seen = [],
+    original = r.windows.send.bind(r.windows);
+  let accepted = 0;
+  r.windows.send = async (id, msg, wp, lp, ...extra) => {
+    if (id === parent && msg === w.dragList.message) {
+      assert.equal(wp, 80);
+      seen.push([0, 4, 8, 12].map((o) => r.read32(lp + o)));
+      return r.read32(lp) === 0x485 ? accepted : 3;
+    }
+    return original(id, msg, wp, lp, ...extra);
+  };
+  const [x, y] = r.windows.clientPosition(w);
+  await send(0x201, 1, (6 << 16) | 4);
+  assert.equal(w.dragList.dragging, false);
+  assert.equal(r.windows.capture, 0);
+  assert.equal(r.windows.timers.size, 0);
+  accepted = 1;
+  await send(0x201, 1, (6 << 16) | 4);
+  assert.equal(w.dragList.dragging, true);
+  assert.equal(r.windows.capture, hwnd);
+  assert.equal(r.windows.timers.size, 1);
+  assert.equal(await send(0x87), 4);
+  const message = r.allocate(28);
+  [hwnd, 0x100, 27, 1, 0, 0, 0].forEach((v, i) => r.write32(message + i * 4, v));
+  assert.equal(
+    (await call('IsDialogMessageA', parent, message)).result,
+    0,
+    'the control owns Escape while dragging',
+  );
+  await send(0x200, 1, (8 << 16) | 5);
+  assert.equal(w.dragList.cursor, 3);
+  await send(0x100, 27, 1);
+  assert.equal(w.dragList.dragging, false);
+  assert.equal(r.windows.capture, 0);
+  assert.equal(r.windows.timers.size, 0);
+  assert.deepEqual(seen.slice(0, 3), [
+    [0x485, hwnd, x + 4, y + 6],
+    [0x485, hwnd, x + 4, y + 6],
+    [0x486, hwnd, x + 5, y + 8],
+  ]);
+  assert.equal(seen.at(-1)[0], 0x488);
+  await send(0x201, 1, (6 << 16) | 4);
+  await send(0x202, 0, (9 << 16) | 6);
+  assert.deepEqual(seen.at(-1), [0x487, hwnd, x + 6, y + 9]);
+  assert.equal(r.windows.timers.size, 0);
+  await send(0x201, 1, (6 << 16) | 4);
+  await call('DestroyWindow', hwnd);
+  assert.equal(r.windows.capture, 0);
+  assert.equal(r.windows.timers.size, 0);
+});
+
 test('sorted list strings retain selected identity and item data across insertion and deletion', async (t) => {
   const { r, w, send } = await setup(t);
   assert.equal(await send(0x180, 0, r.allocString('Beta')), 0);

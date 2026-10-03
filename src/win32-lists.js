@@ -1,7 +1,9 @@
 import { encodeAnsi } from './encoding.js';
+import { dragListMessage } from './win32-draglist.js';
 
 const USER_SELECT = 0x7fe0,
-  USER_TEXT = 0x7fe1;
+  USER_TEXT = 0x7fe1,
+  USER_SCROLL = 0x7fe2;
 function list(w) {
   return (w.list ??= {
     items: [],
@@ -23,6 +25,9 @@ export function describeList(w) {
     top: s.top,
     comboType: w.comboType,
     tabStops: w.controlType === 'listbox' && w.style & 0x80 ? (s.tabStops ?? []) : undefined,
+    drag: w.dragList
+      ? { dragging: w.dragList.dragging, marker: w.dragList.marker, cursor: w.dragList.cursor }
+      : undefined,
   };
 }
 function readText(r, p, wide) {
@@ -61,6 +66,11 @@ function notify(r, w, code) {
 }
 export function listInput(r, w, event) {
   const s = list(w);
+  if (event.type === 'list-scroll') {
+    if (Number.isInteger(event.top) && event.top >= 0)
+      r.windows.post(w.id, USER_SCROLL, event.top, 0);
+    return true;
+  }
   if (event.type === 'list-select') {
     r.windows.post(w.id, USER_SELECT, event.index >>> 0, 0);
     return true;
@@ -116,6 +126,37 @@ const listOps = new Map([
 export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cls.wide) {
   const s = list(w),
     combo = w.controlType === 'combobox';
+  if (await dragListMessage(r, w, message, wp, lp)) return 0;
+  if (message === USER_SCROLL) {
+    s.top = Math.max(0, Math.min(wp, s.items.length - 1));
+    return 0;
+  }
+  if (!combo && w.dragList && message === 0x201) {
+    const x = (lp << 16) >> 16,
+      y = lp >> 16,
+      index = s.top + Math.floor(y / s.itemHeight);
+    if (
+      x >= 0 &&
+      x < w.width &&
+      y >= 0 &&
+      y < w.height &&
+      index < s.items.length &&
+      index !== s.selected
+    ) {
+      choose(r, w, index);
+      if (w.style & 1) await notify(r, w, 1);
+    }
+    return 0;
+  }
+  if (!combo && message === 0x198) {
+    // LB_GETITEMRECT for uniform-height string lists
+    const index = wp | 0;
+    if (index < 0 || index >= s.items.length) return -1;
+    const y = (index - s.top) * s.itemHeight;
+    r.check(lp, 16, true);
+    [0, y, w.width, y + s.itemHeight].forEach((value, i) => r.write32(lp + i * 4, value));
+    return 0;
+  }
   if (message === USER_SELECT) {
     const index = wp | 0;
     if (index < 0 || index >= s.items.length) return 0;

@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-03T23:03:15.350Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "0ae44acae095144396835709fe17c66c00ce08a6a5ed8456dda8f5b2709c8558",
+  "compiledBlocks": 158,
+  "x86TranslationMs": 39.3400000333786,
+  "checks": [
+    "COMCTL32 MakeDragList/LBItemFromPt/DrawInsert named and ordinal exports run their native four/three/one-argument contracts",
+    "Registered DRAGLISTINFO parent callbacks accept a drag; native drop reorders strings and preserves item data",
+    "Visible insertion marker and cursor, rejection, Escape cancellation through IsDialogMessage without closing the window",
+    "Captured pointer outside the list triggers timed autoscroll; cancellation and destruction clear capture/timers"
+  ],
+  "scope": "Uniform-height single-select string drag lists in ordinary Chromium. The application owns reordering. Owner-drawn/multiselect lists, full control subclassing and universal GUI/DLL compatibility remain incomplete."
+}

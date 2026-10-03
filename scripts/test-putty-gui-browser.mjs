@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createServer } from 'vite';
-let browser, server;
+let browser, server, page;
 try {
   const bytes = await readFile('.cache/targets/putty-x86.exe');
   const sha256 = createHash('sha256').update(bytes).digest('hex');
@@ -19,8 +19,8 @@ try {
     url = `http://127.0.0.1:${server.httpServer.address().port}/`;
   }
   browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome' });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } }),
-    errors = [];
+  page = await browser.newPage({ viewport: { width: 1280, height: 1400 } });
+  const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url);
   await page.waitForFunction(
@@ -90,6 +90,73 @@ try {
   await variable.click();
   await dialog.getByRole('button', { name: 'Remove', exact: true }).click();
   await variable.waitFor({ state: 'detached' });
+  const ssh = tree.getByRole('treeitem', { name: 'SSH', exact: true });
+  if ((await ssh.getAttribute('aria-expanded')) === 'false')
+    await ssh.locator('.virtual-desktop-tree-toggle').click();
+  const orders = [];
+  const preferenceList = () => dialog.locator('[data-control-id="1044"][role="listbox"]');
+  const waitOrder = async (list, expected) => {
+    await expect
+      .poll(() => list.getByRole('option').allTextContents(), { timeout: 30000 })
+      .toEqual(expected);
+  };
+  const point = async (list, name, bottom = false) => {
+    const row = list.getByRole('option', { name, exact: true });
+    await row.scrollIntoViewIfNeeded();
+    const bounds = await row.boundingBox();
+    assert.ok(bounds);
+    return {
+      x: Math.round(bounds.x + 20),
+      y: Math.round(bounds.y + (bottom ? bounds.height - 2 : bounds.height / 2)),
+    };
+  };
+  for (const [category, heading, itemCount] of [
+    ['Kex', 'Key exchange algorithm options', 13],
+    ['Host keys', 'Host key algorithm preference', 6],
+    ['Cipher', 'Encryption options', 8],
+  ]) {
+    await tree.getByRole('treeitem', { name: category, exact: true }).click();
+    await dialog.getByText(heading, { exact: true }).waitFor();
+    const list = preferenceList();
+    // The pinned native release creates the heading before populating the list.
+    // Wait for its full algorithm set before taking a baseline for reordering.
+    await expect(list.getByRole('option')).toHaveCount(itemCount, { timeout: 30000 });
+    const before = await list.getByRole('option').allTextContents();
+    console.log(`Checking ${category}: ${before.length} native preference items`);
+    assert.ok(before.length >= 3);
+    let p = await point(list, before[0]);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await waitOrder(list, [...before, '']);
+    p = await point(list, before[2], true);
+    await page.mouse.move(p.x, p.y);
+    await dialog.locator('.virtual-desktop-list-insert').waitFor();
+    await page.mouse.up();
+    const expected = [before[1], before[2], before[0], ...before.slice(3)];
+    await waitOrder(list, expected);
+    // Native Escape cancels the drag and removes PuTTY's temporary item.
+    p = await point(list, expected[0]);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+    await waitOrder(list, [...expected, '']);
+    await list.press('Escape');
+    await waitOrder(list, expected);
+    await page.mouse.up();
+    // A plain click selects the moved item; native Up/Down updates its item data.
+    p = await point(list, before[0]);
+    await page.mouse.click(p.x, p.y);
+    await dialog.getByRole('button', { name: 'Up', exact: true }).click();
+    await waitOrder(list, [before[1], before[0], before[2], ...before.slice(3)]);
+    await dialog.getByRole('button', { name: 'Down', exact: true }).click();
+    await waitOrder(list, expected);
+    orders.push({ category, heading, expected });
+  }
+  for (const { category, heading, expected } of orders) {
+    await tree.getByRole('treeitem', { name: category, exact: true }).click();
+    await dialog.getByText(heading, { exact: true }).waitFor();
+    await waitOrder(preferenceList(), expected);
+  }
+  await dialog.screenshot({ path: '.scratch/putty-cipher-gui.png' });
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.waitForFunction(() => window.__lastRun !== null);
   const run = await page.evaluate(() => window.__lastRun);
@@ -113,10 +180,11 @@ try {
       'Connection/Data creates tabbed environment-variable list; native Add and Remove update it',
       'Tab-stop columns render separately; edited username and environment values survive category changes',
       'Returning to Session preserves the hostname',
+      'Kex, Host keys and Cipher lists reorder through native drag/drop and Up/Down callbacks',
+      'Escape cancels drags without closing Configuration; preference order survives category reconstruction',
       'Native Cancel ends the process with exit code zero',
     ],
     remainingBlockers: [
-      'Exploratory SSH/Kex navigation reaches a native call to address zero; its cause remains unresolved',
       'Other configuration panels are unverified; multi-select and owner-drawn lists, callback text and full common-control coverage are incomplete',
       'SSH/Telnet connections and terminal rendering are unverified',
     ],
@@ -125,6 +193,19 @@ try {
   };
   await writeFile('evidence/putty-gui-progress.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
+} catch (error) {
+  if (page)
+    console.error(
+      await page.evaluate(() => ({
+        state: document.querySelector('#state')?.textContent,
+        logs: document.querySelector('#logs')?.textContent,
+        lists: [...document.querySelectorAll('.virtual-desktop-control')]
+          .filter((e) => e.matches('select,[role="listbox"]'))
+          .map((e) => ({ id: e.dataset.windowId, html: e.outerHTML })),
+        run: window.__lastRun,
+      })),
+    );
+  throw error;
 } finally {
   await browser?.close();
   await server?.close();
