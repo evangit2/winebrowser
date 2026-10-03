@@ -1,7 +1,7 @@
 {
-  "date": "2026-09-28T23:32:00.970Z",
-  "url": "http://127.0.0.1:4193/winebrowser/",
-  "browser": "154.0.8037.58",
+  "date": "2026-10-03T01:18:59.604Z",
+  "url": "http://127.0.0.1:4207/winebrowser/",
+  "browser": "154.0.8037.97",
   "capabilities": {
     "controlled": true,
     "isolated": true,
@@ -9,6 +9,295 @@
   },
   "freshVisits": 3,
   "serviceWorkerReload": true,
+  "catalogDownloads": [
+    {
+      "name": "beep",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "console",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "files",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "messagebox",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "tls",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "breakout",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-blend",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-constants",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-constbuffer",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-cube",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-knot",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-parade",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-rendertexture",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-rootcbv",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-terrain",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-texture",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d12-triangle",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d8-cube",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d9-cube",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d9-shader-cube",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "d3d10-cube",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "opengl-raymarch",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "microsoft-dx12-city",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "humus-dynamic-branching",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "humus-instancing",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "humus-raytraced-shadows",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "humus-rollercoaster",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "humus-transparent-shadows",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "humus-water",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "learning-dx12-cube",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "tetris",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "vkcube",
+      "downloads": [
+        "exe",
+        "zip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "gltfskinning",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "sqlite",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    }
+  ],
+  "browserDownloads": [
+    {
+      "filename": "gltfskinning.exe",
+      "passed": true
+    },
+    {
+      "filename": "gltfskinning.zip",
+      "passed": true
+    }
+  ],
   "fixtures": [
     {
       "name": "beep",
