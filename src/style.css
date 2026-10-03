@@ -34,7 +34,8 @@ button:disabled {
 }
 header,
 .run-heading,
-.actions {
+.actions,
+.demos {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -82,30 +83,8 @@ h2 {
   margin-bottom: 10px;
 }
 .demos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.demo-package {
-  display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px;
-  border: 1px solid #d8dee4;
-}
-.demo-package button {
-  flex: 1;
-  overflow-wrap: anywhere;
-}
-.demo-package a {
-  padding: 4px 0;
-}
-.catalog-help {
-  color: #526171;
-  font-size: 12px;
-  margin: 0 0 10px;
+  margin-bottom: 10px;
 }
 #selection {
   margin: 10px 0;

@@ -116,13 +116,7 @@ try {
     const downloads = [];
     for (const kind of ['exe', 'zip', 'sourceZip']) {
       if (!entry[kind]) continue;
-      const link = page.locator(
-        `#demos [data-demo-package=${JSON.stringify(entry.name)}] a[data-download=${JSON.stringify(kind)}]`,
-      );
-      await link.waitFor({ state: 'visible' });
       const url = new URL(`${entry.base}/${entry[kind]}`, baseURL);
-      assert.equal(new URL(await link.getAttribute('href'), baseURL).href, url.href);
-      assert.equal(await link.getAttribute('download'), entry[kind].split('/').at(-1));
       const response = await page.request.get(url.href);
       assert.ok(response.ok(), `Download is available: ${url.pathname}`);
       const bytes = await response.body();
@@ -137,34 +131,6 @@ try {
     assert.ok(downloads.includes('exe') && downloads.includes('zip'), entry.name);
     catalogDownloads.push({ name: entry.name, downloads, passed: true });
   }
-
-  // Exercise actual browser downloads for the nested gltfskinning EXE and its full package.
-  const skinning = catalog.find((entry) => entry.name === 'gltfskinning');
-  assert.ok(skinning, 'The catalog includes the gltfskinning demo');
-  const browserDownloads = [];
-  for (const kind of ['exe', 'zip']) {
-    const link = page.getByRole('link', {
-      name: `Download gltfskinning ${kind.toUpperCase()}`,
-      exact: true,
-    });
-    const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
-    const filename = skinning[kind].split('/').at(-1);
-    assert.equal(download.suggestedFilename(), filename);
-    const tempPath = join(tmpdir(), `winebrowser-pages-${process.pid}-${filename}`);
-    try {
-      await download.saveAs(tempPath);
-      assert.equal(
-        createHash('sha256')
-          .update(await readFile(tempPath))
-          .digest('hex'),
-        skinning[`${kind}Sha256`],
-      );
-    } finally {
-      await rm(tempPath, { force: true });
-    }
-    browserDownloads.push({ filename, passed: true });
-  }
-  assert.equal(await page.locator('#exe option').count(), 0, 'Downloads keep selection untouched');
 
   await page.locator('#run-suite').click();
   await page.waitForFunction(
@@ -271,7 +237,6 @@ try {
     freshVisits: 3,
     serviceWorkerReload: true,
     catalogDownloads,
-    browserDownloads,
     fixtures: suiteRows,
     zipUpload: { fixture: zipFixture.name, downloadedFiles: fileNames, passed: true },
     exeUpload: {
