@@ -37,7 +37,7 @@ archive(DEST / 'gui-controls.zip', [(name, (DEST / name).read_bytes())
     for name in ['gui-controls.exe', 'LICENSE', 'README.md', 'PROVENANCE.md']])
 path = PUBLIC / 'manifest.json'
 manifest = json.loads(path.read_text())
-entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
+entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, a draggable priorities list and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
     'exe': 'gui-controls/gui-controls.exe', 'exeSha256': exe_sha,
     'zip': 'gui-controls/gui-controls.zip', 'zipSha256': digest(DEST / 'gui-controls.zip'),
     'sourceZip': 'gui-controls/source.zip', 'sourceZipSha256': digest(DEST / 'source.zip'),

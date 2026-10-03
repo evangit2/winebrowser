@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createServer } from 'vite';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 let server, browser;
 try {
   let url = process.env.WINEBROWSER_TEST_URL;
@@ -73,9 +73,44 @@ try {
   await status
     .getByText('Custom canvas: mouse input reached its native window procedure.', { exact: true })
     .waitFor();
+  const priorities = window.getByRole('listbox', { name: 'Priorities', exact: true });
+  const initial = ['Paint window', 'Handle input', 'Update controls', 'Save settings'];
+  const order = async (expected) =>
+    expect.poll(() => priorities.getByRole('option').allTextContents()).toEqual(expected);
+  await order(initial);
+  const point = async (name) => {
+    const bounds = await priorities.getByRole('option', { name, exact: true }).boundingBox();
+    assert.ok(bounds);
+    return { x: Math.round(bounds.x + 20), y: Math.round(bounds.y + bounds.height / 2) };
+  };
+  let p = await point(initial[0]);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  p = await point(initial[2]);
+  await page.mouse.move(p.x, p.y);
+  await window.locator('.virtual-desktop-list-insert').waitFor();
+  await page.mouse.up();
+  await status
+    .getByText('Drag list: native callback reordered the item and preserved its data.', {
+      exact: true,
+    })
+    .waitFor();
+  const reordered = [initial[1], initial[0], ...initial.slice(2)];
+  await order(reordered);
+  p = await point(initial[1]);
+  await page.mouse.move(p.x, p.y);
+  await page.mouse.down();
+  p = await point(initial[2]);
+  await page.mouse.move(p.x, p.y);
+  await window.locator('.virtual-desktop-list-insert').waitFor();
+  await priorities.press('Escape');
+  await status.getByText('Drag cancelled; priority order is unchanged.', { exact: true }).waitFor();
+  await page.mouse.up();
+  await order(reordered);
   await window.getByRole('menuitem', { name: 'Demo', exact: true }).click();
   await window.getByRole('menuitem', { name: 'Reset', exact: true }).click();
   await status.getByText(reset, { exact: true }).waitFor();
+  await order(initial);
   assert.equal(await checkbox.getAttribute('aria-checked'), 'false');
   assert.equal(await first.getAttribute('aria-checked'), 'true');
   await page.waitForFunction(
@@ -113,6 +148,7 @@ try {
       'Public EXE loads from Pages examples; original x86 callbacks run in the browser',
       'Tree category, sorted list, editable combo, checkbox and radio interactions',
       'Native registered child canvas, nested button command, independent GDI repaint and mouse callback',
+      'Public priorities list reorders through native COMCTL32 drag callbacks; Escape cancels and Reset restores order',
       'Native menu Reset restores control state; close exits zero',
       'Public source/license ZIP package runs and Stop removes its window',
     ],

@@ -1,10 +1,21 @@
 /* Copyright (c) 2026 WineBrowser contributors. MIT license: see LICENSE. */
 #include <windows.h>
 #include <commctrl.h>
-static HWND tree, items, combo, status, canvas;
+static HWND tree, items, combo, status, canvas, priorities;
 static HTREEITEM root, first;
 static HFONT font;
+static UINT drag_message;
+static int drag_source=-1;
+static const char *priority_names[]={"Paint window", "Handle input", "Update controls", "Save settings"};
 static void say(const char *text) { SetWindowTextA(status,text); }
+static void reset_priorities(void) {
+  SendMessageA(priorities,LB_RESETCONTENT,0,0);
+  for(int i=0;i<4;i++) {
+    int index=(int)SendMessageA(priorities,LB_ADDSTRING,0,(LPARAM)priority_names[i]);
+    SendMessageA(priorities,LB_SETITEMDATA,index,i+1);
+  }
+  SendMessageA(priorities,LB_SETCURSEL,0,0);
+}
 static LRESULT CALLBACK canvas_proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
   if(message==WM_COMMAND && LOWORD(wp)==51) {
     SetWindowLongA(window,GWL_USERDATA,!GetWindowLongA(window,GWL_USERDATA));
@@ -31,9 +42,42 @@ static void reset(HWND window) {
   SendMessageA(items,LB_SETCURSEL,0,0);SendMessageA(combo,CB_SETCURSEL,0,0);
   CheckDlgButton(window,30,BST_UNCHECKED);CheckRadioButton(window,31,32,31);
   SetWindowLongA(canvas,GWL_USERDATA,0);InvalidateRect(canvas,NULL,TRUE);
+  reset_priorities();
   TreeView_SelectItem(tree,first);say("Choose a category, list item or option.");
 }
 static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
+  if(message==drag_message) {
+    DRAGLISTINFO *drag=(DRAGLISTINFO*)lp;
+    if(drag->hWnd!=priorities)return 0;
+    if(drag->uNotification==DL_BEGINDRAG) {
+      drag_source=LBItemFromPt(priorities,drag->ptCursor,FALSE);
+      return drag_source>=0;
+    }
+    if(drag->uNotification==DL_DRAGGING) {
+      int target=LBItemFromPt(priorities,drag->ptCursor,TRUE);
+      DrawInsert(window,priorities,target);
+      return target>=0?DL_MOVECURSOR:DL_STOPCURSOR;
+    }
+    if(drag->uNotification==DL_DROPPED) {
+      int target=LBItemFromPt(priorities,drag->ptCursor,FALSE);
+      DrawInsert(window,priorities,-1);
+      if(target>=0 && drag_source>=0) {
+        char text[64];SendMessageA(priorities,LB_GETTEXT,drag_source,(LPARAM)text);
+        LPARAM data=SendMessageA(priorities,LB_GETITEMDATA,drag_source,0);
+        SendMessageA(priorities,LB_DELETESTRING,drag_source,0);
+        if(drag_source<target)target--;
+        target=(int)SendMessageA(priorities,LB_INSERTSTRING,target,(LPARAM)text);
+        SendMessageA(priorities,LB_SETITEMDATA,target,data);
+        SendMessageA(priorities,LB_SETCURSEL,target,0);
+        say("Drag list: native callback reordered the item and preserved its data.");
+      }
+      drag_source=-1;return 0;
+    }
+    if(drag->uNotification==DL_CANCELDRAG) {
+      DrawInsert(window,priorities,-1);drag_source=-1;
+      say("Drag cancelled; priority order is unchanged.");return 0;
+    }
+  }
   if(message==WM_NOTIFY && ((NMHDR*)lp)->hwndFrom==tree && ((NMHDR*)lp)->code==TVN_SELCHANGEDA) {
     NMTREEVIEWA *n=(NMTREEVIEWA*)lp;
     say(n->itemNew.lParam==1?"TreeView: native item selection and WM_NOTIFY.":n->itemNew.lParam==2?"ListBox: strings, sorted insertion and selection.":"ComboBox: editable text and native selection notifications.");return 0;
@@ -70,20 +114,24 @@ void start(void) {
   if(!RegisterClassA(&custom))ExitProcess(1);
   font=CreateFontA(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH,"Arial");
   HMENU menu=CreateMenu(),popup=CreatePopupMenu();AppendMenuA(popup,MF_STRING,100,"&Reset");AppendMenuA(popup,MF_STRING,101,"E&xit");AppendMenuA(menu,MF_POPUP,(UINT_PTR)popup,"&Demo");
-  RECT rect={0,0,500,310};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
+  drag_message=RegisterWindowMessageA(DRAGLISTMSGSTRING);
+  RECT rect={0,0,500,438};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
   HWND window=CreateWindowA(cls.lpszClassName,"Native GUI controls",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,menu,instance,NULL);if(!window)ExitProcess(2);
   child(window,instance,"STATIC","Native Windows controls, running in your browser",SS_LEFTNOWORDWRAP,12,12,476,20,10);
-  tree=child(window,instance,WC_TREEVIEWA,"Categories",WS_BORDER|TVS_HASBUTTONS|TVS_HASLINES|TVS_SHOWSELALWAYS,12,42,144,218,11);
+  tree=child(window,instance,WC_TREEVIEWA,"Categories",WS_BORDER|TVS_HASBUTTONS|TVS_HASLINES|TVS_SHOWSELALWAYS,12,42,144,348,11);
   items=child(window,instance,"LISTBOX","Items",WS_BORDER|LBS_NOTIFY|LBS_SORT|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,42,152,108,20);
   combo=child(window,instance,"COMBOBOX","Value",WS_BORDER|CBS_DROPDOWN|CBS_AUTOHSCROLL,172,168,152,120,21);
-  status=child(window,instance,"STATIC","",SS_LEFT,12,272,476,32,22);
+  status=child(window,instance,"STATIC","",SS_LEFT,12,402,476,32,22);
   child(window,instance,"BUTTON","Enable option",BS_AUTOCHECKBOX,344,46,144,24,30);
   child(window,instance,"BUTTON","First radio",BS_AUTORADIOBUTTON|WS_GROUP,344,86,144,24,31);
   child(window,instance,"BUTTON","Second radio",BS_AUTORADIOBUTTON,344,116,144,24,32);
   child(window,instance,"BUTTON","Reset controls",BS_PUSHBUTTON,344,168,144,28,40);
   canvas=child(window,instance,custom.lpszClassName,"Custom canvas",WS_BORDER,172,210,316,50,50);
   child(canvas,instance,"BUTTON","Change",BS_PUSHBUTTON,224,8,80,28,51);
-  if(!tree||!items||!combo||!status||!canvas)ExitProcess(3);
+  child(window,instance,"STATIC","Drag priorities; Escape cancels",SS_LEFTNOWORDWRAP,172,272,316,20,60);
+  priorities=child(window,instance,"LISTBOX","Priorities",WS_BORDER|LBS_NOTIFY|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,296,316,94,61);
+  if(!tree||!items||!combo||!status||!canvas||!priorities)ExitProcess(3);
+  if(!MakeDragList(priorities))ExitProcess(4);
   root=category(TVI_ROOT,"Controls",0);first=category(root,"Tree view",1);category(root,"List box",2);category(root,"Combo box",3);TreeView_Expand(tree,root,TVE_EXPAND);
   SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Alpha");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Beta");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Gamma");
   SendMessageA(combo,CB_ADDSTRING,0,(LPARAM)"Choice One");SendMessageA(combo,CB_ADDSTRING,0,(LPARAM)"Choice Two");
