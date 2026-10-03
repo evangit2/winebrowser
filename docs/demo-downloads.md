@@ -32,6 +32,7 @@ CesiumMan model and SPIR-V shaders required to run it.
 | sqlite                    | [EXE](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite-client.exe)                               | [ZIP](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite.zip)                                      |
 | tetris                    | [EXE](https://evangit2.github.io/winebrowser/examples/tetris/tetris.exe)                                      | [ZIP](https://evangit2.github.io/winebrowser/examples/tetris/tetris.zip)                                      |
 | vkcube                    | [EXE](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.exe)                                      | [ZIP](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.zip)                                      |
+| lua                       | [EXE](https://evangit2.github.io/winebrowser/examples/lua/lua-client.exe)                                     | [ZIP](https://evangit2.github.io/winebrowser/examples/lua/lua.zip)                                            |
 
 ## Runtime fixtures
 
