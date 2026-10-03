@@ -207,7 +207,9 @@
     "build:file-locks": "sh scripts/build-file-lock-fixture.sh",
     "test:file-locks": "node scripts/test-file-locks-browser.mjs",
     "build:delay-imports": "sh scripts/build-delay-import-fixtures.sh",
-    "test:delay-imports": "node scripts/test-delay-imports-browser.mjs"
+    "test:delay-imports": "node scripts/test-delay-imports-browser.mjs",
+    "build:directdraw": "sh scripts/build-directdraw-fixtures.sh",
+    "test:directdraw": "node scripts/test-directdraw-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

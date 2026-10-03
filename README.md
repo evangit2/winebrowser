@@ -275,3 +275,7 @@ An [optional source-built loader experiment](docs/wine-loader-bridge.md) now ini
 The [unchanged application startup diagnostic](docs/wine-loader-bridge.md#unchanged-application-startup-diagnostic) now enters Humus Dynamic Branching through real Wine base DLLs and records its next runtime failure. It remains a blocked independent target, separate from the passing public cube examples.
 
 **Legacy installers:** the shared User32/GDI/Shell32/LZ32 services cover modeless dialog templates, ownership/tab navigation, DIB palettes, font callbacks, package-folder selection and SZDD file expansion. [Supported behavior and limits](docs/installer-runtime.md). The authored installer-service upload passes; the ATI Treasure Chest installer itself is not yet verified.
+
+The bounded [DirectDraw1/7 and Direct3D7 profile](docs/directdraw.md) now supplies
+DDRAW.DLL for ordinary uploads, with independent native EXE/ZIP rendering tests.
+AirXonix still requires native NT exception dispatch and child-process support.
