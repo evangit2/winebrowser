@@ -858,15 +858,16 @@ function getTimeZoneInformation(r, a) {
 // does: an ordinal, case-insensitive-or-sensitive comparison of UTF-16 units.
 // CSTR_LESS_THAN is 1, CSTR_EQUAL is 2, CSTR_GREATER_THAN is 3.
 function compareString(r, a, wide) {
-  const flags = a(0) >>> 0;
+  const flags = a(1) >>> 0;
   if (flags & ~(0x1 | 0x2 | 0x10000 | 0x20000 | 0x100000)) return fail(r, 87, 6);
-  const length1 = a(2) | 0,
-    string1 = a(3) >>> 0;
-  const length2 = a(4) | 0,
-    string2 = a(5) >>> 0;
+  const string1 = a(2) >>> 0,
+    length1 = a(3) | 0;
+  const string2 = a(4) >>> 0,
+    length2 = a(5) | 0;
   if (!string1 || !string2) return fail(r, 87, 6);
   const read = (pointer, length) => {
     if (length >= 0) {
+      r.check(pointer, length * (wide ? 2 : 1));
       let value = '';
       for (let i = 0; i < length; i++)
         value += String.fromCharCode(
