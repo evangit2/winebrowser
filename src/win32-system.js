@@ -1169,6 +1169,7 @@ export const systemApis = {
   'kernel32.dll!FileTimeToSystemTime': fileTimeToSystemTime,
   'kernel32.dll!FileTimeToLocalFileTime': fileTimeToLocalFileTime,
   'kernel32.dll!FileTimeToDosDateTime': fileTimeToDosDateTime,
+  'kernel32.dll!DosDateTimeToFileTime': dosDateTimeToFileTime,
   'kernel32.dll!CompareFileTime': compareFileTime,
   'kernel32.dll!GetConsoleMode': getConsoleMode,
   'kernel32.dll!SetConsoleMode': setConsoleMode,
@@ -1664,6 +1665,31 @@ function fileTimeToDosDateTime(r, a) {
     (date.getUTCHours() << 11) | (date.getUTCMinutes() << 5) | Math.floor(date.getUTCSeconds() / 2);
   r.guestMemory.write(outDate, dosDate & 0xffff, 2);
   r.guestMemory.write(outTime, dosTime & 0xffff, 2);
+  return ok(1, 3);
+}
+function dosDateTimeToFileTime(r, a) {
+  const day = a(0) & 31,
+    month = (a(0) >>> 5) & 15,
+    year = 1980 + ((a(0) >>> 9) & 127),
+    second = (a(1) & 31) * 2,
+    minute = (a(1) >>> 5) & 63,
+    hour = (a(1) >>> 11) & 31;
+  const milliseconds = Date.UTC(year, month - 1, day, hour, minute, second);
+  const date = new Date(milliseconds);
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() + 1 !== month ||
+    date.getUTCDate() !== day ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59
+  )
+    return fail(r, 87, 3);
+  const out = a(2);
+  r.check(out, 8, true);
+  const value = BigInt(milliseconds) * 10000n + FILE_TIME_EPOCH_DIFFERENCE;
+  r.write32(out, Number(value & 0xffffffffn));
+  r.write32(out + 4, Number(value >> 32n));
   return ok(1, 3);
 }
 function compareFileTime(r, a) {

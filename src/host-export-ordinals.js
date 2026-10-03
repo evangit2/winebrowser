@@ -15,6 +15,8 @@ export const HOST_EXPORT_ORDINALS = {
     VariantInit: 8,
     VariantClear: 9,
     VariantCopy: 10,
+    SysStringByteLen: 149,
+    SysAllocStringByteLen: 150,
   },
   'dsound.dll': {
     DirectSoundCreate: 1,

@@ -14,6 +14,7 @@ async function forward(r, a, symbol, argc) {
 }
 
 export const nativeForwarderApis = {};
+nativeForwarderApis['user32.dll!CharPrevExA'] = (r, a) => forward(r, a, 'CharPrevExA', 4);
 for (const suffix of ['A', 'W'])
   nativeForwarderApis[`kernel32.dll!CreateProcess${suffix}`] = (r, a) =>
     forward(r, a, `CreateProcess${suffix}`, 10);

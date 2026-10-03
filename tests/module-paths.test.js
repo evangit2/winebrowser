@@ -48,7 +48,14 @@ test('DLLs with identical basenames unload independently and the surviving image
   const first = await r.loadLibrary('plugins/math.dll');
   const second = await r.loadLibrary('C:\\winebrowser\\other\\math.dll');
   const survivor = moduleAt(r, second);
+  assert.ok(
+    r.loadedModules.some((m) => m.path === 'app/plugins/math.dll' && m.base === first && !m.host),
+  );
+  assert.ok(
+    r.loadedModules.some((m) => m.path === 'other/math.dll' && m.base === second && !m.host),
+  );
   assert.equal(await r.freeLibrary(first), true);
+  assert.ok(r.loadedModules.some((m) => m.path === 'app/plugins/math.dll' && m.base === first));
   assert.equal(await sum(r, second), 42);
   assert.ok(r.regions.some((region) => region.module === survivor.key));
   assert.equal(await r.loadLibrary('math.dll'), second);

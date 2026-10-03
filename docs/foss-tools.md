@@ -10,6 +10,11 @@ The public [WineBrowser harness](https://evangit2.github.io/winebrowser/) offers
 
 GNU diff returns **1 when files differ**, 0 when identical and 2 on an application error. Those are ordinary successful process exits for this test. Each package includes its licenses, a complete source download, SHA-256 pins, original download URLs and a `PROVENANCE.json` dependency audit. The full import graph must resolve before packaging. Runtime evidence also records modules actually loaded and APIs exercised.
 
+The separate [full 7-Zip package](7zip-full.md) adds the original `7z.exe` and
+its dynamically loaded `7z.dll` codec library. Its acceptance covers deflate ZIP,
+LZMA2 round trips and AES-256 ZIP encryption/decryption, including independent
+cryptographic validation, wrong-password failures and damaged-data rejection.
+
 GNU's supplied libintl and libiconv are real native DLLs. The harness automatically supplies source-built Wine MSVCP60, MSVCRT, kernel32, kernelbase and ntdll; it preserves original binary relocation and library initialization. The Wine source and rebuild scripts remain under `public/runtime/wine-base/`. MSVCP60 is a full Wine-built DLL, including its multibyte/locale exports, rather than host aliases for the few names diff imports.
 
 The shared fixes cover standard-output handle closure during CRT shutdown, process error-mode state, guest-owned Windows environment defaults (including PATHEXT), OLE STA initialization, FileStatInformation and virtual-volume metadata. They also correct Win32 enumeration/file-information sizes and timestamps, created-directory lookup and extracted-file timestamps. These affect 7-Zip's browser-provided Win32/CRT services; its compressor and decompressor execute unchanged native code. Read-control probes on write-only stdout/stderr return NT failure statuses; they never fabricate pipe input or report an unsupported operation as successful.

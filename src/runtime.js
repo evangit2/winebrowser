@@ -172,6 +172,11 @@ export class Runtime {
     // diagnostics and compatibility reporting read.
     this.apiTrace = [];
     this.apiNames = new Set();
+    // Dynamic codec/plugin DLLs can unload before process exit. Keep a bounded
+    // record of successfully initialized images as well as the final module set.
+    this.loadedModules = [];
+    this.observedModules = new WeakSet();
+    this.loadedModulesTruncated = false;
     // The most recent interceptions with their arguments. A packed image that
     // faults after an OS call needs the call, not just a stack address.
     this.apiRing = [];
@@ -638,6 +643,23 @@ export class Runtime {
         module.initializing = false;
       }
     }
+    for (const module of this.graph.modules.values()) {
+      if (
+        !module.mapped ||
+        (!module.initialized && module !== this.graph.main) ||
+        this.observedModules.has(module)
+      )
+        continue;
+      this.observedModules.add(module);
+      if (this.loadedModules.length < 2048)
+        this.loadedModules.push({
+          name: module.name,
+          path: module.path,
+          base: module.base,
+          host: !!module.host,
+        });
+      else this.loadedModulesTruncated = true;
+    }
   }
   async withModuleLoad(resolve, missingError = 126) {
     const checkpoint = this.graph.checkpoint();
@@ -910,6 +932,8 @@ export class Runtime {
     return {
       exitCode: this.exitCode,
       modules: this.graph.describe(),
+      loadedModules: this.loadedModules,
+      loadedModulesTruncated: this.loadedModulesTruncated,
       apiTrace: this.apiTrace,
       apiNames: [...this.apiNames],
       blocks: this.blocks,

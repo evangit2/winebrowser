@@ -183,6 +183,27 @@ const VT_EMPTY = 0,
 const DISP_E_TYPEMISMATCH = 0x80020005;
 // VARIANT is 16 bytes on i386: vt at 0, three reserved WORDs, then the union.
 const VARIANT_SIZE = 16;
+const SCALAR_VARIANT_TYPES = new Set([
+  VT_EMPTY,
+  VT_NULL,
+  2, // VT_I2
+  VT_I4,
+  4, // VT_R4
+  5, // VT_R8
+  6, // VT_CY
+  7, // VT_DATE
+  10, // VT_ERROR
+  11, // VT_BOOL
+  14, // VT_DECIMAL
+  16, // VT_I1
+  17, // VT_UI1
+  18, // VT_UI2
+  19, // VT_UI4
+  20, // VT_I8
+  21, // VT_UI8
+  22, // VT_INT
+  23, // VT_UINT
+]);
 
 function strlenW(r, pointer, limit = 0x100000) {
   let count = 0;
@@ -192,12 +213,19 @@ function strlenW(r, pointer, limit = 0x100000) {
 // Allocates a BSTR of exactly `count` characters from `source` (or zeroes).
 function allocateBstr(r, source, count) {
   if (count > 0x100000) throw Error('BSTR length limit exceeded');
-  const base = r.allocate((count + 1) * 2 + 4);
-  r.write32(base, count * 2); // byte length, excluding the terminator
+  return allocateBinaryBstr(r, source, count * 2);
+}
+// BSTRs can also contain binary data, embedded NULs and an odd byte count.
+// Keep their byte prefix intact and append the two-byte UTF-16 terminator.
+function allocateBinaryBstr(r, source, count) {
+  if (count > 0x200000) throw Error('BSTR byte length limit exceeded');
+  if (source && count) r.check(source, count);
+  const base = r.allocate(count + 6);
+  r.write32(base, count);
   const text = base + 4;
-  for (let i = 0; i < count; i++)
-    r.guestMemory.write(text + i * 2, source ? r.guestMemory.read(source + i * 2, 2) : 0, 2);
-  r.guestMemory.write(text + count * 2, 0, 2);
+  if (source) r.data.set(r.guestMemory.readBytes(source, count), text);
+  else r.data.fill(0, text, text + count);
+  r.guestMemory.write(text + count, 0, 2);
   (r.bstrAllocations ??= new Map()).set(text, base);
   return text;
 }
@@ -221,7 +249,7 @@ function sysFreeString(r, a) {
 }
 function sysStringLen(r, a) {
   const text = a(0) >>> 0;
-  return response(text ? (r.read32(text - 4) >>> 0) / 2 : 0, 1);
+  return response(text ? r.read32(text - 4) >>> 1 : 0, 1);
 }
 function sysReAllocString(r, a) {
   const holder = a(0) >>> 0;
@@ -284,7 +312,7 @@ function variantClear(r, a) {
   if (vt === VT_BSTR) {
     const text = r.read32(pointer + 8) >>> 0;
     if (text) freeBstr(r, text);
-  } else if (![VT_EMPTY, VT_NULL, VT_I4].includes(vt)) {
+  } else if (!SCALAR_VARIANT_TYPES.has(vt)) {
     // Releasing an interface pointer needs that object's own Release, which a
     // synchronous handler cannot perform as a guest call; report the type
     // mismatch rather than dropping the reference silently.
@@ -299,24 +327,25 @@ function variantCopy(r, a) {
   if (!destination || !source) return response(0x80070057, 2); // E_INVALIDARG
   r.check(destination, VARIANT_SIZE, true);
   r.check(source, VARIANT_SIZE, false);
+  if (destination === source) return response(0, 2);
   const vt = r.guestMemory.read(source, 2);
-  if (![VT_EMPTY, VT_NULL, VT_I4, VT_BSTR].includes(vt)) return response(DISP_E_TYPEMISMATCH, 2);
-  // Clear the destination before writing so its old BSTR is not leaked.
+  if (vt !== VT_BSTR && !SCALAR_VARIANT_TYPES.has(vt)) return response(DISP_E_TYPEMISMATCH, 2);
+  const sourceValue = r.data.slice(source, source + VARIANT_SIZE);
+  const text = vt === VT_BSTR ? r.read32(source + 8) >>> 0 : 0;
+  const copy = text ? allocateBinaryBstr(r, text, r.read32(text - 4) >>> 0) : 0;
+  // Copy before clearing so aliases cannot destroy the source string.
   const previousType = r.guestMemory.read(destination, 2);
+  if (previousType !== VT_BSTR && !SCALAR_VARIANT_TYPES.has(previousType)) {
+    if (copy) freeBstr(r, copy);
+    return response(DISP_E_TYPEMISMATCH, 2);
+  }
   if (previousType === VT_BSTR) {
     const text = r.read32(destination + 8) >>> 0;
     if (text) freeBstr(r, text);
   }
-  r.data.fill(0, destination, destination + VARIANT_SIZE);
-  r.guestMemory.write(destination, vt, 2);
+  r.data.set(sourceValue, destination);
   if (vt === VT_BSTR) {
-    const text = r.read32(source + 8) >>> 0;
-    r.write32(destination + 8, text ? allocateBstr(r, text, strlenW(r, text)) : 0);
-  } else {
-    // VT_EMPTY, VT_NULL and VT_I4 are plain values with no owned resource.
-    r.write32(destination + 4, r.read32(source + 4) >>> 0);
-    r.write32(destination + 8, r.read32(source + 8) >>> 0);
-    r.write32(destination + 12, r.read32(source + 12) >>> 0);
+    r.write32(destination + 8, copy);
   }
   return response(0, 2);
 }
@@ -324,6 +353,8 @@ function variantCopy(r, a) {
 export const oleautApis = {
   'oleaut32.dll!SysAllocString': sysAllocString,
   'oleaut32.dll!SysAllocStringLen': sysAllocStringLen,
+  'oleaut32.dll!SysAllocStringByteLen': (r, a) =>
+    response(allocateBinaryBstr(r, a(0), a(1) >>> 0), 2),
   'oleaut32.dll!SysReAllocString': sysReAllocString,
   'oleaut32.dll!SysReAllocStringLen': sysReAllocStringLen,
   'oleaut32.dll!SysFreeString': sysFreeString,

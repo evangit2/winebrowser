@@ -1,0 +1,1879 @@
+{
+  "date": "2026-10-03T21:58:09.509Z",
+  "url": "http://127.0.0.1:4223/winebrowser/",
+  "browser": "154.0.8037.97",
+  "scope": "Unchanged upstream PE32 7z.exe and 7z.dll with automatic native Wine dependencies, through hosted selection, ZIP upload and loose EXE/DLL/input uploads. This covers the recorded formats and operations, not all codec DLL functions or the 7-Zip GUI.",
+  "checks": [
+    "Upstream EXE, original codec DLL, package files and full dynamic dependency audit match SHA-256 pins",
+    "Plain ZIP output independently decodes with fflate; native extraction preserves every byte of both files",
+    "Native LZMA2 compression exercises threads, semaphores and waits; CRC/integrity test and extraction preserve both input files",
+    "Independent Node PBKDF2, AES-256 CTR, HMAC-SHA1 and deflate validate the original DLL encryption; native decryption restores both files exactly",
+    "Wrong passwords and modified encrypted payloads exit with the real application error code 2"
+  ],
+  "runs": [
+    {
+      "label": "Full 7-Zip: hosted EXE and native DLL create a deflate ZIP",
+      "exitCode": 0,
+      "elapsedMs": 2585.226916,
+      "x86TranslationMs": 1174.5850006192923,
+      "instructions": 5809064,
+      "compiledBlocks": 10674,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtCreateFile",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive:\r\n2 files, 8251 bytes (9 KiB)\r\n\r\nCreating archive: out.zip\r\n\r\nAdd new data to archive: 2 files, 8251 bytes (9 KiB)\r\n\r\n\r\nFiles read from disk: 2\r\nArchive size: 683 bytes (1 KiB)\r\nEverything is Ok\r\n",
+      "outputs": [
+        {
+          "path": "out.zip",
+          "bytes": 683,
+          "sha256": "b932cbbd5eb1496ebfa03230305c1068c05970d41f3e6e971dfedf17123fc933"
+        }
+      ]
+    },
+    {
+      "label": "Full 7-Zip: native ZIP extraction",
+      "exitCode": 0,
+      "elapsedMs": 1904.973833,
+      "x86TranslationMs": 1024.6250003427267,
+      "instructions": 3113361,
+      "compiledBlocks": 10646,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryAttributesFile",
+        "user32.dll!CharPrevExA",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 683 bytes (1 KiB)\r\n\r\nExtracting archive: out.zip\r\n--\r\nPath = out.zip\r\nType = zip\r\nPhysical Size = 683\r\n\r\nEverything is Ok\r\n\r\nFiles: 2\r\nSize:       8251\r\nCompressed: 683\r\n",
+      "outputs": [
+        {
+          "path": "zip-out/binary.bin",
+          "bytes": 8192,
+          "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+        },
+        {
+          "path": "zip-out/message.txt",
+          "bytes": 59,
+          "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+        }
+      ]
+    },
+    {
+      "label": "Full 7-Zip: native LZMA2 compression",
+      "exitCode": 0,
+      "elapsedMs": 2720.153916000001,
+      "x86TranslationMs": 1515.44500105083,
+      "instructions": 4795006,
+      "compiledBlocks": 12644,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtCreateFile",
+        "oleaut32.dll!VariantCopy",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtCreateEvent",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "ntdll.dll!NtWaitForSingleObject",
+        "ntdll.dll!NtCreateSemaphore",
+        "ntdll.dll!NtResetEvent",
+        "ntdll.dll!NtSetEvent",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtReleaseSemaphore",
+        "ntdll.dll!NtQueryInformationThread",
+        "ntdll.dll!NtTerminateThread",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive:\r\n2 files, 8251 bytes (9 KiB)\r\n\r\nCreating archive: out.7z\r\n\r\nAdd new data to archive: 2 files, 8251 bytes (9 KiB)\r\n\r\n\r\nFiles read from disk: 2\r\nArchive size: 522 bytes (1 KiB)\r\nEverything is Ok\r\n",
+      "outputs": [
+        {
+          "path": "out.7z",
+          "bytes": 522,
+          "sha256": "c07cc54473202b6bd2c1128f31df0cfd9dab919d4e970f0abc3b69dbe8b31684"
+        }
+      ]
+    },
+    {
+      "label": "Full 7-Zip: native 7z CRC/integrity test",
+      "exitCode": 0,
+      "elapsedMs": 1964.1216249999998,
+      "x86TranslationMs": 1091.1750000566244,
+      "instructions": 3132810,
+      "compiledBlocks": 11140,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 522 bytes (1 KiB)\r\n\r\nTesting archive: out.7z\r\n--\r\nPath = out.7z\r\nType = 7z\r\nPhysical Size = 522\r\nHeaders Size = 179\r\nMethod = LZMA2:12k\r\nSolid = +\r\nBlocks = 1\r\n\r\nEverything is Ok\r\n\r\nFiles: 2\r\nSize:       8251\r\nCompressed: 522\r\n",
+      "outputs": []
+    },
+    {
+      "label": "Full 7-Zip: native LZMA2 extraction",
+      "exitCode": 0,
+      "elapsedMs": 2087.0842089999987,
+      "x86TranslationMs": 1169.1450007110834,
+      "instructions": 3252216,
+      "compiledBlocks": 11569,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 522 bytes (1 KiB)\r\n\r\nExtracting archive: out.7z\r\n--\r\nPath = out.7z\r\nType = 7z\r\nPhysical Size = 522\r\nHeaders Size = 179\r\nMethod = LZMA2:12k\r\nSolid = +\r\nBlocks = 1\r\n\r\nEverything is Ok\r\n\r\nFiles: 2\r\nSize:       8251\r\nCompressed: 522\r\n",
+      "outputs": [
+        {
+          "path": "lzma-out/binary.bin",
+          "bytes": 8192,
+          "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+        },
+        {
+          "path": "lzma-out/message.txt",
+          "bytes": 59,
+          "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+        }
+      ]
+    },
+    {
+      "label": "Full 7-Zip: native AES-256 ZIP encryption",
+      "exitCode": 0,
+      "elapsedMs": 6392.335749999998,
+      "x86TranslationMs": 1160.2300004512072,
+      "instructions": 85493241,
+      "compiledBlocks": 11181,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "oleaut32.dll!VariantCopy",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtCreateFile",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtSetInformationFile",
+        "advapi32.dll!SystemFunction036",
+        "ntdll.dll!NtQueryPerformanceCounter",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive:\r\n2 files, 8251 bytes (9 KiB)\r\n\r\nCreating archive: encrypted.zip\r\n\r\nAdd new data to archive: 2 files, 8251 bytes (9 KiB)\r\n\r\n\r\nFiles read from disk: 2\r\nArchive size: 783 bytes (1 KiB)\r\nEverything is Ok\r\n",
+      "outputs": [
+        {
+          "path": "encrypted.zip",
+          "bytes": 783,
+          "sha256": "93b4b5932cb3ed2a934b3fcc2a469db2724bdcfc6279408ea80e10e8b2ed4b7c"
+        }
+      ]
+    },
+    {
+      "label": "Full 7-Zip: encrypted ZIP integrity",
+      "exitCode": 0,
+      "elapsedMs": 3262.4832499999975,
+      "x86TranslationMs": 1098.1150008440018,
+      "instructions": 28255298,
+      "compiledBlocks": 10711,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "oleaut32.dll!SysFreeString",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 783 bytes (1 KiB)\r\n\r\nTesting archive: encrypted.zip\r\n--\r\nPath = encrypted.zip\r\nType = zip\r\nPhysical Size = 783\r\n\r\nEverything is Ok\r\n\r\nFiles: 2\r\nSize:       8251\r\nCompressed: 783\r\n",
+      "outputs": []
+    },
+    {
+      "label": "Full 7-Zip: native AES-256 ZIP decryption",
+      "exitCode": 0,
+      "elapsedMs": 3783.686582999999,
+      "x86TranslationMs": 1338.3700000047684,
+      "instructions": 28370746,
+      "compiledBlocks": 11131,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryAttributesFile",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 783 bytes (1 KiB)\r\n\r\nExtracting archive: encrypted.zip\r\n--\r\nPath = encrypted.zip\r\nType = zip\r\nPhysical Size = 783\r\n\r\nEverything is Ok\r\n\r\nFiles: 2\r\nSize:       8251\r\nCompressed: 783\r\n",
+      "outputs": [
+        {
+          "path": "aes-out/binary.bin",
+          "bytes": 8192,
+          "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+        },
+        {
+          "path": "aes-out/message.txt",
+          "bytes": 59,
+          "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+        }
+      ]
+    },
+    {
+      "label": "Full 7-Zip: wrong password fails cleanly",
+      "exitCode": 2,
+      "elapsedMs": 3212.146625000001,
+      "x86TranslationMs": 1061.109999164939,
+      "instructions": 28133752,
+      "compiledBlocks": 10229,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "oleaut32.dll!SysFreeString",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 783 bytes (1 KiB)\r\n\r\nTesting archive: encrypted.zip\r\n--\r\nPath = encrypted.zip\r\nType = zip\r\nPhysical Size = 783\r\n\r\nERROR: Wrong password : binary.bin\r\nERROR: Wrong password : message.txt\r\n\r\nSub items Errors: 2\r\n\r\nArchives with Errors: 1\r\n\r\nSub items Errors: 2\r\n",
+      "outputs": []
+    },
+    {
+      "label": "Full 7-Zip: damaged encrypted data fails authentication",
+      "exitCode": 2,
+      "elapsedMs": 3183.0608749999956,
+      "x86TranslationMs": 1056.3300009518862,
+      "instructions": 28255764,
+      "compiledBlocks": 10721,
+      "modules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "host": false,
+          "base": 4194304,
+          "preferredBase": 4194304,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "host": true,
+          "base": 16777216,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "host": true,
+          "base": 16842752,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "host": true,
+          "base": 16908288,
+          "preferredBase": 268435456,
+          "refs": 0,
+          "initialized": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "host": false,
+          "base": 16973824,
+          "preferredBase": 268435456,
+          "refs": 1,
+          "initialized": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "host": false,
+          "base": 17694720,
+          "preferredBase": 2071986176,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "host": false,
+          "base": 18153472,
+          "preferredBase": 2076180480,
+          "refs": 0,
+          "initialized": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "host": false,
+          "base": 18939904,
+          "preferredBase": 2063597568,
+          "refs": 0,
+          "initialized": false
+        }
+      ],
+      "loadedModules": [
+        {
+          "name": "7z.exe",
+          "path": "7z.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 16973824,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 17694720,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18153472,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 18939904,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 21692416,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "ntdll.dll!NtCreateFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "oleaut32.dll!SysFreeString",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "stdout": "\r\n7-Zip 26.03 (x86) : Copyright (c) 1999-2026 Igor Pavlov : 2026-09-03\r\n\r\nScanning the drive for archives:\r\n1 file, 783 bytes (1 KiB)\r\n\r\nTesting archive: damaged.zip\r\n--\r\nPath = damaged.zip\r\nType = zip\r\nPhysical Size = 783\r\n\r\nERROR: Data Error in encrypted file. Wrong password? : binary.bin\r\n\r\nSub items Errors: 1\r\n\r\nArchives with Errors: 1\r\n\r\nSub items Errors: 1\r\n",
+      "outputs": []
+    }
+  ],
+  "errors": []
+}

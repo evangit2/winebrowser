@@ -1,0 +1,1 @@
+Full native 7-Zip codec DLL: ZIP, LZMA2 and encrypted ZIP.

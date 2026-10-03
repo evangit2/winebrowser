@@ -76,6 +76,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:processes
           npm run test:api-sets
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:foss-tools
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:7zip-full
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:file-locks
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:delay-imports
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:dll-search
