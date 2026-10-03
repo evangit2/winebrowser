@@ -3,6 +3,7 @@ import { resolveGuestPath } from './guest-paths.js';
 import { SYNC, syncObjects } from './sync-objects.js';
 import { processLookup } from './process-session.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
+import { fileMetadata } from './file-metadata.js';
 
 const invalid = (status) => {
   throw Object.assign(Error('Invalid process creation request'), { status });
@@ -134,11 +135,7 @@ function create(r, a) {
     } catch {
       return SYNC.PATH;
     }
-    if (
-      cwd &&
-      ![...r.files.keys()].some((p) => p.toLowerCase().startsWith(cwd.toLowerCase() + '/'))
-    )
-      return SYNC.PATH;
+    if (!fileMetadata(r, cwd).directory) return SYNC.PATH;
     const resolved = r.processSession.resolveImage(image, r.cwd);
     if (resolved.status) return resolved.status;
     const commandLine = unicode(r, params + 0x40),

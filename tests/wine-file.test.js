@@ -602,3 +602,86 @@ test('thread cancellation removes waiting locks without acquiring a later orphan
   assert.equal(unlock(r, 0x100, range, status), 0);
   assert.equal(r.fileLocks.length, 0);
 });
+
+test('native directory handles enumerate exact/wildcard names and close without becoming data files', () => {
+  const { r } = fixture(),
+    out = r.allocate(4),
+    status = io(r),
+    root = fileAttributes(r, '\\??\\C:\\winebrowser\\');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100001, root, status, 3, 0x4021]), 0);
+  const handle = r.read32(out),
+    buf = r.allocate(512),
+    name = r.allocString('data.bin', true),
+    mask = r.allocate(8);
+  r.view.setUint16(mask, 16, true);
+  r.view.setUint16(mask + 2, 18, true);
+  r.write32(mask + 4, name);
+  assert.equal(
+    call(r, 'NtQueryDirectoryFile', [handle, 0, 0, 0, status, buf, 512, 63, 0, mask, 1]),
+    0,
+  );
+  assert.equal(r.read32(buf), 0);
+  assert.equal(r.read32(buf + 60), 16);
+  assert.equal(r.view.getBigUint64(buf + 40, true), 6n);
+  let found = '';
+  for (let i = 0; i < 8; i++)
+    found += String.fromCharCode(r.view.getUint16(buf + 114 + i * 2, true));
+  assert.equal(found, 'data.bin');
+  assert.equal(
+    call(r, 'NtQueryDirectoryFile', [handle, 0, 0, 0, status, buf, 512, 63, 0, 0, 0]),
+    0x80000006,
+  );
+  assert.equal(call(r, 'NtReadFile', [handle, 0, 0, 0, status, buf, 1, 0, 0]), 0xc0000008);
+  assert.equal(
+    call(r, 'NtQueryDirectoryFile', [handle, 0, 0, 0, status, buf, 8, 63, 0, mask, 1]),
+    0xc0000023,
+  );
+  assert.equal(
+    call(r, 'NtQueryDirectoryFile', [handle, 0, 0, 0, status, buf, 512, 63, 0, 0, 0]),
+    0,
+  );
+  assert.equal(call(r, 'NtClose', [handle]), 0);
+  assert.equal(call(r, 'NtClose', [handle]), 0xc0000008);
+  const dir = fileAttributes(r, '\\??\\C:\\winebrowser\\newdir');
+  assert.equal(
+    call(r, 'NtCreateFile', [out, 0x100001, dir, status, 0, 0x10, 3, 2, 0x4021, 0, 0]),
+    0,
+  );
+  assert.ok(r.virtualDirectories.has('newdir/'));
+  assert.equal(r.files.has('newdir'), false);
+  assert.equal(call(r, 'NtClose', [r.read32(out)]), 0);
+  assert.equal(
+    call(r, 'NtCreateFile', [out, 0x100001, dir, status, 0, 0x10, 3, 2, 0x4021, 0, 0]),
+    0xc0000035,
+  );
+  r.cpu.dispose();
+});
+
+test('native output opens respect empty created directories and timestamp updates retain unspecified fields', () => {
+  const { r } = fixture(),
+    out = r.allocate(4),
+    status = io(r),
+    dir = fileAttributes(r, '\\??\\C:\\winebrowser\\output');
+  assert.equal(
+    call(r, 'NtCreateFile', [out, 0x100001, dir, status, 0, 0x10, 3, 2, 0x4021, 0, 0]),
+    0,
+  );
+  assert.equal(call(r, 'NtClose', [r.read32(out)]), 0);
+  const file = fileAttributes(r, '\\??\\C:\\winebrowser\\output\\result.bin');
+  assert.equal(
+    call(r, 'NtCreateFile', [out, 0x40100100, file, status, 0, 0x80, 3, 2, 0x60, 0, 0]),
+    0,
+  );
+  const handle = r.read32(out),
+    basic = r.allocate(40),
+    creation = r.fileTimes.get('output/result.bin').creation;
+  r.view.setBigInt64(basic + 16, creation + 12345n, true);
+  assert.equal(call(r, 'NtSetInformationFile', [handle, status, basic, 40, 4]), 0);
+  assert.equal(r.fileTimes.get('output/result.bin').creation, creation);
+  assert.equal(r.fileTimes.get('output/result.bin').write, creation + 12345n);
+  r.view.setBigInt64(basic, -1n, true);
+  assert.equal(call(r, 'NtSetInformationFile', [handle, status, basic, 40, 4]), 0xc00000bb);
+  assert.equal(r.fileTimes.get('output/result.bin').write, creation + 12345n);
+  assert.equal(call(r, 'NtClose', [handle]), 0);
+  r.cpu.dispose();
+});

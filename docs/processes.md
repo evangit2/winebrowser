@@ -50,8 +50,28 @@ termination before resume. Browser results are saved in
 
 The user's unchanged AirXonix v1.36 archive now launches `program.exe` from
 `AirXonix.exe` through native Wine. It gets past `NtCreateUserProcess`, then stops
-at the shared native C++ exception-dispatch gap, code `0xe06d7363`. The game is
+after an unsupported `IDirectDraw7.GetDeviceIdentifier` query, at the shared
+native C++ exception-dispatch gap, code `0xe06d7363`. The game is
 **not yet verified playable**; no game frame or gameplay acceptance has passed.
 The archive is used only as private local acceptance input and is not published.
 Native exception dispatch is a separate next milestone; no game-specific branch
 was added to this process runtime.
+
+## Deployment regression repair
+
+The recent native character-helper forwarding change also selected native Wine
+KernelBase for 7-Zip. Its existing acceptance gate then exposed host token handles
+that native CloseHandle could not close, and native directory and processor query
+paths that were not yet implemented. The launcher deployment fixes those shared
+contracts: token closure respects protection/invalid handles; NT directory
+open/create and synchronous enumeration read the package tree; new file opens
+recognize empty created directories; and ordinary file timestamp writes update
+stored metadata. Directory/metadata state is shared within a process family.
+The virtual process affinity mask is one. Extended topology queries explicitly
+return STATUS_NOT_IMPLEMENTED so callers can take their documented fallback;
+no host CPU topology is fabricated.
+
+The unchanged public-domain 7-Zip binary now compresses both original files,
+passes CRC validation, extracts byte-for-byte copies, and rejects a corrupted
+archive. The GNU diff/cmp and OptiPNG acceptance cases also pass. See
+`evidence/foss-tools-browser-results.json`.

@@ -11,6 +11,7 @@ import {
 import { syncObjects, SYNC } from './sync-objects.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileMetadata, fileIdentity, writeFileMetadata, touchFile } from './file-metadata.js';
+import { virtualNames, matchWildcard } from './guest-directory.js';
 const SUCCESS = 0;
 const ACCESS_VIOLATION = 0xc0000005;
 const INVALID_HANDLE = 0xc0000008;
@@ -68,7 +69,7 @@ function create(runtime, argument) {
   const disposition = argument(7) >>> 0,
     options = argument(8) >>> 0;
   if (disposition > 5 || share & ~7) return complete(INVALID_PARAMETER);
-  // Synchronous data I/O and metadata-only non-directory handles. This volume
+  // Synchronous data I/O, metadata and directory handles. This volume
   // contains no reparse points; OPEN_REPARSE_POINT therefore follows the same
   // path. EAs, allocation hints and caller security remain unsupported.
   // SEQUENTIAL_ONLY (0x4) and RANDOM_ACCESS (0x800) are cache hints. Package
@@ -77,7 +78,7 @@ function create(runtime, argument) {
     argument(4) ||
     argument(9) ||
     argument(10) ||
-    options & ~0x201864 ||
+    options & ~0x205865 ||
     (!(options & 0x20) && !!(access & 0xc0000007)) ||
     access & ~0xc013019f ||
     disposition === 0
@@ -85,8 +86,40 @@ function create(runtime, argument) {
     return complete(NOT_SUPPORTED);
   if (options & 0x1000 && !(access & 0x10000)) return complete(ACCESS_DENIED);
   if (!(access & 0x100000)) return complete(INVALID_PARAMETER);
-  const named = objectPath(runtime, argument(2));
+  const named = objectPath(runtime, argument(2), !!(options & 1));
   if (named.status) return complete(named.status);
+  if (options & 1) {
+    if (runtime.handles.size >= 4096) return complete(0xc000009a);
+    if (![1, 2, 3].includes(disposition) || options & 0x1040 || argument(5) & ~0x90)
+      return complete(NOT_SUPPORTED);
+    const info = fileMetadata(runtime, named.path);
+    if (!info.status && !info.directory) return complete(0xc0000103); // NOT_A_DIRECTORY
+    if (!info.status && disposition === 2) return complete(0xc0000035);
+    if (info.status) {
+      if (disposition === 1) return complete(info.status);
+      const parent = named.path.includes('/')
+        ? named.path.slice(0, named.path.lastIndexOf('/'))
+        : '';
+      const parentInfo = fileMetadata(runtime, parent);
+      if (parentInfo.status || !parentInfo.directory) return complete(PATH_NOT_FOUND);
+      runtime.virtualDirectories ??= new Set();
+      if (runtime.virtualDirectories.size >= 4096) return complete(0xc000009a);
+      runtime.virtualDirectories.add(named.path + '/');
+      touchFile(runtime, named.path, { created: true });
+    }
+    const handle = runtime.nextHandle++;
+    runtime.handles.set(handle, {
+      kind: 'file-directory',
+      path: named.path,
+      ntAccess: access,
+      access,
+      share,
+      options,
+      inherit: !!(runtime.read32(argument(2) + 12) & 2),
+    });
+    runtime.write32(argument(0), handle);
+    return complete(SUCCESS, info.status ? 2 : 1);
+  }
   const path = named.path,
     exists = runtime.files.has(path);
   if (runtime.pendingFileDeletes?.has(path)) return complete(0xc0000056); // DELETE_PENDING
@@ -94,7 +127,7 @@ function create(runtime, argument) {
   if (!(exists && [1, 3].includes(disposition)) && argument(5) & ~0xa0)
     return complete(NOT_SUPPORTED);
   const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
-  if (parent && ![...runtime.files.keys()].some((name) => name.startsWith(parent)))
+  if (parent && !fileMetadata(runtime, parent.slice(0, -1)).directory)
     return complete(PATH_NOT_FOUND);
   if ([...runtime.files.keys()].some((name) => name.startsWith(path + '/')))
     return complete(0xc00000ba); // directory
@@ -147,6 +180,24 @@ function information(runtime, argument, set) {
   const opened = regular(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   const kind = argument(4) >>> 0;
+  if (set && kind === 4) {
+    if (argument(3) < 40) return complete(0xc0000004);
+    if (!checked(runtime, argument(2), 40)) return complete(ACCESS_VIOLATION);
+    if (!((opened.ntAccess ?? opened.access) & 0x40000100)) return complete(ACCESS_DENIED);
+    const buffer = argument(2),
+      attributes = runtime.read32(buffer + 32);
+    if (attributes && ![0x20, 0x80].includes(attributes)) return complete(NOT_SUPPORTED);
+    const previous = fileMetadata(runtime, opened.path),
+      next = {};
+    for (const [i, key] of ['creation', 'access', 'write', 'change'].entries()) {
+      const value = runtime.view.getBigInt64(buffer + i * 8, true);
+      if (value < 0n) return complete(NOT_SUPPORTED);
+      next[key] = value || previous[key];
+    }
+    runtime.fileTimes ??= new Map();
+    runtime.fileTimes.set(opened.path, next);
+    return complete(SUCCESS);
+  }
   if (set && kind === 13) {
     if (argument(3) < 1) return complete(0xc0000004);
     if (!checked(runtime, argument(2), 1)) return complete(ACCESS_VIOLATION);
@@ -177,7 +228,13 @@ function information(runtime, argument, set) {
             : kind === 14 || (kind === 20 && set)
               ? 8
               : 0;
-  if (!size) return complete(NOT_SUPPORTED);
+  if (!size) {
+    runtime.emit({
+      type: 'log',
+      text: `Unavailable file information class ${kind} (${set ? 'set' : 'query'})`,
+    });
+    return complete(NOT_SUPPORTED);
+  }
   if (kind === 14 && !(opened.access & 0xc0000000)) return complete(ACCESS_DENIED);
   if ([4, 34, 68].includes(kind) && !((opened.ntAccess ?? opened.access) & 0x80000080))
     return complete(ACCESS_DENIED);
@@ -408,6 +465,10 @@ function queryVolume(runtime, argument) {
 
 export function closeFileHandle(runtime, handle) {
   const value = handle >>> 0;
+  if (runtime.handles.get(value)?.kind === 'file-directory') {
+    runtime.handles.delete(value);
+    return SUCCESS;
+  }
   if (value === 1 || value === 2) {
     const closed = (runtime.closedStandardOutputs ??= new Set());
     if (closed.has(value)) return INVALID_HANDLE;
@@ -474,6 +535,7 @@ function byteRangeLock(r, a, unlock) {
 }
 
 export const fileNtServices = {
+  NtQueryDirectoryFile: { argc: 11, call: queryDirectory },
   // stdout/stderr are write-only byte pipes. CRT isatty/pipe probes must see
   // a normal NT failure for a read control request, rather than a host trap.
   NtFsControlFile: {
@@ -541,3 +603,76 @@ export const fileNtServices = {
   NtReadFile: { argc: 9, call: read },
   NtWriteFile: { argc: 9, call: write },
 };
+
+function queryDirectory(r, a) {
+  const complete = iosb(r, a(4));
+  if (!complete) return ACCESS_VIOLATION;
+  const opened = r.handles.get(a(0));
+  if (opened?.kind !== 'file-directory') return complete(INVALID_HANDLE);
+  if (!(opened.ntAccess & 1)) return complete(ACCESS_DENIED);
+  if (a(1) || a(2) || a(3)) return complete(NOT_SUPPORTED);
+  const kind = a(7),
+    header = { 1: 64, 2: 68, 3: 94, 12: 12, 37: 104, 60: 88, 63: 114 }[kind];
+  if (!header) return complete(NOT_SUPPORTED);
+  if (!checked(r, a(5), a(6), true)) return complete(ACCESS_VIOLATION);
+  if (a(10) || !opened.enumeration) {
+    let pattern = '*';
+    if (a(9)) {
+      if (!checked(r, a(9), 8)) return complete(ACCESS_VIOLATION);
+      const length = r.view.getUint16(a(9), true),
+        max = r.view.getUint16(a(9) + 2, true),
+        buffer = r.read32(a(9) + 4);
+      if (length & 1 || length > max || length > 32766) return complete(INVALID_PARAMETER);
+      if (!checked(r, buffer, length)) return complete(ACCESS_VIOLATION);
+      pattern = '';
+      for (let i = 0; i < length; i += 2)
+        pattern += String.fromCharCode(r.view.getUint16(buffer + i, true));
+      // Wine encodes DOS wildcard tokens when preparing FindFirstFile masks.
+      pattern = pattern.replaceAll('<', '*').replaceAll('>', '?').replaceAll('"', '.');
+      if (pattern === '*.*') pattern = '*';
+      if (pattern.includes('/') || pattern.includes('\\') || pattern.includes('\0'))
+        return complete(INVALID_PARAMETER);
+    }
+    const prefix = opened.path ? opened.path + '/' : '';
+    opened.enumeration = {
+      index: 0,
+      entries: [...virtualNames(r, prefix).keys()]
+        .filter((name) => matchWildcard(pattern, name))
+        .map((name) => ({ name, path: prefix + name })),
+    };
+  }
+  const scan = opened.enumeration;
+  if (scan.index >= scan.entries.length) return complete(scan.index ? 0x80000006 : NAME_NOT_FOUND);
+  let used = 0,
+    previous = null;
+  while (scan.index < scan.entries.length) {
+    const entry = scan.entries[scan.index],
+      nameBytes = entry.name.length * 2,
+      size = Math.ceil((header + nameBytes) / 8) * 8;
+    if (used + size > a(6)) return used ? complete(SUCCESS, used) : complete(BUFFER_TOO_SMALL);
+    const pointer = a(5) + used,
+      info = fileMetadata(r, entry.path);
+    r.data.fill(0, pointer, pointer + size);
+    r.write32(pointer + 4, scan.index);
+    if (kind === 12) r.write32(pointer + 8, nameBytes);
+    else {
+      for (const [i, key] of ['creation', 'access', 'write', 'change'].entries())
+        r.view.setBigInt64(pointer + 8 + i * 8, info[key], true);
+      r.view.setBigInt64(pointer + 40, BigInt(info.size), true);
+      r.view.setBigInt64(pointer + 48, BigInt(info.allocation), true);
+      r.write32(pointer + 56, info.attributes);
+      r.write32(pointer + 60, nameBytes);
+      if ([60, 63].includes(kind))
+        r.view.setBigUint64(pointer + 72, BigInt(fileIdentity(r, entry.path)), true);
+      if (kind === 37) r.view.setBigUint64(pointer + 96, BigInt(fileIdentity(r, entry.path)), true);
+    }
+    for (let i = 0; i < entry.name.length; i++)
+      r.view.setUint16(pointer + header + i * 2, entry.name.charCodeAt(i), true);
+    if (previous !== null) r.write32(previous, pointer - previous);
+    previous = pointer;
+    used += size;
+    scan.index++;
+    if (a(8)) break;
+  }
+  return complete(SUCCESS, used);
+}

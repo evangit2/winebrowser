@@ -1,3 +1,4 @@
+import { virtualNames, matchWildcard } from './guest-directory.js';
 // Process, resource, TLS and filesystem-enumeration services that ordinary
 // Win32 applications import. Everything answers from the runtime's own model:
 // mapped guest modules, the virtual filesystem, and the per-thread TEB.
@@ -257,23 +258,6 @@ function directoryPrefix(path) {
   const normalized = path.replace(/[\\/]+$/, '');
   return normalized ? normalized + '/' : '';
 }
-function virtualNames(r, prefix) {
-  const names = new Map();
-  for (const name of r.files.keys()) {
-    if (!name.startsWith(prefix)) continue;
-    const rest = name.slice(prefix.length);
-    if (!rest) continue;
-    const slash = rest.indexOf('/');
-    names.set(slash < 0 ? rest : rest.slice(0, slash), slash >= 0);
-  }
-  // Directories created at run time are not files, so track them separately.
-  for (const directory of r.virtualDirectories ?? [])
-    if (directory.startsWith(prefix) && directory.length > prefix.length) {
-      const rest = directory.slice(prefix.length).replace(/\/$/, '');
-      if (rest && !rest.includes('/')) names.set(rest, true);
-    }
-  return names;
-}
 function writeFindData(r, address, name, info, wide = false) {
   const size = wide ? 592 : 320;
   r.check(address, size, true);
@@ -290,31 +274,6 @@ function writeFindData(r, address, name, info, wide = false) {
 // run of characters (including none), `?` matches exactly one, and both stop at
 // the end of the component. Matching is case-insensitive because guest paths are
 // normalized to lower case.
-function matchWildcard(pattern, name) {
-  const lowerName = name.toLowerCase();
-  const sources = pattern.toLowerCase();
-  // Classic two-pointer backtracking: no regex means no pathological compile
-  // cost on a long name, and `*` never needs a greedy rewrite.
-  let p = 0,
-    n = 0,
-    star = -1,
-    resume = 0;
-  while (n < lowerName.length) {
-    if (p < sources.length && (sources[p] === '?' || sources[p] === lowerName[n])) {
-      p++;
-      n++;
-    } else if (p < sources.length && sources[p] === '*') {
-      star = p++;
-      resume = n;
-    } else if (star >= 0) {
-      p = star + 1;
-      n = ++resume;
-    } else return false;
-  }
-  while (p < sources.length && sources[p] === '*') p++;
-  return p === sources.length;
-}
-
 // Splits a search pattern into the directory to enumerate and the wildcard to
 // match. A name with no wildcard is the exact-name case, where the file itself
 // must exist and be returned as the single match.

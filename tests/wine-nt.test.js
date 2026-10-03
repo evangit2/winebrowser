@@ -398,3 +398,31 @@ test('native NtTerminateProcess distinguishes other-thread shutdown from termina
   assert.equal(runtime.cpu.r[4].value, stack);
   runtime.cpu.dispose();
 });
+
+test('native process affinity matches the guest single CPU and rejects unsupported masks', async () => {
+  const { ntServices } = await import('../src/wine-nt.js');
+  const r = new Runtime(iced, {
+    exe: 'console.exe',
+    files: new Map([['console.exe', new Uint8Array(await readFile(consoleUrl))]]),
+  });
+  const mask = r.allocate(4),
+    length = r.allocate(4),
+    query = [0xffffffff, 21, mask, 4, length];
+  assert.equal(
+    ntServices.NtQueryInformationProcess.call(r, (i) => query[i]),
+    0,
+  );
+  assert.equal(r.read32(mask), 1);
+  assert.equal(r.read32(length), 4);
+  r.write32(mask, 1);
+  assert.equal(
+    ntServices.NtSetInformationProcess.call(r, (i) => query[i]),
+    0,
+  );
+  r.write32(mask, 2);
+  assert.equal(
+    ntServices.NtSetInformationProcess.call(r, (i) => query[i]),
+    0xc000000d,
+  );
+  r.cpu.dispose();
+});

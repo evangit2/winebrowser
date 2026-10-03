@@ -8,6 +8,7 @@ export class ProcessSession {
   constructor(files, createRuntime) {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
     this.dirty = new Set();
+    this.fileState = { virtualDirectories: new Set(), fileTimes: new Map(), fileIds: new Map() };
     this.createRuntime = createRuntime;
     this.records = new Map();
     this.nextId = 1;
@@ -36,6 +37,7 @@ export class ProcessSession {
         files: this.files,
         sharedFiles: true,
         dirty: this.dirty,
+        fileState: this.fileState,
       });
     } catch (error) {
       // Never return successful creation for an image that could not be mapped.

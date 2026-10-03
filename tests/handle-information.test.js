@@ -55,3 +55,33 @@ test('handle queries reject unsupported classes, short/invalid buffers and close
   assert.equal(nt(r, 'NtQueryObject', [1, 4, buffer, 2, 0]), 0xc0000008);
   assert.equal(api(r, 'GetHandleInformation', [0, buffer]).result, 0);
 });
+
+test('host process tokens close through native NtClose, respecting flags and invalid close', () => {
+  const runtime = setup();
+  const out = runtime.allocate(4);
+  assert.equal(
+    runtime.apiProvider.get('advapi32.dll!OpenProcessToken')(
+      runtime,
+      (i) => [0xffffffff, 8, out][i],
+    ).result,
+    1,
+  );
+  const handle = runtime.read32(out);
+  assert.equal(api(runtime, 'SetHandleInformation', [handle, 2, 2]).result, 1);
+  assert.equal(
+    ntServices.NtClose.call(runtime, () => handle),
+    0xc0000235,
+  );
+  assert.ok(runtime.handles.has(handle));
+  runtime.handles.get(handle).protectFromClose = false;
+  assert.equal(
+    ntServices.NtClose.call(runtime, () => handle),
+    0,
+  );
+  assert.equal(runtime.handles.has(handle), false);
+  assert.equal(
+    ntServices.NtClose.call(runtime, () => handle),
+    0xc0000008,
+  );
+  runtime.cpu.dispose();
+});

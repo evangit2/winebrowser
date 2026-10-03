@@ -67,6 +67,22 @@ function processorInformation(runtime) {
 }
 
 export const systemNtServices = {
+  NtQuerySystemInformationEx: {
+    argc: 6,
+    call(runtime, a) {
+      if (a(5)) {
+        try {
+          runtime.write32(a(5), 0);
+        } catch {
+          return STATUS_ACCESS_VIOLATION;
+        }
+      }
+      // Extended host topology/CPU-set queries have no implemented profile.
+      // Native clients can use their older query fallback after this status.
+      runtime.emit({ type: 'log', text: `Unavailable extended system information class ${a(0)}` });
+      return 0xc0000002; // STATUS_NOT_IMPLEMENTED
+    },
+  },
   NtQuerySystemInformation: {
     argc: 4,
     call(runtime, argument) {

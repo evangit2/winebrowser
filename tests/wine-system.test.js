@@ -200,3 +200,24 @@ test('defined NT performance telemetry reports unavailable without inventing cou
   assert.ok(r.data.slice(output, output + 312).every((v) => v === 0xaa));
   assert.equal(r.read32(length), 0x12345678);
 });
+
+test('optional extended system queries return failure for fallback without fabricating topology', () => {
+  const r = runtime(),
+    length = r.allocate(4),
+    buffer = r.allocate(8);
+  r.write32(length, 0xcccccccc);
+  r.data.fill(0xaa, buffer, buffer + 8);
+  const args = [107, 0, 0, buffer, 8, length];
+  assert.equal(
+    ntServices.NtQuerySystemInformationEx.call(r, (i) => args[i]),
+    0xc0000002,
+  );
+  assert.equal(r.read32(length), 0);
+  assert.ok(r.data.subarray(buffer, buffer + 8).every((b) => b === 0xaa));
+  args[5] = 0xffffffff;
+  assert.equal(
+    ntServices.NtQuerySystemInformationEx.call(r, (i) => args[i]),
+    0xc0000005,
+  );
+  r.cpu.dispose();
+});

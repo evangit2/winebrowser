@@ -71,6 +71,7 @@ export class Runtime {
       processSession,
       processId = 1,
       sharedFiles = false,
+      fileState,
       dirty,
       cwd,
       environment,
@@ -82,6 +83,11 @@ export class Runtime {
       ? files
       : new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
     this.exe = exe;
+    if (fileState) {
+      this.virtualDirectories = fileState.virtualDirectories;
+      this.fileTimes = fileState.fileTimes;
+      this.fileIds = fileState.fileIds;
+    }
     this.cwd = cwd ?? (exe.includes('/') ? exe.slice(0, exe.lastIndexOf('/') + 1) : '');
     this.processSession = processSession;
     this.processId = processId;
