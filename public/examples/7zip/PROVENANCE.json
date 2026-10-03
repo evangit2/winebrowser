@@ -1,0 +1,91 @@
+{
+  "format": 1,
+  "name": "7zip",
+  "entry": "7zr.exe",
+  "args": ["a", "out.7z", "message.txt", "binary.bin"],
+  "provenance": "Original upstream 7zr.exe 26.03 PE32 release. LGPL-2.1-or-later with upstream unRAR restriction; licenses and complete corresponding source included.",
+  "inputs": [
+    {
+      "name": "7zr.exe",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.03/7zr.exe",
+      "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d"
+    },
+    {
+      "name": "7zip-source.tar.xz",
+      "url": "https://www.7-zip.org/a/7z2603-src.tar.xz",
+      "sha256": "9cbde5099c6deb73691b0579063da5827522ccbbcba3f0020fd04e8c8c16c0d4"
+    }
+  ],
+  "files": [
+    {
+      "path": "7zr.exe",
+      "bytes": 602624,
+      "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d"
+    },
+    {
+      "path": "License.txt",
+      "bytes": 6341,
+      "sha256": "9ac2b4a97ab5d523965534d8b2d5868e511b39096d51fff458ab72c38b80fccc"
+    },
+    {
+      "path": "copying.txt",
+      "bytes": 27032,
+      "sha256": "1e7e6bae5a5bde32f1ae5a7c37a082d1ab03cf89354f7f936ac40be9e39a6531"
+    },
+    {
+      "path": "unRarLicense.txt",
+      "bytes": 1921,
+      "sha256": "17bd9fa4399092c777536fff045b41df76ec9d2ac4c9b8e7345d3b8b6ccc7976"
+    },
+    {
+      "path": "message.txt",
+      "bytes": 17,
+      "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996"
+    },
+    {
+      "path": "binary.bin",
+      "bytes": 4096,
+      "sha256": "4e441a3533bb2c10cd5649981d395744213e09a336746b5a3458fee4057205ec"
+    }
+  ],
+  "dependencyClosure": [
+    {
+      "name": "7zr.exe",
+      "path": "7zr.exe",
+      "host": false,
+      "imports": 139,
+      "sha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d"
+    },
+    {
+      "name": "oleaut32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "user32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "advapi32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "msvcrt.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "kernel32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    }
+  ],
+  "unresolvedImports": []
+}

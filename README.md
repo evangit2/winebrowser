@@ -66,6 +66,12 @@ SQLite. [ZIP](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite.zip)
 [source and provenance](public/examples/sqlite/PROVENANCE.md). Its original
 x86 code compiles during browser execution. See [database scope](docs/sqlite.md).
 
+**Unchanged FOSS tools:** choose **Load gnu-diff**, **Load optipng** or **Load 7zip**.
+The examples fill in working arguments and include original Windows binaries,
+companion DLLs, licenses and complete source archives. Browser acceptance checks
+real file comparisons, lossless PNG pixels and a byte-for-byte archive round trip.
+See [packages, DLL support and tests](docs/foss-tools.md).
+
 ## Run
 
 **Native 3D demo:** choose **Load d3d9-cube**, then **Run executable** in the live harness. [Cube EXE](https://evangit2.github.io/winebrowser/demos/d3d9-cube/d3d9-cube.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/d3d9-cube.zip) · [source](demos/d3d9-cube/main.c). The Windows PE32 program rotates a colored cube using D3D9 transforms, depth testing and `DrawPrimitiveUP`; its x86 code compiles to Wasm during browser execution and a worker submits graphics to WebGPU. Close its window to exit. This is an original API fixture using a narrow bootstrap frontend; WineD3D and D3D10/11 are not implemented yet. See [graphics scope and acceptance path](docs/graphics-runtime.md).
