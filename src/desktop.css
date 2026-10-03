@@ -404,3 +404,25 @@
 .virtual-desktop-control-toggle[role='checkbox'][aria-checked='mixed']::before {
   content: '−';
 }
+.virtual-desktop-control-tabs {
+  background: #c0c0c0;
+  overflow-x: auto;
+}
+.virtual-desktop-control-tabs [role='tab'] {
+  position: absolute;
+  box-sizing: border-box;
+  font: inherit;
+  background: #c0c0c0;
+  color: #000;
+  border: 1px outset #eee;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.virtual-desktop-control-tabs [aria-selected='true'] {
+  background: #eee;
+  border-bottom: 0;
+}
+.virtual-desktop-control-tabs .is-highlighted {
+  color: #000080;
+  font-weight: bold;
+}

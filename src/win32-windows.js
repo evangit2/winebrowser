@@ -1,5 +1,6 @@
 import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
+import { describeTabs } from './win32-tabs.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
   builtinControlClass,
@@ -349,6 +350,7 @@ export class WindowManager {
         isDialog: !parentId && !!window.dialogProc,
         controlId: window.controlId,
         tree: describeTree(window),
+        tabs: describeTabs(window),
         list: describeList(window),
       },
     });

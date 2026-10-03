@@ -1,6 +1,7 @@
 import { describeGdiFont } from './win32-gdi.js';
 import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
+import { tabMessage, tabInput } from './win32-tabs.js';
 
 const kinds = new Map([
   ['static', 'static'],
@@ -9,6 +10,7 @@ const kinds = new Map([
   ['systreeview32', 'treeview'],
   ['listbox', 'listbox'],
   ['combobox', 'combobox'],
+  ['systabcontrol32', 'tabcontrol'],
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
@@ -87,6 +89,7 @@ export function controlStyle(kind, style, extended) {
     throw Error('Unsupported ComboBox style');
   if (kind === 'listbox' && local & ~0x1c3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
+  if (kind === 'tabcontrol' && local & ~0xc00) throw Error('Unsupported Tab control style');
   return {
     ownerDraw,
     comboType: kind === 'combobox' ? local & 3 : 0,
@@ -253,6 +256,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     return 0;
   }
   if (window.controlType === 'treeview') return treeMessage(r, window, message, wp, lp, fallback);
+  if (window.controlType === 'tabcontrol') return tabMessage(r, window, message, wp, lp, fallback);
   if (['combobox', 'listbox'].includes(window.controlType))
     return listMessage(r, window, message, wp, lp, fallback, wide);
   const value = await fallback();
@@ -281,6 +285,7 @@ export function controlInput(r, window, event) {
   if (['combobox', 'listbox'].includes(window.controlType) && listInput(r, window, event))
     return true;
   if (window.controlType === 'treeview' && treeInput(r, window, event)) return true;
+  if (window.controlType === 'tabcontrol' && tabInput(r, window, event)) return true;
   if (event.type === 'command' && window.controlType === 'button') {
     // A click on an automatic button changes its state before the parent is
     // told, so a handler reading BM_GETCHECK sees the new value.

@@ -232,6 +232,8 @@
     "test:lists": "node scripts/test-lists-browser.mjs",
     "test:putty-gui": "node scripts/test-putty-gui-browser.mjs",
     "build:gui-controls": "sh scripts/build-gui-controls.sh",
+    "build:tabs": "sh scripts/build-tabs-fixture.sh",
+    "test:tabs": "node scripts/test-tabs-browser.mjs",
     "build:draglist": "sh scripts/build-draglist-fixture.sh",
     "test:draglist": "node scripts/test-draglist-browser.mjs",
     "build:custom-child": "sh scripts/build-custom-child-fixture.sh",

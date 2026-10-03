@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-03T23:46:24.812Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "c1426eb92ee930765c30b183f5ab7b4de21279e886028f805308a71a31766664",
+  "compiledBlocks": 150,
+  "x86TranslationMs": 73.44999983906746,
+  "checks": [
+    "PE32 TCITEMA/W text and LPARAM, insert/delete, selected/focused state and programmatic selection without notifications",
+    "Fixed tab rectangles, hit testing and reversible page/client rectangle conversion",
+    "Native WM_NOTIFY selection veto, mouse change and packed NMTCKEYDOWN keyboard navigation",
+    "Application-owned page visibility and edited text survive tab changes; destruction exits zero"
+  ],
+  "scope": "Horizontal single-row text tabs in ordinary Chromium. Native code owns pages. Images, vertical/multiline/button/owner-drawn tabs, tooltip windows, custom item data sizes and universal common-control coverage remain incomplete. Variable text widths use estimates."
+}

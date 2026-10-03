@@ -568,9 +568,16 @@ export class VirtualDesktop {
     if (!parent) throw new Error(`Child control ${state.id} references an unknown parent window`);
     const controlType = state.controlType;
     if (
-      !['static', 'button', 'edit', 'treeview', 'combobox', 'listbox', 'custom'].includes(
-        controlType,
-      )
+      ![
+        'static',
+        'button',
+        'edit',
+        'treeview',
+        'tabcontrol',
+        'combobox',
+        'listbox',
+        'custom',
+      ].includes(controlType)
     )
       throw new Error(`Unsupported child control type: ${controlType}`);
 
@@ -673,6 +680,12 @@ export class VirtualDesktop {
       element.setAttribute('role', 'tree');
       element.setAttribute('aria-label', state.title || 'Categories');
       element.tabIndex = 0;
+    } else if (controlType === 'tabcontrol') {
+      element = document.createElement('div');
+      element.className = 'virtual-desktop-control virtual-desktop-control-tabs';
+      element.setAttribute('role', 'tablist');
+      element.setAttribute('aria-label', state.title || 'Tabs');
+      element.tabIndex = 0;
     } else if (controlType === 'edit') {
       // ES_MULTILINE needs a text area; a single-line edit is an input. The
       // element is chosen at creation because the style cannot change later.
@@ -738,7 +751,7 @@ export class VirtualDesktop {
       element.addEventListener(type, (event) => {
         event.stopPropagation();
         if (
-          (controlType === 'treeview' &&
+          (['treeview', 'tabcontrol'].includes(controlType) &&
             ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
               event.key,
             )) ||
@@ -927,6 +940,43 @@ export class VirtualDesktop {
     control.element.scrollTop = scrollTop;
   }
 
+  #applyTabs(control, tabs) {
+    const fragment = document.createDocumentFragment();
+    for (const [index, item] of tabs.items.entries()) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(index === tabs.selected));
+      button.id = `guest-tab-${control.id}-${item.id}`;
+      button.textContent = item.text;
+      button.tabIndex = -1;
+      button.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        control.element.focus({ preventScroll: true });
+      });
+      button.classList.toggle('is-highlighted', item.highlighted);
+      const [left, top, right, bottom] = item.rect;
+      Object.assign(button.style, {
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${right - left}px`,
+        height: `${bottom - top}px`,
+      });
+      button.addEventListener('click', () => {
+        if (control.enabled) this.#emit(control.id, 'tab-select', { item: item.id });
+      });
+      fragment.append(button);
+    }
+    control.element.replaceChildren(fragment);
+    const focused = tabs.items[tabs.focused];
+    if (focused)
+      control.element.setAttribute(
+        'aria-activedescendant',
+        `guest-tab-${control.id}-${focused.id}`,
+      );
+    else control.element.removeAttribute('aria-activedescendant');
+  }
+
   #applyControlState(control, state) {
     if (state.controlId !== undefined) control.element.dataset.controlId = String(state.controlId);
     if (state.title !== undefined) control.titleText = String(state.title);
@@ -938,7 +988,7 @@ export class VirtualDesktop {
       } else if (['listbox', 'combobox'].includes(control.controlType)) {
         if (control.listEdit && control.listEdit.value !== control.titleText)
           control.listEdit.value = control.titleText;
-      } else if (control.controlType === 'treeview') {
+      } else if (['treeview', 'tabcontrol'].includes(control.controlType)) {
         control.element.setAttribute('aria-label', control.titleText || 'Categories');
       } else if (control.canvas) {
         control.element.setAttribute('aria-label', control.titleText);
@@ -1060,6 +1110,7 @@ export class VirtualDesktop {
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
     if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
+    if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);
 
     control.isControl = true;
     control.controlType = state.controlType ?? control.controlType;
