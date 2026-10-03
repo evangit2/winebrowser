@@ -29,4 +29,6 @@ networking, process creation or every Windows DLL. Timings record this workload;
 they are not a general startup or performance guarantee.
 
 Evidence: [browser results](../evidence/lua-browser-results.json).
+All four modes also passed ordinary Chromium on live GitHub Pages:
+[live results](../evidence/lua-live-browser-results.json).
 Provenance: [upstream archives and hashes](../public/examples/lua/PROVENANCE.md).
