@@ -3,6 +3,8 @@ import { encodeAnsi } from './encoding.js';
 /** Convert synchronous system text messages at the ANSI/Unicode WndProc boundary. */
 export async function sendWindowMessage(r, hwnd, message, wParam, lParam, wide) {
   const window = r.windows.windows.get(hwnd);
+  if (['combobox', 'listbox'].includes(window?.controlType))
+    return r.windows.send(hwnd, message, wParam, lParam, wide);
   const targetWide = !!window?.cls?.wide;
   if (!window || wide === targetWide || ![0xc, 0xd].includes(message))
     return r.windows.send(hwnd, message, wParam, lParam);

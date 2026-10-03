@@ -1,3 +1,4 @@
+import { printerApis } from './win32-printers.js';
 import { releaseHandleLocks, fileLockConflict } from './file-locks.js';
 import { shellFolderApis } from './win32-shell-folders.js';
 import { lzApis } from './win32-lz.js';
@@ -95,6 +96,7 @@ export const API_NAMES = {
 };
 
 for (const key of [
+  ...Object.keys(printerApis),
   ...Object.keys(shellFolderApis),
   ...Object.keys(lzApis),
   ...Object.keys(legacyUiApis),
@@ -486,6 +488,7 @@ function closeHandle(runtime, argument) {
 /** Provide the explicitly supported Win32 imports for a single Runtime. */
 export function createWin32ApiProvider() {
   const provider = new Map([
+    ...Object.entries(printerApis),
     ...Object.entries(shellFolderApis),
     ...Object.entries(lzApis),
     ...Object.entries(legacyUiApis),

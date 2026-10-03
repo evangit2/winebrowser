@@ -1,3 +1,4 @@
+import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
@@ -348,6 +349,7 @@ export class WindowManager {
         isDialog: !parentId && !!window.dialogProc,
         controlId: window.controlId,
         tree: describeTree(window),
+        list: describeList(window),
       },
     });
   }
@@ -398,7 +400,7 @@ export class WindowManager {
     this.wake?.();
     this.wake = null;
   }
-  async send(hwnd, message, wParam = 0, lParam = 0) {
+  async send(hwnd, message, wParam = 0, lParam = 0, textWide) {
     const window = this.windows.get(hwnd);
     if (!window) {
       this.runtime.lastError = 1400;
@@ -438,6 +440,7 @@ export class WindowManager {
               window.cls.wide,
             )
           ).result,
+        textWide,
       );
     if (window.dialogProc) {
       if (window.customDialogClass && window.proc)
@@ -927,7 +930,11 @@ async function create(r, a, wide) {
   const count = [...m.windows.values()].filter((w) => !!w.parentId === child).length;
   if (count >= (child ? 256 : 8)) return m.fail(8, 12);
   const width = a(6) === 0x80000000 ? 480 : a(6) | 0,
-    height = a(7) === 0x80000000 ? 320 : a(7) | 0;
+    requestedHeight = a(7) === 0x80000000 ? 320 : a(7) | 0,
+    height =
+      cls.controlType === 'combobox' && control.comboType !== 1
+        ? Math.min(requestedHeight, 24)
+        : requestedHeight;
   const menu = child
     ? 0
     : a(9) || (cls.menuName ? loadClassMenu(r, a(10) || cls.instance, cls.menuName, wide) : 0);
@@ -1994,15 +2001,15 @@ function mapY(value) {
 // same way SendMessage does after a GetDlgItem.
 function sendDlgItemMessage(r, a, wide) {
   const window = r.windows.windows.get(a(0));
-  if (!window) return r.windows.fail(1400, 6);
+  if (!window) return r.windows.fail(1400, 5);
   const control = [...r.windows.windows.values()].find(
     (child) => child.parentId === a(0) && child.controlId === a(1),
   );
-  if (!control) return r.windows.fail(1400, 6);
+  if (!control) return r.windows.fail(1400, 5);
   // The ANSI/Unicode conversion happens at the callback boundary; textOut-style
   // messages carry a pointer either way, so the raw value is forwarded.
   return sendWindowMessage(r, control.id, a(2) >>> 0, a(3) >>> 0, a(4) >>> 0, wide).then((value) =>
-    result(value, 6),
+    result(value, 5),
   );
 }
 // RegisterClipboardFormatA/W assigns a stable integer to a format name within

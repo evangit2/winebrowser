@@ -510,7 +510,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "All imports resolve. Custom dialog class context, DefDlgProc result/background contracts and native GCL metadata are repaired. SysTreeView32 text categories now support item insertion/query, expansion, selection and native WM_NOTIFY; an independent native Chromium fixture passes. PuTTY advances to its intended Session panel, then asserts after COMBOBOX creation returns ERROR_CANNOT_FIND_WND_CLASS. Browser failure surfaces through unsupported assertion MessageBox flags. Full configuration interactions, remaining common controls and networking are incomplete. See evidence/putty-gui-progress.json."
+      "statusNote": "The unchanged privately cached release passes a bounded Chromium Configuration acceptance: correct Session category, hostname editing, registry-backed named-session Save, Terminal navigation, return with hostname preserved, and Cancel exit zero. Shared fixes include custom dialog classes, GCL and DWLP_MSGRESULT contracts, text TreeView, ComboBox/ListBox, five-argument SendDlgItemMessage, native radio groups and empty installed-printer enumeration through winspool.drv. Other panels, networking and terminal rendering remain unverified. See evidence/putty-gui-progress.json and npm run test:putty-gui. The executable is not published in the repository."
     },
     {
       "id": "sgi-opengl-minimal-x86",

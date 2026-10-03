@@ -1,14 +1,24 @@
 {
-  "state": "ERROR",
-  "details": "340 imports supported \u00b7 PE32 x86 \u00b7 1484 KB image",
-  "status": "user32.dll!CreateDialogParamA: user32.dll!MessageBoxW: MessageBox flags 0x212012 unsupported: only MB_OK with a standard icon is rendered",
-  "platform": "ISOLATED / WASM READY",
-  "windows": [],
-  "controls": [],
-  "run": null,
-  "errors": [],
-  "date": "2026-10-03",
+  "date": "2026-10-03T20:17:40.264Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
+  "browser": "154.0.8037.97",
   "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
-  "remainingBlocker": "PuTTY reaches its intended Session panel and asserts at windows/controls.c:1730 after COMBOBOX ID 1053 creation fails with 1407. Its assertion MessageBox requests unsupported buttons/flags. Independent TreeView GUI acceptance passes.",
-  "scope": "Private unchanged MIT PuTTY executable, probed in Chromium and with native dispatch diagnostics. This progress does not establish working PuTTY configuration or networking."
+  "status": "partial",
+  "guiAcceptance": "passed",
+  "exitCode": 0,
+  "compiledBlocks": 7764,
+  "x86TranslationMs": 3562.3200004547834,
+  "checks": [
+    "Native custom-class Configuration dialog selects its Session category",
+    "Typed hostname and saved-session name reach native code",
+    "Save writes a named session and updates the registry-backed ListBox",
+    "Terminal category creates its controls and enumerates zero installed printers",
+    "Returning to Session preserves the hostname",
+    "Native Cancel ends the process with exit code zero"
+  ],
+  "remainingBlockers": [
+    "Other configuration panels are unverified; multi-select and owner-drawn lists, callback text and full common-control coverage are incomplete",
+    "SSH/Telnet connections and terminal rendering are unverified"
+  ],
+  "scope": "Subset acceptance of the unchanged, privately cached MIT PuTTY release in ordinary Chromium. No PuTTY executable is added to the public repository. These GUI interactions do not establish general PuTTY or Windows compatibility."
 }

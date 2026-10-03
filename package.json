@@ -225,7 +225,10 @@
     "build:menus": "sh scripts/build-menus-fixture.sh",
     "test:menus": "node scripts/test-menus-browser.mjs",
     "build:treeview": "sh scripts/build-treeview-fixture.sh",
-    "test:treeview": "node scripts/test-treeview-browser.mjs"
+    "test:treeview": "node scripts/test-treeview-browser.mjs",
+    "build:lists": "sh scripts/build-lists-fixture.sh",
+    "test:lists": "node scripts/test-lists-browser.mjs",
+    "test:putty-gui": "node scripts/test-putty-gui-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

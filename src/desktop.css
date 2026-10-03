@@ -306,3 +306,71 @@
   background: #000080;
   color: white;
 }
+
+.virtual-desktop-control-list {
+  margin: 0;
+  padding: 0;
+  background: white;
+  color: black;
+}
+.virtual-desktop-control-list option {
+  padding: 1px 3px;
+}
+.virtual-desktop-control-combo > select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+}
+.virtual-desktop-control-combo > input {
+  position: absolute;
+  inset: 0 22px 0 0;
+  width: calc(100% - 22px);
+  border: 0;
+  padding: 0 3px;
+  box-sizing: border-box;
+  font: inherit;
+}
+.virtual-desktop-control-combo-simple > input {
+  width: 100%;
+  height: 22px;
+}
+.virtual-desktop-control-combo-simple > select {
+  top: 22px;
+  height: calc(100% - 22px);
+}
+
+.virtual-desktop-control-toggle:not(.virtual-desktop-control-pushlike) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  gap: 4px;
+  line-height: 1;
+}
+.virtual-desktop-control-toggle:not(.virtual-desktop-control-pushlike)::before {
+  content: '';
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  box-sizing: border-box;
+  border: 1px solid #555;
+  background: white;
+  color: black;
+  font: 11px/9px sans-serif;
+  text-align: center;
+}
+.virtual-desktop-control-toggle[role='radio']::before {
+  border-radius: 50%;
+}
+.virtual-desktop-control-toggle[role='radio'][aria-checked='true']::before {
+  background: black;
+  box-shadow: inset 0 0 0 3px white;
+}
+.virtual-desktop-control-toggle[role='checkbox'][aria-checked='true']::before {
+  content: '✓';
+}
+.virtual-desktop-control-toggle[role='checkbox'][aria-checked='mixed']::before {
+  content: '−';
+}

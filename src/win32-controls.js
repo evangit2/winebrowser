@@ -1,4 +1,5 @@
 import { describeGdiFont } from './win32-gdi.js';
+import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
 
 const kinds = new Map([
@@ -6,6 +7,8 @@ const kinds = new Map([
   ['button', 'button'],
   ['edit', 'edit'],
   ['systreeview32', 'treeview'],
+  ['listbox', 'listbox'],
+  ['combobox', 'combobox'],
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
@@ -72,9 +75,14 @@ export function controlStyle(kind, style, extended) {
     if (local & 0x2000 && local & 0x4 && local & 0x1000)
       throw Error('ES_NUMBER with multiline requires ES_AUTOHSCROLL');
   }
+  if (kind === 'combobox' && (![1, 2, 3].includes(local & 3) || local & ~0x6f43))
+    throw Error('Unsupported ComboBox style');
+  if (kind === 'listbox' && local & ~0x1c3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   return {
     ownerDraw,
+    comboType: kind === 'combobox' ? local & 3 : 0,
+    sorted: kind === 'combobox' ? !!(local & 0x100) : kind === 'listbox' && !!(local & 2),
     noWordWrap: kind === 'static' && (local & 0x1f) === 0xc,
     centerImage: kind === 'static' && !!(local & 0x200),
     controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
@@ -86,13 +94,24 @@ export function controlStyle(kind, style, extended) {
     // Layout modifiers a dialog author may rely on for appearance.
     leftText: kind === 'button' && !!(local & 0x20),
     // BS_LEFT(0x100) / BS_RIGHT(0x200) / BS_CENTER(0x300) share the 0x300
-    // field: 0 is left, 0x100 is right, and 0x200 and the combined 0x300 both
-    // mean centred. BS_TOP(0x400) / BS_BOTTOM(0x800) / BS_VCENTER(0xc00) share
-    // 0xc00 the same way with 0 meaning top.
+    // field: left=0x100, right=0x200, center=0x300. Push buttons default
+    // to center; check/radio captions default to left. BS_TOP(0x400) / BS_BOTTOM(0x800) / BS_VCENTER(0xc00) share
+    // 0xc00 with an unset field defaulting to center.
     horizontalAlign:
-      kind === 'button' ? ['left', 'right', 'center', 'center'][(local & 0x300) >> 8] : 'left',
+      kind === 'button'
+        ? [
+            'checkbox',
+            'auto-checkbox',
+            'radio',
+            'auto-radio',
+            'three-state',
+            'auto-three-state',
+          ].includes(buttonType) && !(local & 0x300)
+          ? 'left'
+          : ['center', 'left', 'right', 'center'][(local & 0x300) >> 8]
+        : 'left',
     verticalAlign:
-      kind === 'button' ? ['top', 'top', 'bottom', 'center'][(local & 0xc00) >> 10] : 'top',
+      kind === 'button' ? ['center', 'top', 'bottom', 'center'][(local & 0xc00) >> 10] : 'top',
     pushLike: kind === 'button' && !!(local & 0x1000),
     multilineCaption: kind === 'button' && !!(local & 0x2000),
     notify: kind === 'button' && !!(local & 0x4000),
@@ -141,46 +160,41 @@ async function notify(r, window, notification) {
  */
 function activateButton(r, window) {
   const before = window.checkState ?? 0;
-  if (window.triState) {
+  if (window.triState && window.automatic) {
     // 3-state buttons cycle unchecked -> checked -> indeterminate.
     window.checkState = (before + 1) % 3;
   } else if (window.toggle && window.automatic) {
-    window.checkState = before ? 0 : 1;
+    window.checkState = window.buttonType === 'auto-radio' ? 1 : before ? 0 : 1;
   }
   if (window.checkState !== before) r.windows.emit(window);
   return window.checkState !== before;
 }
 
-/**
- * A radio button being checked clears every other radio button in the same
- * group: the buttons after the preceding group box, up to the next one. This is
- * the documented behaviour and is what a dialog relies on to read a selection.
- */
+// WS_GROUP marks native dialog groups; any sibling class can start a group.
+// A radio click clears both preceding and following radios in that group.
 function clearRadioGroup(r, window) {
-  if (!window.toggle || !window.automatic) return;
-  if (window.buttonType !== 'auto-radio' && window.buttonType !== 'radio') return;
+  if (window.buttonType !== 'auto-radio') return;
   const siblings = [...r.windows.windows.values()].filter(
-    (other) => other.parentId === window.parentId && other.controlType === 'button',
+    (other) => other.parentId === window.parentId,
   );
-  siblings.sort((a, b) => a.zOrder - b.zOrder || a.id - b.id);
-  let inGroup = false;
-  for (const other of siblings) {
-    if (other.id === window.id) {
-      inGroup = true;
-      continue;
-    }
-    if (other.groupBox) {
-      if (inGroup) break;
-      continue;
-    }
-    if (!inGroup) continue;
-    if ((other.buttonType === 'auto-radio' || other.buttonType === 'radio') && other.checkState) {
+  siblings.sort((a, b) => b.zOrder - a.zOrder || a.id - b.id);
+  const at = siblings.indexOf(window);
+  let start = at,
+    end = at + 1;
+  while (start > 0 && !(siblings[start].style & 0x20000)) start--;
+  while (end < siblings.length && !(siblings[end].style & 0x20000)) end++;
+  for (const other of siblings.slice(start, end)) {
+    if (
+      other !== window &&
+      ['radio', 'auto-radio'].includes(other.buttonType) &&
+      other.checkState
+    ) {
       other.checkState = 0;
       r.windows.emit(other);
     }
   }
 }
-export async function controlMessage(r, window, message, wp, lp, fallback) {
+export async function controlMessage(r, window, message, wp, lp, fallback, wide) {
   if (message === 0x30) {
     // WM_SETFONT
     const font = wp ? describeGdiFont(r, wp) : null;
@@ -225,6 +239,8 @@ export async function controlMessage(r, window, message, wp, lp, fallback) {
     return 0;
   }
   if (window.controlType === 'treeview') return treeMessage(r, window, message, wp, lp, fallback);
+  if (['combobox', 'listbox'].includes(window.controlType))
+    return listMessage(r, window, message, wp, lp, fallback, wide);
   const value = await fallback();
   if (message === 0xc && window.ownerDraw && value) r.windows.invalidate(window, null, true);
   if (message === 0xc && window.controlType === 'edit' && value) {
@@ -248,6 +264,8 @@ function applyEditFilters(window, text) {
 // invokes a guest callback concurrently with the running CPU dispatcher.
 export function controlInput(r, window, event) {
   if (!window.controlType || !window.enabled) return false;
+  if (['combobox', 'listbox'].includes(window.controlType) && listInput(r, window, event))
+    return true;
   if (window.controlType === 'treeview' && treeInput(r, window, event)) return true;
   if (event.type === 'command' && window.controlType === 'button') {
     // A click on an automatic button changes its state before the parent is

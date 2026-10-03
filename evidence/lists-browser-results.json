@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-03T20:16:44.004Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "5925c95ab36e819839832cc06190ab173433bb4f5d39af5bd3b1db610474638d",
+  "compiledBlocks": 171,
+  "checks": [
+    "Native system-path winspool.drv resolves EnumPrinters and reports zero installed queues with correct seven-argument ABI",
+    "Native SendDlgItemMessageA/W five-argument stack cleanup",
+    "Sorted ListBox strings preserve selected identity and item data",
+    "Unicode text round trip through ANSI ComboBox via SendDlgItemMessageW",
+    "Mouse ListBox and dropdown ComboBox selections dispatch native WM_COMMAND",
+    "Editable and simple ComboBox text/selection reach the guest",
+    "Native checkbox indicators and WS_GROUP radio exclusivity in both directions",
+    "Programmatic selection sends no user notifications; close exits zero"
+  ],
+  "scope": "Native single-select string controls in ordinary Chromium. Owner-drawn and multi-select lists, dropdown-opening messages, tab stops and full common-control coverage remain incomplete."
+}

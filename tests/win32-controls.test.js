@@ -576,7 +576,7 @@ test('the BUTTON family models check state, radio groups and group boxes', async
 
   // Radio buttons in one group are mutually exclusive, and checking one clears
   // the others, so a dialog reading the group sees exactly one selection.
-  const group = await create(0x7, 'Group', 63);
+  const group = await create(0x20007, 'Group', 63);
   const radioA = await create(0x9, 'A', 64);
   const radioB = await create(0x9, 'B', 65);
   await send(radioA.result, 0xf5);
@@ -584,8 +584,13 @@ test('the BUTTON family models check state, radio groups and group boxes', async
   await send(radioB.result, 0xf5);
   assert.equal(await check(radioB.result), 1);
   assert.equal(await check(radioA.result), 0, 'the previously checked radio was cleared');
-  // A group box after them starts a new group.
-  const second = await create(0x7, 'Second', 66);
+  await send(radioA.result, 0xf5);
+  assert.equal(await check(radioB.result), 0, 'preceding radio clears following radio too');
+  await send(radioA.result, 0xf5);
+  assert.equal(await check(radioA.result), 1, 'checked automatic radio remains checked');
+  await send(radioB.result, 0xf5);
+  // WS_GROUP on the following group box starts a new native group.
+  const second = await create(0x20007, 'Second', 66);
   const radioC = await create(0x9, 'C', 67);
   await send(radioC.result, 0xf5);
   assert.equal(await check(radioB.result), 1, 'the earlier group is unaffected');
@@ -645,9 +650,9 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
 
   // The 0x300 field picks the horizontal alignment; the 0xc00 field the vertical.
   const horizontal = new Map([
-    [0x000, 'left'],
-    [0x100, 'right'],
-    [0x200, 'center'],
+    [0x000, 'center'],
+    [0x100, 'left'],
+    [0x200, 'right'],
     [0x300, 'center'],
   ]);
   for (const [bits, expected] of horizontal) {
@@ -658,7 +663,7 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
     );
   }
   const vertical = new Map([
-    [0x000, 'top'],
+    [0x000, 'center'],
     [0x400, 'top'],
     [0x800, 'bottom'],
     [0xc00, 'center'],
@@ -690,6 +695,6 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
   assert.equal(publish(bitmap.result).icon, false);
   // A push button's default alignment is preserved when no bits are set.
   const plain = publish((await create(0)).result);
-  assert.equal(plain.horizontalAlign, 'left');
-  assert.equal(plain.verticalAlign, 'top');
+  assert.equal(plain.horizontalAlign, 'center');
+  assert.equal(plain.verticalAlign, 'center');
 });

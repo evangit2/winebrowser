@@ -190,7 +190,7 @@ export class VirtualDesktop {
     this.syncingFocus = true;
     try {
       if (window.isControl) {
-        if (focusElement) window.element.focus({ preventScroll: true });
+        if (focusElement) (window.listEdit ?? window.element).focus({ preventScroll: true });
       } else this.container.focus({ preventScroll: true });
     } finally {
       this.syncingFocus = false;
@@ -567,10 +567,10 @@ export class VirtualDesktop {
     const parent = this.windows.get(state.parentId);
     if (!parent) throw new Error(`Child control ${state.id} references an unknown parent window`);
     const controlType = state.controlType;
-    if (!['static', 'button', 'edit', 'treeview'].includes(controlType))
+    if (!['static', 'button', 'edit', 'treeview', 'combobox', 'listbox'].includes(controlType))
       throw new Error(`Unsupported child control type: ${controlType}`);
 
-    let element, legend, canvas;
+    let element, legend, canvas, listSelect, listEdit;
     if (controlType === 'button') {
       const buttonType = state.controlStyle?.buttonType ?? 'push';
       // A group box is a labelled frame, not a clickable control.
@@ -593,6 +593,31 @@ export class VirtualDesktop {
             this.#emit(control.id, 'command', { notification: 0 });
         });
       }
+    } else if (['combobox', 'listbox'].includes(controlType)) {
+      const comboType = state.list?.comboType ?? 0;
+      listSelect = document.createElement('select');
+      listSelect.setAttribute(
+        'aria-label',
+        state.title || (controlType === 'listbox' ? 'List' : 'Choices'),
+      );
+      listSelect.addEventListener('change', () =>
+        this.#emit(control.id, 'list-select', { index: listSelect.selectedIndex }),
+      );
+      if (controlType === 'combobox' && comboType !== 3) {
+        element = document.createElement('div');
+        listEdit = document.createElement('input');
+        listEdit.type = 'text';
+        listEdit.autocomplete = 'off';
+        listEdit.setAttribute('aria-label', state.title || 'Value');
+        listEdit.addEventListener('input', () =>
+          this.#emit(control.id, 'list-text', { text: listEdit.value }),
+        );
+        element.append(listSelect, listEdit);
+      } else element = listSelect;
+      element.className =
+        'virtual-desktop-control virtual-desktop-control-list' +
+        (controlType === 'combobox' ? ' virtual-desktop-control-combo' : '');
+      if (comboType === 1) element.classList.add('virtual-desktop-control-combo-simple');
     } else if (controlType === 'treeview') {
       element = document.createElement('div');
       element.className = 'virtual-desktop-control virtual-desktop-control-tree';
@@ -628,7 +653,7 @@ export class VirtualDesktop {
       event.stopPropagation();
       this.#focus(control);
     });
-    element.addEventListener('focus', () => this.#focus(control));
+    element.addEventListener('focusin', () => this.#focus(control));
     element.addEventListener('mousemove', (event) => this.#sendMouse(control, 'mousemove', event));
     for (const type of ['keydown', 'keyup'])
       element.addEventListener(type, (event) => {
@@ -661,6 +686,8 @@ export class VirtualDesktop {
       parent,
       element,
       legend,
+      listSelect,
+      listEdit,
       canvas,
       context: canvas?.getContext('2d', { alpha: false }),
       container,
@@ -676,6 +703,30 @@ export class VirtualDesktop {
     parent.viewport.prepend(container);
     this.#applyControlState(control, state);
     return control;
+  }
+
+  #applyList(control, list) {
+    const select = control.listSelect;
+    const previous = control.listState;
+    if (!previous || JSON.stringify(previous.items) !== JSON.stringify(list.items)) {
+      const fragment = document.createDocumentFragment();
+      for (const item of list.items) {
+        const option = document.createElement('option');
+        option.value = String(item.id);
+        option.textContent = item.text;
+        fragment.append(option);
+      }
+      select.replaceChildren(fragment);
+    }
+    select.selectedIndex = list.selected;
+    if (control.controlType === 'listbox' || list.comboType === 1)
+      select.size = Math.max(
+        2,
+        Math.floor((control.height - (list.comboType === 1 ? 22 : 0)) / list.itemHeight),
+      );
+    select.disabled = !control.enabled;
+    if (control.listEdit) control.listEdit.disabled = !control.enabled;
+    control.listState = list;
   }
 
   #applyTree(control, tree) {
@@ -737,6 +788,9 @@ export class VirtualDesktop {
       if (control.controlType === 'edit') {
         // Avoid disrupting caret selection during incremental WM_SETTEXT echo.
         if (control.element.value !== control.titleText) control.element.value = control.titleText;
+      } else if (['listbox', 'combobox'].includes(control.controlType)) {
+        if (control.listEdit && control.listEdit.value !== control.titleText)
+          control.listEdit.value = control.titleText;
       } else if (control.controlType === 'treeview') {
         control.element.setAttribute('aria-label', control.titleText || 'Categories');
       } else if (control.canvas) {
@@ -790,6 +844,16 @@ export class VirtualDesktop {
       control.buttonType = style.buttonType ?? control.buttonType;
       control.toggle = !!style.toggle || !!style.triState;
       control.triState = !!style.triState;
+      control.element.dataset.buttonType = control.buttonType;
+      if (control.toggle && !style.pushLike)
+        control.element.setAttribute(
+          'role',
+          control.buttonType.includes('radio') ? 'radio' : 'checkbox',
+        );
+      else control.element.removeAttribute('role');
+      if (control.toggle && !style.pushLike)
+        control.element.setAttribute('aria-label', stripCaptionMnemonics(control.titleText ?? ''));
+      else control.element.removeAttribute('aria-label');
       // The native control reports a three-state button's indeterminate state
       // through aria-checked="mixed"; a checkbox uses the checked attribute.
       if (control.toggle) {
@@ -846,6 +910,7 @@ export class VirtualDesktop {
       if (multiline)
         control.element.style.whiteSpace = state.controlStyle?.autoHScroll ? 'pre' : 'pre-wrap';
     }
+    if (state.list && control.listSelect) this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
 
