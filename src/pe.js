@@ -92,7 +92,6 @@ export function parsePE(bytes, options = {}) {
   }
   // A declared directory that does not fit the optional header is malformed.
   if (directoryCount > availableDirectories) fail('data directory table exceeds optional header');
-  if (directories[13]?.rva || directories[13]?.size) fail('delay imports are unsupported');
   if (!imageBase || imageBase % 0x1000 !== 0 || imageBase < MIN_IMAGE_BASE)
     fail('image base is outside the supported mapping range');
   if (
@@ -334,6 +333,81 @@ export function parsePE(bytes, options = {}) {
     }
     if (!terminated) fail('import descriptor table has no terminator');
   }
+  // Delay IATs initially point to the executable's own lazy thunks. Validate
+  // their metadata, but leave the guest helper in charge of loading, hooks,
+  // failure handling and slot updates; optional DLLs are not startup roots.
+  const delayImports = [],
+    delayDescriptors = [];
+  const delayDir = directories[13];
+  if (delayDir?.rva || delayDir?.size) {
+    if (!delayDir.rva || delayDir.size < 32) fail('invalid delay import directory');
+    const directory = rvaToOffset(delayDir.rva, delayDir.size, 'delay import directory');
+    const limit = Math.min(Math.floor(delayDir.size / 32), 4096);
+    let terminated = false;
+    // MinGW's delay directory size excludes its trailing null descriptor.
+    // Permit that one extra terminator only within checked mapped image bytes.
+    for (let d = 0; d <= limit; d++) {
+      rvaToOffset(delayDir.rva + d * 32, 32, 'delay descriptor');
+      const p = directory + d * 32;
+      const fields = Array.from({ length: 8 }, (_, i) =>
+        u32(imageView, imageBytes, p + i * 4, 'delay descriptor'),
+      );
+      if (fields.every((value) => value === 0)) {
+        terminated = true;
+        break;
+      }
+      if (d === limit) fail('delay import descriptor table has no terminator');
+      const [attributes, name, moduleHandle, iat, int, boundIat, unloadIat, timestamp] = fields;
+      if (attributes & ~1) fail('invalid delay import attributes');
+      const asRva = (value, label) => {
+        if (!(attributes & 1)) {
+          if (value < imageBase) fail(`${label} VA is outside image`);
+          value -= imageBase;
+        }
+        rvaToOffset(value, 1, label);
+        return value;
+      };
+      if (!name || !moduleHandle || !iat || !int) fail('malformed delay import descriptor');
+      const nameRva = asRva(name, 'delay DLL name'),
+        moduleHandleRva = asRva(moduleHandle, 'delay module handle'),
+        iatRva = asRva(iat, 'delay address table'),
+        intRva = asRva(int, 'delay lookup table');
+      rvaToOffset(moduleHandleRva, 4, 'delay module handle');
+      const dll = readAsciiRva(nameRva, 'delay DLL name');
+      let count = 0;
+      while (true) {
+        if (count > 65536 || delayImports.length > 65536)
+          fail('delay import table exceeds supported limits');
+        const lookup = rvaToOffset(intRva + count * 4, 4, 'delay import thunk');
+        const value = u32(imageView, imageBytes, lookup, 'delay import thunk value');
+        const slotRva = iatRva + count * 4;
+        rvaToOffset(slotRva, 4, 'delay address table slot');
+        if (!value) break;
+        delayImports.push(
+          value & 0x80000000
+            ? { dll, ordinal: value & 0xffff, iatRva: slotRva }
+            : { dll, name: readImportName(asRva(value, 'delay hint/name')), iatRva: slotRva },
+        );
+        count++;
+      }
+      for (const [value, label] of [
+        [boundIat, 'delay bound table'],
+        [unloadIat, 'delay unload table'],
+      ])
+        if (value) rvaToOffset(asRva(value, label), (count + 1) * 4, label);
+      delayDescriptors.push({
+        dll,
+        descriptorRva: delayDir.rva + d * 32,
+        attributes,
+        moduleHandleRva,
+        iatRva,
+        intRva,
+        count,
+        timestamp,
+      });
+    }
+    if (!terminated) fail('delay import descriptor table has no terminator');
+  }
   const exports = [];
   const exportDir = directories[0];
   if (Boolean(exportDir?.rva) !== Boolean(exportDir?.size)) fail('invalid export directory');
@@ -436,6 +510,8 @@ export function parsePE(bytes, options = {}) {
     isDll,
     sections,
     imports,
+    delayImports,
+    delayDescriptors,
     exports,
     relocations,
     tls,

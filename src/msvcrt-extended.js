@@ -5,6 +5,7 @@
 // from Wine's own dlls/msvcrt/ctype.c (see scripts/build-msvcrt-ctype.py), so
 // isalpha and friends answer from the table the real msvcrt.dll exports.
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
+import { environmentEntries } from './guest-environment.js';
 import { fileMetadata, touchFile } from './file-metadata.js';
 import { encodeAnsi } from './encoding.js';
 import { CTYPE_TABLE, WCTYPE_TABLE } from './msvcrt-ctype.js';
@@ -640,12 +641,9 @@ function mbsNextC(r, a) {
 // The environment. The runtime's Win32 environment is the single source: the
 // ANSI and wide vectors are built from the same entries, and _environ/_wenviron
 // keep one stable address as a char**/wchar_t**.
-function environmentEntries(r) {
-  return ['=C:=C:\\', 'PATH=C:\\'];
-}
 function environmentVector(r, wide) {
   return cell(r, wide ? '_environ_w' : '_environ', (rt) => {
-    const strings = environmentEntries(rt).map((entry) => rt.allocString(entry, wide));
+    const strings = environmentEntries(rt, wide).map((entry) => rt.allocString(entry, wide));
     const table = rt.allocate((strings.length + 1) * 4);
     strings.forEach((address, index) => rt.write32(table + index * 4, address));
     return table;
@@ -1535,7 +1533,7 @@ function putenvS(r, a, wide) {
   return ok(0, 2);
 }
 function applyEnvironment(r, entry, wide) {
-  r.environment ??= { ansi: ['=C:=C:\\', 'PATH=C:\\'], wide: ['=C:=C:\\', 'PATH=C:\\'] };
+  environmentEntries(r, wide);
   const key = entry
     .slice(0, entry.indexOf('=') < 0 ? entry.length : entry.indexOf('='))
     .toUpperCase();

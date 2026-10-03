@@ -205,7 +205,9 @@
     "build:dx12-city": "python3 scripts/build-microsoft-dx12-city.py",
     "test:dx12-city": "node scripts/test-microsoft-dx12-city-browser.mjs",
     "build:file-locks": "sh scripts/build-file-lock-fixture.sh",
-    "test:file-locks": "node scripts/test-file-locks-browser.mjs"
+    "test:file-locks": "node scripts/test-file-locks-browser.mjs",
+    "build:delay-imports": "sh scripts/build-delay-import-fixtures.sh",
+    "test:delay-imports": "node scripts/test-delay-imports-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

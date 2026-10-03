@@ -20,6 +20,7 @@ TARGETS = {
     "kernelbase.dll": "dlls/kernelbase/i386-windows/kernelbase.dll",
     "kernel32.dll": "dlls/kernel32/i386-windows/kernel32.dll",
     "msvcrt.dll": "dlls/msvcrt/i386-windows/msvcrt.dll",
+    "msvcp60.dll": "dlls/msvcp60/i386-windows/msvcp60.dll",
     "msacm32.dll": "dlls/msacm32/i386-windows/msacm32.dll",
     "ucrtbase.dll": "dlls/ucrtbase/i386-windows/ucrtbase.dll",
     "vcruntime140.dll": "dlls/vcruntime140/i386-windows/vcruntime140.dll",

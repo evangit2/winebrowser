@@ -75,6 +75,7 @@ jobs:
           npm run test:installer-apis
           npm run test:api-sets
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:file-locks
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:delay-imports
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:sqlite
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:cpp-runtime
           npm run test:x87-remainder

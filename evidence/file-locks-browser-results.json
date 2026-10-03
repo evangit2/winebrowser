@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T00:33:52.672Z",
-  "url": "http://127.0.0.1:4352/winebrowser/",
+  "date": "2026-10-03T01:08:41.260Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "normalChromium": true,
   "exeSha256": "55d671b6b5c7192d226e16353b1689d3c8fff8a8b2029df2eb18898bf7941509",
@@ -225,10 +225,10 @@
         "instructions": 143345,
         "compiledBlocks": 2299,
         "totalCompiledBlocks": 2299,
-        "x86TranslationMs": 950.3499997481704,
+        "x86TranslationMs": 642.2149998098612,
         "wasmBytes": 1864391,
         "apiCalls": 140,
-        "elapsedMs": 1143.820000000298,
+        "elapsedMs": 770.5499999970198,
         "outputs": [],
         "deletedFiles": [
           "locked.bin"
@@ -458,10 +458,10 @@
         "instructions": 144515,
         "compiledBlocks": 2299,
         "totalCompiledBlocks": 2299,
-        "x86TranslationMs": 1015.4649998471141,
+        "x86TranslationMs": 609.4349997341633,
         "wasmBytes": 1864391,
         "apiCalls": 140,
-        "elapsedMs": 1255.530000001192,
+        "elapsedMs": 722.8300000056624,
         "outputs": [],
         "deletedFiles": [
           "app/locked.bin"

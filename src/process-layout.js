@@ -1,5 +1,6 @@
 import { processCommandLine } from './command-line.js';
 import { packageDosPath } from './guest-paths.js';
+import { allocateEnvironmentBlock } from './guest-environment.js';
 
 // Process-owned addresses in the fixed 64 MiB PE32 address space. Wine i386
 // places a 0x800-byte debug_info immediately after its 0x1000-byte TEB; keep
@@ -41,7 +42,7 @@ export function initializeProcessLayout(runtime) {
     runtime.guestMemory.write(parameters + offset + 2, (value.length + 1) * 2, 2);
     runtime.write32(parameters + offset + 4, buffer);
   }
-  runtime.write32(parameters + 0x48, runtime.allocate(4)); // empty UTF-16 environment
+  runtime.write32(parameters + 0x48, allocateEnvironmentBlock(runtime));
   runtime.write32(peb + 0x10, parameters);
 }
 

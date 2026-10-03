@@ -1,6 +1,7 @@
 import { PROCESS_LAYOUT } from './process-layout.js';
 import { processCommandLine } from './command-line.js';
 import { packageDosPath } from './guest-paths.js';
+import { allocateEnvironmentBlock } from './guest-environment.js';
 
 // PE32 offsets from Wine 11's winternl.h. Wine creates and owns the variable
 // length RTL_USER_PROCESS_PARAMETERS allocation; only its PEB pointer is ours.
@@ -54,9 +55,7 @@ export async function initializeWineParameters(runtime, module, heap, heapExport
     if (currentDirectory.length >= 260) throw Error('Wine current directory exceeds MAX_PATH');
     const directory = string(currentDirectory);
     const commandLine = string(processCommandLine(runtime));
-    // An isolated process starts with an empty UTF-16 environment. Never copy
-    // browser/host process variables.
-    const environment = allocate(4);
+    const environment = allocateEnvironmentBlock(runtime, allocate);
     const status = await runtime.callGuest(createParameters, [
       result,
       image,
@@ -90,7 +89,7 @@ export async function initializeWineParameters(runtime, module, heap, heapExport
     // must not be passed to RtlFreeHeap; retain it via the old-environment output.
     const environmentResult = allocate(4);
     const oldEnvironment = allocate(4);
-    const environmentStatus = await runtime.callGuest(createEnvironment, [0, environmentResult]);
+    const environmentStatus = await runtime.callGuest(createEnvironment, [1, environmentResult]);
     if (environmentStatus)
       throw Error(`Wine environment creation failed: 0x${environmentStatus.toString(16)}`);
     const processEnvironment = runtime.read32(environmentResult);

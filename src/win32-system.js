@@ -2,6 +2,7 @@
 // Win32 applications import. Everything answers from the runtime's own model:
 // mapped guest modules, the virtual filesystem, and the per-thread TEB.
 import { listPEResources, readPEResource } from './pe-resources.js';
+import { environmentEntries } from './guest-environment.js';
 import { resolveGuestPath, packageDosPath } from './guest-paths.js';
 import { encodeAnsi } from './encoding.js';
 import { fileMetadata } from './file-metadata.js';
@@ -680,8 +681,7 @@ function getSystemDirectory(r, a, wide) {
 // walks that vector rather than keeping a second copy.
 export function lookupEnvironment(r, name) {
   const key = name.toUpperCase();
-  const list = r.environment?.wide ?? r.environment?.ansi ?? [];
-  const entries = list.length ? list : ['=C:=C:\\', 'PATH=C:\\'];
+  const entries = environmentEntries(r, true);
   for (const entry of entries) {
     const at = entry.indexOf('=');
     if (at <= 0) continue;
@@ -978,7 +978,7 @@ function setEnvironmentVariable(r, a, wide) {
   const name = (wide ? r.wideString(a(0)) : r.string(a(0))) || '';
   if (!name || name.includes('=')) return fail(r, 87, 2);
   const value = a(1) ? (wide ? r.wideString(a(1)) : r.string(a(1))) : null;
-  r.environment ??= { ansi: ['=C:=C:\\', 'PATH=C:\\'], wide: ['=C:=C:\\', 'PATH=C:\\'] };
+  environmentEntries(r, wide);
   const key = name.toUpperCase();
   for (const kind of wide ? ['wide'] : ['ansi']) {
     const list = r.environment[kind];
