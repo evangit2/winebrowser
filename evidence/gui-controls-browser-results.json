@@ -1,17 +1,18 @@
 {
-  "date": "2026-10-03T23:47:02.779Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-03T23:49:19.742Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
-  "exeSha256": "5f927ed745444f06348090e262565e578b399555bc69ed4f62cab91124fd4dc7",
+  "exeSha256": "b1ca162ed96f13500c03565dfc2797e9b57de09f54264c45d4be959148070b36",
   "exitCode": 0,
-  "compiledBlocks": 227,
-  "x86TranslationMs": 108.61999997496605,
+  "compiledBlocks": 252,
+  "x86TranslationMs": 53.39000006020069,
   "checks": [
     "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
     "Tree category, sorted list, editable combo, checkbox and radio interactions",
     "Native registered child canvas, nested button command, independent GDI repaint and mouse callback",
     "Public priorities list reorders through native COMCTL32 drag callbacks; Escape cancels and Reset restores order",
+    "Native tabs switch priorities/notes visibility; edited notes and priority order survive switching pages",
     "Native menu Reset restores control state; close exits zero",
     "Public source/license ZIP package runs and Stop removes its window"
   ],

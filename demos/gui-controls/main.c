@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 WineBrowser contributors. MIT license: see LICENSE. */
 #include <windows.h>
 #include <commctrl.h>
-static HWND tree, items, combo, status, canvas, priorities;
+static HWND tree, items, combo, status, canvas, priorities, pages, notes;
 static HTREEITEM root, first;
 static HFONT font;
 static UINT drag_message;
@@ -43,9 +43,18 @@ static void reset(HWND window) {
   CheckDlgButton(window,30,BST_UNCHECKED);CheckRadioButton(window,31,32,31);
   SetWindowLongA(canvas,GWL_USERDATA,0);InvalidateRect(canvas,NULL,TRUE);
   reset_priorities();
+  TabCtrl_SetCurSel(pages,0);ShowWindow(priorities,SW_SHOW);ShowWindow(notes,SW_HIDE);
   TreeView_SelectItem(tree,first);say("Choose a category, list item or option.");
 }
 static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
+  if(message==WM_NOTIFY && ((NMHDR*)lp)->hwndFrom==pages) {
+    if(((NMHDR*)lp)->code==TCN_SELCHANGE) {
+      int page=TabCtrl_GetCurSel(pages);
+      ShowWindow(priorities,page==0?SW_SHOW:SW_HIDE);ShowWindow(notes,page==1?SW_SHOW:SW_HIDE);
+      say(page==0?"Drag priorities to reorder; Escape cancels.":"Notes: native edit text stays when you switch tabs.");
+    }
+    return 0;
+  }
   if(message==drag_message) {
     DRAGLISTINFO *drag=(DRAGLISTINFO*)lp;
     if(drag->hWnd!=priorities)return 0;
@@ -106,7 +115,7 @@ static HTREEITEM category(HTREEITEM parent,const char *text,LPARAM param) {
 }
 void start(void) {
   HINSTANCE instance=GetModuleHandleA(NULL);
-  INITCOMMONCONTROLSEX init={sizeof(init),ICC_TREEVIEW_CLASSES};InitCommonControlsEx(&init);
+  INITCOMMONCONTROLSEX init={sizeof(init),ICC_TREEVIEW_CLASSES|ICC_TAB_CLASSES};InitCommonControlsEx(&init);
   WNDCLASSA cls={0};cls.hInstance=instance;cls.lpfnWndProc=proc;cls.lpszClassName="GuiControlsDemo";cls.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1);cls.hCursor=LoadCursorA(NULL,IDC_ARROW);
   if(!RegisterClassA(&cls))ExitProcess(1);
   WNDCLASSA custom={0};custom.hInstance=instance;custom.lpfnWndProc=canvas_proc;
@@ -128,9 +137,12 @@ void start(void) {
   child(window,instance,"BUTTON","Reset controls",BS_PUSHBUTTON,344,168,144,28,40);
   canvas=child(window,instance,custom.lpszClassName,"Custom canvas",WS_BORDER,172,210,316,50,50);
   child(canvas,instance,"BUTTON","Change",BS_PUSHBUTTON,224,8,80,28,51);
-  child(window,instance,"STATIC","Drag priorities; Escape cancels",SS_LEFTNOWORDWRAP,172,272,316,20,60);
-  priorities=child(window,instance,"LISTBOX","Priorities",WS_BORDER|LBS_NOTIFY|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,296,316,94,61);
-  if(!tree||!items||!combo||!status||!canvas||!priorities)ExitProcess(3);
+  pages=child(window,instance,WC_TABCONTROLA,"Priority pages",TCS_FIXEDWIDTH,172,270,316,30,60);
+  priorities=child(window,instance,"LISTBOX","Priorities",WS_BORDER|LBS_NOTIFY|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,306,316,84,61);
+  notes=child(window,instance,"EDIT","Type notes here. Switching tabs preserves your text.",WS_BORDER|ES_MULTILINE|ES_AUTOVSCROLL|ES_WANTRETURN,172,306,316,84,62);
+  if(!tree||!items||!combo||!status||!canvas||!priorities||!pages||!notes)ExitProcess(3);
+  TCITEMA tab={0};tab.mask=TCIF_TEXT;tab.pszText="Priorities";TabCtrl_InsertItem(pages,0,&tab);
+  tab.pszText="Notes";TabCtrl_InsertItem(pages,1,&tab);
   if(!MakeDragList(priorities))ExitProcess(4);
   root=category(TVI_ROOT,"Controls",0);first=category(root,"Tree view",1);category(root,"List box",2);category(root,"Combo box",3);TreeView_Expand(tree,root,TVE_EXPAND);
   SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Alpha");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Beta");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Gamma");

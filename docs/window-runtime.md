@@ -42,6 +42,7 @@ Pages example picker, with source, license and a standalone MinGW build script.
 The source archive reproduces the published PE32 executable byte for byte. Its
 browser acceptance covers tree/list/combo interaction, check/radio state, a
 registered GDI child canvas with nested-button repaint and mouse input, draggable
-priority reordering and Escape cancellation, menu Reset, close and ZIP/Stop cleanup. See [the acceptance record](../evidence/gui-controls-browser-results.json).
+priority reordering and Escape cancellation, native Priorities/Notes tabs with
+retained edit text and list order, menu Reset, close and ZIP/Stop cleanup. See [the acceptance record](../evidence/gui-controls-browser-results.json).
 
 `node scripts/test-custom-child-browser.mjs` uploads a native EXE and companion DLL whose registered child-window procedure paints independent surfaces and receives nested button, resize, mouse/double-click, context-menu, wheel and keyboard messages. The EXE subclasses one child while its sibling retains the original DLL procedure. The test verifies visibility, enabled state, native destruction and invalid HWND/DC cleanup; see [the acceptance record](../evidence/custom-child-browser-results.json). Wheel messages use screen coordinates and default handling forwards them to the parent; captured pointer messages convert coordinates between client areas. These are bounded native contracts, not general GUI framework acceptance.

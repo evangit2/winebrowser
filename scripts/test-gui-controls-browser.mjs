@@ -107,6 +107,21 @@ try {
   await status.getByText('Drag cancelled; priority order is unchanged.', { exact: true }).waitFor();
   await page.mouse.up();
   await order(reordered);
+  const pages = window.getByRole('tablist', { name: 'Priority pages', exact: true });
+  await pages.getByRole('tab', { name: 'Notes', exact: true }).click();
+  await status
+    .getByText('Notes: native edit text stays when you switch tabs.', { exact: true })
+    .waitFor();
+  await expect(priorities).toBeHidden();
+  const notes = window.locator('textarea[data-control-id="62"]');
+  await notes.fill('Notes saved in native edit state.');
+  await pages.getByRole('tab', { name: 'Priorities', exact: true }).click();
+  await status.getByText('Drag priorities to reorder; Escape cancels.', { exact: true }).waitFor();
+  await expect(notes).toBeHidden();
+  await order(reordered);
+  await pages.getByRole('tab', { name: 'Notes', exact: true }).click();
+  await expect(notes).toBeVisible();
+  assert.equal(await notes.inputValue(), 'Notes saved in native edit state.');
   await window.getByRole('menuitem', { name: 'Demo', exact: true }).click();
   await window.getByRole('menuitem', { name: 'Reset', exact: true }).click();
   await status.getByText(reset, { exact: true }).waitFor();
@@ -149,6 +164,7 @@ try {
       'Tree category, sorted list, editable combo, checkbox and radio interactions',
       'Native registered child canvas, nested button command, independent GDI repaint and mouse callback',
       'Public priorities list reorders through native COMCTL32 drag callbacks; Escape cancels and Reset restores order',
+      'Native tabs switch priorities/notes visibility; edited notes and priority order survive switching pages',
       'Native menu Reset restores control state; close exits zero',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
