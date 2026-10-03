@@ -140,6 +140,49 @@ test('NT sharing and append-only access are enforced across file handles', () =>
   assert.equal(call(r, 'NtSetInformationFile', [append, status, buffer, 8, 20]), 0xc0000022);
 });
 
+test('backup-intent metadata opens report real files and package directories without granting data access', () => {
+  const { r } = fixture();
+  r.files.set('nested/asset.bin', new Uint8Array([1, 2, 3]));
+  const out = r.allocate(4),
+    status = io(r),
+    info = r.allocate(80);
+  for (const path of ['data.bin', 'nested', '']) {
+    const attrs = fileAttributes(r, '\\??\\C:\\winebrowser\\' + path);
+    assert.equal(call(r, 'NtOpenFile', [out, 0x100080, attrs, status, 7, 0x4020]), 0, path);
+    const handle = r.read32(out);
+    assert.equal(r.read32(status + 4), 1);
+    assert.equal(call(r, 'NtQueryInformationFile', [handle, status, info, 72, 68]), 0);
+    assert.equal(r.read32(info + 56), path === 'data.bin' ? 0x20 : 0x10);
+    assert.equal(r.view.getBigInt64(info + 48, true), path === 'data.bin' ? 6n : 0n);
+    assert.equal(call(r, 'NtQueryInformationFile', [handle, status, info, 24, 5]), 0);
+    assert.equal(r.data[info + 21], Number(path !== 'data.bin'));
+    assert.equal(
+      call(r, 'NtReadFile', [handle, 0, 0, 0, status, info, 1, 0, 0]),
+      path === 'data.bin' ? 0xc0000022 : 0xc00000ba,
+    );
+    assert.equal(
+      call(r, 'NtWriteFile', [handle, 0, 0, 0, status, info, 1, 0, 0]),
+      path === 'data.bin' ? 0xc0000022 : 0xc00000ba,
+    );
+    assert.equal(call(r, 'NtQueryVolumeInformationFile', [handle, status, info, 8, 4]), 0);
+    assert.equal(r.read32(info), 7);
+    assert.equal(call(r, 'NtClose', [handle]), 0);
+  }
+  const file = fileAttributes(r, '\\??\\C:\\winebrowser\\data.bin');
+  const dir = fileAttributes(r, '\\??\\C:\\winebrowser\\nested');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100080, file, status, 7, 0x4021]), 0xc0000103);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100080, dir, status, 7, 0x4060]), 0xc00000ba);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100080, dir, status, 7, 0x4061]), 0xc000000d);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x80100080, dir, status, 7, 0x4021]), 0);
+  assert.equal(call(r, 'NtReadFile', [r.read32(out), 0, 0, 0, status, info, 1, 0, 0]), 0xc00000ba);
+  assert.equal(call(r, 'NtClose', [r.read32(out)]), 0);
+  assert.equal(
+    r.files.has('nested'),
+    false,
+    'metadata opens cannot manufacture a file in place of a directory',
+  );
+});
+
 test('Win32 and NT paths and share modes refer to the same isolated package files', () => {
   const { r } = fixture();
   r.handles.clear();
@@ -631,7 +674,7 @@ test('native directory handles enumerate exact/wildcard names and close without 
     call(r, 'NtQueryDirectoryFile', [handle, 0, 0, 0, status, buf, 512, 63, 0, 0, 0]),
     0x80000006,
   );
-  assert.equal(call(r, 'NtReadFile', [handle, 0, 0, 0, status, buf, 1, 0, 0]), 0xc0000008);
+  assert.equal(call(r, 'NtReadFile', [handle, 0, 0, 0, status, buf, 1, 0, 0]), 0xc00000ba);
   assert.equal(
     call(r, 'NtQueryDirectoryFile', [handle, 0, 0, 0, status, buf, 8, 63, 0, mask, 1]),
     0xc0000023,

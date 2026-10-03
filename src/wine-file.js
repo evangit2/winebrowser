@@ -84,11 +84,14 @@ function create(runtime, argument) {
     disposition === 0
   )
     return complete(NOT_SUPPORTED);
+  if (options & 1 && options & 0x40) return complete(INVALID_PARAMETER);
   if (options & 0x1000 && !(access & 0x10000)) return complete(ACCESS_DENIED);
   if (!(access & 0x100000)) return complete(INVALID_PARAMETER);
-  const named = objectPath(runtime, argument(2), !!(options & 1));
+  const named = objectPath(runtime, argument(2), true);
   if (named.status) return complete(named.status);
-  if (options & 1) {
+  const metadata = fileMetadata(runtime, named.path);
+  if (metadata.directory && options & 0x40) return complete(0xc00000ba);
+  if (options & 1 || metadata.directory) {
     if (runtime.handles.size >= 4096) return complete(0xc000009a);
     if (![1, 2, 3].includes(disposition) || options & 0x1040 || argument(5) & ~0x90)
       return complete(NOT_SUPPORTED);
@@ -177,9 +180,10 @@ function create(runtime, argument) {
 function information(runtime, argument, set) {
   const complete = iosb(runtime, argument(1));
   if (!complete) return ACCESS_VIOLATION;
-  const opened = regular(runtime, argument(0));
+  const opened = regular(runtime, argument(0)) ?? directoryHandle(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   const kind = argument(4) >>> 0;
+  if (opened.kind === 'file-directory' && set && kind !== 4) return complete(NOT_SUPPORTED);
   if (set && kind === 4) {
     if (argument(3) < 40) return complete(0xc0000004);
     if (!checked(runtime, argument(2), 40)) return complete(ACCESS_VIOLATION);
@@ -281,10 +285,11 @@ function information(runtime, argument, set) {
   runtime.data.fill(0, buffer, buffer + size);
   if (kind === 14) runtime.view.setBigInt64(buffer, BigInt(opened.position), true);
   else {
-    runtime.view.setBigInt64(buffer, BigInt(Math.ceil(bytes.length / 4096) * 4096), true);
-    runtime.view.setBigInt64(buffer + 8, BigInt(bytes.length), true);
+    runtime.view.setBigInt64(buffer, BigInt(Math.ceil((bytes?.length ?? 0) / 4096) * 4096), true);
+    runtime.view.setBigInt64(buffer + 8, BigInt(bytes?.length ?? 0), true);
     runtime.write32(buffer + 16, 1); // one link
     runtime.data[buffer + 20] = Number(runtime.pendingFileDeletes?.has(opened.path) ?? false);
+    runtime.data[buffer + 21] = Number(opened.kind === 'file-directory');
   }
   return complete(SUCCESS, size);
 }
@@ -329,6 +334,11 @@ function regular(runtime, handle) {
   return opened && runtime.files.has(opened.path) ? opened : null;
 }
 
+function directoryHandle(runtime, handle) {
+  const opened = runtime.handles.get(handle >>> 0);
+  return opened?.kind === 'file-directory' ? opened : null;
+}
+
 function offset(runtime, pointer, opened, append = false) {
   if (!pointer) return { value: opened.position >>> 0 };
   if (!checked(runtime, pointer, 8)) return { status: ACCESS_VIOLATION };
@@ -367,6 +377,7 @@ function read(runtime, argument) {
   const io = ioCompletion(runtime, argument);
   if (io.status) return io.status;
   const { complete } = io;
+  if (directoryHandle(runtime, argument(0))) return complete(0xc00000ba);
   const opened = regular(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   if (!(opened.access & 0x80000000)) return complete(ACCESS_DENIED);
@@ -392,6 +403,7 @@ function write(runtime, argument) {
   const io = ioCompletion(runtime, argument);
   if (io.status) return io.status;
   const { complete } = io;
+  if (directoryHandle(runtime, argument(0))) return complete(0xc00000ba);
   const count = argument(6) >>> 0;
   if (count > MAX_IO) throw Error('NtWriteFile exceeds per-call limit');
   if (!checked(runtime, argument(5), count)) return complete(ACCESS_VIOLATION);
@@ -436,7 +448,8 @@ function queryVolume(runtime, argument) {
   const handle = argument(0) >>> 0;
   const isPipe = handle === 1 || handle === 2;
   if (isPipe && runtime.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
-  if (!isPipe && !regular(runtime, handle)) return complete(INVALID_HANDLE);
+  if (!isPipe && !regular(runtime, handle) && !directoryHandle(runtime, handle))
+    return complete(INVALID_HANDLE);
   if (argument(4) >>> 0 === 1) {
     if (isPipe) return complete(INVALID_PARAMETER);
     const length = argument(3) >>> 0;
