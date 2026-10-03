@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-03T21:48:12.237Z",
+  "url": "http://127.0.0.1:55351/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "sha256": {
+    "custom-child.exe": "5fe19682b56f59378c6d87acedc3754fc3b55ff297fc9c5cfa256eace979002f",
+    "control.dll": "9ea62266add772c90e551e4610b102b84660b4e4e11b11adf8f2194fa582baa9"
+  },
+  "compiledBlocks": 233,
+  "x86TranslationMs": 127.33499997854233,
+  "checks": [
+    "ZIP upload runs an unchanged PE32 EXE with a registered window procedure in its companion native DLL",
+    "Independent child GDI pixels, client-edge coordinates, nested native button and resize repaint",
+    "Per-window subclass forwards to the DLL procedure without changing its sibling",
+    "Native mouse, double-click, context menu, screen-coordinate wheel and keyboard callbacks",
+    "Hide/show and disable/enable, native destruction callbacks, surface and DC cleanup"
+  ],
+  "scope": "Native custom-child GUI contract in ordinary Chromium. Host-control subclassing, cross ANSI/Unicode procedure handles, custom nonclient geometry, and general GUI/DLL compatibility remain incomplete."
+}

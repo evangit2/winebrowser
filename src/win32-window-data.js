@@ -72,11 +72,14 @@ function windowLong(r, a, wide, write) {
     return result(previous, argc);
   }
   if (index === -4) {
-    if (write || w.controlType || !!w.cls.wide !== wide)
-      throw Error(
-        'Window procedure replacement and ANSI/Unicode procedure handles are unsupported',
-      );
-    return result(w.proc, argc);
+    if ((w.controlType && w.controlType !== 'custom') || !!w.cls.wide !== wide)
+      throw Error('Host-control subclassing and ANSI/Unicode procedure handles are unsupported');
+    const previous = w.proc;
+    if (write) {
+      if (!value) return m.fail(87, argc);
+      w.proc = value;
+    }
+    return result(previous, argc);
   }
   const field = fields.get(index);
   if (!field) return m.fail(1413, argc);

@@ -151,10 +151,10 @@ async function registerClass(
 async function createWindow(
   runtime,
   atom,
-  { title = 'probe', style = 0, width = 160, height = 120 } = {},
+  { title = 'probe', style = 0, width = 160, height = 120, x = 11, y = 23 } = {},
 ) {
   const titlePtr = runtime.allocString(title);
-  const args = [0, atom, titlePtr, style, 11, 23, width, height, 0, 0, runtime.pe.imageBase, 0];
+  const args = [0, atom, titlePtr, style, x, y, width, height, 0, 0, runtime.pe.imageBase, 0];
   const created = await call(runtime, 'user32.dll!CreateWindowExA', args);
   return { ...created, titlePtr, args };
 }
@@ -706,6 +706,59 @@ test('pointer, window-from-point and enable state round-trip through the virtual
   assert.equal((await call(r, 'user32.dll!EnableWindow', [0xdead, 1])).result, 0);
   assert.equal(r.lastError, 1400);
   await call(r, 'user32.dll!DestroyWindow', [hwnd]);
+});
+
+test('captured pointer coordinates, double-click styles and wheel modifiers follow native message contracts', async (t) => {
+  const { runtime: r } = await makeRuntime(t);
+  const proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const first = (await createWindow(r, atom, { x: 20, y: 30 })).result;
+  const second = (await createWindow(r, atom, { x: 200, y: 180 })).result;
+  await call(r, 'user32.dll!ShowWindow', [first, 5]);
+  await call(r, 'user32.dll!ShowWindow', [second, 5]);
+  r.windows.queue = [];
+  await call(r, 'user32.dll!SetCapture', [first]);
+  r.windows.input({
+    type: 'mouseup',
+    windowId: second,
+    x: 4,
+    y: 8,
+    button: 0,
+    buttons: 0,
+    shiftKey: true,
+    ctrlKey: true,
+  });
+  let message = r.windows.queue.pop();
+  assert.deepEqual(
+    [message.hwnd, message.message, message.wParam, message.lParam],
+    [first, 0x202, 12, (158 << 16) | 184],
+  );
+  assert.deepEqual([message.x, message.y], [205, 217]);
+  await call(r, 'user32.dll!ReleaseCapture', []);
+  r.windows.input({ type: 'dblclick', windowId: second, x: 4, y: 8, button: 0, buttons: 1 });
+  assert.equal(
+    r.windows.queue.pop().message,
+    0x201,
+    'a class without CS_DBLCLKS receives another button-down',
+  );
+  r.windows.windows.get(second).cls.style |= 8;
+  r.windows.input({ type: 'dblclick', windowId: second, x: 4, y: 8, button: 2, buttons: 2 });
+  assert.equal(r.windows.queue.pop().message, 0x206);
+  r.windows.input({
+    type: 'wheel',
+    windowId: second,
+    x: 4,
+    y: 8,
+    buttons: 0,
+    shiftKey: true,
+    wheelDelta: -120,
+  });
+  message = r.windows.queue.pop();
+  assert.deepEqual(
+    [message.hwnd, message.message, message.wParam, message.lParam],
+    [second, 0x20a, 0xff880004, (217 << 16) | 205],
+  );
+  assert.deepEqual(r.windows.pointer, { x: 205, y: 217 });
 });
 
 test('window properties and registered messages round-trip through the window manager', async (t) => {

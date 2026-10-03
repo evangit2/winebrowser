@@ -551,7 +551,7 @@ export class VirtualDesktop {
     canvas.addEventListener('mousedown', (event) => {
       this.#focus(window);
       canvas.focus({ preventScroll: true });
-      this.#sendMouse(window, 'mousedown', event);
+      this.#sendMouse(window, event.detail === 2 ? 'dblclick' : 'mousedown', event);
     });
     canvas.addEventListener('mouseup', (event) => this.#sendMouse(window, 'mouseup', event));
 
@@ -567,7 +567,11 @@ export class VirtualDesktop {
     const parent = this.windows.get(state.parentId);
     if (!parent) throw new Error(`Child control ${state.id} references an unknown parent window`);
     const controlType = state.controlType;
-    if (!['static', 'button', 'edit', 'treeview', 'combobox', 'listbox'].includes(controlType))
+    if (
+      !['static', 'button', 'edit', 'treeview', 'combobox', 'listbox', 'custom'].includes(
+        controlType,
+      )
+    )
       throw new Error(`Unsupported child control type: ${controlType}`);
 
     let element, legend, canvas, listSelect, listEdit;
@@ -638,6 +642,33 @@ export class VirtualDesktop {
       element.addEventListener('input', () =>
         this.#emit(control.id, 'text', { text: element.value }),
       );
+    } else if (controlType === 'custom') {
+      element = canvas = document.createElement('canvas');
+      element.className = 'virtual-desktop-control virtual-desktop-control-custom';
+      element.tabIndex = 0;
+      element.addEventListener('contextmenu', (event) => event.preventDefault());
+      element.addEventListener('pointerdown', (event) =>
+        element.setPointerCapture(event.pointerId),
+      );
+      for (const type of ['mousedown', 'mouseup'])
+        element.addEventListener(type, (event) => {
+          event.stopPropagation();
+          if (type === 'mousedown') element.focus({ preventScroll: true });
+          this.#sendMouse(
+            control,
+            type === 'mousedown' && event.detail === 2 ? 'dblclick' : type,
+            event,
+          );
+        });
+      element.addEventListener(
+        'wheel',
+        (event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          this.#sendMouse(control, 'wheel', event);
+        },
+        { passive: false },
+      );
     } else {
       element = document.createElement(state.controlStyle?.ownerDraw ? 'canvas' : 'div');
       if (state.controlStyle?.ownerDraw) canvas = element;
@@ -654,7 +685,10 @@ export class VirtualDesktop {
       this.#focus(control);
     });
     element.addEventListener('focusin', () => this.#focus(control));
-    element.addEventListener('mousemove', (event) => this.#sendMouse(control, 'mousemove', event));
+    element.addEventListener('mousemove', (event) => {
+      event.stopPropagation();
+      this.#sendMouse(control, 'mousemove', event);
+    });
     for (const type of ['keydown', 'keyup'])
       element.addEventListener(type, (event) => {
         event.stopPropagation();
@@ -668,7 +702,7 @@ export class VirtualDesktop {
             !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn))
         )
           event.preventDefault();
-        this.#sendKey(event, type, control.id, false);
+        this.#sendKey(event, type, control.id, controlType === 'custom');
       });
 
     // A separate client layer can host native child windows even when the
@@ -969,9 +1003,12 @@ export class VirtualDesktop {
 
   #sendMouse(window, type, event) {
     const rect = (window.isControl ? window.element : window.canvas).getBoundingClientRect();
+    const border = window.controlType === 'custom' ? (window.controlBorder ?? 0) : 0;
     this.#emit(window.id, type, {
-      x: Math.round(event.clientX - rect.left),
-      y: Math.round(event.clientY - rect.top),
+      x: Math.round(event.clientX - rect.left - border),
+      y: Math.round(event.clientY - rect.top - border),
+      shiftKey: event.shiftKey,
+      ctrlKey: event.ctrlKey,
       buttons: event.buttons,
       button: event.button,
       movementX: event.movementX,

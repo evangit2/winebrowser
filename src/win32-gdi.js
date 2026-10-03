@@ -235,7 +235,7 @@ function getDC(runtime, argument) {
   if (hwnd !== 0 && hwnd !== DESKTOP_WINDOW) {
     const window = runtime.windows?.windows?.get(hwnd);
     if (!window) return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
-    if (window.controlType && !window.ownerDraw)
+    if (window.controlType && window.controlType !== 'custom' && !window.ownerDraw)
       return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 1);
     if (
       !state.windowSurfaces.has(hwnd) &&

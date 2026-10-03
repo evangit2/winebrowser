@@ -425,7 +425,7 @@ export class WindowManager {
       }
     }
     if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
-    if (window.controlType)
+    if (window.controlType && window.controlType !== 'custom')
       return controlMessage(
         this.runtime,
         window,
@@ -623,12 +623,28 @@ export class WindowManager {
       directInput.focused = true;
       return;
     }
-    const hwnd = this.capture && event.type.startsWith('mouse') ? this.capture : event.windowId;
+    const pointerEvent = ['mousemove', 'mousedown', 'mouseup', 'dblclick', 'wheel'].includes(
+      event.type,
+    );
+    const hwnd =
+      this.capture && pointerEvent && event.type !== 'wheel' ? this.capture : event.windowId;
     const window = this.windows.get(hwnd);
     if (!window || !this.isVisible(hwnd) || !this.isEnabled(hwnd)) return;
     // Remember the pointer in virtual-screen coordinates before any handler
     // may consume the event. GetCursorPos and ScreenToClient report this.
-    if (['mousemove', 'mousedown', 'mouseup'].includes(event.type)) {
+    if (pointerEvent) {
+      if (!Number.isFinite(event.x) || !Number.isFinite(event.y)) return;
+      if (hwnd !== event.windowId) {
+        const source = this.windows.get(event.windowId);
+        if (!source) return;
+        const sourceOrigin = this.clientPosition(source),
+          targetOrigin = this.clientPosition(window);
+        event = {
+          ...event,
+          x: event.x + sourceOrigin[0] - targetOrigin[0],
+          y: event.y + sourceOrigin[1] - targetOrigin[1],
+        };
+      }
       const [originX, originY] = this.clientPosition(window);
       this.pointer = { x: (originX + event.x) | 0, y: (originY + event.y) | 0 };
     }
@@ -684,31 +700,54 @@ export class WindowManager {
         modifiers: { shiftKey: !!event.shiftKey, ctrlKey: !!event.ctrlKey, altKey: !!event.altKey },
         character: !up && typeof event.key === 'string' && event.key.length === 1 ? event.key : '',
       });
-    } else if (['mousemove', 'mousedown', 'mouseup'].includes(event.type)) {
+    } else if (pointerEvent) {
       if (!Number.isFinite(event.x) || !Number.isFinite(event.y)) return;
+      const down = event.type === 'mousedown' || event.type === 'dblclick',
+        double = event.type === 'dblclick' && !!(window.cls.style & 8);
       const message =
-        event.type === 'mousemove'
-          ? 0x200
-          : event.button === 2
-            ? event.type === 'mousedown'
-              ? 0x204
-              : 0x205
-            : event.button === 1
-              ? event.type === 'mousedown'
-                ? 0x207
-                : 0x208
-              : event.type === 'mousedown'
-                ? 0x201
-                : 0x202;
+        event.type === 'wheel'
+          ? 0x20a
+          : double
+            ? event.button === 2
+              ? 0x206
+              : event.button === 1
+                ? 0x209
+                : 0x203
+            : event.type === 'mousemove'
+              ? 0x200
+              : event.button === 2
+                ? down
+                  ? 0x204
+                  : 0x205
+                : event.button === 1
+                  ? down
+                    ? 0x207
+                    : 0x208
+                  : down
+                    ? 0x201
+                    : 0x202;
       const buttons =
-        (event.buttons & 1 ? 1 : 0) | (event.buttons & 2 ? 2 : 0) | (event.buttons & 4 ? 16 : 0);
+        (event.buttons & 1 ? 1 : 0) |
+        (event.buttons & 2 ? 2 : 0) |
+        (event.buttons & 4 ? 16 : 0) |
+        (event.shiftKey ? 4 : 0) |
+        (event.ctrlKey ? 8 : 0);
       const [screenX, screenY] = this.clientPosition(window);
-      this.post(hwnd, message, buttons, pair(event.x, event.y), {
-        hardwareMouse: true,
-        cursorSent: false,
-        x: screenX + event.x,
-        y: screenY + event.y,
-      });
+      if (event.type === 'wheel' && !Number.isFinite(event.wheelDelta)) return;
+      this.post(
+        hwnd,
+        message,
+        event.type === 'wheel' ? pair(buttons, event.wheelDelta) : buttons,
+        event.type === 'wheel'
+          ? pair(screenX + event.x, screenY + event.y)
+          : pair(event.x, event.y),
+        {
+          hardwareMouse: true,
+          cursorSent: false,
+          x: screenX + event.x,
+          y: screenY + event.y,
+        },
+      );
     }
   }
   next(hwnd, min, max, remove) {
@@ -730,7 +769,7 @@ export class WindowManager {
       };
       if (
         this.isVisible(window.id) &&
-        (!window.controlType || window.ownerDraw) &&
+        (!window.controlType || window.controlType === 'custom' || window.ownerDraw) &&
         (window.invalid || window.internalPaint) &&
         accepts(message)
       ) {
@@ -924,8 +963,8 @@ async function create(r, a, wide) {
   const ownerId = child ? 0 : a(8) >>> 0;
   if (ownerId && !m.windows.has(ownerId)) return m.fail(1400, 12);
   if (cls.controlType && !child) throw Error('Standard controls require a parent window');
-  if (child && !cls.controlType) throw Error('Custom child window rendering is not implemented');
-  const control = child ? controlStyle(cls.controlType, a(3), a(0)) : {};
+  const controlType = cls.controlType ?? (child ? 'custom' : undefined);
+  const control = child ? controlStyle(controlType, a(3), a(0)) : {};
   if (!child && a(0) & ~0x40008) throw Error('Unsupported extended window style');
   const count = [...m.windows.values()].filter((w) => !!w.parentId === child).length;
   if (count >= (child ? 256 : 8)) return m.fail(8, 12);
@@ -960,7 +999,7 @@ async function create(r, a, wide) {
     width: width - 2 * border,
     height: height - titleHeight - 2 * border,
     parentId,
-    controlType: cls.controlType,
+    controlType,
     // EDIT attributes the browser input path needs to filter typed text.
     multiline: !!control.multiline,
     uppercase: !!control.uppercase,
@@ -1052,6 +1091,13 @@ async function defaultProc(r, a, wide) {
   const [hwnd, msg, wp, lp] = [a(0), a(1), a(2), a(3)],
     w = r.windows.windows.get(hwnd);
   if (!w) return result(0, 4);
+  if (msg === 0x20a && w.parentId) return result(await r.windows.send(w.parentId, msg, wp, lp), 4);
+  if (msg === 0x205) {
+    const [x, y] = r.windows.clientPosition(w);
+    await r.windows.send(hwnd, 0x7b, hwnd, pair(x + ((lp << 16) >> 16), y + (lp >> 16)));
+    return result(0, 4);
+  }
+  if (msg === 0x7b && w.parentId) return result(await r.windows.send(w.parentId, msg, wp, lp), 4);
   if (msg === 0x20) {
     const hit = lp & 0xffff;
     if (w.parentId && !(hit >= 10 && hit <= 17) && (await r.windows.send(w.parentId, msg, wp, lp)))
@@ -1162,7 +1208,7 @@ async function defaultProc(r, a, wide) {
       r.guestMemory.write(lp + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
     return result(value.length, 4);
   }
-  if (msg === 0xf && !w.controlType) {
+  if (msg === 0xf && (!w.controlType || w.controlType === 'custom')) {
     const paint = r.allocate(64);
     try {
       const response = await beginPaint(r, (i) => [hwnd, paint][i]);

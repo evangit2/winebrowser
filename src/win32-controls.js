@@ -25,6 +25,14 @@ export function builtinControlClass(name, wide) {
     : null;
 }
 export function controlStyle(kind, style, extended) {
+  // Registered classes own their low style bits. Only the client frame is
+  // interpreted by the host; painting and control messages stay in the EXE/DLL.
+  if (kind === 'custom') {
+    if (extended & ~0x30204) throw Error('Unsupported custom child-window extended style');
+    return {
+      controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
+    };
+  }
   const local = style & 0xffff;
   // WS_EX_STATICEDGE is a one-pixel control frame, used by native read-only
   // dialog edits. WS_EX_CLIENTEDGE retains its two-pixel inset precedence.

@@ -66,7 +66,7 @@ test('window data bounds and invalid HWNDs fail without changing state or maskin
     assert.equal(r.lastError, 1413);
   }
   assert.deepEqual([...new Uint8Array(w.extra.buffer)], before);
-  for (const index of [-4, -8, -16, -20])
+  for (const index of [-8, -16, -20])
     assert.throws(() => call(r, 'SetWindowLongA', 1, index, 0xdeadbeef), /unsupported|require/);
   assert.equal(w.proc, 0x401000);
   assert.equal(w.style, 0);
@@ -79,6 +79,21 @@ test('window data bounds and invalid HWNDs fail without changing state or maskin
   assert.equal(r.lastError, 1400);
   assert.equal(call(r, 'SetWindowLongW', 1, 0, 123).result, 0);
   assert.equal(r.lastError, 1400);
+});
+
+test('native procedures can be subclassed independently, while host and cross-encoding handles remain explicit', () => {
+  const r = setup(),
+    w = r.windows.windows.get(1);
+  w.controlType = 'custom';
+  assert.deepEqual(call(r, 'SetWindowLongA', 1, -4, 0x402000), { result: 0x401000, argc: 3 });
+  assert.equal(call(r, 'GetWindowLongA', 1, -4).result, 0x402000);
+  assert.equal(call(r, 'GetWindowLongA', 2, -4).result, 0x401000);
+  assert.equal(call(r, 'SetWindowLongA', 1, -4, 0).result, 0);
+  assert.equal(r.lastError, 87);
+  assert.equal(w.proc, 0x402000);
+  assert.throws(() => call(r, 'SetWindowLongW', 1, -4, 0x403000), /unsupported/);
+  w.controlType = 'edit';
+  assert.throws(() => call(r, 'SetWindowLongA', 1, -4, 0x403000), /unsupported/);
 });
 
 test('native window callbacks use metadata through creation, A/W calls, controls and teardown', async () => {
