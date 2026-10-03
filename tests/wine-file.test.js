@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { ntServices } from '../src/wine-nt.js';
+import { syncObjects } from '../src/sync-objects.js';
 import { resolveGuestPath } from '../src/guest-paths.js';
 
 const exe = new Uint8Array(
@@ -245,9 +246,9 @@ test('NtReadFile validates access, handles, offsets, buffers, and synchronous-on
   r.view.setBigInt64(position, -1n, true);
   assert.equal(call(r, 'NtReadFile', [0x100, 0, 0, 0, status, buffer, 1, position, 0]), 0xc000000d);
   assert.equal(call(r, 'NtReadFile', [0x100, 0, 0, 0, 0, buffer, 1, 0, 0]), 0xc0000005);
-  assert.throws(
-    () => call(r, 'NtReadFile', [0x100, 1, 0, 0, status, buffer, 1, 0, 0]),
-    /Unsupported asynchronous NtReadFile/,
+  assert.equal(
+    call(r, 'NtReadFile', [0x100, 0xdeadbeec, 0, 0, status, buffer, 1, 0, 0]),
+    0xc0000008,
   );
 });
 
@@ -290,7 +291,10 @@ test('NtWriteFile enforces permissions and NtClose closes only regular file hand
   assert.equal(call(r, 'NtWriteFile', [0x100, 0, 0, 0, status, 0, 4, 0, 0]), 0xc0000005);
   assert.equal(call(r, 'NtClose', [0x100]), 0);
   assert.ok(!r.handles.has(0x100));
-  assert.throws(() => call(r, 'NtClose', [1]), /Unsupported Wine NT service NtClose/);
+  assert.equal(call(r, 'NtClose', [1]), 0);
+  assert.equal(call(r, 'NtClose', [1]), 0xc0000008);
+  assert.equal(call(r, 'NtWriteFile', [1, 0, 0, 0, status, source, 4, 0, 0]), 0xc0000008);
+  assert.equal(call(r, 'NtWriteFile', [2, 0, 0, 0, status, source, 4, 0, 0]), 0);
 });
 
 test('NT random/sequential cache hints retain real synchronous file reads and arbitrary seeks', () => {
@@ -394,11 +398,6 @@ test('NT byte locks preserve 64-bit ranges, shared readers, conflicts and exact 
   assert.equal(lock(r, 0x100, range), 0);
   assert.equal(lock(r, 0x102, range), 0);
   assert.equal(lock(r, 0x101, range, true), 0xc0000055);
-  assert.equal(
-    lock(r, 0x101, range, true, true),
-    0xc00000bb,
-    'wait-required contention stays explicit',
-  );
   assert.equal(unlock(r, 0x101, range, status), 0xc000007e);
   assert.equal(r.read32(status), 0xc000007e);
   const wrong = lockRange(r, 0x100000001n, 511n);
@@ -521,4 +520,85 @@ test('FileDispositionInformation can cancel a pending deletion with checked dele
   assert.equal(call(r, 'NtOpenFile', [out, 0x80100080, attrs, status, 7, 0x60]), 0);
   r.data[info] = 1;
   assert.equal(call(r, 'NtSetInformationFile', [r.read32(out), status, info, 1, 13]), 0xc0000022);
+});
+
+test('waiting byte locks resume on unlock or owner close and fail when their own handle closes', async () => {
+  const { r } = fixture(),
+    status = io(r),
+    range = lockRange(r, 2n, 3n);
+  assert.equal(lock(r, 0x100, range, true), 0);
+  let completed = false;
+  const waiting = lock(r, 0x101, range, true, true).then((s) => {
+    completed = true;
+    return s;
+  });
+  await Promise.resolve();
+  assert.equal(completed, false);
+  assert.equal(r.fileLockWaiters.size, 1);
+  assert.equal(unlock(r, 0x100, range, status), 0);
+  assert.equal(await waiting, 0);
+  assert.equal(r.fileLockWaiters.size, 0);
+  assert.equal(r.fileLocks[0].handle, 0x101);
+  const next = lock(r, 0x100, range, true, true);
+  assert.equal(call(r, 'NtClose', [0x101]), 0);
+  assert.equal(await next, 0);
+  const closed = lock(r, 0x102, range, true, true);
+  assert.equal(call(r, 'NtClose', [0x102]), 0);
+  assert.equal(await closed, 0xc0000008);
+  assert.equal(r.fileLockWaiters.size, 0);
+});
+
+test('NT file reads, writes and lock acquisition signal real completion events', async () => {
+  const { r } = fixture(),
+    status = io(r),
+    range = lockRange(r, 1n, 2n),
+    buffer = r.allocate(8);
+  const objects = syncObjects(r),
+    event = objects.event({ manual: true }).handle;
+  assert.equal(
+    call(r, 'NtReadFile', [0x100, event | 1, 0, status, status, buffer, 2, range.offset, 0]),
+    0,
+  );
+  assert.equal(objects.lookup(event, 'sync-event').object.signaled, true);
+  objects.change(event, 'reset');
+  r.data.set([0x31, 0x32], buffer);
+  assert.equal(
+    call(r, 'NtWriteFile', [0x100, event, 0, status, status, buffer, 2, range.offset, 0]),
+    0,
+  );
+  assert.equal(objects.lookup(event, 'sync-event').object.signaled, true);
+  objects.change(event, 'reset');
+  assert.equal(lock(r, 0x100, range, true), 0);
+  const waiting = call(r, 'NtLockFile', [
+    0x101,
+    event | 1,
+    0,
+    status,
+    status,
+    range.offset,
+    range.length,
+    0,
+    0,
+    1,
+  ]);
+  assert.equal(objects.lookup(event, 'sync-event').object.signaled, false);
+  assert.equal(unlock(r, 0x100, range, status), 0);
+  assert.equal(await waiting, 0);
+  assert.equal(objects.lookup(event, 'sync-event').object.signaled, true);
+  assert.equal(r.read32(status), 0);
+  assert.equal(r.read32(status + 4), 0);
+});
+
+test('thread cancellation removes waiting locks without acquiring a later orphaned region', async () => {
+  const { r } = fixture(),
+    range = lockRange(r, 1n, 1n),
+    status = io(r);
+  assert.equal(lock(r, 0x100, range, true), 0);
+  // Inject the scheduler's cancellation result without constructing a fake
+  // guest stack; the real threaded browser fixture covers park/resume.
+  r.threads.block = () => Promise.reject(Error('cancelled thread'));
+  await assert.rejects(lock(r, 0x101, range, true, true), /cancelled thread/);
+  assert.equal(r.fileLockWaiters.size, 0);
+  assert.equal(unlock(r, 0x100, range, status), 0);
+  assert.equal(r.fileLocks.length, 0);
 });

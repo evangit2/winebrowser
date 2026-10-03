@@ -114,7 +114,7 @@
       "exe": "sqlite/sqlite-client.exe",
       "exeSha256": "6dbf5e9c4e9013a0a6d95e89c3aefdfb4aa2789fd017e2e77f9ae01acd4217d6",
       "zip": "sqlite/sqlite.zip",
-      "zipSha256": "1a8977d2a7b60bd225510bc379c4236083738e97f3020b27809b4c0e44abb0eb",
+      "zipSha256": "e88cfcc130f912479e7e5e71e2b612d15e50339b3fb19b0717f4fa4e2de65a1a",
       "sourceZip": "sqlite/source.zip",
       "sourceZipSha256": "32dbb952bc4e07d44793956da6b83437a0d4f5ad323e2fff0e2c89148476ac51",
       "provenance": "SQLite public-domain upstream PE32 DLL, unchanged. MIT authored native client; original amalgamation, original binary archive, hashes and licenses included."

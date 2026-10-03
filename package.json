@@ -203,7 +203,9 @@
     "build:api-sets": "sh scripts/build-api-set-fixtures.sh",
     "test:api-sets": "node scripts/test-api-sets-browser.mjs",
     "build:dx12-city": "python3 scripts/build-microsoft-dx12-city.py",
-    "test:dx12-city": "node scripts/test-microsoft-dx12-city-browser.mjs"
+    "test:dx12-city": "node scripts/test-microsoft-dx12-city-browser.mjs",
+    "build:file-locks": "sh scripts/build-file-lock-fixture.sh",
+    "test:file-locks": "node scripts/test-file-locks-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

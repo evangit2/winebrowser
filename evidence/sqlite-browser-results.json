@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T00:07:28.684Z",
-  "url": "http://127.0.0.1:4206/winebrowser/",
+  "date": "2026-10-03T00:34:28.665Z",
+  "url": "http://127.0.0.1:4352/winebrowser/",
   "normalChromium": true,
   "browser": "153.0.8010.12",
   "originalDllSha256": "24e612fd5b239aa6385d2c159b70155968b3f9ccdbf19ba7fd83a83b9255238a",
@@ -11,8 +11,8 @@
     {
       "mode": "zip-upload",
       "exitCode": 0,
-      "elapsedMs": 3307.820000000298,
-      "x86TranslationMs": 2471.210000164807,
+      "elapsedMs": 8300.515000000596,
+      "x86TranslationMs": 5940.384999647737,
       "totalCompiledBlocks": 12240,
       "instructions": 2828075,
       "databaseBytes": 8192,
@@ -77,8 +77,8 @@
     {
       "mode": "zip-rerun-after-stale-journal",
       "exitCode": 0,
-      "elapsedMs": 3515.494999997318,
-      "x86TranslationMs": 2581.4300000816584,
+      "elapsedMs": 5924.229999996722,
+      "x86TranslationMs": 4434.235000289977,
       "totalCompiledBlocks": 12240,
       "instructions": 2828075,
       "databaseBytes": 8192,
@@ -143,8 +143,8 @@
     {
       "mode": "exe-and-dll-upload",
       "exitCode": 0,
-      "elapsedMs": 3381.5800000056624,
-      "x86TranslationMs": 2534.594999924302,
+      "elapsedMs": 5668.195000000298,
+      "x86TranslationMs": 4372.274999968708,
       "totalCompiledBlocks": 12239,
       "instructions": 2798993,
       "databaseBytes": 8192,
@@ -209,8 +209,8 @@
     {
       "mode": "hosted-example",
       "exitCode": 0,
-      "elapsedMs": 7828.429999999702,
-      "x86TranslationMs": 5769.789999969304,
+      "elapsedMs": 5681.875,
+      "x86TranslationMs": 4263.0499999299645,
       "totalCompiledBlocks": 12240,
       "instructions": 2828075,
       "databaseBytes": 8192,
@@ -275,15 +275,15 @@
   ],
   "persisted": [
     {
+      "path": "e88cfcc130f912479e7e5e71e2b612d15e50339b3fb19b0717f4fa4e2de65a1a/app/database.db",
+      "bytes": 8192
+    },
+    {
       "path": "e5242f9d54e4c3c7190199dca92912b098220bec81cd25b463505ad9a157aedd/database.db",
       "bytes": 8192
     },
     {
-      "path": "39eeff763342bbe2bdefa9328ca5bac6616986c661d23e1109c807cca228a84e/app/database.db",
-      "bytes": 8192
-    },
-    {
-      "path": "1a8977d2a7b60bd225510bc379c4236083738e97f3020b27809b4c0e44abb0eb/app/database.db",
+      "path": "3e876e8afed5e2aa3135598fb7d99757861a0efec72c878e96d777453a7cf166/app/database.db",
       "bytes": 8192
     }
   ],

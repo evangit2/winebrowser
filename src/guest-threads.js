@@ -341,7 +341,7 @@ export class GuestThreads {
     } catch (error) {
       if (!(error instanceof ThreadStopped)) this.fail(error);
     } finally {
-      if (!this.closing && !this.fatal && thread.attached) {
+      if (!this.closing && !this.fatal && thread.attached && !thread.forcedTermination) {
         thread.detaching = true;
         try {
           await this.withLoaderLock(async () => {
@@ -399,6 +399,24 @@ export class GuestThreads {
     if (thread.done) return { status: 0xc000004b };
     if (thread.suspend >= 127) return { status: 0xc000004a };
     return { status: 0, previous: thread.suspend++ };
+  }
+  terminate(handle, code) {
+    const found = this.lookup(handle || 0xfffffffe, 1);
+    if (found.status) return found.status;
+    const thread = found.thread;
+    if (thread.done || thread.stop) return 0;
+    if (thread === this.current) {
+      thread.nativeDetached = true;
+      this.exit(code);
+    }
+    // TerminateThread skips DLL_THREAD_DETACH. Resume parked or suspended
+    // stacks only to unwind host waits and release their private CPU storage.
+    thread.code = code >>> 0;
+    thread.forcedTermination = true;
+    thread.stop = true;
+    thread.cancel?.();
+    this.pump();
+    return 0;
   }
   exit(code) {
     this.current.code = code >>> 0;

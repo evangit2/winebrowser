@@ -47,7 +47,9 @@ Process exit from any thread cancels other contexts and unwinds their pending
 JavaScript stacks before CPU, audio and window disposal. Worker faults propagate
 to the process report instead of silently disappearing. Forced process termination
 does not deliver worker DLL thread-detach notifications. Native `NtTerminateThread`
-currently supports only self-termination. SEH, APC delivery, remote processes and
+supports same-process termination of parked, runnable and suspended threads;
+forced termination skips DLL thread-detach callbacks and unwinds pending host
+waits before freeing stacks/TEBs. APC delivery, remote processes and
 general cross-thread USER32 message ownership remain unfinished.
 
 Allocation is bounded by the current 64 MiB guest arena and host heap. There are

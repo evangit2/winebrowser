@@ -89,11 +89,7 @@ export const threadCreationNtServices = {
   NtTerminateThread: {
     argc: 2,
     call(r, a) {
-      const found = r.threads.lookup(a(0), 1);
-      if (found.status) return found.status;
-      if (found.thread !== r.threads.current) return UNSUPPORTED;
-      found.thread.nativeDetached = true;
-      r.threads.exit(a(1));
+      return r.threads.terminate(a(0), a(1));
     },
   },
   NtQueryInformationThread: {

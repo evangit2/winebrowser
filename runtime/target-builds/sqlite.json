@@ -27,7 +27,7 @@
   },
   "zip": {
     "path": "sqlite/sqlite.zip",
-    "sha256": "1a8977d2a7b60bd225510bc379c4236083738e97f3020b27809b4c0e44abb0eb"
+    "sha256": "e88cfcc130f912479e7e5e71e2b612d15e50339b3fb19b0717f4fa4e2de65a1a"
   },
   "sourceZip": {
     "path": "sqlite/source.zip",

@@ -88,7 +88,8 @@ SQLite SDK or runtime redistributable.
 
 Validation covers these synchronous rollback-journal workloads. WAL mode,
 background I/O, cross-process access and crash durability remain unverified.
-File locks that require waiting and APC completion routines remain unsupported.
+Waiting byte locks and completion events are verified separately by the native
+threaded file-lock fixture. APC completion routines remain unsupported.
 Browser storage receives generated outputs after the process finishes.
 '''
     (DEST/'PROVENANCE.md').write_text(provenance)

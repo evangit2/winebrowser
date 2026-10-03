@@ -1,12 +1,14 @@
 // Synchronous PE32 NT file services backed by Runtime's bounded virtual files.
 import {
   acquireFileLock,
+  waitFileLock,
   releaseFileLock,
   releaseHandleLocks,
   fileLockConflict,
   FILE_LOCK_CONFLICT,
   LOCK_NOT_GRANTED,
 } from './file-locks.js';
+import { syncObjects, SYNC } from './sync-objects.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileMetadata, writeFileMetadata, touchFile } from './file-metadata.js';
 const SUCCESS = 0;
@@ -269,13 +271,30 @@ function synchronous(argument, name) {
   // KernelBase supplies the OVERLAPPED pointer as ApcContext even for a
   // synchronous file and no completion routine. With no APC/completion port
   // attached, the opaque context has no effect on immediate completion.
-  if (argument(1) || argument(2) || argument(8)) throw Error(`Unsupported asynchronous ${name}`);
+  if (argument(2) || argument(8)) throw Error(`Unsupported asynchronous ${name}`);
+}
+
+function ioCompletion(runtime, argument) {
+  const complete = iosb(runtime, argument(4));
+  if (!complete) return { status: ACCESS_VIOLATION };
+  const handle = (argument(1) & ~1) >>> 0;
+  if (!handle) return { complete };
+  const event = syncObjects(runtime).lookup(handle, 'sync-event', SYNC.MODIFY);
+  if (event.status) return { status: event.status };
+  return {
+    complete: (status, count = 0) => {
+      const result = complete(status, count);
+      syncObjects(runtime).change(handle, 'set');
+      return result;
+    },
+  };
 }
 
 function read(runtime, argument) {
   synchronous(argument, 'NtReadFile');
-  const complete = iosb(runtime, argument(4));
-  if (!complete) return ACCESS_VIOLATION;
+  const io = ioCompletion(runtime, argument);
+  if (io.status) return io.status;
+  const { complete } = io;
   const opened = regular(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   if (!(opened.access & 0x80000000)) return complete(ACCESS_DENIED);
@@ -298,14 +317,16 @@ function read(runtime, argument) {
 
 function write(runtime, argument) {
   synchronous(argument, 'NtWriteFile');
-  const complete = iosb(runtime, argument(4));
-  if (!complete) return ACCESS_VIOLATION;
+  const io = ioCompletion(runtime, argument);
+  if (io.status) return io.status;
+  const { complete } = io;
   const count = argument(6) >>> 0;
   if (count > MAX_IO) throw Error('NtWriteFile exceeds per-call limit');
   if (!checked(runtime, argument(5), count)) return complete(ACCESS_VIOLATION);
   const handleValue = argument(0) >>> 0;
   const bytes = runtime.data.slice(argument(5) >>> 0, (argument(5) >>> 0) + count);
   if (handleValue === 1 || handleValue === 2) {
+    if (runtime.closedStandardOutputs?.has(handleValue)) return complete(INVALID_HANDLE);
     if (argument(7)) return complete(INVALID_PARAMETER);
     runtime.stdoutBytes = (runtime.stdoutBytes || 0) + count;
     if (runtime.stdoutBytes > MAX_OUTPUT) throw Error('Console output limit exceeded');
@@ -342,6 +363,7 @@ function queryVolume(runtime, argument) {
   if (!complete) return ACCESS_VIOLATION;
   const handle = argument(0) >>> 0;
   const isPipe = handle === 1 || handle === 2;
+  if (isPipe && runtime.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
   if (!isPipe && !regular(runtime, handle)) return complete(INVALID_HANDLE);
   if (argument(4) >>> 0 !== 4)
     throw Error(`Unsupported Wine volume information class ${argument(4) >>> 0}`);
@@ -355,6 +377,12 @@ function queryVolume(runtime, argument) {
 
 export function closeFileHandle(runtime, handle) {
   const value = handle >>> 0;
+  if (value === 1 || value === 2) {
+    const closed = (runtime.closedStandardOutputs ??= new Set());
+    if (closed.has(value)) return INVALID_HANDLE;
+    closed.add(value);
+    return SUCCESS;
+  }
   if (!regular(runtime, value)) return null;
   releaseHandleLocks(runtime, value);
   const opened = runtime.handles.get(value);
@@ -388,7 +416,12 @@ function byteRangeLock(r, a, unlock) {
   const opened = regular(r, a(0));
   if (!opened) return complete(INVALID_HANDLE);
   if (!(opened.access & 0xc0000000)) return complete(ACCESS_DENIED);
-  if ((!unlock && (a(1) || a(2))) || a(unlock ? 4 : 7)) return complete(NOT_SUPPORTED);
+  if ((!unlock && a(2)) || a(unlock ? 4 : 7)) return complete(NOT_SUPPORTED);
+  const event = unlock ? 0 : (a(1) & ~1) >>> 0;
+  if (event) {
+    const found = syncObjects(r).lookup(event, 'sync-event', SYNC.MODIFY);
+    if (found.status) return complete(found.status);
+  }
   const offset = a(unlock ? 2 : 5),
     count = a(unlock ? 3 : 6);
   if (!checked(r, offset, 8) || !checked(r, count, 8)) return complete(ACCESS_VIOLATION);
@@ -399,9 +432,14 @@ function byteRangeLock(r, a, unlock) {
   const status = unlock
     ? releaseFileLock(r, a(0), start, length)
     : acquireFileLock(r, a(0), start, length, !!a(9));
-  // This bounded volume currently completes locks immediately. A caller that
-  // requires waiting on a conflict receives NOT_SUPPORTED, never fake success.
-  return complete(!unlock && status === LOCK_NOT_GRANTED && !a(8) ? NOT_SUPPORTED : status);
+  const finish = (status) => {
+    const result = complete(status);
+    if (!status && event) syncObjects(r).change(event, 'set');
+    return result;
+  };
+  if (!unlock && status === LOCK_NOT_GRANTED && !a(8))
+    return waitFileLock(r, a(0), start, length, !!a(9)).then(finish);
+  return finish(status);
 }
 
 export const fileNtServices = {

@@ -321,3 +321,81 @@ test('starvation boost accounts running time across switches and excludes blocke
   assert.equal(thread.boostQuanta, 0);
   assert.equal(scheduler.schedulingPriority(thread), 8);
 });
+
+test(
+  'NT termination cancels a parked guest and reclaims suspended storage without DLL detach notifications',
+  { timeout: 10000 },
+  async () => {
+    const r = await runtime();
+    const nt = (name, ...args) => ntServices[name].call(r, (i) => args[i] >>> 0);
+    try {
+      r.files.set(
+        'thread-tls.dll',
+        new Uint8Array(await readFile('tests/fixtures/threads/thread-tls.dll')),
+      );
+      r.graph.files.set('thread-tls.dll', r.files.get('thread-tls.dll'));
+      await r.loadLibrary('thread-tls.dll');
+      const dll = r.graph.findLoaded('thread-tls.dll');
+      const counts = dll.base + dll.pe.exports.find((e) => e.name?.startsWith('Counts')).rva;
+      const signal = syncObjects(r).event();
+      const sleep = registerThunk(r.thunks, {
+        kind: 'com',
+        name: 'termination-sleep',
+        invoke: async () => {
+          syncObjects(r).change(signal.handle, 'set');
+          await r.threads.delay(10000);
+          return { result: 99, argc: 1 };
+        },
+      });
+      const join = (handles) =>
+        registerThunk(r.thunks, {
+          kind: 'com',
+          name: 'termination-join',
+          invoke: async () => ({
+            result: await r.threads.block(syncObjects(r).wait(handles, true)),
+            argc: 0,
+          }),
+        });
+      const child = r.threads.create({ start: sleep });
+      assert.equal(child.status, 0);
+      assert.equal(await r.callGuest(join([signal.handle])), 0);
+      assert.equal(r.threads.timers.size, 1);
+      assert.equal(await r.callGuest(counts), 0x100);
+      const restricted = syncObjects(r).openHandle(child.thread.object, 0x100000, false);
+      assert.equal(nt('NtTerminateThread', restricted.handle, 77), 0xc0000022);
+      assert.equal(nt('NtTerminateThread', 0x12345678, 77), 0xc0000008);
+      assert.equal(child.thread.stop, false);
+      assert.equal(nt('NtTerminateThread', child.handle, 77), 0);
+      assert.equal(await r.callGuest(join([child.handle])), 0);
+      assert.equal(child.thread.code, 77);
+      assert.equal(child.thread.done, true);
+      assert.equal(r.threads.timers.size, 0);
+      assert.equal(await r.callGuest(counts), 0x100, 'forced termination skips DLL_THREAD_DETACH');
+      for (const allocation of [child.thread.stack, child.thread.tebAllocation])
+        assert.equal(r.heap.allocations.has(allocation), false);
+      assert.equal(nt('NtTerminateThread', child.handle, 88), 0);
+      assert.equal(child.thread.code, 77, 'finished exit code is preserved');
+      const suspended = r.threads.create({ start: sleep, suspended: true });
+      assert.equal(nt('NtTerminateThread', suspended.handle, 88), 0);
+      assert.equal(await r.callGuest(join([suspended.handle])), 0);
+      assert.equal(suspended.thread.started, undefined);
+      assert.equal(suspended.thread.code, 88);
+      assert.equal(r.threads.records.size, 1);
+      assert.equal(r.threads.queue.length, 0);
+      assert.equal(r.syncObjects.waiters.size, 0);
+      for (const allocation of [suspended.thread.stack, suspended.thread.tebAllocation])
+        assert.equal(r.heap.allocations.has(allocation), false);
+      assert.equal(
+        await r.callGuest(counts),
+        0x100,
+        'unstarted suspended guest receives no DLL callbacks',
+      );
+    } finally {
+      await r.threads.stopOthers();
+      await r.shutdownProcess();
+      r.syncObjects?.dispose();
+      r.windows.dispose();
+      r.cpu.dispose();
+    }
+  },
+);

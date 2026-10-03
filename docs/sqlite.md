@@ -27,7 +27,9 @@ and package with `npm run build:sqlite`. Verify browser uploads using
 - NtLockFile/NtUnlockFile enforce shared/exclusive byte ranges using 64-bit
   offsets, including SQLite's locking regions beyond the end of the file.
   Exact handle/range matching is required to unlock. Closing an owner releases
-  its locks. Both NT and host ReadFile/WriteFile enforce the same lock table.
+  its locks. Waiting guest threads park until unlock or owner close; closing
+  their handle fails the request, and terminating a parked thread cancels it.
+  Completion events are signaled after the result is written. Both NT and host ReadFile/WriteFile enforce the same lock table.
 - NtFlushBuffersFile validates the file and write rights. Writes already update
   the shared memory volume; the worker persists outputs after the process run.
 - Native delete handles enforce DELETE access and delete sharing. Existing
@@ -44,9 +46,11 @@ PSRLDQ/PSLLDQ shift all 128 bits with zero fill. CPU tests check aliasing,
 unaligned half moves, aligned vector operands, flags and memory fault atomicity.
 These instructions were reached by the original upstream DLL.
 
-Waiting lock contention, lock/APC event completion, WAL mode, background I/O,
+APC completion routines, WAL mode, background I/O,
 cross-process access and crash durability remain unfinished or unverified.
 The guest volume's existing file/total-size limits still apply.
 
 Evidence: [Chromium results](../evidence/sqlite-browser-results.json).
 Provenance: [upstream pins and licenses](../public/examples/sqlite/PROVENANCE.md).
+
+Native threaded file/event evidence: [browser results](../evidence/file-locks-browser-results.json).
