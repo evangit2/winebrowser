@@ -8,6 +8,7 @@ import { environmentEntries } from './guest-environment.js';
 import { encodeAnsi } from './encoding.js';
 import { guestProcessorFeaturePresent } from './processor-features.js';
 import { GuestUnwind } from './seh.js';
+import { processLookup } from './process-session.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -396,10 +397,16 @@ function setEndOfFile(r, a) {
 }
 
 function terminateProcess(r, a) {
+  if (a(0) !== 0xffffffff) {
+    const found = processLookup(r, a(0), 1);
+    if (found.status) return fail(r, 6, 2);
+    r.processSession.terminate(found.process, a(1));
+    return ok(1, 2);
+  }
   const code = a(1);
   r.exitCode = code;
   r.threads.terminateProcess(code);
-  return ok(0, 2);
+  return ok(1, 2);
 }
 function raiseException(r, a) {
   // Structured exception handling is not implemented, so a raised exception is

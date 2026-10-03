@@ -14,6 +14,9 @@ async function forward(r, a, symbol, argc) {
 }
 
 export const nativeForwarderApis = {};
+for (const suffix of ['A', 'W'])
+  nativeForwarderApis[`kernel32.dll!CreateProcess${suffix}`] = (r, a) =>
+    forward(r, a, `CreateProcess${suffix}`, 10);
 for (const [name, argc] of [
   ['PathCanonicalize', 2],
   ['PathCombine', 3],

@@ -901,7 +901,7 @@ async function create(r, a, wide) {
   )
     return m.fail(87, 12);
   const w = {
-    id: m.nextWindow++,
+    id: m.runtime.processSession ? m.runtime.processSession.nextWindow++ : m.nextWindow++,
     // New child controls go behind siblings; top-level windows go in front.
     zOrder: (child ? -1 : 1) * m.nextZOrder++,
     cls,

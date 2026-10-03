@@ -7,6 +7,7 @@ import { WebGPURenderer } from './webgpu-renderer.js';
 import { D3D12Renderer } from './d3d12-renderer.js';
 import { OpenGLRenderer } from './opengl-renderer.js';
 import { loadWineBaseAssets, packageNeedsNativeBase } from './wine-base-assets.js';
+import { ProcessSession } from './process-session.js';
 import {
   packageId,
   packageFilesId,
@@ -15,7 +16,7 @@ import {
   saveOutputs,
 } from './storage.js';
 let pkg,
-  activeRuntime,
+  activeSession,
   id,
   iced,
   builtinFiles = new Map(),
@@ -33,7 +34,7 @@ const request = (kind, detail) =>
   });
 onmessage = async ({ data }) => {
   if (data.type === 'input') {
-    if (data.event && typeof data.event.type === 'string') activeRuntime?.windows.input(data.event);
+    if (data.event && typeof data.event.type === 'string') activeSession?.input(data.event);
     return;
   }
   if (data.type === 'reply') {
@@ -120,35 +121,43 @@ onmessage = async ({ data }) => {
         const url = new URL(`${import.meta.env.BASE_URL}vendor/iced.js`, self.location.origin).href;
         iced = await (await import(/* @vite-ignore */ url)).init();
       }
-      const graphics = new WebGPURenderer({ emit, forceReadback: data.forceReadback === true });
-      const graphics12 = new D3D12Renderer(graphics);
-      const opengl = new OpenGLRenderer({ emit });
-      const runtime = new Runtime(iced, {
-        files: pkg.files,
-        exe: data.exe,
-        args: data.args ?? [],
-        builtinFiles: executableProfiles.get(data.exe) ?? builtinFiles,
-        nlsFiles: executableProfiles.has(data.exe) ? nativeBase.nlsFiles : undefined,
-        graphics,
-        graphics12,
-        opengl,
-        emit,
-        request,
-        // Manual sessions last until the guest exits or the user presses Stop.
-        // The dispatcher still yields, and memory/block-cache limits still apply.
-        maxBlocks: data.interactive ? Infinity : 1_000_000,
+      const resources = [];
+      const session = new ProcessSession(pkg.files, (options) => {
+        const graphics = new WebGPURenderer({ emit, forceReadback: data.forceReadback === true });
+        const graphics12 = new D3D12Renderer(graphics);
+        const opengl = new OpenGLRenderer({ emit });
+        resources.push({ graphics, graphics12, opengl });
+        const runtime = new Runtime(iced, {
+          ...options,
+          builtinFiles: executableProfiles.get(options.exe) ?? builtinFiles,
+          nlsFiles: executableProfiles.has(options.exe) ? nativeBase.nlsFiles : undefined,
+          graphics,
+          graphics12,
+          opengl,
+          emit,
+          request,
+          // Manual sessions last until the guest exits or the user presses Stop.
+          // The dispatcher still yields, and memory/block-cache limits still apply.
+          maxBlocks: data.interactive ? Infinity : 1_000_000,
+        });
+        runtime.gdiTextRasterizer = createCanvasTextRasterizer();
+        resources.at(-1).runtime = runtime;
+        return runtime;
       });
-      activeRuntime = runtime;
-      runtime.gdiTextRasterizer = createCanvasTextRasterizer();
+      activeSession = session;
       let result;
       try {
-        result = await runtime.run();
+        const root = session.create({ exe: data.exe, args: data.args ?? [] });
+        if (root.status) throw Error(`Cannot create process: 0x${root.status.toString(16)}`);
+        result = await session.run(root.record);
       } finally {
-        activeRuntime = null;
-        runtime.vulkan?.dispose();
-        graphics12.dispose();
-        graphics.dispose();
-        opengl.dispose();
+        activeSession = null;
+        for (const { runtime, graphics12, graphics, opengl } of resources) {
+          runtime?.vulkan?.dispose();
+          graphics12.dispose();
+          graphics.dispose();
+          opengl.dispose();
+        }
       }
       try {
         await saveOutputs(id, result.outputs, result.deletedFiles);
@@ -164,6 +173,7 @@ onmessage = async ({ data }) => {
     emit({
       type: 'error',
       text: e.message,
+      ...(e.process ? { process: e.process } : {}),
       ...(e.guestDiagnostic ? { diagnostic: e.guestDiagnostic } : {}),
     });
   } finally {

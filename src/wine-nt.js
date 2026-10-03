@@ -15,6 +15,8 @@ import { registerThunk } from './thunk-addresses.js';
 import { syncNtServices } from './wine-sync.js';
 import { duplicateNtServices } from './duplicate-handle.js';
 import { objectNtServices, guestHandleFlags } from './wine-object.js';
+import { childProcessNtServices, queryProcessBasic } from './wine-child-process.js';
+import { processLookup } from './process-session.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -261,6 +263,7 @@ function writeLargeInteger(runtime, address, value) {
 }
 
 export const ntServices = {
+  ...childProcessNtServices,
   ...debugNtServices,
   ...syncNtServices,
   ...duplicateNtServices,
@@ -282,7 +285,10 @@ export const ntServices = {
       // thread, before the caller continues into LdrShutdownProcess.
       if (handle === 0)
         return r.threads.records.size > 1 ? r.threads.stopOthers().then(() => 0) : 0;
-      if (handle !== CURRENT_PROCESS) return 0xc0000008;
+      if (handle !== CURRENT_PROCESS) {
+        const found = processLookup(r, handle, 1);
+        return found.status || r.processSession.terminate(found.process, a(1));
+      }
       r.nativeProcessTerminated = true;
       r.threads.terminateProcess(a(1));
       return 0;
@@ -316,6 +322,7 @@ export const ntServices = {
     argc: 5,
     call: (r, a) => {
       const informationClass = a(1);
+      if (informationClass === 0) return queryProcessBasic(r, a);
       if (![12, PROCESS_WOW64_INFORMATION, PROCESS_EXECUTE_FLAGS].includes(informationClass))
         throw Error(`Unsupported Wine process information class ${informationClass}`);
       if (a(3) !== 4) return 0xc0000004; // STATUS_INFO_LENGTH_MISMATCH.

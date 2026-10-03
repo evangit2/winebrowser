@@ -136,8 +136,8 @@ test('Wine NT clock services dispatch through the guest dispatcher and preserve 
   const queryProcess = exportAddress(runtime, module, 'NtQueryInformationProcess');
   const stackBeforeUnknown = runtime.cpu.r[4].value;
   await assert.rejects(
-    runtime.callGuest(queryProcess, [0xffffffff, 0, 0, 0, 0]),
-    /Unsupported Wine process information class 0/,
+    runtime.callGuest(queryProcess, [0xffffffff, 1, 0, 0, 0]),
+    /Unsupported Wine process information class 1/,
     'the FS:C0 entry reaches process information dispatch and rejects unsupported classes',
   );
   assert.equal(

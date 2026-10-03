@@ -9,6 +9,7 @@ import { fileMetadata, fileIdentity } from './file-metadata.js';
 import { protectMemory } from './memory-protection.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
 import { guestHandleRecord, guestHandleFlags } from './wine-object.js';
+import { processLookup } from './process-session.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -1004,20 +1005,16 @@ function writeConsole(r, a, wide) {
 function createPipe(r) {
   return fail(r, 5, 4);
 }
-function createProcess(r) {
-  return fail(r, 5, 10);
-}
 function getExitCodeProcess(r, a) {
   const handle = a(0) >>> 0;
   const out = a(1);
   if (!out) return fail(r, 87, 2);
-  // Only a thread the runtime itself created has a recorded exit code; any
-  // other handle is invalid. The current process always reports STILL_ACTIVE.
-  const thread = r.threads?.lookup?.(handle, 0).opened?.object;
+  // Process handles refer to a shared completion record, independent of the
+  // lifetime of the launcher and its initial thread handle.
+  const found = processLookup(r, handle, 0x400);
+  if (found.status) return fail(r, 6, 2);
   r.check(out, 4, true);
-  if (thread) r.write32(out, thread.done ? thread.code : 259);
-  else if (handle === 0xffffffff) r.write32(out, 259);
-  else return fail(r, 6, 2);
+  r.write32(out, found.process.done ? found.process.code : 259);
   return ok(1, 2);
 }
 // SetHandleInformation records the inheritance flag on a runtime handle.
@@ -1254,8 +1251,6 @@ export const systemApis = {
   'kernel32.dll!WriteConsoleA': (r, a) => writeConsole(r, a, false),
   'kernel32.dll!WriteConsoleW': (r, a) => writeConsole(r, a, true),
   'kernel32.dll!CreatePipe': createPipe,
-  'kernel32.dll!CreateProcessA': createProcess,
-  'kernel32.dll!CreateProcessW': createProcess,
   'kernel32.dll!GetExitCodeProcess': getExitCodeProcess,
   'kernel32.dll!SetHandleInformation': setHandleInformation,
   'kernel32.dll!GetHandleInformation': getHandleInformation,

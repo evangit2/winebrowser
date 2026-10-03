@@ -1,4 +1,5 @@
 import { syncChecked } from './wine-sync.js';
+import { syncObjects } from './sync-objects.js';
 const result = (value, argc) => ({ result: value, argc });
 function fail(r, status, argc, value = 0) {
   r.lastError =
@@ -132,6 +133,13 @@ export const threadApis = {
     const access = a(0) >>> 0,
       inherit = a(1) >>> 0,
       processId = a(2) >>> 0;
+    if (r.processSession) {
+      const process = r.processSession.records.get(processId);
+      if (!process) return fail(r, 0xc000000d, 3);
+      if (access & ~0x1fffff) return fail(r, 0xc0000022, 3);
+      const opened = syncObjects(r).openHandle(process.object, access, !!inherit);
+      return opened.status ? fail(r, opened.status, 3) : result(opened.handle, 3);
+    }
     if (inherit || processId !== 1) {
       r.lastError = 87;
       return result(0, 3);
@@ -148,6 +156,11 @@ export const threadApis = {
   'kernel32.dll!GetThreadContext': (r, a) => {
     const handle = a(0) >>> 0,
       context = a(1) >>> 0;
+    if (
+      r.handles.get(handle)?.object?.thread?.process ||
+      r.handles.get(handle)?.kind === 'sync-process'
+    )
+      return fail(r, 0xc00000bb, 2);
     if (!r.handles.has(handle) || !context) {
       r.lastError = 6;
       return result(0, 2);
@@ -157,6 +170,11 @@ export const threadApis = {
   'kernel32.dll!SetThreadContext': (r, a) => {
     const handle = a(0) >>> 0,
       context = a(1) >>> 0;
+    if (
+      r.handles.get(handle)?.object?.thread?.process ||
+      r.handles.get(handle)?.kind === 'sync-process'
+    )
+      return fail(r, 0xc00000bb, 2);
     if (!r.handles.has(handle) || !context) {
       r.lastError = 6;
       return result(0, 2);
@@ -165,7 +183,7 @@ export const threadApis = {
   },
   'kernel32.dll!GetCurrentThreadId': (r) => result(r.threads.current.id, 0),
   'kernel32.dll!GetCurrentProcess': () => result(0xffffffff, 0),
-  'kernel32.dll!GetCurrentProcessId': () => result(1, 0),
+  'kernel32.dll!GetCurrentProcessId': (r) => result(r.processId ?? 1, 0),
   'kernel32.dll!ExitThread': (r, a) => r.threads.exitHost(a(0)),
   'kernel32.dll!ResumeThread': (r, a) => {
     const changed = r.threads.resume(a(0));

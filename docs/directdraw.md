@@ -63,8 +63,9 @@ The 36,864-byte `AirXonix.exe` is a launcher; the 761,856-byte `program.exe` is 
 actual D3D7 game. The ZIP and game binaries are not redistributed by this project.
 
 The original launcher now passes its dynamic DDRAW/DirectDrawCreateEx lookup.
-It then stops at native Wine `NtCreateUserProcess`, because this runtime does not
-yet implement child processes. No successful WinExec result is fabricated.
+The [launcher milestone](processes.md) now implements native Wine
+`NtCreateUserProcess`, and the unchanged launcher starts the game child through
+WinExec. No successful WinExec result is fabricated.
 Selecting `program.exe` manually exercises the game directly. It resolves all
 133 static imports, passes the added process-local NT UTC time query, and currently
 stops at `NtRaiseException` with native C++ exception code `0xe06d7363`.
@@ -72,8 +73,7 @@ SystemPerformanceInformation reports STATUS_NOT_IMPLEMENTED so Wine can take its
 failure path; scheduler and I/O telemetry are not invented.
 
 AirXonix is **not yet verified playable**: no game frame or gameplay acceptance
-has passed. Native NT exception dispatch and child-process execution are the next
-shared runtime milestones. More D3D7 methods may be needed after those startup
+has passed. Native NT exception dispatch is the next shared runtime milestone. More D3D7 methods may be needed after those startup
 gaps are implemented. The local probe metadata is in `evidence/directdraw-airxonix-results.json`.
 A supported-import count alone does not prove compatibility.
 

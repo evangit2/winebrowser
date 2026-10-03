@@ -1,5 +1,16 @@
 import { SYNC, syncAccess, syncObjects } from './sync-objects.js';
 
+function processAccess(raw) {
+  let access = raw & 0x0fffffff;
+  if (raw & 0x10000000 || raw & 0x02000000) access |= 0x1fffff;
+  access &= ~0x02000000;
+  if (raw & 0x80000000) access |= 0x20410;
+  if (raw & 0x40000000) access |= 0x203eb;
+  if (raw & 0x20000000) access |= 0x120000;
+  if (access & 0x400) access |= 0x1000;
+  if (access & 0x200) access |= 0x2000;
+  return access & ~0x1fffff ? null : access;
+}
 function threadAccess(raw) {
   let access = raw & 0x0fffffff;
   if (raw & 0x10000000 || raw & 0x02000000) access |= 0x1fffff;
@@ -23,7 +34,11 @@ export function duplicateHandle(r, a) {
     ? { kind: 'sync-thread', access: 0x1fffff, inherit: false }
     : r.handles.get(source);
   if (!opened) return SYNC.HANDLE;
-  if (!['sync-thread', 'sync-event', 'sync-semaphore', 'sync-directory'].includes(opened.kind))
+  if (
+    !['sync-process', 'sync-thread', 'sync-event', 'sync-semaphore', 'sync-directory'].includes(
+      opened.kind,
+    )
+  )
     return SYNC.UNSUPPORTED;
   const objects = syncObjects(r);
   try {
@@ -39,12 +54,15 @@ export function duplicateHandle(r, a) {
     }
     r.write32(a(3), 0);
     if (!(options & 4) && a(5) & ~2) return SYNC.UNSUPPORTED;
-    const available = opened.kind === 'sync-thread' ? threadAccess(opened.access) : opened.access;
+    const accessFor = opened.kind === 'sync-process' ? processAccess : threadAccess;
+    const available = ['sync-process', 'sync-thread'].includes(opened.kind)
+      ? accessFor(opened.access)
+      : opened.access;
     const access =
       options & 2
         ? available
-        : opened.kind === 'sync-thread'
-          ? threadAccess(a(4))
+        : ['sync-process', 'sync-thread'].includes(opened.kind)
+          ? accessFor(a(4))
           : syncAccess(a(4), opened.kind === 'sync-directory');
     if (access === null || available === null || (access & available) !== access)
       return SYNC.ACCESS;

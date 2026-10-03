@@ -156,8 +156,10 @@ function createWorker() {
         log('Guest fault diagnostic: ' + text);
         globalThis.__lastFaultDiagnostic = message.diagnostic;
       }
-      log(message.text);
-      $('output').textContent += `\n${message.text}`;
+      globalThis.__lastFaultProcess = message.process ?? null;
+      const errorText = message.process ? `${message.process.exe}: ${message.text}` : message.text;
+      log(errorText);
+      $('output').textContent += `\n${errorText}`;
       status('Stopped: unsupported or invalid program', 'ERROR');
       loadWait?.reject(Error(message.text));
       runWait?.reject(Error(message.text));

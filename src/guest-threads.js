@@ -8,7 +8,7 @@ export class GuestThreads {
     this.r = runtime;
     this.initialContext = runtime.cpu.captureContext();
     this.main = {
-      id: 1,
+      id: ((runtime.processId ?? 1) - 1) * 256 + 1,
       teb: PROCESS_LAYOUT.teb,
       suspend: 0,
       code: null,
@@ -21,8 +21,8 @@ export class GuestThreads {
     this.schedulerNow = () => performance.now();
     this.starvationMilliseconds = 3000;
     this.quantumMilliseconds = 20;
-    this.records = new Map([[1, this.main]]);
-    this.nextId = 2;
+    this.records = new Map([[this.main.id, this.main]]);
+    this.nextId = this.main.id + 1;
     this.queue = [];
     this.timers = new Set();
     this.fatal = null;
@@ -158,6 +158,7 @@ export class GuestThreads {
   setPriority(handle, delta) {
     const found = this.lookup(handle, 0x20);
     if (found.status) return found.status;
+    if (found.thread.process) return SYNC.UNSUPPORTED;
     if (![-15, -2, -1, 0, 1, 2, 15].includes(delta)) return SYNC.INVALID;
     if (found.thread.done) return 0xc000004b;
     found.thread.relativePriority = delta;
@@ -267,6 +268,7 @@ export class GuestThreads {
         stackLimit: stack,
         stackBase: stack + size,
         threadId: id,
+        processId: r.processId ?? 1,
         syscallDispatcher: dispatcher,
       });
       const context = structuredClone(this.initialContext);
@@ -387,6 +389,7 @@ export class GuestThreads {
     if (found.status) return found;
     const thread = found.thread,
       previous = thread.suspend;
+    if (thread.process) return this.r.processSession.resume(thread.process);
     if (thread.done) return { status: 0xc000004b };
     if (thread.suspend) thread.suspend--;
     this.pump();
@@ -396,6 +399,7 @@ export class GuestThreads {
     const found = this.lookup(handle, 2);
     if (found.status) return found;
     const thread = found.thread;
+    if (thread.process) return { status: SYNC.UNSUPPORTED };
     if (thread.done) return { status: 0xc000004b };
     if (thread.suspend >= 127) return { status: 0xc000004a };
     return { status: 0, previous: thread.suspend++ };
@@ -404,6 +408,7 @@ export class GuestThreads {
     const found = this.lookup(handle || 0xfffffffe, 1);
     if (found.status) return found.status;
     const thread = found.thread;
+    if (thread.process) return SYNC.UNSUPPORTED;
     if (thread.done || thread.stop) return 0;
     if (thread === this.current) {
       thread.nativeDetached = true;

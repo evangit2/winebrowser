@@ -283,4 +283,7 @@ The [unchanged application startup diagnostic](docs/wine-loader-bridge.md#unchan
 
 The bounded [DirectDraw1/7 and Direct3D7 profile](docs/directdraw.md) now supplies
 DDRAW.DLL for ordinary uploads, with independent native EXE/ZIP rendering tests.
-AirXonix still requires native NT exception dispatch and child-process support.
+The [uploaded launcher milestone](docs/processes.md) supports native Wine child
+process creation, suspended resume, exit waits and children that outlive their
+parents. AirXonix now launches its game child and still requires native NT
+exception dispatch; gameplay remains unverified.

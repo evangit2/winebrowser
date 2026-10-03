@@ -68,11 +68,26 @@ export class Runtime {
       performanceNow,
       systemNow = () => Date.now(),
       hostModuleImages = true,
+      processSession,
+      processId = 1,
+      sharedFiles = false,
+      dirty,
+      cwd,
+      environment,
+      commandLine,
+      argv0,
     },
   ) {
-    this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
+    this.files = sharedFiles
+      ? files
+      : new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
     this.exe = exe;
-    this.cwd = exe.includes('/') ? exe.slice(0, exe.lastIndexOf('/') + 1) : '';
+    this.cwd = cwd ?? (exe.includes('/') ? exe.slice(0, exe.lastIndexOf('/') + 1) : '');
+    this.processSession = processSession;
+    this.processId = processId;
+    this.commandLine = commandLine;
+    this.argv0 = argv0;
+    this.environment = environment;
     this.emit = emit;
     this.request = (kind, detail) => {
       flushGdi(this);
@@ -142,7 +157,7 @@ export class Runtime {
     this.lastError = 0;
     this.exitCode = null;
     this.shutdownState = 'idle';
-    this.dirty = new Set();
+    this.dirty = dirty ?? new Set();
     this.calls = 0;
     // The first 2048 interceptions in order, for tracing call sequences, and a
     // complete deduplicated set of every API/COM method the guest reached.

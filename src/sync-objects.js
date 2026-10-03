@@ -188,7 +188,7 @@ export class SyncObjects {
       const kind = this.runtime.handles.get(handle)?.kind;
       const found = this.lookup(
         handle,
-        ['sync-thread', 'sync-semaphore'].includes(kind) ? kind : 'sync-event',
+        ['sync-thread', 'sync-process', 'sync-semaphore'].includes(kind) ? kind : 'sync-event',
         SYNC.WAIT,
       );
       if (found.status) return found;

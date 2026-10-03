@@ -47,7 +47,7 @@ function create(r, a) {
   if (created.status) return created.status;
   for (const output of outputs) {
     if (output.type === 0x10003) {
-      r.write32(output.value, 1);
+      r.write32(output.value, r.processId ?? 1);
       r.write32(output.value + 4, created.thread.id);
     } else r.write32(output.value, created.thread.teb);
     if (output.returned) r.write32(output.returned, output.length);
@@ -108,7 +108,7 @@ export const threadCreationNtServices = {
         [
           t.done ? t.code : 259,
           t.done ? 0 : t.teb,
-          1,
+          t.processId ?? r.processId ?? 1,
           t.id,
           1,
           r.threads.priority(t),

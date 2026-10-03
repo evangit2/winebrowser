@@ -16,7 +16,11 @@ export const PROCESS_LAYOUT = Object.freeze({
 export const PEB_PROCESS_HEAP = PROCESS_LAYOUT.peb + 0x18;
 
 export function initializeProcessLayout(runtime) {
-  initializeThreadLayout(runtime, { ...PROCESS_LAYOUT, threadId: 1 });
+  initializeThreadLayout(runtime, {
+    ...PROCESS_LAYOUT,
+    processId: runtime.processId ?? 1,
+    threadId: ((runtime.processId ?? 1) - 1) * 256 + 1,
+  });
   const { peb } = PROCESS_LAYOUT;
   runtime.write32(peb + 8, runtime.pe.imageBase);
   runtime.write32(peb + 0x64, 1);
