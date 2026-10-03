@@ -312,7 +312,7 @@ export const ntServices = {
     argc: 5,
     call: (r, a) => {
       const informationClass = a(1);
-      if (![PROCESS_WOW64_INFORMATION, PROCESS_EXECUTE_FLAGS].includes(informationClass))
+      if (![12, PROCESS_WOW64_INFORMATION, PROCESS_EXECUTE_FLAGS].includes(informationClass))
         throw Error(`Unsupported Wine process information class ${informationClass}`);
       if (a(3) !== 4) return 0xc0000004; // STATUS_INFO_LENGTH_MISMATCH.
       if (a(0) !== CURRENT_PROCESS) return 0xc0000008;
@@ -324,7 +324,14 @@ export const ntServices = {
       }
       // This is a native PE32 process without WOW64. Browser DEP is always on:
       // guest data stays non-executable and ATL thunk emulation is unavailable.
-      r.write32(a(2), informationClass === PROCESS_EXECUTE_FLAGS ? BROWSER_EXECUTE_FLAGS : 0);
+      r.write32(
+        a(2),
+        informationClass === 12
+          ? (r.hardErrorMode ?? 0)
+          : informationClass === PROCESS_EXECUTE_FLAGS
+            ? BROWSER_EXECUTE_FLAGS
+            : 0,
+      );
       if (a(4)) r.write32(a(4), 4);
       return 0;
     },
@@ -333,7 +340,7 @@ export const ntServices = {
     argc: 4,
     call: (r, a) => {
       const informationClass = a(1);
-      if (informationClass !== PROCESS_EXECUTE_FLAGS)
+      if (![12, PROCESS_EXECUTE_FLAGS].includes(informationClass))
         throw Error(`Unsupported Wine process information class ${informationClass}`);
       if (a(0) !== CURRENT_PROCESS) return 0xc0000008;
       if (a(3) !== 4) return 0xc000000d; // STATUS_INVALID_PARAMETER.
@@ -343,6 +350,12 @@ export const ntServices = {
         return ACCESS_VIOLATION;
       }
       const flags = r.read32(a(2));
+      // Preserve Get/SetErrorMode state across native CRT initialization and
+      // subsequent application calls; this does not change browser fault handling.
+      if (informationClass === 12) {
+        r.hardErrorMode = flags;
+        return 0;
+      }
       if (flags === BROWSER_EXECUTE_FLAGS) return 0;
       const selection = flags & (MEM_EXECUTE_OPTION_DISABLE | MEM_EXECUTE_OPTION_ENABLE);
       if (!selection || selection === (MEM_EXECUTE_OPTION_DISABLE | MEM_EXECUTE_OPTION_ENABLE))

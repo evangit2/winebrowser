@@ -437,6 +437,7 @@ function writeFile(runtime, argument) {
   const handleValue = argument(0);
 
   if (handleValue === 1 || handleValue === 2) {
+    if (runtime.closedStandardOutputs?.has(handleValue)) return failure(runtime, 6, 5);
     runtime.stdoutBytes = (runtime.stdoutBytes || 0) + count;
     if (runtime.stdoutBytes > 1024 * 1024) throw Error('Console output limit exceeded');
     runtime.emit({ type: 'stdout', text: new TextDecoder('windows-1252').decode(bytes) });

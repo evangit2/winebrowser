@@ -338,6 +338,10 @@ export const comApis = {
   ...guidApis,
   ...oleautApis,
   'ole32.dll!CoInitialize': (r, a) => initialize(r, a(0), 2, 1),
+  // Console programs linked with GnuWin32's shortcut helper initialize an STA
+  // before attempting shell-link activation. Share COM's apartment ownership
+  // and changed-mode checks; unsupported OLE interfaces still fail activation.
+  'ole32.dll!OleInitialize': (r, a) => initialize(r, a(0), 2, 1),
   'ole32.dll!CoInitializeEx': (r, a) => initialize(r, a(0), a(1) >>> 0, 2),
   'ole32.dll!CoUninitialize': async (r) => {
     const state = stateFor(r);

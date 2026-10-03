@@ -4,6 +4,7 @@
 // the documented Win32 error, and none of them silently pretends to do work
 // (for example, a real GlobalAlloc block, not a fake constant).
 import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
+import { environmentEntries } from './guest-environment.js';
 import { encodeAnsi } from './encoding.js';
 import { guestProcessorFeaturePresent } from './processor-features.js';
 import { GuestUnwind } from './seh.js';
@@ -409,7 +410,7 @@ function raiseException(r, a) {
 function environmentStrings(r, a, wide) {
   const key = wide ? 'environmentW' : 'environmentA';
   if (!r[key]) {
-    const entries = ['=C:=C:\\', 'PATH=C:\\'];
+    const entries = environmentEntries(r, wide);
     if (wide) {
       let total = 0;
       for (const entry of entries) total += (entry.length + 1) * 2;
@@ -437,17 +438,23 @@ function environmentStrings(r, a, wide) {
 }
 function getEnvironmentVariable(r, a, wide) {
   const name = (wide ? r.wideString(a(0)) : r.string(a(0))).toUpperCase();
-  const values = { PATH: 'C:\\' };
-  const value = values[name];
-  if (!value) return ok(0, wide ? 2 : 3);
+  const entry = environmentEntries(r, wide).find(
+    (item) =>
+      item.startsWith(name + '=') || item.slice(0, item.indexOf('=')).toUpperCase() === name,
+  );
+  const value = entry?.slice(entry.indexOf('=') + 1);
+  if (value === undefined) {
+    r.lastError = 203;
+    return ok(0, 3);
+  }
   const buffer = a(1),
     length = a(2);
   const encoded = wide ? null : encodeAnsi(value).bytes;
   const needed = (wide ? value.length : encoded.length) + 1;
-  if (!buffer || length < needed) return ok(needed, wide ? 2 : 3);
+  if (!buffer || length < needed) return ok(needed, 3);
   if (wide) writeWide(r, buffer, value, length);
   else writeAnsi(r, buffer, value, length);
-  return ok(needed - 1, wide ? 2 : 3);
+  return ok(needed - 1, 3);
 }
 function freeEnvironmentStrings(r, a, wide) {
   const key = wide ? 'environmentW' : 'environmentA';
