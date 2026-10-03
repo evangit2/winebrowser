@@ -41,6 +41,15 @@ export const audioApis = {
   ...driverApis,
   ...mixerApis,
   ...multimediaTimeApis,
+  // No WinMM joystick device is exposed by the current input backend.
+  'winmm.dll!joyGetNumDevs': () => ({ result: 0, argc: 0 }),
+  'winmm.dll!joyGetDevCapsA': () => ({ result: 2, argc: 3 }),
+  'winmm.dll!joyGetDevCapsW': () => ({ result: 2, argc: 3 }),
+  'winmm.dll!joyGetPosEx': (r, a) => {
+    if (!a(1)) return { result: 165, argc: 2 };
+    r.check(a(1), 52);
+    return { result: r.read32(a(1)) === 52 ? 167 : 165, argc: 2 };
+  },
   'winmm.dll!PlaySoundA': (r, a) => playSound(r, a, false),
   'winmm.dll!PlaySoundW': (r, a) => playSound(r, a, true),
 };

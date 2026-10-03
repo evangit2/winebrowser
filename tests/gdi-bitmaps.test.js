@@ -264,3 +264,53 @@ test('compatible bitmap dimensions and unsupported BitBlt raster operations fail
   assert.equal(runtime.lastError, 87);
   assert.equal(call(runtime, 'user32.dll!ReleaseDC', screen, dc).result, 1);
 });
+
+test('StretchBlt samples nearest pixels with clipped scaling, overlap and monochrome conversion', () => {
+  const r = makeRuntime({ window: { id: 0x222, width: 8, height: 4 } }),
+    dc = call(r, 'user32.dll!GetDC', 0x222).result;
+  const src = call(r, 'gdi32.dll!CreateCompatibleDC', dc).result,
+    bitmap = call(r, 'gdi32.dll!CreateCompatibleBitmap', dc, 2, 1).result;
+  call(r, 'gdi32.dll!SelectObject', src, bitmap);
+  call(r, 'gdi32.dll!SetPixel', src, 0, 0, 0xff);
+  call(r, 'gdi32.dll!SetPixel', src, 1, 0, 0xff00);
+  assert.equal(
+    call(r, 'gdi32.dll!StretchBlt', dc, -1, 0, 4, 2, src, 0, 0, 2, 1, SRCCOPY).result,
+    1,
+  );
+  assert.deepEqual(
+    Array.from({ length: 4 }, (_, x) => call(r, 'gdi32.dll!GetPixel', dc, x, 0).result),
+    [0xff, 0xff00, 0xff00, 0],
+  );
+  assert.equal(call(r, 'gdi32.dll!StretchBlt', dc, 1, 2, 6, 1, dc, 0, 0, 3, 1, SRCCOPY).result, 1);
+  assert.deepEqual(
+    Array.from({ length: 6 }, (_, x) => call(r, 'gdi32.dll!GetPixel', dc, x + 1, 2).result),
+    [0xff, 0xff, 0xff00, 0xff00, 0xff00, 0xff00],
+  );
+  const mono = call(r, 'gdi32.dll!CreateCompatibleDC', dc).result,
+    mb = call(r, 'gdi32.dll!CreateCompatibleBitmap', mono, 2, 1).result;
+  call(r, 'gdi32.dll!SelectObject', mono, mb);
+  call(r, 'gdi32.dll!SetBkColor', src, 0xff00);
+  assert.equal(
+    call(r, 'gdi32.dll!StretchBlt', mono, 0, 0, 2, 1, src, 0, 0, 2, 1, SRCCOPY).result,
+    1,
+  );
+  assert.deepEqual(
+    [0, 1].map((x) => call(r, 'gdi32.dll!GetPixel', mono, x, 0).result),
+    [0, 0xffffff],
+  );
+  call(r, 'gdi32.dll!SetTextColor', dc, 0xff);
+  call(r, 'gdi32.dll!SetBkColor', dc, 0xff00);
+  assert.equal(
+    call(r, 'gdi32.dll!StretchBlt', dc, 0, 3, 4, 1, mono, 0, 0, 2, 1, SRCCOPY).result,
+    1,
+  );
+  assert.deepEqual(
+    [0, 1, 2, 3].map((x) => call(r, 'gdi32.dll!GetPixel', dc, x, 3).result),
+    [0xff, 0xff, 0xff00, 0xff00],
+  );
+  assert.equal(
+    call(r, 'gdi32.dll!StretchBlt', dc, 0, 0, -1, 1, src, 0, 0, 2, 1, SRCCOPY).result,
+    0,
+  );
+  assert.equal(r.lastError, 87);
+});

@@ -189,3 +189,14 @@ test('time of day describes the process-local UTC clock with atomic bounded outp
   assert.ok(r.data.slice(output + 48, output + 56).every((v) => v === 0xaa));
   assert.equal(query(r, 3, 0, 48, length), 0xc0000005);
 });
+
+test('defined NT performance telemetry reports unavailable without inventing counters', () => {
+  const r = runtime(),
+    output = r.allocate(312),
+    length = r.allocate(4);
+  r.data.fill(0xaa, output, output + 312);
+  r.write32(length, 0x12345678);
+  assert.equal(query(r, 2, output, 312, length), 0xc0000002);
+  assert.ok(r.data.slice(output, output + 312).every((v) => v === 0xaa));
+  assert.equal(r.read32(length), 0x12345678);
+});

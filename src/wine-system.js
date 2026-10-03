@@ -71,6 +71,11 @@ export const systemNtServices = {
     argc: 4,
     call(runtime, argument) {
       const informationClass = argument(0) >>> 0;
+      if (informationClass === 2) {
+        // SystemPerformanceInformation is defined, but this process has no NT
+        // scheduler/I/O telemetry. Let Wine use its documented failure path.
+        return 0xc0000002; // STATUS_NOT_IMPLEMENTED.
+      }
       if (informationClass === 1000) {
         // Wine's private SystemWineVersionInformation describes its Unix host
         // (four NUL-separated strings). This browser has no Wine Unix host.

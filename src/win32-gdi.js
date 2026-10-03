@@ -1658,6 +1658,52 @@ function patBlt(runtime, argument) {
   return success(1, 6);
 }
 
+function stretchBlt(r, a) {
+  const state = stateFor(r),
+    dst = getDc(r, state, a(0)),
+    src = getDc(r, state, a(5));
+  if (!dst || !src) return failure(r, ERROR_INVALID_HANDLE, 0, 11);
+  const x = a(1) | 0,
+    y = a(2) | 0,
+    w = a(3) | 0,
+    h = a(4) | 0,
+    sx = a(6) | 0,
+    sy = a(7) | 0,
+    sw = a(8) | 0,
+    sh = a(9) | 0;
+  if (a(10) !== SRCCOPY) throw Error('Unsupported StretchBlt raster operation');
+  if (w < 0 || h < 0 || sw < 0 || sh < 0) return failure(r, ERROR_INVALID_PARAMETER, 0, 11);
+  if (!w || !h || !sw || !sh) return success(1, 11);
+  if (
+    w > 4096 ||
+    h > 4096 ||
+    sw > 4096 ||
+    sh > 4096 ||
+    sx < 0 ||
+    sy < 0 ||
+    sx + sw > src.surface.width ||
+    sy + sh > src.surface.height
+  )
+    return failure(r, ERROR_INVALID_PARAMETER, 0, 11);
+  const source = src.surface.pixels.slice();
+  for (let dy = Math.max(0, y); dy < Math.min(dst.surface.height, y + h); dy++)
+    for (let dx = Math.max(0, x); dx < Math.min(dst.surface.width, x + w); dx++) {
+      const ix = sx + Math.floor(((dx - x) * sw) / w),
+        iy = sy + Math.floor(((dy - y) * sh) / h),
+        p = (iy * src.surface.width + ix) * 4,
+        q = (dy * dst.surface.width + dx) * 4;
+      let rgb = [...source.subarray(p, p + 3)];
+      if (src.surface.monochrome && !dst.surface.monochrome)
+        rgb = colorRgb(rgb[0] === 0 ? dst.textColor : dst.backgroundColor);
+      else if (!src.surface.monochrome && dst.surface.monochrome)
+        rgb = Array(3).fill(rgbColorRef(rgb) === src.backgroundColor ? 255 : 0);
+      dst.surface.pixels.set(rgb, q);
+      dst.surface.pixels[q + 3] = 255;
+    }
+  dst.surface.dirty = true;
+  return success(1, 11);
+}
+
 function bitBlt(runtime, argument) {
   const state = stateFor(runtime);
   const destination = getDc(runtime, state, argument(0));
@@ -2285,6 +2331,7 @@ export const gdiApis = {
   'gdi32.dll!DeleteObject': deleteObject,
   'gdi32.dll!PatBlt': patBlt,
   'gdi32.dll!BitBlt': bitBlt,
+  'gdi32.dll!StretchBlt': stretchBlt,
   'gdi32.dll!Ellipse': ellipse,
   'gdi32.dll!Polygon': polygon,
   'gdi32.dll!Arc': arc,
