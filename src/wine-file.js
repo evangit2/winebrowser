@@ -10,7 +10,7 @@ import {
 } from './file-locks.js';
 import { syncObjects, SYNC } from './sync-objects.js';
 import { resolveGuestPath } from './guest-paths.js';
-import { fileMetadata, writeFileMetadata, touchFile } from './file-metadata.js';
+import { fileMetadata, fileIdentity, writeFileMetadata, touchFile } from './file-metadata.js';
 const SUCCESS = 0;
 const ACCESS_VIOLATION = 0xc0000005;
 const INVALID_HANDLE = 0xc0000008;
@@ -170,19 +170,34 @@ function information(runtime, argument, set) {
       ? 40
       : !set && kind === 34
         ? 56
-        : kind === 5 && !set
-          ? 24
-          : kind === 14 || (kind === 20 && set)
-            ? 8
-            : 0;
+        : kind === 68 && !set
+          ? 72
+          : kind === 5 && !set
+            ? 24
+            : kind === 14 || (kind === 20 && set)
+              ? 8
+              : 0;
   if (!size) return complete(NOT_SUPPORTED);
   if (kind === 14 && !(opened.access & 0xc0000000)) return complete(ACCESS_DENIED);
-  if ([4, 34].includes(kind) && !((opened.ntAccess ?? opened.access) & 0x80000080))
+  if ([4, 34, 68].includes(kind) && !((opened.ntAccess ?? opened.access) & 0x80000080))
     return complete(ACCESS_DENIED);
   if (argument(3) >>> 0 < size) return complete(0xc0000004); // INFO_LENGTH_MISMATCH
   const buffer = argument(2) >>> 0;
   if (!checked(runtime, buffer, size, !set)) return complete(ACCESS_VIOLATION);
   const bytes = runtime.files.get(opened.path);
+  if (!set && kind === 68) {
+    const info = fileMetadata(runtime, opened.path);
+    runtime.data.fill(0, buffer, buffer + size);
+    runtime.view.setBigInt64(buffer, BigInt(fileIdentity(runtime, opened.path)), true);
+    for (const [i, key] of ['creation', 'access', 'write', 'change'].entries())
+      runtime.view.setBigInt64(buffer + 8 + i * 8, info[key], true);
+    runtime.view.setBigInt64(buffer + 40, BigInt(info.allocation), true);
+    runtime.view.setBigInt64(buffer + 48, BigInt(info.size), true);
+    runtime.write32(buffer + 56, info.attributes);
+    runtime.write32(buffer + 64, 1);
+    runtime.write32(buffer + 68, opened.ntAccess ?? opened.access);
+    return complete(SUCCESS, size);
+  }
   if (set) {
     const value = runtime.view.getBigInt64(buffer, true);
     if (value < 0 || value > BigInt(MAX_FILE)) return complete(INVALID_PARAMETER);
@@ -365,6 +380,22 @@ function queryVolume(runtime, argument) {
   const isPipe = handle === 1 || handle === 2;
   if (isPipe && runtime.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
   if (!isPipe && !regular(runtime, handle)) return complete(INVALID_HANDLE);
+  if (argument(4) >>> 0 === 1) {
+    if (isPipe) return complete(INVALID_PARAMETER);
+    const length = argument(3) >>> 0;
+    if (length < 18) return complete(BUFFER_TOO_SMALL);
+    if (!checked(runtime, argument(2), length, true)) return complete(ACCESS_VIOLATION);
+    const buffer = argument(2) >>> 0,
+      label = 'WineBrowser';
+    runtime.data.fill(0, buffer, buffer + length);
+    runtime.view.setBigInt64(buffer, runtime.packageFileTime, true);
+    runtime.write32(buffer + 8, 0x57425231);
+    runtime.write32(buffer + 12, label.length * 2);
+    const characters = Math.min(label.length, Math.floor((length - 18) / 2));
+    for (let i = 0; i < characters; i++)
+      runtime.view.setUint16(buffer + 18 + i * 2, label.charCodeAt(i), true);
+    return complete(characters === label.length ? SUCCESS : 0x80000005, 18 + characters * 2);
+  }
   if (argument(4) >>> 0 !== 4)
     throw Error(`Unsupported Wine volume information class ${argument(4) >>> 0}`);
   const length = argument(3) >>> 0;
@@ -443,6 +474,22 @@ function byteRangeLock(r, a, unlock) {
 }
 
 export const fileNtServices = {
+  // stdout/stderr are write-only byte pipes. CRT isatty/pipe probes must see
+  // a normal NT failure for a read control request, rather than a host trap.
+  NtFsControlFile: {
+    argc: 10,
+    call: (r, a) => {
+      const complete = iosb(r, a(4));
+      if (!complete) return ACCESS_VIOLATION;
+      if (a(1) || a(2)) return complete(NOT_SUPPORTED);
+      const handle = a(0) >>> 0;
+      if (handle === 1 || handle === 2) {
+        if (r.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
+        return complete(a(5) === 0x11400c ? ACCESS_DENIED : 0xc0000010);
+      }
+      return complete(regular(r, handle) ? 0xc0000010 : INVALID_HANDLE);
+    },
+  },
   NtLockFile: { argc: 10, call: (r, a) => byteRangeLock(r, a, false) },
   NtUnlockFile: { argc: 5, call: (r, a) => byteRangeLock(r, a, true) },
   NtFlushBuffersFile: {
