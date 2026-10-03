@@ -1,3 +1,4 @@
+import { releaseHandleLocks, fileLockConflict } from './file-locks.js';
 import { shellFolderApis } from './win32-shell-folders.js';
 import { lzApis } from './win32-lz.js';
 import { legacyUiApis } from './win32-legacy-ui.js';
@@ -34,7 +35,7 @@ import { acceleratorApis } from './win32-accelerators.js';
 import { displayApis } from './win32-display.js';
 import { iconApis } from './win32-icons.js';
 import { resolveGuestPath } from './guest-paths.js';
-import { fileShareConflict } from './wine-file.js';
+import { closeFileHandle, fileShareConflict } from './wine-file.js';
 import { touchFile, fileMetadata, FILE_PATH_NOT_FOUND } from './file-metadata.js';
 import { fileMetadataApis } from './win32-file-metadata.js';
 import { fileSectionApis } from './win32-sections.js';
@@ -414,6 +415,8 @@ function readFile(runtime, argument) {
   if (!handle || !(handle.access & 0x80000000)) return failure(runtime, 6, 5);
 
   const bytes = runtime.files.get(handle.path);
+  if (fileLockConflict(runtime, argument(0), handle.position, argument(2)))
+    return failure(runtime, 33, 5);
   const count = Math.min(argument(2), Math.max(0, bytes.length - handle.position));
   const address = argument(1);
   runtime.check(address, count, true);
@@ -440,6 +443,8 @@ function writeFile(runtime, argument) {
   } else {
     const handle = runtime.handles.get(handleValue);
     if (!handle || !(handle.access & 0x40000000)) return failure(runtime, 6, 5);
+    if (fileLockConflict(runtime, handleValue, handle.position, count, true))
+      return failure(runtime, 33, 5);
     if (handle.position + count > 16 * 1024 * 1024) throw Error('Virtual file size limit exceeded');
     const previousBytes = runtime.files.get(handle.path);
     const newLength = Math.max(previousBytes.length, handle.position + count);
@@ -465,6 +470,9 @@ function closeHandle(runtime, argument) {
   if (sectionStatus !== null) return sectionStatus ? failure(runtime, 6, 1) : success(1, 1);
   const status = runtime.syncObjects?.close(argument(0)) ?? null;
   if (status !== null) return status ? failure(runtime, 6, 1) : success(1, 1);
+  const fileStatus = closeFileHandle(runtime, argument(0));
+  if (fileStatus !== null) return fileStatus ? failure(runtime, 6, 1) : success(1, 1);
+  releaseHandleLocks(runtime, argument(0));
   return runtime.handles.delete(argument(0)) ? success(1, 1) : failure(runtime, 6, 1);
 }
 

@@ -55,6 +55,16 @@ they resolve missing imports, including imports in a supplied DLL reached later
 through `LoadLibrary`. Package DLLs keep their search precedence. The native
 code still translates in the browser. The package includes corresponding source,
 licenses and rebuild instructions; see [the native loader scope](docs/wine-loader-bridge.md).
+It also supplies native Wine VCRUNTIME140/MSVCP140/MSVCP140_1/ConCRT DLLs to C++
+clients and uploaded plugins, with recursive unload/reload checks.
+
+**Database demo:** choose **Load sqlite**, then **Run executable**. The unchanged
+upstream SQLite 3.50.4 Windows DLL runs memory/disk SQL, rollback, Unicode text
+and blobs, competing writers, database reopen and integrity checks. Download
+its resulting `database.db`; the tests independently read it with native
+SQLite. [ZIP](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite.zip) ·
+[source and provenance](public/examples/sqlite/PROVENANCE.md). Its original
+x86 code compiles during browser execution. See [database scope](docs/sqlite.md).
 
 ## Run
 

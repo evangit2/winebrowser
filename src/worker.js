@@ -151,7 +151,7 @@ onmessage = async ({ data }) => {
         opengl.dispose();
       }
       try {
-        await saveOutputs(id, result.outputs);
+        await saveOutputs(id, result.outputs, result.deletedFiles);
       } catch (e) {
         emit({ type: 'log', text: 'Output persistence unavailable: ' + e.message });
       }

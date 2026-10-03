@@ -325,16 +325,200 @@ test('NT random/sequential cache hints retain real synchronous file reads and ar
         assert.equal(call(r, 'NtWriteFile', [h, 0, 0, 0, status, buffer, 1, 0, 0]), 0xc0000022);
         assert.equal(call(r, 'NtClose', [h]), 0);
       }
-    for (const options of [0x840, 0x868, 0x1860]) {
+    for (const options of [0x840, 0x868]) {
       assert.equal(
         call(r, 'NtCreateFile', [out, 0x80100080, attrs, status, 0, 0, 1, 1, options, 0, 0]),
         0xc00000bb,
       );
       assert.equal(r.handles.size, 0);
     }
+    assert.equal(
+      call(r, 'NtCreateFile', [out, 0x80100080, attrs, status, 0, 0, 1, 1, 0x1860, 0, 0]),
+      0xc0000022,
+      'delete-on-close needs DELETE access',
+    );
     assert.deepEqual([...r.files.get('data.bin')], [0x41, 0x42, 0x43, 0x44, 0x45, 0x46]);
     assert.equal(r.dirty.size, 0);
   } finally {
     r.cpu.dispose();
   }
+});
+
+test('synchronous positioned I/O accepts opaque OVERLAPPED contexts without an APC routine', () => {
+  const { r } = fixture(),
+    status = io(r),
+    buffer = r.allocate(8),
+    offset = r.allocate(8);
+  r.view.setBigInt64(offset, 2n, true);
+  assert.equal(call(r, 'NtReadFile', [0x100, 0, 0, 0xdeadbeef, status, buffer, 2, offset, 0]), 0);
+  assert.equal(r.read32(status), 0);
+  assert.equal(r.read32(status + 4), 2);
+  assert.deepEqual([...r.data.slice(buffer, buffer + 2)], [0x43, 0x44]);
+  r.view.setBigInt64(offset, 1n, true);
+  r.data.set([0x58, 0x59], buffer);
+  assert.equal(call(r, 'NtWriteFile', [0x100, 0, 0, status, status, buffer, 2, offset, 0]), 0);
+  assert.deepEqual([...r.files.get('data.bin')], [0x41, 0x58, 0x59, 0x44, 0x45, 0x46]);
+  assert.throws(
+    () => call(r, 'NtReadFile', [0x100, 0, 1, status, status, buffer, 2, offset, 0]),
+    /Unsupported asynchronous NtReadFile/,
+  );
+});
+
+function lockRange(r, start, count) {
+  const offset = r.allocate(8),
+    length = r.allocate(8);
+  r.view.setBigInt64(offset, start, true);
+  r.view.setBigInt64(length, count, true);
+  return { offset, length };
+}
+const lock = (r, handle, range, exclusive = false, wait = false) =>
+  call(r, 'NtLockFile', [
+    handle,
+    0,
+    0,
+    0,
+    0,
+    range.offset,
+    range.length,
+    0,
+    Number(!wait),
+    Number(exclusive),
+  ]);
+const unlock = (r, handle, range, status) =>
+  call(r, 'NtUnlockFile', [handle, status, range.offset, range.length, 0]);
+
+test('NT byte locks preserve 64-bit ranges, shared readers, conflicts and exact unlock ownership', () => {
+  const { r } = fixture(),
+    status = io(r),
+    range = lockRange(r, 0x100000000n, 512n);
+  assert.equal(lock(r, 0x100, range), 0);
+  assert.equal(lock(r, 0x102, range), 0);
+  assert.equal(lock(r, 0x101, range, true), 0xc0000055);
+  assert.equal(
+    lock(r, 0x101, range, true, true),
+    0xc00000bb,
+    'wait-required contention stays explicit',
+  );
+  assert.equal(unlock(r, 0x101, range, status), 0xc000007e);
+  assert.equal(r.read32(status), 0xc000007e);
+  const wrong = lockRange(r, 0x100000001n, 511n);
+  assert.equal(unlock(r, 0x100, wrong, status), 0xc000007e);
+  assert.equal(unlock(r, 0x100, range, status), 0);
+  assert.equal(r.read32(status + 4), 0);
+  assert.equal(unlock(r, 0x102, range, status), 0);
+  assert.equal(lock(r, 0x101, range, true), 0);
+  assert.equal(lock(r, 0x100, range), 0xc0000055);
+  assert.equal(call(r, 'NtClose', [0x101]), 0);
+  assert.equal(lock(r, 0x100, range, true), 0, 'closing the owner releases locks');
+});
+
+test('NT file locks enforce positioned I/O and host API access to the same bytes', () => {
+  const { r } = fixture(),
+    status = io(r),
+    range = lockRange(r, 1n, 2n),
+    buffer = r.allocate(8);
+  assert.equal(lock(r, 0x100, range, true), 0);
+  assert.equal(
+    call(r, 'NtReadFile', [0x102, 0, 0, 0, status, buffer, 2, range.offset, 0]),
+    0xc0000054,
+  );
+  assert.equal(
+    call(r, 'NtWriteFile', [0x101, 0, 0, 0, status, buffer, 2, range.offset, 0]),
+    0xc0000054,
+  );
+  assert.equal(call(r, 'NtReadFile', [0x100, 0, 0, 0, status, buffer, 2, range.offset, 0]), 0);
+  r.handles.get(0x102).position = 1;
+  const hostRead = r.apiProvider.get('kernel32.dll!ReadFile')(
+    r,
+    (i) => [0x102, buffer, 2, status, 0][i],
+  );
+  assert.equal(hostRead.result, 0);
+  assert.equal(r.lastError, 33);
+  assert.equal(lock(r, 0x100, range), 0, 'owner may add a shared lock over its exclusive lock');
+  assert.equal(
+    call(r, 'NtWriteFile', [0x100, 0, 0, 0, status, buffer, 2, range.offset, 0]),
+    0xc0000054,
+  );
+  assert.equal(unlock(r, 0x100, range, status), 0, 'exclusive match unlocks first');
+  assert.equal(call(r, 'NtReadFile', [0x102, 0, 0, 0, status, buffer, 2, range.offset, 0]), 0);
+  assert.equal(
+    call(r, 'NtWriteFile', [0x100, 0, 0, 0, status, buffer, 2, range.offset, 0]),
+    0xc0000054,
+  );
+  assert.equal(unlock(r, 0x100, range, status), 0);
+  assert.equal(call(r, 'NtWriteFile', [0x100, 0, 0, 0, status, buffer, 2, range.offset, 0]), 0);
+});
+
+test('byte lock failures validate pointers, ranges and access without acquiring locks', () => {
+  const { r } = fixture(),
+    status = io(r),
+    range = lockRange(r, 0n, 0n);
+  assert.equal(lock(r, 0x999, range, true), 0xc0000008);
+  assert.equal(lock(r, 0x100, range, true), 0xc000000d);
+  r.view.setBigInt64(range.offset, -1n, true);
+  r.view.setBigInt64(range.length, 1n, true);
+  assert.equal(lock(r, 0x100, range, true), 0xc000000d);
+  r.view.setBigInt64(range.offset, 0x7fffffffffffffffn, true);
+  assert.equal(lock(r, 0x100, range, true), 0xc000000d);
+  assert.equal(
+    call(r, 'NtLockFile', [0x100, 0, 0, 0, status, 0, range.length, 0, 1, 1]),
+    0xc0000005,
+  );
+  assert.deepEqual(r.fileLocks ?? [], []);
+  assert.equal(call(r, 'NtFlushBuffersFile', [0x100, status]), 0);
+  assert.equal(r.read32(status + 4), 0);
+  assert.equal(call(r, 'NtFlushBuffersFile', [0x102, status]), 0xc0000022);
+  assert.equal(call(r, 'NtFlushBuffersFile', [0x999, status]), 0xc0000008);
+  assert.equal(call(r, 'NtFlushBuffersFile', [0x100, 0]), 0xc0000005);
+});
+
+test('native deletion obeys delete sharing and delays removal until the final handle closes', () => {
+  const { r } = fixture(),
+    status = io(r),
+    out = r.allocate(4),
+    info = r.allocate(24);
+  r.handles.clear();
+  const attrs = fileAttributes(r, '\\??\\C:\\winebrowser\\data.bin');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x80100080, attrs, status, 3, 0x60]), 0);
+  const reader = r.read32(out);
+  const remove = [out, 0x110000, attrs, status, 0, 0, 7, 1, 0x201040, 0, 0];
+  assert.equal(call(r, 'NtCreateFile', remove), 0xc0000043, 'reader did not share deletion');
+  assert.equal(call(r, 'NtClose', [reader]), 0);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x80100080, attrs, status, 7, 0x60]), 0);
+  const shared = r.read32(out);
+  assert.equal(call(r, 'NtCreateFile', remove), 0);
+  const deletion = r.read32(out);
+  assert.equal(call(r, 'NtQueryInformationFile', [shared, status, info, 24, 5]), 0);
+  assert.equal(r.data[info + 20], 1);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x80100080, attrs, status, 7, 0x60]), 0xc0000056);
+  assert.equal(call(r, 'NtClose', [deletion]), 0);
+  assert.equal(r.files.has('data.bin'), true);
+  assert.equal(call(r, 'NtReadFile', [shared, 0, 0, 0, status, info, 2, 0, 0]), 0);
+  assert.deepEqual([...r.data.slice(info, info + 2)], [0x41, 0x42]);
+  const hostClose = r.apiProvider.get('kernel32.dll!CloseHandle')(r, () => shared);
+  assert.equal(hostClose.result, 1);
+  assert.equal(r.files.has('data.bin'), false);
+  assert.ok(r.dirty.has('data.bin'));
+  assert.equal(r.pendingFileDeletes.size, 0);
+});
+
+test('FileDispositionInformation can cancel a pending deletion with checked delete rights', () => {
+  const { r } = fixture(),
+    status = io(r),
+    out = r.allocate(4),
+    info = r.allocate(24);
+  r.handles.clear();
+  const attrs = fileAttributes(r, '\\??\\C:\\winebrowser\\data.bin');
+  assert.equal(call(r, 'NtOpenFile', [out, 0xc0110080, attrs, status, 7, 0x60]), 0);
+  const handle = r.read32(out);
+  r.data[info] = 1;
+  assert.equal(call(r, 'NtSetInformationFile', [handle, status, info, 1, 13]), 0);
+  assert.equal(r.pendingFileDeletes.has('data.bin'), true);
+  r.data[info] = 0;
+  assert.equal(call(r, 'NtSetInformationFile', [handle, status, info, 1, 13]), 0);
+  assert.equal(call(r, 'NtClose', [handle]), 0);
+  assert.equal(r.files.has('data.bin'), true);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x80100080, attrs, status, 7, 0x60]), 0);
+  r.data[info] = 1;
+  assert.equal(call(r, 'NtSetInformationFile', [r.read32(out), status, info, 1, 13]), 0xc0000022);
 });

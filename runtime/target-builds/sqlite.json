@@ -1,0 +1,37 @@
+{
+  "version": "3.50.4",
+  "sourceId": "2025-07-30 19:33:53 4d8adfb30e03f9cf27f800a2c1ba3c48fb4ca1b08b0f5ed59a4d5ecbf45e20a3",
+  "upstream": [
+    {
+      "url": "https://www.sqlite.org/2025/sqlite-dll-win-x86-3500400.zip",
+      "sha256": "c40a52de84bed8ca3b83eac80132c826bedfd702d19b156d2febdf046b3a049b",
+      "bytes": 1074986
+    },
+    {
+      "url": "https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip",
+      "sha256": "1d3049dd0f830a025a53105fc79fd2ab9431aea99e137809d064d8ee8356b032",
+      "bytes": 2845716
+    }
+  ],
+  "dll": {
+    "path": "sqlite/sqlite3.dll",
+    "sha256": "24e612fd5b239aa6385d2c159b70155968b3f9ccdbf19ba7fd83a83b9255238a",
+    "bytes": 2530816
+  },
+  "client": {
+    "path": "sqlite/sqlite-client.exe",
+    "sha256": "6dbf5e9c4e9013a0a6d95e89c3aefdfb4aa2789fd017e2e77f9ae01acd4217d6",
+    "bytes": 6144,
+    "source": "tests/fixtures/sqlite/sqlite-client.c",
+    "sourceSha256": "85945bd25bc1d6b3c647127756d6e59ffbee599c5d78fd68647157662a2cc513"
+  },
+  "zip": {
+    "path": "sqlite/sqlite.zip",
+    "sha256": "1a8977d2a7b60bd225510bc379c4236083738e97f3020b27809b4c0e44abb0eb"
+  },
+  "sourceZip": {
+    "path": "sqlite/source.zip",
+    "sha256": "32dbb952bc4e07d44793956da6b83437a0d4f5ad323e2fff0e2c89148476ac51"
+  },
+  "license": "SQLite public domain; authored client MIT"
+}

@@ -41,10 +41,20 @@ export async function savePackageFiles(id, files) {
   await stream.write(JSON.stringify({ version: 1, entries }));
   await stream.close();
 }
-export async function saveOutputs(id, outputs) {
+export async function saveOutputs(id, outputs, deletedFiles = []) {
   const root = await navigator.storage.getDirectory();
   const base = await root.getDirectoryHandle('winebrowser-output', { create: true });
   const dir = await base.getDirectoryHandle(id, { create: true });
+  for (const path of deletedFiles) {
+    try {
+      let target = dir;
+      const parts = path.split('/');
+      for (const part of parts.slice(0, -1)) target = await target.getDirectoryHandle(part);
+      await target.removeEntry(parts.at(-1));
+    } catch (error) {
+      if (error.name !== 'NotFoundError') throw error;
+    }
+  }
   for (const { path, bytes } of outputs) {
     let target = dir;
     const parts = path.split('/');

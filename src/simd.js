@@ -40,6 +40,12 @@ export const SIMD_OP = Object.freeze({
   ANDNOT_XMM_MEM: 36,
   OR_XMM_XMM: 37,
   OR_XMM_MEM: 38,
+  MOVHALF_XMM_MEM: 39,
+  MOVHALF_MEM_XMM: 40,
+  MOVHALF_XMM_XMM: 41,
+  DWORD_ARITH_XMM_XMM: 42,
+  DWORD_ARITH_XMM_MEM: 43,
+  SHIFT_BYTES_XMM: 44,
 });
 
 const floatingCodes = new WeakMap();
@@ -151,6 +157,47 @@ export function classifySse(instruction, iced) {
       if (src !== null) return { op: SIMD_OP.CVTSI2SD_XMM_GPR, dst, src, addressOperand: -1 };
       if (mem32(1)) return { op: SIMD_OP.CVTSI2SD_XMM_MEM, dst, src: 0, addressOperand: 1 };
       return null;
+    }
+    case C.Movlps_xmm_m64:
+    case C.Movlpd_xmm_m64:
+    case C.Movhps_xmm_m64:
+    case C.Movhpd_xmm_m64: {
+      const dst = xmm(0);
+      if (dst === null || !mem64(1)) return null;
+      return {
+        op: SIMD_OP.MOVHALF_XMM_MEM,
+        dst,
+        src: 0,
+        addressOperand: 1,
+        immediate: [C.Movhps_xmm_m64, C.Movhpd_xmm_m64].includes(instruction.code) ? 2 : 0,
+      };
+    }
+    case C.Movlps_m64_xmm:
+    case C.Movlpd_m64_xmm:
+    case C.Movhps_m64_xmm:
+    case C.Movhpd_m64_xmm: {
+      const src = xmm(1);
+      if (src === null || !mem64(0)) return null;
+      return {
+        op: SIMD_OP.MOVHALF_MEM_XMM,
+        dst: 0,
+        src,
+        addressOperand: 0,
+        immediate: [C.Movhps_m64_xmm, C.Movhpd_m64_xmm].includes(instruction.code) ? 2 : 0,
+      };
+    }
+    case C.Movhlps_xmm_xmm:
+    case C.Movlhps_xmm_xmm: {
+      const dst = xmm(0),
+        src = xmm(1);
+      if (dst === null || src === null) return null;
+      return {
+        op: SIMD_OP.MOVHALF_XMM_XMM,
+        dst,
+        src,
+        addressOperand: -1,
+        immediate: instruction.code === C.Movhlps_xmm_xmm ? 0 : 2,
+      };
     }
     case C.Movss_xmm_xmmm32:
     case C.Movss_xmmm32_xmm:
@@ -286,6 +333,33 @@ export function classifySse(instruction, iced) {
         src: src.reg,
         addressOperand: src.memory ? 1 : -1,
         aligned: src.memory,
+      };
+    }
+    case C.Paddd_xmm_xmmm128:
+    case C.Psubd_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = source(1, mem128);
+      if (dst === null || !src) return null;
+      return {
+        op: src.memory ? SIMD_OP.DWORD_ARITH_XMM_MEM : SIMD_OP.DWORD_ARITH_XMM_XMM,
+        dst,
+        src: src.reg,
+        addressOperand: src.memory ? 1 : -1,
+        aligned: src.memory,
+        immediate: instruction.code === C.Psubd_xmm_xmmm128 ? 1 : 0,
+      };
+    }
+    case C.Psrldq_xmm_imm8:
+    case C.Pslldq_xmm_imm8: {
+      const dst = xmm(0);
+      if (dst === null || instruction.opKind(1) !== K.Immediate8) return null;
+      return {
+        op: SIMD_OP.SHIFT_BYTES_XMM,
+        dst,
+        src: 0,
+        addressOperand: -1,
+        immediate:
+          Math.min(instruction.immediate8, 16) | (instruction.code === C.Pslldq_xmm_imm8 ? 32 : 0),
       };
     }
     case C.Pcmpeqd_xmm_xmmm128: {
@@ -502,6 +576,38 @@ export class SIMDState {
         d[1] = this.scalar64.getUint32(4, true);
         return;
       }
+      case SIMD_OP.DWORD_ARITH_XMM_XMM:
+      case SIMD_OP.DWORD_ARITH_XMM_MEM: {
+        const value = op === SIMD_OP.DWORD_ARITH_XMM_MEM ? load(16) : s;
+        for (let lane = 0; lane < 4; lane++)
+          d[lane] = (immediate ? d[lane] - value[lane] : d[lane] + value[lane]) >>> 0;
+        return;
+      }
+      case SIMD_OP.SHIFT_BYTES_XMM: {
+        const count = immediate & 31,
+          left = !!(immediate & 32),
+          original = d.slice();
+        d.fill(0);
+        for (let byte = 0; byte < 16; byte++) {
+          const source = left ? byte - count : byte + count;
+          if (source >= 0 && source < 16)
+            d[byte >>> 2] |=
+              ((original[source >>> 2] >>> ((source & 3) * 8)) & 255) << ((byte & 3) * 8);
+        }
+        return;
+      }
+      case SIMD_OP.MOVHALF_XMM_MEM:
+        // Legacy half-vector loads preserve the other 64 bits. Unlike MOVSD
+        // memory loads, they never zero the upper half or interpret FP bits.
+        d.set(load(8), immediate);
+        return;
+      case SIMD_OP.MOVHALF_MEM_XMM:
+        store(s.subarray(immediate, immediate + 2), 8);
+        return;
+      case SIMD_OP.MOVHALF_XMM_XMM:
+        // Copy before writing so source/destination register aliasing works.
+        d.set(s.slice(2 - immediate, 4 - immediate), immediate);
+        return;
       case SIMD_OP.MOVSS_XMM_XMM:
         d[0] = s[0];
         return;

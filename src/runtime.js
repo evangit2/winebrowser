@@ -892,7 +892,10 @@ export class Runtime {
       wasmBytes: this.cpu.compiledBytes,
       apiCalls: this.calls,
       elapsedMs: performance.now() - started,
-      outputs: [...this.dirty].map((path) => ({ path, bytes: this.files.get(path) })),
+      outputs: [...this.dirty]
+        .filter((path) => this.files.has(path))
+        .map((path) => ({ path, bytes: this.files.get(path) })),
+      deletedFiles: [...this.dirty].filter((path) => !this.files.has(path)),
     };
   }
   async runEntryPoint() {

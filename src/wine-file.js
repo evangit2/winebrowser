@@ -1,4 +1,12 @@
 // Synchronous PE32 NT file services backed by Runtime's bounded virtual files.
+import {
+  acquireFileLock,
+  releaseFileLock,
+  releaseHandleLocks,
+  fileLockConflict,
+  FILE_LOCK_CONFLICT,
+  LOCK_NOT_GRANTED,
+} from './file-locks.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileMetadata, writeFileMetadata, touchFile } from './file-metadata.js';
 const SUCCESS = 0;
@@ -58,25 +66,28 @@ function create(runtime, argument) {
   const disposition = argument(7) >>> 0,
     options = argument(8) >>> 0;
   if (disposition > 5 || share & ~7) return complete(INVALID_PARAMETER);
-  // Synchronous non-directory files only; never pretend to honor async I/O,
-  // delete-on-close, EAs, reparse points, allocation hints or security policies.
+  // Synchronous data I/O and metadata-only non-directory handles. This volume
+  // contains no reparse points; OPEN_REPARSE_POINT therefore follows the same
+  // path. EAs, allocation hints and caller security remain unsupported.
   // SEQUENTIAL_ONLY (0x4) and RANDOM_ACCESS (0x800) are cache hints. Package
   // files are already memory-resident; both retain ordinary read/seek semantics.
   if (
     argument(4) ||
     argument(9) ||
     argument(10) ||
-    options & ~0x864 ||
-    !(options & 0x20) ||
-    access & ~0xc012019f ||
+    options & ~0x201864 ||
+    (!(options & 0x20) && !!(access & 0xc0000007)) ||
+    access & ~0xc013019f ||
     disposition === 0
   )
     return complete(NOT_SUPPORTED);
+  if (options & 0x1000 && !(access & 0x10000)) return complete(ACCESS_DENIED);
   if (!(access & 0x100000)) return complete(INVALID_PARAMETER);
   const named = objectPath(runtime, argument(2));
   if (named.status) return complete(named.status);
   const path = named.path,
     exists = runtime.files.has(path);
+  if (runtime.pendingFileDeletes?.has(path)) return complete(0xc0000056); // DELETE_PENDING
   // Attributes on an existing FILE_OPEN/FILE_OPEN_IF do not change that file.
   if (!(exists && [1, 3].includes(disposition)) && argument(5) & ~0xa0)
     return complete(NOT_SUPPORTED);
@@ -96,11 +107,13 @@ function create(runtime, argument) {
     fileShareConflict(
       runtime,
       path,
-      (readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0),
+      (readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0) | (access & 0x10000),
       share,
     )
   )
     return complete(0xc0000043);
+  if (options & 0x1000 && runtime.fileSections?.canResize(path, 0) === false)
+    return complete(ACCESS_DENIED);
   if (runtime.handles.size >= 4096 || (!exists && runtime.files.size >= 4096))
     return complete(0xc000009a);
   const handle = runtime.nextHandle++;
@@ -112,13 +125,16 @@ function create(runtime, argument) {
   runtime.handles.set(handle, {
     path,
     position: 0,
-    access: ((readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0)) >>> 0,
+    access:
+      ((readAccess ? 0x80000000 : 0) | (writeAccess ? 0x40000000 : 0) | (access & 0x10000)) >>> 0,
+    deleteOnClose: !!(options & 0x1000),
     ntAccess: access,
     share,
     options,
     inherit: !!(runtime.read32(argument(2) + 12) & 2),
     appendOnly: !!(access & 4) && !(access & 0x40000002),
   });
+  if (options & 0x1000) (runtime.pendingFileDeletes ??= new Set()).add(path);
   runtime.write32(argument(0), handle);
   return complete(SUCCESS, !exists ? 2 : truncate ? 3 : 1);
 }
@@ -129,6 +145,24 @@ function information(runtime, argument, set) {
   const opened = regular(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   const kind = argument(4) >>> 0;
+  if (set && kind === 13) {
+    if (argument(3) < 1) return complete(0xc0000004);
+    if (!checked(runtime, argument(2), 1)) return complete(ACCESS_VIOLATION);
+    if (!(opened.access & 0x10000)) return complete(ACCESS_DENIED);
+    const pending = !!runtime.data[argument(2)];
+    if (
+      pending &&
+      (fileShareConflict(runtime, opened.path, 0x10000, 7) ||
+        runtime.fileSections?.canResize(opened.path, 0) === false)
+    )
+      return complete(ACCESS_DENIED);
+    opened.deleteOnClose = pending;
+    runtime.pendingFileDeletes ??= new Set();
+    if (pending) runtime.pendingFileDeletes.add(opened.path);
+    else if (![...runtime.handles.values()].some((h) => h.path === opened.path && h.deleteOnClose))
+      runtime.pendingFileDeletes.delete(opened.path);
+    return complete(SUCCESS);
+  }
   const size =
     !set && kind === 4
       ? 40
@@ -175,7 +209,8 @@ function information(runtime, argument, set) {
   else {
     runtime.view.setBigInt64(buffer, BigInt(Math.ceil(bytes.length / 4096) * 4096), true);
     runtime.view.setBigInt64(buffer + 8, BigInt(bytes.length), true);
-    runtime.write32(buffer + 16, 1); // one link; not pending deletion or a directory
+    runtime.write32(buffer + 16, 1); // one link
+    runtime.data[buffer + 20] = Number(runtime.pendingFileDeletes?.has(opened.path) ?? false);
   }
   return complete(SUCCESS, size);
 }
@@ -188,7 +223,9 @@ export function fileShareConflict(runtime, path, access, share) {
       (access & 0x80000000 && !(previousShare & 1)) ||
       (access & 0x40000000 && !(previousShare & 2)) ||
       (opened.access & 0x80000000 && !(share & 1)) ||
-      (opened.access & 0x40000000 && !(share & 2))
+      (opened.access & 0x40000000 && !(share & 2)) ||
+      (access & 0x10000 && !(previousShare & 4)) ||
+      (opened.access & 0x10000 && !(share & 4))
     )
       return true;
   }
@@ -229,8 +266,10 @@ function offset(runtime, pointer, opened, append = false) {
 }
 
 function synchronous(argument, name) {
-  if (argument(1) || argument(2) || argument(3) || argument(8))
-    throw Error(`Unsupported asynchronous ${name}`);
+  // KernelBase supplies the OVERLAPPED pointer as ApcContext even for a
+  // synchronous file and no completion routine. With no APC/completion port
+  // attached, the opaque context has no effect on immediate completion.
+  if (argument(1) || argument(2) || argument(8)) throw Error(`Unsupported asynchronous ${name}`);
 }
 
 function read(runtime, argument) {
@@ -245,6 +284,8 @@ function read(runtime, argument) {
   if (!checked(runtime, argument(5), count, true)) return complete(ACCESS_VIOLATION);
   const start = offset(runtime, argument(7), opened);
   if (start.status) return complete(start.status);
+  if (fileLockConflict(runtime, argument(0), start.value, count))
+    return complete(FILE_LOCK_CONFLICT);
   const source = runtime.files.get(opened.path);
   const transferred = Math.min(count, Math.max(0, source.length - start.value));
   if (transferred)
@@ -279,6 +320,8 @@ function write(runtime, argument) {
   if (start.status) return complete(start.status);
   if (opened.appendOnly) start.value = runtime.files.get(opened.path).length;
   if (start.value + count > MAX_FILE) return complete(DISK_FULL);
+  if (fileLockConflict(runtime, handleValue, start.value, count, true))
+    return complete(FILE_LOCK_CONFLICT);
   const previous = runtime.files.get(opened.path);
   const newLength = Math.max(previous.length, start.value + count);
   const total = [...runtime.files.values()].reduce((sum, file) => sum + file.length, 0);
@@ -313,7 +356,18 @@ function queryVolume(runtime, argument) {
 export function closeFileHandle(runtime, handle) {
   const value = handle >>> 0;
   if (!regular(runtime, value)) return null;
+  releaseHandleLocks(runtime, value);
+  const opened = runtime.handles.get(value);
   runtime.handles.delete(value);
+  if (
+    runtime.pendingFileDeletes?.has(opened.path) &&
+    ![...runtime.handles.values()].some((handle) => handle.path === opened.path)
+  ) {
+    runtime.files.delete(opened.path);
+    runtime.fileTimes?.delete(opened.path);
+    runtime.pendingFileDeletes.delete(opened.path);
+    runtime.dirty.add(opened.path);
+  }
   return SUCCESS;
 }
 
@@ -327,7 +381,45 @@ function queryAttributes(runtime, argument, full) {
   return SUCCESS;
 }
 
+function byteRangeLock(r, a, unlock) {
+  const io = a(unlock ? 1 : 4),
+    complete = io ? iosb(r, io) : (status) => status;
+  if (!complete) return ACCESS_VIOLATION;
+  const opened = regular(r, a(0));
+  if (!opened) return complete(INVALID_HANDLE);
+  if (!(opened.access & 0xc0000000)) return complete(ACCESS_DENIED);
+  if ((!unlock && (a(1) || a(2))) || a(unlock ? 4 : 7)) return complete(NOT_SUPPORTED);
+  const offset = a(unlock ? 2 : 5),
+    count = a(unlock ? 3 : 6);
+  if (!checked(r, offset, 8) || !checked(r, count, 8)) return complete(ACCESS_VIOLATION);
+  const start = r.view.getBigInt64(offset, true),
+    length = r.view.getBigInt64(count, true);
+  if (start < 0 || length <= 0 || start + length > 0x7fffffffffffffffn)
+    return complete(INVALID_PARAMETER);
+  const status = unlock
+    ? releaseFileLock(r, a(0), start, length)
+    : acquireFileLock(r, a(0), start, length, !!a(9));
+  // This bounded volume currently completes locks immediately. A caller that
+  // requires waiting on a conflict receives NOT_SUPPORTED, never fake success.
+  return complete(!unlock && status === LOCK_NOT_GRANTED && !a(8) ? NOT_SUPPORTED : status);
+}
+
 export const fileNtServices = {
+  NtLockFile: { argc: 10, call: (r, a) => byteRangeLock(r, a, false) },
+  NtUnlockFile: { argc: 5, call: (r, a) => byteRangeLock(r, a, true) },
+  NtFlushBuffersFile: {
+    argc: 2,
+    call: (r, a) => {
+      const complete = iosb(r, a(1));
+      if (!complete) return ACCESS_VIOLATION;
+      const opened = regular(r, a(0));
+      if (!opened) return complete(INVALID_HANDLE);
+      if (!(opened.access & 0x40000000)) return complete(ACCESS_DENIED);
+      // Writes already update the shared memory volume atomically. The worker
+      // exports dirty files to browser storage after the process run completes.
+      return complete(SUCCESS);
+    },
+  },
   NtQueryAttributesFile: { argc: 2, call: (r, a) => queryAttributes(r, a, false) },
   NtQueryFullAttributesFile: { argc: 2, call: (r, a) => queryAttributes(r, a, true) },
   NtCreateFile: { argc: 11, call: create },

@@ -9,6 +9,8 @@
     "build:blending": "sh scripts/build-blending-fixture.sh",
     "build:characters": "sh scripts/build-character-fixture.sh",
     "build:cmps": "sh scripts/build-cmps-fixture.sh",
+    "build:sqlite": "sh scripts/build-sqlite-fixture.sh && python3 scripts/package-sqlite.py",
+    "test:sqlite": "node scripts/test-sqlite-browser.mjs",
     "build:cpp-runtime": "sh scripts/build-cpp-runtime-fixture.sh",
     "build:com": "sh scripts/build-com-fixtures.sh",
     "build:cursors": "sh scripts/build-cursor-fixture.sh",

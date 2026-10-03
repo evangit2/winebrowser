@@ -795,3 +795,124 @@ test('MOVAPD/MOVUPD move all 128 bits with the architectural alignment requireme
     }
   }
 });
+
+test('legacy SSE half-vector moves preserve raw bits, untouched lanes and flags', () => {
+  for (const prefix of [[], [0x66]])
+    for (const [load, store, lane] of [
+      [0x12, 0x13, 0],
+      [0x16, 0x17, 2],
+    ]) {
+      const { cpu, view, memory } = machine([
+        ...prefix,
+        0x0f,
+        load,
+        0x00,
+        ...prefix,
+        0x0f,
+        store,
+        0x01,
+      ]);
+      cpu.r[0].value = DATA + 1;
+      cpu.r[1].value = DATA + 17;
+      const raw = [0x80000000, 0x7ff00001]; // signed zero / signaling NaN bits
+      raw.forEach((v, i) => view.setUint32(DATA + 1 + i * 4, v, true));
+      const bytes = new Uint8Array(memory.buffer);
+      bytes.fill(0x5a, DATA + 16, DATA + 32);
+      cpu.simd.registers[0].set([1, 2, 3, 4]);
+      const flags = { ...cpu.f },
+        mxcsr = cpu.simd.mxcsr;
+      cpu.step(CODE);
+      assert.deepEqual(lanes(cpu), lane === 0 ? [...raw, 3, 4] : [1, 2, ...raw]);
+      assert.deepEqual(bytes.slice(DATA + 17, DATA + 25), bytes.slice(DATA + 1, DATA + 9));
+      assert.equal(bytes[DATA + 16], 0x5a);
+      assert.ok(bytes.slice(DATA + 25, DATA + 32).every((v) => v === 0x5a));
+      assert.deepEqual(cpu.f, flags);
+      assert.equal(cpu.simd.mxcsr, mxcsr);
+    }
+  for (const [opcode, lane] of [
+    [0x12, 0],
+    [0x16, 2],
+  ])
+    for (const alias of [false, true]) {
+      const { cpu } = machine([0x0f, opcode, alias ? 0xc0 : 0xc1]);
+      cpu.simd.registers[0].set([1, 2, 3, 4]);
+      cpu.simd.registers[1].set([5, 6, 7, 8]);
+      cpu.step(CODE);
+      assert.deepEqual(
+        lanes(cpu),
+        lane === 0 ? (alias ? [3, 4, 3, 4] : [7, 8, 3, 4]) : alias ? [1, 2, 1, 2] : [1, 2, 5, 6],
+      );
+    }
+});
+
+test('half-vector memory faults preflight all eight bytes before mutating state', () => {
+  for (const prefix of [[], [0x66]])
+    for (const opcode of [0x12, 0x13, 0x16, 0x17]) {
+      const { cpu, memory } = machine([...prefix, 0x0f, opcode, 0x00]);
+      cpu.r[0].value = memory.buffer.byteLength - 4;
+      cpu.simd.registers[0].set([1, 2, 3, 4]);
+      const before = new Uint8Array(memory.buffer).slice(-8);
+      assert.throws(() => cpu.step(CODE), /range violation/);
+      assert.deepEqual(lanes(cpu), [1, 2, 3, 4]);
+      assert.deepEqual(new Uint8Array(memory.buffer).slice(-8), before);
+    }
+});
+
+test('SSE2 packed DWORD arithmetic wraps per lane with aliasing and checked memory', () => {
+  for (const [opcode, subtract] of [
+    [0xfe, false],
+    [0xfa, true],
+  ])
+    for (const modrm of [0xc1, 0xc0, 0x08]) {
+      const { cpu, view } = machine([0x66, 0x0f, opcode, modrm]);
+      const a = [0xffffffff, 0, 0x80000000, 7],
+        b = [2, 1, 0x80000001, 9];
+      cpu.simd.registers[0].set(a);
+      cpu.simd.registers[1].set(b);
+      a.forEach((v, i) => view.setUint32(DATA + i * 4, v, true));
+      cpu.r[0].value = DATA;
+      const flags = { ...cpu.f },
+        mxcsr = cpu.simd.mxcsr;
+      cpu.step(CODE);
+      const left = modrm === 0x08 ? b : a,
+        right = modrm === 0xc1 ? b : a;
+      assert.deepEqual(
+        lanes(cpu, modrm === 0x08 ? 1 : 0),
+        left.map((v, i) => (subtract ? v - right[i] : v + right[i]) >>> 0),
+      );
+      assert.deepEqual(cpu.f, flags);
+      assert.equal(cpu.simd.mxcsr, mxcsr);
+    }
+  for (const opcode of [0xfe, 0xfa]) {
+    const { cpu } = machine([0x66, 0x0f, opcode, 0x08]);
+    cpu.r[0].value = DATA + 1;
+    cpu.simd.registers[1].set([1, 2, 3, 4]);
+    assert.throws(() => cpu.step(CODE), /alignment/);
+    assert.deepEqual(lanes(cpu, 1), [1, 2, 3, 4]);
+  }
+});
+
+test('PSRLDQ/PSLLDQ shift the entire raw vector across DWORD boundaries and zero large counts', () => {
+  for (const left of [false, true])
+    for (const count of [0, 1, 3, 4, 7, 8, 15, 16, 255]) {
+      const { cpu } = machine([0x66, 0x0f, 0x73, left ? 0xf8 : 0xd8, count]);
+      const words = [0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c];
+      cpu.simd.registers[0].set(words);
+      const flags = { ...cpu.f },
+        mxcsr = cpu.simd.mxcsr;
+      cpu.step(CODE);
+      const expected = Array.from({ length: 16 }, (_, i) => {
+        const source = left ? i - count : i + count;
+        return source >= 0 && source < 16 ? source : 0;
+      });
+      const actual = lanes(cpu).flatMap((v) => [
+        v & 255,
+        (v >>> 8) & 255,
+        (v >>> 16) & 255,
+        v >>> 24,
+      ]);
+      assert.deepEqual(actual, expected);
+      assert.deepEqual(cpu.f, flags);
+      assert.equal(cpu.simd.mxcsr, mxcsr);
+    }
+});

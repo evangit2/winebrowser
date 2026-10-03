@@ -215,8 +215,12 @@ NT file creation/open accepts FILE_RANDOM_ACCESS and FILE_SEQUENTIAL_ONLY cache
 hints for files already resident in browser memory. Read, arbitrary seek, partial
 EOF reads, sharing, access rights and close behavior remain enforced by the same
 file implementation. Tests cover both hints (and their combination) through
-NtCreateFile/NtOpenFile, while asynchronous, unbuffered and delete-on-close modes
-remain unsupported. See Microsoft's [NtCreateFile options](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
+NtCreateFile/NtOpenFile, while asynchronous data handles and unbuffered I/O remain unsupported.
+Positioned synchronous I/O accepts Wine's opaque OVERLAPPED context when no APC
+routine is requested. Native metadata-only delete handles, delete-on-close,
+delete sharing and FileDispositionInformation now serve the same guest volume.
+Files disappear when the last existing handle closes; new opens are rejected
+while deletion is pending. See [SQLite and file services](sqlite.md). See Microsoft's [NtCreateFile options](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 
 ## Source-built base closure
 
