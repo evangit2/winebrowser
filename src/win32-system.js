@@ -5,7 +5,7 @@ import { listPEResources, readPEResource } from './pe-resources.js';
 import { environmentEntries } from './guest-environment.js';
 import { resolveGuestPath, packageDosPath } from './guest-paths.js';
 import { encodeAnsi } from './encoding.js';
-import { fileMetadata } from './file-metadata.js';
+import { fileMetadata, fileIdentity } from './file-metadata.js';
 import { protectMemory } from './memory-protection.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
 
@@ -272,26 +272,17 @@ function virtualNames(r, prefix) {
     }
   return names;
 }
-function writeFindData(r, address, name, directory, size, time) {
-  // WIN32_FIND_DATAA: dwFileAttributes at 0, three FILETIMEs from 4, size at
-  // 28, then the short and long names. Only the fields callers act on are
-  // meaningful; timestamps come from the virtual file's metadata.
-  r.check(address, 320, true);
-  r.data.fill(0, address, address + 320);
-  r.write32(address, directory ? 0x10 : 0x80);
-  const writeTime = (offset, value) => {
-    r.write32(offset, value & 0xffffffff);
-    r.write32(offset + 4, (value / 0x100000000) | 0);
-  };
-  writeTime(4, time.lastWrite ?? 0);
-  writeTime(12, time.lastAccess ?? 0);
-  writeTime(20, time.creation ?? 0);
-  r.write32(address + 28, size);
-  const target = address + 44;
+function writeFindData(r, address, name, info, wide = false) {
+  const size = wide ? 592 : 320;
+  r.check(address, size, true);
+  r.data.fill(0, address, address + size);
+  r.write32(address, info.attributes);
+  for (const [i, key] of ['creation', 'access', 'write'].entries())
+    r.view.setBigInt64(address + 4 + i * 8, info[key], true);
+  r.write32(address + 32, info.size);
+  const step = wide ? 2 : 1;
   for (let i = 0; i < name.length && i < 259; i++)
-    r.guestMemory.write(target + i, name.charCodeAt(i), 1);
-  for (let i = 0; i < name.length && i < 13; i++)
-    r.guestMemory.write(address + 304 + i, name.charCodeAt(i), 1);
+    r.guestMemory.write(address + 44 + i * step, name.charCodeAt(i), step);
 }
 // DOS wildcard matching, the rule CreateFile/FindFirstFile use: `*` matches any
 // run of characters (including none), `?` matches exactly one, and both stop at
@@ -368,19 +359,7 @@ function findFirstFile(r, a, wide) {
     directory: directoryEntry,
   }));
   const first = entries[0];
-  const metadata = r.fileMetadata?.get?.(prefix + first.name);
-  if (wide) {
-    // WIN32_FIND_DATAW uses the same layout with UTF-16LE names.
-    r.check(a(1), 592, true);
-    r.data.fill(0, a(1), a(1) + 592);
-    r.write32(a(1), first.directory ? 0x10 : 0x80);
-    r.write32(a(1) + 28, metadata?.size ?? 0);
-    const target = a(1) + 44;
-    for (let i = 0; i < first.name.length && i < 259; i++)
-      r.guestMemory.write(target + i * 2, first.name.charCodeAt(i), 2);
-  } else {
-    writeFindData(r, a(1), first.name, first.directory, metadata?.size ?? 0, metadata ?? {});
-  }
+  writeFindData(r, a(1), first.name, fileMetadata(r, prefix + first.name), wide);
   r.findHandles.set(nextId, { prefix, entries, index: 1 });
   if (r.findHandles.size > 256) r.findHandles.delete(r.findHandles.keys().next().value);
   return ok(nextId, 2);
@@ -389,16 +368,7 @@ function findNextFile(r, a, wide) {
   const state = r.findHandles?.get(a(0) >>> 0);
   if (!state || state.index >= state.entries.length) return fail(r, 18, 2);
   const entry = state.entries[state.index++];
-  if (wide) {
-    r.check(a(1), 592, true);
-    r.data.fill(0, a(1), a(1) + 592);
-    r.write32(a(1), entry.directory ? 0x10 : 0x80);
-    const target = a(1) + 44;
-    for (let i = 0; i < entry.name.length && i < 259; i++)
-      r.guestMemory.write(target + i * 2, entry.name.charCodeAt(i), 2);
-  } else {
-    writeFindData(r, a(1), entry.name, entry.directory, 0, {});
-  }
+  writeFindData(r, a(1), entry.name, fileMetadata(r, state.prefix + entry.name), wide);
   return ok(1, 2);
 }
 function findClose(r, a) {
@@ -858,8 +828,10 @@ function getTimeZoneInformation(r, a) {
 // does: an ordinal, case-insensitive-or-sensitive comparison of UTF-16 units.
 // CSTR_LESS_THAN is 1, CSTR_EQUAL is 2, CSTR_GREATER_THAN is 3.
 function compareString(r, a, wide) {
+  // (Locale, flags, string1, count1, string2, count2). A one-character
+  // CRT probe must never treat its count as the address of a wide string.
   const flags = a(1) >>> 0;
-  if (flags & ~(0x1 | 0x2 | 0x10000 | 0x20000 | 0x100000)) return fail(r, 87, 6);
+  if (flags & ~(0x1 | 0x2 | 0x10000 | 0x20000 | 0x100000)) return fail(r, 1004, 6);
   const string1 = a(2) >>> 0,
     length1 = a(3) | 0;
   const string2 = a(4) >>> 0,
@@ -867,11 +839,10 @@ function compareString(r, a, wide) {
   if (!string1 || !string2) return fail(r, 87, 6);
   const read = (pointer, length) => {
     if (length >= 0) {
-      r.check(pointer, length * (wide ? 2 : 1));
       let value = '';
       for (let i = 0; i < length; i++)
         value += String.fromCharCode(
-          wide ? r.guestMemory.read(pointer + i * 2, 2) : r.data[pointer + i],
+          wide ? r.guestMemory.read(pointer + i * 2, 2) : r.guestMemory.read(pointer + i, 1),
         );
       return value;
     }
@@ -1631,19 +1602,12 @@ function getFileInformationByHandle(r, a) {
   const metadata = fileMetadata(r, handle.path);
   r.data.fill(0, out, out + 52);
   r.write32(out, metadata.attributes ?? 0x20);
-  const writeTime = (offset, value) => {
-    r.write32(offset, value & 0xffffffff);
-    r.write32(offset + 4, (value / 0x100000000) | 0);
-  };
-  writeTime(4, metadata.creation ?? 0);
-  writeTime(12, metadata.access ?? 0);
-  writeTime(20, metadata.write ?? 0);
-  r.write32(out + 28, 0);
-  r.write32(out + 32, metadata.size >>> 0);
-  r.write32(out + 36, 0); // nFileSizeHigh (files here are under 4 GiB)
-  r.write32(out + 40, 1); // nNumberOfLinks
-  r.write32(out + 44, handle.path.length); // synthetic file index
-  r.write32(out + 48, 0);
+  for (const [i, key] of ['creation', 'access', 'write'].entries())
+    r.view.setBigInt64(out + 4 + i * 8, metadata[key], true);
+  r.write32(out + 28, 0x57425231);
+  r.write32(out + 36, metadata.size);
+  r.write32(out + 40, 1);
+  r.write32(out + 48, fileIdentity(r, handle.path));
   return ok(1, 2);
 }
 
@@ -1657,7 +1621,7 @@ function setFileTime(r, a) {
     r.check(pointer, 8, false);
     const low = r.read32(pointer) >>> 0;
     const high = r.read32(pointer + 4) >>> 0;
-    return high * 0x100000000 + low;
+    return BigInt(high) * 0x100000000n + BigInt(low);
   };
   const current = r.fileTimes?.get(handle.path) ?? {
     creation: r.packageFileTime,
@@ -1671,7 +1635,8 @@ function setFileTime(r, a) {
     access: read(a(2), current.access),
     write: read(a(3), current.write),
   };
-  if (next.creation & 0x8000000000000000) throw Error('Unsupported FILETIME value');
+  if (Object.values(next).some((value) => value < 0n || value > 0x7fffffffffffffffn))
+    return fail(r, 87, 4);
   r.fileTimes ??= new Map();
   r.fileTimes.set(handle.path, next);
   return ok(1, 4);

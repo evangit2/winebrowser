@@ -151,3 +151,48 @@ test('FindFirstFileW lists the package tree instead of throwing on an undefined 
   assert.equal(r.wideString(data + 44), 'notes.txt');
   assert.equal(call('kernel32.dll!FindClose', handle).result, 1);
 });
+
+test('CompareString A/W use the Windows argument order for locale, flags, pointers and counts', () => {
+  const { r, call } = setup();
+  try {
+    for (const wide of [false, true]) {
+      const name = 'kernel32.dll!CompareString' + (wide ? 'W' : 'A');
+      const left = r.allocString('Ab\0z', wide),
+        right = r.allocString('ab\0x', wide);
+      assert.deepEqual(
+        call(name, 0, 0, left, 1, left, 1),
+        { result: 2, argc: 6 },
+        'original RollerCoaster one-character CRT probe',
+      );
+      assert.equal(
+        call(name, 0x409, 0, left, 1, right, 1).result,
+        1,
+        'locale is separate from flags',
+      );
+      assert.equal(
+        call(name, 0x409, 1, left, 1, right, 1).result,
+        2,
+        'ignore-case comes from flags',
+      );
+      assert.equal(
+        call(name, 0, 1, left, -1, right, -1).result,
+        2,
+        'negative count reads through first NUL',
+      );
+      assert.equal(
+        call(name, 0, 1, left, 4, right, 4).result,
+        3,
+        'explicit count includes embedded NUL and later bytes',
+      );
+      assert.equal(call(name, 0, 0, left, 0, right, 0).result, 2, 'zero counts do not read memory');
+      assert.equal(call(name, 0, 0, 0, 1, right, 1).result, 0);
+      assert.equal(r.lastError, 87);
+      assert.equal(call(name, 0, 0x40000000, left, 1, right, 1).result, 0);
+      assert.equal(r.lastError, 1004);
+      assert.throws(() => call(name, 0, 0, 1, 1, right, 1), /Guest read violation/);
+    }
+  } finally {
+    r.windows.dispose();
+    r.cpu.dispose();
+  }
+});

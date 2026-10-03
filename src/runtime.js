@@ -246,7 +246,14 @@ export class Runtime {
       this.apiNames.add(importKey(entry.dll, entry.name));
       if (this.apiTrace.length < 2048) this.apiTrace.push(importKey(entry.dll, entry.name));
       this.recordApi(importKey(entry.dll, entry.name), argument);
-      response = await handler(this, argument);
+      try {
+        response = await handler(this, argument);
+      } catch (error) {
+        const name = importKey(entry.dll, entry.name);
+        if (error instanceof Error && !error.message.startsWith(name + ':'))
+          error.message = `${name}: ${error.message}`;
+        throw error;
+      }
     }
     const { result, resultHigh, argc, convention = 'stdcall', jumpTo } = response;
     if (convention !== 'stdcall' && convention !== 'cdecl')

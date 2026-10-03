@@ -11,9 +11,16 @@ function times(r, path) {
 }
 function directory(r, path) {
   if (!path) return true;
+  if (r.virtualDirectories?.has(path + '/')) return true;
   if (r.files.has(path)) return false;
   for (const file of r.files.keys()) if (file.startsWith(path + '/')) return true;
   return false;
+}
+
+export function fileIdentity(r, path) {
+  const ids = (r.fileIds ??= new Map());
+  if (!ids.has(path)) ids.set(path, ids.size + 1);
+  return ids.get(path);
 }
 
 // Directories are the actual parents of packaged/generated files. Queries do

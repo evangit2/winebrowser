@@ -1,0 +1,146 @@
+{
+  "format": 1,
+  "name": "gnu-diff",
+  "entry": "diff.exe",
+  "args": ["-u", "before.txt", "after.txt"],
+  "provenance": "Original GnuWin32 PE32 binaries, GNU diffutils GPL and libintl/libiconv LGPL. Companion DLLs are unchanged; Wine-source MSVCP60/MSVCRT/kernel32/kernelbase/ntdll load automatically.",
+  "inputs": [
+    {
+      "name": "diff-bin.zip",
+      "url": "https://downloads.sourceforge.net/gnuwin32/diffutils-2.8.7-1-bin.zip",
+      "sha256": "6d64ee291c9b49a2841dbccea9795140802ff6b73fd2f4848635bbc974dc5a9c"
+    },
+    {
+      "name": "diff-dep.zip",
+      "url": "https://downloads.sourceforge.net/gnuwin32/diffutils-2.8.7-1-dep.zip",
+      "sha256": "9b64b20aa9e0b5be1045b4bdbd182e1f47b2136a55985083df0eaac3673b91a1"
+    },
+    {
+      "name": "diff-source.zip",
+      "url": "https://downloads.sourceforge.net/gnuwin32/diffutils-2.8.7-1-src.zip",
+      "sha256": "622cdfe2dcf94d5f9fd05b9546395e624fe1b84ccb7ab473bbbe893f04423821"
+    },
+    {
+      "name": "libintl-source.zip",
+      "url": "https://gnuwin32.sourceforge.net/downlinks/libintl-src-zip.php",
+      "sha256": "e51f536e6aaffdfe11f2c48280c985c18cc252264258362325816aaa127cd4da"
+    },
+    {
+      "name": "libiconv-source.zip",
+      "url": "https://gnuwin32.sourceforge.net/downlinks/libiconv-src-zip.php",
+      "sha256": "06e31e8c7019fbaa0dd58aeaff97cdfe7238e67865b52de5f53083e2e04ed33f"
+    }
+  ],
+  "files": [
+    {
+      "path": "diff.exe",
+      "bytes": 150528,
+      "sha256": "f449ce40db50dd35c45c3dfa54bc79b6a3a4d9dc5ab0ff4d0fe91a4c9fefa310"
+    },
+    {
+      "path": "cmp.exe",
+      "bytes": 57344,
+      "sha256": "ae1e0741de0f463bfaf8c4aaaa7e39af6ca9ba7a24678fb71db9c7dd8941e909"
+    },
+    {
+      "path": "libintl3.dll",
+      "bytes": 92672,
+      "sha256": "4da1d8bc01e8c39302cef3351360cd28372c71e9f393fb22818e468c663b5590"
+    },
+    {
+      "path": "libiconv2.dll",
+      "bytes": 898048,
+      "sha256": "3ec2d1a924ef6f19f2db45e48b9cf4b74a904af5720100e3da02182eee3bcf02"
+    },
+    {
+      "path": "COPYING.txt",
+      "bytes": 17992,
+      "sha256": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670"
+    },
+    {
+      "path": "libintl-COPYING.LIB",
+      "bytes": 27047,
+      "sha256": "9adaa0662341e23f3ad4239c1aac0325145ec3392b5b222f5f23ce4503699af8"
+    },
+    {
+      "path": "libiconv-COPYING.LIB",
+      "bytes": 25283,
+      "sha256": "d7bf9d064ac3e5840f9dd02422b7eeec4f1fd03f37fadbd043602be5e882304f"
+    },
+    {
+      "path": "before.txt",
+      "bytes": 17,
+      "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996"
+    },
+    {
+      "path": "after.txt",
+      "bytes": 23,
+      "sha256": "2d1a8745bdad293ad22e1bd43a730ea6a6e79dfb25ee4de382dee96633029ff6"
+    }
+  ],
+  "dependencyClosure": [
+    {
+      "name": "diff.exe",
+      "path": "diff.exe",
+      "host": false,
+      "imports": 139,
+      "sha256": "f449ce40db50dd35c45c3dfa54bc79b6a3a4d9dc5ab0ff4d0fe91a4c9fefa310"
+    },
+    {
+      "name": "libintl3.dll",
+      "path": "libintl3.dll",
+      "host": false,
+      "imports": 106,
+      "sha256": "4da1d8bc01e8c39302cef3351360cd28372c71e9f393fb22818e468c663b5590"
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "host": false,
+      "imports": 925,
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f"
+    },
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "host": false,
+      "imports": 0,
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd"
+    },
+    {
+      "name": "msvcrt.dll",
+      "path": "@runtime/msvcrt.dll",
+      "host": false,
+      "imports": 142,
+      "sha256": "ae706b617b11cf59d52bd668b1f9ae5c9d6e1b5be2a7cead6bfeb33664b5b1bc"
+    },
+    {
+      "name": "msvcp60.dll",
+      "path": "@runtime/msvcp60.dll",
+      "host": false,
+      "imports": 102,
+      "sha256": "e08f8fa342663ea296f3f37d15a3bf6ff68e5cb383e9a616234bdd17581f1535"
+    },
+    {
+      "name": "ole32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "libiconv2.dll",
+      "path": "libiconv2.dll",
+      "host": false,
+      "imports": 20,
+      "sha256": "3ec2d1a924ef6f19f2db45e48b9cf4b74a904af5720100e3da02182eee3bcf02"
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "host": false,
+      "imports": 428,
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
+    }
+  ],
+  "unresolvedImports": []
+}
