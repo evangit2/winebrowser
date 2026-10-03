@@ -36,8 +36,10 @@ try {
     .locator('.virtual-desktop-window')
     .filter({ has: page.locator('.virtual-desktop-title', { hasText: 'PuTTY Configuration' }) });
   const tree = dialog.getByRole('tree');
-  const saved = dialog.locator('select[data-control-id="1058"]');
-  await saved.locator('option').filter({ hasText: 'Default Settings' }).waitFor({ timeout: 30000 });
+  const saved = dialog.locator('[data-control-id="1058"]');
+  await saved
+    .getByRole('option', { name: 'Default Settings', exact: true })
+    .waitFor({ timeout: 30000 });
   assert.equal(
     await tree
       .getByRole('treeitem', { name: 'Session', exact: true })
@@ -47,7 +49,7 @@ try {
   await dialog.locator('input[data-control-id="1044"]').fill('example.invalid');
   await dialog.locator('input[data-control-id="1056"]').fill('BrowserGuiCheck');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
-  await saved.locator('option').filter({ hasText: 'BrowserGuiCheck' }).waitFor();
+  await saved.getByRole('option', { name: 'BrowserGuiCheck', exact: true }).waitFor();
   await tree.getByRole('treeitem', { name: 'Terminal', exact: true }).click();
   await dialog.getByText('Set various terminal options', { exact: true }).waitFor();
   await dialog
@@ -56,10 +58,38 @@ try {
   assert.equal(await page.locator('#state').textContent(), 'RUNNING');
   await mkdir('.scratch', { recursive: true });
   await dialog.screenshot({ path: '.scratch/putty-terminal-gui.png' });
+  const connection = tree.getByRole('treeitem', { name: 'Connection', exact: true });
+  if ((await connection.getAttribute('aria-expanded')) === 'false')
+    await connection.locator('.virtual-desktop-tree-toggle').click();
+  await tree.getByRole('treeitem', { name: 'Data', exact: true }).click();
+  await dialog.getByText('Auto-login username', { exact: true }).waitFor();
+  await dialog.locator('input[data-control-id="1044"]').fill('browser-user');
+  await dialog.locator('input[data-control-id="1055"]').fill('BROWSER_TEST');
+  await dialog.locator('input[data-control-id="1057"]').fill('columns-work');
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  const variables = dialog
+    .getByRole('listbox')
+    .filter({ has: page.getByRole('option', { name: /BROWSER_TEST/ }) });
+  const variable = variables.getByRole('option', { name: /BROWSER_TEST/ });
+  await variable.waitFor();
+  assert.equal(await variable.getAttribute('aria-label'), 'BROWSER_TEST\tcolumns-work');
+  const positions = await variable
+    .locator('span')
+    .evaluateAll((spans) => spans.map((span) => parseFloat(span.style.left)));
+  assert.equal(positions.length, 2);
+  assert.ok(positions[1] > positions[0]);
+  await dialog.screenshot({ path: '.scratch/putty-data-gui.png' });
   await tree.getByRole('treeitem', { name: 'Session', exact: true }).click();
+  await dialog.getByText('Host Name (or IP address)', { exact: true }).waitFor();
   const host = dialog.locator('input[data-control-id="1044"]');
   await host.waitFor();
   assert.equal(await host.inputValue(), 'example.invalid');
+  await tree.getByRole('treeitem', { name: 'Data', exact: true }).click();
+  await dialog.getByText('Auto-login username', { exact: true }).waitFor();
+  assert.equal(await dialog.locator('input[data-control-id="1044"]').inputValue(), 'browser-user');
+  await variable.click();
+  await dialog.getByRole('button', { name: 'Remove', exact: true }).click();
+  await variable.waitFor({ state: 'detached' });
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.waitForFunction(() => window.__lastRun !== null);
   const run = await page.evaluate(() => window.__lastRun);
@@ -80,10 +110,13 @@ try {
       'Typed hostname and saved-session name reach native code',
       'Save writes a named session and updates the registry-backed ListBox',
       'Terminal category creates its controls and enumerates zero installed printers',
+      'Connection/Data creates tabbed environment-variable list; native Add and Remove update it',
+      'Tab-stop columns render separately; edited username and environment values survive category changes',
       'Returning to Session preserves the hostname',
       'Native Cancel ends the process with exit code zero',
     ],
     remainingBlockers: [
+      'Exploratory SSH/Kex navigation reaches a native call to address zero; its cause remains unresolved',
       'Other configuration panels are unverified; multi-select and owner-drawn lists, callback text and full common-control coverage are incomplete',
       'SSH/Telnet connections and terminal rendering are unverified',
     ],

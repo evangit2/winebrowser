@@ -148,6 +148,27 @@
   white-space: pre-wrap;
 }
 
+.virtual-desktop-control-tablist {
+  overflow: auto;
+  background: white;
+  color: #111;
+}
+
+.virtual-desktop-tablist-row {
+  position: relative;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.virtual-desktop-tablist-row > span {
+  position: absolute;
+}
+
+.virtual-desktop-tablist-row[aria-selected='true'] {
+  background: #000080;
+  color: white;
+}
+
 .virtual-desktop-control-button {
   margin: 0;
   padding: 1px 4px;

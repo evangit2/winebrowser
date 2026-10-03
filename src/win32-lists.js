@@ -22,6 +22,7 @@ export function describeList(w) {
     itemHeight: s.itemHeight,
     top: s.top,
     comboType: w.comboType,
+    tabStops: w.controlType === 'listbox' && w.style & 0x80 ? (s.tabStops ?? []) : undefined,
   };
 }
 function readText(r, p, wide) {
@@ -143,6 +144,21 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
   }
   if (combo && message === 0xe) return wide ? w.title.length : encodeAnsi(w.title).bytes.length;
   if (combo && message === 0xd) return wp ? writeText(r, lp, w.title, wide, wp) : 0;
+  if (!combo && message === 0x192) {
+    // LB_SETTABSTOPS, in dialog-template units
+    if (!(w.style & 0x80)) {
+      r.lastError = 1434;
+      return 0;
+    }
+    if (wp > 256) return 0;
+    if (wp && !lp) return 0;
+    if (wp) r.check(lp, wp * 4);
+    const stops = Array.from({ length: wp }, (_, i) => r.read32(lp + i * 4) | 0);
+    if (stops.some((value, i) => value <= 0 || (i && value <= stops[i - 1]))) return 0;
+    s.tabStops = stops;
+    r.windows.emit(w);
+    return 1;
+  }
   const op = (combo ? comboOps : listOps).get(message),
     index = wp | 0,
     item = s.items[index];

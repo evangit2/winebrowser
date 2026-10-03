@@ -58,6 +58,33 @@ async function setup(t, kind = 'LISTBOX', style = 0x43) {
       (await call(wide ? 'SendMessageW' : 'SendMessageA', hwnd, msg, wp, lp)).result,
   };
 }
+test('tab-stop messages preserve native text and validate dialog units without mutating failed layouts', async (t) => {
+  const { r, w, send } = await setup(t, 'LISTBOX', 0xc1),
+    p = r.allocate(12);
+  assert.equal(await send(0x192, 0, 0), 1);
+  assert.deepEqual(describeList(w).tabStops, []);
+  r.write32(p, 40);
+  r.write32(p + 4, 80);
+  assert.equal(await send(0x192, 2, p), 1);
+  assert.deepEqual(describeList(w).tabStops, [40, 80]);
+  r.write32(p + 4, 20);
+  assert.equal(await send(0x192, 2, p), 0);
+  assert.deepEqual(describeList(w).tabStops, [40, 80]);
+  assert.equal(await send(0x192, 257, p), 0);
+  assert.equal(await send(0x192, 1, 0), 0);
+  const value = 'Name\tValue\tλ';
+  assert.equal(await send(0x180, 0, r.allocString(value, true), true), 0);
+  const out = r.allocate(64);
+  assert.equal(await send(0x189, 0, out, true), value.length);
+  assert.equal(r.wideString(out), value);
+  assert.equal(await send(0x192, 1, p), 1);
+  assert.deepEqual(describeList(w).tabStops, [40]);
+  const plain = await setup(t);
+  assert.equal(await plain.send(0x192, 0, 0), 0);
+  assert.equal(plain.r.lastError, 1434);
+  assert.equal(describeList(plain.w).tabStops, undefined);
+});
+
 test('sorted list strings retain selected identity and item data across insertion and deletion', async (t) => {
   const { r, w, send } = await setup(t);
   assert.equal(await send(0x180, 0, r.allocString('Beta')), 0);

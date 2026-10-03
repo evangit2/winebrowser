@@ -574,7 +574,7 @@ export class VirtualDesktop {
     )
       throw new Error(`Unsupported child control type: ${controlType}`);
 
-    let element, legend, canvas, listSelect, listEdit;
+    let element, legend, canvas, listSelect, listEdit, tabList;
     if (controlType === 'button') {
       const buttonType = state.controlStyle?.buttonType ?? 'push';
       // A group box is a labelled frame, not a clickable control.
@@ -597,6 +597,25 @@ export class VirtualDesktop {
             this.#emit(control.id, 'command', { notification: 0 });
         });
       }
+    } else if (controlType === 'listbox' && state.list?.tabStops !== undefined) {
+      element = document.createElement('div');
+      tabList = true;
+      element.className = 'virtual-desktop-control virtual-desktop-control-tablist';
+      element.setAttribute('role', 'listbox');
+      element.setAttribute('aria-label', state.title || 'List');
+      element.tabIndex = 0;
+      element.addEventListener('keydown', (event) => {
+        const s = control.listState;
+        if (!s?.items.length) return;
+        let index = s.selected;
+        if (event.key === 'ArrowDown') index = Math.min(s.items.length - 1, index + 1);
+        else if (event.key === 'ArrowUp') index = Math.max(0, index - 1);
+        else if (event.key === 'Home') index = 0;
+        else if (event.key === 'End') index = s.items.length - 1;
+        else return;
+        event.preventDefault();
+        this.#emit(control.id, 'list-select', { index });
+      });
     } else if (['combobox', 'listbox'].includes(controlType)) {
       const comboType = state.list?.comboType ?? 0;
       listSelect = document.createElement('select');
@@ -722,6 +741,7 @@ export class VirtualDesktop {
       legend,
       listSelect,
       listEdit,
+      tabList,
       canvas,
       context: canvas?.getContext('2d', { alpha: false }),
       container,
@@ -740,6 +760,11 @@ export class VirtualDesktop {
   }
 
   #applyList(control, list) {
+    if (control.tabList) {
+      this.#applyTabList(control, list);
+      control.listState = list;
+      return;
+    }
     const select = control.listSelect;
     const previous = control.listState;
     if (!previous || JSON.stringify(previous.items) !== JSON.stringify(list.items)) {
@@ -761,6 +786,58 @@ export class VirtualDesktop {
     select.disabled = !control.enabled;
     if (control.listEdit) control.listEdit.disabled = !control.enabled;
     control.listState = list;
+  }
+
+  #applyTabList(control, list) {
+    const element = control.element,
+      font = getComputedStyle(element).font;
+    const measurement = document.createElement('canvas').getContext('2d');
+    measurement.font = font;
+    const base = Math.max(
+      1,
+      Math.floor(
+        (measurement.measureText('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz').width /
+          26 +
+          1) /
+          2,
+      ),
+    );
+    const stops = list.tabStops.map((value) => (value * base) / 4);
+    const nextTab = (x) =>
+      stops.length === 1
+        ? (Math.floor(x / stops[0]) + 1) * stops[0]
+        : (stops.find((stop) => stop > x) ?? (Math.floor(x / (8 * base)) + 1) * 8 * base);
+    const scrollTop = element.scrollTop,
+      fragment = document.createDocumentFragment();
+    element.removeAttribute('aria-activedescendant');
+    for (const [index, item] of list.items.entries()) {
+      const row = document.createElement('div');
+      row.className = 'virtual-desktop-tablist-row';
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-label', item.text);
+      row.setAttribute('aria-selected', String(index === list.selected));
+      row.id = `guest-list-${control.id}-${item.id}`;
+      row.style.height = `${list.itemHeight}px`;
+      if (index === list.selected) element.setAttribute('aria-activedescendant', row.id);
+      let x = 0;
+      for (const [column, text] of item.text.split('\t').entries()) {
+        if (column) x = nextTab(x);
+        const span = document.createElement('span');
+        span.textContent = text;
+        span.style.left = `${x + 2}px`;
+        row.append(span);
+        x += measurement.measureText(text).width;
+      }
+      row.addEventListener('click', () => {
+        if (control.enabled) this.#emit(control.id, 'list-select', { index });
+      });
+      fragment.append(row);
+    }
+    element.replaceChildren(fragment);
+    element.scrollTop = scrollTop;
+    if (control.listState?.top !== list.top) element.scrollTop = list.top * list.itemHeight;
+    else if (control.listState?.selected !== list.selected && list.selected >= 0)
+      element.children[list.selected]?.scrollIntoView({ block: 'nearest' });
   }
 
   #applyTree(control, tree) {
@@ -944,9 +1021,9 @@ export class VirtualDesktop {
       if (multiline)
         control.element.style.whiteSpace = state.controlStyle?.autoHScroll ? 'pre' : 'pre-wrap';
     }
-    if (state.list && control.listSelect) this.#applyList(control, state.list);
-    if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
+    if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
+    if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
 
     control.isControl = true;
     control.controlType = state.controlType ?? control.controlType;

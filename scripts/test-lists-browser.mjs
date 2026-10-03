@@ -84,6 +84,24 @@ try {
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'Second radio checked',
   );
   assert.equal(await second.getAttribute('aria-checked'), 'true');
+  const tabs = window.getByRole('listbox', { name: 'Columns', exact: true });
+  const rows = tabs.getByRole('option');
+  assert.equal(await rows.count(), 2);
+  const columns = await rows.evaluateAll((rows) =>
+    rows.map((row) => [...row.children].map((span) => parseFloat(span.style.left))),
+  );
+  assert.deepEqual(columns[0], columns[1]);
+  assert.ok(columns[0][1] > 80 && columns[0][2] > columns[0][1]);
+  assert.equal(columns[0][2] - 2, 2 * (columns[0][1] - 2));
+  await rows.nth(1).click();
+  await page.waitForFunction(
+    () => document.querySelector('.virtual-desktop-title')?.textContent === 'Tabbed row one',
+  );
+  await tabs.press('ArrowUp');
+  await page.waitForFunction(
+    () => document.querySelector('.virtual-desktop-title')?.textContent === 'Tabbed row zero',
+  );
+  assert.equal(await rows.nth(0).getAttribute('aria-selected'), 'true');
   await window.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);
   const run = await page.evaluate(() => window.__lastRun);
@@ -107,10 +125,11 @@ try {
       'Mouse ListBox and dropdown ComboBox selections dispatch native WM_COMMAND',
       'Editable and simple ComboBox text/selection reach the guest',
       'Native checkbox indicators and WS_GROUP radio exclusivity in both directions',
+      'LB_SETTABSTOPS lays out Unicode columns in font-relative dialog units with native mouse/keyboard selection',
       'Programmatic selection sends no user notifications; close exits zero',
     ],
     scope:
-      'Native single-select string controls in ordinary Chromium. Owner-drawn and multi-select lists, dropdown-opening messages, tab stops and full common-control coverage remain incomplete.',
+      'Native single-select string controls in ordinary Chromium. Tabbed text uses browser-matched font metrics. Owner-drawn and multi-select lists, dropdown-opening messages and full common-control coverage remain incomplete.',
   };
   await writeFile('evidence/lists-browser-results.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));

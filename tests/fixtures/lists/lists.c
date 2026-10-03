@@ -28,6 +28,7 @@ static LRESULT CALLBACK proc(HWND w,UINT msg,WPARAM wp,LPARAM lp) {
     if(id==84){CHECK(SendMessageA(child,BM_GETCHECK,0,0)==BST_CHECKED);CHECK(SetWindowTextA(w,"Checkbox checked"));}
     if(id==85){CHECK(SendMessageA(child,BM_GETCHECK,0,0)==BST_CHECKED);CHECK(SendDlgItemMessageA(w,86,BM_GETCHECK,0,0)==BST_UNCHECKED);CHECK(SetWindowTextA(w,"First radio checked"));}
     if(id==86){CHECK(SendMessageA(child,BM_GETCHECK,0,0)==BST_CHECKED);CHECK(SendDlgItemMessageA(w,85,BM_GETCHECK,0,0)==BST_UNCHECKED);CHECK(SetWindowTextA(w,"Second radio checked"));}
+    if(id==87&&code==LBN_SELCHANGE){LRESULT index=SendMessageA(child,LB_GETCURSEL,0,0);CHECK(index==0||index==1);CHECK(SetWindowTextA(w,index==0?"Tabbed row zero":"Tabbed row one"));}
     return 0;
   }
   if(msg==WM_DESTROY){PostQuitMessage(0);return 0;}
@@ -47,7 +48,7 @@ void start(void) {
   printers();
   HINSTANCE instance=GetModuleHandleA(NULL);
   WNDCLASSA cls={0};cls.hInstance=instance;cls.lpfnWndProc=proc;cls.lpszClassName="NativeLists";cls.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1);CHECK(RegisterClassA(&cls));
-  RECT r={0,0,330,240};CHECK(AdjustWindowRect(&r,WS_OVERLAPPEDWINDOW,FALSE));
+  RECT r={0,0,330,330};CHECK(AdjustWindowRect(&r,WS_OVERLAPPEDWINDOW,FALSE));
   HWND w=CreateWindowA(cls.lpszClassName,"Native Lists",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,r.right-r.left,r.bottom-r.top,NULL,NULL,instance,NULL);CHECK(w);
   CHECK(CreateWindowExA(WS_EX_CLIENTEDGE,"LISTBOX","Items",WS_CHILD|WS_VISIBLE|WS_TABSTOP|LBS_NOTIFY|LBS_SORT|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,10,10,150,120,w,(HMENU)80,instance,NULL));
   CHECK(CreateWindowExA(WS_EX_CLIENTEDGE,"COMBOBOX","Choices",WS_CHILD|WS_VISIBLE|WS_TABSTOP|CBS_DROPDOWNLIST|CBS_HASSTRINGS,180,10,140,120,w,(HMENU)81,instance,NULL));
@@ -74,7 +75,14 @@ void start(void) {
   CHECK(CreateWindowA("BUTTON","Enable option",WS_CHILD|WS_VISIBLE|BS_AUTOCHECKBOX|WS_TABSTOP,10,150,150,20,w,(HMENU)84,instance,NULL));
   CHECK(CreateWindowA("BUTTON","First radio",WS_CHILD|WS_VISIBLE|BS_AUTORADIOBUTTON|WS_GROUP|WS_TABSTOP,10,180,150,20,w,(HMENU)85,instance,NULL));
   CHECK(CreateWindowA("BUTTON","Second radio",WS_CHILD|WS_VISIBLE|BS_AUTORADIOBUTTON,10,205,150,20,w,(HMENU)86,instance,NULL));
+  HWND tabs=CreateWindowExA(WS_EX_CLIENTEDGE,"LISTBOX","Columns",WS_CHILD|WS_VISIBLE|WS_TABSTOP|LBS_NOTIFY|LBS_HASSTRINGS|LBS_USETABSTOPS,10,246,310,70,w,(HMENU)87,instance,NULL);CHECK(tabs);
+  HFONT font=CreateFontA(-12,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,ANSI_CHARSET,0,0,0,0,"Courier New");CHECK(font);SendMessageA(tabs,WM_SETFONT,(WPARAM)font,TRUE);
+  int stops[2]={80,160};CHECK(SendMessageA(tabs,LB_SETTABSTOPS,2,(LPARAM)stops));
+  CHECK(SendMessageW(tabs,LB_ADDSTRING,0,(LPARAM)L"Alpha\tOne\t\x03bb")==0);
+  CHECK(SendMessageA(tabs,LB_ADDSTRING,0,(LPARAM)"B\tTwo\tC")==1);
+  WCHAR tabtext[32];CHECK(SendMessageW(tabs,LB_GETTEXT,0,(LPARAM)tabtext)==11 && tabtext[5]=='\t' && tabtext[10]==0x03bb);
+  CHECK(SendMessageA(tabs,LB_SETCURSEL,0,0)==0);
   CHECK(notifications==0);
   MSG msg;while(GetMessageA(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageA(&msg);}
-  CHECK(notifications>=9);ExitProcess((UINT)msg.wParam);
+  CHECK(notifications>=11);DeleteObject(font);ExitProcess((UINT)msg.wParam);
 }

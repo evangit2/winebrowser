@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-03T20:49:53.423Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-03T22:32:09.452Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
-  "exeSha256": "5925c95ab36e819839832cc06190ab173433bb4f5d39af5bd3b1db610474638d",
-  "compiledBlocks": 171,
+  "exeSha256": "1c10ea097941499d1f4832da3cfb6e122a7840e7484b97e23c1303c14708c306",
+  "compiledBlocks": 198,
   "checks": [
     "Native system-path winspool.drv resolves EnumPrinters and reports zero installed queues with correct seven-argument ABI",
     "Native SendDlgItemMessageA/W five-argument stack cleanup",
@@ -14,7 +14,8 @@
     "Mouse ListBox and dropdown ComboBox selections dispatch native WM_COMMAND",
     "Editable and simple ComboBox text/selection reach the guest",
     "Native checkbox indicators and WS_GROUP radio exclusivity in both directions",
+    "LB_SETTABSTOPS lays out Unicode columns in font-relative dialog units with native mouse/keyboard selection",
     "Programmatic selection sends no user notifications; close exits zero"
   ],
-  "scope": "Native single-select string controls in ordinary Chromium. Owner-drawn and multi-select lists, dropdown-opening messages, tab stops and full common-control coverage remain incomplete."
+  "scope": "Native single-select string controls in ordinary Chromium. Tabbed text uses browser-matched font metrics. Owner-drawn and multi-select lists, dropdown-opening messages and full common-control coverage remain incomplete."
 }
