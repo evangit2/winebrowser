@@ -1,0 +1,58 @@
+{
+  "verifiedAt": "2026-10-03T22:29:37.856Z",
+  "sourceCommit": "212fce3079c1731e6db16ccb7b2e06b5d6df4291",
+  "runUrl": "https://github.com/evangit2/winebrowser/actions/runs/37156875476",
+  "deployment": {
+    "id": 6833809267,
+    "state": "success",
+    "url": "https://evangit2.github.io/winebrowser/",
+    "completedAt": "2026-10-03T22:20:31Z",
+    "logUrl": "https://github.com/evangit2/winebrowser/actions/runs/37156875476/job/111305611885"
+  },
+  "ci": {
+    "unitTests": 996,
+    "failures": 0,
+    "staticBrowserSuite": "passed"
+  },
+  "acceptance": {
+    "report": "7zip-full-live-results.json",
+    "runs": 10,
+    "browser": "154.0.8037.97",
+    "ordinary": true,
+    "errors": []
+  },
+  "assetObservation": {
+    "startedAt": "2026-10-03T22:27:21.435Z",
+    "completedAt": "2026-10-03T22:28:46.721Z",
+    "unchangedDuringAcceptance": true,
+    "indexSha256": "eeb85d52984956fc736e147a85a3c06b5f291610af2f2637e2c588e1f6592864",
+    "assets": [
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/index-Cb6IGSka.css",
+        "bytes": 7762,
+        "sha256": "f1f2821182eeb69fdb4e2d428c26ff80d2bbb53bddbdbbba35866490d495a0ec"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/index-Cg4-nOPw.js",
+        "bytes": 45487,
+        "sha256": "089856ef6da97c3d81575516f90bcfb098746b3ec96c61fe48fe881acf5051cd"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-full/7zip-full.zip",
+        "bytes": 900773,
+        "sha256": "b29fdf602c8c8884c81e6191ed6eff3e41fc658a872dadee7363f8e744afb206"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/manifest.json",
+        "bytes": 14682,
+        "sha256": "f2ead9db59cacb1c9d7120f99c09003cd9b7801173b8d4d40b3444c3fa2e060b"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/runtime/wine-base/manifest.json",
+        "bytes": 5098,
+        "sha256": "22246ebbe36685463116aec7bd0875b39d4d6b7995bdf2ed3099058996f74579"
+      }
+    ]
+  },
+  "scope": "The deployed source includes the compiler improvement and full upstream 7-Zip release. The public index, referenced top-level assets, catalog, Wine runtime manifest and 7-Zip package matched before and after ten functional checks in ordinary Chrome. The recorded operations exercise native codec loading, LZMA2 threads, AES-256 ZIP encryption/decryption and real application failure exits; they do not establish all Windows executables or all codecs."
+}

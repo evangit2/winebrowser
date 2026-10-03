@@ -43,6 +43,15 @@ Set `WINEBROWSER_TEST_URL` to a static Pages build or the public deployment.
 paths. CI repeats this acceptance on the static Pages build without isolation
 headers.
 
+All ten functional checks passed on the public Pages URL in ordinary Chrome
+154 on October 3, 2026 UTC, against deployed commit
+`212fce3079c1731e6db16ccb7b2e06b5d6df4291`. See the
+[live results](../evidence/7zip-full-live-results.json) for native module history,
+thread APIs, output hashes and application exits, and the
+[deployment record](../evidence/7zip-full-live-deployment.json) for the successful
+Actions run and unchanged published asset hashes. Release CI passed all 996
+unit tests and the complete static-hosted browser acceptance suite.
+
 ## Uploading your own archives
 
 Choose the EXE, codec DLL and inputs together, or upload their package ZIP.
