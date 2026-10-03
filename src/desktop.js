@@ -567,7 +567,7 @@ export class VirtualDesktop {
     const parent = this.windows.get(state.parentId);
     if (!parent) throw new Error(`Child control ${state.id} references an unknown parent window`);
     const controlType = state.controlType;
-    if (!['static', 'button', 'edit'].includes(controlType))
+    if (!['static', 'button', 'edit', 'treeview'].includes(controlType))
       throw new Error(`Unsupported child control type: ${controlType}`);
 
     let element, legend, canvas;
@@ -593,6 +593,12 @@ export class VirtualDesktop {
             this.#emit(control.id, 'command', { notification: 0 });
         });
       }
+    } else if (controlType === 'treeview') {
+      element = document.createElement('div');
+      element.className = 'virtual-desktop-control virtual-desktop-control-tree';
+      element.setAttribute('role', 'tree');
+      element.setAttribute('aria-label', state.title || 'Categories');
+      element.tabIndex = 0;
     } else if (controlType === 'edit') {
       // ES_MULTILINE needs a text area; a single-line edit is an input. The
       // element is chosen at creation because the style cannot change later.
@@ -628,9 +634,13 @@ export class VirtualDesktop {
       element.addEventListener(type, (event) => {
         event.stopPropagation();
         if (
-          this.#topLevel(control)?.isDialog &&
-          ['Tab', 'Enter', 'Escape'].includes(event.key) &&
-          !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn)
+          (controlType === 'treeview' &&
+            ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
+              event.key,
+            )) ||
+          (this.#topLevel(control)?.isDialog &&
+            ['Tab', 'Enter', 'Escape'].includes(event.key) &&
+            !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn))
         )
           event.preventDefault();
         this.#sendKey(event, type, control.id, false);
@@ -668,6 +678,57 @@ export class VirtualDesktop {
     return control;
   }
 
+  #applyTree(control, tree) {
+    const color = (value) => `rgb(${value & 255},${(value >>> 8) & 255},${(value >>> 16) & 255})`;
+    control.element.style.backgroundColor = color(tree.background);
+    control.element.style.color = color(tree.color);
+    const scrollTop = control.element.scrollTop;
+    control.element.removeAttribute('aria-activedescendant');
+    const fragment = document.createDocumentFragment();
+    for (const item of tree.rows) {
+      const row = document.createElement('div');
+      row.className = 'virtual-desktop-tree-row';
+      row.dataset.treeItem = String(item.id);
+      row.id = `guest-tree-${control.id}-${item.id}`;
+      if (item.selected) control.element.setAttribute('aria-activedescendant', row.id);
+      row.setAttribute('role', 'treeitem');
+      row.setAttribute('aria-level', String(item.depth + 1));
+      row.setAttribute('aria-selected', String(item.selected));
+      if (item.hasChildren) row.setAttribute('aria-expanded', String(item.expanded));
+      row.style.height = `${tree.itemHeight}px`;
+      row.style.paddingLeft = `${item.depth * tree.indent}px`;
+      const toggle = document.createElement('span');
+      toggle.className = 'virtual-desktop-tree-toggle';
+      toggle.textContent = item.hasChildren ? (item.expanded ? '−' : '+') : '';
+      toggle.setAttribute('aria-hidden', 'true');
+      toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (control.enabled && item.hasChildren)
+          this.#emit(control.id, 'tree-expand', { item: item.id });
+      });
+      const text = document.createElement('span');
+      text.className = 'virtual-desktop-tree-label';
+      text.textContent = item.text;
+      if (item.bold) text.style.fontWeight = 'bold';
+      row.append(toggle, text);
+      row.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (control.enabled) {
+          control.element.focus();
+          this.#emit(control.id, 'tree-select', { item: item.id });
+        }
+      });
+      row.addEventListener('dblclick', (event) => {
+        event.stopPropagation();
+        if (control.enabled && item.hasChildren)
+          this.#emit(control.id, 'tree-expand', { item: item.id });
+      });
+      fragment.append(row);
+    }
+    control.element.replaceChildren(fragment);
+    control.element.scrollTop = scrollTop;
+  }
+
   #applyControlState(control, state) {
     if (state.controlId !== undefined) control.element.dataset.controlId = String(state.controlId);
     if (state.title !== undefined) control.titleText = String(state.title);
@@ -676,6 +737,8 @@ export class VirtualDesktop {
       if (control.controlType === 'edit') {
         // Avoid disrupting caret selection during incremental WM_SETTEXT echo.
         if (control.element.value !== control.titleText) control.element.value = control.titleText;
+      } else if (control.controlType === 'treeview') {
+        control.element.setAttribute('aria-label', control.titleText || 'Categories');
       } else if (control.canvas) {
         control.element.setAttribute('aria-label', control.titleText);
       } else if (control.legend) {
@@ -717,6 +780,11 @@ export class VirtualDesktop {
           : '0';
     }
     const controlStyle = state.controlStyle ?? {};
+    if (control.controlType === 'static' && !control.canvas) {
+      control.element.style.whiteSpace = controlStyle.noWordWrap ? 'pre' : 'pre-wrap';
+      control.element.style.display = controlStyle.centerImage ? 'flex' : '';
+      control.element.style.alignItems = controlStyle.centerImage ? 'center' : '';
+    }
     if (control.controlType === 'button' && state.controlStyle) {
       const style = state.controlStyle;
       control.buttonType = style.buttonType ?? control.buttonType;
@@ -778,6 +846,7 @@ export class VirtualDesktop {
       if (multiline)
         control.element.style.whiteSpace = state.controlStyle?.autoHScroll ? 'pre' : 'pre-wrap';
     }
+    if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
 
     control.isControl = true;

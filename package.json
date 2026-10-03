@@ -223,7 +223,9 @@
     "package:minesweeper": "python3 scripts/package-minesweeper.py",
     "test:minesweeper": "node scripts/test-minesweeper-browser.mjs",
     "build:menus": "sh scripts/build-menus-fixture.sh",
-    "test:menus": "node scripts/test-menus-browser.mjs"
+    "test:menus": "node scripts/test-menus-browser.mjs",
+    "build:treeview": "sh scripts/build-treeview-fixture.sh",
+    "test:treeview": "node scripts/test-treeview-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

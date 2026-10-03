@@ -1,3 +1,4 @@
+import { describeTree } from './win32-treeview.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
   builtinControlClass,
@@ -300,6 +301,8 @@ export class WindowManager {
         controlStyle: controlType
           ? {
               ownerDraw: !!ownerDraw,
+              noWordWrap: !!window.noWordWrap,
+              centerImage: !!window.centerImage,
               readOnly: !!readOnly,
               buttonType,
               flat: !!flat,
@@ -344,6 +347,7 @@ export class WindowManager {
         menu: parentId ? undefined : describeWindowMenu(this.runtime, window),
         isDialog: !parentId && !!window.dialogProc,
         controlId: window.controlId,
+        tree: describeTree(window),
       },
     });
   }

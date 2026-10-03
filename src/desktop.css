@@ -281,3 +281,28 @@
   position: relative;
   top: 0;
 }
+
+.virtual-desktop-control-tree {
+  overflow: auto;
+  background: white;
+  color: black;
+  user-select: none;
+}
+.virtual-desktop-tree-row {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  cursor: default;
+}
+.virtual-desktop-tree-toggle {
+  display: inline-block;
+  text-align: center;
+  flex: 0 0 16px;
+}
+.virtual-desktop-tree-label {
+  padding: 1px 3px;
+}
+.virtual-desktop-tree-row[aria-selected='true'] .virtual-desktop-tree-label {
+  background: #000080;
+  color: white;
+}

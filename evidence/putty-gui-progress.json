@@ -1,97 +1,14 @@
 {
-  "state": "RUNNING",
+  "state": "ERROR",
   "details": "340 imports supported \u00b7 PE32 x86 \u00b7 1484 KB image",
-  "status": "Running in worker\u2026",
+  "status": "user32.dll!CreateDialogParamA: user32.dll!MessageBoxW: MessageBox flags 0x212012 unsupported: only MB_OK with a standard icon is rendered",
   "platform": "ISOLATED / WASM READY",
-  "windows": [
-    "PuTTY: hidden timing window",
-    "PuTTY Configuration"
-  ],
-  "controls": [
-    {
-      "type": "FIELDSET",
-      "title": null,
-      "id": "1042"
-    },
-    {
-      "type": "BUTTON",
-      "title": "Terminal scrolling",
-      "id": "1050",
-      "value": ""
-    },
-    {
-      "type": "BUTTON",
-      "title": "**MORE** processing",
-      "id": "1049",
-      "value": ""
-    },
-    {
-      "type": "BUTTON",
-      "title": "WAITS",
-      "id": "1048",
-      "value": ""
-    },
-    {
-      "type": "BUTTON",
-      "title": "ITS",
-      "id": "1047",
-      "value": ""
-    },
-    {
-      "type": "BUTTON",
-      "title": "None",
-      "id": "1046",
-      "value": ""
-    },
-    {
-      "type": "DIV",
-      "title": "Extended ASCII Character set:",
-      "id": "1045"
-    },
-    {
-      "type": "INPUT",
-      "title": null,
-      "id": "1044",
-      "value": "The Internet"
-    },
-    {
-      "type": "DIV",
-      "title": "Location string",
-      "id": "1043"
-    },
-    {
-      "type": "CANVAS",
-      "title": "",
-      "id": "1041"
-    },
-    {
-      "type": "DIV",
-      "title": "Category:",
-      "id": "1007"
-    },
-    {
-      "type": "BUTTON",
-      "title": "About",
-      "id": "1010",
-      "value": ""
-    },
-    {
-      "type": "BUTTON",
-      "title": "Cancel",
-      "id": "2",
-      "value": ""
-    },
-    {
-      "type": "BUTTON",
-      "title": "Open",
-      "id": "1009",
-      "value": ""
-    }
-  ],
+  "windows": [],
+  "controls": [],
   "run": null,
   "errors": [],
   "date": "2026-10-03",
   "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
-  "remainingBlocker": "Configuration stays running, but SysTreeView32 is missing: category navigation is absent and the wrong initial panel is selected. Full controls, rendering and networking remain incomplete.",
-  "scope": "Private unchanged MIT PuTTY executable uploaded to ordinary Chromium. Window creation and editable controls are progress; configuration interactions and networking are not accepted as working."
+  "remainingBlocker": "PuTTY reaches its intended Session panel and asserts at windows/controls.c:1730 after COMBOBOX ID 1053 creation fails with 1407. Its assertion MessageBox requests unsupported buttons/flags. Independent TreeView GUI acceptance passes.",
+  "scope": "Private unchanged MIT PuTTY executable, probed in Chromium and with native dispatch diagnostics. This progress does not establish working PuTTY configuration or networking."
 }

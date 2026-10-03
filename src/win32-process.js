@@ -506,14 +506,15 @@ export const processApis = {
   'shell32.dll!ExtractIconExA': (r, a) => extractIconEx(r, a, false),
   'shell32.dll!ExtractIconExW': (r, a) => extractIconEx(r, a, true),
   // InitCommonControlsEx registers a set of common controls. The browser
-  // desktop renders the controls it implements already, so this reports that
-  // the requested classes are available and does not allocate a control set.
+  // desktop registers implemented classes lazily. This initializes the common
+  // control provider; unknown classes still fail CreateWindow with 1407.
   'comctl32.dll!InitCommonControlsEx': (r, a) => {
     const pointer = a(0);
     if (!pointer) return ok(0, 1);
     r.check(pointer, 8);
-    // INITCOMMONCONTROLSEX: dwSize, dwICC. The runtime implements button,
-    // static, edit, list and scroll-bar visuals through its own window classes.
+    // INITCOMMONCONTROLSEX: dwSize, dwICC. Size validation follows Win32;
+    // class availability is checked at creation, independently of this hint.
+    if (r.read32(pointer) !== 8) return ok(0, 1);
     return ok(1, 1);
   },
   'comctl32.dll!InitCommonControls': () => ok(0, 0),

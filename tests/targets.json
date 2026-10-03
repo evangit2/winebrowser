@@ -510,7 +510,7 @@
       "workingDirectory": ".cache/targets",
       "args": [],
       "expected": "opens PuTTY Configuration and paints its controls; close the window to end the test",
-      "statusNote": "All imports resolve. Custom resource dialog classes now retain extra-window context and route through DefDlgProc; native fixtures verify real GCL metadata and default/custom dialog brushes. PuTTY Configuration stays running with editable controls. SysTreeView32 is missing, category navigation is absent and the wrong initial panel is selected. Configuration interactions and networking remain incomplete. See evidence/putty-gui-progress.json."
+      "statusNote": "All imports resolve. Custom dialog class context, DefDlgProc result/background contracts and native GCL metadata are repaired. SysTreeView32 text categories now support item insertion/query, expansion, selection and native WM_NOTIFY; an independent native Chromium fixture passes. PuTTY advances to its intended Session panel, then asserts after COMBOBOX creation returns ERROR_CANNOT_FIND_WND_CLASS. Browser failure surfaces through unsupported assertion MessageBox flags. Full configuration interactions, remaining common controls and networking are incomplete. See evidence/putty-gui-progress.json."
     },
     {
       "id": "sgi-opengl-minimal-x86",

@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-03T18:55:47.427Z",
+  "url": "http://127.0.0.1:4371/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "4de871b9be7fe1dadbb8b688c1f390edaa16ce688cec2c24cc2413861bbf188c",
+  "compiledBlocks": 117,
+  "checks": [
+    "Native nested item ordering, opaque handles, parent/child/sibling and item-count queries",
+    "TVM_INSERTITEMW/GETITEMW Unicode text and LPARAM round trip in an ANSI tree",
+    "WM_NOTIFY PE32 NMTREEVIEW old/new selection, item parameters and cancellation",
+    "Mouse selection, keyboard right/down/left navigation and expand/collapse controls",
+    "Native deletion notification and subtree lifetime; close exits zero"
+  ],
+  "scope": "Native contract fixture in ordinary Chromium. Text trees are supported; image lists, label editing, drag/drop, callback text and full common-control coverage remain incomplete."
+}

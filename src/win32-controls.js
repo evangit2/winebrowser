@@ -1,9 +1,11 @@
 import { describeGdiFont } from './win32-gdi.js';
+import { treeMessage, treeInput } from './win32-treeview.js';
 
 const kinds = new Map([
   ['static', 'static'],
   ['button', 'button'],
   ['edit', 'edit'],
+  ['systreeview32', 'treeview'],
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
@@ -55,7 +57,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'button' && (local & 0xc0) === 0xc0)
     throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
   const ownerDraw = kind === 'static' && (local & 0x1f) === 0xd;
-  if (kind === 'static' && (ownerDraw ? local & ~0x9f : local & ~0x83 || (local & 3) === 3))
+  if (kind === 'static' && (local & ~0x29f || ![0, 1, 2, 0xc, 0xd].includes(local & 0x1f)))
     throw Error(`Unsupported STATIC style 0x${local.toString(16)}`);
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
   // LOWERCASE (0x10), PASSWORD (0x20), AUTOVSCROLL (0x40), AUTOHSCROLL (0x80),
@@ -70,8 +72,11 @@ export function controlStyle(kind, style, extended) {
     if (local & 0x2000 && local & 0x4 && local & 0x1000)
       throw Error('ES_NUMBER with multiline requires ES_AUTOHSCROLL');
   }
+  if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   return {
     ownerDraw,
+    noWordWrap: kind === 'static' && (local & 0x1f) === 0xc,
+    centerImage: kind === 'static' && !!(local & 0x200),
     controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
     // BUTTON family. The desktop uses `buttonType` to pick an element and
     // `toggle`/`triState` to decide what a click does; `checkState` is the
@@ -219,6 +224,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback) {
     if (window.controlType === 'edit') await notify(r, window, message === 7 ? 0x100 : 0x200);
     return 0;
   }
+  if (window.controlType === 'treeview') return treeMessage(r, window, message, wp, lp, fallback);
   const value = await fallback();
   if (message === 0xc && window.ownerDraw && value) r.windows.invalidate(window, null, true);
   if (message === 0xc && window.controlType === 'edit' && value) {
@@ -242,6 +248,7 @@ function applyEditFilters(window, text) {
 // invokes a guest callback concurrently with the running CPU dispatcher.
 export function controlInput(r, window, event) {
   if (!window.controlType || !window.enabled) return false;
+  if (window.controlType === 'treeview' && treeInput(r, window, event)) return true;
   if (event.type === 'command' && window.controlType === 'button') {
     // A click on an automatic button changes its state before the parent is
     // told, so a handler reading BM_GETCHECK sees the new value.

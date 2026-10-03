@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T18:37:09.834Z",
-  "url": "http://127.0.0.1:65293/",
+  "date": "2026-10-03T18:56:50.012Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "targetId": "wesmar-minesweeper-2026-02-x86",
   "sha256": "d97ab2cabe8e4eb9cfd95079fb743bdd9b762592e2774382bc0d032a22b2988e",
   "status": "passed",
@@ -18,9 +18,9 @@
     "Hosted public ZIP starts through the same loader and Stop cleans up its windows"
   ],
   "exitCode": 0,
-  "instructions": 307096,
+  "instructions": 307001,
   "compiledBlocks": 676,
-  "x86TranslationMs": 309.129999935627,
-  "elapsedMs": 1922.8650000095367,
+  "x86TranslationMs": 285.960000038147,
+  "elapsedMs": 2234.109999999404,
   "scope": "Interactive acceptance of this unchanged MIT release. No complete game-rule proof, pixel-exact native font comparison or universal Windows GUI compatibility claim."
 }
