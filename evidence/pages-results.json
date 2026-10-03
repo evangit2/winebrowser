@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-03T01:18:59.604Z",
-  "url": "http://127.0.0.1:4207/winebrowser/",
+  "date": "2026-10-03T02:33:10.113Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "capabilities": {
     "controlled": true,
@@ -286,6 +286,42 @@
         "sourceZip"
       ],
       "passed": true
+    },
+    {
+      "name": "gnu-diff",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "optipng",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "7zip",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
+    },
+    {
+      "name": "lua",
+      "downloads": [
+        "exe",
+        "zip",
+        "sourceZip"
+      ],
+      "passed": true
     }
   ],
   "browserDownloads": [
@@ -338,5 +374,11 @@
     "exitCode": 0,
     "passed": true
   },
-  "errors": []
+  "errors": [],
+  "deployment": {
+    "id": 6822151551,
+    "sha": "3fb8c5ae21e63b49a925b3da680998236fedb77d",
+    "workflowRun": "https://github.com/evangit2/winebrowser/actions/runs/37088380848",
+    "state": "success"
+  }
 }

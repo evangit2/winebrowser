@@ -5,6 +5,7 @@ import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { parsePE } from '../src/pe.js';
 import { packageDosPath } from '../src/guest-paths.js';
+import { WineLoader } from '../src/wine-loader.js';
 
 const bytes = async (path) => new Uint8Array(await readFile(path));
 async function setup(extra = []) {
@@ -155,6 +156,59 @@ test('a trailing period suppresses DLL extension appending', async () => {
   assert.equal(moduleAt(r, base).path, 'app/plugins/extensionless');
   assert.equal(await sum(r, base), 42);
   assert.equal((await api(r, 'GetModuleHandleA', [r.allocString('extensionless.')])).result, base);
+});
+
+test('LoadLibraryEx search flags constrain requested files and transitive forwarders', async () => {
+  const r = await setup([
+    ['math.dll', await bytes('tests/fixtures/modules/math.dll')],
+    ['app/math.dll', await bytes('tests/fixtures/modules/math.dll')],
+    ['app/plugins/forward.dll', await bytes('tests/fixtures/modules/forward.dll')],
+  ]);
+  // SYSTEM32 must not accidentally find the package-root or application DLL.
+  assert.equal((await api(r, 'LoadLibraryExA', [r.allocString('math.dll'), 0, 0x800])).result, 0);
+  assert.equal(r.lastError, 126);
+  r.cwd = 'other/';
+  const application = (await api(r, 'LoadLibraryExA', [r.allocString('math.dll'), 0, 0x200]))
+    .result;
+  assert.ok(application);
+  assert.equal(moduleAt(r, application).path, 'app/math.dll');
+  assert.equal(await sum(r, application), 42);
+  assert.equal(await r.freeLibrary(application), true);
+  const pointer = r.allocString('C:\\winebrowser\\app\\plugins\\forward.dll', true);
+  const plugin = (await api(r, 'LoadLibraryExW', [pointer, 0, 0x100 | 0x800])).result;
+  assert.ok(plugin);
+  const forward = await r.resolveExport(moduleAt(r, plugin), 'ForwardSum');
+  assert.equal(await r.callGuest(forward, [17, 25], 'cdecl'), 42);
+  assert.equal(r.graph.findLoaded('math.dll').path, 'app/plugins/math.dll');
+  assert.equal(await r.freeLibrary(plugin), true);
+  // A bare filename cannot establish DLL_LOAD_DIR; altered+modern is invalid.
+  for (const [name, flags] of [
+    ['math.dll', 0x100],
+    ['math.dll', 8 | 0x800],
+  ]) {
+    assert.equal((await api(r, 'LoadLibraryExA', [r.allocString(name), 0, flags])).result, 0);
+    assert.equal(r.lastError, 87);
+  }
+});
+
+test('native Wine explicit search lists preserve an empty package search and independent absolute paths', async () => {
+  const r = await setup([['math.dll', await bytes('tests/fixtures/modules/math.dll')]]);
+  const loader = Object.assign(Object.create(WineLoader.prototype), { runtime: r });
+  const system = loader.searchOptions(r.allocString('C:\\windows\\system32', true));
+  assert.deepEqual(system, { searchDirectories: [], searchRuntime: true });
+  await assert.rejects(r.loadLibrary('math.dll', system), (error) => error.win32Error === 126);
+  const absent = loader.searchOptions(r.allocString('C:\\outside-the-package', true));
+  assert.deepEqual(absent, { searchDirectories: [], searchRuntime: false });
+  await assert.rejects(r.loadLibrary('winmm.dll', absent), (error) => error.win32Error === 126);
+  const user = loader.searchOptions(r.allocString('C:\\winebrowser\\app\\plugins', true));
+  assert.deepEqual(user, { searchDirectories: ['app/plugins/'], searchRuntime: false });
+  const base = await r.loadLibrary('math.dll', user);
+  assert.equal(await sum(r, base), 42);
+  assert.equal(moduleAt(r, base).path, 'app/plugins/math.dll');
+  const qualified = await r.loadLibrary('C:\\winebrowser\\other\\math.dll', absent);
+  assert.equal(moduleAt(r, qualified).path, 'other/math.dll');
+  const root = loader.searchOptions(r.allocString('C:\\winebrowser\\;C:\\windows\\system32', true));
+  assert.deepEqual(root, { searchDirectories: [''], searchRuntime: true });
 });
 
 test('unloading a guest DLL named like a host module preserves the host import thunks', async () => {

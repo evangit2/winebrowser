@@ -17,6 +17,9 @@ CesiumMan model and SPIR-V shaders required to run it.
 
 | Demo                      | Executable                                                                                                    | Complete package                                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| gnu-diff                  | [EXE](https://evangit2.github.io/winebrowser/examples/gnu-diff/diff.exe)                                      | [ZIP with companion DLLs](https://evangit2.github.io/winebrowser/examples/gnu-diff/gnu-diff.zip)              |
+| optipng                   | [EXE](https://evangit2.github.io/winebrowser/examples/optipng/optipng.exe)                                    | [ZIP](https://evangit2.github.io/winebrowser/examples/optipng/optipng.zip)                                    |
+| 7zip                      | [EXE](https://evangit2.github.io/winebrowser/examples/7zip/7zr.exe)                                           | [ZIP](https://evangit2.github.io/winebrowser/examples/7zip/7zip.zip)                                          |
 | gltfskinning              | [EXE](https://evangit2.github.io/winebrowser/examples/gltfskinning/bin/gltfskinning.exe)                      | [ZIP](https://evangit2.github.io/winebrowser/examples/gltfskinning/gltfskinning.zip)                          |
 | humus-dynamic-branching   | [EXE](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.exe)           | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-dynamic-branching/DynamicBranching.zip)           |
 | humus-instancing          | [EXE](https://evangit2.github.io/winebrowser/examples/humus-instancing/Instancing.exe)                        | [ZIP](https://evangit2.github.io/winebrowser/examples/humus-instancing/Instancing.zip)                        |
@@ -29,6 +32,7 @@ CesiumMan model and SPIR-V shaders required to run it.
 | sqlite                    | [EXE](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite-client.exe)                               | [ZIP](https://evangit2.github.io/winebrowser/examples/sqlite/sqlite.zip)                                      |
 | tetris                    | [EXE](https://evangit2.github.io/winebrowser/examples/tetris/tetris.exe)                                      | [ZIP](https://evangit2.github.io/winebrowser/examples/tetris/tetris.zip)                                      |
 | vkcube                    | [EXE](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.exe)                                      | [ZIP](https://evangit2.github.io/winebrowser/examples/vkcube/vkcube.zip)                                      |
+| lua                       | [EXE](https://evangit2.github.io/winebrowser/examples/lua/lua-client.exe)                                     | [ZIP](https://evangit2.github.io/winebrowser/examples/lua/lua.zip)                                            |
 
 ## Runtime fixtures
 

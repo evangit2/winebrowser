@@ -31,5 +31,7 @@ EXE/DLL and ZIP uploads run in ordinary Chromium.
 `tests/pe-delay-imports.test.js` checks metadata, bounds, lazy-slot relocation
 and the guest helper with host services. Browser evidence is in
 [evidence/delay-imports-browser-results.json](../evidence/delay-imports-browser-results.json).
+All four cases also passed ordinary Chromium on live GitHub Pages:
+[live results](../evidence/delay-imports-live-browser-results.json).
 Legacy VA helper execution, bound-delay address reuse, unload-helper behavior,
 PE32+ and general compatibility with every application remain unverified.

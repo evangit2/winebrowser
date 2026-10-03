@@ -479,7 +479,7 @@
       "workingDirectory": "",
       "args": ["a", "out.7z", "message.txt"],
       "expected": "creates `out.7z` from the supplied text asset, reports \"Everything is Ok\" and exits 0; the produced bytes start with the 7z signature 37 7a bc af 27 1c",
-      "statusNote": "The unchanged upstream 7-Zip console archiver runs a complete add from a loose-file upload under the ordinary harness: it starts its CRT (`_initterm`, argc/argv, the stdio FILE* layer and the low-level descriptor layer), scans the drive, creates `out.7z`, compresses the input, prints \"Everything is Ok\" and exits 0 with 223,940 guest instructions and no page errors. The 98-byte output is a real 7z stream whose first bytes are 37 7a bc af 27 1c 00 04. `npm run test:7zr` is the regression gate and evidence/7zr-browser-results.json records the run. This is one independent program, not general archive or general Windows compatibility."
+      "statusNote": "The unchanged upstream 7zr.exe runs native LZMA compression, archive CRC/integrity checking and extraction through ordinary ZIP and loose-file uploads. The public example compresses 17-byte text and 4096-byte binary inputs; both extracted outputs match the inputs byte-for-byte. Corrupt archives return the real application error exit 2. Functional testing corrected shared Win32 file enumeration/information sizes, timestamps and created-directory metadata; signature-only archive acceptance was insufficient. npm run test:foss-tools is the full round-trip gate; evidence/foss-tools-static-results.json records ten runs across GNU diff/cmp, OptiPNG and 7-Zip. Browser Win32/CRT services supply the 7-Zip system boundary; the original compressor/decompressor machine code is unchanged."
     },
     {
       "id": "putty-0.85-x86",

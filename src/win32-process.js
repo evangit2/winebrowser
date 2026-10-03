@@ -9,6 +9,7 @@ import { packageDosPath, resolveGuestPath } from './guest-paths.js';
 import { listPEResources } from './pe-resources.js';
 import { iconHandleForGroup } from './win32-icons.js';
 import { isHostDataExport } from './host-export-ordinals.js';
+import { librarySearchOptions } from './dll-search.js';
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0) => {
   r.lastError = error;
@@ -55,28 +56,14 @@ async function loadLibrary(r, a, wide, extended = false) {
   const argc = extended ? 3 : 1;
   if (!a(0)) return fail(r, 87, argc);
   const name = wide ? r.wideString(a(0)) : r.string(a(0));
-  const options = {};
+  let options = {};
   if (extended) {
-    // LOAD_LIBRARY_SEARCH_* (0x100..0x1000) select where the loader looks first.
-    // The runtime already resolves a bare name across the package volume, so
-    // those flags are accepted and honoured by the ordinary search.
-    const flags = a(2) >>> 0;
-    const SEARCH_FLAGS = 0x100 | 0x200 | 0x400 | 0x800 | 0x1000 | 0x4000;
-    const allowed = 0 | 8 | SEARCH_FLAGS;
-    if (a(1) || flags & ~allowed) return fail(r, 87, argc);
-    // LOAD_WITH_ALTERED_SEARCH_PATH (0x8) additionally searches the loaded
-    // module's own directory, which needs an absolute path to derive.
-    if (flags & 8) {
-      if (!/^(?:[a-z]:[\\/]|[\\/]\?\?[\\/])/i.test(name)) return fail(r, 87, argc);
-      let path;
-      try {
-        path = resolveGuestPath(name);
-      } catch {
-        return fail(r, 126, argc);
-      }
-      options.searchDirectories = [path.slice(0, path.lastIndexOf('/') + 1), ''];
+    if (a(1)) return fail(r, 87, argc);
+    try {
+      options = librarySearchOptions(r, name, a(2) >>> 0);
+    } catch (error) {
+      return fail(r, error.win32Error ?? 126, argc);
     }
-    void flags;
   }
   try {
     return ok(await r.loadLibrary(name, options), argc);

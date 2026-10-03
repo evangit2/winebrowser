@@ -23,7 +23,7 @@
     },
     {
       "name": "humus-instancing",
-      "description": "Animated Humus D3D9 particle clouds using the original shader-constant batching path. Keys 2\u20134 compare drawing paths; close its window to exit.",
+      "description": "Animated Humus D3D9 particle clouds using the original shader-constant batching path. Keys 2–4 compare drawing paths; close its window to exit.",
       "exe": "humus-instancing/Instancing.exe",
       "exeSha256": "37df64605e11c7a23df2d5befeb0bf38d2b9b6d2bf1322ffb1d0a437030b2903",
       "zip": "humus-instancing/Instancing.zip",
@@ -118,6 +118,56 @@
       "sourceZip": "sqlite/source.zip",
       "sourceZipSha256": "32dbb952bc4e07d44793956da6b83437a0d4f5ad323e2fff0e2c89148476ac51",
       "provenance": "SQLite public-domain upstream PE32 DLL, unchanged. MIT authored native client; original amalgamation, original binary archive, hashes and licenses included."
+    },
+    {
+      "name": "gnu-diff",
+      "description": "Unchanged GNU diffutils 2.8.7 Windows release with native libintl and libiconv DLLs. Shows a unified patch; exit 1 means files differ. Select cmp.exe to compare bytes.",
+      "entry": "diff.exe",
+      "args": ["-u", "before.txt", "after.txt"],
+      "exe": "gnu-diff/diff.exe",
+      "exeSha256": "f449ce40db50dd35c45c3dfa54bc79b6a3a4d9dc5ab0ff4d0fe91a4c9fefa310",
+      "zip": "gnu-diff/gnu-diff.zip",
+      "zipSha256": "00f87efce2671571d7349013678eb71826f25b08ff87c6e9ad20c1751b4861a2",
+      "sourceZip": "gnu-diff/source.zip",
+      "sourceZipSha256": "2f20f11fc80df04c7bf27c103c34267d8a087a991069c89bca338f08077e82a3",
+      "provenance": "Original GnuWin32 PE32 binaries, GNU diffutils GPL and libintl/libiconv LGPL. Companion DLLs are unchanged; Wine-source MSVCP60/MSVCRT/kernel32/kernelbase/ntdll load automatically."
+    },
+    {
+      "name": "optipng",
+      "description": "Unchanged OptiPNG 0.7.8 Windows release: losslessly optimizes a four-colour PNG with its real libpng and zlib code. Download optimized.png after exit.",
+      "entry": "optipng.exe",
+      "args": ["-o1", "-out", "optimized.png", "input.png"],
+      "exe": "optipng/optipng.exe",
+      "exeSha256": "3464cd6c7fc9cb893f368111eb19b634b2acf14dcc94958d0758251071cfcbd9",
+      "zip": "optipng/optipng.zip",
+      "zipSha256": "cef6c23d35860a154e2cb2f3667ad8db5a9c2ed4905bb8027881223ab3ac3ecc",
+      "sourceZip": "optipng/source.zip",
+      "sourceZipSha256": "5ce68fbb988ce060a94caf1aab794a6d3978366e1b6e0a2bdb97b4d107e30b30",
+      "provenance": "Original upstream PE32 OptiPNG 0.7.8 EXE; zlib/libpng included upstream. Permissive OptiPNG license and corresponding original source included."
+    },
+    {
+      "name": "7zip",
+      "description": "Unchanged 7-Zip 26.03 standalone Windows archiver: compresses text and binary inputs to out.7z. Download the archive, or use t/x to test and extract an uploaded .7z.",
+      "entry": "7zr.exe",
+      "args": ["a", "out.7z", "message.txt", "binary.bin"],
+      "exe": "7zip/7zr.exe",
+      "exeSha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
+      "zip": "7zip/7zip.zip",
+      "zipSha256": "cbd7cc547c54835c03f2072b85e79e315e2f6ed1e1dc336c44728c880480627a",
+      "sourceZip": "7zip/source.zip",
+      "sourceZipSha256": "ba2e292afd83f3df23fe0a2fa6781b0c1ed9bfa1a5191f513b1d2a4fc46bfa94",
+      "provenance": "Original upstream 7zr.exe 26.03 PE32 release. LGPL-2.1-or-later with upstream unRAR restriction; licenses and complete corresponding source included."
+    },
+    {
+      "name": "lua",
+      "description": "Lua 5.4.2 unchanged Windows DLL: scripts, 64-bit arithmetic, Unicode, coroutines, caught errors and binary file I/O. Replace main.lua to run your own script; download lua-output.bin after exit.",
+      "exe": "lua/lua-client.exe",
+      "exeSha256": "8651cd01f5803949d53a84050bfe65a3087a2c2c5380b16b3b318dcc748f602d",
+      "zip": "lua/lua.zip",
+      "zipSha256": "5f738c79d36352c4c4e7d69ba07e2883557c901e22c4c1e4a25385bb6f60a1c7",
+      "sourceZip": "lua/source.zip",
+      "sourceZipSha256": "f21ad5ec9991d229c6ff75d36a827c9e8594b0311a777e692a08bdedd324f8c9",
+      "provenance": "Original upstream MIT Windows Lua DLL, unchanged; full original source, binary archive, license and MIT authored script/client included."
     }
   ]
 }

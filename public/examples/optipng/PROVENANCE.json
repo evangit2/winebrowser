@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "name": "optipng",
+  "entry": "optipng.exe",
+  "args": ["-o1", "-out", "optimized.png", "input.png"],
+  "provenance": "Original upstream PE32 OptiPNG 0.7.8 EXE; zlib/libpng included upstream. Permissive OptiPNG license and corresponding original source included.",
+  "inputs": [
+    {
+      "name": "optipng.zip",
+      "url": "https://downloads.sourceforge.net/optipng/optipng-0.7.8-win32.zip",
+      "sha256": "36587548648f75e92a317f052e83a8a55281d6b415bbf373106736bc2f50a730"
+    },
+    {
+      "name": "optipng-source.tar.gz",
+      "url": "https://downloads.sourceforge.net/optipng/optipng-0.7.8.tar.gz",
+      "sha256": "25a3bd68481f21502ccaa0f4c13f84dcf6b20338e4c4e8c51f2cefbd8513398c"
+    }
+  ],
+  "files": [
+    {
+      "path": "optipng.exe",
+      "bytes": 214016,
+      "sha256": "3464cd6c7fc9cb893f368111eb19b634b2acf14dcc94958d0758251071cfcbd9"
+    },
+    {
+      "path": "LICENSE.txt",
+      "bytes": 1037,
+      "sha256": "86987cb8d3f00ce8b5e6983f0ee9dda4b0f37b26d6c2baba0460f36d895d7250"
+    },
+    {
+      "path": "AUTHORS.txt",
+      "bytes": 715,
+      "sha256": "aec811b9d94e1e56f66c6b95985b0ef896edf99a7f33d25d988e70fa684731b2"
+    },
+    {
+      "path": "input.png",
+      "bytes": 12420,
+      "sha256": "b0c1a27c2fb68d4db39bd5a76dde9b482dc89b7b5cb56a2da82b9d61f057d8ff"
+    }
+  ],
+  "dependencyClosure": [
+    {
+      "name": "optipng.exe",
+      "path": "optipng.exe",
+      "host": false,
+      "imports": 95,
+      "sha256": "3464cd6c7fc9cb893f368111eb19b634b2acf14dcc94958d0758251071cfcbd9"
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "host": false,
+      "imports": 925,
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f"
+    },
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "host": false,
+      "imports": 0,
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd"
+    },
+    {
+      "name": "msvcrt.dll",
+      "path": "@runtime/msvcrt.dll",
+      "host": false,
+      "imports": 142,
+      "sha256": "ae706b617b11cf59d52bd668b1f9ae5c9d6e1b5be2a7cead6bfeb33664b5b1bc"
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "host": false,
+      "imports": 428,
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
+    }
+  ],
+  "unresolvedImports": []
+}

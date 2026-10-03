@@ -1,5 +1,6 @@
 import { registerThunk } from './thunk-addresses.js';
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
+import { isSystemDllPath, validLibraryFlags, librarySearchOptions } from './dll-search.js';
 
 const INVALID_PARAMETER = 0xc000000d,
   NOT_SUPPORTED = 0xc00000bb;
@@ -113,17 +114,22 @@ export class WineLoader {
     // need separate support. Ordinary path lists remain confined to the volume.
     if (pointer < 65536) throw failure(NOT_SUPPORTED);
     const directories = [];
+    let searchRuntime = false;
     for (const path of this.runtime.wideString(pointer).split(';')) {
       if (!path) continue;
+      if (isSystemDllPath(path)) {
+        searchRuntime = true;
+        continue;
+      }
       try {
-        const directory = resolveGuestPath(path);
+        const directory = resolveGuestPath(path, '', { allowRoot: true });
         directories.push(directory ? directory + '/' : '');
       } catch {
         // Windows system directories have no package files. Builtin and host
         // DLL resolution still follows the graph's explicit fallback policy.
       }
     }
-    return directories.length ? { searchDirectories: directories } : {};
+    return { searchDirectories: directories, searchRuntime };
   }
   async call(a) {
     const r = this.runtime,
@@ -132,10 +138,12 @@ export class WineLoader {
       switch (a(0)) {
         case 1: {
           // LdrLoadDll(path, flags, UNICODE_STRING*, HMODULE*)
-          if (a(2)) return NOT_SUPPORTED;
+          const flags = a(2) >>> 0;
+          if (!validLibraryFlags(flags))
+            return flags & 8 && flags & 0x1f00 ? INVALID_PARAMETER : NOT_SUPPORTED;
           this.check(a(4), 4, true);
           const name = this.countedString(a(3), true),
-            options = this.searchOptions(a(1));
+            options = a(1) ? this.searchOptions(a(1)) : librarySearchOptions(r, name, flags);
           const base = await r.loadLibrary(name, options);
           r.write32(a(4), base);
           return 0;
@@ -187,9 +195,13 @@ export class WineLoader {
       if (error.ntStatus) return error.ntStatus;
       if (error.win32Error)
         return (
-          { 126: DLL_NOT_FOUND, 127: PROCEDURE_NOT_FOUND, 193: 0xc000007b, 1114: 0xc0000142 }[
-            error.win32Error
-          ] ?? NOT_SUPPORTED
+          {
+            87: INVALID_PARAMETER,
+            126: DLL_NOT_FOUND,
+            127: PROCEDURE_NOT_FOUND,
+            193: 0xc000007b,
+            1114: 0xc0000142,
+          }[error.win32Error] ?? NOT_SUPPORTED
         );
       // Unsupported CPU/API execution is a real runtime failure, never a
       // fabricated NT success or a misleading missing-DLL status.

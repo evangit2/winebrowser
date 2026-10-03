@@ -343,8 +343,7 @@ async function runCurrent(args = []) {
   return completed;
 }
 
-async function loadSelected(inputs) {
-  const request = ++exampleRequest;
+async function loadSelected(inputs, request = ++exampleRequest) {
   downloadingExample = true;
   $('stop').disabled = false;
   select();
@@ -623,7 +622,12 @@ async function initialize() {
           if (!packageResponse.ok) throw Error(`Fixture package unavailable: ${fixture.zip}`);
           const bytes = await packageResponse.arrayBuffer();
           if (request !== exampleRequest) return;
-          await loadSelected(selectedFiles([new File([bytes], fixture.zip)]));
+          await loadSelected(selectedFiles([new File([bytes], fixture.zip)]), request);
+          if (request !== exampleRequest) return;
+          if (fixture.entry && entries.some((entry) => entry.path === fixture.entry))
+            $('exe').value = fixture.entry;
+          $('args').value = JSON.stringify(fixture.args ?? []);
+          select();
         } catch (error) {
           if (request !== exampleRequest) return;
           status(error.message, 'ERROR');
