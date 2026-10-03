@@ -27,6 +27,7 @@ TARGETS = {
     "msvcp140.dll": "dlls/msvcp140/i386-windows/msvcp140.dll",
     "msvcp140_1.dll": "dlls/msvcp140_1/i386-windows/msvcp140_1.dll",
     "concrt140.dll": "dlls/concrt140/i386-windows/concrt140.dll",
+    "version.dll": "dlls/version/i386-windows/version.dll",
 }
 
 

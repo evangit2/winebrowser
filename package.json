@@ -213,7 +213,9 @@
     "build:lua": "sh scripts/build-lua-fixture.sh && python3 scripts/package-lua.py",
     "test:lua": "node scripts/test-lua-browser.mjs",
     "build:dll-search": "sh scripts/build-dll-search-fixtures.sh",
-    "test:dll-search": "node scripts/test-dll-search-browser.mjs"
+    "test:dll-search": "node scripts/test-dll-search-browser.mjs",
+    "build:native-services": "sh scripts/build-native-services-fixture.sh",
+    "test:native-services": "node scripts/test-native-services-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

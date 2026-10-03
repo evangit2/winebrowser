@@ -8,6 +8,7 @@ import { encodeAnsi } from './encoding.js';
 import { fileMetadata, fileIdentity } from './file-metadata.js';
 import { protectMemory } from './memory-protection.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
+import { guestHandleRecord, guestHandleFlags } from './wine-object.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -1025,11 +1026,19 @@ function setHandleInformation(r, a) {
   const mask = a(1) >>> 0;
   const flags = a(2) >>> 0;
   if (mask & ~3) return fail(r, 87, 3);
-  if (handle <= 2 || r.stdHandles?.has(handle | 0)) return ok(1, 3);
-  const opened = r.handles.get(handle);
+  const opened = guestHandleRecord(r, handle);
   if (!opened) return fail(r, 6, 3);
   if (mask & 1) opened.inherit = !!(flags & 1);
+  if (mask & 2) opened.protectFromClose = !!(flags & 2);
   return ok(1, 3);
+}
+function getHandleInformation(r, a) {
+  const flags = guestHandleFlags(r, a(0));
+  if (flags === null) return fail(r, 6, 2);
+  if (!a(1)) return fail(r, 87, 2);
+  r.check(a(1), 4, true);
+  r.write32(a(1), flags);
+  return ok(1, 2);
 }
 // GetThreadTimes reports the current thread's creation and CPU times. The
 // runtime tracks a virtual clock, so the process and kernel times are the
@@ -1249,6 +1258,7 @@ export const systemApis = {
   'kernel32.dll!CreateProcessW': createProcess,
   'kernel32.dll!GetExitCodeProcess': getExitCodeProcess,
   'kernel32.dll!SetHandleInformation': setHandleInformation,
+  'kernel32.dll!GetHandleInformation': getHandleInformation,
   'kernel32.dll!GetThreadTimes': getThreadTimes,
   'kernel32.dll!GetOverlappedResult': getOverlappedResult,
   'kernel32.dll!ReadConsoleA': readConsole,

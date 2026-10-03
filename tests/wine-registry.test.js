@@ -212,7 +212,7 @@ test('NT registry enforces handle access, pointers, value bounds and process iso
     nt(r, 'NtQueryValueKey', [0x5100ffff, name, 2, 0, 0, r.allocate(4)]),
     INVALID_HANDLE,
   );
-  assert.throws(() => nt(r, 'NtClose', [0x1234]), /Unsupported Wine NT service NtClose/);
+  assert.equal(nt(r, 'NtClose', [0x1234]), INVALID_HANDLE);
 
   const other = runtime();
   const otherUser = create(other, '\\Registry\\User');

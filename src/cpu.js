@@ -883,6 +883,11 @@ export class CPU {
           const stringCompare = stringScas || stringCmps;
           const stringOp = stringMov || stringStos || stringCompare || stringLods;
           const legacyBitScan = i.hasRepPrefix && (m === M.Bsf || m === M.Bsr);
+          // HLE is an optional hint. With TSX disabled, XACQUIRE/XRELEASE use
+          // the ordinary locked/implicit-atomic operation (or release store).
+          // Iced recognizes only eligible encodings; unrelated REP operands
+          // still fail the checks below. Guest execution remains serialized.
+          const legacyHle = i.hasXacquirePrefix || i.hasXreleasePrefix;
           // REP RET is an AMD return hint. F2 RET is BND RET; with MPX
           // disabled (as our CPUID advertises), bounds prefixes are ignored.
           const legacyReturn =
@@ -901,6 +906,7 @@ export class CPU {
             !simd &&
             !stringOp &&
             !legacyBitScan &&
+            !legacyHle &&
             !legacyReturn &&
             !legacyBoundsBranch
           )

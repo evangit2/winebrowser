@@ -89,3 +89,42 @@ test('PAUSE is a no-op and leaves guest flags and registers untouched', () => {
   assert.equal(cpu.r[0].value >>> 0, 0x12345678);
   assert.deepEqual(cpu.f, { cf: 1, zf: 0, sf: 1, of: 1, pf: 0 });
 });
+
+test('TSX-disabled XACQUIRE/XRELEASE CMPXCHG retain locked success/failure semantics without repeating', () => {
+  for (const prefix of [0xf2, 0xf3]) {
+    for (const expected of [17, 18]) {
+      const plain = machine([0xf0, 0x0f, 0xb1, 0x0e]);
+      const hinted = machine([prefix, 0xf0, 0x0f, 0xb1, 0x0e]);
+      for (const { cpu, view } of [plain, hinted]) {
+        cpu.r[0].value = expected;
+        cpu.r[1].value = 91;
+        cpu.r[6].value = 0x2000;
+        view.setUint32(0x2000, 17, true);
+        cpu.step(CODE);
+      }
+      assert.equal(hinted.view.getUint32(0x2000, true), expected === 17 ? 91 : 17);
+      assert.equal(hinted.cpu.r[0].value, 17);
+      assert.equal(hinted.cpu.r[1].value, 91);
+      assert.deepEqual(hinted.cpu.f, plain.cpu.f);
+      assert.equal(hinted.cpu.f.zf, expected === 17 ? 1 : 0);
+    }
+  }
+});
+test('XRELEASE stores and implicit atomic XACQUIRE XCHG use ordinary memory/flag behavior', () => {
+  const store = machine([0xf3, 0x89, 0x08]);
+  store.cpu.r[0].value = 0x2000;
+  store.cpu.r[1].value = 123;
+  const flags = { ...store.cpu.f };
+  store.cpu.step(CODE);
+  assert.equal(store.view.getUint32(0x2000, true), 123);
+  assert.deepEqual(store.cpu.f, flags);
+  const exchange = machine([0xf2, 0x87, 0x08]);
+  exchange.cpu.r[0].value = 0x2000;
+  exchange.cpu.r[1].value = 99;
+  exchange.view.setUint32(0x2000, 17, true);
+  exchange.cpu.step(CODE);
+  assert.equal(exchange.view.getUint32(0x2000, true), 99);
+  assert.equal(exchange.cpu.r[1].value, 17);
+  const unsupported = machine([0xf2, 0x40]);
+  assert.throws(() => unsupported.cpu.step(CODE), /Repeat prefix unsupported/);
+});

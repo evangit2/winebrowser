@@ -72,6 +72,12 @@
       "path": "concrt140.dll",
       "bytes": 252789,
       "sha256": "ffc4c58d374b3a5c850ed7b17565901cbd4442009a11d311fb99352acf76d00f"
+    },
+    {
+      "name": "version.dll",
+      "path": "version.dll",
+      "bytes": 68886,
+      "sha256": "21fe5336faa47b7b9cb52977b672259c45439455542d8d090ed5555eea3abd7d"
     }
   ],
   "nls": [
@@ -128,7 +134,7 @@
   "build": [
     "--enable-archs=i386",
     "--disable-tests",
-    "make -j4 dlls/ntdll/i386-windows/ntdll.dll dlls/kernelbase/i386-windows/kernelbase.dll dlls/kernel32/i386-windows/kernel32.dll dlls/msvcrt/i386-windows/msvcrt.dll dlls/msvcp60/i386-windows/msvcp60.dll dlls/msacm32/i386-windows/msacm32.dll dlls/ucrtbase/i386-windows/ucrtbase.dll dlls/vcruntime140/i386-windows/vcruntime140.dll dlls/msvcp140/i386-windows/msvcp140.dll dlls/msvcp140_1/i386-windows/msvcp140_1.dll dlls/concrt140/i386-windows/concrt140.dll"
+    "make -j4 dlls/ntdll/i386-windows/ntdll.dll dlls/kernelbase/i386-windows/kernelbase.dll dlls/kernel32/i386-windows/kernel32.dll dlls/msvcrt/i386-windows/msvcrt.dll dlls/msvcp60/i386-windows/msvcp60.dll dlls/msacm32/i386-windows/msacm32.dll dlls/ucrtbase/i386-windows/ucrtbase.dll dlls/vcruntime140/i386-windows/vcruntime140.dll dlls/msvcp140/i386-windows/msvcp140.dll dlls/msvcp140_1/i386-windows/msvcp140_1.dll dlls/concrt140/i386-windows/concrt140.dll dlls/version/i386-windows/version.dll"
   ],
   "scope": "Source-built PE32 base libraries and NLS for automatic missing-import fallback. Win32/NT browser services remain bounded; this is not arbitrary Windows compatibility.",
   "sourceArchive": {

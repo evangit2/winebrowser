@@ -78,6 +78,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:file-locks
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:delay-imports
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:dll-search
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:native-services
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:sqlite
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lua
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:cpp-runtime

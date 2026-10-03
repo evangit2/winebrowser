@@ -1,9 +1,10 @@
-import manifest from '../runtime/wine-base/manifest.json';
+import manifest from '../runtime/wine-base/manifest.json' with { type: 'json' };
 import { packageId } from './storage.js';
 import { parsePE } from './pe.js';
 import { API_NAMES } from './win32.js';
 import { canonicalHostSymbol } from './host-export-ordinals.js';
 import { resolveApiSet } from './api-sets.js';
+import { nativeForwarderApis } from './win32-native-forwarders.js';
 
 // Supplied DLLs and delay imports may only be reached after startup. Inspect
 // their dependencies first so they can share a native system-library graph with
@@ -11,7 +12,9 @@ import { resolveApiSet } from './api-sets.js';
 export function packageNeedsNativeBase(files) {
   const names = new Set(manifest.dlls.map((row) => row.name));
   for (const [path, bytes] of files) {
-    if (!/\.(dll|exe)$/i.test(path)) continue;
+    // Native modules also use .pyd, .ocx, .drv and other extensions. Inspect
+    // their PE headers rather than letting a filename hide CRT dependencies.
+    if (bytes[0] !== 0x4d || bytes[1] !== 0x5a) continue;
     let pe;
     try {
       pe = parsePE(bytes, { allowDll: true });
@@ -21,7 +24,10 @@ export function packageNeedsNativeBase(files) {
     // EXE eager imports already undergo the ordinary graph inspection.
     // Delay-only CRT dependencies must also select the native base before
     // initialization; selecting it at the first lazy call would be too late.
-    const imports = /\.dll$/i.test(path) ? [...pe.imports, ...pe.delayImports] : pe.delayImports;
+    for (const entry of [...pe.imports, ...pe.delayImports])
+      if (nativeForwarderApis[`${resolveApiSet(entry.dll).toLowerCase()}!${entry.name}`])
+        return true;
+    const imports = pe.isDll ? [...pe.imports, ...pe.delayImports] : pe.delayImports;
     for (const entry of imports) {
       const dll = resolveApiSet(entry.dll).toLowerCase();
       // A native third-party codec/CRT client needs the complete native

@@ -230,6 +230,7 @@ export function closeRegistryHandle(runtime, handle) {
 }
 
 export const registryNtServices = {
+  NtFlushKey: { argc: 1, call: (r, a) => keyValue(r, a(0), 0).status ?? SUCCESS },
   NtCreateKey: { argc: 7, call: (r, a) => openOrCreate(r, a, true) },
   NtOpenKey: { argc: 3, call: (r, a) => openOrCreate(r, a, false) },
   NtOpenKeyEx: {

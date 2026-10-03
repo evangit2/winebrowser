@@ -40,6 +40,8 @@ import { touchFile, fileMetadata, FILE_PATH_NOT_FOUND } from './file-metadata.js
 import { fileMetadataApis } from './win32-file-metadata.js';
 import { fileSectionApis } from './win32-sections.js';
 import { nativeForwarderApis } from './win32-native-forwarders.js';
+import { randomApis } from './win32-random.js';
+import { guestHandleFlags } from './wine-object.js';
 import { splitGuestCounter } from './guest-clock.js';
 import {
   startupApis,
@@ -118,6 +120,7 @@ for (const key of [
   ...Object.keys(iconApis),
   ...Object.keys(formatApis),
   ...Object.keys(nativeForwarderApis),
+  ...Object.keys(randomApis),
   ...Object.keys(startupApis),
   ...Object.keys(startupApis2),
   ...Object.keys(startupApis3),
@@ -467,6 +470,7 @@ function writeFile(runtime, argument) {
 }
 
 function closeHandle(runtime, argument) {
+  if ((guestHandleFlags(runtime, argument(0)) ?? 0) & 2) return failure(runtime, 6, 1);
   const sectionStatus = runtime.fileSections?.close(argument(0)) ?? null;
   if (sectionStatus !== null) return sectionStatus ? failure(runtime, 6, 1) : success(1, 1);
   const status = runtime.syncObjects?.close(argument(0)) ?? null;
@@ -507,6 +511,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(msvcrtApis),
     ...Object.entries(formatApis),
     ...Object.entries(nativeForwarderApis),
+    ...Object.entries(randomApis),
     ...Object.entries(registryApis),
     ...Object.entries(comApis),
     ...Object.entries(d3d9Apis),

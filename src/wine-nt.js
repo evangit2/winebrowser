@@ -14,6 +14,7 @@ import { sectionNtServices } from './wine-sections.js';
 import { registerThunk } from './thunk-addresses.js';
 import { syncNtServices } from './wine-sync.js';
 import { duplicateNtServices } from './duplicate-handle.js';
+import { objectNtServices, guestHandleFlags } from './wine-object.js';
 
 // Wine i386 PE syscall ABI v1: EAX selects a service, either a wrapper CALLs a
 // common trampoline or FS:[0xc0] dispatches directly, and RET n removes args.
@@ -263,6 +264,7 @@ export const ntServices = {
   ...debugNtServices,
   ...syncNtServices,
   ...duplicateNtServices,
+  ...objectNtServices,
   ...nlsServices,
   ...registryNtServices,
   ...tokenNtServices,
@@ -290,6 +292,7 @@ export const ntServices = {
     argc: 1,
     call: (r, a) => {
       if ([0, 0xffffffff, 0xfffffffe].includes(a(0) >>> 0)) return 0xc0000008;
+      if ((guestHandleFlags(r, a(0)) ?? 0) & 2) return 0xc0000235;
       const syncResult = r.syncObjects?.close(a(0)) ?? null;
       if (syncResult !== null) return syncResult;
       const result = closeRegistryHandle(r, a(0));
@@ -297,6 +300,7 @@ export const ntServices = {
       const sectionResult = r.fileSections?.close(a(0)) ?? null;
       if (sectionResult !== null) return sectionResult;
       const fileResult = closeFileHandle(r, a(0));
+      if (fileResult === null && !r.handles.has(a(0) >>> 0)) return 0xc0000008;
       if (fileResult === null)
         throw Error(
           `Unsupported Wine NT service NtClose for handle 0x${(a(0) >>> 0).toString(16)}`,

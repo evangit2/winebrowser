@@ -1,5 +1,5 @@
-// User32 exports these functions through KernelBase in Wine. Keep their NLS,
-// code-page and UTF-16 behavior in the native guest implementation.
+// User32 and SHLWAPI export these functions through KernelBase in Wine. Keep
+// their NLS, code-page, UTF-16 and path behavior in the native guest bodies.
 async function forward(r, a, symbol, argc) {
   let module = r.graph.findLoaded('kernelbase.dll');
   if (!module) {
@@ -14,6 +14,15 @@ async function forward(r, a, symbol, argc) {
 }
 
 export const nativeForwarderApis = {};
+for (const [name, argc] of [
+  ['PathCanonicalize', 2],
+  ['PathCombine', 3],
+  ['PathSkipRoot', 1],
+])
+  for (const suffix of ['A', 'W']) {
+    const symbol = name + suffix;
+    nativeForwarderApis[`shlwapi.dll!${symbol}`] = (r, a) => forward(r, a, symbol, argc);
+  }
 for (const direction of ['Lower', 'Upper'])
   for (const suffix of ['A', 'W'])
     for (const buffer of [false, true]) {

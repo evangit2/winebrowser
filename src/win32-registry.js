@@ -445,6 +445,64 @@ function regSetValueExA(runtime, argument) {
   return regSetValueEx(runtime, argument, true);
 }
 
+function legacyDefaultValue(runtime, a, ansi, write) {
+  const argc = write ? 5 : 4;
+  if (write && (a(2) !== 1 || !a(3))) return response(ERROR_INVALID_PARAMETER, argc);
+  let key = a(0),
+    temporary = 0;
+  if (a(1) && guestString(runtime, a(1), ansi)) {
+    temporary = runtime.allocate(4);
+    const args = [key, a(1), temporary];
+    const opened = (write ? regCreateKey : regOpenKey)(runtime, (i) => args[i], ansi);
+    if (opened.result) {
+      runtime.free(temporary);
+      return response(opened.result, argc);
+    }
+    key = runtime.read32(temporary);
+  }
+  try {
+    if (write) {
+      const text = guestString(runtime, a(3), ansi);
+      const count = ansi ? encodeAnsi(text).bytes.length + 1 : (text.length + 1) * 2;
+      const args = [key, 0, 0, 1, a(3), count];
+      return response(regSetValueEx(runtime, (i) => args[i], ansi).result, argc);
+    }
+    const args = [key, 0, 0, 0, a(2), a(3)];
+    let status = regQueryValueEx(runtime, (i) => args[i], ansi).result;
+    if (status === ERROR_FILE_NOT_FOUND) {
+      const width = ansi ? 1 : 2;
+      if (a(2)) {
+        runtime.check(a(2), width, true);
+        runtime.guestMemory.write(a(2), 0, width);
+      }
+      if (a(3)) writeOutput(runtime, a(3), width);
+      status = ERROR_SUCCESS;
+    }
+    return response(status, argc);
+  } finally {
+    if (temporary) {
+      regCloseKey(runtime, () => key);
+      runtime.free(temporary);
+    }
+  }
+}
+function flushRegistry(runtime, a) {
+  const key = keyFor(a(0), stateFor(runtime));
+  // Process-owned values are committed synchronously in memory. This does not
+  // persist them outside the isolated process or flush a host registry.
+  return response(!key ? ERROR_INVALID_HANDLE : key.node.deletePending ? ERROR_KEY_DELETED : 0, 1);
+}
+function connectRegistry(runtime, a, ansi) {
+  const name = guestString(runtime, a(0), ansi).replace(/^\\\\/, '');
+  if (name && name.toLowerCase() !== 'winebrowser') return response(53, 3); // ERROR_BAD_NETPATH
+  if (!keyFor(a(1), stateFor(runtime))) return response(ERROR_INVALID_HANDLE, 3);
+  const args = [a(1), 0, a(2)];
+  return regOpenKey(runtime, (i) => args[i], ansi);
+}
+function unsupportedRegistryHive(runtime, a) {
+  return response(keyFor(a(0), stateFor(runtime)) ? 50 : ERROR_INVALID_HANDLE, 3);
+}
+
 function deleteValue(state, opened, name) {
   if (name.length > MAX_VALUE_NAME_LENGTH) return ERROR_INVALID_PARAMETER;
   const key = name.toUpperCase(),
@@ -1026,6 +1084,17 @@ export const registryApis = {
   'advapi32.dll!RegQueryValueExW': regQueryValueExW,
   'advapi32.dll!RegSetValueExA': regSetValueExA,
   'advapi32.dll!RegSetValueExW': regSetValueExW,
+  'advapi32.dll!RegSetValueA': (r, a) => legacyDefaultValue(r, a, true, true),
+  'advapi32.dll!RegSetValueW': (r, a) => legacyDefaultValue(r, a, false, true),
+  'advapi32.dll!RegQueryValueA': (r, a) => legacyDefaultValue(r, a, true, false),
+  'advapi32.dll!RegQueryValueW': (r, a) => legacyDefaultValue(r, a, false, false),
+  'advapi32.dll!RegFlushKey': flushRegistry,
+  'advapi32.dll!RegConnectRegistryA': (r, a) => connectRegistry(r, a, true),
+  'advapi32.dll!RegConnectRegistryW': (r, a) => connectRegistry(r, a, false),
+  'advapi32.dll!RegSaveKeyA': unsupportedRegistryHive,
+  'advapi32.dll!RegSaveKeyW': unsupportedRegistryHive,
+  'advapi32.dll!RegLoadKeyA': unsupportedRegistryHive,
+  'advapi32.dll!RegLoadKeyW': unsupportedRegistryHive,
   'advapi32.dll!RegDeleteValueA': (r, a) => regDeleteValue(r, a, true),
   'advapi32.dll!RegDeleteValueW': (r, a) => regDeleteValue(r, a, false),
   'advapi32.dll!RegEnumValueA': (r, a) => regEnumValue(r, a, true),

@@ -23,7 +23,7 @@ def main():
     patch = ROOT / 'runtime/wine/browser-loader.patch'
     assert manifest['patchSha256'] == inventory['patch']['sha256'] == digest(patch)
     pinned_nls = json.loads((ROOT / 'runtime/wine/nls-probe-manifest.json').read_text())
-    assert {r['name'] for r in manifest['dlls']} == {'ntdll.dll', 'kernel32.dll', 'kernelbase.dll', 'msvcrt.dll', 'msvcp60.dll', 'msacm32.dll', 'ucrtbase.dll', 'vcruntime140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'concrt140.dll'}
+    assert {r['name'] for r in manifest['dlls']} == {'ntdll.dll', 'kernel32.dll', 'kernelbase.dll', 'msvcrt.dll', 'msvcp60.dll', 'msacm32.dll', 'ucrtbase.dll', 'vcruntime140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'concrt140.dll', 'version.dll'}
     assert {r['name'] for r in manifest['nls']} == set(pinned_nls['files'])
     copies = []
     for kind in ['dlls', 'nls']:
