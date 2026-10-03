@@ -93,3 +93,43 @@ test('native window callbacks use metadata through creation, A/W calls, controls
     r.windows.dispose();
   }
 });
+
+test('native GCL indices read class metadata and class writes return previous values', () => {
+  const r = setup(),
+    cls = r.windows.windows.get(1).cls;
+  Object.assign(cls, {
+    menuNamePointer: 0x402000,
+    background: 16,
+    cursor: 32512,
+    icon: 10,
+    instance: 0x400000,
+    extra: 34,
+    classExtra: 8,
+    proc: 0x401000,
+    style: 3,
+    atom: 0xc000,
+    smallIcon: 11,
+  });
+  for (const [index, expected] of [
+    [-8, 0x402000],
+    [-10, 16],
+    [-12, 32512],
+    [-14, 10],
+    [-16, 0x400000],
+    [-18, 34],
+    [-20, 8],
+    [-24, 0x401000],
+    [-26, 3],
+    [-32, 0xc000],
+    [-34, 11],
+  ]) {
+    for (const api of ['GetClassLongA', 'GetClassLongW', 'GetClassLongPtrA', 'GetClassLongPtrW'])
+      assert.equal(call(r, api, 1, index).result, expected);
+  }
+  assert.equal(call(r, 'SetClassLongA', 1, -12, 123).result, 32512);
+  assert.equal(call(r, 'GetClassLongW', 1, -12).result, 123);
+  assert.equal(call(r, 'SetClassLongW', 1, 4, 0xabcdef01).result, 0);
+  assert.equal(call(r, 'GetClassLongA', 1, 4).result, 0xabcdef01);
+  assert.equal(call(r, 'GetClassLongA', 1, -36).result, 0);
+  assert.equal(r.lastError, 1413);
+});

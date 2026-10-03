@@ -1,23 +1,97 @@
 {
-  "state": "ERROR",
-  "details": "340 imports supported · PE32 x86 · 1484 KB image",
-  "status": "partial",
+  "state": "RUNNING",
+  "details": "340 imports supported \u00b7 PE32 x86 \u00b7 1484 KB image",
+  "status": "Running in worker\u2026",
   "platform": "ISOLATED / WASM READY",
-  "log": "0x30\",\"0x0\",\"0x1\",\"0xdc\",\"0x86\"],\"caller\":\"0x41fcad\"},{\"name\":\"user32.dll!MapDialogRect\",\"args\":[\"0x20006\",\"0x3ffd7b0\",\"0x6e\",\"0x4e\",\"0xb1\",\"0x8\"],\"caller\":\"0x41fc63\"},{\"name\":\"user32.dll!CreateWindowExA\",\"args\":[\"0x0\",\"0x4eea37\",\"0x25259f8\",\"0x50014003\",\"0xdc\",\"0x9c\"],\"caller\":\"0x41fc9d\"},{\"name\":\"user32.dll!SendMessageA\",\"args\":[\"0x20013\",\"0x30\",\"0x0\",\"0x1\",\"0xdc\",\"0x9c\"],\"caller\":\"0x41fcad\"},{\"name\":\"user32.dll!MapDialogRect\",\"args\":[\"0x20006\",\"0x3ffd7b0\",\"0x67\",\"0x18\",\"0xbf\",\"0x42\"],\"caller\":\"0x41fc63\"},{\"name\":\"user32.dll!CreateWindowExA\",\"args\":[\"0x0\",\"0x4eea37\",\"0x4f7afe\",\"0x50000007\",\"0xce\",\"0x30\"],\"caller\":\"0x41fc9d\"},{\"name\":\"user32.dll!SendMessageA\",\"args\":[\"0x20014\",\"0x30\",\"0x0\",\"0x1\",\"0xce\",\"0x30\"],\"caller\":\"0x41fcad\"},{\"name\":\"user32.dll!SetDlgItemTextA\",\"args\":[\"0x20006\",\"0x414\",\"0x20073e8\",\"0x200b83c\",\"0x2522898\",\"0x4b\"],\"caller\":\"0x423220\"},{\"name\":\"user32.dll!CheckRadioButton\",\"args\":[\"0x20006\",\"0x416\",\"0x418\",\"0x416\",\"0x200b83c\",\"0x25228e8\"],\"caller\":\"0x422fbc\"},{\"name\":\"user32.dll!CheckDlgButton\",\"args\":[\"0x20006\",\"0x419\",\"0x0\",\"0x1\",\"0x4d\",\"0x2522938\"],\"caller\":\"0x42310f\"},{\"name\":\"user32.dll!CheckDlgButton\",\"args\":[\"0x20006\",\"0x41a\",\"0x0\",\"0x1\",\"0x4e\",\"0x2522988\"],\"caller\":\"0x42310f\"},{\"name\":\"user32.dll!GetDlgItem\",\"args\":[\"0x20006\",\"0x414\",\"0x3\",\"0x200b838\",\"0x200b83c\",\"0x41e2f5\"],\"caller\":\"0x423fa9\"},{\"name\":\"user32.dll!SetFocus\",\"args\":[\"0x2000d\",\"0x3\",\"0x200b838\",\"0x200b83c\",\"0x41e2f5\",\"0x2522898\"],\"caller\":\"0x423fb0\"},{\"name\":\"user32.dll!ShowWindow\",\"args\":[\"0x20006\",\"0x1\",\"0x2523488\",\"0x0\",\"0x0\",\"0x200b83c\"],\"caller\":\"0x41e303\"},{\"name\":\"user32.dll!SetWindowLongA\",\"args\":[\"0x20006\",\"0x1e\",\"0x3ffdec0\",\"0x0\",\"0x0\",\"0x0\"],\"caller\":\"0x44652d\"},{\"name\":\"user32.dll!GetMessageA\",\"args\":[\"0x3ffde7c\",\"0x0\",\"0x0\",\"0x0\",\"0x0\",\"0x0\"],\"caller\":\"0x446560\"},{\"name\":\"user32.dll!IsDialogMessageA\",\"args\":[\"0x20006\",\"0x3ffde7c\",\"0x20006\",\"0xf\",\"0x0\",\"0x0\"],\"caller\":\"0x44656f\"},{\"name\":\"user32.dll!DispatchMessageA\",\"args\":[\"0x3ffde7c\",\"0x20006\",\"0xf\",\"0x0\",\"0x0\",\"0xcdc\"],\"caller\":\"0x44657a\"},{\"name\":\"user32.dll!GetWindowLongA\",\"args\":[\"0x20006\",\"0x1e\",\"0x20006\",\"0x3ffde7c\",\"0x10311b0\",\"0x1031408\"],\"caller\":\"0x4465e6\"}],\"apiNames\":[\"WineBrowserLoaderCallback\",\"advapi32.dll!GetUserNameA\",\"advapi32.dll!RegOpenKeyExA\",\"comctl32.dll!InitCommonControls\",\"gdi32.dll!CreateFontA\",\"gdi32.dll!DeleteObject\",\"gdi32.dll!GetTextMetricsA\",\"gdi32.dll!SelectObject\",\"ntdll.dll!NtAllocateVirtualMemory\",\"ntdll.dll!NtClose\",\"ntdll.dll!NtCreateKey\",\"ntdll.dll!NtGetNlsSectionPtr\",\"ntdll.dll!NtInitializeNlsFiles\",\"ntdll.dll!NtOpenKey\",\"ntdll.dll!NtOpenKeyEx\",\"ntdll.dll!NtProtectVirtualMemory\",\"ntdll.dll!NtQueryDefaultLocale\",\"ntdll.dll!NtQueryInformationProcess\",\"ntdll.dll!NtQueryInformationToken\",\"ntdll.dll!NtQueryPerformanceCounter\",\"ntdll.dll!NtQuerySystemInformation\",\"ntdll.dll!NtQuerySystemTime\",\"ntdll.dll!NtQueryValueKey\",\"ntdll.dll!NtQueryVolumeInformationFile\",\"ntdll.dll!NtSetValueKey\",\"ntdll.dll!NtWow64IsProcessorFeaturePresent\",\"ole32.dll!CoInitialize\",\"user32.dll!CheckDlgButton\",\"user32.dll!CheckRadioButton\",\"user32.dll!CreateDialogParamA\",\"user32.dll!CreateWindowExA\",\"user32.dll!DefWindowProcA\",\"user32.dll!DestroyWindow\",\"user32.dll!DispatchMessageA\",\"user32.dll!GetClientRect\",\"user32.dll!GetDC\",\"user32.dll!GetDesktopWindow\",\"user32.dll!GetDlgItem\",\"user32.dll!GetMessageA\",\"user32.dll!GetWindowLongA\",\"user32.dll!GetWindowRect\",\"user32.dll!IsDialogMessageA\",\"user32.dll!LoadCursorA\",\"user32.dll!LoadIconA\",\"user32.dll!MapDialogRect\",\"user32.dll!RegisterClassA\",\"user32.dll!ReleaseDC\",\"user32.dll!SendMessageA\",\"user32.dll!SetActiveWindow\",\"user32.dll!SetDlgItemTextA\",\"user32.dll!SetFocus\",\"user32.dll!SetWindowLongA\",\"user32.dll!SetWindowTextA\",\"user32.dll!ShowWindow\",\"ws2_32.dll!WSAStartup\"],\"modules\":[{\"name\":\"putty.exe\",\"path\":\"putty.exe\",\"host\":false,\"base\":4194304,\"preferredBase\":4194304,\"refs\":0,\"initialized\":false},{\"name\":\"gdi32.dll\",\"path\":\"@host/gdi32.dll\",\"host\":true,\"base\":16777216,\"preferredBase\":268435456,\"refs\":0,\"initialized\":true},{\"name\":\"imm32.dll\",\"path\":\"@host/imm32.dll\",\"host\":true,\"base\":16842752,\"preferredBase\":268435456,\"refs\":0,\"initialized\":true},{\"name\":\"ole32.dll\",\"path\":\"@host/ole32.dll\",\"host\":true,\"base\":16908288,\"preferredBase\":268435456,\"refs\":0,\"initialized\":true},{\"name\":\"user32.dll\",\"path\":\"@host/user32.dll\",\"host\":true,\"base\":16973824,\"preferredBase\":268435456,\"refs\":1,\"initialized\":true},{\"name\":\"kernel32.dll\",\"path\":\"@runtime/kernel32.dll\",\"host\":false,\"base\":17039360,\"preferredBase\":2071986176,\"refs\":3,\"initialized\":true},{\"name\":\"ntdll.dll\",\"path\":\"@runtime/ntdll.dll\",\"host\":false,\"base\":17498112,\"preferredBase\":2076180480,\"refs\":0,\"initialized\":true},{\"name\":\"shell32.dll\",\"path\":\"@runtime/shell32.dll\",\"host\":false,\"base\":18284544,\"preferredBase\":268435456,\"refs\":1,\"initialized\":true},{\"name\":\"shell32.dll\",\"host\":true,\"base\":1879310336,\"refs\":0,\"initialized\":true},{\"name\":\"comdlg32.dll\",\"path\":\"@host/comdlg32.dll\",\"host\":true,\"base\":18350080,\"preferredBase\":268435456,\"refs\":0,\"initialized\":true},{\"name\":\"advapi32.dll\",\"path\":\"@host/advapi32.dll\",\"host\":true,\"base\":18415616,\"preferredBase\":268435456,\"refs\":0,\"initialized\":true},{\"name\":\"kernelbase.dll\",\"path\":\"@runtime/kernelbase.dll\",\"host\":false,\"base\":18481152,\"preferredBase\":2063597568,\"refs\":5,\"initialized\":true},{\"name\":\"ws2_32.dll\",\"path\":\"@host/ws2_32.dll\",\"host\":true,\"base\":21233664,\"preferredBase\":268435456,\"refs\":1,\"initialized\":true},{\"name\":\"comctl32.dll\",\"path\":\"@host/comctl32.dll\",\"host\":true,\"base\":21299200,\"preferredBase\":268435456,\"refs\":1,\"initialized\":true},{\"name\":\"winmm.dll\",\"path\":\"@host/winmm.dll\",\"host\":true,\"base\":21364736,\"preferredBase\":268435456,\"refs\":1,\"initialized\":true}],\"exceptionFrames\":[{\"frame\":\"0x3ffefe8\",\"handler\":\"0x4a2af0\",\"module\":\"putty.exe\",\"offset\":\"0xa2af0\",\"address\":\"0x4a2af0\"}],\"framesWalked\":1,\"instructions\":2506028}\nputty.exe: user32.dll!DispatchMessageA: Guest read violation at 0xc (4 bytes)\nuser32.dll!DispatchMessageA: Guest read violation at 0xc (4 bytes)",
-  "output": "\nputty.exe: user32.dll!DispatchMessageA: Guest read violation at 0xc (4 bytes)",
-  "windows": [],
-  "controls": [],
+  "windows": [
+    "PuTTY: hidden timing window",
+    "PuTTY Configuration"
+  ],
+  "controls": [
+    {
+      "type": "FIELDSET",
+      "title": null,
+      "id": "1042"
+    },
+    {
+      "type": "BUTTON",
+      "title": "Terminal scrolling",
+      "id": "1050",
+      "value": ""
+    },
+    {
+      "type": "BUTTON",
+      "title": "**MORE** processing",
+      "id": "1049",
+      "value": ""
+    },
+    {
+      "type": "BUTTON",
+      "title": "WAITS",
+      "id": "1048",
+      "value": ""
+    },
+    {
+      "type": "BUTTON",
+      "title": "ITS",
+      "id": "1047",
+      "value": ""
+    },
+    {
+      "type": "BUTTON",
+      "title": "None",
+      "id": "1046",
+      "value": ""
+    },
+    {
+      "type": "DIV",
+      "title": "Extended ASCII Character set:",
+      "id": "1045"
+    },
+    {
+      "type": "INPUT",
+      "title": null,
+      "id": "1044",
+      "value": "The Internet"
+    },
+    {
+      "type": "DIV",
+      "title": "Location string",
+      "id": "1043"
+    },
+    {
+      "type": "CANVAS",
+      "title": "",
+      "id": "1041"
+    },
+    {
+      "type": "DIV",
+      "title": "Category:",
+      "id": "1007"
+    },
+    {
+      "type": "BUTTON",
+      "title": "About",
+      "id": "1010",
+      "value": ""
+    },
+    {
+      "type": "BUTTON",
+      "title": "Cancel",
+      "id": "2",
+      "value": ""
+    },
+    {
+      "type": "BUTTON",
+      "title": "Open",
+      "id": "1009",
+      "value": ""
+    }
+  ],
   "run": null,
   "errors": [],
   "date": "2026-10-03",
-  "url": "http://127.0.0.1:4371/winebrowser/",
   "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
-  "fixedSharedContracts": [
-    "WS_EX_STATICEDGE edit geometry",
-    "Multiline textarea password-state application and ES_WANTRETURN newline",
-    "GetUserNameA/W BOOL/LastError and character counts",
-    "SS_OWNERDRAW WM_DRAWITEM with child HDC"
-  ],
-  "remainingBlocker": "putty.exe+0x465e8 null application-context read during DispatchMessage. Resource-requested custom dialog class is ignored by current builder.",
-  "scope": "Unchanged MIT PuTTY executable uploaded to ordinary Chromium. Window creation is progress; configuration interactions and networking are not accepted as working."
+  "remainingBlocker": "Configuration stays running, but SysTreeView32 is missing: category navigation is absent and the wrong initial panel is selected. Full controls, rendering and networking remain incomplete.",
+  "scope": "Private unchanged MIT PuTTY executable uploaded to ordinary Chromium. Window creation and editable controls are progress; configuration interactions and networking are not accepted as working."
 }

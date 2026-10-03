@@ -4,6 +4,35 @@
 static HMENU context;
 static unsigned round_no;
 static HWND owner_draw;
+static HBRUSH dialog_brush;
+static INT_PTR CALLBACK dialog_proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
+  (void)wp;
+  if(message==WM_INITDIALOG){SetWindowLongA(window,DLGWINDOWEXTRA,lp);return TRUE;}
+  if(message==WM_CTLCOLORDLG && dialog_brush) return (INT_PTR)dialog_brush;
+  if(message==WM_USER){SetWindowLongA(window,DWLP_MSGRESULT,GetWindowLongA(window,DLGWINDOWEXTRA));return TRUE;}
+  return FALSE;
+}
+static void custom_dialog(HINSTANCE instance) {
+  WNDCLASSA klass={0};klass.hInstance=instance;klass.lpfnWndProc=DefDlgProcA;
+  klass.hbrBackground=(HBRUSH)(COLOR_BACKGROUND+1);
+  klass.cbWndExtra=DLGWINDOWEXTRA+sizeof(LONG_PTR);klass.lpszClassName="NativeDialog";CHECK(RegisterClassA(&klass));
+  unsigned char bytes[128]={0};DLGTEMPLATE *tpl=(DLGTEMPLATE*)bytes;
+  tpl->style=WS_POPUP|WS_CAPTION|DS_MODALFRAME;tpl->cx=80;tpl->cy=40;
+  WORD *at=(WORD*)(bytes+18);*at++=0;
+  const WCHAR *name=L"NativeDialog";do{*at++=*name;}while(*name++);*at++=0;
+  HWND dialog=CreateDialogIndirectParamA(instance,tpl,NULL,dialog_proc,0x12345678);CHECK(dialog);
+  CHECK(GetClassLongA(dialog,GCL_CBWNDEXTRA)==DLGWINDOWEXTRA+sizeof(LONG_PTR));
+  CHECK(GetWindowLongA(dialog,DLGWINDOWEXTRA)==0x12345678);
+  CHECK(SendMessageA(dialog,WM_USER,0,0)==0x12345678);
+  HDC dc=GetDC(dialog);CHECK(dc);
+  CHECK(SendMessageA(dialog,WM_ERASEBKGND,(WPARAM)dc,0));
+  CHECK(GetPixel(dc,10,10)==GetSysColor(COLOR_BTNFACE));
+  dialog_brush=CreateSolidBrush(RGB(71,82,93));CHECK(dialog_brush);
+  CHECK(SendMessageA(dialog,WM_ERASEBKGND,(WPARAM)dc,0));
+  CHECK(GetPixel(dc,10,10)==RGB(71,82,93));
+  CHECK(ReleaseDC(dialog,dc));CHECK(DeleteObject(dialog_brush));dialog_brush=NULL;
+  CHECK(DestroyWindow(dialog));
+}
 static LRESULT CALLBACK proc(HWND window, UINT message, WPARAM wp, LPARAM lp) {
   if(message==WM_DRAWITEM) {
     DRAWITEMSTRUCT *item=(DRAWITEMSTRUCT*)lp;
@@ -40,6 +69,7 @@ void start(void) {
   CHECK(!GetUserNameA(NULL,&characters));CHECK(GetLastError()==ERROR_INSUFFICIENT_BUFFER);
   CHECK(characters<=sizeof(username));CHECK(GetUserNameA(username,&characters));CHECK(characters>1);
   HINSTANCE instance=GetModuleHandleA(NULL);
+  custom_dialog(instance);
   WNDCLASSA cls={0}; cls.hInstance=instance;cls.lpfnWndProc=proc;cls.lpszClassName="NativeMenus";cls.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
   CHECK(RegisterClassA(&cls));
   context=CreatePopupMenu();CHECK(context);

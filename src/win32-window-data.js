@@ -1,14 +1,16 @@
+// GCL/GCW indices from WinUser.h (PE32 LONG and LONG_PTR are both 32 bits).
 const classFields = new Map([
-  [-6, 'instance'],
-  [-10, 'menuName'],
-  [-12, 'proc'],
-  [-26, 'atom'],
-  [-32, 'classExtra'],
-  [-34, 'extra'],
-  [-36, 'style'],
-  [-38, 'background'],
-  [-40, 'cursor'],
+  [-8, 'menuNamePointer'],
+  [-10, 'background'],
+  [-12, 'cursor'],
   [-14, 'icon'],
+  [-16, 'instance'],
+  [-18, 'extra'],
+  [-20, 'classExtra'],
+  [-24, 'proc'],
+  [-26, 'style'],
+  [-32, 'atom'],
+  [-34, 'smallIcon'],
 ]);
 function classLong(r, a, wide, write, extended) {
   const argc = write ? 3 : 2;
@@ -30,13 +32,13 @@ function classLong(r, a, wide, write, extended) {
   const field = classFields.get(index);
   if (!field) return r.windows.fail(1413, argc);
   if (write) {
-    if (!['proc', 'style', 'background', 'cursor', 'icon'].includes(field))
+    if (!['proc', 'style', 'background', 'cursor', 'icon', 'smallIcon'].includes(field))
       throw Error(`SetClassLong ${field} changes are unsupported`);
+    const previous = cls[field] ?? 0;
     cls[field] = a(2) >>> 0;
-    return result(0, argc);
+    return result(previous, argc);
   }
   if (field === 'atom') return result(cls.atom, argc);
-  if (extended && index === -12) return result(cls.proc, argc);
   return result(cls[field] ?? 0, argc);
 }
 
@@ -63,7 +65,10 @@ function windowLong(r, a, wide, write) {
     // Offsets are byte offsets, including unaligned ones; each window owns its
     // own zero-initialized cbWndExtra bytes for its entire native lifetime.
     const previous = w.extra.getUint32(index, true);
-    if (write) w.extra.setUint32(index, value, true);
+    if (write) {
+      w.extra.setUint32(index, value, true);
+      if (index === 4 && w.dialogProc !== undefined) w.dialogProc = value;
+    }
     return result(previous, argc);
   }
   if (index === -4) {

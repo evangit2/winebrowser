@@ -436,15 +436,9 @@ export class WindowManager {
           ).result,
       );
     if (window.dialogProc) {
-      const handled = await this.runtime.callGuest(window.dialogProc, [
-        hwnd,
-        message,
-        wParam,
-        lParam,
-      ]);
-      if (handled || message === 0x110) return handled;
-      if (message === 0x10 && this.runtime.dialogs?.byWindow.has(hwnd))
-        return this.send(hwnd, 0x111, 2, 0);
+      if (window.customDialogClass && window.proc)
+        return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
+      return dispatchDialogMessage(this.runtime, window, message, wParam, lParam, window.cls.wide);
     } else if (window.proc)
       return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
     return (
@@ -837,9 +831,11 @@ function register(r, a, wide, extended) {
     classExtra,
     extra,
     instance: r.read32(p + 16),
-    icon: (extended && r.read32(p + 40)) || r.read32(p + 20),
+    icon: r.read32(p + 20),
+    smallIcon: extended ? r.read32(p + 40) : 0,
     cursor: r.read32(p + 24),
     background: r.read32(p + 28),
+    menuNamePointer: menuName,
     menuName: menuName ? (menuName <= 0xffff ? menuName : text(r, menuName, wide)) : 0,
     wide,
   };
@@ -1066,6 +1062,13 @@ async function defaultProc(r, a, wide) {
     if (cursor) setCursor(r, cursor);
     return result(0, 4);
   }
+  if (msg >= 0x132 && msg <= 0x138) {
+    gdiApis['gdi32.dll!SetTextColor'](r, (i) => [wp, 0][i]);
+    const color = msg === 0x133 || msg === 0x134 ? 5 : 15;
+    const rgb = gdiApis['user32.dll!GetSysColor'](r, () => color).result;
+    gdiApis['gdi32.dll!SetBkColor'](r, (i) => [wp, rgb][i]);
+    return result(gdiApis['user32.dll!GetSysColorBrush'](r, () => color).result, 4);
+  }
   if (msg === 0x81) return result(1, 4);
   if (msg === 0x83) {
     if (wp) r.check(lp, 52);
@@ -1224,7 +1227,12 @@ async function paintOwnerDraw(r, window) {
 // call the class-create path expects, so register/create/defaultProc all run
 // exactly as they do for a guest CreateWindowEx.
 export async function createWindowFromHost(r, spec) {
-  const classPointer = spec.className ? r.allocString(spec.className, false) : 0;
+  const classPointer =
+    typeof spec.className === 'number'
+      ? spec.className
+      : spec.className
+        ? r.allocString(spec.className, false)
+        : 0;
   const titlePointer = spec.title ? r.allocString(spec.title, false) : 0;
   try {
     const style = (spec.style ?? 0) >>> 0;
@@ -1247,7 +1255,7 @@ export async function createWindowFromHost(r, spec) {
     const response = await create(r, (i) => args[i] ?? 0, false);
     return response.result ? { id: response.result } : { error: r.lastError };
   } finally {
-    if (classPointer) r.free(classPointer);
+    if (classPointer && typeof spec.className !== 'number') r.free(classPointer);
     if (titlePointer) r.free(titlePointer);
   }
 }
@@ -1262,7 +1270,7 @@ const HOST_WINDOW_CLASSES = new Map([
       name: 'winebrowser-dialog',
       wide: false,
       proc: 0,
-      extra: 0,
+      extra: 30,
       background: 16,
       cursor: 32512,
       icon: 0,
@@ -1920,13 +1928,45 @@ async function isDialogMessage(r, a) {
   await r.windows.setFocus(tabs[index].id);
   return result(1, 2);
 }
-// DefDlgProcA/W is the default dialog procedure: a dialog ignores an unhandled
-// message and returns FALSE so the system dialog manager keeps processing it.
-function defDlgProc(r, a, wide) {
+// DefDlgProc resets DWLP_MSGRESULT before calling DLGPROC. For most messages
+// its return is that slot, not the DLGPROC Boolean; CTLCOLOR and initialization
+// are documented exceptions returning the application value directly.
+async function dispatchDialogMessage(r, window, message, wp, lp, wide) {
+  if (window.extra.byteLength >= 4) window.extra.setUint32(0, 0, true);
+  const handled = window.dialogProc
+    ? await r.callGuest(window.dialogProc, [window.id, message, wp, lp])
+    : 0;
+  if (handled || message === 0x110) {
+    if (
+      (message >= 0x132 && message <= 0x138) ||
+      [0x19, 0x2f, 0x2e, 0x39, 0x37, 0x110].includes(message)
+    )
+      return handled;
+    return window.extra.byteLength >= 4 ? window.extra.getUint32(0, true) : 0;
+  }
+  if (message === 0x14) {
+    // Wine's DefDlgProc asks the application for WM_CTLCOLORDLG first, then
+    // fills the client with the default dialog brush if it returns zero.
+    const brush =
+      (await r.windows.send(window.id, 0x136, wp, window.id)) ||
+      (await defaultProc(r, (i) => [window.id, 0x136, wp, window.id][i], wide)).result;
+    const rect = r.allocate(16);
+    try {
+      rectangle(r, rect, [0, 0, window.width, window.height]);
+      gdiApis['user32.dll!FillRect'](r, (i) => [wp, rect, brush][i]);
+    } finally {
+      r.free(rect);
+    }
+    return 1;
+  }
+  if (message === 0x10 && r.dialogs?.byWindow.has(window.id))
+    return r.windows.send(window.id, 0x111, 2, 0);
+  return (await defaultProc(r, (i) => [window.id, message, wp, lp][i], wide)).result;
+}
+async function defDlgProc(r, a, wide) {
   const window = r.windows.windows.get(a(0));
   if (!window) return r.windows.fail(1400, 4);
-  return result(0, 4);
-  void wide;
+  return result(await dispatchDialogMessage(r, window, a(1), a(2), a(3), wide), 4);
 }
 // MapDialogRect converts a rectangle from dialog units to pixels.
 function mapDialogRect(r, a) {

@@ -30,6 +30,10 @@ try {
   const window = page.locator('.virtual-desktop-window');
   await window.waitFor();
   const canvas = window.locator('.virtual-desktop-canvas');
+  await page.waitForFunction(() => {
+    const canvas = document.querySelector('.virtual-desktop-window .virtual-desktop-canvas');
+    return canvas?.width === 240 && canvas?.height === 140;
+  });
   assert.deepEqual(await canvas.evaluate((c) => [c.width, c.height]), [240, 140]);
   const edit = window.locator('input[data-control-id="50"]');
   assert.equal(await edit.inputValue(), 'Read only');
@@ -109,6 +113,8 @@ try {
       'Native dynamic menu bar honors disabled and checked items and client geometry',
       'Native WS_EX_STATICEDGE read-only edit preserves one-pixel frame and client dimensions',
       'Native GetUserNameA size probe retries with BOOL success and ERROR_INSUFFICIENT_BUFFER',
+      'Native custom dialog class retains DLGWINDOWEXTRA context and DefDlgProc dispatches the application dialog procedure',
+      'Native DefDlgProc paints default COLOR_BTNFACE and honors application WM_CTLCOLORDLG brushes',
       'Native SS_OWNERDRAW parent callback paints an isolated child HDC and repaints after text, resize and disabled-state changes',
       'TrackPopupMenu waits for the actual second command and returns ID 8',
       'TrackPopupMenuEx Escape cancels and returns zero',

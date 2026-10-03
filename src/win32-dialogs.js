@@ -221,8 +221,10 @@ function dialogUnitsToPixels(value) {
 
 async function buildDialog(r, template, owner, proc, instance) {
   const frame = windowFrame(template.style);
+  const customClass =
+    template.className && ![32770, 0x8002, '#32770', '32770'].includes(template.className);
   const created = await createWindowFromHost(r, {
-    className: DIALOG_CLASS,
+    className: customClass ? template.className : DIALOG_CLASS,
     title: template.title || '',
     x: template.x === 0x8000 ? 40 : dialogUnitsToPixels(template.x),
     y: template.y === 0x8000 ? 40 : dialogUnitsToPixels(template.y),
@@ -236,7 +238,10 @@ async function buildDialog(r, template, owner, proc, instance) {
     proc,
   });
   if (created.error !== undefined || !created.id) return { error: created.error ?? 1407 };
-  r.windows.windows.get(created.id).dialogProc = proc;
+  const window = r.windows.windows.get(created.id);
+  window.dialogProc = proc;
+  window.customDialogClass = !!customClass;
+  if (window.extra.byteLength >= 8) window.extra.setUint32(4, proc, true);
   const dialog = {
     id: created.id,
     result: 0,

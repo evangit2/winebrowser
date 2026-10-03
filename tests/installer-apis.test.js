@@ -25,7 +25,7 @@ function szdd() {
     0xf3,
   ]);
 }
-function template(extended = false) {
+function template(extended = false, className = '') {
   const bytes = new Uint8Array(256),
     v = new DataView(bytes.buffer);
   let at = 0;
@@ -57,7 +57,7 @@ function template(extended = false) {
   word(2);
   [0, 0, 180, 100].forEach(word);
   word(0);
-  word(0);
+  text(className);
   text('Installer');
   for (let i = 0; i < 2; i++) {
     align();
@@ -112,6 +112,88 @@ test('CharNext preserves the terminator and advances ANSI bytes or UTF-16 code u
   assert.equal(call('user32.dll!CharNextA', a + 1).result, a + 1);
   assert.equal(call('user32.dll!CharNextW', w).result, w + 2);
   assert.equal(call('user32.dll!CharNextW', w + 4).result, w + 4);
+});
+test('custom resource dialogs preserve registered class procedures and extra window context', async (t) => {
+  const { r, call } = setup(t);
+  const klass = r.allocate(40),
+    classProc = 0x402000,
+    dialogProc = 0x403000,
+    replacement = 0x404000;
+  r.data.fill(0, klass, klass + 40);
+  r.write32(klass + 4, classProc);
+  r.write32(klass + 12, 34);
+  r.write32(klass + 16, r.pe.imageBase);
+  r.write32(klass + 36, r.allocString('IndependentDialog'));
+  assert.ok(call('user32.dll!RegisterClassA', klass).result);
+  const messages = [];
+  r.callGuest = async (proc, args) => {
+    messages.push({ proc, message: args[1] });
+    if (proc === classProc) return (await call('user32.dll!DefDlgProcA', ...args)).result;
+    if (proc === replacement) {
+      if (args[1] !== 0x500) return 0;
+      call('user32.dll!SetWindowLongA', args[0], 0, 0xabcdef);
+      return 1;
+    }
+    assert.equal(proc, dialogProc);
+    if (args[1] === 0x110) {
+      call('user32.dll!SetWindowLongA', args[0], 30, args[3]);
+      return 1;
+    }
+    if (args[1] === 0x500) {
+      call(
+        'user32.dll!SetWindowLongA',
+        args[0],
+        0,
+        call('user32.dll!GetWindowLongA', args[0], 30).result,
+      );
+      return 1;
+    }
+    return 0;
+  };
+  const bytes = template(false, 'IndependentDialog'),
+    pointer = r.allocate(bytes.length);
+  r.data.set(bytes, pointer);
+  const hwnd = (
+    await call(
+      'user32.dll!CreateDialogIndirectParamA',
+      r.pe.imageBase,
+      pointer,
+      0,
+      dialogProc,
+      0x12345678,
+    )
+  ).result;
+  assert.ok(hwnd);
+  const window = r.windows.windows.get(hwnd);
+  assert.equal(window.cls.name, 'independentdialog');
+  assert.equal(window.extra.byteLength, 34);
+  assert.equal(call('user32.dll!GetWindowLongA', hwnd, 30).result, 0x12345678);
+  assert.equal(call('user32.dll!GetWindowLongA', hwnd, 4).result, dialogProc);
+  assert.equal((await call('user32.dll!SendMessageA', hwnd, 0x500, 0, 0)).result, 0x12345678);
+  assert.deepEqual(messages.slice(-2), [
+    { proc: classProc, message: 0x500 },
+    { proc: dialogProc, message: 0x500 },
+  ]);
+  assert.equal(call('user32.dll!SetWindowLongA', hwnd, 4, replacement).result, dialogProc);
+  assert.equal((await call('user32.dll!SendMessageA', hwnd, 0x500, 0, 0)).result, 0xabcdef);
+  assert.equal((await call('user32.dll!DestroyWindow', hwnd)).result, 1);
+  const missing = template(false, 'UnregisteredDialog'),
+    missingPointer = r.allocate(missing.length);
+  r.data.set(missing, missingPointer);
+  assert.equal(
+    (
+      await call(
+        'user32.dll!CreateDialogIndirectParamA',
+        r.pe.imageBase,
+        missingPointer,
+        0,
+        dialogProc,
+        0,
+      )
+    ).result,
+    0,
+  );
+  assert.equal(r.lastError, 1407);
 });
 for (const extended of [false, true])
   test(`modeless ${extended ? 'extended' : 'standard'} dialog creates owned windows, controls and dispatches callbacks`, async (t) => {
