@@ -157,6 +157,17 @@
       "sourceZip": "7zip/source.zip",
       "sourceZipSha256": "ba2e292afd83f3df23fe0a2fa6781b0c1ed9bfa1a5191f513b1d2a4fc46bfa94",
       "provenance": "Original upstream 7zr.exe 26.03 PE32 release. LGPL-2.1-or-later with upstream unRAR restriction; licenses and complete corresponding source included."
+    },
+    {
+      "name": "lua",
+      "description": "Lua 5.4.2 unchanged Windows DLL: scripts, 64-bit arithmetic, Unicode, coroutines, caught errors and binary file I/O. Replace main.lua to run your own script; download lua-output.bin after exit.",
+      "exe": "lua/lua-client.exe",
+      "exeSha256": "8651cd01f5803949d53a84050bfe65a3087a2c2c5380b16b3b318dcc748f602d",
+      "zip": "lua/lua.zip",
+      "zipSha256": "5f738c79d36352c4c4e7d69ba07e2883557c901e22c4c1e4a25385bb6f60a1c7",
+      "sourceZip": "lua/source.zip",
+      "sourceZipSha256": "f21ad5ec9991d229c6ff75d36a827c9e8594b0311a777e692a08bdedd324f8c9",
+      "provenance": "Original upstream MIT Windows Lua DLL, unchanged; full original source, binary archive, license and MIT authored script/client included."
     }
   ]
 }

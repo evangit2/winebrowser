@@ -1,0 +1,38 @@
+{
+  "version": "5.4.2",
+  "upstream": [
+    {
+      "url": "https://downloads.sourceforge.net/project/luabinaries/5.4.2/Windows%20Libraries/Dynamic/lua-5.4.2_Win32_dllw6_lib.zip",
+      "sha256": "cff34d8074fca1ad54bb7cd7e34d8f01b0d685ef95377d372e22c81fa530fa3f",
+      "bytes": 195589
+    },
+    {
+      "url": "https://www.lua.org/ftp/lua-5.4.2.tar.gz",
+      "sha256": "11570d97e9d7303c0a59567ed1ac7c648340cd0db10d5fd594c09223ef2f524f",
+      "bytes": 353472
+    }
+  ],
+  "dll": {
+    "path": "lua/lua54.dll",
+    "sha256": "cfc3f1d4a6e8922d16d71a4c12c1b731bc9e7edab82d5282f15c3aaa86a388e3",
+    "bytes": 423065
+  },
+  "client": {
+    "path": "lua/lua-client.exe",
+    "sha256": "8651cd01f5803949d53a84050bfe65a3087a2c2c5380b16b3b318dcc748f602d",
+    "source": "tests/fixtures/lua/lua-client.c"
+  },
+  "script": {
+    "path": "lua/main.lua",
+    "sha256": "1e0656bea60248ae33ba0732b879f5c1e9ee1068b347af9dbd7fcbad66b448b1"
+  },
+  "zip": {
+    "path": "lua/lua.zip",
+    "sha256": "5f738c79d36352c4c4e7d69ba07e2883557c901e22c4c1e4a25385bb6f60a1c7"
+  },
+  "sourceZip": {
+    "path": "lua/source.zip",
+    "sha256": "f21ad5ec9991d229c6ff75d36a827c9e8594b0311a777e692a08bdedd324f8c9"
+  },
+  "license": "MIT"
+}
