@@ -75,3 +75,16 @@ The unchanged public-domain 7-Zip binary now compresses both original files,
 passes CRC validation, extracts byte-for-byte copies, and rejects a corrupted
 archive. The GNU diff/cmp and OptiPNG acceptance cases also pass. See
 `evidence/foss-tools-browser-results.json`.
+
+## Live deployment
+
+The complete GitHub gate and Pages deployment passed for
+`041178f547a33495252a9cdf9a289be70cc6e989` in
+[run 37096795046](https://github.com/evangit2/winebrowser/actions/runs/37096795046).
+The live main/worker bundle hashes match the locally validated build. All six
+launcher upload/window/Stop cases pass on the live site. The live OpenGL EXE/ZIP
+shader compilation, animation, controls and shutdown regression also passes. The unchanged private
+AirXonix archive starts process 2 (`program.exe`) there and reaches the same
+DirectDraw/native C++ exception blocker. See `evidence/processes-live-deployment.json`,
+`evidence/processes-live-browser-results.json`, and
+`evidence/processes-airxonix-live-results.json`.
