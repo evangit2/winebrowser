@@ -61,3 +61,20 @@ versus 33.1 seconds through 30 scene frames; they are not a repeated startup
 benchmark. Both exited zero with about 304 million guest instructions.
 See `evidence/module-cache-browser-results.json`; the full Water scene tests
 separately check original ZIP/catalog paths, animated pixels and clean exit.
+
+The block compiler now encodes the invariant Wasm type/import/export sections
+once per worker and reuses an owned decoder instruction between compilations.
+Its dynamic function body is written directly into the final byte buffer.
+Decoder instructions and operand-info factories are released on CPU disposal.
+
+An October 3 Node 22 benchmark compiled all 6,519 blocks reached by the unchanged
+upstream 7zr.exe compressing an 8 KiB input. Seven paired runs alternate compiler
+order; excluding the warm-up pair, median cold compilation fell from 1,102.9 ms
+to 438.0 ms (60.3%). Every emitted Wasm byte and block boundary matched the prior
+compiler. This measures compilation of a real program's block corpus, rather
+than complete browser startup or steady frame rate. See
+`evidence/compiler-block-benchmark.json`. Reproduce with:
+
+```sh
+node scripts/benchmark-compiler.mjs --baseline=56cabd8
+```

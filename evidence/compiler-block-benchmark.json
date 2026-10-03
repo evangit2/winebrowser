@@ -1,0 +1,143 @@
+{
+  "date": "2026-10-03T20:59:17.526Z",
+  "baselineCommit": "56cabd8bfa0988af84b446a52398bee13236a6b2",
+  "node": "v22.23.1",
+  "scope": "Cold compilation of every block reached by unchanged upstream 7zr.exe compressing an 8192-byte input. Seven pairs alternate order; the warm-up pair is excluded from medians. Generated Wasm bytes and block boundaries are identical. This is a compiler benchmark, not a browser startup or frame-rate measurement.",
+  "corpus": {
+    "executableSha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
+    "inputSha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81",
+    "blocks": 6519,
+    "guestInstructions": 3404656
+  },
+  "medianBeforeMs": 1102.8509589999994,
+  "medianAfterMs": 437.98270799999955,
+  "reductionPercent": 60.286319341179464,
+  "runs": [
+    {
+      "pair": 0,
+      "mode": "before",
+      "elapsedMs": 3015.139666,
+      "translationMs": 2992.9345479999724,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 0,
+      "mode": "after",
+      "elapsedMs": 1547.65175,
+      "translationMs": 1532.9122080000034,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 1,
+      "mode": "after",
+      "elapsedMs": 1234.5758749999995,
+      "translationMs": 1221.8402109999606,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "elapsedMs": 2123.5928750000003,
+      "translationMs": 2107.761797999985,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "elapsedMs": 1394.6872920000005,
+      "translationMs": 1381.1451030000699,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 2,
+      "mode": "after",
+      "elapsedMs": 507.8389169999991,
+      "translationMs": 503.8606640000489,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 3,
+      "mode": "after",
+      "elapsedMs": 434.56841600000007,
+      "translationMs": 430.73144000001776,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 3,
+      "mode": "before",
+      "elapsedMs": 1091.7725420000006,
+      "translationMs": 1086.4681459999956,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 4,
+      "mode": "before",
+      "elapsedMs": 1102.8509589999994,
+      "translationMs": 1097.4874779998936,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 4,
+      "mode": "after",
+      "elapsedMs": 437.98270799999955,
+      "translationMs": 434.0884379999843,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 5,
+      "mode": "after",
+      "elapsedMs": 425.7909159999999,
+      "translationMs": 421.9635009999183,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 5,
+      "mode": "before",
+      "elapsedMs": 1057.4912079999995,
+      "translationMs": 1052.4224709999835,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 6,
+      "mode": "before",
+      "elapsedMs": 1060.4757089999985,
+      "translationMs": 1057.7227529998236,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    },
+    {
+      "pair": 6,
+      "mode": "after",
+      "elapsedMs": 427.8057090000002,
+      "translationMs": 424.9267750000181,
+      "blocks": 6519,
+      "bytes": 5240010,
+      "wasmSha256": "8f3a64cb76fad057487e32669be21a982392c32bc03d7f69a0b78c49c93dc64d"
+    }
+  ]
+}

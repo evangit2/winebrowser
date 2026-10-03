@@ -714,6 +714,10 @@ export class CPU {
     // their zero-input ZF behavior). Wine builds use REP BSF for __builtin_ctz.
     const d = new Decoder(32, bytes, DecoderOptions.NoMPFX_0FBC | DecoderOptions.NoMPFX_0FBD);
     d.ip = BigInt(ip);
+    // Decoding is synchronous, including writable-code fallback. One owned
+    // instruction can be overwritten between instructions and compilations.
+    // This avoids a decoder-heap allocation/free for every guest instruction.
+    this.decodeInstruction ??= new this.iced.Instruction();
     let code = [],
       count = 0,
       end = ip,
@@ -823,8 +827,9 @@ export class CPU {
     };
     try {
       while (d.canDecode && count < 64) {
-        const i = d.decode();
-        try {
+        const i = this.decodeInstruction;
+        d.decodeOut(i);
+        {
           const at = Number(i.ip),
             next = Number(i.nextIP);
           end = next;
@@ -1516,8 +1521,6 @@ export class CPU {
               0x0b,
             );
           }
-        } finally {
-          i.free();
         }
       }
       code.push(...constant(end));
@@ -1676,6 +1679,10 @@ export class CPU {
       }
   }
   dispose() {
+    this.decodeInstruction?.free();
+    this.decodeInstruction = undefined;
+    this.infoFactory?.free();
+    this.infoFactory = undefined;
     this.simd.dispose();
     this.x87.dispose();
   }

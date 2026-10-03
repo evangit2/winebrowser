@@ -104,7 +104,9 @@ const signatures = [
   [4, 0],
 ];
 const hostNames = Object.keys(Host);
-export function moduleBytes(code) {
+// Types, imports and exports are identical for every translated block. Encode
+// them once; only the function body depends on the uploaded guest instructions.
+const modulePrefix = (() => {
   const types = signatures.map(([n, r]) => [
     0x60,
     ...vec(Array(n).fill([0x7f])),
@@ -117,7 +119,6 @@ export function moduleBytes(code) {
   imports.push([...str('h'), ...str('instructionIp'), 3, 0x7f, 1]);
   imports.push([...str('h'), ...str('codeChanged'), 3, 0x7f, 1]);
   imports.push([...str('h'), ...str('retiredCount'), 3, 0x7f, 1]);
-  const body = [1, 3, 0x7f, ...code, 0x0b];
   return new Uint8Array([
     0,
     97,
@@ -131,8 +132,18 @@ export function moduleBytes(code) {
     ...section(2, vec(imports)),
     ...section(3, [1, hostNames.length]),
     ...section(7, [1, ...str('run'), 0, hostNames.length]),
-    ...section(10, [1, ...uleb(body.length), ...body]),
   ]);
+})();
+
+export function moduleBytes(code) {
+  const bodySize = uleb(code.length + 4); // three i32 locals and the final end
+  const header = [10, ...uleb(1 + bodySize.length + code.length + 4), 1, ...bodySize, 1, 3, 0x7f];
+  const binary = new Uint8Array(modulePrefix.length + header.length + code.length + 1);
+  binary.set(modulePrefix);
+  binary.set(header, modulePrefix.length);
+  binary.set(code, modulePrefix.length + header.length);
+  binary[binary.length - 1] = 0x0b;
+  return binary;
 }
 
 export { constant, get, set, local, call };
