@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T09:46:31.134Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T10:12:10.579Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exeSha256": "d280ab25820e0fba18f923421d75a971787f1a4c9919fb53f907749b78510f4b",
   "exitCode": 0,
   "compiledBlocks": 515,
-  "x86TranslationMs": 107.69500055909157,
+  "x86TranslationMs": 140.10000011324883,
   "checks": [
     "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
     "Tree category, sorted list, editable combo, checkbox and radio interactions",

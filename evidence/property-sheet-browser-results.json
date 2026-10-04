@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T09:44:54.279Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T10:12:07.926Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "b4e83330d050e780a867af19223c35bb715703959b6dedb707be8864b650856b",
   "dllSha256": "43c63b87c11fe66ac4c0d6d824cbd52205402dced827034f5ea6b9389edd672e",
   "compiledBlocks": 2906,
-  "x86TranslationMs": 513.384999781847,
+  "x86TranslationMs": 480.20000100135803,
   "checks": [
     "Native Unicode property sheets use DLL dialog resources and preserve page edits across tabs",
     "Native DLL uses real Get/WritePrivateProfileStringW; UTF16 settings survive reopening, native ReadFile sees the saved BOM, and exported output preserves text and comments",
