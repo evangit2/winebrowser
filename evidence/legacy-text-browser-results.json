@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T02:13:54.881Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T02:58:07.529Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "12e0106c31eff2e7dd07d7bfc72df364c0816b6e230cc950163d5f73e9806977",
   "compiledBlocks": 138,
-  "x86TranslationMs": 35.59000000357628,
+  "x86TranslationMs": 58.27499997615814,
   "checks": [
     "Native lstrcpy/lstrcpyn/lstrcat A/W calls preserve CP1252 bytes and UTF-16 units, return the destination and terminate bounded copies",
     "ANSI/Unicode character classification shares bootstrap CT_CTYPE1 categories; letters and digits stay distinct",
