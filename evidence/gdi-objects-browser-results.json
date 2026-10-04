@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-04T04:40:04.893Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "c950552beb06a2463a293848c09696b0a50ce2a09b27c5df8dc3b90db4aaa8de",
+  "dllSha256": "c4a1595c461ea1ce43f649753310112e8734a3bc051ff2cb20e06b516fe48412",
+  "compiledBlocks": 160,
+  "x86TranslationMs": 119.74499994516373,
+  "pixels": {
+    "first": {
+      "exact": 1042,
+      "changed": 2267
+    },
+    "second": {
+      "exact": 452,
+      "changed": 1105
+    },
+    "background": [
+      255,
+      255,
+      255,
+      255
+    ]
+  },
+  "checks": [
+    "Native EXE and companion DLL execute CreateFontIndirectA/W with the one-argument stdcall ABI through in-browser x86 compilation",
+    "Native LOGFONTA/LOGFONTW, LOGPEN and LOGBRUSH sizeof queries validate retained flags, names, zero defaults, size probes, every short buffer and untouched tails",
+    "Font A/W CP1252/Unicode face names survive queries; native font handles survive library unload and GDI text renders in Chromium",
+    "Actual framebuffer contains antialiased colored glyphs, underline/strikeout and unchanged white background; native cleanup and close exit zero"
+  ],
+  "scope": "Shared PE32 font/GDI object query compatibility. Browser font matching substitutes unavailable faces; rotated text, explicit widths, full Windows font mapping and arbitrary GUI compatibility remain incomplete."
+}

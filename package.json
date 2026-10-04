@@ -236,6 +236,8 @@
     "build:statusbar": "sh scripts/build-statusbar-fixture.sh",
     "build:resource-bitmaps": "sh scripts/build-resource-bitmaps-fixture.sh",
     "test:resource-bitmaps": "node scripts/test-resource-bitmaps-browser.mjs",
+    "build:gdi-objects": "sh scripts/build-gdi-objects-fixture.sh",
+    "test:gdi-objects": "node scripts/test-gdi-objects-browser.mjs",
     "test:statusbar": "node scripts/test-statusbar-browser.mjs",
     "test:legacy-text": "node scripts/test-legacy-text-browser.mjs",
     "build:host-subclass": "sh scripts/build-host-subclass-fixture.sh",

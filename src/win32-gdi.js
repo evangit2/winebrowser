@@ -1,4 +1,5 @@
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
+import { encodeAnsi } from './encoding.js';
 import {
   colorRefRgb as colorRgb,
   surfaceRgb,
@@ -602,38 +603,54 @@ function getObject(runtime, argument, wide) {
     runtime.view.setUint16(out + 18, depth, true);
     return success(24, 3);
   }
-  if (!out) return success(0, 3);
   const font = getFont(state, handle);
-  if (font && size >= 60) {
-    runtime.check(out, 60, true);
-    runtime.data.fill(0, out, out + 60);
-    runtime.write32(out, -font.height); // lfHeight
-    runtime.write32(out + 16, font.weight); // lfWeight
-    runtime.data[out + 23] = 0x31; // lfCharSet DEFAULT_CHARSET
-    const face = (font.face || 'sans-serif').slice(0, 31);
-    if (wide) {
-      for (let i = 0; i <= face.length; i++)
-        runtime.guestMemory.write(out + 28 + i * 2, i === face.length ? 0 : face.charCodeAt(i), 2);
-    } else {
-      for (let i = 0; i < face.length; i++) runtime.data[out + 28 + i] = face.charCodeAt(i) & 0xff;
-      runtime.data[out + 28 + face.length] = 0;
-    }
-    return success(60, 3);
-  }
   const pen = getPen(state, handle);
-  if (pen && size >= 20) {
-    runtime.check(out, Math.min(size, 20), true);
-    runtime.data.fill(0, out, out + Math.min(size, 20));
-    runtime.write32(out + 4, pen.width);
-    return success(20, 3);
-  }
   const brush = getBrush(state, handle);
-  if (brush && size >= 20) {
-    runtime.check(out, Math.min(size, 20), true);
-    runtime.data.fill(0, out, out + Math.min(size, 20));
-    return success(20, 3);
+  if (!font && !pen && !brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  const required = font ? (wide ? 92 : 60) : pen ? 16 : 12;
+  if (!out) return success(required, 3);
+  // Fonts and brushes permit partial copies. LOGPEN needs the whole structure.
+  if (pen && size < required) return success(0, 3);
+  const count = Math.min(size, required);
+  if (!count) return success(0, 3);
+  runtime.check(out, count, true);
+  const bytes = new Uint8Array(required);
+  const view = new DataView(bytes.buffer);
+  if (font) {
+    view.setInt32(0, font.requestedHeight ?? -font.height, true);
+    view.setInt32(8, font.escapement ?? 0, true);
+    view.setInt32(12, font.orientation ?? 0, true);
+    view.setInt32(16, font.requestedWeight ?? font.weight, true);
+    bytes.set(
+      [
+        +font.italic,
+        +font.underline,
+        +font.strikeout,
+        font.charset ?? 1,
+        font.outPrecision ?? 0,
+        font.clipPrecision ?? 0,
+        font.quality ?? 0,
+        font.pitchAndFamily ?? 0,
+      ],
+      20,
+    );
+    const face = (font.requestedFace ?? font.face ?? '').slice(0, 31);
+    if (wide) {
+      for (let i = 0; i < face.length; i++) view.setUint16(28 + i * 2, face.charCodeAt(i), true);
+    } else {
+      bytes.set(encodeAnsi(face).bytes.subarray(0, 31), 28);
+    }
+  } else if (pen) {
+    view.setUint32(0, pen.style, true);
+    view.setInt32(4, pen.width, true);
+    view.setUint32(12, pen.color, true);
+  } else {
+    view.setUint32(0, brush.null ? 1 : brush.hatch !== undefined ? 2 : 0, true);
+    view.setUint32(4, brush.color ?? 0, true);
+    view.setUint32(8, brush.hatch ?? 0, true);
   }
-  return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  runtime.data.set(bytes.subarray(0, count), out);
+  return success(count, 3);
 }
 // Set/GetTextAlign control the DC's text alignment flags.
 function setTextAlign(runtime, argument) {
@@ -786,7 +803,7 @@ function selectClipRgn(runtime, argument) {
 function createFontIndirect(runtime, argument, wide) {
   const pointer = argument(0) >>> 0;
   if (!pointer) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
-  runtime.check(pointer, 60);
+  runtime.check(pointer, wide ? 92 : 60);
   const read = (offset) => runtime.read32(pointer + offset) | 0;
   const face = pointer + 28;
   const args = [
@@ -795,17 +812,10 @@ function createFontIndirect(runtime, argument, wide) {
     read(8),
     read(12),
     read(16),
-    read(20),
-    read(24),
-    runtime.guestMemory.read(pointer + 25, 1),
-    runtime.guestMemory.read(pointer + 23, 1),
-    runtime.guestMemory.read(pointer + 26, 1),
-    runtime.guestMemory.read(pointer + 27, 1),
-    runtime.guestMemory.read(pointer + 26, 1),
-    runtime.guestMemory.read(pointer + 27, 1),
+    ...Array.from({ length: 8 }, (_, i) => runtime.data[pointer + 20 + i]),
     face,
   ];
-  return createFont(runtime, (index) => args[index] ?? 0, wide);
+  return { ...createFont(runtime, (index) => args[index] ?? 0, wide), argc: 1 };
 }
 // CreateBitmap(Width, Height, Planes, BitCount, Bits): an in-memory bitmap. The
 // runtime only models the 1/4/8/24/32-bit colour layouts it can rasterize.

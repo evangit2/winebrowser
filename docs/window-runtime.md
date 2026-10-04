@@ -77,11 +77,24 @@ depth and a null device-bitmap bits pointer. Size probes and output-buffer tails
 are checked. The [EXE/DLL acceptance](../evidence/resource-bitmaps-browser-results.json)
 executes the DLL entry point and export in Chromium, validates native GetPixel
 results and checks real SRCCOPY framebuffer pixels after unload. CMB_MASKED,
-predefined OEM system bitmaps, compressed/embedded-image DIBs and other GDI object
-description layouts remain incomplete. Run `npm run test:resource-bitmaps`.
+predefined OEM system bitmaps and compressed/embedded-image DIBs remain
+incomplete. Run `npm run test:resource-bitmaps`.
 API behavior was checked against Wine's
 [CreateMappedBitmap](https://github.com/wine-mirror/wine/blob/master/dlls/comctl32/commctrl.c)
 and Microsoft's [BITMAP structure](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmap).
+
+CreateFontIndirectA/W reads the PE32 LOGFONT byte fields and uses its one-argument
+stdcall ABI, including calls made inside uploaded native DLLs. GetObjectA/W
+reports 60-byte LOGFONTA, 92-byte LOGFONTW, 16-byte LOGPEN and 12-byte LOGBRUSH
+structures. Logical height/weight, requested face, charset, precision and style
+hints survive font queries separately from browser rendering substitutions.
+Fonts and brushes permit short queries; pens require a complete structure.
+Size probes, CP1252/Unicode face names and untouched buffer tails are checked by
+the [native EXE/DLL acceptance](../evidence/gdi-objects-browser-results.json).
+The EXE renders antialiased text with native bold/italic/underline/strikeout fonts
+after unloading the library. Run `npm run test:gdi-objects`. Explicit widths,
+rotated text, complete Windows font mapping and extended pen queries remain
+incomplete.
 
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 
