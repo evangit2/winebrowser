@@ -232,6 +232,8 @@
     "test:lists": "node scripts/test-lists-browser.mjs",
     "test:putty-gui": "node scripts/test-putty-gui-browser.mjs",
     "build:gui-controls": "sh scripts/build-gui-controls.sh",
+    "build:host-subclass": "sh scripts/build-host-subclass-fixture.sh",
+    "test:host-subclass": "node scripts/test-host-subclass-browser.mjs",
     "build:tabs": "sh scripts/build-tabs-fixture.sh",
     "test:tabs": "node scripts/test-tabs-browser.mjs",
     "build:draglist": "sh scripts/build-draglist-fixture.sh",

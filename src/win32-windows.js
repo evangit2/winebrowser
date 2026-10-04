@@ -7,6 +7,7 @@ import {
   controlStyle,
   controlMessage,
   controlInput,
+  EDIT_INPUT,
 } from './win32-controls.js';
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
@@ -30,6 +31,7 @@ import {
 import { windowDataApis } from './win32-window-data.js';
 import { setWindowPos } from './win32-window-position.js';
 import { inputState } from './dinput-device.js';
+import { registerThunk } from './thunk-addresses.js';
 
 const BORDER = 1,
   TITLE = 28;
@@ -304,6 +306,7 @@ export class WindowManager {
           ? {
               ownerDraw: !!ownerDraw,
               noWordWrap: !!window.noWordWrap,
+              subclassed: this.isControlSubclass(window),
               centerImage: !!window.centerImage,
               readOnly: !!readOnly,
               buttonType,
@@ -402,11 +405,82 @@ export class WindowManager {
     this.wake?.();
     this.wake = null;
   }
+  controlProcedure(window) {
+    const kind = window.controlType,
+      wide = !!window.cls.wide;
+    this.controlProcedures ??= new Map();
+    this.controlProcedureEntries ??= new Map();
+    const key = `${kind}:${wide}`;
+    let pointer = this.controlProcedures.get(key);
+    if (!pointer) {
+      const entry = {
+        kind: 'window-proc',
+        name: `WineBrowser ${kind} WndProc${wide ? 'W' : 'A'}`,
+        controlType: kind,
+        wide,
+        invoke: async (r, a) => {
+          const target = r.windows.windows.get(a(0));
+          if (!target) return r.windows.fail(1400, 4);
+          if (target.controlType !== kind || !!target.cls.wide !== wide)
+            return r.windows.fail(87, 4);
+          return result(await r.windows.baseControlMessage(target, a(1), a(2), a(3), wide), 4);
+        },
+      };
+      pointer = registerThunk(this.runtime.thunks, entry);
+      this.controlProcedures.set(key, pointer);
+      // Class procedures live for the GUI process, independently of a DLL-load
+      // transaction that happens to discover their addresses.
+      this.controlProcedureEntries.set(pointer, entry);
+    }
+    return pointer;
+  }
+  async baseControlMessage(window, message, wParam, lParam, textWide) {
+    if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
+    return controlMessage(
+      this.runtime,
+      window,
+      message,
+      wParam,
+      lParam,
+      async () =>
+        (
+          await defaultProc(
+            this.runtime,
+            (i) => [window.id, message, wParam, lParam][i],
+            window.cls.wide,
+          )
+        ).result,
+      textWide,
+    );
+  }
+  isControlSubclass(window) {
+    return !!(
+      window.controlType &&
+      window.controlType !== 'custom' &&
+      window.proc &&
+      window.proc !== this.controlProcedure(window)
+    );
+  }
   async send(hwnd, message, wParam = 0, lParam = 0, textWide) {
     const window = this.windows.get(hwnd);
     if (!window) {
       this.runtime.lastError = 1400;
       return 0;
+    }
+    if (message === EDIT_INPUT && window.pendingTextEvents?.has(wParam)) {
+      const value = window.pendingTextEvents.get(wParam);
+      window.pendingTextEvents.delete(wParam);
+      const bytes = window.cls.wide ? null : encodeAnsi(value).bytes;
+      const text = bytes
+        ? this.runtime.allocate(bytes.length + 1)
+        : this.runtime.allocString(value, true);
+      if (bytes) this.runtime.data.set(bytes, text);
+      try {
+        return await this.send(hwnd, 0xc, 0, text);
+      } finally {
+        this.runtime.free(text);
+        if (this.windows.has(hwnd)) this.emit(window);
+      }
     }
     if (window.browseFolder) {
       const folder = window.browseFolder;
@@ -426,24 +500,11 @@ export class WindowManager {
         return 0;
       }
     }
-    if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
-    if (window.controlType && window.controlType !== 'custom')
-      return controlMessage(
-        this.runtime,
-        window,
-        message,
-        wParam,
-        lParam,
-        async () =>
-          (
-            await defaultProc(
-              this.runtime,
-              (i) => [hwnd, message, wParam, lParam][i],
-              window.cls.wide,
-            )
-          ).result,
-        textWide,
-      );
+    if (window.controlType && window.controlType !== 'custom') {
+      if (this.isControlSubclass(window))
+        return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
+      return this.baseControlMessage(window, message, wParam, lParam, textWide);
+    }
     if (window.dialogProc) {
       if (window.customDialogClass && window.proc)
         return this.runtime.callGuest(window.proc, [hwnd, message, wParam, lParam]);
@@ -892,12 +953,25 @@ function register(r, a, wide, extended) {
   return result(cls.atom, 1);
 }
 
+function resolveControlClass(m, name, wide) {
+  m.builtinClasses ??= new Map();
+  const key = `${name}:${wide}`,
+    cached = m.builtinClasses.get(key);
+  if (cached) return cached;
+  const cls = builtinControlClass(name, wide);
+  if (cls) m.builtinClasses.set(key, cls);
+  return cls;
+}
 function classInfo(r, a, wide, remove = false) {
   const m = r.windows,
     p = a(remove ? 0 : 1),
     instance = a(remove ? 1 : 0);
-  const cls = p <= 0xffff ? m.atoms.get(p) : m.classes.get(text(r, p, wide).toLowerCase());
-  if (!cls || (cls.instance !== instance && !(cls.style & 0x4000)))
+  const name = p <= 0xffff ? null : text(r, p, wide).toLowerCase();
+  const cls =
+    p <= 0xffff
+      ? m.atoms.get(p)
+      : (m.classes.get(name) ?? (!remove ? resolveControlClass(m, name, wide) : null));
+  if (!cls || (!cls.controlType && cls.instance !== instance && !(cls.style & 0x4000)))
     return m.fail(1411, remove ? 2 : 3);
   if (remove) {
     if ([...m.windows.values()].some((w) => w.cls === cls)) return m.fail(1412, 2);
@@ -934,7 +1008,7 @@ function classInfo(r, a, wide, remove = false) {
   }
   [
     cls.style,
-    cls.proc,
+    cls.controlType ? m.controlProcedure({ controlType: cls.controlType, cls }) : cls.proc,
     cls.classExtra,
     cls.extra,
     cls.instance,
@@ -954,7 +1028,7 @@ async function create(r, a, wide) {
   const cls =
     classId <= 0xffff
       ? m.atoms.get(classId)
-      : (m.classes.get(name) ?? builtinControlClass(name, wide) ?? builtinWindowClass(name));
+      : (m.classes.get(name) ?? resolveControlClass(m, name, wide) ?? builtinWindowClass(name));
   if (!cls) return m.fail(1407, 12);
   const child = !!(a(3) & 0x40000000),
     parentId = child ? a(8) : 0;

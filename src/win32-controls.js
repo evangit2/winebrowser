@@ -2,6 +2,7 @@ import { describeGdiFont } from './win32-gdi.js';
 import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
 import { tabMessage, tabInput } from './win32-tabs.js';
+export const EDIT_INPUT = 0x7fc0;
 
 const kinds = new Map([
   ['static', 'static'],
@@ -17,6 +18,8 @@ export function builtinControlClass(name, wide) {
   return kind
     ? {
         name: kind,
+        originalName:
+          { treeview: 'SysTreeView32', tabcontrol: 'SysTabControl32' }[kind] ?? kind.toUpperCase(),
         controlType: kind,
         wide,
         proc: 0,
@@ -287,6 +290,10 @@ export function controlInput(r, window, event) {
   if (window.controlType === 'treeview' && treeInput(r, window, event)) return true;
   if (window.controlType === 'tabcontrol' && tabInput(r, window, event)) return true;
   if (event.type === 'command' && window.controlType === 'button') {
+    if (r.windows.isControlSubclass(window)) {
+      r.windows.post(window.id, 0xf5);
+      return true;
+    }
     // A click on an automatic button changes its state before the parent is
     // told, so a handler reading BM_GETCHECK sees the new value.
     if (window.enabled) {
@@ -299,6 +306,13 @@ export function controlInput(r, window, event) {
   if (event.type === 'text' && window.controlType === 'edit') {
     if (window.readOnly || typeof event.text !== 'string') return true;
     const text = window.multiline ? event.text : event.text.replace(/[\r\n]/g, '');
+    if (r.windows.isControlSubclass(window)) {
+      window.pendingTextEvents ??= new Map();
+      const id = (window.nextTextEvent = ((window.nextTextEvent ?? 0) + 1) >>> 0);
+      window.pendingTextEvents.set(id, applyEditFilters(window, text).slice(0, 32767));
+      r.windows.post(window.id, EDIT_INPUT, id);
+      return true;
+    }
     window.title = applyEditFilters(window, text).slice(0, 32767);
     r.windows.emit(window);
     r.windows.post(window.parentId, 0x111, command(window, 0x400), window.id);

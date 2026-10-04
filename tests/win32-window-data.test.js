@@ -81,7 +81,7 @@ test('window data bounds and invalid HWNDs fail without changing state or maskin
   assert.equal(r.lastError, 1400);
 });
 
-test('native procedures can be subclassed independently, while host and cross-encoding handles remain explicit', () => {
+test('native procedures can be subclassed independently, while cross-encoding handles remain explicit', () => {
   const r = setup(),
     w = r.windows.windows.get(1);
   w.controlType = 'custom';
@@ -93,7 +93,13 @@ test('native procedures can be subclassed independently, while host and cross-en
   assert.equal(w.proc, 0x402000);
   assert.throws(() => call(r, 'SetWindowLongW', 1, -4, 0x403000), /unsupported/);
   w.controlType = 'edit';
-  assert.throws(() => call(r, 'SetWindowLongA', 1, -4, 0x403000), /unsupported/);
+  w.proc = 0;
+  r.windows.controlProcedure = () => 0x80002000;
+  assert.equal(call(r, 'GetWindowLongA', 1, -4).result, 0x80002000);
+  assert.equal(call(r, 'SetWindowLongA', 1, -4, 0x403000).result, 0x80002000);
+  assert.equal(call(r, 'GetWindowLongA', 1, -4).result, 0x403000);
+  assert.equal(call(r, 'GetClassLongA', 1, -24).result, 0x80002000);
+  assert.throws(() => call(r, 'SetClassLongA', 1, -24, 0x403000), /class subclassing/);
 });
 
 test('native window callbacks use metadata through creation, A/W calls, controls and teardown', async () => {
@@ -147,4 +153,80 @@ test('native GCL indices read class metadata and class writes return previous va
   assert.equal(call(r, 'GetClassLongA', 1, 4).result, 0xabcdef01);
   assert.equal(call(r, 'GetClassLongA', 1, -36).result, 0);
   assert.equal(r.lastError, 1413);
+});
+
+test('host procedure pointers remain callable after a module-graph rollback and validate target HWND/type', async (t) => {
+  const bytes = new Uint8Array(
+    await readFile(new URL('../public/demos/console/console.exe', import.meta.url)),
+  );
+  const r = new Runtime(iced, { files: new Map([['console.exe', bytes]]), exe: 'console.exe' });
+  t.after(() => {
+    r.windows.dispose();
+    r.cpu.dispose();
+  });
+  const api = async (name, ...args) =>
+    r.apiProvider.get(`user32.dll!${name}`)(r, (i) => args[i] ?? 0);
+  const parent = (
+    await api(
+      'CreateWindowExA',
+      0,
+      r.allocString('winebrowser-dialog'),
+      0,
+      0,
+      0,
+      0,
+      240,
+      160,
+      0,
+      0,
+      r.pe.imageBase,
+      0,
+    )
+  ).result;
+  const edit = (
+    await api(
+      'CreateWindowExA',
+      0,
+      r.allocString('EDIT'),
+      0,
+      0x50010000,
+      0,
+      0,
+      100,
+      24,
+      parent,
+      1,
+      r.pe.imageBase,
+      0,
+    )
+  ).result;
+  const button = (
+    await api(
+      'CreateWindowExA',
+      0,
+      r.allocString('BUTTON'),
+      0,
+      0x50010000,
+      0,
+      40,
+      100,
+      24,
+      parent,
+      2,
+      r.pe.imageBase,
+      0,
+    )
+  ).result;
+  const checkpoint = r.graph.checkpoint();
+  const pointer = (await api('GetWindowLongA', edit, -4)).result;
+  assert.ok(pointer);
+  r.graph.restore(checkpoint);
+  assert.equal(r.thunks.has(pointer), false);
+  assert.equal((await api('GetWindowLongA', edit, -4)).result, pointer);
+  assert.equal(await r.callGuest(pointer, [edit, 0x87, 0, 0]), 0x89);
+  assert.equal(await r.callGuest(pointer, [button, 0x87, 0, 0]), 0);
+  assert.equal(r.lastError, 87);
+  await api('DestroyWindow', edit);
+  assert.equal(await r.callGuest(pointer, [edit, 0x87, 0, 0]), 0);
+  assert.equal(r.lastError, 1400);
 });

@@ -249,7 +249,7 @@ export class Runtime {
     const argument = (index) => this.read32(stackPointer + 4 + index * 4);
     let response;
     if (entry.kind === 'wine-nt') response = await dispatchWineNt(this, entry);
-    else if (entry.kind === 'com' || entry.kind === 'wine-loader' || entry.kind === 'wine-unix') {
+    else if (['com', 'wine-loader', 'wine-unix', 'window-proc'].includes(entry.kind)) {
       this.calls++;
       this.apiNames.add(entry.name);
       if (this.apiTrace.length < 2048) this.apiTrace.push(entry.name);
@@ -353,7 +353,10 @@ export class Runtime {
       // Host thunks live in their own high address range; guest code, mapped
       // images and virtual allocations never do, so the common case skips the
       // map lookup entirely.
-      const thunk = ip >= THUNK_BASE && ip < THUNK_END ? this.thunks.get(ip) : undefined;
+      const thunk =
+        ip >= THUNK_BASE && ip < THUNK_END
+          ? (this.thunks.get(ip) ?? this.windows.controlProcedureEntries?.get(ip))
+          : undefined;
       if (thunk) {
         try {
           ip = await this.api(thunk);

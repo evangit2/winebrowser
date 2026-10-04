@@ -755,7 +755,7 @@ export class VirtualDesktop {
             ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
               event.key,
             )) ||
-          (this.#topLevel(control)?.isDialog &&
+          ((this.#topLevel(control)?.isDialog || control.controlStyle?.subclassed) &&
             ['Tab', 'Enter', 'Escape'].includes(event.key) &&
             !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn))
         )

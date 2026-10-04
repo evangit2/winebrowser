@@ -34,11 +34,15 @@ function classLong(r, a, wide, write, extended) {
   if (write) {
     if (!['proc', 'style', 'background', 'cursor', 'icon', 'smallIcon'].includes(field))
       throw Error(`SetClassLong ${field} changes are unsupported`);
+    if (field === 'proc' && w.controlType && w.controlType !== 'custom')
+      throw Error('Host-control class subclassing is unsupported');
     const previous = cls[field] ?? 0;
     cls[field] = a(2) >>> 0;
     return result(previous, argc);
   }
   if (field === 'atom') return result(cls.atom, argc);
+  if (field === 'proc' && w.controlType && w.controlType !== 'custom')
+    return result(r.windows.controlProcedure(w), argc);
   return result(cls[field] ?? 0, argc);
 }
 
@@ -72,12 +76,13 @@ function windowLong(r, a, wide, write) {
     return result(previous, argc);
   }
   if (index === -4) {
-    if ((w.controlType && w.controlType !== 'custom') || !!w.cls.wide !== wide)
-      throw Error('Host-control subclassing and ANSI/Unicode procedure handles are unsupported');
-    const previous = w.proc;
+    if (!!w.cls.wide !== wide) throw Error('ANSI/Unicode procedure handles are unsupported');
+    const previous =
+      w.proc || (w.controlType && w.controlType !== 'custom' ? m.controlProcedure(w) : 0);
     if (write) {
       if (!value) return m.fail(87, argc);
       w.proc = value;
+      m.emit?.(w);
     }
     return result(previous, argc);
   }
