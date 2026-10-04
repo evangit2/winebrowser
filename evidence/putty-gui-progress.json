@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T01:08:08.508Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T06:18:04.152Z",
+  "url": "http://127.0.0.1:56034/",
   "browser": "154.0.8037.97",
   "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b",
   "status": "partial",
   "guiAcceptance": "passed",
   "exitCode": 0,
   "compiledBlocks": 8198,
-  "x86TranslationMs": 2192.9099993407726,
+  "x86TranslationMs": 1191.6800015866756,
   "checks": [
     "Native custom-class Configuration dialog selects its Session category",
     "Typed hostname and saved-session name reach native code",

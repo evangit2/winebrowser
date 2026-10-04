@@ -83,10 +83,12 @@ try {
   await dialog.getByText('Host Name (or IP address)', { exact: true }).waitFor();
   const host = dialog.locator('input[data-control-id="1044"]');
   await host.waitFor();
-  assert.equal(await host.inputValue(), 'example.invalid');
+  await expect(host).toHaveValue('example.invalid', { timeout: 30000 });
   await tree.getByRole('treeitem', { name: 'Data', exact: true }).click();
   await dialog.getByText('Auto-login username', { exact: true }).waitFor();
-  assert.equal(await dialog.locator('input[data-control-id="1044"]').inputValue(), 'browser-user');
+  await expect(dialog.locator('input[data-control-id="1044"]')).toHaveValue('browser-user', {
+    timeout: 30000,
+  });
   await variable.click();
   await dialog.getByRole('button', { name: 'Remove', exact: true }).click();
   await variable.waitFor({ state: 'detached' });
@@ -103,8 +105,18 @@ try {
   const point = async (list, name, bottom = false) => {
     const row = list.getByRole('option', { name, exact: true });
     await row.scrollIntoViewIfNeeded();
-    const bounds = await row.boundingBox();
-    assert.ok(bounds);
+    // Native LB messages rebuild rows while a drag is starting. Keep the
+    // geometry from a successful observation instead of reading a detached row.
+    let bounds;
+    await expect
+      .poll(
+        async () => {
+          bounds = await row.boundingBox();
+          return !!bounds;
+        },
+        { timeout: 30000 },
+      )
+      .toBe(true);
     return {
       x: Math.round(bounds.x + 20),
       y: Math.round(bounds.y + (bottom ? bounds.height - 2 : bounds.height / 2)),

@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T01:51:50.896Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-04T06:15:50.872Z",
+  "url": "http://127.0.0.1:55844/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "9f3e67835464d85a2ed4d816595135627b5bb55736e1fecae4f88bf349ca974a",
   "dllSha256": "d6255b87bb668312cbbb47e38965af266edb5dbb49f637a2e96745297d1c0ba7",
   "compiledBlocks": 218,
-  "x86TranslationMs": 47.26499980688095,
+  "x86TranslationMs": 75.90499997138977,
   "checks": [
     "Real callable class procedures for ANSI/Unicode Edit, Button and ListBox; direct guest calls and CallWindowProc use stdcall",
     "Companion native DLL replaces per-window procedures; an EXE adds a second forwarding layer while siblings retain base behavior",

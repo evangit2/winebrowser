@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T05:16:06.902Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T05:42:14.590Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "40a580025344ec30d01c5b62b7b9efa8121530a3a47a167ac4d24360823f5f70",
   "compiledBlocks": 94,
-  "x86TranslationMs": 38.0349999666214,
+  "x86TranslationMs": 39.279999911785126,
   "checks": [
     "Native ChooseFontA Escape cancellation leaves LOGFONT unchanged and CommDlgExtendedError zero",
     "Native ChooseFontA returns selected family, point size, bold/italic/underline, COLORREF and nFontType from a real browser picker with live preview",
