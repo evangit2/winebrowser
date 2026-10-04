@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T02:58:56.219Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T03:52:13.423Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "9d51470aa916672a977e4f157f60b56e1b65131bfe57a26b2009a6b40199009b",
   "compiledBlocks": 197,
-  "x86TranslationMs": 134.5650001168251,
+  "x86TranslationMs": 133.8200000822544,
   "checks": [
     "Native named A/W and ordinal 6 status creation use real handles and shared control procedures",
     "PE32 parts and rectangle queries preserve sentinels; rejected layouts retain previous state",
