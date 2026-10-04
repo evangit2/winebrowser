@@ -272,10 +272,13 @@ try {
       'ERROR',
       await page.locator('#logs').textContent(),
     );
-    const errorText = await page.getByRole('gridcell').allTextContents();
-    assert.match(errorText.join('\n'), pattern);
     const close = button('Close');
     await close.waitFor({ timeout: 30000 });
+    // Native completion refreshes the report list with DeleteAll/InsertItem/
+    // SetItemText. Assert its final text through the normal web retry boundary.
+    await expect
+      .poll(async () => (await page.getByRole('gridcell').allTextContents()).join('\n'))
+      .toMatch(pattern);
     const rows = page.getByRole('row').filter({ has: page.getByRole('gridcell') });
     await rows.first().click();
     await expect(rows.first()).toHaveAttribute('aria-selected', 'true');
