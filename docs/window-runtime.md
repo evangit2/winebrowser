@@ -106,6 +106,18 @@ layout, Euro decoding and untouched tails. Font coverage ranges and some vertica
 metrics remain browser approximations; shaping, hinting and exact Windows font
 metrics remain incomplete.
 
+ChooseFontA/W opens a browser font picker with a live preview, face, point size,
+weight/italic, underline/strikeout and color. It supports initial LOGFONT
+selection, screen fonts, CF_EFFECTS, CF_LIMITSIZE and disabled face/style/size
+selectors. Accept writes the native LOGFONT, tenths-of-a-point iPointSize,
+COLORREF and nFontType; Escape/Cancel leaves guest structures unchanged and
+CommDlgExtendedError zero. Requests are serialized and Stop dismisses the
+picker. Hooks/templates, printer and installed-font filters, Apply callbacks
+and exact Windows font matching remain unsupported and produce a common-dialog
+error. The [native acceptance](../evidence/font-dialog-browser-results.json)
+checks A/W selections and actual GDI text from the chosen font. Run
+`npm run test:font-dialog`.
+
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 
 Custom nonclient geometry, minimize/maximize behavior, full input-method handling and graphics APIs beyond the documented raster subset still need implementation. Resize repaints the client surface; the application remains responsible for adapting its layout and game logic. The virtual registry is process-local and is not persisted between runs. Fonts use browser matching and may differ from Windows. Shell icon extraction is not implemented. Offscreen compatible bitmaps, SRCCOPY BitBlt, accelerator tables, Unicode registry storage and Wine guest formatting are covered in [desktop compatibility](desktop-compatibility.md). Wine CRT/NLS support remains under development for broader library dependencies.
@@ -134,7 +146,9 @@ The source archive reproduces the published PE32 executable byte for byte. Its
 browser acceptance covers tree/list/combo interaction, check/radio state, a
 registered GDI child canvas with nested-button repaint and mouse input, draggable
 priority reordering and Escape cancellation, native Priorities/Notes tabs with
-retained edit text and list order, menu Reset, close and ZIP/Stop cleanup. See [the acceptance record](../evidence/gui-controls-browser-results.json).
+retained edit text and list order, Appearance → Font acceptance/cancellation,
+selected control fonts and GDI text color, menu Reset, close and ZIP/Stop cleanup.
+See [the acceptance record](../evidence/gui-controls-browser-results.json).
 
 `node scripts/test-custom-child-browser.mjs` uploads a native EXE and companion DLL whose registered child-window procedure paints independent surfaces and receives nested button, resize, mouse/double-click, context-menu, wheel and keyboard messages. The EXE subclasses one child while its sibling retains the original DLL procedure. The test verifies visibility, enabled state, native destruction and invalid HWND/DC cleanup; see [the acceptance record](../evidence/custom-child-browser-results.json). Wheel messages use screen coordinates and default handling forwards them to the parent; captured pointer messages convert coordinates between client areas. These are bounded native contracts, not general GUI framework acceptance.
 

@@ -1,9 +1,11 @@
 /* Copyright (c) 2026 WineBrowser contributors. MIT license: see LICENSE. */
 #include <windows.h>
 #include <commctrl.h>
+#include <commdlg.h>
 static HWND tree, items, combo, status, canvas, priorities, pages, notes;
 static HTREEITEM root, first;
 static HFONT font;
+static COLORREF font_color=RGB(30,30,30);
 static HMENU notes_menu;
 static UINT drag_message;
 static int drag_source=-1;
@@ -41,9 +43,9 @@ static LRESULT CALLBACK canvas_proc(HWND window,UINT message,WPARAM wp,LPARAM lp
       RECT swatch={8+i*64,6,64+i*64,22};
       HBRUSH brush=CreateSolidBrush(colors[swapped?2-i:i]);FillRect(dc,&swatch,brush);DeleteObject(brush);
     }
-    SelectObject(dc,font);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(30,30,30));
+    HGDIOBJ old_font=SelectObject(dc,font);SetBkMode(dc,TRANSPARENT);SetTextColor(dc,font_color);
     static const char label[]="Application-painted child window";
-    TextOutA(dc,8,26,label,sizeof(label)-1);EndPaint(window,&ps);return 0;
+    TextOutA(dc,8,26,label,sizeof(label)-1);SelectObject(dc,old_font);EndPaint(window,&ps);return 0;
   }
   return DefWindowProcA(window,message,wp,lp);
 }
@@ -106,6 +108,22 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
     UINT id=LOWORD(wp),code=HIWORD(wp);
     if(id==40 || id==100){reset(window);return 0;}
     if(id==101){DestroyWindow(window);return 0;}
+    if(id==120){
+      LOGFONTA logical={0};if(GetObjectA(font,sizeof(logical),&logical)!=sizeof(logical))ExitProcess(7);
+      CHOOSEFONTA choose={0};choose.lStructSize=sizeof(choose);choose.hwndOwner=window;choose.lpLogFont=&logical;
+      choose.Flags=CF_SCREENFONTS|CF_INITTOLOGFONTSTRUCT|CF_EFFECTS|CF_LIMITSIZE;choose.rgbColors=font_color;choose.nSizeMin=6;choose.nSizeMax=18;
+      if(ChooseFontA(&choose)){
+        HFONT selected=CreateFontIndirectA(&logical);if(!selected)ExitProcess(8);
+        HFONT previous=font;font=selected;font_color=choose.rgbColors;
+        const int ids[]={10,11,20,21,22,30,31,32,40,50,60,61,62};
+        for(unsigned i=0;i<sizeof(ids)/sizeof(ids[0]);i++)SendDlgItemMessageA(window,ids[i],WM_SETFONT,(WPARAM)font,TRUE);
+        SendDlgItemMessageA(canvas,51,WM_SETFONT,(WPARAM)font,TRUE);InvalidateRect(canvas,NULL,TRUE);
+        if(!DeleteObject(previous))ExitProcess(9);
+        say("Font selection: native controls and GDI text use your chosen font.");
+      }else if(CommDlgExtendedError())say("Font selection is unavailable for these options.");
+      else say("Font selection cancelled; the current font is unchanged.");
+      return 0;
+    }
     if(id==110||id==111){
       MENUITEMINFOA choice={0};choice.cbSize=sizeof(choice);choice.fMask=MIIM_DATA;
       if(!GetMenuItemInfoA(notes_menu,id,FALSE,&choice))ExitProcess(6);
@@ -148,6 +166,7 @@ void start(void) {
   item.wID=111;item.dwTypeData="&Read-only";item.dwItemData=2;item.fState=0;
   if(!InsertMenuItemA(notes_menu,1,TRUE,&item))ExitProcess(5);
   AppendMenuA(menu,MF_POPUP,(UINT_PTR)notes_menu,"&Notes (editable)");
+  HMENU appearance=CreatePopupMenu();AppendMenuA(appearance,MF_STRING,120,"&Font...");AppendMenuA(menu,MF_POPUP,(UINT_PTR)appearance,"&Appearance");
   drag_message=RegisterWindowMessageA(DRAGLISTMSGSTRING);
   RECT rect={0,0,500,438};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
   HWND window=CreateWindowA(cls.lpszClassName,"Native GUI controls",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,menu,instance,NULL);if(!window)ExitProcess(2);

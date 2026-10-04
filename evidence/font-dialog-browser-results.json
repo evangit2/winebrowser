@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T05:16:06.902Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "40a580025344ec30d01c5b62b7b9efa8121530a3a47a167ac4d24360823f5f70",
+  "compiledBlocks": 94,
+  "x86TranslationMs": 38.0349999666214,
+  "checks": [
+    "Native ChooseFontA Escape cancellation leaves LOGFONT unchanged and CommDlgExtendedError zero",
+    "Native ChooseFontA returns selected family, point size, bold/italic/underline, COLORREF and nFontType from a real browser picker with live preview",
+    "Native ChooseFontW returns a Unicode face, respects CF_LIMITSIZE and hides effects; invalid sizes keep the picker open",
+    "Native CreateFontIndirectW consumes the selected LOGFONT and renders actual colored glyphs; close and cleanup exit zero",
+    "Stop dismisses an outstanding native font picker and terminates the waiting executable"
+  ],
+  "scope": "Standard screen-font A/W picker, initial selection, effects, size limits and disabled selectors. Native hooks/templates, printer filters, font inventory filters, Apply callbacks and exact Windows font matching remain incomplete."
+}

@@ -176,6 +176,41 @@ try {
   );
   await mkdir('.scratch', { recursive: true });
   await window.screenshot({ path: '.scratch/gui-controls-showcase.png' });
+  await window.getByRole('menuitem', { name: 'Appearance', exact: true }).click();
+  await window.getByRole('menuitem', { name: 'Font...', exact: true }).click();
+  await page.locator('#font-dialog').waitFor({ state: 'visible' });
+  await page.locator('#font-cancel').click();
+  await status
+    .getByText('Font selection cancelled; the current font is unchanged.', { exact: true })
+    .waitFor();
+  await window.getByRole('menuitem', { name: 'Appearance', exact: true }).click();
+  await window.getByRole('menuitem', { name: 'Font...', exact: true }).click();
+  await page.locator('#font-dialog').waitFor({ state: 'visible' });
+  await page.locator('#font-face').fill('Courier New');
+  await page.locator('#font-points').fill('12');
+  await page.locator('#font-weight').fill('700');
+  await page.locator('#font-color').fill('#a0141e');
+  await page.locator('#font-ok').click();
+  await status
+    .getByText('Font selection: native controls and GDI text use your chosen font.', {
+      exact: true,
+    })
+    .waitFor();
+  const controlFont = await notes.evaluate((el) => ({
+    face: el.style.fontFamily,
+    size: el.style.fontSize,
+    weight: el.style.fontWeight,
+  }));
+  assert.match(controlFont.face, /Courier New/);
+  assert.equal(controlFont.size, '16px');
+  assert.equal(controlFont.weight, '700');
+  await page.waitForFunction(() => {
+    const c = document.querySelector('canvas[data-control-id="50"]');
+    if (!c) return false;
+    const p = c.getContext('2d').getImageData(8, 26, 200, 16).data;
+    return p.some((v, i) => i % 4 === 0 && v === 160 && p[i + 1] === 20 && p[i + 2] === 30);
+  });
+  await window.screenshot({ path: '.scratch/gui-controls-chosen-font.png' });
   await window.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);
   const run = await page.evaluate(() => window.__lastRun);
@@ -207,6 +242,7 @@ try {
       'Native COMCTL32 status bar displays callback text through SB_SETTEXTA with minimum height and bottom docking',
       'Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly',
       'Native menu Reset restores control state; close exits zero',
+      'Public Appearance > Font opens the native ChooseFontA browser picker; Cancel preserves the font and Accept changes DOM control fonts and actual GDI child text color',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
     scope:

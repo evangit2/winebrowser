@@ -10,6 +10,12 @@ integer/fractional advances, A/W ABC field layout, CP1252 Euro equivalence and
 untouched output tails. TEXTMETRIC A/W checks read the selected font styles and
 charset through native structures.
 
+`font-chooser.exe` exercises real ChooseFontA/W browser interaction: Escape
+cancellation, native output structure fields, effects, Unicode face names,
+size limits and actual GDI rendering of the accepted logical font. Run
+`npm run test:font-dialog`. Native hooks/templates, printer filters and Apply
+callbacks remain unsupported.
+
 Copyright (c) 2026 WineBrowser contributors. Licensed under the repository MIT
 license. Browser font matching may substitute unavailable faces; rotated text,
 explicit widths and full Windows font mapping remain incomplete.

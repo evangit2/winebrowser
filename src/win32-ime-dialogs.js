@@ -2,10 +2,10 @@
 //
 // The browser desktop has no IME bridge, so an IME context is a real per-window
 // object that reports an empty composition and accepts the font/window calls a
-// program makes while setting one up. The common file and font dialogs cannot
-// open a native picker inside the sandbox, so each validates the caller's
-// structure and reports the documented "the user cancelled" outcome, which is a
-// legal result the application already handles.
+// program makes while setting one up. File dialogs currently validate the
+// caller's structure and return cancellation. Font selection uses a real
+// browser picker through ChooseFontA/W.
+import { chooseBrowserFont } from './win32-font-dialog.js';
 
 const ok = (result = 0, argc = 0) => ({ result: result >>> 0, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -111,6 +111,7 @@ function validateOpenFileName(r, pointer, wide) {
   return { buffer, maxFile };
 }
 function openSaveFileName(r, a, wide) {
+  r.commonDialogError = 0;
   const parsed = validateOpenFileName(r, a(0), wide);
   if (!parsed) return fail(r, ERROR_INVALID_PARAMETER, 1);
   // A cancel leaves the caller's buffer holding an empty string.
@@ -119,23 +120,6 @@ function openSaveFileName(r, a, wide) {
   r.lastError = 0;
   return ok(0, 1);
 }
-// ChooseFontA/W takes a CHOOSEFONT whose lpLogFont describes the current
-// selection. A cancel leaves that structure unchanged.
-function chooseFont(r, a, wide) {
-  const pointer = a(0);
-  if (!pointer) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  const lStructSize = r.guestMemory.read(pointer, 4);
-  if (lStructSize !== (wide ? 60 : 60)) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  r.check(pointer, lStructSize);
-  const owner = r.read32(pointer + 4);
-  if (owner && !r.windows.windows.has(owner)) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  const logFont = r.read32(pointer + 12);
-  if (!logFont) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  r.check(logFont, wide ? 92 : 60);
-  r.lastError = 0;
-  return ok(0, 1);
-}
-
 export const imeApis = {
   'imm32.dll!ImmGetContext': immGetContext,
   'imm32.dll!ImmReleaseContext': immReleaseContext,
@@ -164,11 +148,11 @@ export const comDlgApis = {
   'comdlg32.dll!GetOpenFileNameW': (r, a) => openSaveFileName(r, a, true),
   'comdlg32.dll!GetSaveFileNameA': (r, a) => openSaveFileName(r, a, false),
   'comdlg32.dll!GetSaveFileNameW': (r, a) => openSaveFileName(r, a, true),
-  'comdlg32.dll!ChooseFontA': (r, a) => chooseFont(r, a, false),
-  'comdlg32.dll!ChooseFontW': (r, a) => chooseFont(r, a, true),
+  'comdlg32.dll!ChooseFontA': (r, a) => chooseBrowserFont(r, a, false),
+  'comdlg32.dll!ChooseFontW': (r, a) => chooseBrowserFont(r, a, true),
   // CommDlgExtendedError reports the last common-dialog error. A cancel is not
   // an error, so it reports zero.
-  'comdlg32.dll!CommDlgExtendedError': () => ok(0, 0),
+  'comdlg32.dll!CommDlgExtendedError': (r) => ok(r.commonDialogError ?? 0, 0),
 };
 
 // ---------------------------------------------------------------------------
@@ -402,6 +386,7 @@ async function messageBoxIndirect(r, a, wide = true) {
 // the sandbox, so this validates the structure and reports the documented
 // user-cancel result; the caller's colour fields are left untouched.
 function chooseColor(r, a) {
+  r.commonDialogError = 0;
   const pointer = a(0);
   if (!pointer) return fail(r, ERROR_INVALID_PARAMETER, 1);
   if (r.guestMemory.read(pointer, 4) !== 36) return fail(r, ERROR_INVALID_PARAMETER, 1);

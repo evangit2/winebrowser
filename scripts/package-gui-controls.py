@@ -24,7 +24,7 @@ exe_sha = digest(DEST / 'gui-controls.exe')
 (DEST / 'PROVENANCE.md').write_text(
     '# Native GUI controls\n\nCopyright (c) 2026 WineBrowser contributors, MIT.\n\n'
     'Original freestanding C source, compiled to a Windows PE32 x86 executable\n'
-    'with MinGW. The app calls USER32, COMCTL32 and GDI32; its x86 code is\n'
+    'with MinGW. The app calls USER32, COMCTL32, COMDLG32 and GDI32; its x86 code is\n'
     'translated to WebAssembly inside the browser. No app-specific Wasm\n'
     'artifact is included.\n\n'
     f'Executable SHA-256: `{exe_sha}`\n\n'
@@ -37,7 +37,7 @@ archive(DEST / 'gui-controls.zip', [(name, (DEST / name).read_bytes())
     for name in ['gui-controls.exe', 'LICENSE', 'README.md', 'PROVENANCE.md']])
 path = PUBLIC / 'manifest.json'
 manifest = json.loads(path.read_text())
-entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, a draggable priorities list, native Priorities/Notes tabs, radio menus for editable/read-only notes, a native status bar and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
+entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, draggable priorities, Priorities/Notes tabs, editable/read-only notes, a status bar, Appearance > Font picker and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
     'exe': 'gui-controls/gui-controls.exe', 'exeSha256': exe_sha,
     'zip': 'gui-controls/gui-controls.zip', 'zipSha256': digest(DEST / 'gui-controls.zip'),
     'sourceZip': 'gui-controls/source.zip', 'sourceZipSha256': digest(DEST / 'source.zip'),

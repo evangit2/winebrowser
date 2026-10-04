@@ -94,6 +94,40 @@
       <button id="folder-dialog-cancel">Cancel</button
       ><button id="folder-dialog-ok">Choose folder</button>
     </dialog>
+    <dialog id="font-dialog" aria-labelledby="font-dialog-title">
+      <h2 id="font-dialog-title">Choose a font</h2>
+      <form id="font-form">
+        <label
+          >Font family <input id="font-face" list="font-families" required maxlength="31"
+        /></label>
+        <datalist id="font-families">
+          <option>Arial</option>
+          <option>Courier New</option>
+          <option>Times New Roman</option>
+          <option>sans-serif</option>
+          <option>serif</option>
+          <option>monospace</option>
+        </datalist>
+        <label
+          >Size (points)
+          <input id="font-points" type="number" min="1" max="192" step="0.1" required
+        /></label>
+        <label
+          >Weight <input id="font-weight" type="number" min="0" max="1000" step="1" required
+        /></label>
+        <label><input id="font-italic" type="checkbox" /> Italic</label>
+        <fieldset id="font-effects">
+          <legend>Effects</legend>
+          <label><input id="font-underline" type="checkbox" /> Underline</label>
+          <label><input id="font-strikeout" type="checkbox" /> Strikeout</label>
+          <label>Color <input id="font-color" type="color" /></label>
+        </fieldset>
+        <p id="font-preview">Aa Bb Cc — 0123456789 Ω €</p>
+        <button id="font-stop" type="button">Stop program</button>
+        <button id="font-cancel" type="button">Cancel</button
+        ><button id="font-ok" type="submit">Choose font</button>
+      </form>
+    </dialog>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

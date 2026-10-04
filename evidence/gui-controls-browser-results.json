@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T03:52:16.889Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-04T05:13:25.368Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
-  "exeSha256": "826e04e035cdb07689eb2b846fea6ba898eefd288749e18ae50fa6f350c98577",
+  "exeSha256": "9f13170634e62ce5dcb6c9ec92c862bbc964009a1165ec59ff37ab7292576a39",
   "exitCode": 0,
-  "compiledBlocks": 297,
-  "x86TranslationMs": 152.6300000846386,
+  "compiledBlocks": 330,
+  "x86TranslationMs": 162.72500011324883,
   "checks": [
     "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
     "Tree category, sorted list, editable combo, checkbox and radio interactions",
@@ -16,6 +16,7 @@
     "Native COMCTL32 status bar displays callback text through SB_SETTEXTA with minimum height and bottom docking",
     "Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly",
     "Native menu Reset restores control state; close exits zero",
+    "Public Appearance > Font opens the native ChooseFontA browser picker; Cancel preserves the font and Accept changes DOM control fonts and actual GDI child text color",
     "Public source/license ZIP package runs and Stop removes its window"
   ],
   "scope": "Original MIT WineBrowser Win32 showcase, separate from upstream applications. This exercises the supported controls; no universal GUI/DLL compatibility claim."

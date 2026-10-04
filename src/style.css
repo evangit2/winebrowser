@@ -192,3 +192,18 @@ dialog p {
     padding: 5px 3px;
   }
 }
+/* Font common-dialog fields retain labels and a bounded, live preview. */
+#font-dialog {
+  width: min(440px, 90vw);
+}
+#font-form > label,
+#font-effects label {
+  display: block;
+  margin: 10px 0;
+}
+#font-preview {
+  overflow: auto;
+  max-height: 150px;
+  padding: 16px;
+  background: white;
+}

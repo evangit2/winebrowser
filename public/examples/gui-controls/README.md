@@ -15,6 +15,9 @@ switch notes between editable and read-only. The caption and selection follow
 the current mode; editing locks preserve text, and Reset restores editable mode.
 The bottom status bar is a native COMCTL32 control. Each callback updates its
 text through SB_SETTEXTA, and its minimum height and docking use native messages.
+Appearance → Font opens the common font picker. Accept applies the selected
+font to controls and the GDI child canvas; Cancel preserves the current font.
+Effects change the canvas text color, underline and strikeout.
 It needs no app-specific Wasm build: WineBrowser translates the executable's x86
 blocks to WebAssembly in the browser.
 
