@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T07:03:47.279Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-04T08:50:06.187Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "c723817ff7344cda6b7902782c450fa10bc5f6959d43bcdd2e55ce1006f92aa7",
   "dllSha256": "bff376310f1f583113244ad9aa185051d041dd000c0770d6db77211a146f014e",
   "compiledBlocks": 301,
-  "x86TranslationMs": 91.90499958395958,
+  "x86TranslationMs": 70.1500001847744,
   "checks": [
     "Unchanged native EXE/DLL runs modeless FindTextA/W and ReplaceTextA through in-browser x86 compilation; owner remains enabled and editable",
     "Native DLL hook receives the original FINDREPLACE pointer and can veto Find Next; ordinal DLL dialog template and native window subclass/CallWindowProc remain callable",

@@ -253,7 +253,9 @@
     "build:find-dialogs": "sh scripts/build-find-dialogs-fixture.sh",
     "test:find-dialogs": "node scripts/test-find-dialogs-browser.mjs",
     "build:toolbar": "sh scripts/build-toolbar-fixture.sh",
-    "test:toolbar": "node scripts/test-toolbar-browser.mjs"
+    "test:toolbar": "node scripts/test-toolbar-browser.mjs",
+    "build:property-sheet": "sh scripts/build-property-sheet-fixture.sh",
+    "test:property-sheet": "node scripts/test-property-sheet-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

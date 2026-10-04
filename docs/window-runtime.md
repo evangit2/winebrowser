@@ -200,3 +200,20 @@ See [the acceptance record](../evidence/gui-controls-browser-results.json).
 `node scripts/test-custom-child-browser.mjs` uploads a native EXE and companion DLL whose registered child-window procedure paints independent surfaces and receives nested button, resize, mouse/double-click, context-menu, wheel and keyboard messages. The EXE subclasses one child while its sibling retains the original DLL procedure. The test verifies visibility, enabled state, native destruction and invalid HWND/DC cleanup; see [the acceptance record](../evidence/custom-child-browser-results.json). Wheel messages use screen coordinates and default handling forwards them to the parent; captured pointer messages convert coordinates between client areas. These are bounded native contracts, not general GUI framework acceptance.
 
 Per-window host-control subclassing now provides real callable original WNDPROC addresses through GetWindowLong, GetClassLong and standard-control GetClassInfo. Native EXE/DLL callbacks can replace and restore matching-encoding procedures and forward through CallWindowProc or direct stdcall calls. The shared dispatcher handles supported control behavior when the original procedure is invoked; siblings retain their procedures. Class procedure handles remain callable across module-graph rollback. The native EXE/DLL fixture checks ANSI/Unicode Edit, Button and ListBox forwarding, a second EXE hook layer, text and click vetoes, WM_GETDLGCODE Tab ownership, restoration, destruction and invalid HWND errors; see [its acceptance record](../evidence/host-subclass-browser-results.json). Browser text commits use queued WM_SETTEXT and semantic button clicks use BM_CLICK for subclassed controls. Full per-keystroke/mouse/IME behavior, superclass registration, host class-procedure replacement and cross-encoding procedure handles remain incomplete. Run `npm run test:host-subclass`.
+
+Classic tabbed property sheets implement `PropertySheetA/W`,
+`CreatePropertySheetPageA/W` and `DestroyPropertySheetPage` for PE32 native
+page descriptors, EXE/DLL dialog resources and memory templates. Page descriptor
+strings and template contents are copied; page window procedures and callbacks
+remain native guest code. Modal sheets disable/restore their owner, while modeless
+sheets expose completion through `PSM_GETCURRENTPAGEHWND`/`PSM_GETRESULT` until the
+application destroys them. Page windows instantiate lazily (or with
+`PSP_PREMATURE`), keep editing state across tabs, and receive initialization,
+activation, validation, Apply/Reset and lifetime notifications. Tab navigation
+recurses through visible `WS_EX_CONTROLPARENT` pages. Dirty pages enable Apply.
+The public GUI showcase exposes these through Demo → Settings.
+
+The authored property sheet EXE/DLL acceptance covers real native vetoes and
+callbacks. Wizard flows, dynamic page insertion/removal, page icons/help/RTL,
+activation contexts and remaining property sheet messages are explicitly
+unsupported. Metapad still has unresolved imports; this does not claim it runs.

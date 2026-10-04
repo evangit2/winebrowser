@@ -57,8 +57,9 @@ function nextTab(r, a) {
       .filter((w) => w.parentId === parent)
       .sort(compareWindowOrder)) {
       if (!m.isVisible(w.id) || w.enabled === false) continue;
-      if (w.style & 0x00010000) controls.push(w);
-      if (w.exStyle & 0x00010000) visit(w.id); // WS_EX_CONTROLPARENT
+      if (w.exStyle & 0x00010000)
+        visit(w.id); // WS_EX_CONTROLPARENT replaces its tab stop with descendants.
+      else if (w.style & 0x00010000) controls.push(w);
     }
   };
   visit(dialog);

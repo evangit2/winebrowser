@@ -3,6 +3,7 @@ import { describeTree } from './win32-treeview.js';
 import { describeTabs } from './win32-tabs.js';
 import { describeStatusbar } from './win32-statusbar.js';
 import { describeToolbar } from './win32-toolbar.js';
+import { legacyUiApis } from './win32-legacy-ui.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
   builtinControlClass,
@@ -2094,13 +2095,13 @@ async function isDialogMessage(r, a) {
     if (button) await r.windows.send(button.id, 0xf5, 0, 0);
     return result(1, 2);
   }
-  const tabs = children.filter((child) => child.style & 0x10000);
-  if (!tabs.length) return result(0, 2);
-  const current = tabs.findIndex((c) => c.id === r.windows.focus),
-    step = r.windows.keys.get(16) & 0x8000 ? -1 : 1;
-  const index =
-    current < 0 ? (step < 0 ? tabs.length - 1 : 0) : (current + step + tabs.length) % tabs.length;
-  await r.windows.setFocus(tabs[index].id);
+  const reverse = !!(r.windows.keys.get(16) & 0x8000);
+  const next = legacyUiApis['user32.dll!GetNextDlgTabItem'](
+    r,
+    (i) => [window.id, r.windows.focus, +reverse][i],
+  ).result;
+  if (!next) return result(0, 2);
+  await r.windows.setFocus(next);
   return result(1, 2);
 }
 // DefDlgProc resets DWLP_MSGRESULT before calling DLGPROC. For most messages

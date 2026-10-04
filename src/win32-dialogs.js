@@ -219,8 +219,8 @@ function dialogUnitsToPixels(value) {
   return Math.round((value * 8) / 4);
 }
 
-export async function buildDialog(r, template, owner, proc, instance, wide = false) {
-  const frame = windowFrame(template.style);
+export async function buildDialog(r, template, owner, proc, instance, wide = false, child = false) {
+  const frame = child ? { border: 0, title: 0 } : windowFrame(template.style);
   const customClass =
     template.className && ![32770, 0x8002, '#32770', '32770'].includes(template.className);
   const created = await createWindowFromHost(r, {
@@ -231,7 +231,7 @@ export async function buildDialog(r, template, owner, proc, instance, wide = fal
     width: Math.max(1, dialogUnitsToPixels(template.cx)) + 2 * frame.border,
     height: Math.max(1, dialogUnitsToPixels(template.cy)) + frame.title + 2 * frame.border,
     parent: owner,
-    owner: true,
+    owner: !child,
     style: template.style & ~0x10000000,
     exStyle: template.exStyle,
     instance,
@@ -349,7 +349,7 @@ function moduleAt(r, base) {
   return [...r.graph.modules.values()].find((m) => m.base === base) ?? null;
 }
 
-async function initializeDialog(r, dialog, param, visible = true) {
+export async function initializeDialog(r, dialog, param, visible = true) {
   const children = [...r.windows.windows.values()].filter(
     (w) => w.parentId === dialog.id && w.enabled && w.visible && w.style & 0x10000,
   );
@@ -367,7 +367,7 @@ async function initializeDialog(r, dialog, param, visible = true) {
 // decides whether the runtime focuses its default control. The loop then
 // dispatches the dialog's own messages until EndDialog (or the window being
 // destroyed) ends it.
-async function runDialog(r, dialog, param) {
+export async function runDialog(r, dialog, param) {
   const m = r.windows;
   const window = m.windows.get(dialog.id),
     owner = m.windows.get(window?.ownerId);
