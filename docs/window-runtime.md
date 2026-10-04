@@ -34,6 +34,19 @@ Custom nonclient geometry, minimize/maximize behavior, full input-method handlin
 
 API contracts were checked against Microsoft's [CreateWindowEx](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexa), [GetMessage](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessage), and [BeginPaint](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-beginpaint) documentation. Unsupported behavior must remain visible rather than returning success solely to advance a particular executable.
 
+Shared legacy text services now preserve raw CP1252 bytes and UTF-16 units for
+lstrcpy/lstrcpyn/lstrcat A/W. Character predicates and CT_CTYPE1 classification
+share browser Unicode categories, with separate alphabetic and digit flags.
+GetStringTypeA uses its five-argument locale ABI while GetStringTypeW uses four
+arguments; count -1 includes the terminating NUL. CP1252/CP437 CharToOem and
+OemToChar conversions support counted buffers, embedded NULs and in-place copies.
+The native [acceptance fixture](../tests/fixtures/legacy-text/README.md) verifies
+these contracts through real PE32 calls compiled into Wasm in Chromium; see
+[its recorded result](../evidence/legacy-text-browser-results.json).
+GetDialogBaseUnits matches the default virtual dialog mapping. Other code pages,
+CT_CTYPE2/3 and exact Windows locale/NLS parity remain incomplete. Run
+`npm run test:legacy-text`.
+
 A broader PuTTY 0.85 GUI probe exposed and corrected custom-dialog context, class metadata, list-control ABI and radio-state issues. The unchanged release now passes a bounded Configuration acceptance: Session category, edited hostname, registry-backed session Save, navigation to Terminal and Connection/Data, adding/removing tabbed environment variables, return with the hostname and username preserved, and Cancel exiting zero. `winspool.drv` provides local/connected queue enumeration for the browser's empty printer installation, with correct A/W exports, output counts and errors; printing jobs and remote spoolers remain unsupported. An exploratory SSH/Kex visit exposed missing dynamically loaded COMCTL32 drag-list exports. Kex, Host keys and Cipher preference panels now pass native drag/drop, Escape cancellation, Up/Down button reordering and preference persistence across panel reconstruction. Networking and terminal rendering remain unverified. Run `npm run fetch:targets -- putty-0.85-x86` then `npm run test:putty-gui` for the private cached executable. The executable is not published with this acceptance. See [the probe record](../evidence/putty-gui-progress.json).
 
 The public `gui-controls` showcase is an original MIT Windows x86 program using

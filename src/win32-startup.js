@@ -5,7 +5,7 @@
 // (for example, a real GlobalAlloc block, not a fake constant).
 import { GUEST_PERFORMANCE_FREQUENCY } from './guest-clock.js';
 import { environmentEntries } from './guest-environment.js';
-import { encodeAnsi } from './encoding.js';
+import { encodeAnsi, decodeAnsi, characterType1 } from './encoding.js';
 import { guestProcessorFeaturePresent } from './processor-features.js';
 import { GuestUnwind } from './seh.js';
 import { processLookup } from './process-session.js';
@@ -648,25 +648,26 @@ function lcMapString(r, a, wide) {
   return ok(length + 1, 6);
 }
 function getStringType(r, a, wide) {
-  const kind = a(0) >>> 0;
-  if (kind !== 1) return fail(r, 87, 5); // CT_CTYPE1 only.
-  const source = a(1),
-    count = a(2) | 0,
-    destination = a(3);
-  if (count < 0 || !destination) return fail(r, 87, 5);
+  const offset = wide ? 0 : 1,
+    argc = wide ? 4 : 5;
+  if (!wide && ![0, 0x400, 0x800, 0x409, 0x809, 0xc0a].includes(a(0) >>> 0))
+    return fail(r, 87, argc);
+  const kind = a(offset) >>> 0;
+  if (kind !== 1) return fail(r, 87, argc); // CT_CTYPE1 only.
+  const source = a(offset + 1),
+    destination = a(offset + 3);
+  let count = a(offset + 2) | 0;
+  if (!source || !destination || count < -1 || count === 0) return fail(r, 87, argc);
+  if (count === -1) count = (wide ? r.wideString(source) : r.string(source)).length + 1;
+  r.check(source, count * (wide ? 2 : 1));
   r.check(destination, count * 2, true);
   for (let i = 0; i < count; i++) {
     const code = wide ? r.guestMemory.read(source + i * 2, 2) : r.guestMemory.read(source + i, 1);
-    const char = String.fromCharCode(code);
-    let types = 0;
-    if (/[a-zA-Z]/.test(char))
-      types |= 0x0100 | 0x0004 | (char === char.toUpperCase() ? 0x0001 : 0x0002);
-    if (/[0-9]/.test(char)) types |= 0x0004;
-    if (/\s/.test(char)) types |= 0x0008;
-    if (/[!-\/:-@\[-`{-~]/.test(char)) types |= 0x0010;
+    const char = wide ? String.fromCharCode(code) : decodeAnsi(Uint8Array.of(code));
+    const types = characterType1(char);
     r.guestMemory.write(destination + i * 2, types, 2);
   }
-  return ok(1, 5);
+  return ok(1, argc);
 }
 async function enumSystemLocales(r, a, wide, present) {
   // The runtime models exactly the locales its NLS data and locale answers

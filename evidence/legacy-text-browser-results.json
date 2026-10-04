@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T02:13:54.881Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "12e0106c31eff2e7dd07d7bfc72df364c0816b6e230cc950163d5f73e9806977",
+  "compiledBlocks": 138,
+  "x86TranslationMs": 35.59000000357628,
+  "checks": [
+    "Native lstrcpy/lstrcpyn/lstrcat A/W calls preserve CP1252 bytes and UTF-16 units, return the destination and terminate bounded copies",
+    "ANSI/Unicode character classification shares bootstrap CT_CTYPE1 categories; letters and digits stay distinct",
+    "CP1252/CP437 OEM conversion handles embedded NULs, exact counts, unchanged sentinels and overlapping buffers",
+    "Native five-argument GetStringTypeA and four-argument GetStringTypeW calls preserve PE32 stack ABI and include NUL for count -1",
+    "Dialog base units agree with the virtual default dialog mapping"
+  ],
+  "scope": "Shared bootstrap text services in ordinary Chromium. ANSI/OEM pages are 1252/437; Unicode category data follows the browser. CT_CTYPE2/3 and other locale/code-page behavior are not claimed."
+}

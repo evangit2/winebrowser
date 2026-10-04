@@ -24,6 +24,29 @@ function writeString(r, address, value, wide = false) {
     );
   return address;
 }
+function copyLegacyString(r, a, wide, bounded, append) {
+  const destination = a(0),
+    source = a(1),
+    argc = bounded ? 3 : 2;
+  const capacity = bounded ? a(2) | 0 : 0x100001;
+  if (bounded && capacity <= 0) return ok(destination, argc);
+  if (!destination || (!source && capacity > 1)) return fail(r, 87, argc);
+  const width = wide ? 2 : 1,
+    units = [];
+  for (let i = 0; i < capacity - 1; i++) {
+    const value = r.guestMemory.read(source + i * width, width);
+    if (!value) break;
+    units.push(value);
+  }
+  if (!bounded && units.length === capacity - 1) throw Error('Unterminated legacy string');
+  const offset = append ? (wide ? r.wideString(destination) : r.string(destination)).length : 0;
+  r.check(destination + offset * width, (units.length + 1) * width, true);
+  units.push(0);
+  units.forEach((value, i) =>
+    r.guestMemory.write(destination + (offset + i) * width, value, width),
+  );
+  return ok(destination, argc);
+}
 function moduleHandle(r, a, wide) {
   if (!a(0)) return ok(r.pe.imageBase, 1);
   let module;
@@ -535,6 +558,10 @@ export const processApis = {
   'winebrowser-shell32.dll!ExtractIconW': (r, a) => extractIcon(r, a, true),
   'kernel32.dll!lstrlenW': (r, a) => ok(r.wideString(a(0)).length, 1),
   'kernel32.dll!lstrlenA': (r, a) => ok(r.string(a(0)).length, 1),
-  'kernel32.dll!lstrcpyA': (r, a) => ok(writeString(r, a(0), r.string(a(1))), 2),
-  'kernel32.dll!lstrcpyW': (r, a) => ok(writeString(r, a(0), r.wideString(a(1)), true), 2),
+  'kernel32.dll!lstrcpyA': (r, a) => copyLegacyString(r, a, false, false, false),
+  'kernel32.dll!lstrcpyW': (r, a) => copyLegacyString(r, a, true, false, false),
+  'kernel32.dll!lstrcpynA': (r, a) => copyLegacyString(r, a, false, true, false),
+  'kernel32.dll!lstrcpynW': (r, a) => copyLegacyString(r, a, true, true, false),
+  'kernel32.dll!lstrcatA': (r, a) => copyLegacyString(r, a, false, false, true),
+  'kernel32.dll!lstrcatW': (r, a) => copyLegacyString(r, a, true, false, true),
 };

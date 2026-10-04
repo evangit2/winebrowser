@@ -1,4 +1,5 @@
 import { compareWindowOrder } from './window-frame.js';
+import { decodeAnsi, encodeAnsi, decodeOem, encodeOem, characterType1 } from './encoding.js';
 const ok = (result, argc) => ({ result: result >>> 0, argc });
 const fail = (r, argc, error = 1400) => {
   r.lastError = error;
@@ -92,4 +93,52 @@ export const legacyUiApis = {
   'user32.dll!GetNextWindow': relatedWindow,
   'user32.dll!GetNextDlgTabItem': nextTab,
   'user32.dll!SetParent': setParent,
+  'user32.dll!GetDialogBaseUnits': () => ok((16 << 16) | 8, 0),
 };
+function oemText(r, a, wide, toOem, bounded) {
+  const source = a(0),
+    destination = a(1),
+    argc = bounded ? 3 : 2;
+  if (!source || !destination) return ok(0, argc);
+  const width = toOem && wide ? 2 : 1;
+  const count = bounded
+    ? a(2) >>> 0
+    : (width === 2 ? r.wideString(source) : r.string(source)).length + 1;
+  r.check(source, count * width);
+  const input = [];
+  for (let i = 0; i < count; i++) input.push(r.guestMemory.read(source + i * width, width));
+  const text = toOem
+    ? wide
+      ? input.map((code) => String.fromCharCode(code)).join('')
+      : decodeAnsi(Uint8Array.from(input))
+    : decodeOem(input);
+  if (!toOem && wide) {
+    r.check(destination, text.length * 2, true);
+    for (let i = 0; i < text.length; i++)
+      r.guestMemory.write(destination + i * 2, text.charCodeAt(i), 2);
+  } else {
+    const bytes = (toOem ? encodeOem(text) : encodeAnsi(text)).bytes;
+    r.check(destination, bytes.length, true);
+    r.data.set(bytes, destination);
+  }
+  return ok(1, argc);
+}
+for (const wide of [false, true]) {
+  const suffix = wide ? 'W' : 'A';
+  for (const [name, mask] of [
+    ['IsCharUpper', 1],
+    ['IsCharLower', 2],
+    ['IsCharAlpha', 0x100],
+    ['IsCharAlphaNumeric', 0x104],
+  ])
+    legacyUiApis[`user32.dll!${name}${suffix}`] = (r, a) => {
+      const value = a(0) & (wide ? 0xffff : 0xff),
+        char = wide ? String.fromCharCode(value) : decodeAnsi(Uint8Array.of(value));
+      return ok(characterType1(char) & mask ? 1 : 0, 1);
+    };
+  for (const toOem of [false, true])
+    for (const bounded of [false, true])
+      legacyUiApis[
+        `user32.dll!${toOem ? 'CharToOem' : 'OemToChar'}${bounded ? 'Buff' : ''}${suffix}`
+      ] = (r, a) => oemText(r, a, wide, toOem, bounded);
+}

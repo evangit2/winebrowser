@@ -5,6 +5,26 @@ const ansiEncoding = new Map();
 for (let byte = 0; byte < 256; byte++)
   ansiEncoding.set(ansiDecoder.decode(Uint8Array.of(byte)), byte);
 export const decodeAnsi = (bytes) => ansiDecoder.decode(bytes);
+// CT_CTYPE1 for the bootstrap Unicode/Windows-1252 services. The source-built
+// Wine NLS path remains responsible for other type families and locale data.
+const ctype1Cache = new Uint16Array(65536).fill(0xffff);
+export function characterType1(character) {
+  const code = character.charCodeAt(0),
+    cached = ctype1Cache[code];
+  if (cached !== 0xffff) return cached;
+  let flags = /\p{Cn}|\p{Cs}/u.test(character) ? 0 : 0x200;
+  if (/\p{Uppercase}/u.test(character)) flags |= 1;
+  if (/\p{Lowercase}/u.test(character)) flags |= 2;
+  if (/\p{Nd}/u.test(character)) flags |= 4;
+  if (/\p{White_Space}/u.test(character)) flags |= 8;
+  if (/[\p{P}\p{S}]/u.test(character)) flags |= 0x10;
+  if (/\p{Cc}/u.test(character)) flags |= 0x20;
+  if (/\p{Zs}/u.test(character) || character === '\t') flags |= 0x40;
+  if (/\p{Hex_Digit}/u.test(character)) flags |= 0x80;
+  if (/\p{Alphabetic}/u.test(character)) flags |= 0x100;
+  ctype1Cache[code] = flags;
+  return flags;
+}
 export function encodeAnsi(value, replacement = 63) {
   let usedDefault = false;
   const bytes = Uint8Array.from(
