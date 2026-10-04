@@ -137,7 +137,12 @@ export function makeGdiFontDescriptor(runtime, argument, wide) {
   const face = readGdiFontFace(runtime, argument(13) >>> 0, wide);
   const height = heightArg === 0 ? 16 : Math.max(1, Math.abs(heightArg));
   const cssWeight = weight === 0 ? 400 : weight;
-  const css = `${italic ? 'italic ' : ''}${cssWeight} ${height}px ${JSON.stringify(face || 'sans-serif')}`;
+  // Classic Windows dialog aliases may not be installed on the browser host.
+  // Preserve the logical face for native queries and use a sans-serif mapping.
+  const family = /^(?:MS Sans Serif|MS Shell Dlg(?: 2)?)$/i.test(face)
+    ? 'Arial, sans-serif'
+    : JSON.stringify(face || 'sans-serif');
+  const css = `${italic ? 'italic ' : ''}${cssWeight} ${height}px ${family}`;
   return {
     kind: 'font',
     css,

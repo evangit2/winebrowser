@@ -6,6 +6,8 @@
 import { readPEResource } from './pe-resources.js';
 import { windowFrame } from './window-frame.js';
 import { createWindowFromHost, windowApis } from './win32-windows.js';
+import { gdiApis, describeGdiFont } from './win32-gdi.js';
+import { measureDialogUnits, dialogX, dialogY } from './dialog-units.js';
 
 const RT_DIALOG = 5;
 const MAX_DIALOG_ITEMS = 256;
@@ -89,13 +91,17 @@ export function readDialogTemplate(bytes, offset = 0, maxItems = MAX_DIALOG_ITEM
     let font = null;
     if (style & 0x40) {
       const size = word();
+      let weight = 400,
+        italic = 0,
+        charset = 1;
       if (extended) {
-        word();
+        weight = word();
         need(2);
-        at += 2;
+        italic = bytes[at++];
+        charset = bytes[at++];
       }
       const face = string();
-      font = { value: face.value, size };
+      font = { value: face.value, size, weight, italic, charset };
     }
     const items = [];
     for (let i = 0; i < itemCount; i++) {
@@ -210,26 +216,67 @@ function findControl(r, hwnd, id) {
   );
 }
 
-// Dialog units scale with the system font. The runtime's window manager works in
-// pixels, so the classic 4x8-unit base is converted with the documented ratio.
-function dialogUnitsToPixels(value) {
-  // One horizontal dialog unit is 1/4 of the average character width; the
-  // runtime's default font averages 8 px wide and 16 px tall, so the base units
-  // are 2 px horizontally and 2 px vertically.
-  return Math.round((value * 8) / 4);
+function createDialogFont(r, font) {
+  if (!font) return 0;
+  const face = r.allocString(font.value || 'MS Sans Serif', true);
+  try {
+    const args = [
+      -Math.round((font.size * 96) / 72),
+      0,
+      0,
+      0,
+      font.weight ?? 400,
+      font.italic ?? 0,
+      0,
+      0,
+      font.charset ?? 1,
+      0,
+      0,
+      0,
+      0,
+      face,
+    ];
+    return gdiApis['gdi32.dll!CreateFontW'](r, (i) => args[i]).result;
+  } finally {
+    r.free(face);
+  }
 }
 
 export async function buildDialog(r, template, owner, proc, instance, wide = false, child = false) {
+  const fontHandle = createDialogFont(r, template.font);
+  if (template.font && !fontHandle) return { error: r.lastError || 87 };
+  try {
+    return await buildDialogWithFont(r, template, owner, proc, instance, wide, child, fontHandle);
+  } catch (error) {
+    const owned = [...r.windows.windows.values()].find(
+      (w) => fontHandle && w.dialogResourceFont === fontHandle,
+    );
+    // Release partially built windows without hiding the original guest failure.
+    if (owned) {
+      try {
+        await r.windows.destroy(owned.id);
+      } catch {}
+    }
+    if (fontHandle) gdiApis['gdi32.dll!DeleteObject'](r, () => fontHandle);
+    throw error;
+  }
+}
+
+async function buildDialogWithFont(r, template, owner, proc, instance, wide, child, fontHandle) {
+  const font = fontHandle ? describeGdiFont(r, fontHandle) : null;
+  const units = measureDialogUnits(font);
+  const mapX = (value) => dialogX(units, value),
+    mapY = (value) => dialogY(units, value);
   const frame = child ? { border: 0, title: 0 } : windowFrame(template.style);
   const customClass =
     template.className && ![32770, 0x8002, '#32770', '32770'].includes(template.className);
   const created = await createWindowFromHost(r, {
     className: customClass ? template.className : DIALOG_CLASS,
     title: template.title || '',
-    x: template.x === 0x8000 ? 40 : dialogUnitsToPixels(template.x),
-    y: template.y === 0x8000 ? 40 : dialogUnitsToPixels(template.y),
-    width: Math.max(1, dialogUnitsToPixels(template.cx)) + 2 * frame.border,
-    height: Math.max(1, dialogUnitsToPixels(template.cy)) + frame.title + 2 * frame.border,
+    x: template.x === 0x8000 ? 40 : mapX(template.x),
+    y: template.y === 0x8000 ? 40 : mapY(template.y),
+    width: Math.max(1, mapX(template.cx)) + 2 * frame.border,
+    height: Math.max(1, mapY(template.cy)) + frame.title + 2 * frame.border,
     parent: owner,
     owner: !child,
     style: template.style & ~0x10000000,
@@ -238,8 +285,15 @@ export async function buildDialog(r, template, owner, proc, instance, wide = fal
     proc,
     wide,
   });
-  if (created.error !== undefined || !created.id) return { error: created.error ?? 1407 };
+  if (created.error !== undefined || !created.id) {
+    if (fontHandle) gdiApis['gdi32.dll!DeleteObject'](r, () => fontHandle);
+    return { error: created.error ?? 1407 };
+  }
   const window = r.windows.windows.get(created.id);
+  window.dialogBaseUnits = units;
+  window.dialogResourceFont = fontHandle;
+  window.fontHandle = fontHandle;
+  window.font = font;
   window.dialogProc = proc;
   window.customDialogClass = !!customClass;
   if (window.extra.byteLength >= 8) window.extra.setUint32(4, proc, true);
@@ -257,10 +311,10 @@ export async function buildDialog(r, template, owner, proc, instance, wide = fal
     const child = await createWindowFromHost(r, {
       className: item.className,
       title: item.text,
-      x: dialogUnitsToPixels(item.x),
-      y: dialogUnitsToPixels(item.y),
-      width: Math.max(1, dialogUnitsToPixels(item.width)),
-      height: Math.max(1, dialogUnitsToPixels(item.height)),
+      x: mapX(item.x),
+      y: mapY(item.y),
+      width: Math.max(1, mapX(item.width)),
+      height: Math.max(1, mapY(item.height)),
       parent: created.id,
       controlId: item.id,
       style: item.style | 0x10000000,
@@ -273,7 +327,9 @@ export async function buildDialog(r, template, owner, proc, instance, wide = fal
       dialogState(r).byWindow.delete(created.id);
       return { error: child.error };
     }
+    if (fontHandle) await r.windows.send(child.id, 0x30, fontHandle, 0);
   }
+  if (fontHandle) await r.windows.send(created.id, 0x30, fontHandle, 0);
   return { dialog, window: created };
 }
 

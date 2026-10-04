@@ -1,3 +1,4 @@
+import { dialogX, dialogY } from './dialog-units.js';
 import { receiveDroppedFiles } from './win32-drop-files.js';
 import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
@@ -15,7 +16,13 @@ import {
 } from './win32-controls.js';
 import { encodeAnsi } from './encoding.js';
 import { sendWindowMessage } from './win32-window-text.js';
-import { gdiApis, flushGdi, resizeWindowSurface, destroyWindowSurface } from './win32-gdi.js';
+import {
+  gdiApis,
+  describeGdiFont,
+  flushGdi,
+  resizeWindowSurface,
+  destroyWindowSurface,
+} from './win32-gdi.js';
 import {
   describeWindowMenu,
   MENU_BAR_HEIGHT,
@@ -557,6 +564,8 @@ export class WindowManager {
     if (this.active === hwnd) this.active = 0;
     if (this.capture === hwnd) this.capture = 0;
     destroyWindowSurface(this.runtime, hwnd);
+    if (window.dialogResourceFont)
+      gdiApis['gdi32.dll!DeleteObject'](this.runtime, () => window.dialogResourceFont);
     this.windows.delete(hwnd);
     this.runtime.dialogs?.byWindow.delete(hwnd);
     this.wake?.();
@@ -569,6 +578,8 @@ export class WindowManager {
     this.timers.clear();
     for (const window of this.windows.values()) {
       destroyWindowSurface(this.runtime, window.id);
+      if (window.dialogResourceFont)
+        gdiApis['gdi32.dll!DeleteObject'](this.runtime, () => window.dialogResourceFont);
       this.emit(window, 'destroy');
     }
     this.windows.clear();
@@ -2132,6 +2143,15 @@ async function dispatchDialogMessage(r, window, message, wp, lp, wide) {
       return handled;
     return window.extra.byteLength >= 4 ? window.extra.getUint32(0, true) : 0;
   }
+  if (message === 0x31) return window.fontHandle || 0;
+  if (message === 0x30) {
+    const font = wp ? describeGdiFont(r, wp) : null;
+    if (wp && !font) return 0;
+    window.fontHandle = wp;
+    window.font = font;
+    r.windows.emit(window);
+    return 0;
+  }
   if (message === 0x14) {
     // Wine's DefDlgProc asks the application for WM_CTLCOLORDLG first, then
     // fills the client with the default dialog brush if it returns zero.
@@ -2164,15 +2184,15 @@ function mapDialogRect(r, a) {
   if (!pointer) return r.windows.fail(87, 2);
   r.check(pointer, 16, true);
   const rect = [0, 4, 8, 12].map((i) => r.read32(pointer + i) | 0);
-  const values = [mapX(rect[0]), mapY(rect[1]), mapX(rect[2]), mapY(rect[3])];
+  const units = window.dialogBaseUnits;
+  const values = [
+    dialogX(units, rect[0]),
+    dialogY(units, rect[1]),
+    dialogX(units, rect[2]),
+    dialogY(units, rect[3]),
+  ];
   values.forEach((value, i) => r.write32(pointer + i * 4, value));
   return result(1, 2);
-}
-function mapX(value) {
-  return Math.round((value * 8) / 4);
-}
-function mapY(value) {
-  return Math.round((value * 16) / 8);
 }
 // SendDlgItemMessageA/W forwards a message to the identified child control, the
 // same way SendMessage does after a GetDlgItem.

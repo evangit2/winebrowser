@@ -1,5 +1,6 @@
 import { buildDialog, initializeDialog, readDialogTemplate, runDialog } from './win32-dialogs.js';
 import { createWindowFromHost, registerHostWindowProcedure, windowApis } from './win32-windows.js';
+import { dialogX, dialogY } from './dialog-units.js';
 import { readPEResource } from './pe-resources.js';
 
 // PE32 PROPSHEETHEADER V1 is 40 bytes; PROPSHEETPAGE V1 is 40 bytes.
@@ -142,7 +143,11 @@ async function ensurePage(r, sheet, index) {
   }
   page.hwnd = built.dialog.id;
   // Property pages sit above the tab control's body, as sibling native windows.
-  await windowApis['user32.dll!SetWindowPos'](r, (i) => [page.hwnd, 0, 0, 0, 0, 0, 0x13][i]);
+  const units = r.windows.windows.get(sheet.id).dialogBaseUnits;
+  await windowApis['user32.dll!SetWindowPos'](
+    r,
+    (i) => [page.hwnd, 0, dialogX(units, 8), dialogY(units, 24), 0, 0, 0x11][i],
+  );
   await initializeDialog(r, built.dialog, page.pointer, false);
   return page;
 }
@@ -362,17 +367,25 @@ async function propertySheet(r, pointer, wide) {
     const cx = Math.max(160, ...pages.map((p) => p.template.cx)) + 16,
       cy = Math.max(80, ...pages.map((p) => p.template.cy)) + 50;
     const callback = flags & 0x100 ? r.read32(pointer + 36) : 0;
-    const header = r.allocate(24);
+    const resourceFont = pages[0].template.font;
+    const fontFace = resourceFont?.value || 'MS Sans Serif';
+    const headerSize = 24 + (resourceFont ? 2 + (fontFace.length + 1) * 2 : 0);
+    const header = r.allocate(headerSize);
     let template;
     try {
-      r.data.fill(0, header, header + 24);
-      r.write32(header, 0x90c80080);
+      r.data.fill(0, header, header + headerSize);
+      r.write32(header, 0x90c80080 | (resourceFont ? 0x40 : 0));
+      if (resourceFont) {
+        r.view.setUint16(header + 24, resourceFont.size, true);
+        for (let i = 0; i < fontFace.length; i++)
+          r.view.setUint16(header + 26 + i * 2, fontFace.charCodeAt(i), true);
+      }
       r.view.setUint16(header + 10, 20, true);
       r.view.setUint16(header + 12, 20, true);
       r.view.setUint16(header + 14, cx, true);
       r.view.setUint16(header + 16, cy, true);
       if (callback) await r.callGuest(callback, [0, 2, header]);
-      template = readDialogTemplate(r.data.slice(header, header + 24));
+      template = readDialogTemplate(r.data.slice(header, header + headerSize));
     } finally {
       r.free(header);
     }
@@ -400,14 +413,17 @@ async function propertySheet(r, pointer, wide) {
       modeless: !!(flags & 0x400),
       tab: 0,
     };
-    r.windows.windows.get(sheet.id).propertySheet = sheet;
+    const sheetWindow = r.windows.windows.get(sheet.id);
+    sheetWindow.propertySheet = sheet;
+    const mapX = (value) => dialogX(sheetWindow.dialogBaseUnits, value),
+      mapY = (value) => dialogY(sheetWindow.dialogBaseUnits, value);
     for (const page of pages) page.sheet = sheet.id;
     const tab = await createWindowFromHost(r, {
       className: 'SysTabControl32',
-      x: 8,
-      y: 8,
-      width: cx * 2 - 16,
-      height: (cy - 22) * 2,
+      x: mapX(4),
+      y: mapY(4),
+      width: mapX(cx - 8),
+      height: mapY(cy - 22),
       parent: sheet.id,
       style: 0x50010000,
       controlId: TAB,
@@ -415,6 +431,7 @@ async function propertySheet(r, pointer, wide) {
     });
     if (tab.error) throw new PropertySheetFailure('Property tab creation failed', tab.error);
     sheet.tab = tab.id;
+    if (sheetWindow.fontHandle) await r.windows.send(tab.id, 0x30, sheetWindow.fontHandle, 0);
     for (let i = 0; i < pages.length; i++) {
       const item = r.allocate(28),
         title = r.allocString(pages[i].title, wide);
@@ -434,10 +451,10 @@ async function propertySheet(r, pointer, wide) {
       const button = await createWindowFromHost(r, {
         className: 'BUTTON',
         title,
-        x: cx * 2 - (actions.length - i) * 92 - 8,
-        y: cy * 2 - 36,
-        width: 84,
-        height: 28,
+        x: mapX(cx - (actions.length - i) * 46 - 4),
+        y: mapY(cy - 18),
+        width: mapX(42),
+        height: mapY(14),
         parent: sheet.id,
         style: 0x50010000 | (id === 1 ? 1 : 0),
         controlId: id,
@@ -445,6 +462,7 @@ async function propertySheet(r, pointer, wide) {
       });
       if (button.error)
         throw new PropertySheetFailure('Property button creation failed', button.error);
+      if (sheetWindow.fontHandle) await r.windows.send(button.id, 0x30, sheetWindow.fontHandle, 0);
     }
     updateApply(r, sheet);
     if (sheet.modeless) {

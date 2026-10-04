@@ -67,3 +67,19 @@ This covers bounded ANSI Find Next and Replace All. RichEdit, single Replace,
 advanced matching, encodings and options remain unverified. Acceptance evidence
 is in `evidence/metapad-find-browser-results.json`; no Metapad executable is
 published.
+
+Native resource dialogs now create and propagate real `HFONT` handles from
+classic `FONT` and extended weight/italic/charset fields before
+`WM_INITDIALOG`. Dialog and control dimensions use the selected font's measured
+alphabet width and line height; `MapDialogRect` uses the same per-dialog base
+units. Property-sheet tabs/buttons use sheet units and inherit its font.
+Resource-owned fonts are released after dialog children, including failed
+creation and runtime disposal. Native replacement fonts retain caller ownership.
+
+`npm run test:dialog-fonts` executes an authored PE32 fixture that checks A/W
+resource font attributes with `GetObjectW`, child `WM_GETFONT`, actual control
+geometry, fontless units, destruction and modal callbacks. Browser assertions
+also verify bold italic caption/edit rendering. This uses host Canvas metrics
+and font substitution at 96dpi; exact Windows rasterization, per-monitor DPI
+and mixed-font page sizing remain unproved. Evidence:
+`evidence/dialog-fonts-browser-results.json`.

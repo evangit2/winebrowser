@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-04T13:15:56.968Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "bd827eb0ef1b066fe5c5b19c049163d8856f6cac1f00b75f3de0e5748073811d",
+  "compiledBlocks": 1977,
+  "x86TranslationMs": 234.9099998474121,
+  "checks": [
+    "Native A classic and W extended dialog resources create real HFONTs before WM_INITDIALOG; GetObjectW preserves logical height, face, weight, italic and charset",
+    "Child WM_GETFONT agrees with the dialog font; actual browser caption and edit use bold italic 15px text",
+    "Native MapDialogRect agrees with child position and dimensions and dialog client size; fontless dialogs retain default units",
+    "Native GetObjectW rejects resource font handles after DestroyWindow; modal callbacks and closure return exit zero"
+  ],
+  "scope": "Resource fonts use host Canvas metrics and font substitution at 96dpi; pixel-identical Windows font rasterization, per-monitor DPI and mixed-font property sheet sizing are not proven."
+}
