@@ -1387,7 +1387,9 @@ export class VirtualDesktop {
     }
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
     if (state.progress || state.report)
-      applyReportControl(control.element, state, (type, data) => this.#emit(control.id, type, data));
+      applyReportControl(control.element, state, (type, data) =>
+        this.#emit(control.id, type, data),
+      );
     if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);
