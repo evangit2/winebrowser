@@ -165,5 +165,15 @@ zero exit. The authored fixture is reproducible with
 `npm run build:owner-buttons`; evidence is in
 `evidence/owner-buttons-browser-results.json`. The behavior follows
 [Wine's button procedure](https://github.com/wine-mirror/wine/blob/master/dlls/user32/button.c).
-Owner-drawn lists/menus, dynamic `BM_SETSTYLE`, exact native pointer/nonclient
+Owner-drawn menus, dynamic `BM_SETSTYLE`, exact native pointer/nonclient
 behavior and arbitrary GUI/DLL compatibility remain incomplete.
+
+`npm run test:owner-combos` uploads the authored unchanged ANSI/Unicode PE32
+fixture and checks fixed/raw sorted dropdown lists, variable editable dropdowns
+and simple combos. The native EXE asserts text/item measurements, callback
+structures, raw item data, real child HWNDs, list subclass forwarding, fonts,
+clipped HDCs, notification ordering and deletion. Chromium verifies popup clicks
+outside the parent, selection/focus/disabled pixels, F4/Escape, Unicode input,
+native text setters, resize, reset and destruction. Evidence is in
+`evidence/owner-combos-browser-results.json`. Only project-authored MIT source
+and its reproducible EXE are included; no Hamsterball assets are published.

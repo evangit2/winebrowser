@@ -805,3 +805,27 @@ test('window properties and registered messages round-trip through the window ma
   await call(r, 'user32.dll!DestroyWindow', [hwnd]);
   await call(r, 'user32.dll!DestroyWindow', [other]);
 });
+
+test('GetClassName preserves registered case, ANSI/Unicode conversion, truncation and buffer bounds', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address, { name: 'CaféΩClass', wide: true });
+  const hwnd = (await createWindow(r, atom)).result,
+    out = r.allocate(40);
+  for (const wide of [false, true]) {
+    const name = `user32.dll!GetClassName${wide ? 'W' : 'A'}`;
+    r.data.fill(0x77, out, out + 40);
+    assert.deepEqual(await call(r, name, [hwnd, out, 5]), { result: 4, argc: 3 });
+    assert.equal(wide ? r.wideString(out) : r.string(out), 'Café');
+    assert.equal(r.data[out + 5 * (wide ? 2 : 1)], 0x77);
+    assert.deepEqual(await call(r, name, [hwnd, out, 1]), { result: 0, argc: 3 });
+    assert.equal(r.data[out], 0);
+    r.data[out] = 0x77;
+    assert.deepEqual(await call(r, name, [hwnd, out, 0]), { result: 0, argc: 3 });
+    assert.equal(r.data[out], 0x77);
+    assert.deepEqual(await call(r, name, [hwnd, out, 20]), { result: 10, argc: 3 });
+    assert.equal(wide ? r.wideString(out) : r.string(out), wide ? 'CaféΩClass' : 'Café?Class');
+    assert.deepEqual(await call(r, name, [0, out, 20]), { result: 0, argc: 3 });
+    assert.equal(r.lastError, 1400);
+  }
+});

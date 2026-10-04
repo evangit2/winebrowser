@@ -1,5 +1,6 @@
 import { dialogX, dialogY } from './dialog-units.js';
 import { receiveDroppedFiles } from './win32-drop-files.js';
+import { paintOwnerCombo, writeComboInfo } from './win32-combos.js';
 import { paintOwnerList } from './win32-owner-lists.js';
 import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
@@ -97,6 +98,11 @@ function readRect(r, pointer) {
   if (!pointer) return null;
   r.check(pointer, 16);
   return [0, 4, 8, 12].map((offset) => r.read32(pointer + offset) | 0);
+}
+function equalRect(r, a) {
+  const first = readRect(r, a(0)),
+    second = readRect(r, a(1));
+  return result(first && second && first.every((v, i) => v === second[i]) ? 1 : 0, 2);
 }
 function ptInRect(r, a) {
   const rect = readRect(r, a(0));
@@ -323,6 +329,8 @@ export class WindowManager {
         visible,
         parentId,
         controlType,
+        comboHostId: window.comboHostId,
+        comboPopup: !!window.comboHostId && this.windows.get(window.comboHostId)?.comboType !== 1,
         controlBorder: border,
         enabled,
         acceptFiles: !!(window.exStyle & 0x10),
@@ -470,9 +478,11 @@ export class WindowManager {
   }
   async baseControlMessage(window, message, wParam, lParam, textWide) {
     if (window.ownerDraw && message === 0xf)
-      return window.controlType === 'listbox'
-        ? paintOwnerList(this.runtime, window)
-        : paintOwnerDraw(this.runtime, window);
+      return window.controlType === 'combobox'
+        ? paintOwnerCombo(this.runtime, window)
+        : window.controlType === 'listbox'
+          ? paintOwnerList(this.runtime, window)
+          : paintOwnerDraw(this.runtime, window);
     if (message === 0xf && window.controlType !== 'custom')
       clearControlDrawing(this.runtime, window.id, window.invalid);
     if (message === 0xf && colorControl(window)) return paintControlColors(this.runtime, window);
@@ -1162,6 +1172,19 @@ async function create(r, a, wide) {
     height: Math.max(0, height - titleHeight - 2 * border),
     parentId,
     controlType,
+    comboRequestedHeight: controlType === 'combobox' ? requestedHeight : undefined,
+    comboHostId: cls.comboList && m.windows.get(parentId)?.ownerDraw ? parentId : undefined,
+    comboEditHostId:
+      controlType === 'edit' &&
+      m.windows.get(parentId)?.controlType === 'combobox' &&
+      m.windows.get(parentId)?.ownerDraw
+        ? parentId
+        : undefined,
+    list:
+      cls.comboList && m.windows.get(parentId)?.ownerDraw
+        ? m.windows.get(parentId).list
+        : undefined,
+    fontHandle: cls.comboList ? m.windows.get(parentId)?.fontHandle : 0,
     // EDIT attributes the browser input path needs to filter typed text.
     multiline: !!control.multiline,
     uppercase: !!control.uppercase,
@@ -1663,6 +1686,12 @@ for (const wide of [false, true]) {
   windowApis[`user32.dll!GetWindowTextLength${suffix}`] = async (r, a) =>
     result(await r.windows.send(a(0), 0xe), 1);
   Object.assign(windowApis, {
+    'user32.dll!GetComboBoxInfo': (r, a) => {
+      const w = r.windows.windows.get(a(0));
+      if (!w || w.controlType !== 'combobox') return r.windows.fail(1400, 2);
+      if (!w.ownerDraw) return r.windows.fail(120, 2);
+      return result(writeComboInfo(r, w, a(1)), 2);
+    },
     [`user32.dll!GetClassInfo${suffix}`]: (r, a) => classInfo(r, a, wide),
     [`user32.dll!UnregisterClass${suffix}`]: (r, a) => classInfo(r, a, wide, true),
     [`user32.dll!RegisterClass${suffix}`]: (r, a) => register(r, a, wide, false),
@@ -1862,6 +1891,7 @@ Object.assign(windowApis, {
     r.windows.timers.delete(key);
     return result(1, 2);
   },
+  'user32.dll!EqualRect': equalRect,
   'user32.dll!PtInRect': ptInRect,
   'user32.dll!InflateRect': inflateRect,
   'user32.dll!OffsetRect': offsetRect,

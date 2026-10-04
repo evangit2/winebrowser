@@ -317,7 +317,9 @@ export function resizeWindowSurface(
   // Browser controls supply their own default painting. Only guest drawing
   // covers it; untouched pixels must leave native text/input visible.
   const controlOverlay =
-    !!window.controlType && window.controlType !== 'custom' && !window.ownerDraw;
+    !!window.controlType &&
+    window.controlType !== 'custom' &&
+    (!window.ownerDraw || window.controlType === 'combobox');
   const pixels = controlOverlay
     ? new Uint8ClampedArray(width * height * 4)
     : opaquePixels(width, height);

@@ -381,3 +381,29 @@ test('popup menu return-command, WM_COMMAND, cancellation and disabled items fol
     [10, 0x212, 1, 0],
   ]);
 });
+
+test('EqualRect compares all signed RECT fields, preserves buffers and uses the PE32 ABI', (t) => {
+  const r = runtime();
+  t.after(() => {
+    r.windows.dispose();
+    r.cpu.dispose();
+  });
+  const first = r.allocate(20),
+    second = r.allocate(20);
+  const values = [-70000, 90000, -4, 10];
+  values.forEach((v, i) => {
+    r.write32(first + i * 4, v);
+    r.write32(second + i * 4, v);
+  });
+  r.write32(first + 16, 0xfeed);
+  r.write32(second + 16, 0xbeef);
+  assert.deepEqual(call(r, 'user32.dll!EqualRect', first, second), { result: 1, argc: 2 });
+  for (let i = 0; i < 4; i++) {
+    r.write32(second + i * 4, values[i] + 1);
+    assert.deepEqual(call(r, 'user32.dll!EqualRect', first, second), { result: 0, argc: 2 });
+    r.write32(second + i * 4, values[i]);
+  }
+  assert.deepEqual(call(r, 'user32.dll!EqualRect', first, 0), { result: 0, argc: 2 });
+  assert.equal(r.read32(first + 16), 0xfeed);
+  assert.equal(r.read32(second + 16), 0xbeef);
+});

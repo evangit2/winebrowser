@@ -1,4 +1,5 @@
 import { compareWindowOrder } from './window-frame.js';
+import { encodeAnsi } from './encoding.js';
 const result = (value, argc) => ({ result: value >>> 0, argc });
 
 // Compare UTF-16 code units without full Unicode expansions (e.g. ß -> SS).
@@ -50,6 +51,28 @@ function find(r, a, wide, extended) {
 }
 
 export const windowFindApis = {};
+for (const wide of [false, true])
+  windowFindApis[`user32.dll!GetClassName${wide ? 'W' : 'A'}`] = (r, a) => {
+    const w = r.windows.windows.get(a(0));
+    if (!w) return r.windows.fail(1400, 3);
+    const count = a(2) | 0,
+      out = a(1);
+    if (count <= 0) return result(0, 3);
+    if (!out) return r.windows.fail(87, 3);
+    const text = w.cls.originalName ?? w.cls.name;
+    if (wide) {
+      const value = text.slice(0, count - 1);
+      r.check(out, (value.length + 1) * 2, true);
+      for (let i = 0; i <= value.length; i++)
+        r.guestMemory.write(out + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
+      return result(value.length, 3);
+    }
+    const bytes = encodeAnsi(text).bytes.subarray(0, count - 1);
+    r.check(out, bytes.length + 1, true);
+    r.data.set(bytes, out);
+    r.guestMemory.write(out + bytes.length, 0, 1);
+    return result(bytes.length, 3);
+  };
 for (const wide of [false, true])
   for (const extended of [false, true]) {
     windowFindApis[`user32.dll!FindWindow${extended ? 'Ex' : ''}${wide ? 'W' : 'A'}`] = (r, a) =>

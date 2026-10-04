@@ -465,3 +465,16 @@
   border-left: 1px solid #888;
   border-right: 1px solid #eee;
 }
+
+.virtual-desktop-control-owner-combo {
+  background: white;
+}
+.virtual-desktop-combo-arrow {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  padding: 0;
+  font: inherit;
+}

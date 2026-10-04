@@ -1,4 +1,10 @@
 import {
+  ownerComboMessage,
+  syncComboSelection,
+  COMBO_TOGGLE,
+  COMBO_DISMISS,
+} from './win32-combos.js';
+import {
   maxListTop,
   listItemHeight,
   listItemY,
@@ -42,6 +48,9 @@ export function describeList(w) {
     itemHeight: s.itemHeight,
     top: s.top,
     comboType: w.comboType,
+    dropped: !!w.comboDropped,
+    comboTextHeight: w.comboTextHeight,
+    comboHostId: w.comboHostId,
     textLimit: w.textLimit ?? 32767,
     selection: { start: w.selectionStart ?? 0, end: w.selectionEnd ?? 0 },
     tabStops: w.controlType === 'listbox' && w.style & 0x80 ? (s.tabStops ?? []) : undefined,
@@ -84,6 +93,10 @@ async function choose(r, w, index) {
   if (w.ownerDraw) revealListItem(w, index);
   if (w.controlType === 'combobox') w.title = s.items[index]?.text ?? '';
   r.windows.emit(w);
+  if (w.ownerDraw && w.controlType === 'combobox') {
+    await syncComboSelection(r, w);
+    return index;
+  }
   if (w.ownerDraw) {
     if (w.invalid || oldTop !== s.top) await paintOwnerList(r, w);
     else {
@@ -97,6 +110,10 @@ async function choose(r, w, index) {
       );
     }
   }
+  if (w.comboHostId) {
+    const combo = r.windows.windows.get(w.comboHostId);
+    if (combo) await syncComboSelection(r, combo);
+  }
   return index;
 }
 function notify(r, w, code) {
@@ -104,6 +121,14 @@ function notify(r, w, code) {
 }
 export function listInput(r, w, event) {
   const s = list(w);
+  if (event.type === 'combo-toggle') {
+    r.windows.post(w.id, COMBO_TOGGLE, 0, 0);
+    return true;
+  }
+  if (event.type === 'combo-dismiss') {
+    r.windows.post(w.id, COMBO_DISMISS, 0, 0);
+    return true;
+  }
   if (event.type === 'list-scroll') {
     if (Number.isInteger(event.top) && event.top >= 0)
       r.windows.post(w.id, USER_SCROLL, event.top, 0);
@@ -180,8 +205,12 @@ const listOps = new Map([
 export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cls.wide) {
   const s = list(w),
     combo = w.controlType === 'combobox';
+  if (combo && w.ownerDraw) {
+    const handled = await ownerComboMessage(r, w, message, wp, lp, wide);
+    if (handled !== null) return handled;
+  }
   if (w.ownerDraw && message === 1) {
-    if (!w.ownerVariable) s.itemHeight = await measureListItem(r, w, -1, 0);
+    if (!w.ownerVariable && !w.comboHostId) s.itemHeight = await measureListItem(r, w, -1, 0);
     return 0;
   }
   if (w.ownerDraw && message === 0x82) {
@@ -198,7 +227,7 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     updateList(r, w);
     return 0;
   }
-  if (w.ownerDraw && message === 0x100) {
+  if (w.ownerDraw && !combo && message === 0x100) {
     if (!r.windows.isEnabled(w.id) || !s.items.length) return 0;
     let index = s.caret;
     if (wp === 0x28) index++;
@@ -260,9 +289,24 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     if (!r.windows.isEnabled(w.id)) return 0;
     const index = wp | 0;
     if (index < 0 || index >= s.items.length) return 0;
-    if (index === s.selected) return 0;
+    if (index === s.selected) {
+      if (w.comboHostId) {
+        w.comboCommit = true;
+        try {
+          await notify(r, w, 1);
+        } finally {
+          w.comboCommit = false;
+        }
+      }
+      return 0;
+    }
     await choose(r, w, index);
-    if (combo || w.style & 1) await notify(r, w, 1); // CBN_SELCHANGE/LBN_SELCHANGE
+    w.comboCommit = !!w.comboHostId;
+    try {
+      if (combo || w.style & 1) await notify(r, w, 1);
+    } finally {
+      w.comboCommit = false;
+    } // CBN_SELCHANGE/LBN_SELCHANGE
     return 0;
   }
   if (message === USER_TEXT) {

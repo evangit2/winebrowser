@@ -1,3 +1,4 @@
+import { ownerComboMessage } from './win32-combos.js';
 import { describeGdiFont } from './win32-gdi.js';
 import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
@@ -14,6 +15,7 @@ const kinds = new Map([
   ['edit', 'edit'],
   ['systreeview32', 'treeview'],
   ['listbox', 'listbox'],
+  ['combolbox', 'listbox'],
   ['combobox', 'combobox'],
   ['systabcontrol32', 'tabcontrol'],
   ['msctls_statusbar32', 'statusbar'],
@@ -25,16 +27,19 @@ export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
   return kind
     ? {
-        name: kind,
+        name: name.toLowerCase() === 'combolbox' ? 'combolbox' : kind,
+        comboList: name.toLowerCase() === 'combolbox',
         originalName:
-          {
-            treeview: 'SysTreeView32',
-            tabcontrol: 'SysTabControl32',
-            statusbar: 'msctls_statusbar32',
-            toolbar: 'ToolbarWindow32',
-            progress: 'msctls_progress32',
-            listview: 'SysListView32',
-          }[kind] ?? kind.toUpperCase(),
+          name.toLowerCase() === 'combolbox'
+            ? 'ComboLBox'
+            : ({
+                treeview: 'SysTreeView32',
+                tabcontrol: 'SysTabControl32',
+                statusbar: 'msctls_statusbar32',
+                toolbar: 'ToolbarWindow32',
+                progress: 'msctls_progress32',
+                listview: 'SysListView32',
+              }[kind] ?? kind.toUpperCase()),
         controlType: kind,
         wide,
         proc: 0,
@@ -90,7 +95,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'button' && (local & 0xc0) === 0xc0)
     throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
   const ownerDraw =
-    (kind === 'listbox' && !!(local & 0x30)) ||
+    (['listbox', 'combobox'].includes(kind) && !!(local & 0x30)) ||
     (kind === 'static' && (local & 0x1f) === 0xd) ||
     buttonType === 'owner-draw';
   if (kind === 'static' && (local & ~0x29f || ![0, 1, 2, 0xc, 0xd].includes(local & 0x1f)))
@@ -108,9 +113,9 @@ export function controlStyle(kind, style, extended) {
     if (local & 0x2000 && local & 0x4 && local & 0x1000)
       throw Error('ES_NUMBER with multiline requires ES_AUTOHSCROLL');
   }
-  if (kind === 'combobox' && (![1, 2, 3].includes(local & 3) || local & ~0x6f43))
+  if (kind === 'combobox' && (![1, 2, 3].includes(local & 3) || local & ~0x6f73))
     throw Error('Unsupported ComboBox style');
-  if (kind === 'listbox' && local & ~0x1f3) throw Error('Unsupported ListBox style');
+  if (kind === 'listbox' && local & ~0x81f3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
@@ -120,8 +125,11 @@ export function controlStyle(kind, style, extended) {
     throw Error('Only text report ListView styles are supported');
   return {
     ownerDraw,
-    ownerVariable: kind === 'listbox' && !!(local & 0x20) && !(local & 0x10),
-    hasStrings: kind !== 'listbox' || !ownerDraw || !!(local & 0x40),
+    ownerVariable: ['listbox', 'combobox'].includes(kind) && !!(local & 0x20) && !(local & 0x10),
+    hasStrings:
+      !['listbox', 'combobox'].includes(kind) ||
+      !ownerDraw ||
+      !!(local & (kind === 'combobox' ? 0x200 : 0x40)),
     comboType: kind === 'combobox' ? local & 3 : 0,
     sorted: kind === 'combobox' ? !!(local & 0x100) : kind === 'listbox' && !!(local & 2),
     noWordWrap: kind === 'static' && (local & 0x1f) === 0xc,
@@ -306,6 +314,28 @@ async function ownerButtonMessage(r, window, message, wp, lp) {
 }
 
 export async function controlMessage(r, window, message, wp, lp, fallback, wide) {
+  if (window.controlType === 'combobox' && window.ownerDraw && message !== 0x30)
+    return listMessage(r, window, message, wp, lp, fallback, wide);
+  if (window.comboEditHostId) {
+    const combo = r.windows.windows.get(window.comboEditHostId);
+    if (
+      combo &&
+      [0x100, 0x104].includes(message) &&
+      ([0x73, 0x26, 0x28, 0x21, 0x22].includes(wp) ||
+        (combo.comboDropped && [0xd, 0x1b].includes(wp)))
+    ) {
+      const handled = await ownerComboMessage(r, combo, message, wp, lp, wide);
+      if (handled !== null) return handled;
+    }
+    if (
+      combo?.comboDropped &&
+      message === 0x87 &&
+      lp &&
+      r.read32(lp + 4) === 0x100 &&
+      [0xd, 0x1b].includes(r.read32(lp + 8))
+    )
+      return 0x8d;
+  }
   if (window.controlType === 'button' && window.ownerDraw) {
     const handled = await ownerButtonMessage(r, window, message, wp, lp);
     if (handled !== null) return handled;
@@ -321,6 +351,8 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     window.font = font;
     r.windows.emit(window);
     if (window.ownerDraw) r.windows.invalidate(window, null, true);
+    if (window.controlType === 'combobox' && window.ownerDraw)
+      await ownerComboMessage(r, window, message, wp, lp, wide);
     return 0;
   }
   if (message === 0x31) return window.fontHandle;

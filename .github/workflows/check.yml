@@ -102,6 +102,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owner-buttons
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-clipping
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owner-lists
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owner-combos
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:legacy-text
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:statusbar
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:resource-bitmaps

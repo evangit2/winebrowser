@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-04T22:51:26.058Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "a5f90e948213daa669318eca7953fa84a1fdc10a9704bddcb1850a25fe3d9ed3",
+  "compiledBlocks": 318,
+  "x86TranslationMs": 100.00499993562698,
+  "checks": [
+    "Unchanged ANSI/Unicode PE32 owner-drawn combos compile and execute inside Chromium",
+    "Native text/row measurement, sorted raw data, Unicode, real edit/list HWNDs, list subclass, clipped drawing and lifecycle assertions pass",
+    "Real pixels confirm selection, focus, disabled colors, variable rows and popup outside its parent",
+    "Mouse/keyboard selection, F4, Escape, editable input, native text setters, resize, reset and destruction exit zero"
+  ],
+  "scope": "Fixed/variable owner-drawn dropdown-list, editable dropdown and simple combo boxes. Universal Windows compatibility remains incomplete."
+}

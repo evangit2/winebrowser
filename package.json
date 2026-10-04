@@ -284,7 +284,9 @@
     "build:gdi-clipping": "sh scripts/build-gdi-clipping-fixture.sh",
     "test:gdi-clipping": "node scripts/test-gdi-clipping-browser.mjs",
     "build:owner-lists": "sh scripts/build-owner-lists-fixture.sh",
-    "test:owner-lists": "node scripts/test-owner-lists-browser.mjs"
+    "test:owner-lists": "node scripts/test-owner-lists-browser.mjs",
+    "build:owner-combos": "sh scripts/build-owner-combos-fixture.sh",
+    "test:owner-combos": "node scripts/test-owner-combos-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

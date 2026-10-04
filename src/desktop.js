@@ -35,6 +35,18 @@ export class VirtualDesktop {
       )
         this.#closeMenu();
     });
+    container.ownerDocument.addEventListener(
+      'pointerdown',
+      (event) => {
+        for (const combo of this.windows.values()) {
+          if (!combo.ownerCombo || !combo.listState?.dropped) continue;
+          const popup = [...this.windows.values()].find((w) => w.comboHostId === combo.id);
+          if (!combo.container.contains(event.target) && !popup?.container.contains(event.target))
+            this.#emit(combo.id, 'combo-dismiss');
+        }
+      },
+      { capture: true },
+    );
     container.classList.add('virtual-desktop');
     if (!container.hasAttribute('tabindex')) container.tabIndex = 0;
     container.addEventListener('keydown', this.onKeyDown);
@@ -156,7 +168,7 @@ export class VirtualDesktop {
         .filter((w) => w.isControl && w.parentId === parent)
         .sort(compareWindowOrder);
       children.forEach((w, i) => {
-        w.container.style.zIndex = String(children.length - i);
+        w.container.style.zIndex = w.comboPopup ? '10000' : String(children.length - i);
       });
     }
   }
@@ -215,6 +227,8 @@ export class VirtualDesktop {
     window.resizeHandle.hidden = !resizable;
     window.viewport.style.width = `${window.width}px`;
     window.viewport.style.height = `${window.height}px`;
+    for (const popup of this.windows.values())
+      if (popup.comboPopup) this.#applyControlGeometry(popup);
   }
 
   #applyIcon(window, icon) {
@@ -643,6 +657,29 @@ export class VirtualDesktop {
           element.style.background = 'transparent';
         }
       }
+    } else if (controlType === 'combobox' && state.controlStyle?.ownerDraw) {
+      element = document.createElement('div');
+      element.className = 'virtual-desktop-control virtual-desktop-control-owner-combo';
+      element.tabIndex = 0;
+      element.setAttribute('role', 'combobox');
+      element.setAttribute('aria-label', state.title || 'Choices');
+      element.setAttribute('aria-haspopup', 'listbox');
+      if (state.list?.comboType === 3)
+        element.addEventListener('click', () => {
+          if (control.enabled) this.#emit(control.id, 'combo-toggle');
+        });
+      if (state.list?.comboType !== 1) {
+        const arrow = document.createElement('button');
+        arrow.type = 'button';
+        arrow.textContent = '▾';
+        arrow.className = 'virtual-desktop-combo-arrow';
+        arrow.setAttribute('aria-label', `Open ${state.title || 'choices'}`);
+        arrow.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (control.enabled) this.#emit(control.id, 'combo-toggle');
+        });
+        element.append(arrow);
+      }
     } else if (
       controlType === 'listbox' &&
       (state.list?.ownerDraw || state.list?.drag || state.list?.tabStops !== undefined)
@@ -836,7 +873,11 @@ export class VirtualDesktop {
     element.dataset.controlType = controlType;
     element.addEventListener('pointerdown', (event) => {
       event.stopPropagation();
-      this.#focus(control);
+      if (control.comboPopup) {
+        event.preventDefault();
+        const host = this.windows.get(control.comboHostId);
+        if (host) this.#focus(host);
+      } else this.#focus(control);
       if (
         control.controlType === 'button' &&
         control.controlStyle?.ownerDraw &&
@@ -854,7 +895,9 @@ export class VirtualDesktop {
       if (control.controlType === 'button' && control.controlStyle?.ownerDraw)
         this.#emit(control.id, 'button-cancel');
     });
-    element.addEventListener('focusin', () => this.#focus(control));
+    element.addEventListener('focusin', () =>
+      this.#focus(control.comboPopup ? this.windows.get(control.comboHostId) : control),
+    );
     element.addEventListener('mousemove', (event) => {
       event.stopPropagation();
       this.#sendMouse(control, 'mousemove', event);
@@ -873,9 +916,21 @@ export class VirtualDesktop {
         )
           event.preventDefault();
         if (
-          controlType === 'button' &&
-          control.controlStyle?.ownerDraw &&
-          [' ', 'Enter'].includes(event.key)
+          ((controlType === 'button' && control.controlStyle?.ownerDraw) ||
+            control.ownerCombo ||
+            control.comboPopup) &&
+          [
+            ' ',
+            'Enter',
+            'Escape',
+            'F4',
+            'ArrowDown',
+            'ArrowUp',
+            'PageDown',
+            'PageUp',
+            'Home',
+            'End',
+          ].includes(event.key)
         )
           event.preventDefault();
         // Chromium on macOS interprets Control+H as delete-backward inside
@@ -908,6 +963,7 @@ export class VirtualDesktop {
       listSelect,
       listEdit,
       tabList,
+      ownerCombo: controlType === 'combobox' && !!state.controlStyle?.ownerDraw,
       canvas,
       context: canvas?.getContext('2d', { alpha: false }),
       container,
@@ -920,12 +976,20 @@ export class VirtualDesktop {
       enabled: true,
     };
     // Native newly created child windows start below their existing siblings.
-    parent.viewport.prepend(container);
+    if (state.comboPopup) this.container.append(container);
+    else parent.viewport.prepend(container);
     this.#applyControlState(control, state);
     return control;
   }
 
   #applyList(control, list) {
+    if (control.ownerCombo) {
+      control.listState = list;
+      control.element.setAttribute('aria-expanded', String(!!list.dropped));
+      const arrow = control.element.querySelector('.virtual-desktop-combo-arrow');
+      if (arrow) arrow.disabled = !control.enabled;
+      return;
+    }
     if (control.tabList) {
       control.element.tabIndex = control.enabled ? 0 : -1;
       control.element.setAttribute('aria-disabled', String(!control.enabled));
@@ -1447,7 +1511,8 @@ export class VirtualDesktop {
       applyReportControl(control.element, state, (type, data) =>
         this.#emit(control.id, type, data),
       );
-    if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
+    if (state.list && (control.listSelect || control.tabList || control.ownerCombo))
+      this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);
     if (control.controlType === 'toolbar' && state.toolbar)
@@ -1461,21 +1526,35 @@ export class VirtualDesktop {
     if (state.controlStyle !== undefined) control.controlStyle = state.controlStyle;
     if (state.font !== undefined) control.font = state.font;
     const parent = this.windows.get(control.parentId) ?? control.parent;
-    if (parent && parent !== control.parent) parent.viewport.append(control.container);
+    if (state.comboPopup !== undefined) control.comboPopup = !!state.comboPopup;
+    if (state.comboHostId !== undefined) control.comboHostId = state.comboHostId;
+    if (parent && parent !== control.parent && !control.comboPopup)
+      parent.viewport.append(control.container);
     control.parent = parent;
     control.zOrder = state.zOrder ?? control.zOrder ?? 0;
     this.#applyControlGeometry(control);
   }
 
   #applyControlGeometry(control) {
+    let x = control.x,
+      y = control.y;
+    if (control.comboPopup && control.parent) {
+      const origin = control.parent.viewport.getBoundingClientRect(),
+        desktop = this.container.getBoundingClientRect();
+      x += origin.left - desktop.left - this.container.clientLeft;
+      y += origin.top - desktop.top - this.container.clientTop;
+    }
     Object.assign(control.container.style, {
-      left: `${control.x}px`,
-      top: `${control.y}px`,
+      left: `${x}px`,
+      top: `${y}px`,
       width: `${control.width}px`,
       height: `${control.height}px`,
     });
     Object.assign(control.element.style, { left: '0', top: '0', width: '100%', height: '100%' });
     control.viewport.style.inset = `${control.controlBorder ?? 0}px`;
+    if (!control.comboPopup)
+      for (const popup of this.windows.values())
+        if (popup.comboPopup) this.#applyControlGeometry(popup);
   }
 
   #moveDrag(event) {

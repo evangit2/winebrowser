@@ -1,4 +1,9 @@
+import { comboFocused } from './win32-combos.js';
 import { gdiApis, flushGdi, clearControlDrawing } from './win32-gdi.js';
+
+export function ownerListHost(r, w) {
+  return w.comboHostId ? (r.windows.windows.get(w.comboHostId) ?? w) : w;
+}
 
 export function listItemHeight(w, index) {
   return w.ownerVariable ? (w.list.items[index]?.height ?? w.list.itemHeight) : w.list.itemHeight;
@@ -11,6 +16,7 @@ export function listItemY(w, index) {
   return index < w.list.top ? -y : y;
 }
 export function maxListTop(w) {
+  w = w.comboListWindow ?? w;
   if (!w.ownerVariable)
     return Math.max(0, w.list.items.length - Math.max(1, Math.floor(w.height / w.list.itemHeight)));
   let remaining = w.height,
@@ -20,6 +26,7 @@ export function maxListTop(w) {
   return Math.max(0, index);
 }
 export function revealListItem(w, index) {
+  w = w.comboListWindow ?? w;
   if (index < 0) return;
   if (index < w.list.top) w.list.top = index;
   while (w.list.top < index && listItemY(w, index) + listItemHeight(w, index) > w.height)
@@ -27,34 +34,54 @@ export function revealListItem(w, index) {
   w.list.top = Math.min(w.list.top, maxListTop(w));
 }
 export function updateList(r, w) {
+  if (w.comboListWindow) {
+    updateList(r, w.comboListWindow);
+    r.windows.emit(w);
+    if (!w.destroying) r.windows.invalidate(w, null, true);
+    return;
+  }
   if (w.ownerDraw) w.list.top = Math.min(w.list.top, maxListTop(w));
   r.windows.emit(w);
+  if (w.comboHostId) {
+    const host = ownerListHost(r, w);
+    r.windows.emit(host);
+    if (!host.destroying) r.windows.invalidate(host, null, true);
+  }
   if (w.ownerDraw && !w.destroying) r.windows.invalidate(w, null, true);
 }
 export async function measureListItem(r, w, index, data) {
+  const host = ownerListHost(r, w);
   const p = r.allocate(24);
   try {
-    [2, w.controlId, index, 0, w.list.itemHeight, data].forEach((v, i) => r.write32(p + i * 4, v));
-    await r.windows.send(w.parentId, 0x2c, w.controlId, p);
+    [
+      host.controlType === 'combobox' ? 3 : 2,
+      host.controlId,
+      index,
+      host.controlType === 'combobox' ? host.width : 0,
+      w.list.itemHeight,
+      data,
+    ].forEach((v, i) => r.write32(p + i * 4, v));
+    await r.windows.send(host.parentId, 0x2c, host.controlId, p);
     return Math.max(1, Math.min(256, r.read32(p + 16)));
   } finally {
     r.free(p);
   }
 }
 export async function compareListItem(r, w, index, data) {
+  const host = ownerListHost(r, w);
   const p = r.allocate(32);
   try {
     [
-      2,
-      w.controlId,
-      w.id,
+      host.controlType === 'combobox' ? 3 : 2,
+      host.controlId,
+      host.id,
       index,
       w.list.items[index].data,
       -1,
       data,
       w.list.locale ?? 0x409,
     ].forEach((v, i) => r.write32(p + i * 4, v));
-    return (await r.windows.send(w.parentId, 0x39, w.controlId, p)) | 0;
+    return (await r.windows.send(host.parentId, 0x39, host.controlId, p)) | 0;
   } finally {
     r.free(p);
   }
@@ -62,10 +89,13 @@ export async function compareListItem(r, w, index, data) {
 export async function deleteListItem(r, w, index, item) {
   if (!w.ownerDraw || item.deleting) return;
   item.deleting = true;
+  const host = ownerListHost(r, w);
   const p = r.allocate(20);
   try {
-    [2, w.controlId, index, w.id, item.data].forEach((v, i) => r.write32(p + i * 4, v));
-    await r.windows.send(w.parentId, 0x2d, w.controlId, p);
+    [host.controlType === 'combobox' ? 3 : 2, host.controlId, index, host.id, item.data].forEach(
+      (v, i) => r.write32(p + i * 4, v),
+    );
+    await r.windows.send(host.parentId, 0x2d, host.controlId, p);
   } finally {
     r.free(p);
   }
@@ -75,6 +105,7 @@ export async function deleteListItem(r, w, index, item) {
 // Save/restore isolates callback state and bounds drawing to the visible item.
 export async function paintOwnerList(r, w, action = 1, indices = null) {
   if (w.listPainting || w.destroying || !r.windows.windows.has(w.id)) return 0;
+  const host = ownerListHost(r, w);
   w.listPainting = true;
   const top = Math.min(w.list.top, maxListTop(w));
   if (top !== w.list.top) {
@@ -120,14 +151,18 @@ export async function paintOwnerList(r, w, action = 1, indices = null) {
           Math.min(w.height, y + height),
         );
         [
-          2,
-          w.controlId,
+          host.controlType === 'combobox' ? 3 : 2,
+          host.controlId,
           index,
           action,
           (index === w.list.selected && index >= 0 ? 1 : 0) |
             (!r.windows.isEnabled(w.id) ? 4 : 0) |
-            (r.windows.focus === w.id && index === w.list.caret ? 16 : 0),
-          w.id,
+            ((r.windows.focus === w.id ||
+              (w.comboHostId && host.comboDropped && comboFocused(r, host))) &&
+            index === w.list.caret
+              ? 16
+              : 0),
+          host.id,
           dc,
           0,
           y,
@@ -135,7 +170,7 @@ export async function paintOwnerList(r, w, action = 1, indices = null) {
           y + height,
           item?.data ?? 0,
         ].forEach((v, i) => r.write32(p + i * 4, v));
-        await r.windows.send(w.parentId, 0x2b, w.controlId, p);
+        await r.windows.send(host.parentId, 0x2b, host.controlId, p);
       } finally {
         call('gdi32.dll!RestoreDC', dc, saved);
       }
