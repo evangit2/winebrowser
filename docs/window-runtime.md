@@ -216,7 +216,8 @@ The public GUI showcase exposes these through Demo → Settings.
 The authored property sheet EXE/DLL acceptance covers real native vetoes and
 callbacks. Wizard flows, dynamic page insertion/removal, page icons/help/RTL,
 activation contexts and remaining property sheet messages are explicitly
-unsupported. Metapad still has unresolved imports; this does not claim it runs.
+unsupported. Metapad now resolves its static imports but remains blocked during
+startup; this does not claim a usable editor.
 
 Profile APIs (`Get/WritePrivateProfileStringA/W`, section/name enumeration,
 integer reads and win.ini aliases) read and write real shared guest files.
@@ -272,3 +273,12 @@ invokes it but returns zero because the device cannot start a print job.
 invalid DCs fail. These contracts do not provide printer DCs, spool jobs, driver
 loading, browser printing or exported PDF output. Run `npm run test:printerless`
 for native EXE callback and modal-warning acceptance.
+
+`LoadAcceleratorsA/W` reads every compiler-generated PE shortcut record,
+including initial entries with zero flags, and strips the final-entry marker
+from the runtime table. The old parser wrongly required that marker on each
+entry and rejected Metapad's 96-shortcut resource immediately. Native browser
+acceptance now exercises a character shortcut, a Ctrl virtual-key shortcut and
+the final Alt+Shift virtual-key shortcut. Run
+`npm run test:accelerator-resources`; resource tables use 8-byte PE records,
+while `CreateAcceleratorTable` retains the 6-byte runtime ACCEL layout.

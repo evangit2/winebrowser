@@ -103,6 +103,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-objects
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:font-dialog
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:find-dialogs
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:accelerator-resources
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:printerless
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:drop-files
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:property-sheet

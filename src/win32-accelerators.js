@@ -2,8 +2,9 @@
 // synchronously, using the same callback dispatcher as SendMessage.
 import { readPEResource } from './pe-resources.js';
 
-// RT_ACCELERATOR is a flat array of ACCEL records: a byte of flags, a byte of
-// padding, then the 16-bit key and 16-bit command.
+// Runtime ACCEL records use a flags byte plus padding, key and command (6
+// bytes). PE RT_ACCELERATOR records contain flags/key/command/padding WORDs
+// (8 bytes); flag 0x80 marks the last entry.
 const RT_ACCELERATOR = 9;
 const result = (value, argc) => ({ result: value >>> 0, argc });
 function fail(r, error, argc) {
@@ -81,13 +82,13 @@ function loadAccelerators(r, a, wide) {
   const entries = [];
   for (let n = 0; n < count; n++) {
     const at = n * 8;
-    const flags = bytes[at];
-    if (!(flags & 0x80)) break; // A zero flags byte ends the table.
+    const flags = bytes[at] | (bytes[at + 1] << 8);
     entries.push({
-      flags: bytes[at],
+      flags: flags & ~0x80,
       key: bytes[at + 2] | (bytes[at + 3] << 8),
       command: bytes[at + 4] | (bytes[at + 5] << 8),
     });
+    if (flags & 0x80) break;
   }
   if (!entries.length) return fail(r, 1414, 2);
   const handle = r.windows.nextAccelerator++;

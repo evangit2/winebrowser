@@ -1,30 +1,21 @@
 {
-  "date": "2026-10-04T09:44:44.971Z",
+  "date": "2026-10-04T10:26:09Z",
   "target": "Metapad 3.6 Light Edition, official native i386 binary",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
   "upstreamSource": "https://github.com/alexd/metapad",
-  "status": "blocked-imports",
-  "missingImports": [
-    "gdi32.dll!EndDoc",
-    "gdi32.dll!SetAbortProc",
-    "gdi32.dll!StartPage",
-    "gdi32.dll!EndPage",
-    "gdi32.dll!AbortDoc",
-    "gdi32.dll!StartDocA",
-    "comdlg32.dll!PageSetupDlgA",
-    "comdlg32.dll!PrintDlgA",
-    "advapi32.dll!IsTextUnicode",
-    "shell32.dll!DragQueryFileA",
-    "shell32.dll!DragFinish"
-  ],
+  "status": "blocked-runtime-startup",
+  "missingImports": [],
   "sourceFindings": [
     "Upstream Find/Replace dialogs call CreateMappedBitmap with flags 0 and the default color map",
     "Upstream CreateToolbarEx uses common-control standard small-color assets and adds custom bitmaps",
     "Native FindTextA/ReplaceTextA imports now resolve through shared modeless dialogs; custom templates and subclass forwarding pass separate authored native EXE/DLL acceptance",
     "CreateToolbarEx imports now resolve. Shared standard/custom bitmap strips, TB_CHECKBUTTON/TB_ENABLEBUTTON and native command callbacks pass authored EXE/DLL acceptance; unchanged Metapad execution remains blocked by other imports.",
     "PropertySheetA imports now resolve. Classic modal/modeless native pages, DLL resources, callbacks, Apply/Cancel validation and keyboard navigation pass authored EXE/DLL acceptance. Metapad remains blocked and has not been executed.",
-    "GetPrivateProfileStringA/WritePrivateProfileStringA imports now resolve through shared file-backed INI services. Native Unicode EXE/DLL settings, direct ReadFile coherence, exported output and re-uploaded public GUI settings pass browser acceptance. Metapad remains blocked by 11 imports and has not executed."
+    "GetPrivateProfileStringA/WritePrivateProfileStringA imports now resolve through shared file-backed INI services. Native Unicode EXE/DLL settings, direct ReadFile coherence, exported output and re-uploaded public GUI settings pass browser acceptance. Metapad remains blocked by 11 imports and has not executed.",
+    "All 173 static imports resolve after shared HDROP, IsTextUnicode and printerless contracts. Genuine native/browser fixtures verify dropped-file reads and accurate no-printer notices; printing is not available.",
+    "Unchanged Metapad executed CRT startup and created its main native window. Its 96-entry accelerator resource exposed an inverted last-entry marker check; the shared parser fix passes a real compiler-generated shortcut resource."
   ],
-  "scope": "Static import audit and source inspection only. The unchanged editor has not passed execution acceptance. Its remaining dependencies and full editing workflow remain unverified; no upstream binary is published with this record."
+  "scope": "Static import graph and actual Chromium startup probe of the pinned unchanged native executable. Imports resolve, but startup is still blocked; editing, save/reopen and full GUI workflows have not passed acceptance. The upstream binary remains privately cached and is not published.",
+  "runtimeBlocker": "After accelerator loading, Metapad attempts to create a hidden WS_EX_CLIENTEDGE EDIT at 0x0 dimensions. The current window creation path rejects that size; subsequent calls use an invalid HWND and the app shows an error before exiting. Editor acceptance remains unproved."
 }

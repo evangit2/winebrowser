@@ -259,7 +259,9 @@
     "build:drop-files": "sh scripts/build-drop-files-fixture.sh",
     "test:drop-files": "node scripts/test-drop-files-browser.mjs",
     "build:printerless": "sh scripts/build-printerless-fixture.sh",
-    "test:printerless": "node scripts/test-printerless-browser.mjs"
+    "test:printerless": "node scripts/test-printerless-browser.mjs",
+    "build:accelerator-resources": "sh scripts/build-accelerator-resources-fixture.sh",
+    "test:accelerator-resources": "node scripts/test-accelerator-resources-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

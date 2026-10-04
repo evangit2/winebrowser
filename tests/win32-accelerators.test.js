@@ -89,3 +89,25 @@ test('non-virtual Alt accelerators consume ordinary context-marked keydown befor
   assert.equal((await call('TranslateAcceleratorA', hwnd, table, msg)).result, 1);
   assert.equal(calls.length, 1);
 });
+
+test('compiler-generated PE tables load zero-flag first records and retain the final marked record', async (t) => {
+  const bytes = new Uint8Array(
+    await readFile('tests/fixtures/accelerator-resources/accelerator-resources.exe'),
+  );
+  const r = new Runtime(iced, {
+    files: new Map([['accelerator-resources.exe', bytes]]),
+    exe: 'accelerator-resources.exe',
+  });
+  t.after(() => r.windows.dispose());
+  const call = (name, ...args) => r.apiProvider.get('user32.dll!' + name)(r, (i) => args[i] ?? 0);
+  const a = call('LoadAcceleratorsA', r.pe.imageBase, 201).result;
+  assert.ok(a);
+  assert.equal(call('LoadAcceleratorsW', r.pe.imageBase, 201).result, a);
+  assert.deepEqual(r.windows.accelerators.get(a), [
+    { flags: 0, key: 120, command: 10 },
+    { flags: 11, key: 65, command: 11 },
+    { flags: 23, key: 90, command: 12 },
+  ]);
+  assert.equal(call('LoadAcceleratorsA', r.pe.imageBase, 999).result, 0);
+  assert.equal(r.lastError, 1414);
+});

@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-04T10:27:41.238Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "4a51a905e603f8ecf4bbf1c2157e1c4c089b025f7b5d132cbe9ab87185eca005",
+  "compiledBlocks": 50,
+  "x86TranslationMs": 19.74499997496605,
+  "checks": [
+    "Real windres PE accelerator table loads all entries, including a zero-flag initial character shortcut and final marked shortcut",
+    "Character, Ctrl virtual-key and Alt+Shift virtual-key accelerators invoke native WM_COMMAND with accelerator notification",
+    "ANSI/Unicode resource loads share the table and the unchanged native fixture exits zero"
+  ],
+  "scope": "Authored native resource regression; menu-state accelerator suppression and arbitrary editor workflows remain unverified."
+}
