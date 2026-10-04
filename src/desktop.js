@@ -498,6 +498,45 @@ export class VirtualDesktop {
       resizeHandle,
     };
 
+    // Events bubble from native child controls. Deliver a file drop to the
+    // nearest accepting window, using that window's client coordinates.
+    const dropTarget = (event) => {
+      let target =
+        this.windows.get(Number(event.target.closest('[data-window-id]')?.dataset.windowId)) ??
+        window;
+      while (target && !target.acceptFiles) target = this.windows.get(target.parentId);
+      return target && this.#available(target) ? target : null;
+    };
+    viewport.addEventListener('dragover', (event) => {
+      if (dropTarget(event) && [...(event.dataTransfer?.types ?? [])].includes('Files')) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      }
+    });
+    viewport.addEventListener('drop', async (event) => {
+      const target = dropTarget(event),
+        files = [...(event.dataTransfer?.files ?? [])];
+      if (!target || !files.length) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (files.length > 2048 || files.reduce((sum, f) => sum + f.size, 0) > 128 * 1024 * 1024)
+        return;
+      const rect = (target.isControl ? target.element : target.canvas).getBoundingClientRect();
+      const border =
+        target.controlType === 'custom' || target.tabList ? (target.controlBorder ?? 0) : 0;
+      const x = Math.round(event.clientX - rect.left - border),
+        y = Math.round(event.clientY - rect.top - border);
+      try {
+        const inputs = await Promise.all(
+          files.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })),
+        );
+        if (this.windows.get(target.id) === target && target.acceptFiles && this.#available(target))
+          this.#emit(target.id, 'drop-files', { x, y, files: inputs });
+      } catch (error) {
+        console.error('Could not read dropped files', error);
+      }
+    });
+
     titlebar.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || event.target.closest('button')) return;
       this.#focus(window);
@@ -1107,6 +1146,7 @@ export class VirtualDesktop {
   }
 
   #applyControlState(control, state) {
+    control.acceptFiles = state.acceptFiles ?? control.acceptFiles ?? false;
     if (state.controlId !== undefined) control.element.dataset.controlId = String(state.controlId);
     if (state.title !== undefined) control.titleText = String(state.title);
     const noPrefix = state.noPrefix ?? state.controlStyle?.noPrefix;
@@ -1403,6 +1443,7 @@ export class VirtualDesktop {
       height: Number.isFinite(state.height) ? Math.max(1, state.height) : window.height,
       frame: state.frame ?? window.frame,
       isDialog: state.isDialog ?? window.isDialog,
+      acceptFiles: state.acceptFiles ?? window.acceptFiles ?? false,
       topmost: state.topmost ?? window.topmost ?? false,
       zOrder: state.zOrder ?? window.zOrder ?? ++this.nextZIndex,
     });

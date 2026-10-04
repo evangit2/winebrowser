@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T10:13:30.409Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "550d16ad2d24d03fe9de5e4e7d33726547369f4ab789233d13c29dbebd7848cc",
+  "compiledBlocks": 85,
+  "x86TranslationMs": 22.759999960660934,
+  "checks": [
+    "Browser File/DataTransfer drops deliver real Unicode HGLOBAL WM_DROPFILES to a native PE32 window",
+    "ANSI/Unicode filename count, length and bounded copy calls execute natively; POINT carries actual client coordinates",
+    "Native CreateFileW/ReadFile reads ASCII and UTF16 files; IsTextUnicode distinguishes them",
+    "DragAcceptFiles disables/re-enables drops, two batches stay isolated, DragFinish frees the allocation",
+    "Dropped input files do not become generated downloads"
+  ],
+  "scope": "Classic top-level/child file drops within the isolated package filesystem; directory dragging and OLE IDataObject drag/drop remain unsupported. Authored fixture does not establish arbitrary Windows compatibility."
+}

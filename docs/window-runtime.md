@@ -233,3 +233,25 @@ The public GUI settings workflow can export/re-upload `gui-settings.ini`.
 Registry IniFileMapping and complete locale-dependent profile parsing remain
 unimplemented. Native EXE/DLL settings acceptance tests UTF16 persistence,
 ReadFile coherence, repeated dialog creation, and exported content.
+
+Browser file drops now route to the nearest visible/enabled native window that
+has `WS_EX_ACCEPTFILES`, including acceptance toggled through `DragAcceptFiles`.
+The runtime imports each batch under a fresh `_dropped/` guest directory and
+queues a real `WM_DROPFILES` with a Unicode `HGLOBAL`/`DROPFILES` block. Native
+`DragQueryFileA/W` returns filename counts, lengths and clipped copies;
+`DragQueryPoint` exposes client coordinates, and `DragFinish` frees the block.
+ANSI blocks allocated by applications work too. Native `CreateFileW`/`ReadFile`
+reads the imported bytes through the same shared filesystem. Duplicate names
+cannot replace uploaded EXEs/DLLs; imported inputs become output downloads only
+if the application modifies them. Dropped batches use the existing package
+limits of 2,048 files and 128 MiB. Directory dragging and OLE `IDataObject`
+drag/drop remain unsupported. `npm run test:drop-files` exercises browser
+`File`/`DataTransfer`, the worker and native message callbacks; see the
+[acceptance record](../evidence/drop-files-browser-results.json).
+
+`IsTextUnicode`/`RtlIsTextUnicode` implements Wine's bounded text heuristic for
+BOMs, statistics, control characters, odd lengths and zero bytes, including
+requested/output flags. This detects text encoding; it does not transcode file
+contents or implement all of Windows' undocumented heuristics. The translated
+Wine function retains its LGPL-2.1-or-later notice in `src/win32-text-unicode.js`
+and uses the license distributed as `public/runtime/COPYING.LIB`.

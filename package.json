@@ -255,7 +255,9 @@
     "build:toolbar": "sh scripts/build-toolbar-fixture.sh",
     "test:toolbar": "node scripts/test-toolbar-browser.mjs",
     "build:property-sheet": "sh scripts/build-property-sheet-fixture.sh",
-    "test:property-sheet": "node scripts/test-property-sheet-browser.mjs"
+    "test:property-sheet": "node scripts/test-property-sheet-browser.mjs",
+    "build:drop-files": "sh scripts/build-drop-files-fixture.sh",
+    "test:drop-files": "node scripts/test-drop-files-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

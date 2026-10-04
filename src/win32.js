@@ -1,3 +1,5 @@
+import { textUnicodeApis } from './win32-text-unicode.js';
+import { dropFileApis } from './win32-drop-files.js';
 import { profileApis } from './win32-profile.js';
 import { printerApis } from './win32-printers.js';
 import { dragListApis } from './win32-draglist.js';
@@ -103,6 +105,8 @@ export const API_NAMES = {
 };
 
 for (const key of [
+  ...Object.keys(textUnicodeApis),
+  ...Object.keys(dropFileApis),
   ...Object.keys(printerApis),
   ...Object.keys(shellFolderApis),
   ...Object.keys(lzApis),
@@ -502,6 +506,8 @@ function closeHandle(runtime, argument) {
 /** Provide the explicitly supported Win32 imports for a single Runtime. */
 export function createWin32ApiProvider() {
   const provider = new Map([
+    ...Object.entries(textUnicodeApis),
+    ...Object.entries(dropFileApis),
     ...Object.entries(printerApis),
     ...Object.entries(shellFolderApis),
     ...Object.entries(lzApis),

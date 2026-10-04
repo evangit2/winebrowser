@@ -1,3 +1,4 @@
+import { receiveDroppedFiles } from './win32-drop-files.js';
 import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
 import { describeTabs } from './win32-tabs.js';
@@ -306,6 +307,7 @@ export class WindowManager {
         controlType,
         controlBorder: border,
         enabled,
+        acceptFiles: !!(window.exStyle & 0x10),
         controlStyle: controlType
           ? {
               ownerDraw: !!ownerDraw,
@@ -711,6 +713,10 @@ export class WindowManager {
       this.capture && pointerEvent && event.type !== 'wheel' ? this.capture : event.windowId;
     const window = this.windows.get(hwnd);
     if (!window || !this.isVisible(hwnd) || !this.isEnabled(hwnd)) return;
+    if (event.type === 'drop-files') {
+      receiveDroppedFiles(this.runtime, window, event);
+      return;
+    }
     // Remember the pointer in virtual-screen coordinates before any handler
     // may consume the event. GetCursorPos and ScreenToClient report this.
     if (pointerEvent) {
@@ -1061,7 +1067,7 @@ async function create(r, a, wide) {
   if (cls.controlType && !child) throw Error('Standard controls require a parent window');
   const controlType = cls.controlType ?? (child ? 'custom' : undefined);
   const control = child ? controlStyle(controlType, a(3), a(0)) : {};
-  if (!child && a(0) & ~0x40008) throw Error('Unsupported extended window style');
+  if (!child && a(0) & ~0x40018) throw Error('Unsupported extended window style');
   const count = [...m.windows.values()].filter((w) => !!w.parentId === child).length;
   if (count >= (child ? 256 : 8)) return m.fail(8, 12);
   const width = a(6) === 0x80000000 ? 480 : a(6) | 0,
