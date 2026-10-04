@@ -224,8 +224,8 @@ try {
   await expect
     .poll(() => notes.evaluate((el) => [el.selectionStart, el.selectionEnd]))
     .toEqual([0, 5]);
-  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
-  await window.getByRole('menuitem', { name: 'Replace...', exact: true }).click();
+  const toolbar = window.getByRole('toolbar');
+  await toolbar.getByRole('button', { name: 'Replace', exact: true }).click();
   await find.waitFor({ state: 'detached' });
   const replace = page.locator('.virtual-desktop-window').filter({
     has: page.locator('.virtual-desktop-title', { hasText: /^Replace$/ }),
@@ -235,12 +235,19 @@ try {
   await expect(notes).toHaveValue('beta alpha');
   await replace.getByRole('button', { name: 'Replace All', exact: true }).click();
   await expect(notes).toHaveValue('beta beta');
-  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
-  await window.getByRole('menuitem', { name: 'Undo', exact: true }).click();
+  await toolbar.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(notes).toHaveValue('beta alpha');
   await replace.getByRole('button', { name: 'Cancel', exact: true }).click();
   await replace.waitFor({ state: 'detached' });
   await status.getByText('Find/Replace closed; notes stay editable.', { exact: true }).waitFor();
+  await toolbar.getByRole('button', { name: 'Lock notes', exact: true }).click();
+  await expect(notes).toHaveJSProperty('readOnly', true);
+  await expect(toolbar.getByRole('button', { name: 'Lock notes', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await toolbar.getByRole('button', { name: 'Lock notes', exact: true }).click();
+  await expect(notes).toHaveJSProperty('readOnly', false);
   await window.screenshot({ path: '.scratch/gui-controls-search.png' });
   await window.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);
@@ -275,6 +282,7 @@ try {
       'Native menu Reset restores control state; close exits zero',
       'Public Appearance > Font opens the native ChooseFontA browser picker; Cancel preserves the font and Accept changes DOM control fonts and actual GDI child text color',
       'Public Notes > Find/Replace remains modeless; native search selects the DOM edit range, Replace/Replace All change actual notes and native Undo restores the previous edit',
+      'Native CreateToolbarEx quick actions render standard Wine icons; Replace/Undo dispatch actual EXE callbacks and the checked Lock notes action synchronizes edit/menu state',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
     scope:

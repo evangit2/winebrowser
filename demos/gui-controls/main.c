@@ -3,6 +3,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 static HWND tree, items, combo, status, canvas, priorities, pages, notes;
+static HWND toolbar, main_owner;
 static HTREEITEM root, first;
 static HFONT font;
 static COLORREF font_color=RGB(30,30,30);
@@ -18,6 +19,7 @@ static const char *priority_names[]={"Paint window", "Handle input", "Update con
 static void say(const char *text) { SendMessageA(status,SB_SETTEXTA,SBT_NOBORDERS,(LPARAM)text); }
 static void note_mode(HWND window,BOOL locked) {
   notes_locked=locked;
+  if(toolbar)SendMessageA(toolbar,TB_CHECKBUTTON,115,MAKELONG(locked,0));
   SendMessageA(notes,EM_SETREADONLY,locked,0);
   CheckMenuRadioItem(notes_menu,110,111,locked?111:110,MF_BYCOMMAND);
   MENUITEMINFOA info={0};info.cbSize=sizeof(info);info.fMask=MIIM_STRING;
@@ -121,7 +123,7 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
     if(fr->Flags&FR_REPLACEALL)replace_note(fr,TRUE);
     return 0;
   }
-  if(message==WM_SIZE&&status){SendMessageA(status,WM_SIZE,wp,lp);return 0;}
+  if(message==WM_SIZE&&status){SendMessageA(status,WM_SIZE,wp,lp);if(toolbar)SendMessageA(toolbar,TB_AUTOSIZE,0,0);return 0;}
   if(message==WM_NOTIFY && ((NMHDR*)lp)->hwndFrom==pages) {
     if(((NMHDR*)lp)->code==TCN_SELCHANGE) {
       int page=TabCtrl_GetCurSel(pages);
@@ -190,7 +192,7 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
       if(ChooseFontA(&choose)){
         HFONT selected=CreateFontIndirectA(&logical);if(!selected)ExitProcess(8);
         HFONT previous=font;font=selected;font_color=choose.rgbColors;
-        const int ids[]={10,11,20,21,22,30,31,32,40,50,60,61,62};
+        const int ids[]={10,11,20,21,22,30,31,32,40,50,60,61,62,63};
         for(unsigned i=0;i<sizeof(ids)/sizeof(ids[0]);i++)SendDlgItemMessageA(window,ids[i],WM_SETFONT,(WPARAM)font,TRUE);
         SendDlgItemMessageA(canvas,51,WM_SETFONT,(WPARAM)font,TRUE);InvalidateRect(canvas,NULL,TRUE);
         if(!DeleteObject(previous))ExitProcess(9);
@@ -199,10 +201,10 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
       else say("Font selection cancelled; the current font is unchanged.");
       return 0;
     }
-    if(id==110||id==111){
+    if(id==110||id==111||id==115){
       MENUITEMINFOA choice={0};choice.cbSize=sizeof(choice);choice.fMask=MIIM_DATA;
-      if(!GetMenuItemInfoA(notes_menu,id,FALSE,&choice))ExitProcess(6);
-      BOOL locked=choice.dwItemData==2;note_mode(window,locked);
+      if(id!=115&&!GetMenuItemInfoA(notes_menu,id,FALSE,&choice))ExitProcess(6);
+      BOOL locked=id==115?SendMessageA(toolbar,TB_ISBUTTONCHECKED,115,0)!=0:choice.dwItemData==2;note_mode(window,locked);
       TabCtrl_SetCurSel(pages,1);ShowWindow(priorities,SW_HIDE);ShowWindow(notes,SW_SHOW);SetFocus(notes);
       say(locked?"Notes are read-only. Select Editable to unlock them.":"Notes are editable. Your text is preserved.");return 0;
     }
@@ -215,6 +217,7 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
   return DefWindowProcA(window,message,wp,lp);
 }
 static HWND child(HWND window,HINSTANCE instance,const char *className,const char *title,DWORD style,int x,int y,int width,int height,UINT id) {
+  if(window==main_owner)y+=30;
   HWND result=CreateWindowExA((style&WS_BORDER)?WS_EX_CLIENTEDGE:0,className,title,WS_CHILD|WS_VISIBLE|WS_TABSTOP|(style&~WS_BORDER),x,y,width,height,window,(HMENU)id,instance,NULL);
   if(result)SendMessageA(result,WM_SETFONT,(WPARAM)font,TRUE);
   return result;
@@ -226,7 +229,7 @@ static HTREEITEM category(HTREEITEM parent,const char *text,LPARAM param) {
 }
 void start(void) {
   HINSTANCE instance=GetModuleHandleA(NULL);
-  INITCOMMONCONTROLSEX init={sizeof(init),ICC_TREEVIEW_CLASSES|ICC_TAB_CLASSES};InitCommonControlsEx(&init);
+  INITCOMMONCONTROLSEX init={sizeof(init),ICC_TREEVIEW_CLASSES|ICC_TAB_CLASSES|ICC_BAR_CLASSES};InitCommonControlsEx(&init);
   WNDCLASSA cls={0};cls.hInstance=instance;cls.lpfnWndProc=proc;cls.lpszClassName="GuiControlsDemo";cls.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1);cls.hCursor=LoadCursorA(NULL,IDC_ARROW);
   if(!RegisterClassA(&cls))ExitProcess(1);
   WNDCLASSA custom={0};custom.hInstance=instance;custom.lpfnWndProc=canvas_proc;
@@ -246,8 +249,17 @@ void start(void) {
   HMENU appearance=CreatePopupMenu();AppendMenuA(appearance,MF_STRING,120,"&Font...");AppendMenuA(menu,MF_POPUP,(UINT_PTR)appearance,"&Appearance");
   drag_message=RegisterWindowMessageA(DRAGLISTMSGSTRING);
   search_message=RegisterWindowMessageA(FINDMSGSTRINGA);
-  RECT rect={0,0,500,438};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
+  RECT rect={0,0,500,468};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
   HWND window=CreateWindowA(cls.lpszClassName,"Native GUI controls",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,menu,instance,NULL);if(!window)ExitProcess(2);
+  main_owner=window;
+  TBBUTTON tools[]={{STD_FIND,112,TBSTATE_ENABLED,BTNS_BUTTON,{0},0,-1},
+    {STD_REPLACE,113,TBSTATE_ENABLED,BTNS_BUTTON,{0},0,-1},
+    {STD_UNDO,114,TBSTATE_ENABLED,BTNS_BUTTON,{0},0,-1},
+    {8,0,TBSTATE_ENABLED,BTNS_SEP,{0},0,-1},
+    {STD_PROPERTIES,115,TBSTATE_ENABLED,BTNS_CHECK|BTNS_AUTOSIZE,{0},0,(INT_PTR)"Lock notes"}};
+  toolbar=CreateToolbarEx(window,WS_CHILD|WS_VISIBLE|TBSTYLE_FLAT|TBSTYLE_TOOLTIPS,63,15,HINST_COMMCTRL,IDB_STD_SMALL_COLOR,tools,sizeof(tools)/sizeof(tools[0]),24,24,16,16,sizeof(TBBUTTON));
+  if(!toolbar)ExitProcess(10);
+  SendMessageA(toolbar,WM_SETFONT,(WPARAM)font,TRUE);
   child(window,instance,"STATIC","Native Windows controls, running in your browser",SS_LEFTNOWORDWRAP,12,12,476,20,10);
   tree=child(window,instance,WC_TREEVIEWA,"Categories",WS_BORDER|TVS_HASBUTTONS|TVS_HASLINES|TVS_SHOWSELALWAYS,12,42,144,348,11);
   items=child(window,instance,"LISTBOX","Items",WS_BORDER|LBS_NOTIFY|LBS_SORT|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,42,152,108,20);

@@ -23,6 +23,10 @@ Find selects matching text; Replace changes that selection, Replace All updates
 every match, and Undo restores the last change. Match case, whole word and
 Up/Down control the sample's ASCII search; search wraps at the end. Notes are
 limited to 4095 characters, and the sample refuses replacements while locked.
+The native toolbar provides Find, Replace and Undo quick actions, plus a checked
+Lock notes button that follows the Notes menu and edit state. The runtime uses
+Wine's standard common-control icon strips; their LGPL source and notices are
+published separately in `public/runtime/toolbar/`.
 It needs no app-specific Wasm build: WineBrowser translates the executable's x86
 blocks to WebAssembly in the browser.
 
