@@ -220,6 +220,31 @@ export function iconForHandle(runtime, handle) {
   return icon ? { width: icon.width, height: icon.height, pixels: icon.pixels.slice() } : null;
 }
 
+// Shell namespace icons are owned by their caller, unlike cached LoadIcon
+// resources. Each result can be destroyed without invalidating another query.
+export function createOwnedIcon(runtime, icon) {
+  if (
+    !Number.isInteger(icon.width) ||
+    !Number.isInteger(icon.height) ||
+    icon.width < 1 ||
+    icon.height < 1 ||
+    icon.width > 256 ||
+    icon.height > 256 ||
+    !(icon.pixels instanceof Uint8Array) ||
+    icon.pixels.length !== icon.width * icon.height * 4
+  )
+    throw Error('Invalid owned icon');
+  const icons = state(runtime);
+  if (icons.handles.size >= MAX_ICONS) throw Error('Icon handle limit exceeded');
+  const handle = icons.next;
+  icons.next += 4;
+  icons.handles.set(
+    handle,
+    Object.freeze({ width: icon.width, height: icon.height, pixels: icon.pixels.slice() }),
+  );
+  return handle;
+}
+
 export const iconApis = {
   'user32.dll!LoadIconA': (runtime, argument) => loadIcon(runtime, argument, false),
   'user32.dll!LoadIconW': (runtime, argument) => loadIcon(runtime, argument, true),

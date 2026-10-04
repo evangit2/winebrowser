@@ -4,6 +4,7 @@
 import { readGuid } from './com.js';
 import { classRegistryKey, registryString } from './com-registry.js';
 import { guidApis } from './win32-guid.js';
+import { taskMemoryApis } from './win32-shell-folders.js';
 
 const E_POINTER = 0x80004003;
 const E_INVALIDARG = 0x80070057;
@@ -366,6 +367,7 @@ export const oleautApis = {
 };
 
 export const comApis = {
+  ...taskMemoryApis,
   ...guidApis,
   ...oleautApis,
   'ole32.dll!CoInitialize': (r, a) => initialize(r, a(0), 2, 1),

@@ -1,6 +1,7 @@
 import { ComObjects } from './com.js';
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
 import { createWindowFromHost } from './win32-windows.js';
+import { shellFileInfoApis } from './win32-shell-file-info.js';
 const ok = (result, argc) => ({ result: result >>> 0, argc });
 const states = new WeakMap();
 function state(r) {
@@ -12,7 +13,14 @@ function state(r) {
   return s;
 }
 function alloc(r, size) {
-  const p = r.allocate(Math.max(1, size));
+  if (size > 16 * 1024 * 1024) return 0;
+  let p;
+  try {
+    p = r.allocate(Math.max(1, size));
+  } catch (error) {
+    if (error.message === 'Guest heap exhausted') return 0;
+    throw error;
+  }
   state(r).allocations.add(p);
   return p;
 }
@@ -20,6 +28,38 @@ function free(r, p) {
   if (!p) return;
   if (state(r).allocations.delete(p)) r.free(p);
 }
+function realloc(r, old, size) {
+  if (!old) return alloc(r, size);
+  const s = state(r);
+  if (!s.allocations.has(old)) return 0;
+  if (!size) {
+    free(r, old);
+    return 0;
+  }
+  if (size > 16 * 1024 * 1024) return 0;
+  let next;
+  try {
+    next = r.reallocate(old, size);
+  } catch (error) {
+    if (error.message === 'Guest heap exhausted') return 0;
+    throw error;
+  }
+  if (next) {
+    s.allocations.delete(old);
+    s.allocations.add(next);
+  }
+  return next;
+}
+// Shell PIDLs, SHGetMalloc and COM's task allocator share ownership. A caller
+// may release a shell-allocated item through CoTaskMemFree or IMalloc::Free.
+export const taskMemoryApis = {
+  'ole32.dll!CoTaskMemAlloc': (r, a) => ok(alloc(r, a(0)), 1),
+  'ole32.dll!CoTaskMemRealloc': (r, a) => ok(realloc(r, a(0), a(1)), 2),
+  'ole32.dll!CoTaskMemFree': (r, a) => {
+    free(r, a(0));
+    return ok(0, 1);
+  },
+};
 function allocator(r) {
   const s = state(r);
   if (s.allocator?.refs) {
@@ -45,22 +85,7 @@ function allocator(r) {
       3: { argc: 2, invoke: (r, a) => alloc(r, a(1)) },
       4: {
         argc: 3,
-        invoke: (r, a) => {
-          const old = a(1),
-            size = a(2);
-          if (!old) return alloc(r, size);
-          if (!s.allocations.has(old)) return 0;
-          if (!size) {
-            free(r, old);
-            return 0;
-          }
-          const next = r.reallocate(old, size);
-          if (next) {
-            s.allocations.delete(old);
-            s.allocations.add(next);
-          }
-          return next;
-        },
+        invoke: (r, a) => realloc(r, a(1), a(2)),
       },
       5: {
         argc: 2,
@@ -199,6 +224,7 @@ async function browse(r, a, wide) {
   }
 }
 export const shellFolderApis = {
+  ...shellFileInfoApis,
   'shell32.dll!SHGetMalloc': (r, a) => {
     if (!a(0)) return ok(0x80004003, 1);
     r.check(a(0), 4, true);

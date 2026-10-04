@@ -184,6 +184,7 @@ function information(runtime, argument, set) {
   if (!opened) return complete(INVALID_HANDLE);
   const kind = argument(4) >>> 0;
   if (opened.kind === 'file-directory' && set && kind !== 4) return complete(NOT_SUPPORTED);
+  if (set && kind === 10) return complete(renameFile(runtime, opened, argument(2), argument(3)));
   if (set && kind === 4) {
     if (argument(3) < 40) return complete(0xc0000004);
     if (!checked(runtime, argument(2), 40)) return complete(ACCESS_VIOLATION);
@@ -292,6 +293,85 @@ function information(runtime, argument, set) {
     runtime.data[buffer + 21] = Number(opened.kind === 'file-directory');
   }
   return complete(SUCCESS, size);
+}
+
+// PE32 FILE_RENAME_INFORMATION: BOOLEAN at 0, HANDLE at 4, byte length at
+// 8 and counted UTF-16 name at 12. Atomic file rename within the guest volume.
+function renameFile(r, opened, buffer, size) {
+  if (size < 12) return 0xc0000004;
+  if (!checked(r, buffer, 12)) return ACCESS_VIOLATION;
+  const root = r.read32(buffer + 4),
+    length = r.read32(buffer + 8);
+  if (!length || length & 1 || length > 32766 || length > size - 12) return INVALID_PARAMETER;
+  if (!checked(r, buffer + 12, length)) return ACCESS_VIOLATION;
+  if (!((opened.ntAccess ?? opened.access) & 0x10000)) return ACCESS_DENIED;
+  const directory = root ? r.handles.get(root) : null;
+  if (root && directory?.kind !== 'file-directory') return INVALID_HANDLE;
+  let name = '';
+  for (let i = 0; i < length; i += 2)
+    name += String.fromCharCode(r.view.getUint16(buffer + 12 + i, true));
+  let to;
+  try {
+    to = resolveGuestPath(
+      name,
+      root
+        ? directory.path
+        : opened.path.includes('/')
+          ? opened.path.slice(0, opened.path.lastIndexOf('/'))
+          : '',
+    );
+  } catch {
+    return PATH_NOT_FOUND;
+  }
+  const from = opened.path;
+  if (to === from) return SUCCESS;
+  const parent = to.includes('/') ? to.slice(0, to.lastIndexOf('/')) : '';
+  if (!fileMetadata(r, parent).directory) return PATH_NOT_FOUND;
+  const info = fileMetadata(r, to),
+    exists = !info.status;
+  if (exists && info.directory) return ACCESS_DENIED;
+  if (exists && !r.data[buffer]) return 0xc0000035;
+  if (r.pendingFileDeletes?.has(from) || r.pendingFileDeletes?.has(to)) return 0xc0000056;
+  if (
+    r.fileSections?.canResize(from, 0) === false ||
+    (exists && r.fileSections?.canResize(to, 0) === false)
+  )
+    return ACCESS_DENIED;
+  for (const other of r.handles.values()) {
+    if (other !== opened && other.path === from && !((other.share ?? 7) & 4)) return 0xc0000043;
+    // Replacing an open target requires retained unnamed file objects. Until
+    // those exist, preserve its contents and fail with SHARING_VIOLATION.
+    if (other.path === to) return 0xc0000043;
+  }
+  const bytes = r.files.get(from);
+  r.files.delete(from);
+  r.files.set(to, bytes);
+  for (const map of [r.fileTimes, r.fileIds])
+    if (map) {
+      const value = map.get(from);
+      map.delete(from);
+      map.delete(to);
+      if (value !== undefined) map.set(to, value);
+    }
+  for (const handle of r.handles.values()) if (handle.path === from) handle.path = to;
+  for (const lock of r.fileLocks ?? []) if (lock.path === from) lock.path = to;
+  if (r.fileHardLinks) {
+    const target = r.fileHardLinks.get(to);
+    if (target) {
+      target.delete(to);
+      r.fileHardLinks.delete(to);
+    }
+    const source = r.fileHardLinks.get(from);
+    if (source) {
+      source.delete(from);
+      source.add(to);
+      r.fileHardLinks.delete(from);
+      r.fileHardLinks.set(to, source);
+    }
+  }
+  r.dirty.add(from);
+  r.dirty.add(to);
+  return SUCCESS;
 }
 
 export function fileShareConflict(runtime, path, access, share) {

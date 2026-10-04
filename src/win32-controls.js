@@ -4,6 +4,8 @@ import { treeMessage, treeInput } from './win32-treeview.js';
 import { tabMessage, tabInput } from './win32-tabs.js';
 import { statusbarMessage } from './win32-statusbar.js';
 import { toolbarMessage, toolbarInput } from './win32-toolbar.js';
+import { progressMessage } from './win32-progress.js';
+import { listviewMessage, listviewInput } from './win32-listview.js';
 export const EDIT_INPUT = 0x7fc0;
 
 const kinds = new Map([
@@ -16,6 +18,8 @@ const kinds = new Map([
   ['systabcontrol32', 'tabcontrol'],
   ['msctls_statusbar32', 'statusbar'],
   ['toolbarwindow32', 'toolbar'],
+  ['msctls_progress32', 'progress'],
+  ['syslistview32', 'listview'],
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
@@ -28,6 +32,8 @@ export function builtinControlClass(name, wide) {
             tabcontrol: 'SysTabControl32',
             statusbar: 'msctls_statusbar32',
             toolbar: 'ToolbarWindow32',
+            progress: 'msctls_progress32',
+            listview: 'SysListView32',
           }[kind] ?? kind.toUpperCase(),
         controlType: kind,
         wide,
@@ -106,6 +112,9 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
   if (kind === 'toolbar' && local & 0x80) throw Error('Unsupported vertical toolbar style');
+  if (kind === 'progress' && local & ~0x19) throw Error('Unsupported progress style');
+  if (kind === 'listview' && ((local & 3) !== 1 || local & ~0xc00d))
+    throw Error('Only text report ListView styles are supported');
   return {
     ownerDraw,
     comboType: kind === 'combobox' ? local & 3 : 0,
@@ -365,6 +374,10 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     return statusbarMessage(r, window, message, wp, lp, fallback, wide);
   if (window.controlType === 'toolbar')
     return toolbarMessage(r, window, message, wp, lp, fallback, wide);
+  if (window.controlType === 'progress')
+    return progressMessage(r, window, message, wp, lp, fallback);
+  if (window.controlType === 'listview')
+    return listviewMessage(r, window, message, wp, lp, fallback);
   if (['combobox', 'listbox'].includes(window.controlType))
     return listMessage(r, window, message, wp, lp, fallback, wide);
   const value = await fallback();
@@ -400,6 +413,7 @@ export function controlInput(r, window, event) {
   if (window.controlType === 'treeview' && treeInput(r, window, event)) return true;
   if (window.controlType === 'tabcontrol' && tabInput(r, window, event)) return true;
   if (window.controlType === 'toolbar' && toolbarInput(r, window, event)) return true;
+  if (window.controlType === 'listview' && listviewInput(r, window, event)) return true;
   if (event.type === 'command' && window.controlType === 'button') {
     if (r.windows.isControlSubclass(window)) {
       r.windows.post(window.id, 0xf5);
