@@ -237,17 +237,11 @@ function getDC(runtime, argument, controlColorCallback = false) {
     const window = runtime.windows?.windows?.get(hwnd);
     if (!window) return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
     if (
-      !controlColorCallback &&
-      window.controlType &&
-      window.controlType !== 'custom' &&
-      !window.ownerDraw
-    )
-      return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 1);
-    if (
       !state.windowSurfaces.has(hwnd) &&
       !resizeWindowSurface(runtime, hwnd, window.width, window.height)
     )
       return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 1);
+    if (!controlColorCallback) state.windowSurfaces.get(hwnd).publicDrawing = true;
   }
   const allocated = allocateHandle(runtime, state, 1);
   if (!allocated.result) return allocated;
@@ -267,8 +261,8 @@ function getDC(runtime, argument, controlColorCallback = false) {
   return allocated;
 }
 
-// This borrowed child HDC exists only during native WM_CTLCOLOR callbacks.
-// General GetDC painting on DOM controls still needs a visible drawing bridge.
+// Native color callbacks borrow a DC without promoting their scratch bitmap
+// to a persistent public GetDC drawing surface.
 export function acquireControlColorDC(runtime, hwnd) {
   return getDC(runtime, () => hwnd, true).result;
 }
@@ -316,7 +310,13 @@ export function resizeWindowSurface(
     width * height;
   if (totalPixels > MAX_TOTAL_SURFACE_PIXELS) return false;
 
-  const pixels = opaquePixels(width, height);
+  // Browser controls supply their own default painting. Only guest drawing
+  // covers it; untouched pixels must leave native text/input visible.
+  const controlOverlay =
+    !!window.controlType && window.controlType !== 'custom' && !window.ownerDraw;
+  const pixels = controlOverlay
+    ? new Uint8ClampedArray(width * height * 4)
+    : opaquePixels(width, height);
   if (oldSurface && preserveContents) {
     const copyWidth = Math.min(width, oldSurface.width);
     const copyHeight = Math.min(height, oldSurface.height);
@@ -326,10 +326,53 @@ export function resizeWindowSurface(
       pixels.set(oldSurface.pixels.subarray(oldOffset, oldOffset + copyWidth * 4), newOffset);
     }
   }
-  const surface = { width, height, pixels, dirty: !!oldSurface?.dirty || redraw, windowId: hwnd };
+  const surface = {
+    width,
+    height,
+    pixels,
+    dirty: !!oldSurface?.dirty || redraw,
+    windowId: hwnd,
+    controlOverlay,
+    publicDrawing: !!oldSurface?.publicDrawing,
+  };
   state.windowSurfaces.set(hwnd, surface);
   for (const dc of state.dcs.values()) if (dc.active && dc.hwnd === hwnd) dc.surface = surface;
   return true;
+}
+
+/** Default control painting restores browser content in the invalid client rectangle. */
+export function clearControlDrawing(runtime, id, rect = null) {
+  const surface = states.get(runtime)?.windowSurfaces.get(id >>> 0);
+  if (!surface?.controlOverlay || !surface.publicDrawing) return false;
+  const [left, top, right, bottom] = rect ?? [0, 0, surface.width, surface.height];
+  const x0 = Math.max(0, Math.min(surface.width, left)),
+    x1 = Math.max(x0, Math.min(surface.width, right)),
+    y0 = Math.max(0, Math.min(surface.height, top)),
+    y1 = Math.max(y0, Math.min(surface.height, bottom));
+  for (let y = y0; y < y1; y++)
+    surface.pixels.fill(0, (y * surface.width + x0) * 4, (y * surface.width + x1) * 4);
+  if (x1 > x0 && y1 > y0) surface.dirty = true;
+  return true;
+}
+
+export function hasControlDrawing(runtime, id) {
+  return !!states.get(runtime)?.windowSurfaces.get(id >>> 0)?.publicDrawing;
+}
+
+// The browser paints the underlying control. Until its native pixels can be
+// read back, source-copy/read operations must reject uncovered pixels rather
+// than manufacture black pixels where the visible control shows something else.
+function readablePixels(surface, x, y, width, height) {
+  if (!surface.controlOverlay) return true;
+  for (let row = y; row < y + height; row++)
+    for (let col = x; col < x + width; col++)
+      if (surface.pixels[(row * surface.width + col) * 4 + 3] !== 255) return false;
+  return true;
+}
+
+export function releaseControlColorSurface(runtime, id) {
+  const surface = states.get(runtime)?.windowSurfaces.get(id >>> 0);
+  if (surface && !surface.publicDrawing) destroyWindowSurface(runtime, id);
 }
 
 /** Release a guest HWND's framebuffer and any DCs acquired from that window. */
@@ -1815,6 +1858,8 @@ function stretchBlt(r, a) {
     sy + sh > src.surface.height
   )
     return failure(r, ERROR_INVALID_PARAMETER, 0, 11);
+  if (!readablePixels(src.surface, sx, sy, sw, sh))
+    return failure(r, ERROR_CALL_NOT_IMPLEMENTED, 0, 11);
   const source = src.surface.pixels.slice();
   for (let dy = Math.max(0, y); dy < Math.min(dst.surface.height, y + h); dy++)
     for (let dx = Math.max(0, x); dx < Math.min(dst.surface.width, x + w); dx++) {
@@ -1870,6 +1915,8 @@ function bitBlt(runtime, argument) {
   )
     return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
 
+  if (!readablePixels(source.surface, sx, sy, copyWidth, copyHeight))
+    return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 9);
   const sourcePixels = source.surface.pixels;
   const destinationPixels = destination.surface.pixels;
   const sameSurface = source.surface === destination.surface;
@@ -1933,7 +1980,12 @@ function setPixel(runtime, argument) {
   const rgb = surfaceRgb(surface, colorRgb(color));
   const offset = (y * surface.width + x) * 4;
   const pixels = surface.pixels;
-  if (pixels[offset] !== rgb[0] || pixels[offset + 1] !== rgb[1] || pixels[offset + 2] !== rgb[2])
+  if (
+    pixels[offset] !== rgb[0] ||
+    pixels[offset + 1] !== rgb[1] ||
+    pixels[offset + 2] !== rgb[2] ||
+    pixels[offset + 3] !== 255
+  )
     surface.dirty = true;
   pixels[offset] = rgb[0];
   pixels[offset + 1] = rgb[1];
@@ -1951,6 +2003,8 @@ function getPixel(runtime, argument) {
     y = signed(argument(2));
   if (x < 0 || y < 0 || x >= surface.width || y >= surface.height)
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 3);
+  if (!readablePixels(surface, x, y, 1, 1))
+    return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, CLR_INVALID, 3);
   const offset = (y * surface.width + x) * 4;
   return success(rgbColorRef(surface.pixels.subarray(offset, offset + 3)), 3);
 }

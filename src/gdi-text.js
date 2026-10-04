@@ -232,20 +232,22 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
       const alpha = mask.alpha[(py - y) * mask.width + (px - x)];
       if (!alpha) continue;
       const offset = (py * surface.width + px) * 4;
-      const inverse = 255 - alpha;
-      const red = Math.round((fg[0] * alpha + surface.pixels[offset] * inverse) / 255);
-      const green = Math.round((fg[1] * alpha + surface.pixels[offset + 1] * inverse) / 255);
-      const blue = Math.round((fg[2] * alpha + surface.pixels[offset + 2] * inverse) / 255);
+      const remaining = surface.pixels[offset + 3] * (1 - alpha / 255);
+      const outAlpha = alpha + remaining;
+      const red = Math.round((fg[0] * alpha + surface.pixels[offset] * remaining) / outAlpha);
+      const green = Math.round((fg[1] * alpha + surface.pixels[offset + 1] * remaining) / outAlpha);
+      const blue = Math.round((fg[2] * alpha + surface.pixels[offset + 2] * remaining) / outAlpha);
       if (
         surface.pixels[offset] !== red ||
         surface.pixels[offset + 1] !== green ||
-        surface.pixels[offset + 2] !== blue
+        surface.pixels[offset + 2] !== blue ||
+        surface.pixels[offset + 3] !== Math.round(outAlpha)
       )
         changed = true;
       surface.pixels[offset] = red;
       surface.pixels[offset + 1] = green;
       surface.pixels[offset + 2] = blue;
-      surface.pixels[offset + 3] = 255;
+      surface.pixels[offset + 3] = Math.round(outAlpha);
     }
   if (changed) surface.dirty = true;
   for (const decorationY of [

@@ -276,7 +276,9 @@
     "test:metapad-settings": "node scripts/test-metapad-settings-browser.mjs",
     "build:color-dialogs": "sh scripts/build-color-dialogs-fixture.sh",
     "test:color-dialogs": "node scripts/test-color-dialogs-browser.mjs",
-    "test:metapad-appearance": "node scripts/test-metapad-appearance-browser.mjs"
+    "test:metapad-appearance": "node scripts/test-metapad-appearance-browser.mjs",
+    "build:control-drawing": "sh scripts/build-control-drawing-fixture.sh",
+    "test:control-drawing": "node scripts/test-control-drawing-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

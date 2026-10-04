@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { describeGdiFont, gdiApis, flushGdi } from '../src/win32-gdi.js';
+import {
+  describeGdiFont,
+  gdiApis,
+  flushGdi,
+  clearControlDrawing,
+  resizeWindowSurface,
+  destroyWindowSurface,
+  acquireControlColorDC,
+  releaseControlColorSurface,
+} from '../src/win32-gdi.js';
 import { createCanvasTextRasterizer } from '../src/gdi-text.js';
 
 const call = (runtime, name, ...args) => {
@@ -176,13 +185,82 @@ test('TextOut rejects absent backend, invalid text ranges, and unsupported font 
   );
 });
 
-test('GetDC does not create an invisible GDI surface for DOM-backed child controls', () => {
+test('standard-control GDI overlays draw, clear, resize and retain public DCs across color callbacks', () => {
   const runtime = makeRuntime();
   runtime.windows = {
     windows: new Map([[0x222, { id: 0x222, controlType: 'edit', width: 80, height: 20 }]]),
   };
-  assert.equal(call(runtime, 'user32.dll!GetDC', 0x222).result, 0);
+  const dc = call(runtime, 'user32.dll!GetDC', 0x222).result;
+  assert.ok(dc);
+  assert.deepEqual(framePixel(flushGdi(runtime), 0, 0), [0, 0, 0, 0]);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', dc, 0, 0).result, 0xffffffff);
+  assert.equal(runtime.lastError, 120, 'uncovered browser pixels cannot be read as fake black');
+  call(runtime, 'gdi32.dll!SetPixel', dc, 0, 0, 0);
+  assert.deepEqual(
+    framePixel(flushGdi(runtime), 0, 0),
+    [0, 0, 0, 255],
+    'black changes transparent alpha and emits a frame',
+  );
+  const borrowed = acquireControlColorDC(runtime, 0x222);
+  assert.ok(borrowed);
+  call(runtime, 'user32.dll!ReleaseDC', 0x222, borrowed);
+  releaseControlColorSurface(runtime, 0x222);
+  assert.equal(
+    call(runtime, 'gdi32.dll!GetPixel', dc, 0, 0).result,
+    0,
+    'borrowed cleanup preserves public DC',
+  );
+  call(runtime, 'gdi32.dll!SetPixel', dc, 1, 1, 0x332211);
+  clearControlDrawing(runtime, 0x222, [0, 0, 1, 1]);
+  const frame = flushGdi(runtime);
+  assert.deepEqual(framePixel(frame, 0, 0), [0, 0, 0, 0]);
+  assert.deepEqual(framePixel(frame, 1, 1), [17, 34, 51, 255]);
+  assert.ok(resizeWindowSurface(runtime, 0x222, 100, 30));
+  const resized = flushGdi(runtime);
+  assert.deepEqual(framePixel(resized, 1, 1), [17, 34, 51, 255]);
+  assert.deepEqual(framePixel(resized, 99, 29), [0, 0, 0, 0]);
+  destroyWindowSurface(runtime, 0x222);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', dc, 1, 1).result, 0xffffffff);
+  assert.equal(runtime.lastError, 6);
+});
+
+test('control overlays copy drawn pixels and refuse uncovered source pixels without changing destination', () => {
+  const runtime = makeRuntime();
+  runtime.windows = {
+    windows: new Map([[0x222, { id: 0x222, controlType: 'static', width: 80, height: 20 }]]),
+  };
+  const dc = call(runtime, 'user32.dll!GetDC', 0x222).result;
+  const memory = call(runtime, 'gdi32.dll!CreateCompatibleDC', dc).result;
+  const bitmap = call(runtime, 'gdi32.dll!CreateCompatibleBitmap', dc, 4, 4).result;
+  call(runtime, 'gdi32.dll!SelectObject', memory, bitmap);
+  call(runtime, 'gdi32.dll!SetPixel', dc, 1, 1, 0x332211);
+  assert.equal(call(runtime, 'gdi32.dll!BitBlt', memory, 0, 0, 1, 1, dc, 1, 1, 0xcc0020).result, 1);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', memory, 0, 0).result, 0x332211);
+  assert.equal(call(runtime, 'gdi32.dll!BitBlt', memory, 0, 0, 2, 2, dc, 0, 0, 0xcc0020).result, 0);
   assert.equal(runtime.lastError, 120);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', memory, 0, 0).result, 0x332211);
+  assert.equal(
+    call(runtime, 'gdi32.dll!StretchBlt', memory, 0, 0, 2, 2, dc, 0, 0, 2, 2, 0xcc0020).result,
+    0,
+  );
+  assert.equal(runtime.lastError, 120);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', memory, 0, 0).result, 0x332211);
+  assert.equal(
+    call(runtime, 'gdi32.dll!StretchBlt', memory, 0, 0, 2, 2, dc, 1, 1, 1, 1, 0xcc0020).result,
+    1,
+  );
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', memory, 1, 1).result, 0x332211);
+});
+
+test('WM_CTLCOLOR-only scratch surfaces do not consume persistent control bitmaps', () => {
+  const runtime = makeRuntime();
+  runtime.windows = {
+    windows: new Map([[0x222, { id: 0x222, controlType: 'edit', width: 80, height: 20 }]]),
+  };
+  const dc = acquireControlColorDC(runtime, 0x222);
+  call(runtime, 'user32.dll!ReleaseDC', 0x222, dc);
+  releaseControlColorSurface(runtime, 0x222);
+  assert.equal(flushGdi(runtime), null);
 });
 
 test('canvas text backend reuses bounded surfaces and keys cached masks by CSS font and height', () => {

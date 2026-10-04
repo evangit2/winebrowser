@@ -98,6 +98,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:tabs
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:custom-child
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:host-subclass
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:control-drawing
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:legacy-text
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:statusbar
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:resource-bitmaps

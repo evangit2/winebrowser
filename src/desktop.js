@@ -1590,7 +1590,7 @@ export class VirtualDesktop {
   }) {
     const window = this.windows.get(windowId);
     if (
-      !window?.canvas ||
+      !window ||
       !Number.isInteger(width) ||
       !Number.isInteger(height) ||
       width < 1 ||
@@ -1599,26 +1599,46 @@ export class VirtualDesktop {
       bitmap?.close();
       return false;
     }
+    // Standard controls keep their native DOM identity and input behavior.
+    // A separate transparent client canvas displays guest GDI above them,
+    // below child HWNDs, without intercepting any pointer events.
+    if (!window.canvas && !window.drawingCanvas) {
+      const overlay = document.createElement('canvas');
+      overlay.className = 'virtual-desktop-control-drawing';
+      overlay.dataset.windowId = String(windowId);
+      Object.assign(overlay.style, {
+        position: 'absolute',
+        left: '0',
+        top: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+      });
+      window.viewport.prepend(overlay);
+      window.drawingCanvas = overlay;
+      window.drawingContext = overlay.getContext('2d');
+    }
+    const canvas = window.canvas ?? window.drawingCanvas,
+      context = window.context ?? window.drawingContext;
     if (bitmap) {
       try {
         if (bitmap.width !== width || bitmap.height !== height) return false;
-        if (window.canvas.width !== width || window.canvas.height !== height) {
-          window.canvas.width = width;
-          window.canvas.height = height;
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
           window.imageData = null;
         }
-        window.context.drawImage(bitmap, 0, 0);
-        window.canvas.dataset.renderer = renderer ?? 'bitmap';
-        window.canvas.dataset.graphicsApi = graphicsApi ?? (renderer === 'webgpu' ? 'd3d9' : '');
-        window.canvas.dataset.graphicsFrames = String(graphicsFrames ?? 0);
+        context.clearRect(0, 0, width, height);
+        context.drawImage(bitmap, 0, 0);
+        canvas.dataset.renderer = renderer ?? 'bitmap';
+        canvas.dataset.graphicsApi = graphicsApi ?? (renderer === 'webgpu' ? 'd3d9' : '');
+        canvas.dataset.graphicsFrames = String(graphicsFrames ?? 0);
         // Presenting the frame count alone cannot distinguish "nothing was
         // drawn" from "everything was cleared"; publish the draw count too.
         // Publishing the draw count alongside the frame count lets a caller
         // distinguish "nothing was drawn" from "everything was cleared".
-        if (graphicsDraws !== undefined)
-          window.canvas.dataset.graphicsDraws = String(graphicsDraws);
-        if (graphicsModelView)
-          window.canvas.dataset.graphicsModelView = JSON.stringify(graphicsModelView);
+        if (graphicsDraws !== undefined) canvas.dataset.graphicsDraws = String(graphicsDraws);
+        if (graphicsModelView) canvas.dataset.graphicsModelView = JSON.stringify(graphicsModelView);
         return true;
       } finally {
         bitmap.close();
@@ -1626,16 +1646,16 @@ export class VirtualDesktop {
     }
     const bytes = pixels instanceof Uint8Array ? pixels : new Uint8Array(pixels);
     if (bytes.byteLength !== width * height * 4) return false;
-    if (!window.imageData || window.canvas.width !== width || window.canvas.height !== height) {
-      window.canvas.width = width;
-      window.canvas.height = height;
-      window.imageData = window.context.createImageData(width, height);
+    if (!window.imageData || canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      window.imageData = context.createImageData(width, height);
     }
     window.imageData.data.set(bytes);
-    window.context.putImageData(window.imageData, 0, 0);
-    if (graphicsApi !== undefined) window.canvas.dataset.graphicsApi = graphicsApi;
-    if (graphicsFrames !== undefined) window.canvas.dataset.graphicsFrames = String(graphicsFrames);
-    if (renderer !== undefined) window.canvas.dataset.renderer = renderer;
+    context.putImageData(window.imageData, 0, 0);
+    if (graphicsApi !== undefined) canvas.dataset.graphicsApi = graphicsApi;
+    if (graphicsFrames !== undefined) canvas.dataset.graphicsFrames = String(graphicsFrames);
+    if (renderer !== undefined) canvas.dataset.renderer = renderer;
     return true;
   }
 

@@ -6,7 +6,7 @@ import {
   MAX_WINDOW_WIDTH,
   MAX_WINDOW_HEIGHT,
 } from './window-frame.js';
-import { resizeWindowSurface } from './win32-gdi.js';
+import { resizeWindowSurface, hasControlDrawing } from './win32-gdi.js';
 
 const S = {
   NOSIZE: 1,
@@ -175,7 +175,7 @@ export async function setWindowPos(r, a) {
     }
     if (!validAfter(m, w, after, flags)) return m.fail(1400, 7);
     if (
-      (!w.controlType || w.controlType === 'custom' || w.ownerDraw) &&
+      (!w.controlType || w.controlType === 'custom' || w.ownerDraw || hasControlDrawing(r, hwnd)) &&
       (sized || discardContents) &&
       !resizeWindowSurface(r, hwnd, width, height, !discardContents, !(flags & S.NOREDRAW))
     )

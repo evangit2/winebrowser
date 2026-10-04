@@ -27,6 +27,9 @@ import {
   flushGdi,
   resizeWindowSurface,
   destroyWindowSurface,
+  clearControlDrawing,
+  hasControlDrawing,
+  releaseControlColorSurface,
 } from './win32-gdi.js';
 import {
   describeWindowMenu,
@@ -466,7 +469,13 @@ export class WindowManager {
   }
   async baseControlMessage(window, message, wParam, lParam, textWide) {
     if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
+    if (message === 0xf && window.controlType !== 'custom')
+      clearControlDrawing(this.runtime, window.id, window.invalid);
     if (message === 0xf && colorControl(window)) return paintControlColors(this.runtime, window);
+    if (message === 0xf && hasControlDrawing(this.runtime, window.id)) {
+      window.invalid = null;
+      window.erase = false;
+    }
     return controlMessage(
       this.runtime,
       window,
@@ -902,7 +911,8 @@ export class WindowManager {
         (!window.controlType ||
           window.controlType === 'custom' ||
           window.ownerDraw ||
-          colorControl(window)) &&
+          colorControl(window) ||
+          hasControlDrawing(this.runtime, window.id)) &&
         (window.invalid || window.internalPaint) &&
         accepts(message)
       ) {
@@ -1326,6 +1336,7 @@ async function defaultProc(r, a, wide) {
   if (msg === 0x10) return result(await r.windows.destroy(hwnd), 4);
   if (msg === 0xc) {
     w.title = text(r, lp, wide);
+    if (w.controlType && hasControlDrawing(r, w.id)) r.windows.invalidate(w, null, true);
     r.windows.emit(w);
     return result(1, 4);
   }
@@ -1442,7 +1453,7 @@ async function paintControlColors(r, window) {
   } finally {
     if (dc) {
       gdiApis['user32.dll!ReleaseDC'](r, (i) => [window.id, dc][i]);
-      destroyWindowSurface(r, window.id);
+      releaseControlColorSurface(r, window.id);
     }
     r.free(paint);
   }
