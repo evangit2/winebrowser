@@ -7,17 +7,71 @@ static HTREEITEM root, first;
 static HFONT font;
 static COLORREF font_color=RGB(30,30,30);
 static HMENU notes_menu;
+static HWND search_dialog;
+static UINT search_message;
+static BOOL notes_locked;
+static FINDREPLACEA search;
+static char search_text[128]="notes",replace_text[128]="text";
 static UINT drag_message;
 static int drag_source=-1;
 static const char *priority_names[]={"Paint window", "Handle input", "Update controls", "Save settings"};
 static void say(const char *text) { SendMessageA(status,SB_SETTEXTA,SBT_NOBORDERS,(LPARAM)text); }
 static void note_mode(HWND window,BOOL locked) {
+  notes_locked=locked;
   SendMessageA(notes,EM_SETREADONLY,locked,0);
   CheckMenuRadioItem(notes_menu,110,111,locked?111:110,MF_BYCOMMAND);
   MENUITEMINFOA info={0};info.cbSize=sizeof(info);info.fMask=MIIM_STRING;
   info.dwTypeData=locked?"&Notes (read-only)":"&Notes (editable)";
   SetMenuItemInfoA(GetMenu(window),1,TRUE,&info);
   DrawMenuBar(window);
+}
+static unsigned text_length(const char *text){unsigned n=0;while(text[n])n++;return n;}
+static BOOL word_char(char c){return (c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_';}
+static BOOL match_at(const char *text,unsigned n,unsigned at,const char *query,unsigned q,DWORD flags){
+  if(!q||at+q>n)return FALSE;
+  for(unsigned i=0;i<q;i++){
+    char a=text[at+i],b=query[i];
+    if(!(flags&FR_MATCHCASE)){if(a>='A'&&a<='Z')a+=32;if(b>='A'&&b<='Z')b+=32;}
+    if(a!=b)return FALSE;
+  }
+  return !(flags&FR_WHOLEWORD)||((!at||!word_char(text[at-1]))&&(at+q==n||!word_char(text[at+q])));
+}
+static void find_note(FINDREPLACEA *fr){
+  char text[4096];unsigned n=(unsigned)GetWindowTextA(notes,text,sizeof(text)),q=text_length(fr->lpstrFindWhat);
+  DWORD start=0,end=0;SendMessageA(notes,EM_GETSEL,(WPARAM)&start,(LPARAM)&end);
+  if(!q||q>n){say("Find: no matching text in notes.");return;}
+  unsigned count=n-q+1,from=(fr->Flags&FR_DOWN)?end:(start?start-1:count-1);
+  if(from>=count)from=(fr->Flags&FR_DOWN)?0:count-1;
+  for(unsigned i=0;i<count;i++){
+    unsigned at=(fr->Flags&FR_DOWN)?(from+i)%count:(from+count-i)%count;
+    if(match_at(text,n,at,fr->lpstrFindWhat,q,fr->Flags)){
+      SendMessageA(notes,EM_SETSEL,at,at+q);SetFocus(notes);say("Find: matching notes text selected.");return;
+    }
+  }
+  say("Find: no matching text in notes.");
+}
+static void replace_note(FINDREPLACEA *fr,BOOL all){
+  if(notes_locked){say("Replace: unlock notes with Editable first.");return;}
+  char text[4096],output[4096];unsigned n=(unsigned)GetWindowTextA(notes,text,sizeof(text));
+  unsigned q=text_length(fr->lpstrFindWhat),replacement=text_length(fr->lpstrReplaceWith);
+  if(!q)return;
+  if(!all){
+    DWORD start=0,end=0;SendMessageA(notes,EM_GETSEL,(WPARAM)&start,(LPARAM)&end);
+    if(end-start!=q||!match_at(text,n,start,fr->lpstrFindWhat,q,fr->Flags)){find_note(fr);return;}
+    SendMessageA(notes,EM_REPLACESEL,TRUE,(LPARAM)fr->lpstrReplaceWith);
+    say("Replace: selected notes text changed. Undo restores it.");return;
+  }
+  unsigned out=0,count=0;
+  for(unsigned at=0;at<n;){
+    if(match_at(text,n,at,fr->lpstrFindWhat,q,fr->Flags)){
+      if(out+replacement>=sizeof(output)){say("Replace All: result exceeds the notes text limit.");return;}
+      for(unsigned i=0;i<replacement;i++)output[out++]=fr->lpstrReplaceWith[i];
+      at+=q;count++;
+    }else{if(out+1>=sizeof(output)){say("Replace All: result exceeds the notes text limit.");return;}output[out++]=text[at++];}
+  }
+  if(!count){say("Replace All: no matching text in notes.");return;}
+  output[out]=0;SendMessageA(notes,EM_SETSEL,0,-1);SendMessageA(notes,EM_REPLACESEL,TRUE,(LPARAM)output);
+  say("Replace All: matching notes text changed. Undo restores it.");
 }
 static void reset_priorities(void) {
   SendMessageA(priorities,LB_RESETCONTENT,0,0);
@@ -59,6 +113,14 @@ static void reset(HWND window) {
   TreeView_SelectItem(tree,first);say("Choose a category, list item or option.");
 }
 static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
+  if(message==search_message&&search_message){
+    FINDREPLACEA *fr=(FINDREPLACEA*)lp;
+    if(fr->Flags&FR_DIALOGTERM){search_dialog=NULL;say("Find/Replace closed; notes stay editable.");return 0;}
+    if(fr->Flags&FR_FINDNEXT)find_note(fr);
+    if(fr->Flags&FR_REPLACE)replace_note(fr,FALSE);
+    if(fr->Flags&FR_REPLACEALL)replace_note(fr,TRUE);
+    return 0;
+  }
   if(message==WM_SIZE&&status){SendMessageA(status,WM_SIZE,wp,lp);return 0;}
   if(message==WM_NOTIFY && ((NMHDR*)lp)->hwndFrom==pages) {
     if(((NMHDR*)lp)->code==TCN_SELCHANGE) {
@@ -108,6 +170,19 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
     UINT id=LOWORD(wp),code=HIWORD(wp);
     if(id==40 || id==100){reset(window);return 0;}
     if(id==101){DestroyWindow(window);return 0;}
+    if(id==112||id==113){
+      if(id==113&&notes_locked){say("Replace: unlock notes with Editable first.");return 0;}
+      if(search_dialog&&IsWindow(search_dialog))DestroyWindow(search_dialog);
+      TabCtrl_SetCurSel(pages,1);ShowWindow(priorities,SW_HIDE);ShowWindow(notes,SW_SHOW);
+      search.lStructSize=sizeof(search);search.hwndOwner=window;search.Flags=FR_DOWN;
+      search.lpstrFindWhat=search_text;search.wFindWhatLen=sizeof(search_text);
+      search.lpstrReplaceWith=replace_text;search.wReplaceWithLen=sizeof(replace_text);
+      search_dialog=id==112?FindTextA(&search):ReplaceTextA(&search);
+      if(!search_dialog)say("Find/Replace could not open.");
+      else{SetWindowPos(search_dialog,NULL,600,60,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);say("Find/Replace: the notes remain interactive while this window is open.");}
+      return 0;
+    }
+    if(id==114){SendMessageA(notes,EM_UNDO,0,0);say("Undo: restored the previous notes edit.");return 0;}
     if(id==120){
       LOGFONTA logical={0};if(GetObjectA(font,sizeof(logical),&logical)!=sizeof(logical))ExitProcess(7);
       CHOOSEFONTA choose={0};choose.lStructSize=sizeof(choose);choose.hwndOwner=window;choose.lpLogFont=&logical;
@@ -136,7 +211,7 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
     if(id==30){say(IsDlgButtonChecked(window,30)==BST_CHECKED?"Checkbox is checked.":"Checkbox is unchecked.");return 0;}
     if(id==31||id==32){say(id==31?"First radio selected; its group remains exclusive.":"Second radio selected; its group remains exclusive.");return 0;}
   }
-  if(message==WM_DESTROY){PostQuitMessage(0);return 0;}
+  if(message==WM_DESTROY){if(search_dialog&&IsWindow(search_dialog))DestroyWindow(search_dialog);PostQuitMessage(0);return 0;}
   return DefWindowProcA(window,message,wp,lp);
 }
 static HWND child(HWND window,HINSTANCE instance,const char *className,const char *title,DWORD style,int x,int y,int width,int height,UINT id) {
@@ -165,9 +240,12 @@ void start(void) {
   if(!InsertMenuItemA(notes_menu,0,TRUE,&item))ExitProcess(5);
   item.wID=111;item.dwTypeData="&Read-only";item.dwItemData=2;item.fState=0;
   if(!InsertMenuItemA(notes_menu,1,TRUE,&item))ExitProcess(5);
+  AppendMenuA(notes_menu,MF_SEPARATOR,0,NULL);
+  AppendMenuA(notes_menu,MF_STRING,112,"&Find...");AppendMenuA(notes_menu,MF_STRING,113,"&Replace...");AppendMenuA(notes_menu,MF_STRING,114,"&Undo");
   AppendMenuA(menu,MF_POPUP,(UINT_PTR)notes_menu,"&Notes (editable)");
   HMENU appearance=CreatePopupMenu();AppendMenuA(appearance,MF_STRING,120,"&Font...");AppendMenuA(menu,MF_POPUP,(UINT_PTR)appearance,"&Appearance");
   drag_message=RegisterWindowMessageA(DRAGLISTMSGSTRING);
+  search_message=RegisterWindowMessageA(FINDMSGSTRINGA);
   RECT rect={0,0,500,438};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
   HWND window=CreateWindowA(cls.lpszClassName,"Native GUI controls",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,menu,instance,NULL);if(!window)ExitProcess(2);
   child(window,instance,"STATIC","Native Windows controls, running in your browser",SS_LEFTNOWORDWRAP,12,12,476,20,10);
@@ -185,6 +263,7 @@ void start(void) {
   pages=child(window,instance,WC_TABCONTROLA,"Priority pages",TCS_FIXEDWIDTH,172,270,316,30,60);
   priorities=child(window,instance,"LISTBOX","Priorities",WS_BORDER|LBS_NOTIFY|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,306,316,84,61);
   notes=child(window,instance,"EDIT","Type notes here. Switching tabs preserves your text.",WS_BORDER|ES_MULTILINE|ES_AUTOVSCROLL|ES_WANTRETURN,172,306,316,84,62);
+  SendMessageA(notes,EM_SETLIMITTEXT,4095,0);
   if(!tree||!items||!combo||!status||!canvas||!priorities||!pages||!notes)ExitProcess(3);
   TCITEMA tab={0};tab.mask=TCIF_TEXT;tab.pszText="Priorities";TabCtrl_InsertItem(pages,0,&tab);
   tab.pszText="Notes";TabCtrl_InsertItem(pages,1,&tab);
@@ -193,5 +272,5 @@ void start(void) {
   SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Alpha");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Beta");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Gamma");
   SendMessageA(combo,CB_ADDSTRING,0,(LPARAM)"Choice One");SendMessageA(combo,CB_ADDSTRING,0,(LPARAM)"Choice Two");
   reset(window);
-  MSG msg;while(GetMessageA(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageA(&msg);}DestroyMenu(menu);if(font)DeleteObject(font);ExitProcess((UINT)msg.wParam);
+  MSG msg;while(GetMessageA(&msg,NULL,0,0)>0){if(!search_dialog||!IsDialogMessageA(search_dialog,&msg)){TranslateMessage(&msg);DispatchMessageA(&msg);}}DestroyMenu(menu);if(font)DeleteObject(font);ExitProcess((UINT)msg.wParam);
 }

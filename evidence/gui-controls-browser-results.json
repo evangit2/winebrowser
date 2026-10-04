@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T05:13:25.368Z",
+  "date": "2026-10-04T06:16:23.912Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
-  "exeSha256": "9f13170634e62ce5dcb6c9ec92c862bbc964009a1165ec59ff37ab7292576a39",
+  "exeSha256": "479e181a6ecb8990f947ad2b211280ea5ee90891fd5a956f321c1c936d9fc135",
   "exitCode": 0,
-  "compiledBlocks": 330,
-  "x86TranslationMs": 162.72500011324883,
+  "compiledBlocks": 455,
+  "x86TranslationMs": 169.37999993562698,
   "checks": [
     "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
     "Tree category, sorted list, editable combo, checkbox and radio interactions",
@@ -17,6 +17,7 @@
     "Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly",
     "Native menu Reset restores control state; close exits zero",
     "Public Appearance > Font opens the native ChooseFontA browser picker; Cancel preserves the font and Accept changes DOM control fonts and actual GDI child text color",
+    "Public Notes > Find/Replace remains modeless; native search selects the DOM edit range, Replace/Replace All change actual notes and native Undo restores the previous edit",
     "Public source/license ZIP package runs and Stop removes its window"
   ],
   "scope": "Original MIT WineBrowser Win32 showcase, separate from upstream applications. This exercises the supported controls; no universal GUI/DLL compatibility claim."

@@ -18,6 +18,11 @@ text through SB_SETTEXTA, and its minimum height and docking use native messages
 Appearance → Font opens the common font picker. Accept applies the selected
 font to controls and the GDI child canvas; Cancel preserves the current font.
 Effects change the canvas text color, underline and strikeout.
+Notes → Find/Replace opens native modeless dialogs while notes remain editable.
+Find selects matching text; Replace changes that selection, Replace All updates
+every match, and Undo restores the last change. Match case, whole word and
+Up/Down control the sample's ASCII search; search wraps at the end. Notes are
+limited to 4095 characters, and the sample refuses replacements while locked.
 It needs no app-specific Wasm build: WineBrowser translates the executable's x86
 blocks to WebAssembly in the browser.
 

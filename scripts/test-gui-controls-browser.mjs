@@ -211,6 +211,37 @@ try {
     return p.some((v, i) => i % 4 === 0 && v === 160 && p[i + 1] === 20 && p[i + 2] === 30);
   });
   await window.screenshot({ path: '.scratch/gui-controls-chosen-font.png' });
+  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
+  await window.getByRole('menuitem', { name: 'Find...', exact: true }).click();
+  const find = page.locator('.virtual-desktop-window').filter({
+    has: page.locator('.virtual-desktop-title', { hasText: /^Find$/ }),
+  });
+  await find.getByRole('button', { name: 'Find Next', exact: true }).waitFor();
+  await notes.fill('alpha alpha');
+  await find.locator('[data-control-id="1152"]').fill('alpha');
+  await find.getByRole('button', { name: 'Find Next', exact: true }).click();
+  await status.getByText('Find: matching notes text selected.', { exact: true }).waitFor();
+  await expect
+    .poll(() => notes.evaluate((el) => [el.selectionStart, el.selectionEnd]))
+    .toEqual([0, 5]);
+  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
+  await window.getByRole('menuitem', { name: 'Replace...', exact: true }).click();
+  await find.waitFor({ state: 'detached' });
+  const replace = page.locator('.virtual-desktop-window').filter({
+    has: page.locator('.virtual-desktop-title', { hasText: /^Replace$/ }),
+  });
+  await replace.locator('[data-control-id="1153"]').fill('beta');
+  await replace.getByRole('button', { name: 'Replace', exact: true }).click();
+  await expect(notes).toHaveValue('beta alpha');
+  await replace.getByRole('button', { name: 'Replace All', exact: true }).click();
+  await expect(notes).toHaveValue('beta beta');
+  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
+  await window.getByRole('menuitem', { name: 'Undo', exact: true }).click();
+  await expect(notes).toHaveValue('beta alpha');
+  await replace.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await replace.waitFor({ state: 'detached' });
+  await status.getByText('Find/Replace closed; notes stay editable.', { exact: true }).waitFor();
+  await window.screenshot({ path: '.scratch/gui-controls-search.png' });
   await window.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);
   const run = await page.evaluate(() => window.__lastRun);
@@ -243,6 +274,7 @@ try {
       'Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly',
       'Native menu Reset restores control state; close exits zero',
       'Public Appearance > Font opens the native ChooseFontA browser picker; Cancel preserves the font and Accept changes DOM control fonts and actual GDI child text color',
+      'Public Notes > Find/Replace remains modeless; native search selects the DOM edit range, Replace/Replace All change actual notes and native Undo restores the previous edit',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
     scope:
