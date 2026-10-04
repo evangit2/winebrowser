@@ -124,7 +124,8 @@ direction flags, Find Next/Replace/Replace All, Help and FR_DIALOGTERM owner
 notifications use native memory and registered messages. The native EXE/DLL
 [acceptance](../evidence/find-dialogs-browser-results.json) checks an ordinal
 DLL RT_DIALOG template, a DLL hook veto and EXE subclass forwarding through
-CallWindowProc. HGLOBAL template handles, complete custom controls and exact
+CallWindowProc. FR_ENABLETEMPLATEHANDLE accepts caller-owned GlobalAlloc memory
+through the same bounded template parser. Complete custom controls and exact
 Windows dialog layout remain incomplete. Run `npm run test:find-dialogs`.
 
 Standard edit controls now support EM_GETSEL/EM_SETSEL, A/W EM_REPLACESEL,
@@ -138,6 +139,14 @@ documents, multi-level undo, CRLF index mapping and complete keyboard/IME parity
 remain incomplete.
 
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
+
+CreateDialog/DialogBox W APIs now preserve Unicode for frames and controls,
+from either DLL resources or in-memory templates. Native acceptance checks
+all four creation paths and EndDialog results. FindResourceW decodes Unicode
+resource names, and SizeofResource/LoadResource use the HRSRC argument with
+their two-argument ABI. Win32 FreeResource returns FALSE while resource data
+remains valid. Full resource language selection/fallback and unload lifetime
+parity remain incomplete.
 
 Custom nonclient geometry, minimize/maximize behavior, full input-method handling and graphics APIs beyond the documented raster subset still need implementation. Resize repaints the client surface; the application remains responsible for adapting its layout and game logic. The virtual registry is process-local and is not persisted between runs. Fonts use browser matching and may differ from Windows. Shell icon extraction is not implemented. Offscreen compatible bitmaps, SRCCOPY BitBlt, accelerator tables, Unicode registry storage and Wine guest formatting are covered in [desktop compatibility](desktop-compatibility.md). Wine CRT/NLS support remains under development for broader library dependencies.
 

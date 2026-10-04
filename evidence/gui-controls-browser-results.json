@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T06:16:23.912Z",
+  "date": "2026-10-04T06:31:51.691Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exeSha256": "479e181a6ecb8990f947ad2b211280ea5ee90891fd5a956f321c1c936d9fc135",
   "exitCode": 0,
   "compiledBlocks": 455,
-  "x86TranslationMs": 169.37999993562698,
+  "x86TranslationMs": 129.37000051140785,
   "checks": [
     "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
     "Tree category, sorted list, editable combo, checkbox and radio interactions",

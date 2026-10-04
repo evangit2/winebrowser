@@ -1,19 +1,21 @@
 {
-  "date": "2026-10-04T06:16:20.640Z",
+  "date": "2026-10-04T06:32:55.083Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
-  "exeSha256": "0b5a9b8b21457e7246f0dd6031d8ed2e002a5c0a5445703c86b5a8021a75f455",
-  "dllSha256": "bcb0dd0fa1583696dc3c5df4d517bdc008a7d1f13ab2f80249c901935189f0d7",
-  "compiledBlocks": 195,
-  "x86TranslationMs": 101.93999966979027,
+  "exeSha256": "c723817ff7344cda6b7902782c450fa10bc5f6959d43bcdd2e55ce1006f92aa7",
+  "dllSha256": "bff376310f1f583113244ad9aa185051d041dd000c0770d6db77211a146f014e",
+  "compiledBlocks": 301,
+  "x86TranslationMs": 53.91499996185303,
   "checks": [
     "Unchanged native EXE/DLL runs modeless FindTextA/W and ReplaceTextA through in-browser x86 compilation; owner remains enabled and editable",
     "Native DLL hook receives the original FINDREPLACE pointer and can veto Find Next; ordinal DLL dialog template and native window subclass/CallWindowProc remain callable",
     "Standard control IDs, edit input limits, A/W strings, whole-word/case/direction flags, Help, synchronous owner notifications and buffer-tail guards are checked",
     "Native Replace and Replace All callbacks change actual owner edit text; Escape/Cancel/close deliver FR_DIALOGTERM with stale action bits cleared",
-    "Invalid structures, zero buffers and absent hook errors are checked; native cleanup and close exit zero"
+    "Invalid structures, zero buffers and absent hook errors are checked; native cleanup and close exit zero",
+    "Native CreateDialog/DialogBox W APIs preserve Unicode frames and edits from both DLL resources and guest memory; EndDialog returns the native result",
+    "FindTextW accepts a caller-owned GlobalAlloc template; native Unicode-named DLL resource sizing/loading uses the HRSRC argument and FreeResource leaves the data valid"
   ],
-  "scope": "Shared modeless standard/resource-template Find/Replace dialogs, native hooks and subclass forwarding. HGLOBAL template handles, complete custom controls, exact Windows dialog/font layout and arbitrary editor execution remain incomplete."
+  "scope": "Shared modeless standard/resource/allocated-template Find/Replace dialogs, Unicode modal/modeless resource dialogs, native hooks and subclass forwarding. Complete custom controls, exact Windows dialog/font layout, resource language fallback and arbitrary editor execution remain incomplete."
 }

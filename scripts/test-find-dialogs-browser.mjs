@@ -119,9 +119,11 @@ try {
       'Standard control IDs, edit input limits, A/W strings, whole-word/case/direction flags, Help, synchronous owner notifications and buffer-tail guards are checked',
       'Native Replace and Replace All callbacks change actual owner edit text; Escape/Cancel/close deliver FR_DIALOGTERM with stale action bits cleared',
       'Invalid structures, zero buffers and absent hook errors are checked; native cleanup and close exit zero',
+      'Native CreateDialog/DialogBox W APIs preserve Unicode frames and edits from both DLL resources and guest memory; EndDialog returns the native result',
+      'FindTextW accepts a caller-owned GlobalAlloc template; native Unicode-named DLL resource sizing/loading uses the HRSRC argument and FreeResource leaves the data valid',
     ],
     scope:
-      'Shared modeless standard/resource-template Find/Replace dialogs, native hooks and subclass forwarding. HGLOBAL template handles, complete custom controls, exact Windows dialog/font layout and arbitrary editor execution remain incomplete.',
+      'Shared modeless standard/resource/allocated-template Find/Replace dialogs, Unicode modal/modeless resource dialogs, native hooks and subclass forwarding. Complete custom controls, exact Windows dialog/font layout, resource language fallback and arbitrary editor execution remain incomplete.',
   };
   await writeFile(
     'evidence/find-dialogs-browser-results.json',

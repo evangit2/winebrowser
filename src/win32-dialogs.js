@@ -292,7 +292,7 @@ async function dialogBoxParam(r, a, wide) {
     template = null;
   }
   if (!template) return fail(r, 1813, 5);
-  const built = await buildDialog(r, template, owner, proc, module.base);
+  const built = await buildDialog(r, template, owner, proc, module.base, wide);
   if (built.error) return fail(r, built.error, 5);
   return runDialog(r, built.dialog, a(4));
 }
@@ -316,9 +316,8 @@ async function dialogBoxIndirect(r, a, wide, modeless = false) {
   }
   const template = readDialogTemplate(bytes.subarray(0, length));
   if (!template) return fail(r, 1814, 5);
-  const built = await buildDialog(r, template, owner, proc, r.pe.imageBase);
+  const built = await buildDialog(r, template, owner, proc, r.pe.imageBase, wide);
   if (built.error) return fail(r, built.error, 5);
-  void wide;
   if (modeless) {
     await initializeDialog(r, built.dialog, a(4), built.dialog.initialVisible);
     return ok(built.window.id, 5);
@@ -339,7 +338,7 @@ async function createDialogParam(r, a, wide) {
     template = null;
   }
   if (!template) return fail(r, 1813, 5);
-  const built = await buildDialog(r, template, owner, a(3), module.base);
+  const built = await buildDialog(r, template, owner, a(3), module.base, wide);
   if (built.error) return fail(r, built.error, 5);
   await initializeDialog(r, built.dialog, a(4), built.dialog.initialVisible);
   // The modeless form returns the window handle immediately.

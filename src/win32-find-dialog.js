@@ -229,7 +229,6 @@ export async function createFindDialog(r, a, wide, replace) {
   if (!find || !findLength || (replace && (!replacement || !replaceLength))) return fail(r, 0x4001);
   if (flags & ~SUPPORTED) return fail(r, 2, 120);
   if (flags & HOOK && !hook) return fail(r, 11);
-  if (flags & HANDLE) return fail(r, 2, 120); // Template HGLOBAL lookup is not yet implemented.
   let findText,
     replaceText = '';
   try {
@@ -239,7 +238,16 @@ export async function createFindDialog(r, a, wide, replace) {
     return fail(r, 0x4001);
   }
   let template = standardTemplate(replace);
-  if (flags & TEMPLATE) {
+  if (flags & HANDLE) {
+    if (!instance) return fail(r, 4);
+    // Global memory handles currently alias the allocated guest address, as
+    // GlobalLock does. Parse a bounded copy; ownership stays with the caller.
+    const size = r.allocationSize(instance);
+    if (!size) return fail(r, 7, 6);
+    r.check(instance, size);
+    template = readDialogTemplate(r.data.slice(instance, instance + Math.min(size, 0x10000)));
+    if (!template) return fail(r, 6);
+  } else if (flags & TEMPLATE) {
     if (!instance) return fail(r, 4);
     const module = [...r.graph.modules.values()].find((m) => m.base === instance),
       p = r.read32(pointer + 36);

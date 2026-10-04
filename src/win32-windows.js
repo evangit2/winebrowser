@@ -1043,7 +1043,9 @@ async function create(r, a, wide) {
   const cls =
     classId <= 0xffff
       ? m.atoms.get(classId)
-      : (m.classes.get(name) ?? resolveControlClass(m, name, wide) ?? builtinWindowClass(name));
+      : (m.classes.get(name) ??
+        resolveControlClass(m, name, wide) ??
+        builtinWindowClass(name, wide));
   if (!cls) return m.fail(1407, 12);
   const child = !!(a(3) & 0x40000000),
     parentId = child ? a(8) : 0;
@@ -1439,8 +1441,14 @@ const HOST_WINDOW_CLASSES = new Map([
     },
   ],
 ]);
-function builtinWindowClass(name) {
-  return HOST_WINDOW_CLASSES.get(String(name).toLowerCase()) ?? null;
+const HOST_WIDE_WINDOW_CLASSES = new Map();
+function builtinWindowClass(name, wide) {
+  name = String(name).toLowerCase();
+  const cls = HOST_WINDOW_CLASSES.get(name);
+  if (!cls || !wide) return cls ?? null;
+  if (!HOST_WIDE_WINDOW_CLASSES.has(name))
+    HOST_WIDE_WINDOW_CLASSES.set(name, { ...cls, wide: true });
+  return HOST_WIDE_WINDOW_CLASSES.get(name);
 }
 
 export const windowApis = { ...cursorApis, ...windowFindApis, ...windowDataApis };

@@ -8,8 +8,22 @@ static struct{char text[8];DWORD tail;} findA={{0},0xfeedbeef};
 static struct{WCHAR text[16];DWORD tail;} findW={{0x03a9,0},0xfeedbeef};
 static char findReplace[32]="alpha",replacement[32]="beta";
 static FINDREPLACEA a,repl;static FINDREPLACEW w;
+static FINDREPLACEW template_find;static WCHAR template_buffer[8];
+static unsigned template_actions,template_terms,template_inits;
 static void(WINAPI *expect)(LPARAM);static unsigned(WINAPI *initializations)(void);static LPFRHOOKPROC hook;
 static void say(const WCHAR *text){SetWindowTextW(status,text);}
+static INT_PTR CALLBACK template_proc(HWND window,UINT message,WPARAM wp,LPARAM lp){
+  (void)wp;
+  if(message==WM_INITDIALOG){
+    template_inits++;CHECK(lp==0x1234||lp==0x1235);CHECK(IsWindowUnicode(window));
+    HWND edit=GetDlgItem(window,1152);CHECK(edit&&IsWindowUnicode(edit));
+    CHECK(SetDlgItemTextW(window,1152,L"\x03a9\x20ac"));
+    WCHAR text[8]={0};CHECK(GetDlgItemTextW(window,1152,text,8)==2);CHECK(text[0]==0x03a9&&text[1]==0x20ac);
+    if(lp==0x1235)CHECK(EndDialog(window,0x5566));
+    return TRUE;
+  }
+  return FALSE;
+}
 static void arrange(void){CHECK(dialog);CHECK(IsWindowEnabled(owner));CHECK(GetWindow(dialog,GW_OWNER)==owner);CHECK(SetWindowPos(dialog,NULL,620,40,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE));}
 static LRESULT CALLBACK subclass(HWND window,UINT message,WPARAM wp,LPARAM lp){
   if(message==WM_COMMAND&&LOWORD(wp)==2000){say(L"Subclass W: native template button");return 0;}
@@ -31,6 +45,12 @@ static void begin(void){
 static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp){
   if(message==helpMessage){CHECK(mode==1&&lp==(LPARAM)&a&&wp==(WPARAM)dialog);helps++;say(L"Help A: native callback");return 0;}
   if(message==findMessage){
+    if(mode==0){
+      CHECK(lp==(LPARAM)&template_find);CHECK(template_find.Flags&FR_DOWN);
+      if(template_find.Flags&FR_FINDNEXT){CHECK(template_buffer[0]==0x03a9&&template_buffer[1]==0x20ac&&template_buffer[2]==0);template_actions++;}
+      if(template_find.Flags&FR_DIALOGTERM){CHECK(!(template_find.Flags&FR_FINDNEXT));template_terms++;}
+      return 0;
+    }
     FINDREPLACEA *fr=(FINDREPLACEA*)lp;CHECK(lp==(LPARAM)(mode==1?(void*)&a:mode==2?(void*)&w:(void*)&repl));
     CHECK((fr->Flags&FR_DOWN)!=0);CHECK(IsWindowEnabled(owner));
     if(fr->Flags&FR_DIALOGTERM){
@@ -66,6 +86,25 @@ void start(void){
   FINDREPLACEA invalid={0};invalid.lStructSize=sizeof(invalid);invalid.hwndOwner=owner;CHECK(!FindTextA(&invalid)&&CommDlgExtendedError()==FRERR_BUFFERLENGTHZERO);
   invalid.lpstrFindWhat=findA.text;invalid.wFindWhatLen=8;invalid.Flags=FR_ENABLEHOOK;CHECK(!FindTextA(&invalid)&&CommDlgExtendedError()==CDERR_NOHOOK);
   library=LoadLibraryA("find-resources.dll");CHECK(library);
+  HRSRC named=FindResourceW(library,L"GUI\x03a9",MAKEINTRESOURCEW(5));CHECK(named);
+  CHECK(SizeofResource(library,named)>0);HGLOBAL named_data=LoadResource(library,named);CHECK(named_data);CHECK(LockResource(named_data));
+  CHECK(!FreeResource(named_data));CHECK(LockResource(named_data));
+  HRSRC resource=FindResourceW(library,MAKEINTRESOURCEW(201),MAKEINTRESOURCEW(5));CHECK(resource);
+  CHECK(FindResourceExA(library,MAKEINTRESOURCEA(5),MAKEINTRESOURCEA(201),0));
+  DWORD bytes=SizeofResource(library,resource);CHECK(bytes);
+  const BYTE *source=(const BYTE*)LockResource(LoadResource(library,resource));CHECK(source);
+  HGLOBAL memory=GlobalAlloc(GMEM_MOVEABLE|GMEM_ZEROINIT,bytes);CHECK(memory);
+  BYTE *copy=(BYTE*)GlobalLock(memory);CHECK(copy);for(DWORD k=0;k<bytes;k++)copy[k]=source[k];GlobalUnlock(memory);
+  HWND normal=CreateDialogParamW(library,MAKEINTRESOURCEW(201),owner,template_proc,0x1234);CHECK(normal);CHECK(DestroyWindow(normal));
+  normal=CreateDialogIndirectParamW(instance,(LPCDLGTEMPLATEW)copy,owner,template_proc,0x1234);CHECK(normal);CHECK(DestroyWindow(normal));
+  CHECK(DialogBoxParamW(library,MAKEINTRESOURCEW(201),owner,template_proc,0x1235)==0x5566);
+  CHECK(DialogBoxIndirectParamW(instance,(LPCDLGTEMPLATEW)copy,owner,template_proc,0x1235)==0x5566);
+  CHECK(template_inits==4);
+  template_find.lStructSize=sizeof(template_find);template_find.hwndOwner=owner;template_find.hInstance=(HINSTANCE)memory;
+  template_find.Flags=FR_DOWN|FR_ENABLETEMPLATEHANDLE;template_find.lpstrFindWhat=template_buffer;template_find.wFindWhatLen=8;
+  HWND from_handle=FindTextW(&template_find);CHECK(from_handle);CHECK(IsWindowUnicode(from_handle));
+  CHECK(SetDlgItemTextW(from_handle,1152,L"\x03a9\x20ac"));SendMessageW(from_handle,WM_COMMAND,IDOK,0);SendMessageW(from_handle,WM_COMMAND,IDCANCEL,0);
+  CHECK(template_actions==1&&template_terms==1);CHECK(!IsWindow(from_handle));CHECK(GlobalSize(memory)>=bytes);CHECK(!GlobalFree(memory));
   union{FARPROC raw;void(WINAPI *fn)(LPARAM);} e;e.raw=GetProcAddress(library,"Expect");expect=e.fn;
   union{FARPROC raw;unsigned(WINAPI *fn)(void);} i;i.raw=GetProcAddress(library,"Initializations");initializations=i.fn;
   union{FARPROC raw;LPFRHOOKPROC fn;} h;h.raw=GetProcAddress(library,"FindHook");hook=h.fn;CHECK(expect&&initializations&&hook);

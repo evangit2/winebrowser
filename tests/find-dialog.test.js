@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
+import { readPEResource } from '../src/pe-resources.js';
 
 async function setup(t, wide = false, replace = false, flags = 1) {
   const bytes = new Uint8Array(
@@ -129,7 +130,7 @@ test('Find flags hide/disable requested controls and clear stale downward/action
   assert.equal(callbacks.length, 1);
 });
 
-test('common-dialog failures reject bad layouts, owners, buffers, hooks and unsupported templates', async (t) => {
+test('common-dialog failures reject bad layouts, owners, buffers, hooks and invalid templates', async (t) => {
   const { r, p, owner, find, call, open } = await setup(t);
   assert.equal((await call('comdlg32.dll!FindTextA', 0)).result, 0);
   assert.equal(r.commonDialogError, 2);
@@ -171,7 +172,7 @@ test('common-dialog failures reject bad layouts, owners, buffers, hooks and unsu
       3,
     ],
     [() => r.write32(p + 36, 404), 6],
-    [() => r.write32(p + 12, 0x2000), 2],
+    [() => r.write32(p + 12, 0x2000), 7],
     [() => r.write32(p + 12, 0x80000000), 2],
   ];
   for (const [change, error] of failures) {
@@ -183,4 +184,104 @@ test('common-dialog failures reject bad layouts, owners, buffers, hooks and unsu
   r.write32(p + 12, 1);
   assert.ok((await open()).result);
   assert.equal(r.commonDialogError, 0);
+});
+
+test('allocated HGLOBAL templates support A/W Find without taking caller ownership', async (t) => {
+  const library = new Uint8Array(
+    await readFile(new URL('./fixtures/find-dialogs/find-resources.dll', import.meta.url)),
+  );
+  const template = readPEResource(library, 5, 201);
+  assert.ok(template);
+  for (const wide of [false, true]) {
+    const { r, p, owner, call, open, child } = await setup(t, wide, false, 0x2000 | 1 | 0x200);
+    const memory = (await call('kernel32.dll!GlobalAlloc', 0x42, template.length)).result;
+    const locked = (await call('kernel32.dll!GlobalLock', memory)).result;
+    assert.ok(locked);
+    r.data.set(template, locked);
+    r.write32(p + 8, memory);
+    await call('kernel32.dll!GlobalUnlock', memory);
+    const id = (await open()).result;
+    assert.ok(id);
+    assert.equal(r.windows.windows.get(id).title, 'Find in native DLL');
+    assert.equal((await call('user32.dll!IsWindowUnicode', child(id, 1152).id)).result, +wide);
+    await call('user32.dll!SetDlgItemTextW', id, 1152, r.allocString('Ω€', true));
+    const output = r.allocate(16);
+    assert.equal((await call('user32.dll!GetDlgItemTextW', id, 1152, output, 8)).result, 2);
+    assert.equal(r.wideString(output), wide ? 'Ω€' : '?€');
+    await r.windows.destroy(id);
+    assert.equal((await call('kernel32.dll!GlobalSize', memory)).result >= template.length, true);
+    assert.equal(r.windows.isEnabled(owner), true);
+    // The ordinary W dialog APIs must retain Unicode for frame and controls too.
+    const ordinary = (
+      await call(
+        'user32.dll!CreateDialogIndirectParamW',
+        r.pe.imageBase,
+        locked,
+        owner,
+        0x12345678,
+        0,
+      )
+    ).result;
+    assert.ok(ordinary);
+    assert.equal((await call('user32.dll!IsWindowUnicode', ordinary)).result, 1);
+    assert.equal((await call('user32.dll!IsWindowUnicode', child(ordinary, 1152).id)).result, 1);
+    await call('user32.dll!SetDlgItemTextW', ordinary, 1152, r.allocString('Ω€', true));
+    await call('user32.dll!GetDlgItemTextW', ordinary, 1152, output, 8);
+    assert.equal(r.wideString(output), 'Ω€');
+    await r.windows.destroy(ordinary);
+    assert.equal((await call('kernel32.dll!GlobalFree', memory)).result, 0);
+    r.write32(p + 12, 0x2000);
+    assert.equal((await open()).result, 0);
+    assert.equal(r.commonDialogError, 7);
+  }
+});
+
+test('DLL resource size/load use HRSRC, preserve FreeResource data and decode Unicode names', async (t) => {
+  const { r, call } = await setup(t);
+  const library = new Uint8Array(
+    await readFile(new URL('./fixtures/find-dialogs/find-resources.dll', import.meta.url)),
+  );
+  const module = 0x20000000;
+  r.files.set('find-resources.dll', library);
+  r.graph.modules.set('find-resources.dll', {
+    base: module,
+    path: 'find-resources.dll',
+    bytes: library,
+  });
+  for (const [name, wide] of [
+    [201, false],
+    ['GUIΩ', true],
+  ]) {
+    const parameter = typeof name === 'number' ? name : r.allocString(name, wide);
+    const resource = await call(
+      `kernel32.dll!FindResource${wide ? 'W' : 'A'}`,
+      module,
+      parameter,
+      5,
+    );
+    assert.equal(resource.argc, 3);
+    assert.ok(resource.result);
+    const payload = readPEResource(library, 5, name);
+    assert.deepEqual(await call('kernel32.dll!SizeofResource', module, resource.result), {
+      result: payload.length,
+      argc: 2,
+    });
+    const loaded = await call('kernel32.dll!LoadResource', module, resource.result);
+    assert.deepEqual(loaded, { result: resource.result, argc: 2 });
+    const address = (await call('kernel32.dll!LockResource', loaded.result)).result;
+    assert.deepEqual(r.data.slice(address, address + payload.length), payload);
+    assert.deepEqual(await call('kernel32.dll!FreeResource', loaded.result), {
+      result: 0,
+      argc: 1,
+    });
+    assert.equal((await call('kernel32.dll!LockResource', loaded.result)).result, address);
+    assert.deepEqual(r.data.slice(address, address + payload.length), payload);
+  }
+  const ex = await call('kernel32.dll!FindResourceExA', module, 5, 201, 0);
+  assert.ok(ex.result);
+  assert.equal(ex.argc, 4);
+  for (const api of ['SizeofResource', 'LoadResource']) {
+    assert.deepEqual(await call(`kernel32.dll!${api}`, module, 0x1234), { result: 0, argc: 2 });
+    assert.equal(r.lastError, 1812);
+  }
 });

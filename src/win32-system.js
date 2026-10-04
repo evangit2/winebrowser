@@ -37,32 +37,31 @@ function resourceHandle(r, module, bytes, type, name) {
   r.resourceHandles.set(address, { module, bytes, payload, loads: 0 });
   return address;
 }
-function findResourceA(r, a) {
+function findResource(r, a, wide = false) {
   const module = a(0);
   const bytes = moduleBytes(r, module);
   if (!bytes) return fail(r, 1813, 3); // ERROR_RESOURCE_TYPE_NOT_FOUND
-  const name = a(1) < 65536 ? a(1) : r.string(a(1));
-  const type = a(2) < 65536 ? a(2) : r.string(a(2));
+  const text = (p) => (wide ? r.wideString(p) : r.string(p));
+  const name = a(1) < 65536 ? a(1) : text(a(1));
+  const type = a(2) < 65536 ? a(2) : text(a(2));
   const handle = resourceHandle(r, module, bytes, type, name);
   if (!handle) return fail(r, 1813, 3);
   return ok(handle, 3);
 }
 function resourceEntry(r, a, argc) {
-  const entry = r.resourceHandles?.get(a(0) >>> 0);
+  const entry = r.resourceHandles?.get(a(1) >>> 0);
   if (!entry) return fail(r, 1812, argc); // ERROR_RESOURCE_DATA_NOT_FOUND
   return entry;
 }
 function sizeOfResource(r, a) {
   const entry = resourceEntry(r, a, 2);
-  return entry.result !== undefined && entry.result === 0 && r.lastError
-    ? entry
-    : ok(entry.payload.length, 2);
+  return entry.payload === undefined ? entry : ok(entry.payload.length, 2);
 }
 function loadResource(r, a) {
   const entry = resourceEntry(r, a, 2);
   if (entry.payload === undefined) return entry;
   entry.loads++;
-  return ok(a(0) >>> 0, 2);
+  return ok(a(1) >>> 0, 2);
 }
 function lockResource(r, a) {
   const entry = r.resourceHandles?.get(a(0) >>> 0);
@@ -70,8 +69,9 @@ function lockResource(r, a) {
   return ok(a(0) >>> 0, 1);
 }
 function freeResource(r, a) {
-  const address = a(0) >>> 0;
-  if (r.resourceHandles?.delete(address)) r.free(address);
+  // Obsolete Win16 API: on Win32 it returns FALSE and leaves resource data valid.
+  void r;
+  void a;
   return ok(0, 1);
 }
 
@@ -1100,11 +1100,14 @@ function heapValidate(r, a) {
 }
 
 export const systemApis = {
-  'kernel32.dll!FindResourceA': (r, a) => findResourceA(r, a),
-  'kernel32.dll!FindResourceW': (r, a) => findResourceA(r, a),
+  'kernel32.dll!FindResourceA': (r, a) => findResource(r, a),
+  'kernel32.dll!FindResourceW': (r, a) => findResource(r, a, true),
   // FindResourceExA(dwModule, lpType, lpName, wLanguage). The runtime stores one
   // payload per name, so the requested language does not change the result.
-  'kernel32.dll!FindResourceExA': (r, a) => findResourceA(r, (index) => a([0, 2, 1][index] ?? 0)),
+  'kernel32.dll!FindResourceExA': (r, a) => ({
+    ...findResource(r, (index) => a([0, 2, 1][index] ?? 0)),
+    argc: 4,
+  }),
   'kernel32.dll!SizeofResource': sizeOfResource,
   'kernel32.dll!LoadResource': loadResource,
   'kernel32.dll!LockResource': lockResource,
