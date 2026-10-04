@@ -5,6 +5,37 @@ static HMENU context;
 static unsigned round_no;
 static HWND owner_draw;
 static HBRUSH dialog_brush;
+static void menu_info_contracts(void) {
+  HMENU root=CreateMenu(),sub=CreatePopupMenu();CHECK(root&&sub);
+  CHECK(AppendMenuA(root,MF_POPUP,(UINT_PTR)sub,"Submenu"));
+  MENUITEMINFOA info={0};info.cbSize=sizeof(info);info.fMask=MIIM_ID|MIIM_STRING|MIIM_DATA|MIIM_FTYPE|MIIM_STATE;
+  info.wID=80;info.dwTypeData="caf\xe9 \x80";info.dwItemData=0x87654321;info.fType=MFT_RADIOCHECK;info.fState=MFS_DEFAULT;
+  CHECK(InsertMenuItemA(sub,0,TRUE,&info));
+  info.wID=81;info.dwTypeData="Second";info.dwItemData=0x12345678;info.fState=0;
+  CHECK(InsertMenuItemA(root,80,FALSE,&info));CHECK(GetMenuItemCount(root)==1&&GetMenuItemCount(sub)==2);
+  CHECK(GetMenuItemID(sub,0)==81&&GetMenuItemID(sub,1)==80);
+  info.fMask=MIIM_STRING|MIIM_ID|MIIM_DATA|MIIM_FTYPE|MIIM_STATE|MIIM_SUBMENU;info.dwTypeData=NULL;info.cch=0;
+  CHECK(GetMenuItemInfoA(root,80,FALSE,&info));CHECK(info.cch==6&&info.wID==80&&info.dwItemData==0x87654321&&info.hSubMenu==NULL);
+  CHECK(info.fType==MFT_RADIOCHECK&&info.fState==MFS_DEFAULT);
+  char short_text[4]={'!','!','!','!'};info.fMask=MIIM_STRING;info.dwTypeData=short_text;info.cch=3;
+  CHECK(GetMenuItemInfoA(root,80,FALSE,&info));CHECK(info.cch==2&&short_text[0]=='c'&&short_text[1]=='a'&&!short_text[2]&&short_text[3]=='!');
+  char full[8];CHECK(GetMenuStringA(sub,80,full,sizeof(full),MF_BYCOMMAND)==6);CHECK(full[3]==(char)0xe9&&full[5]==(char)0x80);
+  MENUITEMINFOW wide={0};wide.cbSize=sizeof(wide);wide.fMask=MIIM_STRING;WCHAR output[8];wide.dwTypeData=output;wide.cch=8;
+  CHECK(GetMenuItemInfoW(root,80,FALSE,&wide));CHECK(wide.cch==6&&output[3]==0xe9&&output[5]==0x20ac&&!output[6]);
+  wide.dwTypeData=L"\x03a9 Unicode";CHECK(SetMenuItemInfoW(root,80,FALSE,&wide));
+  wide.dwTypeData=output;wide.cch=8;CHECK(GetMenuItemInfoW(root,80,FALSE,&wide));CHECK(output[0]==0x03a9&&wide.cch==7&&!output[7]);
+  CHECK(CheckMenuRadioItem(root,80,81,81,MF_BYCOMMAND));
+  info.fMask=MIIM_STATE|MIIM_FTYPE;CHECK(GetMenuItemInfoA(sub,81,FALSE,&info));CHECK(info.fState&MFS_CHECKED&&info.fType&MFT_RADIOCHECK);
+  CHECK(CheckMenuRadioItem(sub,0,1,1,MF_BYPOSITION));CHECK(GetMenuItemInfoA(sub,81,FALSE,&info));CHECK(!(info.fState&MFS_CHECKED)&&info.fType&MFT_RADIOCHECK);
+  CHECK(GetMenuItemInfoA(sub,80,FALSE,&info));CHECK(info.fState&MFS_CHECKED);
+  info.fMask=MIIM_ID|MIIM_SUBMENU;info.wID=900;info.hSubMenu=root;
+  CHECK(!SetMenuItemInfoA(sub,80,FALSE,&info)&&GetLastError()==ERROR_INVALID_PARAMETER);CHECK(GetMenuItemID(sub,1)==80);
+  info.fMask=MIIM_TYPE|MIIM_STRING;CHECK(!GetMenuItemInfoA(sub,80,FALSE,&info)&&GetLastError()==ERROR_INVALID_PARAMETER);
+  info.fMask=MIIM_FTYPE;info.fType=MFT_OWNERDRAW;CHECK(!SetMenuItemInfoA(sub,80,FALSE,&info)&&GetLastError()==ERROR_CALL_NOT_IMPLEMENTED);
+  info.cbSize=44;info.fMask=MIIM_ID|MIIM_DATA;CHECK(GetMenuItemInfoA(sub,80,FALSE,&info));CHECK(info.wID==80&&info.dwItemData==0x87654321);
+  info.cbSize=43;CHECK(!GetMenuItemInfoA(sub,80,FALSE,&info)&&GetLastError()==ERROR_INVALID_PARAMETER);
+  CHECK(DestroyMenu(root));
+}
 static INT_PTR CALLBACK dialog_proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
   (void)wp;
   if(message==WM_INITDIALOG){SetWindowLongA(window,DLGWINDOWEXTRA,lp);return TRUE;}
@@ -69,6 +100,7 @@ void start(void) {
   CHECK(!GetUserNameA(NULL,&characters));CHECK(GetLastError()==ERROR_INSUFFICIENT_BUFFER);
   CHECK(characters<=sizeof(username));CHECK(GetUserNameA(username,&characters));CHECK(characters>1);
   HINSTANCE instance=GetModuleHandleA(NULL);
+  menu_info_contracts();
   custom_dialog(instance);
   WNDCLASSA cls={0}; cls.hInstance=instance;cls.lpfnWndProc=proc;cls.lpszClassName="NativeMenus";cls.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
   CHECK(RegisterClassA(&cls));
@@ -83,6 +115,9 @@ void start(void) {
   HWND window=CreateWindowA(cls.lpszClassName,"Native menus",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,bar,instance,NULL);CHECK(window);
   HWND edit=CreateWindowExA(WS_EX_STATICEDGE,"EDIT","Read only",WS_CHILD|WS_VISIBLE|ES_READONLY,120,10,110,24,window,(HMENU)50,instance,NULL);CHECK(edit);
   RECT client;CHECK(GetClientRect(edit,&client));CHECK(client.right==108&&client.bottom==22);
+  CHECK(SendMessageA(edit,EM_SETREADONLY,FALSE,0));CHECK(!(GetWindowLongA(edit,GWL_STYLE)&ES_READONLY));
+  CHECK(SendMessageA(edit,EM_SETREADONLY,TRUE,0));CHECK(GetWindowLongA(edit,GWL_STYLE)&ES_READONLY);
+  CHECK(SetWindowTextA(edit,"Read only"));
   owner_draw=CreateWindowA("STATIC","Native painted",WS_CHILD|WS_VISIBLE|SS_OWNERDRAW,120,40,110,55,window,(HMENU)60,instance,NULL);CHECK(owner_draw);
   CHECK(CreateWindowA("BUTTON","Repaint child",WS_CHILD|WS_VISIBLE,120,100,110,24,window,(HMENU)61,instance,NULL));
   CHECK(UpdateWindow(owner_draw));

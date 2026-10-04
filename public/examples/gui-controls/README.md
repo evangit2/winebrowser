@@ -10,6 +10,9 @@ Drag the priorities list to change its order through native COMCTL32 callbacks.
 Escape cancels an active drag; Reset restores the original priorities.
 Native Priorities/Notes tabs switch pages while preserving the list order and
 edited notes. The application controls page visibility through WM_NOTIFY.
+The Notes menu uses native MENUITEMINFO queries/updates and radio choices to
+switch notes between editable and read-only. The caption and selection follow
+the current mode; editing locks preserve text, and Reset restores editable mode.
 It needs no app-specific Wasm build: WineBrowser translates the executable's x86
 blocks to WebAssembly in the browser.
 

@@ -113,6 +113,107 @@ test('resource submenus have stable handles; RemoveMenu retains them and DeleteM
   assert.equal(r.menus.byHandle.size, 0);
 });
 
+test('MENUITEMINFO updates nested commands atomically and queries bounded ANSI/Unicode data', () => {
+  const r = runtime(),
+    root = call(r, 'user32.dll!CreateMenu').result,
+    sub = call(r, 'user32.dll!CreatePopupMenu').result,
+    info = r.allocate(48);
+  const set = (offset, value) => r.write32(info + offset, value);
+  const api = (name, menu = root, id = 20, position = 0) =>
+    call(r, `user32.dll!${name}`, menu, id, position, info);
+  call(r, 'user32.dll!AppendMenuA', root, 0x10, sub, r.allocString('Sub'));
+  set(0, 48);
+  set(4, 0x163);
+  set(8, 0x200);
+  set(12, 0x1000);
+  set(16, 20);
+  set(32, 0xfedcba98);
+  set(36, r.allocString('\x80 café')); // allocString writes raw single-byte units.
+  assert.deepEqual(api('InsertMenuItemA', sub, 0, 1), { result: 1, argc: 4 });
+  set(4, 0x1ef);
+  set(36, 0);
+  set(40, 0);
+  assert.deepEqual(api('GetMenuItemInfoA'), { result: 1, argc: 4 });
+  assert.equal(r.read32(info + 16), 20);
+  assert.equal(r.read32(info + 32), 0xfedcba98);
+  assert.equal(r.read32(info + 40), 6);
+  assert.equal(r.read32(info + 8), 0x200);
+  assert.equal(r.read32(info + 12), 0x1000);
+  const output = r.allocate(16);
+  r.data.fill(0xcc, output, output + 16);
+  set(4, 0x40);
+  set(36, output);
+  set(40, 3);
+  assert.equal(api('GetMenuItemInfoA').result, 1);
+  assert.deepEqual([...r.data.subarray(output, output + 4)], [0x80, 32, 0, 0xcc]);
+  assert.equal(r.read32(info + 40), 2);
+  set(36, output);
+  set(40, 16);
+  assert.equal(api('GetMenuItemInfoW').result, 1);
+  assert.equal(r.wideString(output), '€ café');
+  const original = { ...r.menus.byHandle.get(sub).items[0] };
+  set(4, 0x66);
+  set(16, 21);
+  set(20, root);
+  set(32, 0);
+  set(36, r.allocString('Changed'));
+  assert.equal(api('SetMenuItemInfoA').result, 0);
+  assert.equal(r.lastError, 87);
+  assert.deepEqual(r.menus.byHandle.get(sub).items[0], original);
+  set(4, 0x102);
+  set(8, 0x100);
+  set(16, 21);
+  assert.equal(api('SetMenuItemInfoA').result, 0);
+  assert.equal(r.lastError, 120);
+  assert.deepEqual(r.menus.byHandle.get(sub).items[0], original);
+  set(0, 44);
+  set(4, 0x22);
+  assert.equal(api('GetMenuItemInfoA').result, 1);
+  set(4, 0x80);
+  assert.equal(api('GetMenuItemInfoA').result, 0);
+  set(0, 48);
+  set(4, 0x50);
+  assert.equal(api('GetMenuItemInfoA').result, 0);
+  set(0, 43);
+  set(4, 2);
+  assert.equal(api('GetMenuItemInfoA').result, 0);
+  set(0, 48);
+  set(4, 2);
+  set(16, 22);
+  assert.equal(api('InsertMenuItemA', sub, 0xffffffff, 1).result, 1);
+  assert.equal(r.menus.byHandle.get(sub).items[1].separator, true);
+});
+
+test('menu radio ranges stay in one parent and handle UINT bounds without range iteration', () => {
+  const r = runtime(),
+    root = call(r, 'user32.dll!CreateMenu').result,
+    first = call(r, 'user32.dll!CreatePopupMenu').result,
+    second = call(r, 'user32.dll!CreatePopupMenu').result,
+    text = r.allocString('Choice');
+  call(r, 'user32.dll!AppendMenuA', root, 0x10, first, text);
+  call(r, 'user32.dll!AppendMenuA', root, 0x10, second, text);
+  for (const [menu, id] of [
+    [first, 10],
+    [first, 12],
+    [second, 11],
+  ])
+    call(r, 'user32.dll!AppendMenuA', menu, 8, id, text);
+  assert.deepEqual(call(r, 'user32.dll!CheckMenuRadioItem', root, 10, 12, 12, 0), {
+    result: 1,
+    argc: 5,
+  });
+  assert.equal(call(r, 'user32.dll!GetMenuState', root, 10, 0).result, 0);
+  assert.equal(call(r, 'user32.dll!GetMenuState', root, 11, 0).result, 8);
+  assert.equal(call(r, 'user32.dll!GetMenuState', root, 12, 0).result, 0x208);
+  assert.equal(call(r, 'user32.dll!CheckMenuRadioItem', first, 0, 0xffffffff, 0, 0x400).result, 1);
+  assert.equal(call(r, 'user32.dll!GetMenuState', first, 12, 0).result, 0x200);
+  assert.equal(
+    call(r, 'user32.dll!CheckMenuRadioItem', first, 0, 0xffffffff, 0xffffffff, 0x400).result,
+    0,
+  );
+  assert.equal(call(r, 'user32.dll!GetMenuState', first, 10, 0).result, 0x200);
+});
+
 test('PtInRect reads a full signed POINT passed by value, with exclusive bottom/right', () => {
   const r = runtime(),
     rect = r.allocate(16);

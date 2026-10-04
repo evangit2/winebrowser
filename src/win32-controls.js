@@ -223,6 +223,13 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     return 0;
   }
   if (message === 0x31) return window.fontHandle;
+  if (window.controlType === 'edit' && message === 0xcf) {
+    // EM_SETREADONLY changes user editing, while WM_SETTEXT stays available.
+    window.readOnly = !!wp;
+    window.style = ((window.style & ~0x800) | (wp ? 0x800 : 0)) >>> 0;
+    r.windows.emit(window);
+    return 1;
+  }
   if (message === 0x87)
     return window.dragList?.dragging
       ? 4

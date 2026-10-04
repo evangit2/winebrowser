@@ -4,10 +4,19 @@
 static HWND tree, items, combo, status, canvas, priorities, pages, notes;
 static HTREEITEM root, first;
 static HFONT font;
+static HMENU notes_menu;
 static UINT drag_message;
 static int drag_source=-1;
 static const char *priority_names[]={"Paint window", "Handle input", "Update controls", "Save settings"};
 static void say(const char *text) { SetWindowTextA(status,text); }
+static void note_mode(HWND window,BOOL locked) {
+  SendMessageA(notes,EM_SETREADONLY,locked,0);
+  CheckMenuRadioItem(notes_menu,110,111,locked?111:110,MF_BYCOMMAND);
+  MENUITEMINFOA info={0};info.cbSize=sizeof(info);info.fMask=MIIM_STRING;
+  info.dwTypeData=locked?"&Notes (read-only)":"&Notes (editable)";
+  SetMenuItemInfoA(GetMenu(window),1,TRUE,&info);
+  DrawMenuBar(window);
+}
 static void reset_priorities(void) {
   SendMessageA(priorities,LB_RESETCONTENT,0,0);
   for(int i=0;i<4;i++) {
@@ -43,6 +52,7 @@ static void reset(HWND window) {
   CheckDlgButton(window,30,BST_UNCHECKED);CheckRadioButton(window,31,32,31);
   SetWindowLongA(canvas,GWL_USERDATA,0);InvalidateRect(canvas,NULL,TRUE);
   reset_priorities();
+  note_mode(window,FALSE);
   TabCtrl_SetCurSel(pages,0);ShowWindow(priorities,SW_SHOW);ShowWindow(notes,SW_HIDE);
   TreeView_SelectItem(tree,first);say("Choose a category, list item or option.");
 }
@@ -95,6 +105,13 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
     UINT id=LOWORD(wp),code=HIWORD(wp);
     if(id==40 || id==100){reset(window);return 0;}
     if(id==101){DestroyWindow(window);return 0;}
+    if(id==110||id==111){
+      MENUITEMINFOA choice={0};choice.cbSize=sizeof(choice);choice.fMask=MIIM_DATA;
+      if(!GetMenuItemInfoA(notes_menu,id,FALSE,&choice))ExitProcess(6);
+      BOOL locked=choice.dwItemData==2;note_mode(window,locked);
+      TabCtrl_SetCurSel(pages,1);ShowWindow(priorities,SW_HIDE);ShowWindow(notes,SW_SHOW);SetFocus(notes);
+      say(locked?"Notes are read-only. Select Editable to unlock them.":"Notes are editable. Your text is preserved.");return 0;
+    }
     if(id==20 && code==LBN_SELCHANGE){char text[128];LRESULT index=SendMessageA(items,LB_GETCURSEL,0,0);if(index>=0){SendMessageA(items,LB_GETTEXT,index,(LPARAM)text);say(text);}return 0;}
     if(id==21 && (code==CBN_SELCHANGE||code==CBN_EDITCHANGE)){char text[128];GetWindowTextA(combo,text,sizeof(text));say(text);return 0;}
     if(id==30){say(IsDlgButtonChecked(window,30)==BST_CHECKED?"Checkbox is checked.":"Checkbox is unchecked.");return 0;}
@@ -123,6 +140,13 @@ void start(void) {
   if(!RegisterClassA(&custom))ExitProcess(1);
   font=CreateFontA(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH,"Arial");
   HMENU menu=CreateMenu(),popup=CreatePopupMenu();AppendMenuA(popup,MF_STRING,100,"&Reset");AppendMenuA(popup,MF_STRING,101,"E&xit");AppendMenuA(menu,MF_POPUP,(UINT_PTR)popup,"&Demo");
+  notes_menu=CreatePopupMenu();
+  MENUITEMINFOA item={0};item.cbSize=sizeof(item);item.fMask=MIIM_FTYPE|MIIM_ID|MIIM_STRING|MIIM_DATA|MIIM_STATE;
+  item.fType=MFT_RADIOCHECK;item.wID=110;item.dwTypeData="&Editable";item.dwItemData=1;item.fState=MFS_DEFAULT;
+  if(!InsertMenuItemA(notes_menu,0,TRUE,&item))ExitProcess(5);
+  item.wID=111;item.dwTypeData="&Read-only";item.dwItemData=2;item.fState=0;
+  if(!InsertMenuItemA(notes_menu,1,TRUE,&item))ExitProcess(5);
+  AppendMenuA(menu,MF_POPUP,(UINT_PTR)notes_menu,"&Notes (editable)");
   drag_message=RegisterWindowMessageA(DRAGLISTMSGSTRING);
   RECT rect={0,0,500,438};AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW,TRUE);
   HWND window=CreateWindowA(cls.lpszClassName,"Native GUI controls",WS_OVERLAPPEDWINDOW|WS_VISIBLE,40,40,rect.right-rect.left,rect.bottom-rect.top,NULL,menu,instance,NULL);if(!window)ExitProcess(2);

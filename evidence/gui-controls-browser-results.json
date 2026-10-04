@@ -1,18 +1,19 @@
 {
-  "date": "2026-10-04T01:08:03.858Z",
+  "date": "2026-10-04T02:31:07.454Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
-  "exeSha256": "b1ca162ed96f13500c03565dfc2797e9b57de09f54264c45d4be959148070b36",
+  "exeSha256": "d8866c9fd51dabcaada9c8494a08f255907cb1b15759013c1f59537cd7253545",
   "exitCode": 0,
-  "compiledBlocks": 252,
-  "x86TranslationMs": 126.00499999523163,
+  "compiledBlocks": 290,
+  "x86TranslationMs": 63.15500029921532,
   "checks": [
     "Public EXE loads from Pages examples; original x86 callbacks run in the browser",
     "Tree category, sorted list, editable combo, checkbox and radio interactions",
     "Native registered child canvas, nested button command, independent GDI repaint and mouse callback",
     "Public priorities list reorders through native COMCTL32 drag callbacks; Escape cancels and Reset restores order",
     "Native tabs switch priorities/notes visibility; edited notes and priority order survive switching pages",
+    "Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly",
     "Native menu Reset restores control state; close exits zero",
     "Public source/license ZIP package runs and Stop removes its window"
   ],

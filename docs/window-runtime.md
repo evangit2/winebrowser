@@ -28,6 +28,23 @@ Horizontal single-row `SysTabControl32` text tabs now support PE32 TCITEMA/W ins
 
 Standard MENU resources and dynamic textual menus support bars, nested submenus, separators, disabled/checked state and command delivery. Resource submenus have queryable handles. Alt plus a menu mnemonic opens the menu; command mnemonics and vertical navigation select items. `TrackPopupMenu` and `TrackPopupMenuEx` wait for the user's actual selection or cancellation, then return a command ID or queue `WM_COMMAND` according to flags. MENUEX, bitmap/owner-drawn menus and popup alignment/exclusion rectangles remain unsupported. Menu item rectangle estimates are not pixel-exact browser layout measurements.
 
+InsertMenuItem, SetMenuItemInfo and GetMenuItemInfo A/W now support the 44/48-byte
+PE32 MENUITEMINFO layouts for textual/radio/separator items, enabled/checked/default
+state, IDs, submenu handles and application data. Queries support size probes,
+bounded NUL-terminated CP1252/UTF-16 output and nested command lookup; updates
+reject submenu cycles and unsupported bitmap/owner-drawn types before changing
+items. CheckMenuRadioItem selects within a single parent by command or position,
+retaining radio types when selection changes. Default entries render bold and
+radio selection renders a dot. Unsupported type/state flags and custom checkmark
+bitmaps remain visible errors. The native menu fixture and unit tests cover
+these contracts; implementation references include Wine's
+[menu services](https://github.com/wine-mirror/wine/blob/master/dlls/win32u/menu.c)
+and Microsoft's [MENUITEMINFO](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-menuiteminfoa).
+The public GUI showcase uses these APIs for Notes mode: native radio commands
+call EM_SETREADONLY, update the menu caption and preserve note text. Programmatic
+WM_SETTEXT remains available while user editing is locked; Reset restores editable
+mode. Complete Edit control message coverage remains incomplete.
+
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 
 Custom nonclient geometry, minimize/maximize behavior, full input-method handling and graphics APIs beyond the documented raster subset still need implementation. Resize repaints the client surface; the application remains responsible for adapting its layout and game logic. The virtual registry is process-local and is not persisted between runs. Fonts use browser matching and may differ from Windows. Shell icon extraction is not implemented. Offscreen compatible bitmaps, SRCCOPY BitBlt, accelerator tables, Unicode registry storage and Wine guest formatting are covered in [desktop compatibility](desktop-compatibility.md). Wine CRT/NLS support remains under development for broader library dependencies.

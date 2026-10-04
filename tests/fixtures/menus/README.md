@@ -9,6 +9,11 @@ in a shim cannot pass this test.
 The startup checks GetUserNameA's required-size retry, BOOL return and LastError.
 A read-only WS_EX_STATICEDGE edit verifies the one-pixel frame and native client
 dimensions before the popup sequence runs.
+It toggles EM_SETREADONLY, checks ES_READONLY and allows programmatic WM_SETTEXT.
+Native MENUITEMINFO tests cover 44/48-byte layouts, ANSI/Unicode text, size probes,
+short buffers, application data, default/radio state, nested insertion/query and
+selection by command/position. Invalid masks, sizes, owner-drawn types and submenu
+cycles fail without changing existing items.
 
 Copyright (c) 2026 WineBrowser contributors. Permission is hereby granted, free
 of charge, to any person obtaining a copy of this software and associated

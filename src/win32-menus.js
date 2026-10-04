@@ -5,6 +5,7 @@
 // can report the command the user chose.
 import { readPEResource } from './pe-resources.js';
 import { resizeWindowSurface } from './win32-gdi.js';
+import { encodeAnsi } from './encoding.js';
 
 const RT_MENU = 4;
 const MAX_ITEMS = 512;
@@ -90,6 +91,7 @@ function describe(items) {
     enabled: !(item.flags & (MF_GRAYED | MF_DISABLED)),
     checked: !!(item.flags & MF_CHECKED),
     radio: !!(item.flags & MF_RADIOCHECK),
+    default: !!(item.flags & 0x1000),
     submenu: item.submenu ? describe(item.submenu.items) : null,
   }));
 }
@@ -102,6 +104,26 @@ function findItem(menu, value, byPosition = false) {
     if (found) return found;
   }
   return null;
+}
+function locateItem(menu, value, byPosition) {
+  if (byPosition) {
+    const item = menu.items[value];
+    return item ? { menu, item, index: value } : null;
+  }
+  for (let index = 0; index < menu.items.length; index++) {
+    const item = menu.items[index];
+    if (item.id === value) return { menu, item, index };
+    const found = item.submenu && locateItem(item.submenu, value, false);
+    if (found) return found;
+  }
+  return null;
+}
+function containsMenu(items, target, depth = 0) {
+  return (
+    depth > 8 ||
+    items === target ||
+    items.some((item) => item.submenu && containsMenu(item.submenu.items, target, depth + 1))
+  );
 }
 function emitMenus(r) {
   for (const window of r.windows.windows.values()) if (window.menu) r.windows.emit(window);
@@ -164,11 +186,7 @@ function addMenuItem(r, a, wide, insert) {
     const child = state.byHandle.get(id);
     if (!child) return fail(r, 1401, argc);
     // Reject cycles before serializing a menu tree.
-    const contains = (items, target, depth = 0) =>
-      depth > 8 ||
-      items === target ||
-      items.some((i) => i.submenu && contains(i.submenu.items, target, depth + 1));
-    if (contains(child.items, menu.items)) return fail(r, 87, argc);
+    if (containsMenu(child.items, menu.items)) return fail(r, 87, argc);
     entry.submenu = child;
   }
   if (menu.items.length >= MAX_ITEMS) return fail(r, 8, argc);
@@ -237,6 +255,150 @@ function getSystemMenu(r, a) {
   return ok(handle, 2);
 }
 
+// PE32 MENUITEMINFO is 48 bytes (44 for the pre-hbmpItem layout). Keep
+// unrequested fields intact and validate updates before mutating the menu tree.
+const ITEM_TYPE = MF_RADIOCHECK | MF_SEPARATOR;
+const ITEM_STATE = 3 | MF_CHECKED | 0x1000;
+function itemInfo(r, pointer) {
+  if (!pointer) return null;
+  r.check(pointer, 4);
+  const size = r.read32(pointer);
+  if (size !== 44 && size !== 48) return null;
+  r.check(pointer, size);
+  const mask = r.read32(pointer + 4);
+  if (mask & ~0x1ff || (size === 44 && mask & 0x80) || (mask & 0x10 && mask & 0x1c0)) return null;
+  return { pointer, size, mask, read: (offset) => r.read32(pointer + offset) };
+}
+function updateItemInfo(r, a, wide, insert) {
+  const root = menuState(r).byHandle.get(a(0));
+  if (!root) return fail(r, 1401, 4);
+  const info = itemInfo(r, a(3));
+  if (!info) return fail(r, 87, 4);
+  const { mask, read } = info;
+  const location = locateItem(root, a(1), !!a(2));
+  if (!insert && !location) return fail(r, 1456, 4);
+  const menu = location?.menu ?? root;
+  if (insert && menu.items.length >= MAX_ITEMS) return fail(r, 8, 4);
+  const next = { ...(insert ? { flags: 0, id: 0, text: null } : location.item) };
+  if (mask & 0x110) {
+    const type = read(8);
+    if (type & ~ITEM_TYPE) return fail(r, 120, 4);
+    next.flags = (next.flags & ~ITEM_TYPE) | type;
+    next.separator = !!(type & MF_SEPARATOR);
+  }
+  if (mask & 1) {
+    const state = read(12);
+    if (state & ~ITEM_STATE) return fail(r, 120, 4);
+    next.flags = (next.flags & ~ITEM_STATE) | state;
+  }
+  if (mask & 2) next.id = read(16);
+  if (mask & 4) {
+    const handle = read(20),
+      child = menuState(r).byHandle.get(handle);
+    if (handle && !child) return fail(r, 1401, 4);
+    if (child && containsMenu(child.items, menu.items)) return fail(r, 87, 4);
+    next.submenu = child ?? null;
+    next.flags = (next.flags & ~MF_POPUP) | (child ? MF_POPUP : 0);
+  }
+  if ((mask & 8 && (read(24) || read(28))) || (mask & 0x80 && read(44))) return fail(r, 120, 4); // Custom checkmark/bitmap painting needs a renderer.
+  if (mask & 0x20) next.data = read(32);
+  if (mask & 0x50) {
+    next.text = readMenuText(r, read(36), wide);
+    if (!read(36)) {
+      next.flags |= MF_SEPARATOR;
+      next.separator = true;
+    }
+  }
+  if (next.text === null) {
+    next.text = '';
+    next.flags |= MF_SEPARATOR;
+    next.separator = true;
+  }
+  if (insert) menu.items.splice(location?.index ?? menu.items.length, 0, next);
+  else Object.assign(location.item, next);
+  menu.count = menu.items.length;
+  emitMenus(r);
+  return ok(1, 4);
+}
+function queryItemInfo(r, a, wide) {
+  const menu = menuState(r).byHandle.get(a(0));
+  if (!menu) return fail(r, 1401, 4);
+  const info = itemInfo(r, a(3));
+  if (!info) return fail(r, 87, 4);
+  const item = locateItem(menu, a(1), !!a(2))?.item;
+  if (!item) return fail(r, 1456, 4);
+  const { mask, pointer, size, read } = info;
+  r.check(pointer, size, true);
+  const write = (offset, value) => r.write32(pointer + offset, value);
+  if (mask & 0x110) write(8, item.flags & ITEM_TYPE);
+  if (mask & 1) write(12, item.flags & ITEM_STATE);
+  if (mask & 2) write(16, item.id);
+  write(20, mask & 4 ? (item.submenu?.handle ?? 0) : 0);
+  if (mask & 8) {
+    write(24, 0);
+    write(28, 0);
+  }
+  if (mask & 0x20) write(32, item.data ?? 0);
+  if (mask & 0x80) write(44, 0);
+  if (mask & 0x50) {
+    let buffer = read(36),
+      capacity = read(40);
+    if (mask & 0x10 && item.separator) {
+      write(36, 0);
+      buffer = 0;
+      capacity = 0;
+    }
+    const text = item.text ?? '',
+      bytes = wide ? null : encodeAnsi(text).bytes;
+    const length = wide ? text.length : bytes.length;
+    let copied = length;
+    if (buffer && capacity) {
+      copied = Math.min(length, capacity - 1);
+      const width = wide ? 2 : 1;
+      r.check(buffer, (copied + 1) * width, true);
+      for (let i = 0; i < copied; i++)
+        r.guestMemory.write(buffer + i * width, wide ? text.charCodeAt(i) : bytes[i], width);
+      r.guestMemory.write(buffer + copied * width, 0, width);
+    }
+    write(40, copied);
+  }
+  return ok(1, 4);
+}
+function checkMenuRadioItem(r, a) {
+  const root = menuState(r).byHandle.get(a(0));
+  if (!root) return fail(r, 1401, 5);
+  const first = a(1) >>> 0,
+    last = a(2) >>> 0,
+    checked = a(3) >>> 0,
+    flags = a(4);
+  if (flags & ~0x400 || first > last) return fail(r, 87, 5);
+  // Enumerate existing IDs rather than looping over an arbitrary UINT range.
+  const values = new Set();
+  const collect = (menu) => {
+    menu.items.forEach((item, index) => {
+      values.add(flags ? index : item.id);
+      if (!flags && item.submenu) collect(item.submenu);
+    });
+  };
+  collect(root);
+  let group,
+    done = false;
+  for (const value of [...values].filter((id) => id >= first && id <= last).sort((a, b) => a - b)) {
+    const found = locateItem(root, value, !!flags);
+    if (!found) continue;
+    group ??= found.menu;
+    if (found.menu !== group || found.item.separator) continue;
+    const item = found.item;
+    item.flags &= ~MF_CHECKED;
+    if (value === checked) {
+      item.flags |= MF_RADIOCHECK | MF_CHECKED;
+      done = true;
+    }
+  }
+  emitMenus(r);
+  return ok(done ? 1 : 0, 5);
+}
+
 export const menuApis = {
   // LoadMenuA/W(HINSTANCE, LPCTSTR): the name may be a string or an ordinal.
   'user32.dll!LoadMenuA': (r, a) => loadMenu(r, a, false),
@@ -249,6 +411,13 @@ export const menuApis = {
   'user32.dll!AppendMenuW': (r, a) => addMenuItem(r, a, true, false),
   'user32.dll!InsertMenuA': (r, a) => addMenuItem(r, a, false, true),
   'user32.dll!InsertMenuW': (r, a) => addMenuItem(r, a, true, true),
+  'user32.dll!InsertMenuItemA': (r, a) => updateItemInfo(r, a, false, true),
+  'user32.dll!InsertMenuItemW': (r, a) => updateItemInfo(r, a, true, true),
+  'user32.dll!SetMenuItemInfoA': (r, a) => updateItemInfo(r, a, false, false),
+  'user32.dll!SetMenuItemInfoW': (r, a) => updateItemInfo(r, a, true, false),
+  'user32.dll!GetMenuItemInfoA': (r, a) => queryItemInfo(r, a, false),
+  'user32.dll!GetMenuItemInfoW': (r, a) => queryItemInfo(r, a, true),
+  'user32.dll!CheckMenuRadioItem': checkMenuRadioItem,
   'user32.dll!DeleteMenu': (r, a) => deleteMenuItem(r, a, true),
   'user32.dll!RemoveMenu': (r, a) => deleteMenuItem(r, a, false),
   'user32.dll!GetSubMenu': (r, a) => {
@@ -432,9 +601,10 @@ function getMenuString(r, a, wide) {
     for (let i = 0; i <= value.length; i++)
       r.guestMemory.write(buffer + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
   } else {
-    r.check(buffer, value.length + 1, true);
-    for (let i = 0; i < value.length; i++) r.data[buffer + i] = value.charCodeAt(i) & 0xff;
-    r.data[buffer + value.length] = 0;
+    const bytes = encodeAnsi(value).bytes;
+    r.check(buffer, bytes.length + 1, true);
+    r.data.set(bytes, buffer);
+    r.data[buffer + bytes.length] = 0;
   }
   return ok(value.length, 5);
 }

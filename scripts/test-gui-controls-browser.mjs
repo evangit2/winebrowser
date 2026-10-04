@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
-let server, browser;
+let server, browser, page;
 try {
   let url = process.env.WINEBROWSER_TEST_URL;
   if (!url) {
@@ -15,8 +15,8 @@ try {
     url = `http://127.0.0.1:${server.httpServer.address().port}/`;
   }
   browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome' });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } }),
-    errors = [];
+  page = await browser.newPage({ viewport: { width: 1280, height: 1400 } });
+  const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url);
   await page.waitForFunction(
@@ -79,8 +79,13 @@ try {
     expect.poll(() => priorities.getByRole('option').allTextContents()).toEqual(expected);
   await order(initial);
   const point = async (name) => {
-    const bounds = await priorities.getByRole('option', { name, exact: true }).boundingBox();
-    assert.ok(bounds);
+    let bounds;
+    await expect
+      .poll(async () => {
+        bounds = await priorities.getByRole('option', { name, exact: true }).boundingBox();
+        return bounds;
+      })
+      .not.toBeNull();
     return { x: Math.round(bounds.x + 20), y: Math.round(bounds.y + bounds.height / 2) };
   };
   let p = await point(initial[0]);
@@ -122,10 +127,41 @@ try {
   await pages.getByRole('tab', { name: 'Notes', exact: true }).click();
   await expect(notes).toBeVisible();
   assert.equal(await notes.inputValue(), 'Notes saved in native edit state.');
+  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
+  const editable = window.getByRole('menuitemradio', { name: 'Editable', exact: true }),
+    readOnly = window.getByRole('menuitemradio', { name: 'Read-only', exact: true });
+  await expect(editable).toHaveAttribute('aria-checked', 'true');
+  await expect(readOnly).toHaveAttribute('aria-checked', 'false');
+  assert.equal(await editable.evaluate((el) => getComputedStyle(el).fontWeight), '700');
+  await readOnly.click();
+  await status
+    .getByText('Notes are read-only. Select Editable to unlock them.', { exact: true })
+    .waitFor();
+  await expect(notes).not.toBeEditable();
+  assert.equal(await notes.inputValue(), 'Notes saved in native edit state.');
+  await notes.press('End');
+  await notes.press('X');
+  assert.equal(await notes.inputValue(), 'Notes saved in native edit state.');
+  await window.getByRole('menuitem', { name: 'Notes (read-only)', exact: true }).click();
+  await expect(readOnly).toHaveAttribute('aria-checked', 'true');
+  await expect(editable).toHaveAttribute('aria-checked', 'false');
+  await mkdir('.scratch', { recursive: true });
+  await window.screenshot({ path: '.scratch/gui-controls-notes-menu.png' });
+  await editable.click();
+  await status.getByText('Notes are editable. Your text is preserved.', { exact: true }).waitFor();
+  await expect(notes).toBeEditable();
+  await notes.fill('Unlocked native notes.');
+  await window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }).click();
+  await readOnly.click();
   await window.getByRole('menuitem', { name: 'Demo', exact: true }).click();
   await window.getByRole('menuitem', { name: 'Reset', exact: true }).click();
   await status.getByText(reset, { exact: true }).waitFor();
   await order(initial);
+  await expect(notes).toBeHidden();
+  assert.equal(await notes.evaluate((el) => el.readOnly), false);
+  await expect(
+    window.getByRole('menuitem', { name: 'Notes (editable)', exact: true }),
+  ).toBeVisible();
   assert.equal(await checkbox.getAttribute('aria-checked'), 'false');
   assert.equal(await first.getAttribute('aria-checked'), 'true');
   await page.waitForFunction(
@@ -165,6 +201,7 @@ try {
       'Native registered child canvas, nested button command, independent GDI repaint and mouse callback',
       'Public priorities list reorders through native COMCTL32 drag callbacks; Escape cancels and Reset restores order',
       'Native tabs switch priorities/notes visibility; edited notes and priority order survive switching pages',
+      'Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly',
       'Native menu Reset restores control state; close exits zero',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
@@ -176,6 +213,18 @@ try {
     JSON.stringify(report, null, 2) + '\n',
   );
   console.log(JSON.stringify(report, null, 2));
+} catch (error) {
+  if (page) {
+    console.error(
+      await page.evaluate(() => ({
+        state: document.querySelector('#state')?.textContent,
+        logs: document.querySelector('#logs')?.textContent,
+        run: window.__lastRun,
+      })),
+    );
+    await page.screenshot({ path: '.scratch/gui-controls-failure.png' });
+  }
+  throw error;
 } finally {
   await browser?.close();
   await server?.close();

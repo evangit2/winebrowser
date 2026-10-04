@@ -312,6 +312,7 @@ export class VirtualDesktop {
       const button = document.createElement('button');
       button.type = 'button';
       button.disabled = !item.enabled;
+      if (item.default) button.style.fontWeight = 'bold';
       const [caption, shortcut = ''] = item.text.split('\t');
       const role = item.radio ? 'menuitemradio' : item.checked ? 'menuitemcheckbox' : 'menuitem';
       button.setAttribute('role', role);
@@ -320,7 +321,7 @@ export class VirtualDesktop {
       const label = document.createElement('span');
       label.textContent = stripCaptionMnemonics(caption);
       const mark = document.createElement('span');
-      mark.textContent = item.checked ? '✓' : '';
+      mark.textContent = item.checked ? (item.radio ? '●' : '✓') : '';
       mark.setAttribute('aria-hidden', 'true');
       const hint = document.createElement('span');
       hint.textContent = item.submenu ? '›' : shortcut;

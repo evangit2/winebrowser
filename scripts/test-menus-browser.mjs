@@ -111,7 +111,11 @@ try {
     exitCode: run.exitCode,
     checks: [
       'Native dynamic menu bar honors disabled and checked items and client geometry',
+      'Native PE32 MENUITEMINFO A/W updates and queries preserve IDs/data/default/radio state, nested command lookup and bounded CP1252/Unicode strings',
+      'Native radio selection by position/command retains radio type; rejected submenu cycles and unsupported types leave original items intact',
+      'Native 44/48-byte MENUITEMINFO layouts validate size and incompatible masks',
       'Native WS_EX_STATICEDGE read-only edit preserves one-pixel frame and client dimensions',
+      'Native EM_SETREADONLY toggles ES_READONLY while programmatic WM_SETTEXT remains available',
       'Native GetUserNameA size probe retries with BOOL success and ERROR_INSUFFICIENT_BUFFER',
       'Native custom dialog class retains DLGWINDOWEXTRA context and DefDlgProc dispatches the application dialog procedure',
       'Native DefDlgProc paints default COLOR_BTNFACE and honors application WM_CTLCOLORDLG brushes',
