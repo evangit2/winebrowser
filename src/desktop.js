@@ -708,8 +708,25 @@ export class VirtualDesktop {
         listEdit.autocomplete = 'off';
         listEdit.setAttribute('aria-label', state.title || 'Value');
         listEdit.addEventListener('input', () =>
-          this.#emit(control.id, 'list-text', { text: listEdit.value }),
+          this.#emit(control.id, 'list-text', {
+            text: listEdit.value,
+            start: listEdit.selectionStart,
+            end: listEdit.selectionEnd,
+          }),
         );
+        for (const type of ['select', 'keyup', 'click'])
+          listEdit.addEventListener(type, () => {
+            const expected = control.listState?.selection;
+            if (
+              expected?.start === listEdit.selectionStart &&
+              expected?.end === listEdit.selectionEnd
+            )
+              return;
+            this.#emit(control.id, 'list-selection', {
+              start: listEdit.selectionStart,
+              end: listEdit.selectionEnd,
+            });
+          });
         element.append(listSelect, listEdit);
       } else element = listSelect;
       element.className =
@@ -830,6 +847,15 @@ export class VirtualDesktop {
             !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn))
         )
           event.preventDefault();
+        // Chromium on macOS interprets Control+H as delete-backward inside
+        // inputs. Native accelerator keys must not also edit browser text.
+        // Retain the browser's ordinary selection/clipboard/undo shortcuts.
+        if (
+          (event.ctrlKey || event.metaKey || event.altKey) &&
+          event.key.length === 1 &&
+          !['a', 'c', 'v', 'x', 'y', 'z'].includes(event.key.toLowerCase())
+        )
+          event.preventDefault();
         this.#sendKey(event, type, control.id, controlType === 'custom');
       });
 
@@ -893,7 +919,12 @@ export class VirtualDesktop {
         Math.floor((control.height - (list.comboType === 1 ? 22 : 0)) / list.itemHeight),
       );
     select.disabled = !control.enabled;
-    if (control.listEdit) control.listEdit.disabled = !control.enabled;
+    if (control.listEdit) {
+      control.listEdit.disabled = !control.enabled;
+      control.listEdit.maxLength = list.textLimit ?? 32767;
+      if (list.selection)
+        control.listEdit.setSelectionRange(list.selection.start, list.selection.end);
+    }
     control.listState = list;
   }
 

@@ -50,3 +50,20 @@ IFileDialog COM and exact Windows MRU/cwd-on-cancel rules remain incomplete.
 Metapad advanced editing/options and arbitrary other GUI frameworks remain
 unproved. See `evidence/file-dialog-browser-results.json` and
 `evidence/metapad-gui-browser-results.json` for bounded acceptance evidence.
+
+`npm run test:metapad-find` also executes the unchanged editor's native custom
+Find/Replace templates, subclass callbacks and editable ComboBoxes. Its real
+`CB_LIMITTEXT` bounds browser typing to 100 characters; `CB_SETEDITSEL` and
+`CB_GETEDITSEL` support signed ranges and native DWORD output pointers without
+clipping programmatic text. Find Next selects two different matching ranges,
+Replace All writes two replacements, the native notice reports the count, and
+Ctrl+S exports the checked bytes. Modified browser shortcut keys no longer
+also perform unintended browser edits, including macOS Chromium's Control+H
+Backspace conflicting with the native Replace accelerator. Ordinary browser
+selection/clipboard/undo shortcuts remain available. The common-control
+selection bridge retains user ranges without echoing programmatic selection.
+
+This covers bounded ANSI Find Next and Replace All. RichEdit, single Replace,
+advanced matching, encodings and options remain unverified. Acceptance evidence
+is in `evidence/metapad-find-browser-results.json`; no Metapad executable is
+published.

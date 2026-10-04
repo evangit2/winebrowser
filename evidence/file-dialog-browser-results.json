@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T11:49:22.056Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T12:28:36.549Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "1f17320f123b271334a9ad7d53b938aa774f27440dce987ff90b7120d55f33a0",
   "compiledBlocks": 104,
-  "x86TranslationMs": 36.9450002014637,
+  "x86TranslationMs": 36.929999738931656,
   "checks": [
     "Native OPENFILENAME v4 A Escape cancellation preserves caller filename and clears extended error",
     "Folder navigation and filters select real guest files; native A offsets/title and actual ReadFile validated",

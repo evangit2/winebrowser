@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-04T11:49:24.359Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T12:28:38.792Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed-editor-file-dialogs",
   "target": "Metapad 3.6 Light Edition, unchanged official native i386 executable",
@@ -11,16 +11,16 @@
     {
       "exitCode": 0,
       "compiledBlocks": 4885,
-      "x86TranslationMs": 1380.0999996960163,
+      "x86TranslationMs": 824.1399992704391,
       "instructions": 1134309,
-      "elapsedMs": 4148.409999996424
+      "elapsedMs": 2934.270000010729
     },
     {
       "exitCode": 0,
       "compiledBlocks": 4762,
-      "x86TranslationMs": 676.0549988150597,
+      "x86TranslationMs": 577.4650013744831,
       "instructions": 508117,
-      "elapsedMs": 1212.6349999904633
+      "elapsedMs": 1233.3149999976158
     }
   ],
   "checks": [

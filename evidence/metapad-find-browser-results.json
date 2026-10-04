@@ -1,0 +1,18 @@
+{
+  "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
+  "date": "2026-10-04T12:28:00.195Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed-find-and-replace-all",
+  "exitCode": 0,
+  "compiledBlocks": 5096,
+  "x86TranslationMs": 1147.4299989938736,
+  "checks": [
+    "Unchanged Metapad native custom Find template/subclass creates editable ComboBox with CB_LIMITTEXT/CB_SETEDITSEL",
+    "Native Find Next reads browser ComboBox text and selects matching beta then alpha ranges in the actual native editor",
+    "Control+H opens the native custom Replace window without browser Backspace deleting selected editor text; editable ComboBox typing honors the native 100-character limit",
+    "Native Replace All produces gamma beta gamma, reports two replacements, and Ctrl+S exports matching actual file bytes",
+    "Modeless dialog close notifications, editor shutdown and unchanged executable exit zero"
+  ],
+  "scope": "Bounded ANSI Find Next and Replace All workflows with the unchanged native app. RichEdit, advanced matching, encodings, single replacement and options remain unverified. Executable stays privately cached."
+}

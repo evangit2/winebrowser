@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
-import { describeList } from '../src/win32-lists.js';
+import { describeList, listInput } from '../src/win32-lists.js';
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
 async function setup(t, kind = 'LISTBOX', style = 0x43) {
   const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
@@ -227,4 +227,38 @@ test('ANSI-created ComboBox accepts Unicode list messages and SendDlgItemMessage
   });
   assert.equal(r.lastError, 1400);
   await assert.rejects(() => send(0x14f, 1), /Unsupported ComboBox message/);
+});
+
+test('editable combo limits user text without clipping WM_SETTEXT and carries native A/W selection', async (t) => {
+  const { r, w, send } = await setup(t, 'COMBOBOX', 2);
+  const out = r.allocate(8);
+  assert.equal(await send(0xc, 0, r.allocString('longer initial value')), 1);
+  assert.equal(await send(0x141, 4), 0);
+  assert.equal(w.title, 'longer initial value');
+  assert.equal(describeList(w).textLimit, 4);
+  assert.equal(await send(0x142, 0, 0xffff0000), 0);
+  assert.equal(await send(0x140, out, out + 4), 20 << 16);
+  assert.equal(r.read32(out), 0);
+  assert.equal(r.read32(out + 4), 20);
+  assert.equal(await send(0x142, 0, (2 << 16) | 6), 0);
+  assert.equal(await send(0x140), (6 << 16) | 2);
+  assert.equal(await send(0x142, 0, 0xffffffff), 0);
+  assert.equal(await send(0x140), (6 << 16) | 6);
+  assert.equal(await send(0xc, 0, r.allocString('Ω € text', true), true), 1);
+  assert.equal(w.title, 'Ω € text');
+  listInput(r, w, { type: 'list-text', text: 'typed long', start: 10, end: 10 });
+  const event = w.list.nextEvent - 1;
+  await send(0x7fe1, event);
+  assert.equal(w.title, 'type');
+  assert.deepEqual(describeList(w).selection, { start: 4, end: 4 });
+  listInput(r, w, { type: 'list-selection', start: 1, end: 3 });
+  assert.equal(await send(0x140, out, out + 4, true), (3 << 16) | 1);
+  assert.equal(r.read32(out), 1);
+  assert.equal(r.read32(out + 4), 3);
+  assert.equal(await send(0x141, 0), 0);
+  assert.equal(describeList(w).textLimit, 32767);
+  const closed = await setup(t, 'COMBOBOX', 3);
+  assert.equal(await closed.send(0x141, 4), 1);
+  assert.equal(await closed.send(0x140), 0xffffffff);
+  assert.equal(await closed.send(0x142, 0, 0xffff0000), 0xffffffff);
 });

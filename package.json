@@ -267,7 +267,8 @@
     "test:metapad-gui": "node scripts/test-metapad-gui-browser.mjs",
     "fetch:metapad": "node scripts/fetch-metapad.mjs",
     "build:file-dialogs": "sh scripts/build-file-dialogs-fixture.sh",
-    "test:file-dialogs": "node scripts/test-file-dialogs-browser.mjs"
+    "test:file-dialogs": "node scripts/test-file-dialogs-browser.mjs",
+    "test:metapad-find": "node scripts/test-metapad-find-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

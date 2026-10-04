@@ -24,6 +24,8 @@ export function describeList(w) {
     itemHeight: s.itemHeight,
     top: s.top,
     comboType: w.comboType,
+    textLimit: w.textLimit ?? 32767,
+    selection: { start: w.selectionStart ?? 0, end: w.selectionEnd ?? 0 },
     tabStops: w.controlType === 'listbox' && w.style & 0x80 ? (s.tabStops ?? []) : undefined,
     drag: w.dragList
       ? { dragging: w.dragList.dragging, marker: w.dragList.marker, cursor: w.dragList.cursor }
@@ -77,8 +79,24 @@ export function listInput(r, w, event) {
   }
   if (event.type === 'list-text' && w.comboType !== 3 && typeof event.text === 'string') {
     const id = s.nextEvent++;
-    s.pending.set(id, event.text.slice(0, 32767));
+    s.pending.set(id, {
+      text: event.text.slice(0, w.textLimit ?? 32767),
+      start: event.start,
+      end: event.end,
+    });
     if (!r.windows.post(w.id, USER_TEXT, id, 0)) s.pending.delete(id);
+    return true;
+  }
+  if (event.type === 'list-selection' && w.controlType === 'combobox' && w.comboType !== 3) {
+    if (
+      Number.isInteger(event.start) &&
+      Number.isInteger(event.end) &&
+      event.start >= 0 &&
+      event.end >= event.start
+    ) {
+      w.selectionStart = Math.min(w.title.length, event.start);
+      w.selectionEnd = Math.min(w.title.length, event.end);
+    }
     return true;
   }
   return false;
@@ -169,16 +187,65 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     const value = s.pending.get(wp);
     s.pending.delete(wp);
     if (value === undefined) return 0;
-    w.title = w.uppercase ? value.toUpperCase() : w.lowercase ? value.toLowerCase() : value;
+    w.title = w.uppercase
+      ? value.text.toUpperCase()
+      : w.lowercase
+        ? value.text.toLowerCase()
+        : value.text;
+    w.selectionStart = Math.min(w.title.length, Math.max(0, value.start ?? w.title.length));
+    w.selectionEnd = Math.min(
+      w.title.length,
+      Math.max(w.selectionStart, value.end ?? w.title.length),
+    );
     s.selected = -1;
     r.windows.emit(w);
     await notify(r, w, 6);
     await notify(r, w, 5);
     return 0;
   }
+  // Wine forwards these three CB messages to the embedded edit. Selection
+  // fields are signed 16-bit values in CB_SETEDITSEL's LPARAM; GET returns
+  // DWORD pointer values as well as the packed result. Limit applies to user
+  // typing, leaving WM_SETTEXT and existing text unchanged.
+  if (combo && message === 0x141) {
+    if (w.comboType === 3) return 1;
+    w.textLimit = Math.min(32767, wp >>> 0 || 32767);
+    r.windows.emit(w);
+    return 0;
+  }
+  if (combo && message === 0x140) {
+    if (w.comboType === 3) return -1;
+    const start = w.selectionStart ?? 0,
+      end = w.selectionEnd ?? start;
+    if (wp) {
+      r.check(wp, 4, true);
+      r.write32(wp, start);
+    }
+    if (lp) {
+      r.check(lp, 4, true);
+      r.write32(lp, end);
+    }
+    return (start | (end << 16)) >>> 0;
+  }
+  if (combo && message === 0x142) {
+    if (w.comboType === 3) return -1;
+    const start = (lp << 16) >> 16,
+      end = lp >> 16,
+      length = w.title.length;
+    if (start === -1) w.selectionStart = w.selectionEnd = w.selectionEnd ?? 0;
+    else {
+      const first = Math.min(length, Math.max(0, start));
+      const last = end === -1 ? length : Math.min(length, Math.max(0, end));
+      w.selectionStart = Math.min(first, last);
+      w.selectionEnd = Math.max(first, last);
+    }
+    r.windows.emit(w);
+    return 0;
+  }
   if (combo && message === 0xc) {
     if (w.comboType === 3) return -1;
     w.title = readText(r, lp, wide).slice(0, 32767);
+    w.selectionStart = w.selectionEnd = 0;
     s.selected = -1;
     r.windows.emit(w);
     return 1;
