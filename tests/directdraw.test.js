@@ -63,6 +63,54 @@ async function fixture(version = 7) {
   return { r, root, p, call, surface };
 }
 
+test('DD7 adapter identifiers preserve the PE32 buffer boundary and reject unknown flags', async () => {
+  const { r, root, call } = await fixture();
+  try {
+    const p = r.allocate(1080);
+    r.data.fill(0xa5, p, p + 1080);
+    assert.equal(await call(root, 'GetDeviceIdentifier', p + 4, 0), 0);
+    assert.equal(r.string(p + 4), 'winebrowser-webgpu');
+    assert.equal(r.string(p + 516), 'WineBrowser WebGPU Adapter');
+    assert.equal(r.read32(p), 0xa5a5a5a5);
+    assert.equal(r.read32(p + 1076), 0xa5a5a5a5);
+    assert.deepEqual(
+      [...r.data.slice(p + 1068, p + 1076)],
+      Array(8).fill(0),
+      'no WHQL certification or uninitialized tail padding',
+    );
+    const identifier = r.data.slice(p + 4, p + 1076);
+    assert.equal(await call(root, 'GetDeviceIdentifier', p + 4, 1), 0);
+    assert.deepEqual(r.data.slice(p + 4, p + 1076), identifier);
+    assert.equal(await call(root, 'GetDeviceIdentifier', p + 4, 2), DD.INVALID);
+    assert.deepEqual(r.data.slice(p + 4, p + 1076), identifier);
+    assert.equal(await call(root, 'GetDeviceIdentifier', 0, 0), DD.INVALID);
+  } finally {
+    await call(root, 'Release');
+    r.windows.dispose();
+    r.cpu.dispose();
+  }
+});
+
+test('opaque DirectDraw RGB ignores an alpha-mask union member without affecting explicit alpha validation', async () => {
+  const { r, root, call, surface } = await fixture();
+  try {
+    const image = await surface(4, 2, [0x40, 0, 32, 0xff0000, 0xff00, 0xff, 0xff000000]);
+    assert.equal(image.hr, 0);
+    const descriptor = r.allocate(124);
+    r.write32(descriptor, 124);
+    assert.equal(await call(image.pointer, 'GetSurfaceDesc', descriptor), 0);
+    assert.equal(r.read32(descriptor + 76), 0x40);
+    assert.equal(r.read32(descriptor + 100), 0);
+    await call(image.pointer, 'Release');
+    assert.equal(directDrawState(r).bytes, 0);
+    assert.notEqual((await surface(4, 2, [0x41, 0, 32, 0xff0000, 0xff00, 0xff, 0])).hr, 0);
+  } finally {
+    await call(root, 'Release');
+    r.windows.dispose();
+    r.cpu.dispose();
+  }
+});
+
 test('DD1/7 COM views share identity, enforce descriptor sizes, preserve legacy caps bounds and release storage', async () => {
   for (const version of [1, 7]) {
     const { r, root, p, call, surface } = await fixture(version),

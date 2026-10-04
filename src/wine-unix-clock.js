@@ -3,7 +3,8 @@ import { systemFileTime } from './shared-user-data.js';
 
 // Wine 11's RtlGetSystemTimePrecise calls ntdll's private Unix table (entry 7),
 // unlike NtQuerySystemTime. Supply that host boundary with the same process
-// clock. Other Unix services remain explicit errors; there is no native server.
+// clock. Entry 2 writes Wine's native diagnostic bytes to the harness log.
+// Other Unix services remain explicit errors; there is no native server.
 export function installWineUnixClock(runtime, module) {
   if (module.unixClock || module.host || module.name !== 'ntdll.dll') return;
   const find = (name) => module.pe.exports.find((e) => e.name === name && !e.forwarder);
@@ -22,9 +23,21 @@ export function installWineUnixClock(runtime, module) {
     name: '__wine_unix_call_dispatcher',
     kind: 'wine-unix',
     invoke(r, a) {
-      if (a(0) >>> 0 !== token || a(1) || a(2) !== 7)
+      if (a(0) >>> 0 !== token || a(1) || ![2, 7].includes(a(2)))
         throw Error(`Unsupported Wine Unix service ${a(2) >>> 0}`);
       const pointer = a(3) >>> 0;
+      if (a(2) === 2) {
+        r.check(pointer, 8);
+        const buffer = r.read32(pointer),
+          length = r.read32(pointer + 4);
+        if (length > 1024 * 1024) throw Error('Wine diagnostic output exceeds limit');
+        r.check(buffer, length);
+        r.emit?.({
+          type: 'log',
+          text: new TextDecoder().decode(r.data.subarray(buffer, buffer + length)),
+        });
+        return { result: length, argc: 4 };
+      }
       r.check(pointer, 8, true);
       const value = systemFileTime(r.systemNow());
       r.write32(pointer, Number(value & 0xffffffffn));

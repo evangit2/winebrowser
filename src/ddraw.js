@@ -61,6 +61,9 @@ function readFormat(r, p) {
   const f = Array.from({ length: 7 }, (_, i) => r.read32(p + 4 + i * 4));
   if (f.every((v, i) => v === [0x400, 0, 16, 0, 0xffff, 0, 0][i])) return f;
   if (!(f[0] & 0x40) || ![16, 24, 32].includes(f[2]) || f[0] & ~0x41 || f[1]) return null;
+  // dwRGBAlphaBitMask is meaningful only with DDPF_ALPHAPIXELS. Callers
+  // commonly leave union fields populated when asking for opaque RGB.
+  if (!(f[0] & 1)) f[6] = 0;
   const masks = f.slice(3);
   if (masks.slice(0, 3).some((m) => !m) || !!(f[0] & 1) !== !!masks[3]) return null;
   const limit = 2 ** f[2] - 1;
@@ -660,6 +663,22 @@ function drawMethods(owner, version) {
       return 0;
     },
     GetFourCCCodes: (r, a) => output(r, a(1), 0),
+    GetDeviceIdentifier: (r, a) => {
+      // The virtual adapter has no PCI vendor or WHQL certification. Its
+      // identity describes this renderer rather than a host graphics card.
+      const p = a(1);
+      if (!p || a(2) & ~1) return DD.INVALID;
+      try {
+        r.check(p, 1072, true);
+      } catch {
+        return DD.INVALID;
+      }
+      r.data.fill(0, p, p + 1072);
+      r.data.set(new TextEncoder().encode('winebrowser-webgpu'), p);
+      r.data.set(new TextEncoder().encode('WineBrowser WebGPU Adapter'), p + 512);
+      r.data.set([0x57, 0x42, 0x47, 0x50, 0x55, 0, 0, 0x40, 0x80, 0, 0, 0, 0, 0, 0, 1], p + 1048);
+      return 0;
+    },
     GetMonitorFrequency: (r, a) => output(r, a(1), 60),
     GetVerticalBlankStatus: (r, a) => output(r, a(1), 0),
     GetScanLine: (r, a) => output(r, a(1), 0),
