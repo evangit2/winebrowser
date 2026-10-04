@@ -1,25 +1,10 @@
 import './desktop.css';
+import { stripCaptionMnemonics } from './caption-text.js';
 import { CURSOR_STYLES, CURSOR_SIZE } from './cursors.js';
 import { compareWindowOrder, windowFrame } from './window-frame.js';
 
 const MIN_CLIENT_WIDTH = 64;
 const MIN_CLIENT_HEIGHT = 48;
-
-function stripCaptionMnemonics(text) {
-  let rendered = '';
-  for (let index = 0; index < text.length; index++) {
-    if (text[index] !== '&' || index === text.length - 1) {
-      rendered += text[index];
-    } else if (text[index + 1] === '&') {
-      rendered += '&';
-      index++;
-    } else {
-      index++;
-      rendered += text[index];
-    }
-  }
-  return rendered;
-}
 
 /**
  * A small DOM-backed virtual desktop for displaying guest windows and routing
@@ -1191,7 +1176,7 @@ export class VirtualDesktop {
       button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(index === tabs.selected));
       button.id = `guest-tab-${control.id}-${item.id}`;
-      button.textContent = item.text;
+      button.textContent = item.displayText ?? item.text;
       button.tabIndex = -1;
       button.addEventListener('mousedown', (event) => {
         event.preventDefault();

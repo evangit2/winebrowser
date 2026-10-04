@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-04T13:20:39.501Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
+  "status": "passed-settings-and-portable-persistence",
+  "exitCodes": [
+    0,
+    0
+  ],
+  "compiledBlocks": 5907,
+  "x86TranslationMs": 1219.9249981343746,
+  "checks": [
+    "Unchanged native Metapad opens all four property pages; General validation rejects tab size zero through native PSN_KILLACTIVE and preserves the active tab",
+    "Cancel discards changed tab size, spaces checkbox and file-format ComboBox; reopening reads the original settings",
+    "OK applies six-space indentation to the actual editor; native Ctrl+S writes the resulting text",
+    "Native WritePrivateProfileStringA exports metapad.ini preserving its comment; uploaded output restores tab size, checkbox and UNIX format in a fresh run",
+    "Resource-font geometry renders readable Settings; tab captions honor escaped ampersands and widths follow the actual font; both native runs exit zero"
+  ],
+  "scope": "Bounded unchanged Metapad LE property pages and portable preferences; font/color pickers, language plugins, printing and arbitrary GUI applications are not proven."
+}

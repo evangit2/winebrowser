@@ -103,7 +103,7 @@ export function controlStyle(kind, style, extended) {
     throw Error('Unsupported ComboBox style');
   if (kind === 'listbox' && local & ~0x1c3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
-  if (kind === 'tabcontrol' && local & ~0xc00) throw Error('Unsupported Tab control style');
+  if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
   if (kind === 'toolbar' && local & 0x80) throw Error('Unsupported vertical toolbar style');
   return {

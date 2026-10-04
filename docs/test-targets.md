@@ -47,7 +47,7 @@ only appear in exported outputs after native code edits them.
 This verifies standard dialogs and ANSI editor workflows. Native hooks/custom
 templates/help, legacy 8.3 multi-select, shell namespace extensions, modern
 IFileDialog COM and exact Windows MRU/cwd-on-cancel rules remain incomplete.
-Metapad advanced editing/options and arbitrary other GUI frameworks remain
+Metapad advanced editing and arbitrary other GUI frameworks remain
 unproved. See `evidence/file-dialog-browser-results.json` and
 `evidence/metapad-gui-browser-results.json` for bounded acceptance evidence.
 
@@ -64,7 +64,7 @@ selection/clipboard/undo shortcuts remain available. The common-control
 selection bridge retains user ranges without echoing programmatic selection.
 
 This covers bounded ANSI Find Next and Replace All. RichEdit, single Replace,
-advanced matching, encodings and options remain unverified. Acceptance evidence
+advanced matching and encodings remain unverified. Acceptance evidence
 is in `evidence/metapad-find-browser-results.json`; no Metapad executable is
 published.
 
@@ -83,3 +83,17 @@ also verify bold italic caption/edit rendering. This uses host Canvas metrics
 and font substitution at 96dpi; exact Windows rasterization, per-monitor DPI
 and mixed-font page sizing remain unproved. Evidence:
 `evidence/dialog-fonts-browser-results.json`.
+
+`npm run test:metapad-settings` uploads the unchanged privately cached Metapad
+executable and a portable INI file. It opens all four native property pages,
+checks the application's tab-size validation and Cancel rollback, then applies
+a six-space indentation preference and checks actual editor/file output.
+Exporting and re-uploading the application's `metapad.ini` restores the chosen
+tab size, checkbox and UNIX format in a new native run. Tab captions now use
+native escaped-ampersand rules (or literal text with `TCS_NOPREFIX`), retain raw
+text for `TCM_GETITEMA/W`, and use actual font widths/line heights for geometry,
+hit testing and page margins. Explicit tab dimensions still take precedence.
+
+Evidence is in `evidence/metapad-settings-browser-results.json`. Font/color
+pickers, language plugins, printing and arbitrary GUI frameworks remain
+unproved; these bounded tests do not establish universal Windows compatibility.

@@ -1,4 +1,6 @@
 import { encodeAnsi } from './encoding.js';
+import { stripCaptionMnemonics } from './caption-text.js';
+import { measureDialogUnits } from './dialog-units.js';
 
 // PE32 TCITEMA/W is 28 bytes. Native code owns the pages; this control owns
 // tab items, selection, hit testing and WM_NOTIFY. Browser input stays queued.
@@ -17,13 +19,39 @@ function tabs(w) {
     unicode: !!w.cls.wide,
   });
 }
+function displayText(w, text) {
+  return w.style & 0x2000 ? text : stripCaptionMnemonics(text);
+}
+let measurement;
+function textWidth(w, text) {
+  if (!w.font) return text.length * 7;
+  if (!measurement && typeof globalThis.OffscreenCanvas === 'function')
+    measurement = new OffscreenCanvas(1, 1).getContext('2d');
+  if (measurement) {
+    measurement.font = w.font.css;
+    const width = measurement.measureText(text).width;
+    if (Number.isFinite(width)) return Math.ceil(width);
+  }
+  return Math.ceil((text.length * w.font.height) / 2);
+}
+function tabHeight(w) {
+  const t = tabs(w);
+  if (t.fixedHeight || !w.font) return t.height;
+  if (t.metricsFont !== w.font.css) {
+    t.metricsFont = w.font.css;
+    t.fontHeight = measureDialogUnits(w.font).y;
+  }
+  return Math.max(1, t.fontHeight + 2 * t.padding[1]);
+}
 function rects(w) {
   const t = tabs(w);
   let left = 2;
   return t.items.map((item) => {
     const width =
-      w.style & 0x400 ? t.width : Math.max(t.minimum, item.text.length * 7 + 2 * t.padding[0]);
-    const rect = [left, 2, left + width, 2 + t.height];
+      w.style & 0x400
+        ? t.width
+        : Math.max(t.minimum, textWidth(w, displayText(w, item.text)) + 2 * t.padding[0]);
+    const rect = [left, 2, left + width, 2 + tabHeight(w)];
     left += width;
     return rect;
   });
@@ -36,12 +64,13 @@ export function describeTabs(w) {
     items: t.items.map((item, index) => ({
       id: item.id,
       text: item.text,
+      displayText: displayText(w, item.text),
       highlighted: !!(item.state & 2),
       rect: bounds[index],
     })),
     selected: t.selected,
     focused: t.focused,
-    height: t.height,
+    height: tabHeight(w),
   };
 }
 function itemInput(r, p, wide, previous = {}) {
@@ -222,12 +251,12 @@ export async function tabMessage(r, w, message, wp, lp, fallback) {
   if (message === 0x1328) {
     r.check(lp, 16, true);
     const sign = wp ? -1 : 1,
-      margins = [4, t.height + 4, -4, -4];
+      margins = [4, tabHeight(w) + 4, -4, -4];
     margins.forEach((v, i) => r.write32(lp + 4 * i, (r.read32(lp + 4 * i) | 0) + sign * v));
     return 0;
   }
   if (message === 0x1329) {
-    const previous = (t.height << 16) | t.width,
+    const previous = (tabHeight(w) << 16) | t.width,
       width = lp & 0xffff,
       height = lp >>> 16;
     if (!width || !height || width > 4096 || height > 4096) throw Error('Unsupported Tab size');

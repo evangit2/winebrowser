@@ -85,7 +85,7 @@ try {
       'Application-owned page visibility and edited text survive tab changes; destruction exits zero',
     ],
     scope:
-      'Horizontal single-row text tabs in ordinary Chromium. Native code owns pages. Images, vertical/multiline/button/owner-drawn tabs, tooltip windows, custom item data sizes and universal common-control coverage remain incomplete. Variable text widths use estimates.',
+      'Horizontal single-row text tabs in ordinary Chromium. Native code owns pages. Images, vertical/multiline/button/owner-drawn tabs, tooltip windows, custom item data sizes and universal common-control coverage remain incomplete. Resource-font variable text widths use host Canvas metrics with bounded fallback; default widths remain estimates.',
   };
   await writeFile('evidence/tabs-browser-results.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
