@@ -14,6 +14,7 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: python3 scripts/generate-api-set-schema.py --check
+      - run: python3 scripts/generate-toolbar-assets.py --check
       - run: npm test
       - run: npm run test:softfloat
       - run: python3 scripts/generate-x87-remainder-vectors.py --check-native
@@ -102,6 +103,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-objects
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:font-dialog
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:find-dialogs
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:toolbar
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gui-controls
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:directdraw
           npm run test:d3d8

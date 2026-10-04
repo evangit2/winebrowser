@@ -3,6 +3,7 @@ import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
 import { tabMessage, tabInput } from './win32-tabs.js';
 import { statusbarMessage } from './win32-statusbar.js';
+import { toolbarMessage, toolbarInput } from './win32-toolbar.js';
 export const EDIT_INPUT = 0x7fc0;
 
 const kinds = new Map([
@@ -14,6 +15,7 @@ const kinds = new Map([
   ['combobox', 'combobox'],
   ['systabcontrol32', 'tabcontrol'],
   ['msctls_statusbar32', 'statusbar'],
+  ['toolbarwindow32', 'toolbar'],
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
@@ -25,6 +27,7 @@ export function builtinControlClass(name, wide) {
             treeview: 'SysTreeView32',
             tabcontrol: 'SysTabControl32',
             statusbar: 'msctls_statusbar32',
+            toolbar: 'ToolbarWindow32',
           }[kind] ?? kind.toUpperCase(),
         controlType: kind,
         wide,
@@ -100,6 +103,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   if (kind === 'tabcontrol' && local & ~0xc00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x84f) throw Error('Unsupported status bar style');
+  if (kind === 'toolbar' && local & 0x80) throw Error('Unsupported vertical toolbar style');
   return {
     ownerDraw,
     comboType: kind === 'combobox' ? local & 3 : 0,
@@ -357,6 +361,8 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
   if (window.controlType === 'tabcontrol') return tabMessage(r, window, message, wp, lp, fallback);
   if (window.controlType === 'statusbar')
     return statusbarMessage(r, window, message, wp, lp, fallback, wide);
+  if (window.controlType === 'toolbar')
+    return toolbarMessage(r, window, message, wp, lp, fallback, wide);
   if (['combobox', 'listbox'].includes(window.controlType))
     return listMessage(r, window, message, wp, lp, fallback, wide);
   const value = await fallback();
@@ -391,6 +397,7 @@ export function controlInput(r, window, event) {
     return true;
   if (window.controlType === 'treeview' && treeInput(r, window, event)) return true;
   if (window.controlType === 'tabcontrol' && tabInput(r, window, event)) return true;
+  if (window.controlType === 'toolbar' && toolbarInput(r, window, event)) return true;
   if (event.type === 'command' && window.controlType === 'button') {
     if (r.windows.isControlSubclass(window)) {
       r.windows.post(window.id, 0xf5);

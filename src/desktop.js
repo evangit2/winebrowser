@@ -576,6 +576,7 @@ export class VirtualDesktop {
         'treeview',
         'tabcontrol',
         'statusbar',
+        'toolbar',
         'combobox',
         'listbox',
         'custom',
@@ -688,6 +689,11 @@ export class VirtualDesktop {
       element.setAttribute('role', 'tablist');
       element.setAttribute('aria-label', state.title || 'Tabs');
       element.tabIndex = 0;
+    } else if (controlType === 'toolbar') {
+      element = document.createElement('div');
+      element.className = 'virtual-desktop-control virtual-desktop-control-toolbar';
+      element.setAttribute('role', 'toolbar');
+      element.setAttribute('aria-label', state.title || 'Toolbar');
     } else if (controlType === 'statusbar') {
       element = document.createElement('div');
       element.className = 'virtual-desktop-control virtual-desktop-control-statusbar';
@@ -912,6 +918,58 @@ export class VirtualDesktop {
       marker.style.top = `${(list.drag.marker - list.top) * list.itemHeight}px`;
       control.viewport.append(marker);
     }
+  }
+
+  #applyToolbar(control, bar) {
+    const focused = control.element.contains(document.activeElement)
+      ? document.activeElement.dataset.toolbarCommand
+      : undefined;
+    const fragment = document.createDocumentFragment();
+    for (const item of bar.buttons) {
+      if (!item.rect || item.state & 8) continue;
+      const [left, top, right, bottom] = item.rect;
+      const button = document.createElement(item.style & 1 ? 'div' : 'button');
+      button.dataset.toolbarCommand = String(item.command);
+      button.style.cssText = `position:absolute;left:${left}px;top:${top}px;width:${right - left}px;height:${bottom - top}px;`;
+      if (item.style & 1) {
+        button.className = 'virtual-desktop-toolbar-separator';
+        button.setAttribute('role', 'separator');
+      } else {
+        button.type = 'button';
+        button.className = 'virtual-desktop-toolbar-button';
+        button.disabled = !control.enabled || !(item.state & 4);
+        button.title = item.text || item.image?.label || '';
+        button.setAttribute('aria-label', item.text || item.image?.label || 'Toolbar button');
+        if (item.style & 2) button.setAttribute('aria-pressed', String(!!(item.state & 1)));
+        button.classList.toggle('virtual-desktop-toolbar-pressed', !!(item.state & 3));
+        button.classList.toggle('virtual-desktop-toolbar-indeterminate', !!(item.state & 16));
+        if (item.image) {
+          const canvas = document.createElement('canvas');
+          canvas.width = item.image.width;
+          canvas.height = item.image.height;
+          canvas
+            .getContext('2d')
+            .putImageData(
+              new ImageData(new Uint8ClampedArray(item.image.pixels), canvas.width, canvas.height),
+              0,
+              0,
+            );
+          button.append(canvas);
+        }
+        if (item.text && bar.showText) button.append(document.createTextNode(item.text));
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (!button.disabled)
+            this.#emit(control.id, 'toolbar-command', { command: item.command });
+        });
+      }
+      fragment.append(button);
+    }
+    control.element.replaceChildren(fragment);
+    if (focused !== undefined)
+      [...control.element.children]
+        .find((e) => e.dataset.toolbarCommand === focused && !e.disabled)
+        ?.focus({ preventScroll: true });
   }
 
   #applyStatusbar(control, bar) {
@@ -1192,6 +1250,8 @@ export class VirtualDesktop {
     if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);
+    if (control.controlType === 'toolbar' && state.toolbar)
+      this.#applyToolbar(control, state.toolbar);
     if (control.controlType === 'statusbar' && state.statusbar)
       this.#applyStatusbar(control, state.statusbar);
 

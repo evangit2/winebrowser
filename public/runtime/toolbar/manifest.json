@@ -1,0 +1,34 @@
+{
+  "sourceRevision": "db11d0fe6a169c457e23d007e20404643d067aa8",
+  "license": "LGPL-2.1-or-later",
+  "files": {
+    "idb_std_small.bmp": {
+      "sha256": "310e2a74bc8d8aee2b29027d4f36cea44d90dbff70becae317a2d3494c45535d",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/idb_std_small.bmp"
+    },
+    "idb_std_large.bmp": {
+      "sha256": "8b91364e6067550b8b3fdc009cbb6cb92bc3a964016f3d745d30f7fbf0fcfd87",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/idb_std_large.bmp"
+    },
+    "idb_view_small.bmp": {
+      "sha256": "bdef73c500e5d5dd3d6fceefddc16cb97189ca2c3fb01234087ecc29ac665d86",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/idb_view_small.bmp"
+    },
+    "idb_view_large.bmp": {
+      "sha256": "9480bf5f2a79fde306de749472650840aced3e9cd80cb558c6b516f3463f11d6",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/idb_view_large.bmp"
+    },
+    "idb_hist_small.bmp": {
+      "sha256": "267b7e6ec8ac582d9c01e2841b8320bb559415b5eaae4bf05c366b24b7d54bf1",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/idb_hist_small.bmp"
+    },
+    "idb_hist_large.bmp": {
+      "sha256": "b40cea37886e4bdbc7cf71084d69cfcfce83d81a651d94b0724e71af77fe5708",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/idb_hist_large.bmp"
+    },
+    "comctl32.rc": {
+      "sha256": "51af3d16458c7b8ffa583945e834c3b63af9e8c3c4d7f86022629357291a4e14",
+      "source": "https://raw.githubusercontent.com/wine-mirror/wine/db11d0fe6a169c457e23d007e20404643d067aa8/dlls/comctl32/comctl32.rc"
+    }
+  }
+}

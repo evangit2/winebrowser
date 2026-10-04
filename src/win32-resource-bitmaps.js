@@ -56,6 +56,9 @@ function loadResourceBitmap(r, instance, name, maps) {
     return fail(r, 13);
   }
   if (!payload) return fail(r, 1814);
+  return bitmapFromDib(r, payload, maps);
+}
+export function bitmapFromDib(r, payload, maps = null) {
   const layout = resourceDibLayout(payload);
   if (!layout) return fail(r, 13);
   const bytes = payload.slice();

@@ -2,6 +2,7 @@ import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
 import { describeTabs } from './win32-tabs.js';
 import { describeStatusbar } from './win32-statusbar.js';
+import { describeToolbar } from './win32-toolbar.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
   builtinControlClass,
@@ -362,6 +363,7 @@ export class WindowManager {
         tree: describeTree(window),
         tabs: describeTabs(window),
         statusbar: describeStatusbar(window),
+        toolbar: describeToolbar(window),
         list: describeList(window),
       },
     });

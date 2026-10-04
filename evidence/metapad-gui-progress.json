@@ -1,12 +1,11 @@
 {
-  "date": "2026-10-04T06:15:37.403Z",
+  "date": "2026-10-04T07:30:18.135Z",
   "target": "Metapad 3.6 Light Edition, official native i386 binary",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
   "upstreamSource": "https://github.com/alexd/metapad",
   "status": "blocked-imports",
   "missingImports": [
-    "comctl32.dll!CreateToolbarEx",
     "comctl32.dll!PropertySheetA",
     "kernel32.dll!GetPrivateProfileStringA",
     "kernel32.dll!WritePrivateProfileStringA",
@@ -25,7 +24,8 @@
   "sourceFindings": [
     "Upstream Find/Replace dialogs call CreateMappedBitmap with flags 0 and the default color map",
     "Upstream CreateToolbarEx uses common-control standard small-color assets and adds custom bitmaps",
-    "Native FindTextA/ReplaceTextA imports now resolve through shared modeless dialogs; custom templates and subclass forwarding pass separate authored native EXE/DLL acceptance"
+    "Native FindTextA/ReplaceTextA imports now resolve through shared modeless dialogs; custom templates and subclass forwarding pass separate authored native EXE/DLL acceptance",
+    "CreateToolbarEx imports now resolve. Shared standard/custom bitmap strips, TB_CHECKBUTTON/TB_ENABLEBUTTON and native command callbacks pass authored EXE/DLL acceptance; unchanged Metapad execution remains blocked by other imports."
   ],
   "scope": "Static import audit and source inspection only. The unchanged editor has not passed execution acceptance. Its remaining dependencies and full editing workflow remain unverified; no upstream binary is published with this record."
 }

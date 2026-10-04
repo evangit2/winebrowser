@@ -1,0 +1,2 @@
+#include <windows.h>
+201 BITMAP "strip.bmp"

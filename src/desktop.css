@@ -426,3 +426,42 @@
   color: #000080;
   font-weight: bold;
 }
+
+.virtual-desktop-control-toolbar {
+  background: #c0c0c0;
+  overflow: hidden;
+}
+.virtual-desktop-toolbar-button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px;
+  background: #c0c0c0;
+  border: 1px outset #eee;
+  color: #111;
+}
+.virtual-desktop-toolbar-button canvas {
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+.virtual-desktop-toolbar-button:disabled {
+  opacity: 0.45;
+}
+.virtual-desktop-toolbar-pressed {
+  border-style: inset;
+  background: #ddd;
+}
+.virtual-desktop-toolbar-indeterminate {
+  opacity: 0.6;
+}
+.virtual-desktop-toolbar-separator::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  bottom: 3px;
+  border-left: 1px solid #888;
+  border-right: 1px solid #eee;
+}

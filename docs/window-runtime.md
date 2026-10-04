@@ -179,6 +179,22 @@ selected control fonts and GDI text color, menu Reset, close and ZIP/Stop cleanu
 Notes → Find/Replace demonstrates actual native search selection, single/all
 replacement and Undo while the owner remains editable. This sample's search is
 ASCII and its notes capacity is 4095 characters.
+
+Horizontal ToolbarWindow32 controls and CreateToolbarEx now support standard
+Wine icon strips, EXE/DLL RT_BITMAP strips and caller-owned HBITMAP strips.
+The shared runtime decodes bitmaps through GDI and copies toolbar images/text;
+native data remains usable after a resource DLL unload. TBBUTTON and A/W
+TBBUTTONINFO calls preserve PE32 structures, data, strings and output tails.
+State, checked groups, insert/delete, text, rectangle queries, resize/autosize
+and basic horizontal wrapping update browser controls. Button activation sends
+actual native WM_COMMAND callbacks. The public toolbar drives Find/Replace,
+Undo and Lock notes through the same native handlers as its menus.
+See [the EXE/DLL acceptance](../evidence/toolbar-browser-results.json) and run
+`npm run test:toolbar`. Pinned Wine bitmap source and LGPL notices are in
+`public/runtime/toolbar/`; its byte bundle is reproducibly generated.
+Image-list APIs, dropdown/customization notifications, native tooltip callbacks,
+full mouse/keyboard behavior, exact Windows layout and arbitrary editor execution
+remain incomplete. Unsupported toolbar messages produce explicit errors.
 See [the acceptance record](../evidence/gui-controls-browser-results.json).
 
 `node scripts/test-custom-child-browser.mjs` uploads a native EXE and companion DLL whose registered child-window procedure paints independent surfaces and receives nested button, resize, mouse/double-click, context-menu, wheel and keyboard messages. The EXE subclasses one child while its sibling retains the original DLL procedure. The test verifies visibility, enabled state, native destruction and invalid HWND/DC cleanup; see [the acceptance record](../evidence/custom-child-browser-results.json). Wheel messages use screen coordinates and default handling forwards them to the parent; captured pointer messages convert coordinates between client areas. These are bounded native contracts, not general GUI framework acceptance.

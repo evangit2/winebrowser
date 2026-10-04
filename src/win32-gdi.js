@@ -2250,6 +2250,13 @@ function drawText(runtime, argument, wide, extended) {
   return success(painted * lineHeight, argc);
 }
 
+/** Copy bitmap pixels before a common control releases its source object. */
+export function describeGdiBitmap(runtime, handle) {
+  const bitmap = states.get(runtime)?.bitmaps.get(handle >>> 0);
+  return bitmap
+    ? { width: bitmap.width, height: bitmap.height, pixels: new Uint8ClampedArray(bitmap.pixels) }
+    : null;
+}
 /** A read-only, cloned descriptor for DOM control font propagation. */
 export function describeGdiFont(runtime, handle) {
   if (handle >>> 0 === 0) return { ...DEFAULT_GDI_FONT };
