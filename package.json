@@ -286,7 +286,8 @@
     "build:owner-lists": "sh scripts/build-owner-lists-fixture.sh",
     "test:owner-lists": "node scripts/test-owner-lists-browser.mjs",
     "build:owner-combos": "sh scripts/build-owner-combos-fixture.sh",
-    "test:owner-combos": "node scripts/test-owner-combos-browser.mjs"
+    "test:owner-combos": "node scripts/test-owner-combos-browser.mjs",
+    "test:airxonix": "node scripts/test-airxonix-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

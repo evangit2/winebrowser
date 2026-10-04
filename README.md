@@ -292,5 +292,7 @@ The bounded [DirectDraw1/7 and Direct3D7 profile](docs/directdraw.md) now suppli
 DDRAW.DLL for ordinary uploads, with independent native EXE/ZIP rendering tests.
 The [uploaded launcher milestone](docs/processes.md) supports native Wine child
 process creation, suspended resume, exit waits and children that outlive their
-parents. AirXonix now launches its game child and still requires native NT
-exception dispatch; gameplay remains unverified.
+parents. The unchanged private AirXonix v1.36 ZIP now reaches its native startup
+dialog, animated menu and playable first level, with movement, pause/resume and
+clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.exe`;
+[reproduction and current performance](docs/directdraw.md#airxonix-v136-probe).

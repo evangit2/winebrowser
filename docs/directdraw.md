@@ -21,7 +21,11 @@ Allocations are bounded to 2048 pixels per dimension and 32 MiB in aggregate;
 releasing surfaces returns that storage budget. Attachment cycles are rejected.
 A HWND clipper clips blits to that window's client rectangle. Primary presentation
 uses virtual-screen coordinates in windowed mode and emits actual surface pixels.
-Display mode getters share the virtual Win32 mode state. Explicit clip lists,
+Display mode getters share the virtual Win32 mode state. Fullscreen mode changes
+resize maximized windows to the requested display. DD7 adapter identification
+returns a bounded PE32 virtual adapter descriptor without claiming WHQL certification.
+Texture-stage descriptors, managed level-zero textures and GUID-keyed byte private
+data are supported. IUnknown/volatile private-data flags remain unsupported. Explicit clip lists,
 palettes, overlay surfaces, GDI surface DCs and mipmap chains are unsupported.
 
 IDirect3D7 creates a HAL device over the existing D3D9/WebGPU renderer. Supported
@@ -34,7 +38,8 @@ result and snapshots the frontbuffer. Device/texture/target references are relea
 through normal COM lifetime handling.
 
 Unsupported methods return E_NOTIMPL and emit the method name. The caps exclude
-lines, cube/volume textures, mip chains and stencil. Vertex buffers, strided draws,
+lines, cube/volume textures, mip chains and stencil. Native vertex buffers support owned guest storage, validated Lock/Unlock,
+descriptor queries, Optimize, and indexed/nonindexed drawing. Strided draws,
 state blocks, clip planes and render-target changes need further work. The adapter
 establishes a tested subset, not general DirectX conformance.
 
@@ -62,26 +67,45 @@ SHA256: `d4f77c84a6f798bf856aca296cf2cb1948267df18241bb0bc797b93f1b710df7`.
 The 36,864-byte `AirXonix.exe` is a launcher; the 761,856-byte `program.exe` is the
 actual D3D7 game. The ZIP and game binaries are not redistributed by this project.
 
-The original launcher now passes its dynamic DDRAW/DirectDrawCreateEx lookup.
-The [launcher milestone](processes.md) now implements native Wine
-`NtCreateUserProcess`, and the unchanged launcher starts the game child through
-WinExec. No successful WinExec result is fabricated.
-Selecting `program.exe` manually exercises the game directly. It resolves all
-133 static imports, passes the added process-local NT UTC time query, and currently
-stops at `NtRaiseException` with native C++ exception code `0xe06d7363`.
-SystemPerformanceInformation reports STATUS_NOT_IMPLEMENTED so Wine can take its
-failure path; scheduler and I/O telemetry are not invented.
+The unchanged launcher starts the real game child through native Wine WinExec.
+The original startup dialog renders its bitmap logo and START/OPTIONS/QUIT controls.
+START reaches the animated 3D menu and a textured first level. Arrow keys move the
+ship, P pauses/resumes the level timer, Ctrl+Q returns to the menu, and selecting
+Exit terminates both the game and launcher with exit code zero. The private-input
+acceptance checks both process results, actual pixels, animation, input and the
+native D3D7 vertex-buffer/Flip path; imports or launcher exit alone are insufficient.
 
-AirXonix is **not yet verified playable**: no game frame or gameplay acceptance
-has passed. Native NT exception dispatch is the next shared runtime milestone. More D3D7 methods may be needed after those startup
-gaps are implemented. The local probe metadata is in `evidence/directdraw-airxonix-results.json`.
-A supported-import count alone does not prove compatibility.
+Upload your **complete v1.36 ZIP**, select `airxonix/airxonix.exe`, click Run, then
+START. Focus the game display and press Enter twice to select New Game and Easy.
+The first level currently takes about 17 seconds to load on the development Mac;
+measured gameplay is about 8 FPS, so performance still needs work. Native C++
+exception delivery, application activation notifications, bitmap static controls,
+managed texture storage and vertex buffers are shared runtime implementations.
+There are no game-specific runtime branches or patched game executables.
+
+To reproduce with your own private archive:
+
+```sh
+AIRXONIX_ARCHIVE=/absolute/path/AirXonix_Win_EN_v136-Full.zip npm run test:airxonix
+```
+
+The test verifies the original archive and executable hashes. By default it tests
+the launcher and direct `program.exe` selection. `WINEBROWSER_TEST_URL` targets a
+static build or Pages; `AIRXONIX_EVIDENCE` selects a metadata report path.
+`AIRXONIX_SCREENSHOTS=1` stores optional private captures only under ignored
+`.scratch/airxonix-acceptance/`. No game binaries or screenshots are published.
+The metadata report is `evidence/directdraw-airxonix-results.json`. This optional
+acceptance requires private input; CI continues to use the independent MIT fixtures.
+
+GPU readback combines pending rendering and pixel retrieval in one submission,
+avoids a duplicate D3D9 CPU copy for DirectDraw, and caches channel conversion.
+The independent fixtures still verify frontbuffer/backbuffer pixels and depth.
 
 ## Deployment verification
 
 The full GitHub gate passed for `aaf9e2c56ecf81d7caec1f8623f71fe3a7304fcb`.
 Live Pages uploads passed all six DD1/DD7/D3D7 acceptance runs, and the OpenGL
 shader compilation, animation, camera/pause controls and shutdown regression
-passed. The unchanged AirXonix ZIP reaches the same documented startup blockers
-on the live site. See `evidence/directdraw-live-deployment.json` and its linked
+passed. Those reports describe the earlier DirectDraw milestone; current private
+AirXonix gameplay acceptance is recorded separately. See `evidence/directdraw-live-deployment.json` and its linked
 reports for the deployed revision, workflow and observed results.
