@@ -147,20 +147,20 @@ function addBitmap(r, w, count, instance, id) {
     bitmap = describeGdiBitmap(r, handle);
     r.apiProvider.get('gdi32.dll!DeleteObject')(r, () => handle);
   } else bitmap = describeGdiBitmap(r, id);
-  if (
-    !bitmap ||
-    !count ||
-    cellHeight > bitmap.height ||
-    count * cellWidth > bitmap.width ||
-    s.images.length + count > 1024
-  )
-    return fail(r, 87, -1);
+  if (!bitmap) return fail(r, 87, -1);
+  // Wine enlarges custom strips to the requested cell rectangle before adding
+  // them to the image list. Extra complete cells are retained; a short row or
+  // final cell is padded with the masked button-face color (transparent here).
+  if (instance !== 0xffffffff)
+    count = count === 0 ? 1 : Math.max(count, Math.floor(bitmap.width / cellWidth));
+  if (!count || s.images.length + count > 1024) return fail(r, 87, -1);
   const first = s.images.length;
   for (let index = 0; index < count; index++) {
     const pixels = new Uint8ClampedArray(cellWidth * cellHeight * 4);
-    for (let y = 0; y < cellHeight; y++) {
+    const copyWidth = Math.max(0, Math.min(cellWidth, bitmap.width - index * cellWidth));
+    for (let y = 0; y < Math.min(cellHeight, bitmap.height); y++) {
       const start = (y * bitmap.width + index * cellWidth) * 4;
-      pixels.set(bitmap.pixels.subarray(start, start + cellWidth * 4), y * cellWidth * 4);
+      pixels.set(bitmap.pixels.subarray(start, start + copyWidth * 4), y * cellWidth * 4);
     }
     for (let p = 0; p < pixels.length; p += 4)
       if (pixels[p] === 192 && pixels[p + 1] === 192 && pixels[p + 2] === 192) pixels[p + 3] = 0;

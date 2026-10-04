@@ -29,6 +29,8 @@ import { windowFindApis } from './win32-window-find.js';
 import {
   windowFrame,
   frameForWindow,
+  outerWindowSize,
+  effectiveControlBorder,
   MAX_WINDOW_WIDTH,
   MAX_WINDOW_HEIGHT,
 } from './window-frame.js';
@@ -300,8 +302,8 @@ export class WindowManager {
         title,
         x,
         y,
-        width: width + 2 * border,
-        height: height + 2 * border,
+        width: parentId ? outerWindowSize(window)[0] : width,
+        height: parentId ? outerWindowSize(window)[1] : height,
         visible,
         parentId,
         controlType,
@@ -1076,6 +1078,10 @@ async function create(r, a, wide) {
       cls.controlType === 'combobox' && control.comboType !== 1
         ? Math.min(requestedHeight, 24)
         : requestedHeight;
+  if (child) {
+    control.nominalControlBorder = control.controlBorder;
+    control.controlBorder = effectiveControlBorder(control.controlBorder, width, height);
+  }
   const menu = child
     ? 0
     : a(9) || (cls.menuName ? loadClassMenu(r, a(10) || cls.instance, cls.menuName, wide) : 0);
@@ -1083,8 +1089,8 @@ async function create(r, a, wide) {
     border = child ? control.controlBorder : frame.border,
     titleHeight = child ? 0 : frame.title;
   if (
-    width < 2 * border ||
-    height < titleHeight + 2 * border ||
+    (child ? width < 0 : width < 2 * border) ||
+    (child ? height < 0 : height < titleHeight + 2 * border) ||
     width - 2 * border > MAX_WINDOW_WIDTH ||
     height - titleHeight - 2 * border > MAX_WINDOW_HEIGHT
   )
@@ -1098,8 +1104,8 @@ async function create(r, a, wide) {
     title: text(r, a(2), wide),
     x: a(4) === 0x80000000 ? 20 + m.windows.size * 24 : a(4) | 0,
     y: a(5) === 0x80000000 ? 20 + m.windows.size * 24 : a(5) | 0,
-    width: width - 2 * border,
-    height: height - titleHeight - 2 * border,
+    width: Math.max(0, width - 2 * border),
+    height: Math.max(0, height - titleHeight - 2 * border),
     parentId,
     controlType,
     // EDIT attributes the browser input path needs to filter typed text.
@@ -1236,8 +1242,8 @@ async function defaultProc(r, a, wide) {
     rectangle(r, lp, [
       rect[0] + border,
       rect[1] + title + border,
-      rect[2] - border,
-      rect[3] - border,
+      Math.max(rect[0] + border, rect[2] - border),
+      Math.max(rect[1] + title + border, rect[3] - border),
     ]);
     return result(0, 4);
   }
@@ -1639,8 +1645,8 @@ Object.assign(windowApis, {
     const w = r.windows.windows.get(a(0));
     if (!w) return r.windows.fail(1400, 2);
     const [x, y] = r.windows.screenPosition(w),
-      { border, title } = frameForWindow(w);
-    rectangle(r, a(1), [x, y, x + w.width + 2 * border, y + w.height + title + 2 * border]);
+      [outerWidth, outerHeight] = outerWindowSize(w);
+    rectangle(r, a(1), [x, y, x + outerWidth, y + outerHeight]);
     return result(1, 2);
   },
   'user32.dll!InvalidateRect': (r, a) => {

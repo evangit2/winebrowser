@@ -17,10 +17,24 @@ export function windowFrame(style = 0, menu = false) {
 
 export function frameForWindow(window) {
   return window.parentId
-    ? { border: window.controlBorder ?? 0, title: 0, resizable: false }
+    ? {
+        border: window.pendingControlBorder ?? window.controlBorder ?? 0,
+        title: 0,
+        resizable: false,
+      }
     : windowFrame(window.style, !!window.menu);
 }
 
 export function compareWindowOrder(a, b) {
   return Number(!!b.topmost) - Number(!!a.topmost) || (b.zOrder ?? 0) - (a.zOrder ?? 0);
+}
+
+// Outer geometry follows the active frame, including borderless tiny controls.
+export function outerWindowSize(window) {
+  const frame = frameForWindow(window);
+  return [window.width + 2 * frame.border, window.height + 2 * frame.border + frame.title];
+}
+
+export function effectiveControlBorder(border, width, height) {
+  return width >= 2 * border && height >= 2 * border ? border : 0;
 }

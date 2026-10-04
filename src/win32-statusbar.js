@@ -31,6 +31,7 @@ export function describeStatusbar(w) {
   return {
     background: s.background,
     simple: s.simple,
+    sizeGrip: !!(w.style & 0x100),
     parts: (s.simple ? [s.simplePart] : s.parts).map((p, i) => ({
       text: p.text,
       style: p.style,

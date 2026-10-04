@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-04T10:59:14.804Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "88930cf7536ffb18ab8df50c25d403610f4ac907d7b71d07b657c4676669e9af",
+  "compiledBlocks": 78,
+  "x86TranslationMs": 52.489999920129776,
+  "checks": [
+    "Native framed EDIT starts at 0x0, keeps its HWND/text and exposes exact outer/client bounds",
+    "Native 2x3 resize suppresses a frame that cannot fit; 320x80 resize restores the 2-pixel client edge, matching Wine",
+    "Native zero-size status bar with WS_EX_DLGMODALFRAME auto-lays out normally",
+    "Browser editing calls native EN_CHANGE; dragging SBARS_SIZEGRIP resizes the native parent and preserves edit content through layout callbacks"
+  ],
+  "scope": "Bounded child-window geometry, ordinary EDIT and status-bar resize-grip acceptance; arbitrary GUI frameworks remain unproved."
+}

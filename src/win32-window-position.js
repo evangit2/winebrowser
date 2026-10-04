@@ -1,5 +1,7 @@
 import {
   frameForWindow,
+  outerWindowSize,
+  effectiveControlBorder,
   compareWindowOrder,
   MAX_WINDOW_WIDTH,
   MAX_WINDOW_HEIGHT,
@@ -81,12 +83,12 @@ export async function setWindowPos(r, a) {
   const writePos = (x, y, cx, cy) =>
     [hwnd, after, x, y, cx, cy, flags].forEach((v, i) => r.write32(p + i * 4, v));
   try {
-    const initialFrame = frameForWindow(w);
+    const [initialOuterWidth, initialOuterHeight] = outerWindowSize(w);
     writePos(
       flags & S.NOMOVE ? w.x : a(2) | 0,
       flags & S.NOMOVE ? w.y : a(3) | 0,
-      flags & S.NOSIZE ? w.width + 2 * initialFrame.border : a(4) | 0,
-      flags & S.NOSIZE ? w.height + 2 * initialFrame.border + initialFrame.title : a(5) | 0,
+      flags & S.NOSIZE ? initialOuterWidth : a(4) | 0,
+      flags & S.NOSIZE ? initialOuterHeight : a(5) | 0,
     );
     if (!(flags & S.NOSENDCHANGING)) await m.send(hwnd, 0x46, 0, p);
     if (!m.windows.has(hwnd)) return m.fail(1400, 7);
@@ -94,22 +96,29 @@ export async function setWindowPos(r, a) {
     flags = r.read32(p + 24);
     if (flags & ~PUBLIC_FLAGS) return m.fail(87, 7);
     if (!validAfter(m, w, after, flags)) return m.fail(1400, 7);
-    const frame = frameForWindow(w),
+    const oldFrame = frameForWindow(w),
       oldX = w.x,
       oldY = w.y,
       oldWidth = w.width,
       oldHeight = w.height;
-    const oldOuterWidth = oldWidth + 2 * frame.border,
-      oldOuterHeight = oldHeight + 2 * frame.border + frame.title;
+    const [oldOuterWidth, oldOuterHeight] = outerWindowSize(w);
     const x = flags & S.NOMOVE ? oldX : r.read32(p + 8) | 0,
       y = flags & S.NOMOVE ? oldY : r.read32(p + 12) | 0;
     const cx = flags & S.NOSIZE ? oldOuterWidth : r.read32(p + 16) | 0,
       cy = flags & S.NOSIZE ? oldOuterHeight : r.read32(p + 20) | 0;
-    const width = cx - 2 * frame.border,
-      height = cy - 2 * frame.border - frame.title;
+    const frame = w.parentId
+      ? {
+          ...oldFrame,
+          border: effectiveControlBorder(w.nominalControlBorder ?? oldFrame.border, cx, cy),
+        }
+      : oldFrame;
+    const width = w.parentId ? Math.max(0, cx - 2 * frame.border) : cx - 2 * frame.border,
+      height = w.parentId
+        ? Math.max(0, cy - 2 * frame.border)
+        : cy - 2 * frame.border - frame.title;
     if (
-      width < 1 ||
-      height < 1 ||
+      (w.parentId ? cx < 0 : width < 1) ||
+      (w.parentId ? cy < 0 : height < 1) ||
       width > MAX_WINDOW_WIDTH ||
       height > MAX_WINDOW_HEIGHT ||
       Math.abs(x) > 32767 ||
@@ -117,7 +126,8 @@ export async function setWindowPos(r, a) {
     )
       return m.fail(87, 7);
     const moved = x !== oldX || y !== oldY,
-      sized = width !== oldWidth || height !== oldHeight;
+      sized =
+        width !== oldWidth || height !== oldHeight || cx !== oldOuterWidth || cy !== oldOuterHeight;
     if (!moved) flags |= S.NOMOVE;
     if (!sized) flags |= S.NOSIZE;
     if (after === 1 && !(flags & S.NOZORDER)) flags |= S.NOACTIVATE;
@@ -133,14 +143,20 @@ export async function setWindowPos(r, a) {
         oldY,
         oldX + oldOuterWidth,
         oldY + oldOuterHeight,
-        oldX + frame.border,
-        oldY + frame.border + frame.title,
-        oldX + oldOuterWidth - frame.border,
-        oldY + oldOuterHeight - frame.border,
+        oldX + oldFrame.border,
+        oldY + oldFrame.border + oldFrame.title,
+        Math.max(oldX + oldFrame.border, oldX + oldOuterWidth - oldFrame.border),
+        Math.max(oldY + oldFrame.border + oldFrame.title, oldY + oldOuterHeight - oldFrame.border),
         p,
       ];
       values.forEach((value, i) => r.write32(nc + i * 4, value));
-      const validRects = (await m.send(hwnd, 0x83, 1, nc)) >>> 0;
+      let validRects;
+      if (w.parentId) w.pendingControlBorder = frame.border;
+      try {
+        validRects = (await m.send(hwnd, 0x83, 1, nc)) >>> 0;
+      } finally {
+        delete w.pendingControlBorder;
+      }
       if (validRects & ~0x300) throw Error('Custom nonclient valid rectangles are unsupported');
       discardContents ||= !!(
         (validRects & 0x100 && width !== oldWidth) ||
@@ -151,8 +167,8 @@ export async function setWindowPos(r, a) {
         expected = [
           x + frame.border,
           y + frame.border + frame.title,
-          x + cx - frame.border,
-          y + cy - frame.border,
+          Math.max(x + frame.border, x + cx - frame.border),
+          Math.max(y + frame.border + frame.title, y + cy - frame.border),
         ];
       if (actual.some((v, i) => v !== expected[i]))
         throw Error('Custom nonclient window positioning is unsupported');
@@ -168,6 +184,9 @@ export async function setWindowPos(r, a) {
     w.y = y;
     w.width = width;
     w.height = height;
+    if (w.parentId) {
+      w.controlBorder = frame.border;
+    }
     const wasVisible = w.visible;
     if (flags & S.SHOW) w.visible = true;
     if (flags & S.HIDE) w.visible = false;
@@ -188,7 +207,7 @@ export async function setWindowPos(r, a) {
     m.emit(w);
     if (!moved) flags |= S.NOCLIENTMOVE;
     if (!sized) flags |= S.NOCLIENTSIZE;
-    writePos(w.x, w.y, w.width + 2 * frame.border, w.height + 2 * frame.border + frame.title);
+    writePos(w.x, w.y, ...outerWindowSize(w));
     if (moved || sized || reordered || wasVisible !== w.visible || flags & S.FRAMECHANGED)
       await m.send(hwnd, 0x47, 0, p);
     return result(1);

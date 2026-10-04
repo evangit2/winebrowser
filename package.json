@@ -261,7 +261,11 @@
     "build:printerless": "sh scripts/build-printerless-fixture.sh",
     "test:printerless": "node scripts/test-printerless-browser.mjs",
     "build:accelerator-resources": "sh scripts/build-accelerator-resources-fixture.sh",
-    "test:accelerator-resources": "node scripts/test-accelerator-resources-browser.mjs"
+    "test:accelerator-resources": "node scripts/test-accelerator-resources-browser.mjs",
+    "build:zero-controls": "sh scripts/build-zero-controls-fixture.sh",
+    "test:zero-controls": "node scripts/test-zero-controls-browser.mjs",
+    "test:metapad-gui": "node scripts/test-metapad-gui-browser.mjs",
+    "fetch:metapad": "node scripts/fetch-metapad.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

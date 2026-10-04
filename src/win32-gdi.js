@@ -282,8 +282,8 @@ export function resizeWindowSurface(
     !window ||
     !Number.isInteger(width) ||
     !Number.isInteger(height) ||
-    width < 1 ||
-    height < 1 ||
+    width < 0 ||
+    height < 0 ||
     width > MAX_WINDOW_WIDTH ||
     height > MAX_WINDOW_HEIGHT
   )
@@ -2510,6 +2510,10 @@ export function flushGdi(runtime) {
   }
   for (const surface of state.windowSurfaces.values()) {
     if (!surface.dirty) continue;
+    if (!surface.width || !surface.height) {
+      surface.dirty = false;
+      continue;
+    }
     frames.push({
       type: 'frame',
       windowId: surface.windowId,

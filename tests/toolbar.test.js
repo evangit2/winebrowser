@@ -318,3 +318,29 @@ test('standard small/large icon families and invalid toolbar structures remain b
   assert.equal(await send(id, 0x413, 1, bitmap), -1 >>> 0);
   assert.equal(r.lastError, 120);
 });
+
+test('short custom toolbar strips pad their image cells and retain extra complete images like Wine', async (t) => {
+  const { r, create, send, call } = await setup(t);
+  const id = await create([{ id: 101 }]);
+  const bits = r.allocate(32 * 15 * 4);
+  r.data.fill(0, bits, bits + 32 * 15 * 4);
+  for (let i = 0; i < 32 * 15; i++) {
+    r.data[bits + i * 4] = 10;
+    r.data[bits + i * 4 + 1] = 20;
+    r.data[bits + i * 4 + 2] = 30;
+  }
+  const bitmap = call('gdi32.dll!CreateBitmap', 32, 15, 1, 32, bits).result;
+  const input = r.allocate(8);
+  r.write32(input, 0);
+  r.write32(input + 4, bitmap);
+  const at = await send(id, 0x413, 1, input),
+    images = r.windows.windows.get(id).toolbar.images;
+  assert.equal(at, 0);
+  assert.equal(images.length, 2);
+  for (const image of images) {
+    assert.deepEqual([image.width, image.height], [16, 16]);
+    assert.equal(image.pixels[3], 255);
+    assert.deepEqual([...image.pixels.slice(15 * 16 * 4)], new Array(16 * 4).fill(0));
+  }
+  assert.equal(call('gdi32.dll!DeleteObject', bitmap).result, 1);
+});

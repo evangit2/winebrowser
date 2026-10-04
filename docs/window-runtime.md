@@ -216,8 +216,8 @@ The public GUI showcase exposes these through Demo → Settings.
 The authored property sheet EXE/DLL acceptance covers real native vetoes and
 callbacks. Wizard flows, dynamic page insertion/removal, page icons/help/RTL,
 activation contexts and remaining property sheet messages are explicitly
-unsupported. Metapad now resolves its static imports but remains blocked during
-startup; this does not claim a usable editor.
+unsupported. Metapad now passes the bounded basic editor acceptance below;
+advanced editor workflows remain incomplete.
 
 Profile APIs (`Get/WritePrivateProfileStringA/W`, section/name enumeration,
 integer reads and win.ini aliases) read and write real shared guest files.
@@ -282,3 +282,27 @@ acceptance now exercises a character shortcut, a Ctrl virtual-key shortcut and
 the final Alt+Shift virtual-key shortcut. Run
 `npm run test:accelerator-resources`; resource tables use 8-byte PE records,
 while `CreateAcceleratorTable` retains the 6-byte runtime ACCEL layout.
+
+Child HWNDs may now begin at 0x0 and retain their handles/text through layout.
+Tiny framed controls suppress a frame that cannot fit, matching a native Wine
+probe; resizing restores the client edge and exact outer/client rectangles.
+Custom child GDI DCs can exist with empty client surfaces, and empty surfaces
+produce no zero-size browser frames. `WS_EX_DLGMODALFRAME` is accepted for child
+controls, and `SBARS_SIZEGRIP` renders a working grip that resizes the native
+parent. `npm run test:zero-controls` verifies native geometry, editing and
+resizing. Native toolbar bitmap strips pad short cells and keep extra complete
+cells, following Wine's bitmap enlargement behavior. This supports Metapad's
+15-pixel-high custom strip in its requested 16-pixel cells.
+
+The unchanged official **Metapad 3.6 LE** now passes basic editing in Chromium:
+its native window, toolbar and editor start without error notices; dropped text
+is opened through native shell/file APIs, editing and Ctrl+S save real guest
+file bytes, the exported file reopens after re-upload with the same EXE, and
+both runs exit zero. [The acceptance record](../evidence/metapad-gui-browser-results.json)
+includes the pinned EXE hash and actual browser compilation measurements.
+Run `npm run fetch:metapad` then `npm run test:metapad-gui`; downloads stay under
+`.cache/` and the executable is not published in the repo or on Pages.
+Open/Save As common dialogs, native Find/Replace, options/property pages,
+additional encodings and advanced commands remain incomplete or unverified.
+Printing has no installed queues. This acceptance does not establish arbitrary
+Windows software or full Metapad compatibility.

@@ -1054,7 +1054,51 @@ export class VirtualDesktop {
       }
       fragment.append(row);
     });
-    element.replaceChildren(fragment);
+    if (bar.sizeGrip && !control.statusGrip) {
+      const grip = document.createElement('div');
+      control.statusGrip = grip;
+      grip.className = 'virtual-desktop-status-grip';
+      grip.style.zIndex = '1';
+      grip.setAttribute('aria-label', 'Resize window');
+      Object.assign(grip.style, {
+        position: 'absolute',
+        right: '0',
+        bottom: '0',
+        width: '14px',
+        height: '14px',
+        cursor: 'nwse-resize',
+        touchAction: 'none',
+        background:
+          'repeating-linear-gradient(135deg, transparent 0 3px, #888 3px 4px, #fff 4px 5px)',
+      });
+      grip.addEventListener('pointerdown', (event) => {
+        const window = this.#topLevel(control);
+        if (event.button !== 0 || !this.#available(control) || !window?.frame?.resizable) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.#focus(window);
+        grip.setPointerCapture(event.pointerId);
+        this.drag = {
+          kind: 'resize',
+          window,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          width: window.width,
+          height: window.height,
+        };
+      });
+      grip.addEventListener('pointermove', (event) => this.#moveDrag(event));
+      grip.addEventListener('pointerup', (event) => this.#endDrag(event));
+      grip.addEventListener('pointercancel', (event) => this.#endDrag(event));
+    }
+    // Keep the grip attached through native layout callbacks so its pointer
+    // capture survives continuous resizing while status text changes.
+    for (const child of [...element.children]) if (child !== control.statusGrip) child.remove();
+    element.append(fragment);
+    if (bar.sizeGrip) {
+      if (control.statusGrip.parentNode !== element) element.append(control.statusGrip);
+    } else control.statusGrip?.remove();
   }
 
   #applyTree(control, tree) {

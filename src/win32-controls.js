@@ -42,15 +42,17 @@ export function controlStyle(kind, style, extended) {
   // Registered classes own their low style bits. Only the client frame is
   // interpreted by the host; painting and control messages stay in the EXE/DLL.
   if (kind === 'custom') {
-    if (extended & ~0x30204) throw Error('Unsupported custom child-window extended style');
+    if (extended & ~0x30215) throw Error('Unsupported custom child-window extended style');
     return {
       controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
     };
   }
+  // WS_EX_DLGMODALFRAME does not add a caption/frame to a child.
+  // WS_EX_ACCEPTFILES is published and handled by the shared drop service.
   const local = style & 0xffff;
   // WS_EX_STATICEDGE is a one-pixel control frame, used by native read-only
   // dialog edits. WS_EX_CLIENTEDGE retains its two-pixel inset precedence.
-  if (extended & ~0x20204) throw Error('Unsupported child-control extended style');
+  if (extended & ~0x20215) throw Error('Unsupported child-control extended style');
   // BUTTON styles: BS_PUSHBUTTON (0), DEFPUSHBUTTON (1), CHECKBOX (2),
   // AUTOCHECKBOX (3), RADIOBUTTON (4), 3STATE (5), AUTO3STATE (6), GROUPBOX (7),
   // USERBUTTON (8, undocumented), AUTORADIOBUTTON (9), PUSHBOX (0xa),
@@ -102,7 +104,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'listbox' && local & ~0x1c3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   if (kind === 'tabcontrol' && local & ~0xc00) throw Error('Unsupported Tab control style');
-  if (kind === 'statusbar' && local & ~0x84f) throw Error('Unsupported status bar style');
+  if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
   if (kind === 'toolbar' && local & 0x80) throw Error('Unsupported vertical toolbar style');
   return {
     ownerDraw,
