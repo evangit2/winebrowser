@@ -112,9 +112,8 @@ with a borrowed child HDC during painting, and copy its text/background brush
 colors into the browser control. Solid/null/hatch brushes retain their native
 ownership; hatch tiles use the same rasterizer as GDI. Read-only and disabled
 edits send `WM_CTLCOLORSTATIC`. Enable changes and closing an owned dialog
-invalidate underlying control colors. Borrowed contexts/surfaces are released;
-general `GetDC` drawing on DOM controls remains incomplete and still reports
-an explicit unsupported result. Group-box frames now let mouse clicks reach
+invalidate underlying control colors. Borrowed contexts are released; callback-only scratch surfaces are discarded.
+Public control HDCs and their drawing persist across color callbacks. Group-box frames now let mouse clicks reach
 sibling controls, while actual nested HWND controls remain interactive.
 
 `npm run test:color-dialogs` runs authored native A/W buffers, custom colors,
@@ -126,3 +125,22 @@ restores them in a fresh run. Evidence is in
 `evidence/metapad-appearance-browser-results.json`. Native common-dialog HWNDs,
 indexed palettes, printing, language plugins and arbitrary GUI frameworks remain
 unproved.
+
+Standard browser controls now display real guest `GetDC`/`BeginPaint` GDI
+through an independent transparent canvas in the HWND client area. Native
+input elements retain text, selection, keyboard and mouse input; the canvas
+passes pointer events and stays below nested child HWNDs. Default control
+painting clears the invalid portion of guest drawing, and `SetWindowPos`
+resizes the backing bitmap. Destruction releases the bitmap and acquired DCs.
+Transparent GDI text preserves antialias coverage instead of introducing black
+fringes over browser content.
+
+`npm run test:control-drawing` uploads the authored unchanged PE32 fixture and
+checks pixels on STATIC, EDIT, BUTTON and COMBOBOX, edit/client-edge coordinates, native
+text, combo selection, clicks through opaque drawing, nested input, partial repaint, retained
+HDCs, resize and destruction/recreation. Evidence is in
+`evidence/control-drawing-browser-results.json`. `GetPixel`, `BitBlt` and
+`StretchBlt` can read/copy fully guest-painted pixels. Uncovered pixels belong
+to browser-painted content that has no native readback yet; these reads fail
+explicitly with error120. Exact native control rasterization, scrolling,
+caret/IME and arbitrary GUI/DLL support remain incomplete.

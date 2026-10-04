@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T18:44:32.608Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "1f8e17d90d934aa40a90686f56103e574bd5c5cc9f0acf1935f3df90899f9b00",
+  "compiledBlocks": 205,
+  "x86TranslationMs": 52.929999977350235,
+  "checks": [
+    "Native GetDC/FillRect/GetPixel on standard STATIC, EDIT, BUTTON and COMBOBOX produce visible independent RGBA client overlays",
+    "Bordered edit canvas has real client dimensions/insets; untouched content remains transparent; native TextOut preserves antialias alpha",
+    "Opaque drawing passes button clicks, edit input and combo selection; nested child HWND remains interactive above parent drawing",
+    "Direct drawing outside WM_PAINT, default/partial repaint, retained HDC across WM_CTLCOLOR and transparent restoration",
+    "SetWindowPos resizes backing bitmap; destroyed/recreated HWND has no stale overlay or DC; native exit zero"
+  ],
+  "scope": "Visible guest GDI on browser controls. Reading or source-copying uncovered browser-painted pixels fails explicitly with error120; exact native control rasterization, scrolling, native caret/IME and universal GUI/DLL compatibility remain incomplete."
+}
