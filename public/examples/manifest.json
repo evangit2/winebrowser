@@ -182,13 +182,13 @@
     },
     {
       "name": "gui-controls",
-      "description": "Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, draggable priorities, Priorities/Notes tabs, editable/read-only notes, modeless Find/Replace with Undo, native toolbar quick actions and Lock notes, a status bar, Appearance > Font picker and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.",
+      "description": "Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, draggable priorities, Priorities/Notes tabs, editable/read-only notes, modeless Find/Replace with Undo, native toolbar quick actions and Lock notes, Demo > Settings with native Notes/Canvas pages and Apply/Cancel, a status bar, Appearance > Font picker and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.",
       "exe": "gui-controls/gui-controls.exe",
-      "exeSha256": "8c6ace2410127c6e68d1378fca6c7cd654336256400e5f450434356154699596",
+      "exeSha256": "6292e3fcb1d5b2f1cbf206eb140dd3c2fc100aa6f9f997a9c075e9b15d8f5ee7",
       "zip": "gui-controls/gui-controls.zip",
-      "zipSha256": "d85596219597c084c068e3df26b5c4fa361ae0f08ccfeba9b1617b9f408118cc",
+      "zipSha256": "aaee5c6f8d6e5b3dfc72f294769af540a6428afad6401f6542090f6b0b475b6c",
       "sourceZip": "gui-controls/source.zip",
-      "sourceZipSha256": "c574fce5369c139ba08219e68f9fc684fc167671ab1e1a102f17d5c4de6de03b",
+      "sourceZipSha256": "ca590503522c77d3451f5929cc9435e2867faf7eda813c5b27cc4acecf11378a",
       "provenance": "Original WineBrowser contributors C program, MIT; source and standalone MinGW build included."
     },
     {

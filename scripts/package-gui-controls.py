@@ -32,12 +32,12 @@ exe_sha = digest(DEST / 'gui-controls.exe')
     'Source: `demos/gui-controls/` in the WineBrowser repository. The source\n'
     'archive includes the standalone reproducible MinGW build script.\n')
 archive(DEST / 'source.zip', [(name, (SOURCE / name).read_bytes())
-    for name in ['main.c', 'build.sh', 'LICENSE', 'README.md']])
+    for name in ['main.c', 'settings.rc', 'build.sh', 'LICENSE', 'README.md']])
 archive(DEST / 'gui-controls.zip', [(name, (DEST / name).read_bytes())
     for name in ['gui-controls.exe', 'LICENSE', 'README.md', 'PROVENANCE.md']])
 path = PUBLIC / 'manifest.json'
 manifest = json.loads(path.read_text())
-entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, draggable priorities, Priorities/Notes tabs, editable/read-only notes, modeless Find/Replace with Undo, native toolbar quick actions and Lock notes, a status bar, Appearance > Font picker and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
+entry = {'name': 'gui-controls', 'description': 'Native Win32 GUI showcase: tree, lists, editable combo, check/radio groups, menus, draggable priorities, Priorities/Notes tabs, editable/read-only notes, modeless Find/Replace with Undo, native toolbar quick actions and Lock notes, Demo > Settings with native Notes/Canvas pages and Apply/Cancel, a status bar, Appearance > Font picker and a custom GDI canvas with a nested button. All callbacks run from the Windows x86 EXE inside the browser.',
     'exe': 'gui-controls/gui-controls.exe', 'exeSha256': exe_sha,
     'zip': 'gui-controls/gui-controls.zip', 'zipSha256': digest(DEST / 'gui-controls.zip'),
     'sourceZip': 'gui-controls/source.zip', 'sourceZipSha256': digest(DEST / 'source.zip'),

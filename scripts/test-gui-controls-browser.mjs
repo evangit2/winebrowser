@@ -248,6 +248,36 @@ try {
   );
   await toolbar.getByRole('button', { name: 'Lock notes', exact: true }).click();
   await expect(notes).toHaveJSProperty('readOnly', false);
+  await window.getByRole('menuitem', { name: 'Demo', exact: true }).click();
+  await window.getByRole('menuitem', { name: 'Settings...', exact: true }).click();
+  const settings = page
+    .locator('.virtual-desktop-window')
+    .filter({ has: page.locator('.virtual-desktop-title', { hasText: /^GUI settings$/ }) });
+  const lock = settings.getByRole('checkbox', { name: 'Lock notes for editing', exact: true });
+  await lock.click();
+  await expect(lock).toHaveAttribute('aria-checked', 'true');
+  await settings.getByRole('tab', { name: 'Canvas', exact: true }).click();
+  const reverse = settings.getByRole('checkbox', { name: 'Reverse color order', exact: true });
+  await reverse.click();
+  await expect(reverse).toHaveAttribute('aria-checked', 'true');
+  await settings.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(notes).toHaveJSProperty('readOnly', true);
+  await expect.poll(swatch).toEqual([230, 140, 30, 255]);
+  await expect(settings.getByRole('button', { name: 'Apply', exact: true })).toBeDisabled();
+  await settings.getByRole('tab', { name: 'Notes', exact: true }).click();
+  await expect(lock).toHaveAttribute('aria-checked', 'true');
+  await lock.click();
+  await expect(lock).toHaveAttribute('aria-checked', 'false');
+  await settings.screenshot({ path: '.scratch/gui-controls-settings.png' });
+  await settings.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await settings.waitFor({ state: 'detached' });
+  await status
+    .getByText('Settings cancelled; applied changes are preserved.', { exact: true })
+    .waitFor();
+  await expect(notes).toHaveJSProperty('readOnly', true);
+  await expect(notes).toHaveValue('beta alpha');
+  await toolbar.getByRole('button', { name: 'Lock notes', exact: true }).click();
+  await expect(notes).toHaveJSProperty('readOnly', false);
   await window.screenshot({ path: '.scratch/gui-controls-search.png' });
   await window.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);
@@ -283,6 +313,7 @@ try {
       'Public Appearance > Font opens the native ChooseFontA browser picker; Cancel preserves the font and Accept changes DOM control fonts and actual GDI child text color',
       'Public Notes > Find/Replace remains modeless; native search selects the DOM edit range, Replace/Replace All change actual notes and native Undo restores the previous edit',
       'Native CreateToolbarEx quick actions render standard Wine icons; Replace/Undo dispatch actual EXE callbacks and the checked Lock notes action synchronizes edit/menu state',
+      'Demo > Settings opens native PropertySheetA pages from EXE resources; Apply updates notes lock and actual GDI canvas pixels, switching pages preserves draft state and Cancel discards unapplied changes',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
     scope:

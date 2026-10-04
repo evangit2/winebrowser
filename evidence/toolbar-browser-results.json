@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T08:23:53.807Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T08:56:08.376Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "8c7786d08193137f3cca4dda1cccdf503d5793ac4b8f224f838b0f2cfac7c507",
   "dllSha256": "017c092aca055a77c528bb2a96526418edfcedc73604f6aa608e03999de08112",
   "compiledBlocks": 134,
-  "x86TranslationMs": 63.63000011444092,
+  "x86TranslationMs": 71.21499985456467,
   "checks": [
     "Native DLL calls the 13-argument CreateToolbarEx API and loads standard Wine toolbar strips and its own RT_BITMAP strip; EXE retains text/pixels after unloading the DLL",
     "Native TBBUTTON count/index/data, rectangles, one-row sizing and Unicode insertion/text queries are checked",

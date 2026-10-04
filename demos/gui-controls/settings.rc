@@ -1,0 +1,18 @@
+/* Copyright (c) 2026 WineBrowser contributors. MIT license: see LICENSE. */
+#include <windows.h>
+201 DIALOGEX 0, 0, 210, 90
+STYLE DS_CONTROL | WS_CHILD
+CAPTION "Notes"
+BEGIN
+ LTEXT "Changes take effect when you choose Apply or OK.", -1, 8, 8, 194, 24
+ CONTROL "Lock notes for editing", 10, "BUTTON", BS_AUTOCHECKBOX | WS_TABSTOP, 8, 38, 194, 16
+ LTEXT "Your existing notes text is preserved.", -1, 8, 66, 194, 14
+END
+202 DIALOGEX 0, 0, 210, 90
+STYLE DS_CONTROL | WS_CHILD
+CAPTION "Canvas"
+BEGIN
+ LTEXT "Choose how the native GDI canvas draws its colors.", -1, 8, 8, 194, 24
+ CONTROL "Reverse color order", 10, "BUTTON", BS_AUTOCHECKBOX | WS_TABSTOP, 8, 38, 194, 16
+ LTEXT "Cancel discards changes you have not applied.", -1, 8, 66, 194, 14
+END

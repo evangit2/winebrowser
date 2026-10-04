@@ -27,6 +27,9 @@ The native toolbar provides Find, Replace and Undo quick actions, plus a checked
 Lock notes button that follows the Notes menu and edit state. The runtime uses
 Wine's standard common-control icon strips; their LGPL source and notices are
 published separately in `public/runtime/toolbar/`.
+Demo → Settings opens native Notes and Canvas property pages. Apply or OK
+updates the notes lock and canvas palette; Cancel discards changes you have not
+applied. Switching pages preserves draft choices and the existing notes text.
 It needs no app-specific Wasm build: WineBrowser translates the executable's x86
 blocks to WebAssembly in the browser.
 

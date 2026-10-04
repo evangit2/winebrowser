@@ -27,6 +27,33 @@ static void note_mode(HWND window,BOOL locked) {
   SetMenuItemInfoA(GetMenu(window),1,TRUE,&info);
   DrawMenuBar(window);
 }
+static INT_PTR CALLBACK settings_proc(HWND window,UINT message,WPARAM wp,LPARAM lp){
+  if(message==WM_INITDIALOG){
+    PROPSHEETPAGEA *page=(PROPSHEETPAGEA*)lp;
+    SetWindowLongA(window,DWL_USER,page->lParam);
+    CheckDlgButton(window,10,page->lParam==1?notes_locked:GetWindowLongA(canvas,GWL_USERDATA)!=0);
+    return TRUE;
+  }
+  if(message==WM_COMMAND&&LOWORD(wp)==10){PropSheet_Changed(GetParent(window),window);return TRUE;}
+  if(message==WM_NOTIFY&&((NMHDR*)lp)->code==PSN_APPLY){
+    BOOL checked=IsDlgButtonChecked(window,10)==BST_CHECKED;
+    if(GetWindowLongA(window,DWL_USER)==1)note_mode(main_owner,checked);
+    else{SetWindowLongA(canvas,GWL_USERDATA,checked);InvalidateRect(canvas,NULL,TRUE);}
+    SetWindowLongA(window,DWL_MSGRESULT,PSNRET_NOERROR);return TRUE;
+  }
+  return FALSE;
+}
+static void open_settings(HWND owner){
+  PROPSHEETPAGEA settings[2]={0};PROPSHEETHEADERA header={0};
+  for(int i=0;i<2;i++){
+    settings[i].dwSize=sizeof(settings[i]);settings[i].hInstance=GetModuleHandleA(NULL);
+    settings[i].pszTemplate=MAKEINTRESOURCEA(201+i);settings[i].pfnDlgProc=settings_proc;settings[i].lParam=i+1;
+  }
+  header.dwSize=sizeof(header);header.dwFlags=PSH_PROPSHEETPAGE;
+  header.hwndParent=owner;header.pszCaption="GUI settings";header.nPages=2;header.ppsp=settings;
+  INT_PTR result=PropertySheetA(&header);
+  say(result>0?"Settings saved: notes and native canvas updated.":result==0?"Settings cancelled; applied changes are preserved.":"Settings could not open.");
+}
 static unsigned text_length(const char *text){unsigned n=0;while(text[n])n++;return n;}
 static BOOL word_char(char c){return (c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_';}
 static BOOL match_at(const char *text,unsigned n,unsigned at,const char *query,unsigned q,DWORD flags){
@@ -172,6 +199,7 @@ static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
     UINT id=LOWORD(wp),code=HIWORD(wp);
     if(id==40 || id==100){reset(window);return 0;}
     if(id==101){DestroyWindow(window);return 0;}
+    if(id==121){open_settings(window);return 0;}
     if(id==112||id==113){
       if(id==113&&notes_locked){say("Replace: unlock notes with Editable first.");return 0;}
       if(search_dialog&&IsWindow(search_dialog))DestroyWindow(search_dialog);
@@ -236,7 +264,7 @@ void start(void) {
   custom.lpszClassName="GuiPaintedChild";custom.hCursor=LoadCursorA(NULL,IDC_ARROW);
   if(!RegisterClassA(&custom))ExitProcess(1);
   font=CreateFontA(-14,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,DEFAULT_QUALITY,DEFAULT_PITCH,"Arial");
-  HMENU menu=CreateMenu(),popup=CreatePopupMenu();AppendMenuA(popup,MF_STRING,100,"&Reset");AppendMenuA(popup,MF_STRING,101,"E&xit");AppendMenuA(menu,MF_POPUP,(UINT_PTR)popup,"&Demo");
+  HMENU menu=CreateMenu(),popup=CreatePopupMenu();AppendMenuA(popup,MF_STRING,121,"&Settings...");AppendMenuA(popup,MF_STRING,100,"&Reset");AppendMenuA(popup,MF_STRING,101,"E&xit");AppendMenuA(menu,MF_POPUP,(UINT_PTR)popup,"&Demo");
   notes_menu=CreatePopupMenu();
   MENUITEMINFOA item={0};item.cbSize=sizeof(item);item.fMask=MIIM_FTYPE|MIIM_ID|MIIM_STRING|MIIM_DATA|MIIM_STATE;
   item.fType=MFT_RADIOCHECK;item.wID=110;item.dwTypeData="&Editable";item.dwItemData=1;item.fState=MFS_DEFAULT;
