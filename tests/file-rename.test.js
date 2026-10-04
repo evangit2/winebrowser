@@ -60,6 +60,7 @@ test('NT atomic rename preserves file bytes, handles, identity, locks and metada
   assert.equal(r.fileLocks[0].path, 'out.zip');
   assert.ok(r.dirty.has('out.tmp'));
   assert.ok(r.dirty.has('out.zip'));
+  assert.notEqual(fileIdentity(r, 'later.bin'), id);
 });
 test('NT rename rejects malformed/outside paths, missing delete access, sharing conflicts, live targets and mapped truncation without mutation', (t) => {
   const { r, rename, p, io } = setup(t);

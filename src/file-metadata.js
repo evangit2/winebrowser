@@ -19,7 +19,12 @@ function directory(r, path) {
 
 export function fileIdentity(r, path) {
   const ids = (r.fileIds ??= new Map());
-  if (!ids.has(path)) ids.set(path, ids.size + 1);
+  if (!ids.has(path)) {
+    // Deletion/replacement can shrink the map; identities must never be reused
+    // for a different file while older handles/locks still carry them.
+    r.nextFileIdentity ??= Math.max(0, ...ids.values()) + 1;
+    ids.set(path, r.nextFileIdentity++);
+  }
   return ids.get(path);
 }
 

@@ -114,9 +114,10 @@ test('report ListView retains ANSI/Unicode subitems, columns, bounded output and
     assert.equal(await send(0x1061, i, p), i);
   }
   for (let i = 0; i < 3; i++) {
-    r.data.fill(0, p, p + 40);
+    r.data.fill(0xa5, p, p + 40);
     r.write32(p, 5);
     r.write32(p + 4, i);
+    r.write32(p + 8, 0);
     r.write32(p + 20, r.allocString(String(i + 1)));
     r.write32(p + 32, 100 + i);
     assert.equal(await send(0x1007, 0, p), i);
@@ -143,11 +144,24 @@ test('report ListView retains ANSI/Unicode subitems, columns, bounded output and
   };
   await select(0);
   assert.equal(await send(0x1032), 1);
+  r.write32(p, 8);
+  r.write32(p + 4, 0);
+  r.write32(p + 8, 0);
+  r.write32(p + 16, 3);
+  assert.equal(await send(0x104b, 0, p), 1);
+  assert.equal(r.read32(p + 12), 3);
   await select(2, 1);
   assert.equal(await send(0x1032), 2);
   assert.equal(await send(0x100c, -1, 2), 0);
   assert.equal(await send(0x100c, 0, 2), 2);
   await select(0, 2);
+  assert.equal(await send(0x1032), 3);
+  r.write32(p + 12, 0);
+  r.write32(p + 16, 0xffffffff);
+  await send(0x102b, -1, p);
+  assert.equal(await send(0x1032), 0);
+  await select(0);
+  await select(2, 2);
   assert.equal(await send(0x1032), 3);
   veto = true;
   await select(1);

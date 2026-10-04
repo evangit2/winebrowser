@@ -56,7 +56,10 @@ async function notify(r, w, code, index, item, oldState = 0, newState = 0, chang
   }
 }
 async function state(r, w, item, value, mask) {
-  if (mask & ~3) throw Error('Unsupported ListView state bits');
+  if (value & mask & ~3) throw Error('Unsupported ListView state bits');
+  // Native callers commonly clear all bits with a UINT_MAX state mask. A
+  // text-only control has no image/overlay states to clear.
+  mask &= 3;
   const s = model(w),
     before = item.state,
     after = (before & ~mask) | (value & mask);
@@ -261,13 +264,16 @@ export async function listviewMessage(r, w, msg, wp, lp, fallback) {
       if (get) r.write32(lp + 32, item.param);
       else item.param = r.read32(lp + 32);
     }
-    if (mask & 4) {
+    if (mask & 8) {
       r.check(lp + 12, 8, get);
       const value = r.read32(lp + 12),
         stateMask = r.read32(lp + 16);
       if (get) r.write32(lp + 12, item.state & stateMask);
       else if (insert) {
-        if (stateMask & ~3) throw Error('Unsupported ListView state');
+        if (value & stateMask & ~3)
+          throw Error(
+            `Unsupported ListView state 0x${value.toString(16)} mask 0x${stateMask.toString(16)}`,
+          );
         item.state = value & stateMask;
       } else await state(r, w, item, value, stateMask);
     }

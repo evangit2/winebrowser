@@ -340,7 +340,9 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
         ? 0x89
         : window.controlType === 'button'
           ? 0x2000
-          : 0x100;
+          : window.controlType === 'listview'
+            ? 0x81
+            : 0x100;
   if (window.controlType === 'button' && message === 0xf0) return window.checkState ?? 0;
   if (window.controlType === 'button' && message === 0xf1) {
     // BM_SETCHECK: the state is one of unchecked, checked or indeterminate, and

@@ -1,8 +1,10 @@
 // DOM presentation of native common controls. Guest state/notifications remain
 // in the runtime; browser selection is an event queued by the desktop.
+import './desktop-report.css';
 export function createReportControl(kind) {
   const element = document.createElement(kind === 'progress' ? 'progress' : 'div');
   element.className = 'virtual-desktop-control';
+  if (kind === 'progress') element.classList.add('virtual-desktop-control-progress');
   if (kind === 'listview') {
     element.setAttribute('role', 'grid');
     element.setAttribute('aria-label', 'Report');
@@ -21,7 +23,21 @@ export function applyReportControl(element, state, emit) {
     element.setAttribute('aria-valuemin', String(p.low));
     element.setAttribute('aria-valuemax', String(p.high));
     element.setAttribute('aria-valuenow', String(p.position));
-    element.style.accentColor = p.state === 2 ? '#b91c1c' : p.state === 3 ? '#ca8a04' : '#16803c';
+    const color = (value) => `rgb(${value & 255},${(value >>> 8) & 255},${(value >>> 16) & 255})`;
+    const foreground =
+      p.foreground === 0xff000000
+        ? p.state === 2
+          ? '#b91c1c'
+          : p.state === 3
+            ? '#ca8a04'
+            : '#16803c'
+        : color(p.foreground);
+    element.style.accentColor = foreground;
+    element.style.setProperty('--progress-foreground', foreground);
+    element.style.setProperty(
+      '--progress-background',
+      p.background === 0xff000000 ? '#e6e6e6' : color(p.background),
+    );
   }
   if (!state.report) return;
   const report = state.report,

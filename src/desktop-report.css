@@ -1,0 +1,14 @@
+.virtual-desktop-control-progress {
+  appearance: none;
+  border: 1px solid #8c8c8c;
+  background: var(--progress-background, #e6e6e6);
+}
+.virtual-desktop-control-progress::-webkit-progress-bar {
+  background: var(--progress-background, #e6e6e6);
+}
+.virtual-desktop-control-progress::-webkit-progress-value {
+  background: var(--progress-foreground, #16803c);
+}
+.virtual-desktop-control-progress::-moz-progress-bar {
+  background: var(--progress-foreground, #16803c);
+}
