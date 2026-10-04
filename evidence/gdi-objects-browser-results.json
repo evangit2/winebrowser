@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T04:40:04.893Z",
+  "date": "2026-10-04T04:59:02.472Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
-  "exeSha256": "c950552beb06a2463a293848c09696b0a50ce2a09b27c5df8dc3b90db4aaa8de",
-  "dllSha256": "c4a1595c461ea1ce43f649753310112e8734a3bc051ff2cb20e06b516fe48412",
-  "compiledBlocks": 160,
-  "x86TranslationMs": 119.74499994516373,
+  "exeSha256": "bfd11a5c7d26fef164c11cbaf8133ba7e45d1bfd7ff0cb44736b0f958b1ef345",
+  "dllSha256": "79c955fa80175c0c07778a5449c2243831456767997586f9941114442f67ce0b",
+  "compiledBlocks": 228,
+  "x86TranslationMs": 79.86500018835068,
   "pixels": {
     "first": {
       "exact": 1042,
@@ -27,6 +27,8 @@
   "checks": [
     "Native EXE and companion DLL execute CreateFontIndirectA/W with the one-argument stdcall ABI through in-browser x86 compilation",
     "Native LOGFONTA/LOGFONTW, LOGPEN and LOGBRUSH sizeof queries validate retained flags, names, zero defaults, size probes, every short buffer and untouched tails",
+    "Native EXE/DLL character-width calls use four-argument stdcall; proportional ASCII widths, fractional advances, A/W ABC triplets, CP1252 Euro equivalence and buffer tails are checked",
+    "TEXTMETRICA/W report the selected font weight, italic/underline/strikeout and charset at their native structure offsets",
     "Font A/W CP1252/Unicode face names survive queries; native font handles survive library unload and GDI text renders in Chromium",
     "Actual framebuffer contains antialiased colored glyphs, underline/strikeout and unchanged white background; native cleanup and close exit zero"
   ],

@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T04:10:15.679Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T04:40:24.206Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "acdc7dd0c3b354e69d1265236b8950b89bc09c346702b639810192543a9019a2",
   "dllSha256": "63dbbac395393a901113cd1f223f50da7712e62d366c6f27edac01045575332f",
   "compiledBlocks": 164,
-  "x86TranslationMs": 77.73499974608421,
+  "x86TranslationMs": 49.76500001549721,
   "checks": [
     "Unchanged native EXE and companion DLL load resources by name/ID; DLL process-attach and export calls execute through in-browser x86 compilation",
     "COMCTL32 ordinal 8 equals the named CreateMappedBitmap procedure; explicit/default maps preserve source resource palettes and first duplicate-map precedence",

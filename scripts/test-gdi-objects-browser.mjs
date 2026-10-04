@@ -101,6 +101,8 @@ try {
     checks: [
       'Native EXE and companion DLL execute CreateFontIndirectA/W with the one-argument stdcall ABI through in-browser x86 compilation',
       'Native LOGFONTA/LOGFONTW, LOGPEN and LOGBRUSH sizeof queries validate retained flags, names, zero defaults, size probes, every short buffer and untouched tails',
+      'Native EXE/DLL character-width calls use four-argument stdcall; proportional ASCII widths, fractional advances, A/W ABC triplets, CP1252 Euro equivalence and buffer tails are checked',
+      'TEXTMETRICA/W report the selected font weight, italic/underline/strikeout and charset at their native structure offsets',
       'Font A/W CP1252/Unicode face names survive queries; native font handles survive library unload and GDI text renders in Chromium',
       'Actual framebuffer contains antialiased colored glyphs, underline/strikeout and unchanged white background; native cleanup and close exit zero',
     ],

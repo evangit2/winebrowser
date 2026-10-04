@@ -46,7 +46,27 @@ void start(void) {
     queries(fonts[0],&a,sizeof(a),FALSE,TRUE);queries(fonts[1],&w,sizeof(w),TRUE,TRUE);
     if(i<3){CHECK(DeleteObject(fonts[0]));CHECK(DeleteObject(fonts[1]));}
   }
-  CHECK(!createA.fn(NULL));CHECK(!createW.fn(NULL));CHECK(FreeLibrary(library));
+  CHECK(!createA.fn(NULL));CHECK(!createW.fn(NULL));
+  HDC measured=CreateCompatibleDC(NULL);CHECK(measured);HGDIOBJ oldFont=SelectObject(measured,fonts[0]);CHECK(oldFont);
+  TEXTMETRICA ma;TEXTMETRICW mw;CHECK(GetTextMetricsA(measured,&ma));CHECK(GetTextMetricsW(measured,&mw));
+  CHECK(ma.tmWeight==700&&ma.tmItalic==1&&ma.tmUnderlined==1&&ma.tmStruckOut==0&&ma.tmCharSet==a.lfCharSet);
+  CHECK(mw.tmWeight==700&&mw.tmItalic==1&&mw.tmUnderlined==1&&mw.tmStruckOut==0&&mw.tmCharSet==a.lfCharSet);
+  union{FARPROC raw;BOOL(WINAPI *fn)(HDC,UINT,UINT,INT*);} widths; widths.raw=GetProcAddress(library,"Widths");CHECK(widths.fn);
+  INT integer[98];FLOAT fractional[98];ABC abc[96];ABCFLOAT abcFloat[96];
+  integer[95]=0x12345678;fractional[95]=123.5f;abc[95].abcA=0x12345678;abcFloat[95].abcfA=123.5f;
+  CHECK(widths.fn(measured,32,126,integer));CHECK(GetCharWidthFloatA(measured,32,126,fractional));
+  CHECK(GetCharABCWidthsA(measured,32,126,abc));CHECK(GetCharABCWidthsFloatA(measured,32,126,abcFloat));
+  CHECK(integer[95]==0x12345678&&fractional[95]==123.5f&&abc[95].abcA==0x12345678&&abcFloat[95].abcfA==123.5f);
+  CHECK(integer['W'-32]>integer['i'-32]);
+  for(int i=0;i<95;i++) {
+    CHECK(integer[i]==abc[i].abcA+(INT)abc[i].abcB+abc[i].abcC);
+    FLOAT delta=abcFloat[i].abcfA+abcFloat[i].abcfB+abcFloat[i].abcfC-fractional[i];CHECK(delta<0.01f&&delta>-0.01f);
+    delta=(FLOAT)integer[i]-fractional[i];CHECK(delta<=0.5f&&delta>=-0.5f);
+  }
+  FLOAT ansiEuro,wideEuro;CHECK(GetCharWidthFloatA(measured,0x80,0x80,&ansiEuro));CHECK(GetCharWidthFloatW(measured,0x20ac,0x20ac,&wideEuro));CHECK(ansiEuro==wideEuro);
+  CHECK(GetCharWidth32W(measured,32,126,integer));CHECK(GetCharWidthFloatW(measured,32,126,fractional));
+  CHECK(GetCharABCWidthsW(measured,32,126,abc));CHECK(GetCharABCWidthsFloatW(measured,32,126,abcFloat));
+  CHECK(SelectObject(measured,oldFont)==fonts[0]);CHECK(DeleteDC(measured));CHECK(FreeLibrary(library));
   LOGFONTW zero={0};HFONT defaultFont=CreateFontIndirectW(&zero);CHECK(defaultFont);queries(defaultFont,&zero,sizeof(zero),TRUE,TRUE);CHECK(DeleteObject(defaultFont));
   LOGPEN p={PS_SOLID,{0,0},RGB(10,20,30)};HPEN pen=CreatePen(p.lopnStyle,0,p.lopnColor);CHECK(pen);queries(pen,&p,sizeof(p),FALSE,FALSE);CHECK(DeleteObject(pen));
   LOGBRUSH b={BS_SOLID,RGB(20,30,40),0};HBRUSH brush=CreateSolidBrush(b.lbColor);CHECK(brush);queries(brush,&b,sizeof(b),TRUE,TRUE);CHECK(DeleteObject(brush));

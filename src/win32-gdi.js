@@ -1,5 +1,5 @@
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
-import { encodeAnsi } from './encoding.js';
+import { encodeAnsi, decodeAnsi } from './encoding.js';
 import {
   colorRefRgb as colorRgb,
   surfaceRgb,
@@ -518,13 +518,25 @@ function getTextMetrics(runtime, argument, wide) {
   runtime.check(out, size, true);
   runtime.data.fill(0, out, out + size);
   const { height, width, ascent } = fontMetrics(runtime, state, dc);
+  const font = currentFont(runtime, state, dc) ?? DEFAULT_GDI_FONT;
   runtime.write32(out, height); // tmHeight
   runtime.write32(out + 4, ascent); // tmAscent
   runtime.write32(out + 8, height - ascent); // tmDescent
   runtime.write32(out + 20, width); // tmAveCharWidth
   runtime.write32(out + 24, width); // tmMaxCharWidth
-  runtime.write32(out + 28, 700); // tmWeight
-  runtime.data[out + 40] = 0x31; // tmCharSet DEFAULT_CHARSET
+  runtime.write32(out + 28, font.weight);
+  runtime.write32(out + 36, 96); // tmDigitizedAspectX
+  runtime.write32(out + 40, 96); // tmDigitizedAspectY
+  // Character coverage uses the browser's fallback font stack. Physical font
+  // ranges are not exposed by Canvas; report the ANSI/UTF-16 range we accept.
+  const characters = [32, wide ? 0xffff : 255, 63, 32];
+  for (let i = 0; i < characters.length; i++)
+    if (wide) runtime.view.setUint16(out + 44 + i * 2, characters[i], true);
+    else runtime.data[out + 44 + i] = characters[i];
+  runtime.data.set(
+    [+font.italic, +font.underline, +font.strikeout, font.pitchAndFamily ?? 0, font.charset ?? 1],
+    out + (wide ? 52 : 48),
+  );
   return success(1, 2);
 }
 // GetDeviceCaps(HDC, int): the virtual display reports the same fixed profile
@@ -1069,28 +1081,51 @@ function copyDibRows(runtime, source, width, height, bitCount, pixels) {
     }
   }
 }
-// The GetCharWidth family reports each character's advance through a buffer of
-// 32-bit ints. The runtime measures with the same canvas the glyphs come from,
-// so a monospaced advance is exact and a proportional one is the average the
-// window manager itself lays text out with.
-function charWidths(runtime, argument, wide, floatOut) {
+// Measure each character separately. The float APIs retain Canvas's fractional
+// advances and ink bounds. Integer APIs round to device pixels. All use four
+// stdcall arguments, including ABC queries with three fields per character.
+function charWidths(runtime, argument, wide, floatOut, abc = false) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
-  if (!dc) return badDc(runtime, 5);
+  if (!dc) return badDc(runtime, 4);
   const first = argument(1) >>> 0;
   const last = argument(2) >>> 0;
   const out = argument(3);
-  if (last < first || last - first > 0xffff) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
-  if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
+  if (last < first || last > (wide ? 0xffff : 255) || !out)
+    return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
   const font = currentFont(runtime, state, dc) ?? DEFAULT_GDI_FONT;
-  const measured = rasterizeGdiText(runtime, 'W', font);
-  const advance = measured.error ? 8 : Math.max(1, measured.mask.width);
   const count = last - first + 1;
-  runtime.check(out, count * 4, true);
-  for (let i = 0; i < count; i++)
-    if (floatOut) runtime.view.setFloat32(out + i * 4, advance, true);
-    else runtime.write32(out + i * 4, advance);
-  return success(1, 5);
+  const fields = abc ? 3 : 1;
+  runtime.check(out, count * fields * 4, true);
+  const values = new Float64Array(count * fields);
+  for (let i = 0; i < count; i++) {
+    const code = first + i;
+    const text = wide ? String.fromCharCode(code) : decodeAnsi(Uint8Array.of(code));
+    const measured = rasterizeGdiText(runtime, text, font);
+    if (measured.error)
+      return failure(
+        runtime,
+        measured.error === 'backend' ? ERROR_CALL_NOT_IMPLEMENTED : ERROR_INVALID_PARAMETER,
+        0,
+        4,
+      );
+    const mask = measured.mask;
+    const advance = mask.advance ?? mask.width;
+    if (!abc) values[i] = floatOut ? advance : Math.round(advance);
+    else {
+      if (!Number.isFinite(mask.left) || !Number.isFinite(mask.inkWidth) || mask.inkWidth < 0)
+        return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 4);
+      const left = floatOut ? mask.left : Math.round(mask.left);
+      const ink = floatOut ? mask.inkWidth : Math.round(mask.inkWidth);
+      values.set([left, ink, (floatOut ? advance : Math.round(advance)) - left - ink], i * 3);
+    }
+  }
+  // Validate/measure the complete range before writing so failures cannot
+  // expose a partially initialized caller buffer.
+  for (let i = 0; i < values.length; i++)
+    if (floatOut) runtime.view.setFloat32(out + i * 4, values[i], true);
+    else runtime.write32(out + i * 4, values[i]);
+  return success(1, 4);
 }
 // ExtTextOutA/W(HDC, X, Y, Options, RECT *, String, Count, Spacing) is TextOut
 // plus an opaque/transparent rectangle and an optional per-character spacing
@@ -2340,7 +2375,15 @@ export const gdiApis = {
   'gdi32.dll!GetCharWidthA': (runtime, argument) => charWidths(runtime, argument, false, false),
   'gdi32.dll!GetCharWidthW': (runtime, argument) => charWidths(runtime, argument, true, false),
   'gdi32.dll!GetCharABCWidthsFloatA': (runtime, argument) =>
-    charWidths(runtime, argument, false, true),
+    charWidths(runtime, argument, false, true, true),
+  'gdi32.dll!GetCharABCWidthsFloatW': (runtime, argument) =>
+    charWidths(runtime, argument, true, true, true),
+  'gdi32.dll!GetCharABCWidthsA': (runtime, argument) =>
+    charWidths(runtime, argument, false, false, true),
+  'gdi32.dll!GetCharABCWidthsW': (runtime, argument) =>
+    charWidths(runtime, argument, true, false, true),
+  'gdi32.dll!GetCharWidthFloatA': (runtime, argument) => charWidths(runtime, argument, false, true),
+  'gdi32.dll!GetCharWidthFloatW': (runtime, argument) => charWidths(runtime, argument, true, true),
   'gdi32.dll!GetDIBits': getDIBits,
   'gdi32.dll!CreateDIBitmap': createDIBitmap,
   'gdi32.dll!EnumFontFamiliesExA': (r, a) => enumFontFamilies(r, a, false),

@@ -10,6 +10,11 @@ __declspec(dllexport) HFONT WINAPI FontW(const LOGFONTW *font) {
   SetLastError(result?0:87);
   return result;
 }
+__declspec(dllexport) BOOL WINAPI Widths(HDC dc,UINT first,UINT last,INT *output) {
+  BOOL result=GetCharWidth32A(dc,first,last,output);
+  SetLastError(result?0:87);
+  return result;
+}
 BOOL WINAPI DllMain(HINSTANCE instance,DWORD reason,void *reserved) {
   (void)instance;(void)reason;(void)reserved;return TRUE;
 }

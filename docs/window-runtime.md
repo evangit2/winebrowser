@@ -96,6 +96,16 @@ after unloading the library. Run `npm run test:gdi-objects`. Explicit widths,
 rotated text, complete Windows font mapping and extended pen queries remain
 incomplete.
 
+GetCharWidth/GetCharWidth32 A/W measure each selected-font character separately;
+GetCharWidthFloat A/W preserves the browser's fractional advances. GetCharABCWidths
+and GetCharABCWidthsFloat A/W report three bearing/ink/spacing fields per
+character, using Canvas ink bounds. These APIs use four stdcall arguments and
+decode ANSI ranges using CP1252. TEXTMETRIC A/W reports selected-font styles at
+the correct byte offsets. Native EXE/DLL checks cover proportional widths, ABC
+layout, Euro decoding and untouched tails. Font coverage ranges and some vertical
+metrics remain browser approximations; shaping, hinting and exact Windows font
+metrics remain incomplete.
+
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 
 Custom nonclient geometry, minimize/maximize behavior, full input-method handling and graphics APIs beyond the documented raster subset still need implementation. Resize repaints the client surface; the application remains responsible for adapting its layout and game logic. The virtual registry is process-local and is not persisted between runs. Fonts use browser matching and may differ from Windows. Shell icon extraction is not implemented. Offscreen compatible bitmaps, SRCCOPY BitBlt, accelerator tables, Unicode registry storage and Wine guest formatting are covered in [desktop compatibility](desktop-compatibility.md). Wine CRT/NLS support remains under development for broader library dependencies.

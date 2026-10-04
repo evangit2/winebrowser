@@ -25,12 +25,23 @@ export function createCanvasTextRasterizer(Canvas = globalThis.OffscreenCanvas) 
       }
       measure.font = font.css;
       const metrics = measure.measureText(text);
+      const advance = metrics.width;
+      const left = -metrics.actualBoundingBoxLeft;
+      const inkWidth = metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
       const width = Math.max(0, Math.ceil(metrics.width));
       const height = font.height;
       if (width > 4096 || height > 256 || width * height > 1_048_576)
         throw Error('Text raster exceeds the supported canvas bounds');
       if (!width || !height)
-        return { width, height, ascent: 0, alpha: new Uint8Array(width * height) };
+        return {
+          width,
+          height,
+          advance,
+          left,
+          inkWidth,
+          ascent: 0,
+          alpha: new Uint8Array(width * height),
+        };
 
       if (canvas.width !== width) canvas.width = width;
       if (canvas.height !== height) canvas.height = height;
@@ -46,7 +57,7 @@ export function createCanvasTextRasterizer(Canvas = globalThis.OffscreenCanvas) 
       const rgba = context.getImageData(0, 0, width, height).data;
       const alpha = new Uint8Array(width * height);
       for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3];
-      const mask = { width, height, ascent, alpha };
+      const mask = { width, height, advance, left, inkWidth, ascent, alpha };
       const size = key.length * 2 + alpha.byteLength;
       if (size <= maxCacheBytes) {
         while (cache.size >= maxCacheEntries || cacheBytes + size > maxCacheBytes) {
@@ -183,6 +194,7 @@ export function rasterizeGdiText(runtime, text, font) {
     mask.height < 0 ||
     mask.width > 4096 ||
     mask.height > 256 ||
+    (mask.advance !== undefined && (!Number.isFinite(mask.advance) || mask.advance < 0)) ||
     !(mask.alpha instanceof Uint8Array) ||
     mask.alpha.length !== mask.width * mask.height
   )
