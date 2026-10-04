@@ -62,7 +62,26 @@ tooltip HWNDs, exact font/theme metrics and complete control coverage remain
 incomplete. Run `npm run test:statusbar`. Contracts were checked against Wine's
 [status implementation](https://github.com/wine-mirror/wine/blob/master/dlls/comctl32/status.c)
 and [COMCTL32 exports](https://github.com/wine-mirror/wine/blob/master/dlls/comctl32/comctl32.spec).
-Ordinal 8 is CreateMappedBitmap and remains a separate dependency.
+Ordinal 8 is CreateMappedBitmap, covered by the resource bitmap services below.
+
+LoadBitmap A/W and CreateMappedBitmap now read RT_BITMAP resources from the
+calling EXE or a loaded native DLL, using ordinal or named resource IDs.
+CreateMappedBitmap's named export and COMCTL32 ordinal 8 share a procedure.
+Explicit COLORMAP arrays use the first matching entry; null arrays select system
+button colors. Mapping copies the palette and leaves module resource bytes intact.
+The shared GDI converter creates independent bitmap storage that survives DLL
+unload. Indexed 1/4/8-bit, CORE, RGB24/32 and uncompressed RGB16/32 bitfield layouts
+are bounded by the existing GDI dimensions and pixel budget. PE32 GetObject now
+returns a 24-byte BITMAP with bmType, dimensions, word-aligned row bytes, planes,
+depth and a null device-bitmap bits pointer. Size probes and output-buffer tails
+are checked. The [EXE/DLL acceptance](../evidence/resource-bitmaps-browser-results.json)
+executes the DLL entry point and export in Chromium, validates native GetPixel
+results and checks real SRCCOPY framebuffer pixels after unload. CMB_MASKED,
+predefined OEM system bitmaps, compressed/embedded-image DIBs and other GDI object
+description layouts remain incomplete. Run `npm run test:resource-bitmaps`.
+API behavior was checked against Wine's
+[CreateMappedBitmap](https://github.com/wine-mirror/wine/blob/master/dlls/comctl32/commctrl.c)
+and Microsoft's [BITMAP structure](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmap).
 
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 

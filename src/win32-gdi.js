@@ -587,6 +587,21 @@ function getObject(runtime, argument, wide) {
   const size = argument(1) | 0;
   const out = argument(2);
   if (size < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  const bitmap = state.bitmaps.get(handle);
+  if (bitmap) {
+    // PE32 BITMAP is 24 bytes, including bmType and the two WORD fields.
+    if (!out) return success(24, 3);
+    if (size < 24) return success(0, 3);
+    runtime.check(out, 24, true);
+    runtime.data.fill(0, out, out + 24);
+    runtime.write32(out + 4, bitmap.width);
+    runtime.write32(out + 8, bitmap.height);
+    const depth = bitmap.monochrome ? 1 : 32;
+    runtime.write32(out + 12, Math.ceil((bitmap.width * depth) / 16) * 2);
+    runtime.view.setUint16(out + 16, 1, true);
+    runtime.view.setUint16(out + 18, depth, true);
+    return success(24, 3);
+  }
   if (!out) return success(0, 3);
   const font = getFont(state, handle);
   if (font && size >= 60) {
@@ -604,15 +619,6 @@ function getObject(runtime, argument, wide) {
       runtime.data[out + 28 + face.length] = 0;
     }
     return success(60, 3);
-  }
-  const bitmap = state.bitmaps.get(handle);
-  if (bitmap && size >= 32) {
-    runtime.check(out, Math.min(size, 32), true);
-    runtime.data.fill(0, out, out + Math.min(size, 32));
-    runtime.write32(out, bitmap.width);
-    runtime.write32(out + 4, bitmap.height);
-    runtime.view.setUint16(out + 14, bitmap.monochrome ? 1 : 32, true);
-    return success(32, 3);
   }
   const pen = getPen(state, handle);
   if (pen && size >= 20) {

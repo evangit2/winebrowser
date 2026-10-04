@@ -1,0 +1,8 @@
+101 BITMAP "indexed4.bmp"
+102 BITMAP "indexed8.bmp"
+103 BITMAP "core4.bmp"
+104 BITMAP "mono.bmp"
+105 BITMAP "rgb24.bmp"
+106 BITMAP "rgb565.bmp"
+107 BITMAP "rgb32.bmp"
+NamedBitmap BITMAP "indexed4.bmp"

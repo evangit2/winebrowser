@@ -234,6 +234,8 @@
     "build:gui-controls": "sh scripts/build-gui-controls.sh",
     "build:legacy-text": "sh scripts/build-legacy-text-fixture.sh",
     "build:statusbar": "sh scripts/build-statusbar-fixture.sh",
+    "build:resource-bitmaps": "sh scripts/build-resource-bitmaps-fixture.sh",
+    "test:resource-bitmaps": "node scripts/test-resource-bitmaps-browser.mjs",
     "test:statusbar": "node scripts/test-statusbar-browser.mjs",
     "test:legacy-text": "node scripts/test-legacy-text-browser.mjs",
     "build:host-subclass": "sh scripts/build-host-subclass-fixture.sh",

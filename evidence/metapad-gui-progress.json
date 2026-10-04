@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-04T04:05:10.196Z",
+  "target": "Metapad 3.6 Light Edition, official native i386 binary",
+  "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
+  "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
+  "upstreamSource": "https://github.com/alexd/metapad",
+  "status": "blocked-imports",
+  "missingImports": [
+    "comctl32.dll!CreateToolbarEx",
+    "comctl32.dll!PropertySheetA",
+    "kernel32.dll!GetPrivateProfileStringA",
+    "kernel32.dll!WritePrivateProfileStringA",
+    "gdi32.dll!EndDoc",
+    "gdi32.dll!SetAbortProc",
+    "gdi32.dll!StartPage",
+    "gdi32.dll!EndPage",
+    "gdi32.dll!AbortDoc",
+    "gdi32.dll!StartDocA",
+    "comdlg32.dll!PageSetupDlgA",
+    "comdlg32.dll!ReplaceTextA",
+    "comdlg32.dll!FindTextA",
+    "comdlg32.dll!PrintDlgA",
+    "advapi32.dll!IsTextUnicode",
+    "shell32.dll!DragQueryFileA",
+    "shell32.dll!DragFinish"
+  ],
+  "sourceFindings": [
+    "Upstream Find/Replace dialogs call CreateMappedBitmap with flags 0 and the default color map",
+    "Upstream CreateToolbarEx uses common-control standard small-color assets and adds custom bitmaps"
+  ],
+  "scope": "Static import audit and source inspection only. The unchanged editor has not passed execution acceptance. Its remaining dependencies and full editing workflow remain unverified; no upstream binary is published with this record."
+}

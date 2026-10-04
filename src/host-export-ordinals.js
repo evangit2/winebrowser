@@ -3,6 +3,7 @@
 export const HOST_EXPORT_ORDINALS = {
   'comctl32.dll': {
     CreateStatusWindowA: 6,
+    CreateMappedBitmap: 8,
     MakeDragList: 13,
     LBItemFromPt: 14,
     DrawInsert: 15,
