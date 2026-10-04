@@ -266,8 +266,27 @@ export class WindowManager {
     return this._active ?? 0;
   }
   set active(value) {
+    const previous = this._active ?? 0;
     this._active = value;
     this.runtime.directInput?.foregroundChanged();
+    if (previous !== value) {
+      if (previous && this.windows.has(previous) && !this.windows.get(previous).destroying) {
+        this.post(previous, 0x6, 0, value);
+      }
+      if (value && this.windows.has(value)) {
+        this.post(value, 0x6, 1, previous);
+      }
+    }
+    this.applicationActivation(!!value && !this.appBlurred);
+  }
+  applicationActivation(active) {
+    if (this.appActive === active) return;
+    this.appActive = active;
+    // WM_ACTIVATEAPP belongs to the application, not an individual child or
+    // a switch between two of its top-level windows. Browser events queue it
+    // for the guest message loop so no guest callback runs on a host input stack.
+    for (const window of this.windows.values())
+      if (!window.parentId && !window.destroying) this.post(window.id, 0x1c, Number(active), 0);
   }
   fail(code, argc, value = 0) {
     this.runtime.lastError = code;
@@ -766,12 +785,16 @@ export class WindowManager {
   input(event) {
     const directInput = inputState(this.runtime);
     if (event.type === 'app-blur') {
+      this.appBlurred = true;
+      this.applicationActivation(false);
       directInput.blur();
       this.keys.clear();
       this.keyboardState.clear();
       return;
     }
     if (event.type === 'app-focus') {
+      this.appBlurred = false;
+      this.applicationActivation(!!this.active);
       directInput.focused = true;
       return;
     }

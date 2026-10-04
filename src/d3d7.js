@@ -18,6 +18,7 @@ const IID = 'f5049e77-4861-11d2-a407-00a0c90629a8';
 const HAL = '84e63de0-46aa-11cf-816f-0000c020156e';
 const TNL = 'f5049e78-4861-11d2-a407-00a0c90629a8';
 const DEVICE = 'f5049e79-4861-11d2-a407-00a0c90629a8';
+const VERTEX_BUFFER = 'f5049e7d-4861-11d2-a407-00a0c90629a8';
 const primitives = (type, n) =>
   type === 4 && n % 3 === 0 ? n / 3 : [5, 6].includes(type) && n >= 3 ? n - 2 : null;
 export function callD3D(r, object, slot, ...args) {
@@ -47,6 +48,79 @@ function guid(r, p, text) {
   r.view.setUint16(p + 6, parseInt(c, 16), true);
   const rest = d.join('');
   for (let i = 0; i < 8; i++) r.data[p + 8 + i] = parseInt(rest.slice(i * 2, i * 2 + 2), 16);
+}
+function createVertexBuffer(r, owner, factory, a) {
+  const desc = a(1),
+    out = a(2);
+  if (!out) return DD.INVALID;
+  r.write32(out, 0);
+  if (!desc || a(3)) return DD.INVALID;
+  r.check(desc, 16);
+  const caps = r.read32(desc + 4),
+    fvf = r.read32(desc + 8),
+    count = r.read32(desc + 12);
+  const layout = fvfLayout(fvf);
+  if (r.read32(desc) !== 16 || caps & ~0x10801 || !layout || !count) return DD.INVALID;
+  const bytes = count * layout.size;
+  if (!Number.isSafeInteger(bytes) || bytes + (r.d3d7VertexBytes ?? 0) > 16 * 1024 * 1024)
+    return 0x8007000e;
+  const memory = r.allocate(bytes, true);
+  r.d3d7VertexBytes = (r.d3d7VertexBytes ?? 0) + bytes;
+  r.comObjects.retain(factory);
+  const state = {
+    kind: 'd3d7-vertex-buffer',
+    owner,
+    caps,
+    fvf,
+    count,
+    layout,
+    bytes,
+    memory,
+    locked: false,
+  };
+  const buffer = r.comObjects.create({
+    name: 'IDirect3DVertexBuffer7',
+    iid: VERTEX_BUFFER,
+    methodNames: DDRAW_ABI.IDirect3DVertexBuffer7.map((x) => x[0]),
+    state,
+    methods: table('IDirect3DVertexBuffer7', {
+      Lock: (r, a) => {
+        if (!a(2) || a(1) & ~0x3831 || (a(1) & 0x30) === 0x30) return DD.INVALID;
+        if (state.locked) return DD.BUSY;
+        r.check(a(2), 4, true);
+        if (a(3)) r.check(a(3), 4, true);
+        r.write32(a(2), memory);
+        if (a(3)) r.write32(a(3), bytes);
+        state.locked = true;
+        return 0;
+      },
+      Unlock: () => {
+        if (!state.locked) return DD.NOTLOCKED;
+        state.locked = false;
+        return 0;
+      },
+      GetVertexBufferDesc: (r, a) => {
+        if (!a(1) || r.read32(a(1)) !== 16) return DD.INVALID;
+        r.check(a(1), 16, true);
+        [16, state.caps, fvf, count].forEach((v, i) => r.write32(a(1) + i * 4, v));
+        return 0;
+      },
+      Optimize: (r, a) => {
+        const device = ddObject(r, a(1), 'd3d7-device');
+        if (!device || device.state.owner !== owner || a(2)) return DD.INVALID;
+        if (state.locked) return DD.BUSY;
+        state.caps = (state.caps | 0x80000000) >>> 0;
+        return 0;
+      },
+    }),
+    onRelease: async () => {
+      r.free(memory);
+      r.d3d7VertexBytes -= bytes;
+      await r.comObjects.release(factory);
+    },
+  });
+  r.write32(out, buffer.pointer);
+  return 0;
 }
 export function writeD3D7Caps(r, p) {
   r.check(p, 236, true);
@@ -159,7 +233,7 @@ async function createDevice(r, owner, factory, a) {
       owner.window,
       1,
       hasDepth ? 1 : 0,
-      80,
+      hasDepth ? 80 : 0,
       0,
       0,
       0,
@@ -182,6 +256,7 @@ async function createDevice(r, owner, factory, a) {
     owner,
     textures: new Map(),
     cachedSurfaces: new Set(),
+    legacyClipping: true,
   };
   await callD3D(r, native, 57, 7, hasDepth ? 1 : 0); // D3D7 ZENABLE follows the attachment.
   await callD3D(r, native, 69, 0, 7, 0); // D3DTFP_NONE -> D3DTEXF_NONE.
@@ -237,7 +312,8 @@ async function createDevice(r, owner, factory, a) {
       if (a(5)) return DD.INVALID;
       const layout = fvfLayout(a(2)),
         count = primitives(a(1), a(4));
-      if (!layout || count === null) return DD.UNSUPPORTED;
+      if (!layout || count === null || (!state.legacyClipping && !layout.rhw))
+        return DD.UNSUPPORTED;
       const refreshed = await refreshTextures();
       if (refreshed) return refreshed;
       const hr = await callD3D(r, native, 89, a(2));
@@ -247,11 +323,66 @@ async function createDevice(r, owner, factory, a) {
       if (a(7)) return DD.INVALID;
       const layout = fvfLayout(a(2)),
         count = primitives(a(1), a(6));
-      if (!layout || count === null) return DD.UNSUPPORTED;
+      if (!layout || count === null || (!state.legacyClipping && !layout.rhw))
+        return DD.UNSUPPORTED;
       const refreshed = await refreshTextures();
       if (refreshed) return refreshed;
       const hr = await callD3D(r, native, 89, a(2));
       return hr || callD3D(r, native, 84, a(1), 0, a(4), count, a(5), 101, a(3), layout.size);
+    },
+    DrawPrimitiveVB: async (r, a) => {
+      const vb = ddObject(r, a(2), 'd3d7-vertex-buffer'),
+        start = a(3),
+        vertices = a(4);
+      if (!vb || vb.state.owner !== owner || a(5) || start + vertices > vb.state.count)
+        return DD.INVALID;
+      if (vb.state.locked) return DD.BUSY;
+      const count = primitives(a(1), vertices);
+      if (count === null || (!state.legacyClipping && !vb.state.layout.rhw)) return DD.UNSUPPORTED;
+      const refreshed = await refreshTextures();
+      if (refreshed) return refreshed;
+      const hr = await callD3D(r, native, 89, vb.state.fvf);
+      return (
+        hr ||
+        callD3D(
+          r,
+          native,
+          83,
+          a(1),
+          count,
+          vb.state.memory + start * vb.state.layout.size,
+          vb.state.layout.size,
+        )
+      );
+    },
+    DrawIndexedPrimitiveVB: async (r, a) => {
+      const vb = ddObject(r, a(2), 'd3d7-vertex-buffer'),
+        start = a(3),
+        vertices = a(4);
+      if (!vb || vb.state.owner !== owner || a(7) || start + vertices > vb.state.count)
+        return DD.INVALID;
+      if (vb.state.locked) return DD.BUSY;
+      const count = primitives(a(1), a(6));
+      if (count === null || (!state.legacyClipping && !vb.state.layout.rhw)) return DD.UNSUPPORTED;
+      const refreshed = await refreshTextures();
+      if (refreshed) return refreshed;
+      const hr = await callD3D(r, native, 89, vb.state.fvf);
+      return (
+        hr ||
+        callD3D(
+          r,
+          native,
+          84,
+          a(1),
+          0,
+          vertices,
+          count,
+          a(5),
+          101,
+          vb.state.memory + start * vb.state.layout.size,
+          vb.state.layout.size,
+        )
+      );
     },
     SetTexture: async (r, a) => {
       const stage = a(1),
@@ -284,7 +415,7 @@ async function createDevice(r, owner, factory, a) {
         return hr || callD3D(r, native, 69, a(1), 2, a(3));
       }
       if ([16, 17].includes(n) && ![1, 2].includes(a(3))) return DD.UNSUPPORTED;
-      if (n === 18 && a(3) !== 1) return DD.UNSUPPORTED; // Level zero only.
+      if (n === 18 && ![1, 2, 3].includes(a(3))) return DD.UNSUPPORTED;
       if (sampler) return callD3D(r, native, 69, a(1), sampler, n === 18 ? a(3) - 1 : a(3));
       return callD3D(r, native, 67, a(1), n, a(3));
     },
@@ -329,7 +460,19 @@ async function createDevice(r, owner, factory, a) {
   })) {
     const argc = DDRAW_ABI.IDirect3DDevice7.find((x) => x[0] === name)[1];
     h[name] = (r, a) =>
-      callD3D(r, native, slot, ...Array.from({ length: argc - 1 }, (_, i) => a(i + 1)));
+      a(1) === 136 && name === 'SetRenderState'
+        ? a(2) <= 1
+          ? ((state.legacyClipping = !!a(2)), 0)
+          : DD.INVALID
+        : a(1) === 136 && name === 'GetRenderState'
+          ? (r.write32(a(2), Number(state.legacyClipping)), 0)
+          : a(1) === 4 && name === 'SetRenderState'
+            ? a(2) === 1
+              ? 0
+              : DD.UNSUPPORTED // Texture perspective is always enabled by D3D9.
+            : a(1) === 4 && name === 'GetRenderState'
+              ? (r.write32(a(2), 1), 0)
+              : callD3D(r, native, slot, ...Array.from({ length: argc - 1 }, (_, i) => a(i + 1)));
   }
   const o = r.comObjects.create({
     name: 'IDirect3DDevice7',
@@ -381,6 +524,7 @@ export function createD3D7(r, owner) {
         }
       },
       CreateDevice: (r, a) => createDevice(r, owner, factory, a),
+      CreateVertexBuffer: (r, a) => createVertexBuffer(r, owner, factory, a),
       EnumZBufferFormats: async (r, a) => {
         if (![HAL, TNL].includes(readGuid(r, a(1))) || !a(2)) return DD.INVALID;
         const p = r.allocate(32);

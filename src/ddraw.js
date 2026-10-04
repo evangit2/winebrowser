@@ -476,6 +476,45 @@ export async function createDDSurface(
                 r.write32(a(1), view.pointer);
                 return 0;
               },
+              SetPrivateData: (r, a) => {
+                if (a(4)) return DD.UNSUPPORTED;
+                const key = readGuid(r, a(1)),
+                  bytes = a(3);
+                if (bytes > 65536 || (!a(2) && bytes)) return DD.INVALID;
+                if (bytes) r.check(a(2), bytes);
+                s.privateData ??= new Map();
+                const old = s.privateData.get(key)?.length ?? 0;
+                if (
+                  (!s.privateData.has(key) && s.privateData.size >= 256) ||
+                  (total.privateBytes ?? 0) - old + bytes > 1024 * 1024
+                )
+                  return 0x8007000e;
+                s.privateData.set(key, r.data.slice(a(2), a(2) + bytes));
+                total.privateBytes = (total.privateBytes ?? 0) - old + bytes;
+                return 0;
+              },
+              GetPrivateData: (r, a) => {
+                if (!a(3)) return DD.INVALID;
+                const key = readGuid(r, a(1)),
+                  bytes = s.privateData?.get(key);
+                if (!bytes) return DD.NOTFOUND;
+                const capacity = r.read32(a(3));
+                r.write32(a(3), bytes.length);
+                if (capacity < bytes.length || (!a(2) && bytes.length)) return 0x887602b2; // DDERR_MOREDATA.
+                if (bytes.length) {
+                  r.check(a(2), bytes.length, true);
+                  r.data.set(bytes, a(2));
+                }
+                return 0;
+              },
+              FreePrivateData: (r, a) => {
+                const key = readGuid(r, a(1)),
+                  bytes = s.privateData?.get(key);
+                if (!bytes) return DD.NOTFOUND;
+                s.privateData.delete(key);
+                total.privateBytes -= bytes.length;
+                return 0;
+              },
             }),
           ).filter(([slot]) => Number(slot) < abi.length),
         ),
@@ -484,6 +523,8 @@ export async function createDDSurface(
           if (s.clipper) await r.comObjects.release(s.clipper);
           for (const o of s.attachments) await r.comObjects.release(o);
           s.attachments.clear();
+          for (const bytes of s.privateData?.values() ?? []) total.privateBytes -= bytes.length;
+          s.privateData?.clear();
           await s.releaseGPU?.();
           for (const t of s.textures?.values() ?? []) if (t.refs) await r.comObjects.release(t);
           r.free(s.memory);
@@ -547,13 +588,18 @@ function drawMethods(owner, version) {
       owner.cooperative = a(2);
       return 0;
     },
-    SetDisplayMode: (r, a) => {
+    SetDisplayMode: async (r, a) => {
       if (![16, 24, 32].includes(a(3)) || !a(1) || !a(2) || a(1) > 2048 || a(2) > 2048)
         return DD.INVALID;
       if (version === 7 && ((a(4) && a(4) !== 60) || a(5))) return DD.UNSUPPORTED;
       owner.previousMode ??= currentDisplayMode(r);
       owner.mode = { ...currentDisplayMode(r), width: a(1), height: a(2), bitsPerPixel: a(3) };
       r.displayMode = owner.mode;
+      const window = r.windows?.windows.get(owner.window);
+      if (window?.showCmd === 3 && owner.cooperative & 0x10) {
+        const args = [window.id, 0, 0, 0, owner.mode.width, owner.mode.height, 0x14];
+        await r.apiProvider.get('user32.dll!SetWindowPos')(r, (i) => args[i]);
+      }
       return 0;
     },
     RestoreDisplayMode: (r) => {
@@ -584,11 +630,14 @@ function drawMethods(owner, version) {
       const format = flags & 0x1000 ? readFormat(r, a(1) + 72) : ddFormat(mode.bitsPerPixel);
       if (!format) return 0x88760091;
       if (
-        flags & ~(1 | 2 | 4 | 0x20 | 0x1000) ||
+        flags & ~(1 | 2 | 4 | 0x20 | 0x1000 | 0x100000) ||
         caps & ~(4 | 8 | 0x10 | 0x20 | 0x40 | 0x200 | 0x800 | 0x1000 | 0x2000 | 0x4000 | 0x20000) ||
-        (version === 7 && r.read32(a(1) + 108) & ~0x1000)
+        (version === 7 && r.read32(a(1) + 108) & ~(0x1000 | 0x10))
       )
         return DD.UNSUPPORTED;
+      if (flags & 0x100000 && (version !== 7 || !(caps & CAP.TEXTURE) || r.read32(a(1) + 120) >= 8))
+        return DD.INVALID;
+      if (version === 7 && r.read32(a(1) + 108) & 0x10 && !(caps & CAP.TEXTURE)) return DD.INVALID;
       const o = await createDDSurface(r, owner, {
         width: flags & 4 ? r.read32(a(1) + 12) : mode.width,
         height: flags & 2 ? r.read32(a(1) + 8) : mode.height,

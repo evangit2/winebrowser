@@ -17,7 +17,7 @@ const ids = {
 };
 function guid(r, id) {
   const p = r.allocate(16),
-    [a, b, c, ...d] = ids[id].split('-');
+    [a, b, c, ...d] = (ids[id] ?? id).split('-');
   r.write32(p, parseInt(a, 16));
   r.view.setUint16(p + 4, parseInt(b, 16), true);
   r.view.setUint16(p + 6, parseInt(c, 16), true);
@@ -104,6 +104,41 @@ test('opaque DirectDraw RGB ignores an alpha-mask union member without affecting
     await call(image.pointer, 'Release');
     assert.equal(directDrawState(r).bytes, 0);
     assert.notEqual((await surface(4, 2, [0x41, 0, 32, 0xff0000, 0xff00, 0xff, 0])).hr, 0);
+  } finally {
+    await call(root, 'Release');
+    r.windows.dispose();
+    r.cpu.dispose();
+  }
+});
+
+test('surface private bytes copy inputs, report required capacity and reclaim replacement and release budgets', async () => {
+  const { r, root, call, surface } = await fixture();
+  try {
+    const image = await surface(),
+      key = guid(r, 'unknown'),
+      input = r.allocate(5),
+      out = r.allocate(12),
+      size = r.allocate(4);
+    r.data.set([1, 2, 3, 4, 5], input);
+    r.data.fill(0xaa, out, out + 12);
+    assert.equal(await call(image.pointer, 'SetPrivateData', key, input, 5, 0), 0);
+    r.data.fill(0, input, input + 5);
+    r.write32(size, 4);
+    assert.equal(await call(image.pointer, 'GetPrivateData', key, out + 4, size), 0x887602b2);
+    assert.equal(r.read32(size), 5);
+    assert.deepEqual([...r.data.slice(out, out + 12)], Array(12).fill(0xaa));
+    assert.equal(await call(image.pointer, 'GetPrivateData', key, out + 4, size), 0);
+    assert.deepEqual([...r.data.slice(out + 4, out + 9)], [1, 2, 3, 4, 5]);
+    assert.equal(directDrawState(r).privateBytes, 5);
+    assert.equal(await call(image.pointer, 'SetPrivateData', key, input, 2, 0), 0);
+    assert.equal(directDrawState(r).privateBytes, 2);
+    assert.equal(await call(image.pointer, 'SetPrivateData', key, input, 5, 1), DD.UNSUPPORTED);
+    assert.equal(directDrawState(r).privateBytes, 2);
+    assert.equal(await call(image.pointer, 'FreePrivateData', key), 0);
+    assert.equal(await call(image.pointer, 'GetPrivateData', key, out, size), DD.NOTFOUND);
+    assert.equal(await call(image.pointer, 'SetPrivateData', key, input, 5, 0), 0);
+    await call(image.pointer, 'Release');
+    assert.equal(directDrawState(r).privateBytes, 0);
   } finally {
     await call(root, 'Release');
     r.windows.dispose();
@@ -242,4 +277,76 @@ test('attachments prevent transitive reference cycles and clippers retain and cl
   await call(root, 'Release');
   assert.equal(directDrawState(r).bytes, 0);
   assert.equal(r.comObjects.liveObjects, 0);
+});
+
+test('D3D7 vertex buffers validate locks, draw ranges, ownership and reclaim guest storage', async () => {
+  const { r, root, p, call, surface } = await fixture();
+  try {
+    r.windows.windows.set(0x20000, {
+      id: 0x20000,
+      width: 640,
+      height: 480,
+      style: 0x80000000,
+      visible: true,
+    });
+    r.graphics = { async createDevice() {}, async present() {}, async destroyDevice() {} };
+    assert.equal(await call(root, 'SetCooperativeLevel', 0x20000, 8), 0);
+    assert.equal(
+      await call(root, 'QueryInterface', guid(r, 'f5049e77-4861-11d2-a407-00a0c90629a8'), p),
+      0,
+    );
+    const d3d = r.read32(p),
+      target = await surface(640, 480, undefined, 0x2040);
+    assert.equal(target.hr, 0);
+    assert.equal(
+      await call(
+        d3d,
+        'CreateDevice',
+        guid(r, '84e63de0-46aa-11cf-816f-0000c020156e'),
+        target.pointer,
+        p,
+      ),
+      0,
+    );
+    const device = r.read32(p),
+      desc = r.allocate(16),
+      storage = r.allocate(4),
+      bytes = r.allocate(4);
+    [16, 0, 0x1c4, 4].forEach((v, i) => r.write32(desc + i * 4, v));
+    assert.equal(await call(d3d, 'CreateVertexBuffer', desc, p, 0), 0);
+    const vb = r.read32(p);
+    assert.equal(r.d3d7VertexBytes, 128);
+    assert.equal(await call(vb, 'Lock', 0x40000000, storage, bytes), DD.INVALID);
+    assert.equal(await call(vb, 'Lock', 0x30, storage, bytes), DD.INVALID);
+    assert.equal(await call(vb, 'Unlock'), DD.NOTLOCKED);
+    assert.equal(await call(vb, 'Lock', 1, storage, bytes), 0);
+    assert.equal(r.read32(bytes), 128);
+    assert.equal(await call(vb, 'Lock', 0, storage, bytes), DD.BUSY);
+    assert.equal(await call(device, 'DrawPrimitiveVB', 5, vb, 0, 4, 0), DD.BUSY);
+    assert.equal(await call(vb, 'Optimize', device, 0), DD.BUSY);
+    assert.equal(await call(vb, 'Unlock'), 0);
+    assert.equal(await call(device, 'DrawPrimitiveVB', 5, vb, 1, 4, 0), DD.INVALID);
+    assert.equal(
+      await call(device, 'DrawIndexedPrimitiveVB', 5, vb, 4, 1, storage, 4, 0),
+      DD.INVALID,
+    );
+    assert.equal(await call(device, 'DrawPrimitiveVB', 5, vb, 0, 4, 1), DD.INVALID);
+    assert.equal(await call(vb, 'Optimize', device, 0), 0);
+    assert.equal(await call(vb, 'GetVertexBufferDesc', desc), 0);
+    assert.equal(r.read32(desc + 4), 0x80000000);
+    assert.equal(await call(vb, 'Release'), 0);
+    assert.equal(r.d3d7VertexBytes, 0);
+    await assert.rejects(call(vb, 'Lock', 0, storage, bytes), /Released COM/);
+    [16, 0, 0x1c4, 0xffffffff].forEach((v, i) => r.write32(desc + i * 4, v));
+    assert.equal(await call(d3d, 'CreateVertexBuffer', desc, p, 0), 0x8007000e);
+    assert.equal(r.read32(p), 0);
+    assert.equal(r.d3d7VertexBytes, 0);
+    await call(device, 'Release');
+    await call(target.pointer, 'Release');
+    await call(d3d, 'Release');
+  } finally {
+    await call(root, 'Release');
+    r.windows.dispose();
+    r.cpu.dispose();
+  }
 });

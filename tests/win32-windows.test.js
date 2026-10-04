@@ -874,3 +874,54 @@ test('GetClassName preserves registered case, ANSI/Unicode conversion, truncatio
     assert.equal(r.lastError, 1400);
   }
 });
+
+test('application activation wakes the native message loop and follows browser focus without child activation', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const first = (await createWindow(r, atom)).result;
+  const second = (await createWindow(r, atom)).result;
+  await call(r, 'user32.dll!ShowWindow', [first, 5]);
+  const appMessages = () =>
+    r.windows.queue.filter((m) => m.message === 0x1c).map((m) => [m.hwnd, m.wParam]);
+  assert.deepEqual(appMessages(), [
+    [first, 1],
+    [second, 1],
+  ]);
+  r.windows.queue = [];
+  await call(r, 'user32.dll!SetActiveWindow', [second]);
+  assert.deepEqual(
+    appMessages(),
+    [],
+    'switching windows in one application does not deactivate it',
+  );
+  assert.deepEqual(
+    r.windows.queue.filter((m) => m.message === 6).map((m) => [m.hwnd, m.wParam, m.lParam]),
+    [
+      [first, 0, second],
+      [second, 1, first],
+    ],
+  );
+  r.windows.queue = [];
+  r.windows.input({ type: 'app-blur' });
+  r.windows.input({ type: 'app-blur' });
+  assert.deepEqual(appMessages(), [
+    [first, 0],
+    [second, 0],
+  ]);
+  r.windows.queue = [];
+  r.windows.input({ type: 'app-focus' });
+  r.windows.input({ type: 'app-focus' });
+  assert.deepEqual(appMessages(), [
+    [first, 1],
+    [second, 1],
+  ]);
+  const msg = r.allocate(28);
+  await call(r, 'user32.dll!GetMessageA', [msg, 0, 0x1c, 0x1c]);
+  assert.equal(r.read32(msg + 4), 0x1c);
+  assert.equal(r.read32(msg + 8), 1);
+  await call(r, 'user32.dll!DispatchMessageA', [msg]);
+  assert.ok(proc.messages().includes(0x1c), 'native guest WndProc receives the activation');
+  await r.windows.destroy(second);
+  assert.ok(!r.windows.queue.some((m) => m.hwnd === second), 'no activation to a destroyed window');
+});
