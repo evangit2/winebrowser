@@ -283,6 +283,34 @@ try {
   await page.waitForFunction(() => window.__lastRun !== null);
   const run = await page.evaluate(() => window.__lastRun);
   assert.equal(run.exitCode, 0);
+  const saved = run.outputs.find(
+    (f) => f.path === 'gui-settings.ini' || f.path.endsWith('/gui-settings.ini'),
+  );
+  assert.ok(saved);
+  const settingsIni = new Uint8Array(Object.values(saved.bytes));
+  const settingsText = new TextDecoder().decode(settingsIni);
+  assert.match(settingsText, /LockNotes=1/);
+  assert.match(settingsText, /ReverseColors=1/);
+  await page.locator('#file').setInputFiles([
+    {
+      name: 'gui-controls.exe',
+      mimeType: 'application/octet-stream',
+      buffer: await readFile('public/examples/gui-controls/gui-controls.exe'),
+    },
+    { name: 'gui-settings.ini', mimeType: 'text/plain', buffer: Buffer.from(settingsIni) },
+  ]);
+  await page.locator('#run').click();
+  await status.getByText(reset, { exact: true }).waitFor();
+  await expect(notes).toHaveJSProperty('readOnly', true);
+  await expect(toolbar.getByRole('button', { name: 'Lock notes', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect.poll(swatch).toEqual([230, 140, 30, 255]);
+  await window.locator('.virtual-desktop-close').click();
+  await page.waitForFunction(() => window.__lastRun !== null);
+  assert.equal((await page.evaluate(() => window.__lastRun)).exitCode, 0);
+
   await page.locator('#file').setInputFiles('public/examples/gui-controls/gui-controls.zip');
   await page.locator('#run').click();
   await status.getByText(reset, { exact: true }).waitFor();
@@ -314,6 +342,7 @@ try {
       'Public Notes > Find/Replace remains modeless; native search selects the DOM edit range, Replace/Replace All change actual notes and native Undo restores the previous edit',
       'Native CreateToolbarEx quick actions render standard Wine icons; Replace/Undo dispatch actual EXE callbacks and the checked Lock notes action synchronizes edit/menu state',
       'Demo > Settings opens native PropertySheetA pages from EXE resources; Apply updates notes lock and actual GDI canvas pixels, switching pages preserves draft state and Cancel discards unapplied changes',
+      'Settings Apply writes real gui-settings.ini output; re-uploading it alongside the unchanged EXE restores notes lock, toolbar state and actual GDI palette',
       'Public source/license ZIP package runs and Stop removes its window',
     ],
     scope:

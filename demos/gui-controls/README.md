@@ -30,6 +30,9 @@ published separately in `public/runtime/toolbar/`.
 Demo → Settings opens native Notes and Canvas property pages. Apply or OK
 updates the notes lock and canvas palette; Cancel discards changes you have not
 applied. Switching pages preserves draft choices and the existing notes text.
+Apply saves these two settings to `gui-settings.ini` through native profile APIs.
+After closing the program, download that generated file and upload it alongside
+the EXE to restore the choices on the next run. The Notes text stays in memory.
 It needs no app-specific Wasm build: WineBrowser translates the executable's x86
 blocks to WebAssembly in the browser.
 

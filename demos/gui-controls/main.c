@@ -27,6 +27,9 @@ static void note_mode(HWND window,BOOL locked) {
   SetMenuItemInfoA(GetMenu(window),1,TRUE,&info);
   DrawMenuBar(window);
 }
+static void save_setting(const char *key,BOOL checked){
+  if(!WritePrivateProfileStringA("GUI",key,checked?"1":"0","./gui-settings.ini"))ExitProcess(11);
+}
 static INT_PTR CALLBACK settings_proc(HWND window,UINT message,WPARAM wp,LPARAM lp){
   if(message==WM_INITDIALOG){
     PROPSHEETPAGEA *page=(PROPSHEETPAGEA*)lp;
@@ -37,8 +40,8 @@ static INT_PTR CALLBACK settings_proc(HWND window,UINT message,WPARAM wp,LPARAM 
   if(message==WM_COMMAND&&LOWORD(wp)==10){PropSheet_Changed(GetParent(window),window);return TRUE;}
   if(message==WM_NOTIFY&&((NMHDR*)lp)->code==PSN_APPLY){
     BOOL checked=IsDlgButtonChecked(window,10)==BST_CHECKED;
-    if(GetWindowLongA(window,DWL_USER)==1)note_mode(main_owner,checked);
-    else{SetWindowLongA(canvas,GWL_USERDATA,checked);InvalidateRect(canvas,NULL,TRUE);}
+    if(GetWindowLongA(window,DWL_USER)==1){note_mode(main_owner,checked);save_setting("LockNotes",checked);}
+    else{SetWindowLongA(canvas,GWL_USERDATA,checked);InvalidateRect(canvas,NULL,TRUE);save_setting("ReverseColors",checked);}
     SetWindowLongA(window,DWL_MSGRESULT,PSNRET_NOERROR);return TRUE;
   }
   return FALSE;
@@ -312,5 +315,8 @@ void start(void) {
   SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Alpha");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Beta");SendMessageA(items,LB_ADDSTRING,0,(LPARAM)"Gamma");
   SendMessageA(combo,CB_ADDSTRING,0,(LPARAM)"Choice One");SendMessageA(combo,CB_ADDSTRING,0,(LPARAM)"Choice Two");
   reset(window);
+  note_mode(window,GetPrivateProfileIntA("GUI","LockNotes",0,"./gui-settings.ini")!=0);
+  SetWindowLongA(canvas,GWL_USERDATA,GetPrivateProfileIntA("GUI","ReverseColors",0,"./gui-settings.ini")!=0);
+  InvalidateRect(canvas,NULL,TRUE);
   MSG msg;while(GetMessageA(&msg,NULL,0,0)>0){if(!search_dialog||!IsDialogMessageA(search_dialog,&msg)){TranslateMessage(&msg);DispatchMessageA(&msg);}}DestroyMenu(menu);if(font)DeleteObject(font);ExitProcess((UINT)msg.wParam);
 }

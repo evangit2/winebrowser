@@ -7,9 +7,9 @@ with MinGW. The app calls USER32, COMCTL32, COMDLG32 and GDI32; its x86 code is
 translated to WebAssembly inside the browser. No app-specific Wasm
 artifact is included.
 
-Executable SHA-256: `6292e3fcb1d5b2f1cbf206eb140dd3c2fc100aa6f9f997a9c075e9b15d8f5ee7`
+Executable SHA-256: `d280ab25820e0fba18f923421d75a971787f1a4c9919fb53f907749b78510f4b`
 
-C source SHA-256: `c0a4c70d65e11c0357c94473d868a150aca13ac293e1a07de7282119c37bb88a`
+C source SHA-256: `7b7a12086355648d64d39feb7bd976c0a0a5f118f3220e986667024901d610a9`
 
 Source: `demos/gui-controls/` in the WineBrowser repository. The source
 archive includes the standalone reproducible MinGW build script.
