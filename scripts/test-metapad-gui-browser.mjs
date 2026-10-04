@@ -60,6 +60,58 @@ try {
   await edit.fill(saved);
   await edit.press('Control+s');
   await expect(owner.locator('.virtual-desktop-title')).toHaveText('browser-notes.txt - metapad');
+  const picker = page.locator('#file-picker');
+  await edit.press('Control+F2');
+  await picker.waitFor({ state: 'visible' });
+  await expect(page.locator('#file-picker-title')).toHaveText(/Save/i);
+  await page.locator('#file-picker-directory').selectOption('');
+  await page.locator('#file-picker-name').fill('metapad-saved');
+  await picker.screenshot({ path: 'evidence/metapad-save-dialog-browser.png' });
+  await page.locator('#file-picker-ok').click();
+  await expect(picker).not.toBeVisible();
+  await expect(owner.locator('.virtual-desktop-title')).toHaveText('metapad-saved.txt - metapad');
+  // Actual native Open, including a cancelled picker and opening an imported
+  // browser snapshot. The untouched EXE remains the code performing reads.
+  await edit.press('Control+o');
+  await picker.waitFor({ state: 'visible' });
+  await page.keyboard.press('Escape');
+  await expect(picker).not.toBeVisible();
+  await expect(edit).toHaveValue(saved);
+  await edit.press('Control+o');
+  await picker.waitFor({ state: 'visible' });
+  await page.locator('#file-picker-name').fill('missing-native-file.txt');
+  await page.locator('#file-picker-ok').click();
+  await expect(page.locator('#file-picker-error')).toHaveText('That file does not exist.');
+  await expect(picker).toBeVisible();
+  await page.locator('#file-picker-import').setInputFiles({
+    name: 'imported.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('opened through native dialog\r\n'),
+  });
+  await expect(page.locator('#file-picker-name')).toHaveValue('imported.txt');
+  await page.locator('#file-picker-ok').click();
+  await expect(edit).toHaveValue('opened through native dialog\n');
+  await expect(owner.locator('.virtual-desktop-title')).toHaveText('imported.txt - metapad');
+  const replaced = 'native overwrite confirmed';
+  await edit.fill(replaced);
+  await edit.press('Control+F2');
+  await picker.waitFor({ state: 'visible' });
+  await page.locator('#file-picker-directory').selectOption('');
+  await page.locator('#file-picker-name').fill('metapad-saved.txt');
+  await page.locator('#file-picker-ok').click();
+  await expect(page.locator('#file-picker-confirmation')).toBeVisible();
+  await page.locator('#file-picker-confirm-no').click();
+  await expect(picker).toBeVisible();
+  await page.locator('#file-picker-ok').click();
+  await page.locator('#file-picker-confirm-yes').click();
+  await expect(picker).not.toBeVisible();
+  await expect(owner.locator('.virtual-desktop-title')).toHaveText('metapad-saved.txt - metapad');
+  await edit.press('Control+o');
+  await picker.waitFor({ state: 'visible' });
+  await page.locator('#file-picker-directory').selectOption('');
+  await page.locator('#file-picker-list').selectOption('metapad-saved.txt');
+  await page.locator('#file-picker-ok').click();
+  await expect(edit).toHaveValue(replaced);
   await owner.screenshot({ path: 'evidence/metapad-editor-browser.png' });
   await owner.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);
@@ -69,6 +121,13 @@ try {
   assert.ok(output);
   const bytes = new Uint8Array(Object.values(output.bytes));
   assert.equal(new TextDecoder('windows-1252').decode(bytes), saved);
+  const saveAsOutput = first.outputs.find((f) => f.path === 'metapad-saved.txt');
+  assert.ok(saveAsOutput);
+  assert.equal(
+    new TextDecoder().decode(new Uint8Array(Object.values(saveAsOutput.bytes))),
+    replaced,
+  );
+  assert.ok(!first.outputs.some((f) => f.path === '_opened/1/imported.txt'));
   assert.ok(first.compiledBlocks > 0);
   assert.ok(first.apiTrace.includes('advapi32.dll!IsTextUnicode'));
   // Re-upload the real native save output, then use the app's unchanged argv
@@ -93,7 +152,7 @@ try {
     date: new Date().toISOString(),
     url,
     browser: browser.version(),
-    status: 'passed-basic-editor',
+    status: 'passed-editor-file-dialogs',
     target: 'Metapad 3.6 Light Edition, unchanged official native i386 executable',
     exeSha256: sha256,
     binarySource: 'https://liquidninja.com/metapad/downloads/metapad36LE.zip',
@@ -109,10 +168,13 @@ try {
       'Unchanged native editor starts without error notices; native toolbar bitmap cells render',
       'Browser text-file drop invokes native shell queries, real file reads and editor loading',
       'DOM editing plus native Ctrl+S accelerator writes real filesystem output; app closes with exit zero',
+      'Native Save As writes a selected name with default .txt extension; Cancel preserves the current editor',
+      'Native Open rejects a missing file, imports a local text snapshot and reads it through ordinary guest file APIs',
+      'Native Save As overwrite No stays open; Yes replaces the real file, which native Open reopens with matching text',
       'Exported native output is re-uploaded with the same EXE and reopens through its command-line file path',
     ],
     scope:
-      'Basic ANSI text editing/drop/save/reopen acceptance only. Open/Save As common dialogs, Find/Replace, option/property pages, encodings and advanced editing commands remain unverified or incomplete; printing has no installed queues. Executable remains privately cached, not published. This does not establish arbitrary Windows compatibility.',
+      'ANSI editing/drop/save/reopen and standard Open/Save As dialogs. Find/Replace, option/property pages, encodings and advanced editing commands remain unverified or incomplete; file-dialog hooks/templates and legacy multiselect remain incomplete; printing has no installed queues. Executable remains privately cached, not published. This does not establish arbitrary Windows compatibility.',
   };
   await writeFile(
     'evidence/metapad-gui-browser-results.json',

@@ -2,10 +2,10 @@
 //
 // The browser desktop has no IME bridge, so an IME context is a real per-window
 // object that reports an empty composition and accepts the font/window calls a
-// program makes while setting one up. File dialogs currently validate the
-// caller's structure and return cancellation. Font selection uses a real
-// browser picker through ChooseFontA/W.
+// program makes while setting one up. File and font dialogs use actual
+// browser pickers and return native A/W output structures.
 import { chooseBrowserFont } from './win32-font-dialog.js';
+import { chooseBrowserFile } from './win32-file-dialog.js';
 
 const ok = (result = 0, argc = 0) => ({ result: result >>> 0, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -88,38 +88,6 @@ function immIsIME(r, a) {
   return ok(0, 1); // no IME is attached to the browser desktop
 }
 
-// ---------------------------------------------------------------------------
-// The common dialogs. OPENFILENAMEA/W carries an owner window, a filter and the
-// buffer the chosen path is written into. Since no native picker can open, the
-// dialog reports "cancelled": GetOpenFileName returns FALSE and the extended
-// error stays zero, which the documentation defines as a user cancel.
-function validateOpenFileName(r, pointer, wide) {
-  if (!pointer) return null;
-  // OPENFILENAMEA and OPENFILENAMEW are both 88 bytes on i386; the wide form
-  // does not grow the structure because every member is a DWORD or a pointer.
-  // The size field is what distinguishes a well-formed structure.
-  const lStructSize = r.guestMemory.read(pointer, 4);
-  void wide;
-  if (lStructSize !== 88) return null;
-  r.check(pointer, lStructSize);
-  const owner = r.read32(pointer + 4);
-  if (owner && !r.windows.windows.has(owner)) return null;
-  const buffer = r.read32(pointer + 28);
-  const maxFile = r.read32(pointer + 32);
-  if (!buffer || maxFile < 1 || maxFile > 0xffff) return null;
-  r.check(buffer, wide ? maxFile * 2 : maxFile, true);
-  return { buffer, maxFile };
-}
-function openSaveFileName(r, a, wide) {
-  r.commonDialogError = 0;
-  const parsed = validateOpenFileName(r, a(0), wide);
-  if (!parsed) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  // A cancel leaves the caller's buffer holding an empty string.
-  if (wide) r.guestMemory.write(parsed.buffer, 0, 2);
-  else r.data[parsed.buffer] = 0;
-  r.lastError = 0;
-  return ok(0, 1);
-}
 export const imeApis = {
   'imm32.dll!ImmGetContext': immGetContext,
   'imm32.dll!ImmReleaseContext': immReleaseContext,
@@ -144,10 +112,10 @@ export const imeApis = {
 };
 
 export const comDlgApis = {
-  'comdlg32.dll!GetOpenFileNameA': (r, a) => openSaveFileName(r, a, false),
-  'comdlg32.dll!GetOpenFileNameW': (r, a) => openSaveFileName(r, a, true),
-  'comdlg32.dll!GetSaveFileNameA': (r, a) => openSaveFileName(r, a, false),
-  'comdlg32.dll!GetSaveFileNameW': (r, a) => openSaveFileName(r, a, true),
+  'comdlg32.dll!GetOpenFileNameA': (r, a) => chooseBrowserFile(r, a, false, false),
+  'comdlg32.dll!GetOpenFileNameW': (r, a) => chooseBrowserFile(r, a, true, false),
+  'comdlg32.dll!GetSaveFileNameA': (r, a) => chooseBrowserFile(r, a, false, true),
+  'comdlg32.dll!GetSaveFileNameW': (r, a) => chooseBrowserFile(r, a, true, true),
   'comdlg32.dll!ChooseFontA': (r, a) => chooseBrowserFont(r, a, false),
   'comdlg32.dll!ChooseFontW': (r, a) => chooseBrowserFont(r, a, true),
   // CommDlgExtendedError reports the last common-dialog error. A cancel is not

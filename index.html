@@ -94,6 +94,40 @@
       <button id="folder-dialog-cancel">Cancel</button
       ><button id="folder-dialog-ok">Choose folder</button>
     </dialog>
+    <dialog id="file-picker" aria-labelledby="file-picker-title">
+      <form id="file-picker-form">
+        <h2 id="file-picker-title">Open</h2>
+        <div class="file-picker-location">
+          <label for="file-picker-directory">Folder</label
+          ><select id="file-picker-directory"></select
+          ><button type="button" id="file-picker-up" aria-label="Parent folder">↑</button>
+        </div>
+        <select id="file-picker-list" size="9" aria-label="Files and folders"></select>
+        <label class="file-picker-field"
+          >File name<input id="file-picker-name" autocomplete="off"
+        /></label>
+        <label class="file-picker-field"
+          >Files of type<select id="file-picker-filter"></select
+        ></label>
+        <label id="file-picker-readonly-label"
+          ><input type="checkbox" id="file-picker-readonly" />Open as read-only</label
+        >
+        <label class="file-picker-import"
+          >Import local files<input id="file-picker-import" type="file"
+        /></label>
+        <p id="file-picker-error" role="alert"></p>
+        <div id="file-picker-confirmation" hidden>
+          <p id="file-picker-confirm-text"></p>
+          <button type="button" id="file-picker-confirm-yes">Yes</button
+          ><button type="button" id="file-picker-confirm-no">No</button>
+        </div>
+        <div class="file-picker-actions">
+          <button type="button" id="file-picker-stop">Stop program</button
+          ><button type="button" id="file-picker-cancel">Cancel</button
+          ><button type="submit" id="file-picker-ok">Open</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="font-dialog" aria-labelledby="font-dialog-title">
       <h2 id="font-dialog-title">Choose a font</h2>
       <form id="font-form">

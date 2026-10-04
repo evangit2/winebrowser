@@ -1,8 +1,8 @@
 {
-  "date": "2026-10-04T10:59:18.348Z",
+  "date": "2026-10-04T11:49:24.359Z",
   "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
-  "status": "passed-basic-editor",
+  "status": "passed-editor-file-dialogs",
   "target": "Metapad 3.6 Light Edition, unchanged official native i386 executable",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
@@ -10,24 +10,27 @@
   "runs": [
     {
       "exitCode": 0,
-      "compiledBlocks": 4839,
-      "x86TranslationMs": 1082.3950001895428,
-      "instructions": 580604,
-      "elapsedMs": 2674.6500000059605
+      "compiledBlocks": 4885,
+      "x86TranslationMs": 1380.0999996960163,
+      "instructions": 1134309,
+      "elapsedMs": 4148.409999996424
     },
     {
       "exitCode": 0,
       "compiledBlocks": 4762,
-      "x86TranslationMs": 580.8649999797344,
+      "x86TranslationMs": 676.0549988150597,
       "instructions": 508117,
-      "elapsedMs": 1386.6499999761581
+      "elapsedMs": 1212.6349999904633
     }
   ],
   "checks": [
     "Unchanged native editor starts without error notices; native toolbar bitmap cells render",
     "Browser text-file drop invokes native shell queries, real file reads and editor loading",
     "DOM editing plus native Ctrl+S accelerator writes real filesystem output; app closes with exit zero",
+    "Native Save As writes a selected name with default .txt extension; Cancel preserves the current editor",
+    "Native Open rejects a missing file, imports a local text snapshot and reads it through ordinary guest file APIs",
+    "Native Save As overwrite No stays open; Yes replaces the real file, which native Open reopens with matching text",
     "Exported native output is re-uploaded with the same EXE and reopens through its command-line file path"
   ],
-  "scope": "Basic ANSI text editing/drop/save/reopen acceptance only. Open/Save As common dialogs, Find/Replace, option/property pages, encodings and advanced editing commands remain unverified or incomplete; printing has no installed queues. Executable remains privately cached, not published. This does not establish arbitrary Windows compatibility."
+  "scope": "ANSI editing/drop/save/reopen and standard Open/Save As dialogs. Find/Replace, option/property pages, encodings and advanced editing commands remain unverified or incomplete; file-dialog hooks/templates and legacy multiselect remain incomplete; printing has no installed queues. Executable remains privately cached, not published. This does not establish arbitrary Windows compatibility."
 }

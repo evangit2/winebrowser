@@ -2,6 +2,7 @@ import './style.css';
 import { audioQueueNeedsReset } from './audio-scheduling.js';
 import { BrowserAudioStream } from './browser-audio-stream.js';
 import { showFontPicker } from './font-picker.js';
+import { showFilePicker } from './file-picker.js';
 import { ensureIsolation } from './isolation.js';
 import { VirtualDesktop } from './desktop.js';
 import { selectedFiles, droppedFiles, validateImportFiles } from './import-files.js';
@@ -76,6 +77,7 @@ function createWorker() {
   $('messagebox').close();
   $('folder-dialog').close();
   $('font-dialog').close();
+  $('file-picker').close();
   desktop.reset();
   $('desktop').hidden = true;
   stopAudio(false);
@@ -171,6 +173,17 @@ function createWorker() {
     }
     if (message.type === 'request') {
       requests.push(message);
+      if (message.kind === 'choose-file') {
+        const value = suiteMode
+          ? null
+          : await showFilePicker(
+              $('file-picker'),
+              message,
+              () => worker === instance,
+              () => $('stop').click(),
+            );
+        if (worker === instance) reply(instance, message, value);
+      }
       if (message.kind === 'choose-font') {
         const value = suiteMode
           ? null
@@ -441,6 +454,7 @@ $('stop').onclick = () => {
   $('messagebox').close();
   $('folder-dialog').close();
   $('font-dialog').close();
+  $('file-picker').close();
   $('selection').hidden = true;
   stopAudio();
   runWait?.resolve(null);

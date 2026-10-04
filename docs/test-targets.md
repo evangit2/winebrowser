@@ -21,3 +21,32 @@ The candidates below are not browser-tested here. The availability notes describ
 | [Humus 3D demos](https://humus.name/index.php?page=3D)                                    | Historical Direct3D workloads across API generations, including DX8/9 and later DX10/11 examples; useful as a separate graphics compatibility series.    | The author's catalog marks many entries with both “Executable” and “Source code” and links downloadable ZIP archives. Entries state their Direct3D version and hardware requirements.                               | Select a historical DX8/DX9 entry from the catalog and use its upstream executable archive; record the specific demo and stated requirements with each test. Later demos are separate DX10/11 targets, not substitutes for DX8/9.                                                                                                                                                                                                                                                                                                                                                                                  |
 
 Third-party targets can depend on OS APIs, DLLs, drivers, display/audio devices, network access, files, and CPU instructions that these sample fixtures do not cover. Record the exact binary version, architecture, input files, runtime environment, and observed outcome for each test. A pass or failure on one target should be treated as evidence about that target only.
+
+### Standard file dialogs and unchanged Metapad
+
+`npm run test:file-dialogs` executes an original PE32 fixture with native
+OPENFILENAME v4 A cancellation, A selection and reads, Unicode Save As with
+case-preserving output, Explorer W multiselect, insufficient buffer reporting,
+folder/filter UI, stop and package replacement. The native caller creates the
+saved file and its exported bytes are checked. `npm run test:metapad-gui` also
+executes the pinned unchanged official Metapad 3.6 LE binary from a private
+cache, using its real Open, Save As, overwrite, Ctrl+S and reopen workflows.
+`npm run fetch:metapad` validates the upstream ZIP and EXE hash; the executable
+is excluded from public output.
+
+Standard A/W common dialogs select existing guest files or import browser File
+snapshots into fresh `_opened/<batch>/` directories. Cancel does not mutate the
+native structure, filename buffer, filesystem or current directory. Save As
+returns a path; ordinary native file APIs perform the write. Filters, default
+extensions, file titles, offsets, read-only selection, Explorer multi-select,
+path/file existence and overwrite/create prompts are handled. ANSI is CP1252;
+unrepresentable selections fail rather than producing an unusable substituted
+filename. `OFN_NOCHANGEDIR` preserves the runtime cwd. Imports are inputs and
+only appear in exported outputs after native code edits them.
+
+This verifies standard dialogs and ANSI editor workflows. Native hooks/custom
+templates/help, legacy 8.3 multi-select, shell namespace extensions, modern
+IFileDialog COM and exact Windows MRU/cwd-on-cancel rules remain incomplete.
+Metapad advanced editing/options and arbitrary other GUI frameworks remain
+unproved. See `evidence/file-dialog-browser-results.json` and
+`evidence/metapad-gui-browser-results.json` for bounded acceptance evidence.

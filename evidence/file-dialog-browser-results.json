@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-04T11:49:22.056Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "1f17320f123b271334a9ad7d53b938aa774f27440dce987ff90b7120d55f33a0",
+  "compiledBlocks": 104,
+  "x86TranslationMs": 36.9450002014637,
+  "checks": [
+    "Native OPENFILENAME v4 A Escape cancellation preserves caller filename and clears extended error",
+    "Folder navigation and filters select real guest files; native A offsets/title and actual ReadFile validated",
+    "Native W Save As returns Unicode name, offsets and default extension; caller creates/writes exact output bytes",
+    "Native W Explorer multiselect returns directory and filenames as native double-NUL buffer",
+    "Native insufficient-capacity selection returns FNERR_BUFFERTOOSMALL and required WORD size",
+    "Stop dismisses waiting picker and terminates app; replacing package dismisses picker without leaking replies"
+  ],
+  "scope": "Standard A/W PE32 file dialogs, local import snapshots, shared guest files and native file I/O. Native hooks/templates/help, old-style multiselect, shell namespace extensions and modern IFileDialog COM remain incomplete. Not arbitrary Windows compatibility."
+}

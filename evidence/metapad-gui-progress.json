@@ -1,10 +1,10 @@
 {
-  "date": "2026-10-04T10:59:18.348Z",
+  "date": "2026-10-04T11:49:24.359Z",
   "target": "Metapad 3.6 Light Edition, official native i386 binary",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
   "upstreamSource": "https://github.com/alexd/metapad",
-  "status": "passed-basic-editor",
+  "status": "passed-editor-file-dialogs",
   "missingImports": [],
   "sourceFindings": [
     "Upstream Find/Replace dialogs call CreateMappedBitmap with flags 0 and the default color map",
@@ -16,8 +16,9 @@
     "All 173 static imports resolve after shared HDROP, IsTextUnicode and printerless contracts. Genuine native/browser fixtures verify dropped-file reads and accurate no-printer notices; printing is not available.",
     "Unchanged Metapad executed CRT startup and created its main native window. Its 96-entry accelerator resource exposed an inverted last-entry marker check; the shared parser fix passes a real compiler-generated shortcut resource.",
     "Shared child-window services now allow initially empty framed EDIT controls and restore client edges during resize. Child WS_EX_DLGMODALFRAME and SBARS_SIZEGRIP work; short custom toolbar strips are padded like Wine. Native geometry and actual browser resize acceptance pass.",
-    "The pinned unchanged Metapad 3.6 LE executable passes actual Chromium startup without error notices, file-drop loading, text editing, Ctrl+S native filesystem writes, output export, re-upload/command-line reopen and two clean zero exits. Browser x86 compilation takes 0.58-1.08 seconds in this recorded static run."
+    "The pinned unchanged Metapad 3.6 LE executable passes actual Chromium startup without error notices, file-drop loading, text editing, Ctrl+S native filesystem writes, output export, re-upload/command-line reopen and two clean zero exits. Browser x86 compilation takes 0.58-1.08 seconds in this recorded static run.",
+    "Shared GetOpenFileNameA/W and GetSaveFileNameA/W now return actual browser selections, import local snapshots and honor native filename buffers/offsets/default extensions and overwrite confirmation. Unchanged Metapad native Open and Save As passes real file creation, overwrite and reopen acceptance in Chromium."
   ],
-  "scope": "Basic ANSI text editing/drop/save/reopen acceptance only. Open/Save As common dialogs, Find/Replace, option/property pages, encodings and advanced editing commands remain unverified or incomplete; printing has no installed queues. Executable remains privately cached, not published. This does not establish arbitrary Windows compatibility.",
+  "scope": "ANSI editing/drop/save/reopen and standard Open/Save As dialogs. Find/Replace, options, encodings and advanced commands remain unverified; native file-dialog hooks/templates and legacy multiselect remain incomplete; no installed printers. Executable remains privately cached, not published. Arbitrary Windows compatibility remains unproved.",
   "acceptance": "evidence/metapad-gui-browser-results.json"
 }

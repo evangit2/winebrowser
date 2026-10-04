@@ -207,3 +207,60 @@ dialog p {
   padding: 16px;
   background: white;
 }
+
+#file-picker {
+  width: min(600px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: auto;
+}
+.file-picker-location {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.file-picker-location select {
+  flex: 1;
+  min-width: 0;
+}
+#file-picker-list {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  min-height: 200px;
+  background: white;
+}
+#file-picker-list option {
+  padding: 5px 8px;
+}
+.file-picker-field {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+.file-picker-import {
+  display: block;
+  margin-top: 12px;
+}
+.file-picker-import input {
+  display: block;
+  max-width: 100%;
+  margin-top: 5px;
+}
+.file-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+#file-picker-stop {
+  margin-right: auto;
+}
+#file-picker-error {
+  color: #a51d1d;
+}
+#file-picker-confirmation {
+  padding: 8px 12px;
+  border: 1px solid #84909b;
+  margin-bottom: 12px;
+}

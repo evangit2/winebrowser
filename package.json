@@ -265,7 +265,9 @@
     "build:zero-controls": "sh scripts/build-zero-controls-fixture.sh",
     "test:zero-controls": "node scripts/test-zero-controls-browser.mjs",
     "test:metapad-gui": "node scripts/test-metapad-gui-browser.mjs",
-    "fetch:metapad": "node scripts/fetch-metapad.mjs"
+    "fetch:metapad": "node scripts/fetch-metapad.mjs",
+    "build:file-dialogs": "sh scripts/build-file-dialogs-fixture.sh",
+    "test:file-dialogs": "node scripts/test-file-dialogs-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
