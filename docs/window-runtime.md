@@ -306,3 +306,12 @@ Open/Save As common dialogs, native Find/Replace, options/property pages,
 additional encodings and advanced commands remain incomplete or unverified.
 Printing has no installed queues. This acceptance does not establish arbitrary
 Windows software or full Metapad compatibility.
+
+GDI drawing now enforces rectangular clip regions, including excluded holes,
+across fills, lines, shapes, text, icons, pixel access and destination blits.
+`SaveDC`/`RestoreDC` preserve complex clip pieces; `GetClipBox` reports their
+bounds and complexity. `ExtTextOut` honors `ETO_CLIPPED`, and `DrawText` clips
+to its rectangle unless `DT_NOCLIP` is set. Run `npm run test:gdi-clipping`
+for an unchanged authored PE32 executable rendered through Chromium's in-browser
+x86 compilation. General region handles and coordinate transforms remain
+incomplete; this increment does not establish universal Windows compatibility.

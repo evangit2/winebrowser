@@ -1,3 +1,5 @@
+import { iconForHandle } from './win32-icons.js';
+import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
 import { encodeAnsi, decodeAnsi } from './encoding.js';
 import {
@@ -6,6 +8,8 @@ import {
   rgbColorRef,
   paintRect,
   drawLine,
+  clippedBounds,
+  visiblePixel,
 } from './gdi-raster.js';
 import {
   DEFAULT_GDI_FONT,
@@ -825,38 +829,47 @@ function getClipRect(runtime, argument) {
   const out = argument(1);
   if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
   const clip = dc.clip ?? [0, 0, dc.surface.width, dc.surface.height];
-  rectangle(runtime, out, clip);
-  return success(clip[2] > clip[0] && clip[3] > clip[1] ? 2 : 1, 2);
+  runtime.check(out, 16, true);
+  clip.forEach((value, i) => runtime.write32(out + i * 4, value));
+  return success(
+    clip[2] > clip[0] && clip[3] > clip[1] ? (dc.clipRects?.length > 1 ? 3 : 2) : 1,
+    2,
+  );
 }
 function intersectClipRect(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 5, CLR_INVALID);
-  const current = dc.clip ?? [0, 0, dc.surface.width, dc.surface.height];
-  const next = [
-    Math.max(current[0], signed(argument(1))),
-    Math.max(current[1], signed(argument(2))),
-    Math.min(current[2], signed(argument(3))),
-    Math.min(current[3], signed(argument(4))),
-  ];
-  dc.clip = next;
-  return success(next[2] > next[0] && next[3] > next[1] ? 2 : 1, 5);
+  return success(
+    setClipPieces(
+      dc,
+      intersectClip(
+        clipPieces(dc, dc.surface),
+        [1, 2, 3, 4].map((i) => signed(argument(i))),
+      ),
+    ),
+    5,
+  );
 }
 function excludeClipRect(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 5, CLR_INVALID);
-  // An exclusion is not a rectangle, so the runtime keeps the existing clip and
-  // reports the region as complex. Drawing stays bounded by the current clip.
-  return success(3, 5);
+  const pieces = subtractClip(
+    clipPieces(dc, dc.surface),
+    [1, 2, 3, 4].map((i) => signed(argument(i))),
+  );
+  if (pieces.length > 256) return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 5);
+  return success(setClipPieces(dc, pieces), 5);
 }
 function selectClipRgn(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 2, CLR_INVALID);
   if (!argument(1)) {
-    dc.clip = [0, 0, dc.surface.width, dc.surface.height];
-    return success(1, 2);
+    delete dc.clip;
+    delete dc.clipRects;
+    return success(2, 2);
   }
   return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 2);
 }
@@ -1218,11 +1231,22 @@ function extTextOut(runtime, argument, wide) {
       dc,
     );
   }
+  let textDc = dc;
+  if (options & 4 && rectPointer) {
+    textDc = { ...dc };
+    setClipPieces(
+      textDc,
+      intersectClip(
+        clipPieces(dc, dc.surface),
+        [0, 4, 8, 12].map((i) => runtime.read32(rectPointer + i) | 0),
+      ),
+    );
+  }
   const measured = rasterizeGdiText(runtime, text, font);
   if (measured.error === 'backend') return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 8);
   if (measured.error) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 8);
   if (!spacing) {
-    paintGdiText(dc.surface, dc, x, y, measured.mask, font);
+    paintGdiText(dc.surface, textDc, x, y, measured.mask, font);
     return success(1, 8);
   }
   // A spacing array positions each glyph independently; paint them one at a
@@ -1231,7 +1255,7 @@ function extTextOut(runtime, argument, wide) {
   let cursor = x;
   for (let i = 0; i < text.length; i++) {
     const glyph = rasterizeGdiText(runtime, text[i], font);
-    if (!glyph.error) paintGdiText(dc.surface, dc, cursor, y, glyph.mask, font);
+    if (!glyph.error) paintGdiText(dc.surface, textDc, cursor, y, glyph.mask, font);
     cursor += runtime.read32(spacing + i * 4) | 0 || measured.mask.width / text.length;
   }
   return success(1, 8);
@@ -1504,8 +1528,7 @@ function drawIconEx(runtime, argument) {
       const alpha = icon.pixels[source + 3];
       const targetX = x + px,
         targetY = y + py;
-      if (targetX < 0 || targetY < 0 || targetX >= surface.width || targetY >= surface.height)
-        continue;
+      if (!visiblePixel(surface, dc, targetX, targetY)) continue;
       const offset = (targetY * surface.width + targetX) * 4;
       if (drawMaskOnly) {
         surface.pixels[offset] = 0;
@@ -1602,7 +1625,12 @@ function saveDC(runtime, a) {
   const stack = (dc.savedStates ??= []);
   if (stack.length >= 256) return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 1);
   const { savedStates, surface, ...attributes } = dc;
-  stack.push({ ...attributes, currentPoint: { ...dc.currentPoint }, clip: dc.clip?.slice() });
+  stack.push({
+    ...attributes,
+    currentPoint: { ...dc.currentPoint },
+    clip: dc.clip?.slice(),
+    clipRects: dc.clipRects?.map((rect) => rect.slice()),
+  });
   return success(stack.length, 1);
 }
 function restoreDC(runtime, a) {
@@ -1776,10 +1804,14 @@ function strokePolygon(dc, points, pen, close) {
   if (!pen || pen.style === 5 || points.length < 2) return false;
   let changed = false;
   for (let i = 0; i + 1 < points.length; i++)
-    if (drawLine(dc.surface, points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], pen))
+    if (
+      drawLine(dc.surface, points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], pen, dc)
+    )
       changed = true;
   if (close && points.length > 2)
-    if (drawLine(dc.surface, points.at(-1)[0], points.at(-1)[1], points[0][0], points[0][1], pen))
+    if (
+      drawLine(dc.surface, points.at(-1)[0], points.at(-1)[1], points[0][0], points[0][1], pen, dc)
+    )
       changed = true;
   return changed;
 }
@@ -1861,8 +1893,10 @@ function stretchBlt(r, a) {
   if (!readablePixels(src.surface, sx, sy, sw, sh))
     return failure(r, ERROR_CALL_NOT_IMPLEMENTED, 0, 11);
   const source = src.surface.pixels.slice();
-  for (let dy = Math.max(0, y); dy < Math.min(dst.surface.height, y + h); dy++)
-    for (let dx = Math.max(0, x); dx < Math.min(dst.surface.width, x + w); dx++) {
+  const [left, top, right, bottom] = clippedBounds(dst.surface, x, y, x + w, y + h, dst);
+  for (let dy = top; dy < bottom; dy++)
+    for (let dx = left; dx < right; dx++) {
+      if (!visiblePixel(dst.surface, dst, dx, dy)) continue;
       const ix = sx + Math.floor(((dx - x) * sw) / w),
         iy = sy + Math.floor(((dy - y) * sh) / h),
         p = (iy * src.surface.width + ix) * 4,
@@ -1898,10 +1932,14 @@ function bitBlt(runtime, argument) {
 
   // BitBlt clips against the destination DC. The source rectangle is translated
   // by exactly the clipped amount and must remain inside its selected bitmap.
-  const left = Math.max(0, x);
-  const top = Math.max(0, y);
-  const right = Math.min(destination.surface.width, x + width);
-  const bottom = Math.min(destination.surface.height, y + height);
+  const [left, top, right, bottom] = clippedBounds(
+    destination.surface,
+    x,
+    y,
+    x + width,
+    y + height,
+    destination,
+  );
   if (left >= right || top >= bottom) return success(1, 9);
   const copyWidth = right - left;
   const copyHeight = bottom - top;
@@ -1932,6 +1970,7 @@ function bitBlt(runtime, argument) {
     const sourceStart = ((sy + row) * source.surface.width + sx) * 4;
     const destinationStart = ((top + row) * destination.surface.width + left) * 4;
     for (let column = 0; column < copyWidth; column++) {
+      if (!visiblePixel(destination.surface, destination, left + column, top + row)) continue;
       const sourceOffset = snapshot ? (row * copyWidth + column) * 4 : sourceStart + column * 4;
       const destinationOffset = destinationStart + column * 4;
       const sourceRgb = [
@@ -1973,7 +2012,7 @@ function setPixel(runtime, argument) {
   const surface = dc.surface;
   const x = signed(argument(1)),
     y = signed(argument(2));
-  if (x < 0 || y < 0 || x >= surface.width || y >= surface.height)
+  if (!visiblePixel(surface, dc, x, y))
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
   const color = argument(3) >>> 0;
   if (color & 0xff000000) return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
@@ -2001,7 +2040,7 @@ function getPixel(runtime, argument) {
   const surface = dc.surface;
   const x = signed(argument(1)),
     y = signed(argument(2));
-  if (x < 0 || y < 0 || x >= surface.width || y >= surface.height)
+  if (!visiblePixel(surface, dc, x, y))
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 3);
   if (!readablePixels(surface, x, y, 1, 1))
     return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, CLR_INVALID, 3);
@@ -2055,7 +2094,7 @@ function lineTo(runtime, argument) {
   dc.currentPoint = { x: x1, y: y1 };
   const pen = getPen(state, dc.pen);
   if (!pen) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
-  drawLine(dc.surface, originalX, originalY, x1, y1, pen);
+  drawLine(dc.surface, originalX, originalY, x1, y1, pen, dc);
   return success(1, 3);
 }
 
@@ -2298,6 +2337,14 @@ function drawText(runtime, argument, wide, extended) {
     y = rect.top + Math.max(0, (height - lineHeight) >> 1);
   else if (flags & DT_BOTTOM && flags & DT_SINGLELINE)
     y = rect.top + Math.max(0, height - lineHeight);
+  let textDc = dc;
+  if (!(flags & 0x100)) {
+    textDc = { ...dc };
+    setClipPieces(
+      textDc,
+      intersectClip(clipPieces(dc, dc.surface), [rect.left, rect.top, rect.right, rect.bottom]),
+    );
+  }
   let painted = 0;
   for (const line of wrapped) {
     const lineWidth = measureWidth(line);
@@ -2307,7 +2354,7 @@ function drawText(runtime, argument, wide, extended) {
     const result = rasterizeGdiText(runtime, line, descriptor);
     if (result.error === 'backend') return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, argc);
     if (result.error) return failure(runtime, ERROR_INVALID_PARAMETER, 0, argc);
-    paintGdiText(dc.surface, dc, x, y, result.mask, descriptor);
+    paintGdiText(dc.surface, textDc, x, y, result.mask, descriptor);
     y += lineHeight;
     painted++;
   }

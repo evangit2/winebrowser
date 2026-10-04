@@ -209,14 +209,19 @@ export function rasterizeGdiText(runtime, text, font) {
 
 /** Composite one alpha mask into the selected DC surface and mark it dirty. */
 export function paintGdiText(surface, dc, x, y, mask, font) {
-  const left = Math.max(0, x),
-    top = Math.max(0, y);
-  const right = Math.min(surface.width, x + mask.width);
-  const bottom = Math.min(surface.height, y + mask.height);
+  const [left, top, right, bottom] = clippedBounds(
+    surface,
+    x,
+    y,
+    x + mask.width,
+    y + mask.height,
+    dc,
+  );
   if (dc.bkMode === 2 && right > left && bottom > top) {
     const bg = surfaceRgb(surface, colorRefRgb(dc.backgroundColor));
     for (let py = top; py < bottom; py++)
       for (let px = left; px < right; px++) {
+        if (!visiblePixel(surface, dc, px, py)) continue;
         const offset = (py * surface.width + px) * 4;
         surface.pixels[offset] = bg[0];
         surface.pixels[offset + 1] = bg[1];
@@ -229,6 +234,7 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
   let changed = false;
   for (let py = top; py < bottom; py++)
     for (let px = left; px < right; px++) {
+      if (!visiblePixel(surface, dc, px, py)) continue;
       const alpha = mask.alpha[(py - y) * mask.width + (px - x)];
       if (!alpha) continue;
       const offset = (py * surface.width + px) * 4;
@@ -256,6 +262,7 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
   ]) {
     if (decorationY >= top && decorationY < bottom) {
       for (let px = left; px < right; px++) {
+        if (!visiblePixel(surface, dc, px, decorationY)) continue;
         const offset = (decorationY * surface.width + px) * 4;
         surface.pixels[offset] = fg[0];
         surface.pixels[offset + 1] = fg[1];
@@ -266,7 +273,7 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
     }
   }
 }
-import { colorRefRgb, surfaceRgb } from './gdi-raster.js';
+import { colorRefRgb, surfaceRgb, clippedBounds, visiblePixel } from './gdi-raster.js';
 
 export const DEFAULT_GDI_FONT = Object.freeze({
   kind: 'font',

@@ -37,19 +37,31 @@ function hatchPixel(hatch, x, y) {
   }
 }
 
-function bounds(left, top, right, bottom, surface) {
+export function clippedBounds(surface, left, top, right, bottom, dc = null) {
+  const clip = dc?.clip ?? [0, 0, surface.width, surface.height];
   return [
-    Math.max(0, Math.min(surface.width, left)),
-    Math.max(0, Math.min(surface.height, top)),
-    Math.max(0, Math.min(surface.width, right)),
-    Math.max(0, Math.min(surface.height, bottom)),
+    Math.max(0, clip[0], Math.min(surface.width, left)),
+    Math.max(0, clip[1], Math.min(surface.height, top)),
+    Math.min(surface.width, clip[2], Math.max(0, right)),
+    Math.min(surface.height, clip[3], Math.max(0, bottom)),
   ];
+}
+
+export function visiblePixel(surface, dc, x, y) {
+  return (
+    x >= 0 &&
+    y >= 0 &&
+    x < surface.width &&
+    y < surface.height &&
+    (!dc?.clip || (x >= dc.clip[0] && y >= dc.clip[1] && x < dc.clip[2] && y < dc.clip[3])) &&
+    (!dc?.clipRects || dc.clipRects.some(([l, t, r, b]) => x >= l && y >= t && x < r && y < b))
+  );
 }
 
 /** Fill clipped half-open bounds with a solid/hatch brush or invert ROP. */
 export function paintRect(surface, left, top, right, bottom, brush, operation = 'copy', dc = null) {
   if (brush?.null && operation === 'copy') return false;
-  const [x1, y1, x2, y2] = bounds(left, top, right, bottom, surface);
+  const [x1, y1, x2, y2] = clippedBounds(surface, left, top, right, bottom, dc);
   if (x1 >= x2 || y1 >= y2) return false;
   const rgb = surfaceRgb(surface, brush ? colorRefRgb(brush.color ?? 0) : [0, 0, 0]);
   const pixels = surface.pixels;
@@ -57,6 +69,7 @@ export function paintRect(surface, left, top, right, bottom, brush, operation = 
   for (let y = y1; y < y2; y++) {
     let offset = (y * surface.width + x1) * 4;
     for (let x = x1; x < x2; x++, offset += 4) {
+      if (!visiblePixel(surface, dc, x, y)) continue;
       let pixelRgb = rgb;
       if (brush?.hatch !== undefined) {
         const ink = hatchPixel(brush.hatch, x, y);
@@ -121,7 +134,7 @@ function clipLine(x0, y0, x1, y1, width, height) {
 }
 
 /** Draw a one-pixel solid/null pen line and report whether pixels changed. */
-export function drawLine(surface, x0, y0, x1, y1, pen) {
+export function drawLine(surface, x0, y0, x1, y1, pen, dc = null) {
   if (pen.style === 5) return false;
   const clipped = clipLine(x0, y0, x1, y1, surface.width, surface.height);
   if (!clipped) return false;
@@ -136,18 +149,20 @@ export function drawLine(surface, x0, y0, x1, y1, pen) {
   const excludeEnd = endX === x1 && endY === y1;
   for (let steps = 0; steps <= Math.max(surface.width, surface.height); steps++) {
     if (excludeEnd && x === endX && y === endY) break;
-    const offset = (y * surface.width + x) * 4;
-    if (
-      surface.pixels[offset] !== rgb[0] ||
-      surface.pixels[offset + 1] !== rgb[1] ||
-      surface.pixels[offset + 2] !== rgb[2] ||
-      surface.pixels[offset + 3] !== 255
-    )
-      changed = true;
-    surface.pixels[offset] = rgb[0];
-    surface.pixels[offset + 1] = rgb[1];
-    surface.pixels[offset + 2] = rgb[2];
-    surface.pixels[offset + 3] = 255;
+    if (visiblePixel(surface, dc, x, y)) {
+      const offset = (y * surface.width + x) * 4;
+      if (
+        surface.pixels[offset] !== rgb[0] ||
+        surface.pixels[offset + 1] !== rgb[1] ||
+        surface.pixels[offset + 2] !== rgb[2] ||
+        surface.pixels[offset + 3] !== 255
+      )
+        changed = true;
+      surface.pixels[offset] = rgb[0];
+      surface.pixels[offset + 1] = rgb[1];
+      surface.pixels[offset + 2] = rgb[2];
+      surface.pixels[offset + 3] = 255;
+    }
     if (x === endX && y === endY) break;
     const twiceError = 2 * error;
     if (twiceError >= dy) {
