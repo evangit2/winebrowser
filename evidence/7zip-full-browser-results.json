@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-03T21:37:41.217Z",
-  "url": "http://127.0.0.1:54840/",
+  "date": "2026-10-04T03:12:10.545Z",
+  "url": "http://127.0.0.1:49863/",
   "browser": "154.0.8037.97",
   "scope": "Unchanged upstream PE32 7z.exe and 7z.dll with automatic native Wine dependencies, through hosted selection, ZIP upload and loose EXE/DLL/input uploads. This covers the recorded formats and operations, not all codec DLL functions or the 7-Zip GUI.",
   "checks": [
     "Upstream EXE, original codec DLL, package files and full dynamic dependency audit match SHA-256 pins",
     "Plain ZIP output independently decodes with fflate; native extraction preserves every byte of both files",
-    "Native LZMA2 compression, CRC/integrity test and extraction preserve both input files",
+    "Native LZMA2 compression exercises threads, semaphores and waits; CRC/integrity test and extraction preserve both input files",
     "Independent Node PBKDF2, AES-256 CTR, HMAC-SHA1 and deflate validate the original DLL encryption; native decryption restores both files exactly",
     "Wrong passwords and modified encrypted payloads exit with the real application error code 2"
   ],
@@ -14,8 +14,8 @@
     {
       "label": "Full 7-Zip: hosted EXE and native DLL create a deflate ZIP",
       "exitCode": 0,
-      "elapsedMs": 3263.9145000000003,
-      "x86TranslationMs": 1493.465000346303,
+      "elapsedMs": 4416.488291,
+      "x86TranslationMs": 2283.004998087883,
       "instructions": 5809064,
       "compiledBlocks": 10674,
       "modules": [
@@ -193,15 +193,15 @@
         {
           "path": "out.zip",
           "bytes": 683,
-          "sha256": "5cad7159185f5037ac236fbefa331c49242ec16b612b8d2ce6e30f1b78599a80"
+          "sha256": "77ebd786b18a9e7098bf155606bc6126270ffe977dbb0b9eda05e5779283caff"
         }
       ]
     },
     {
       "label": "Full 7-Zip: native ZIP extraction",
       "exitCode": 0,
-      "elapsedMs": 2284.9097920000004,
-      "x86TranslationMs": 1248.7500005215406,
+      "elapsedMs": 3005.091042,
+      "x86TranslationMs": 1737.2700027823448,
       "instructions": 3113361,
       "compiledBlocks": 10646,
       "modules": [
@@ -391,8 +391,8 @@
     {
       "label": "Full 7-Zip: native LZMA2 compression",
       "exitCode": 0,
-      "elapsedMs": 2614.537791999999,
-      "x86TranslationMs": 1404.2799996882677,
+      "elapsedMs": 3028.299583,
+      "x86TranslationMs": 1688.4299993515015,
       "instructions": 4794999,
       "compiledBlocks": 12644,
       "modules": [
@@ -581,15 +581,15 @@
         {
           "path": "out.7z",
           "bytes": 522,
-          "sha256": "b9e748f5fc2fe770f8a192b556999bf0b42a2b51bd034742a05e27fb4fdb4ed3"
+          "sha256": "a872ed9d0cf82889ebca69e99d42048c6b1da202acaede5f4d4faf45749be115"
         }
       ]
     },
     {
       "label": "Full 7-Zip: native 7z CRC/integrity test",
       "exitCode": 0,
-      "elapsedMs": 2709.603416,
-      "x86TranslationMs": 1449.190000012517,
+      "elapsedMs": 3352.690458000001,
+      "x86TranslationMs": 1970.745000064373,
       "instructions": 3132804,
       "compiledBlocks": 11141,
       "modules": [
@@ -766,8 +766,8 @@
     {
       "label": "Full 7-Zip: native LZMA2 extraction",
       "exitCode": 0,
-      "elapsedMs": 2557.185583999999,
-      "x86TranslationMs": 1424.570000693202,
+      "elapsedMs": 2686.2393330000014,
+      "x86TranslationMs": 1536.7150002121925,
       "instructions": 3252210,
       "compiledBlocks": 11570,
       "modules": [
@@ -956,8 +956,8 @@
     {
       "label": "Full 7-Zip: native AES-256 ZIP encryption",
       "exitCode": 0,
-      "elapsedMs": 7149.238541000002,
-      "x86TranslationMs": 1328.8800005316734,
+      "elapsedMs": 7612.953958999999,
+      "x86TranslationMs": 1815.0000003278255,
       "instructions": 85493241,
       "compiledBlocks": 11181,
       "modules": [
@@ -1138,15 +1138,15 @@
         {
           "path": "encrypted.zip",
           "bytes": 783,
-          "sha256": "43672dcb1520f7e0eb8ebc71ae760f9a9dbd6921be07fb21e452604a31545f4a"
+          "sha256": "7ee604143141cc168579ad321daa14004569f518ce1227fdd3185d2e67e11515"
         }
       ]
     },
     {
       "label": "Full 7-Zip: encrypted ZIP integrity",
       "exitCode": 0,
-      "elapsedMs": 3844.5333329999994,
-      "x86TranslationMs": 1263.8599999696016,
+      "elapsedMs": 5006.4725830000025,
+      "x86TranslationMs": 1727.1250002980232,
       "instructions": 28255298,
       "compiledBlocks": 10711,
       "modules": [
@@ -1325,8 +1325,8 @@
     {
       "label": "Full 7-Zip: native AES-256 ZIP decryption",
       "exitCode": 0,
-      "elapsedMs": 4126.218583999995,
-      "x86TranslationMs": 1393.6699991375208,
+      "elapsedMs": 4601.7593750000015,
+      "x86TranslationMs": 1819.3099979162216,
       "instructions": 28370746,
       "compiledBlocks": 11131,
       "modules": [
@@ -1517,8 +1517,8 @@
     {
       "label": "Full 7-Zip: wrong password fails cleanly",
       "exitCode": 2,
-      "elapsedMs": 3536.069082999995,
-      "x86TranslationMs": 1184.4249999523163,
+      "elapsedMs": 4682.916000000005,
+      "x86TranslationMs": 1929.2449991703033,
       "instructions": 28133752,
       "compiledBlocks": 10229,
       "modules": [
@@ -1697,8 +1697,8 @@
     {
       "label": "Full 7-Zip: damaged encrypted data fails authentication",
       "exitCode": 2,
-      "elapsedMs": 4834.433833000003,
-      "x86TranslationMs": 1633.6050006896257,
+      "elapsedMs": 3758.395375,
+      "x86TranslationMs": 1352.7549997270107,
       "instructions": 28255764,
       "compiledBlocks": 10721,
       "modules": [
