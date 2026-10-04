@@ -88,3 +88,26 @@ round trips, pixels and failure exits were checked in both runs. These numbers
 describe those short console workloads, not a repeated startup or 3D frame-rate
 benchmark. See `evidence/compiler-browser-comparison.json` and its linked raw
 reports for the deployed commits and per-case timings.
+
+Arithmetic flag updates now reuse the existing flags object, and conditional
+branches select their result directly instead of constructing a 16-element
+array. A deterministic comparison against the preceding CPU implementation
+matches 49,728 arithmetic states and branch conditions. The emitted block
+instructions and checked memory accesses are unchanged; all 225 CPU tests pass.
+
+Seven alternating Node 22 pairs, excluding the warm-up pair, measured unchanged
+PuTTY 0.85 native Configuration population at a median 1,990.9 ms before and
+1,894.8 ms after (4.8% less time). Its native Cancel then exits normally. Full
+7-Zip 26.03 AES ZIP creation fell from 7,762.2 to 7,070.0 ms (8.9%); every output
+is independently decrypted, authenticated and compared with the original input.
+Both sides use the same current compiler and support libraries, with symmetric
+method bindings; only the arithmetic/condition implementations differ. These
+paired developer VM measurements exclude browser rendering and downloads and
+do not establish general GUI startup or frame-rate improvements. See
+`evidence/cpu-flags-benchmark.json`. Reproduce after fetching the pinned PuTTY
+target with:
+
+```sh
+npm run fetch:targets -- putty-0.85-x86
+node scripts/benchmark-cpu-flags.mjs --baseline=63c1d87
+```

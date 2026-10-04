@@ -504,18 +504,16 @@ export class CPU {
       previousAf = this.af;
     if (k === 6) k = 0;
     if (k === 7) k = 1;
-    this.f = {
-      zf: +(ru === 0),
-      sf: +!!(ru & sign),
-      pf: +(((0x6996 >> ((ru ^ (ru >>> 4)) & 15)) & 1) === 0),
-      cf: k === 0 || k === 3 ? +(au + bu > mask >>> 0) : k === 1 || k === 4 ? +(au < bu) : 0,
-      of:
-        k === 0 || k === 3
-          ? +!!(~(au ^ bu) & (au ^ ru) & sign)
-          : k === 1 || k === 4
-            ? +!!((au ^ bu) & (au ^ ru) & sign)
-            : 0,
-    };
+    this.f.zf = +(ru === 0);
+    this.f.sf = +!!(ru & sign);
+    this.f.pf = +(((0x6996 >> ((ru ^ (ru >>> 4)) & 15)) & 1) === 0);
+    this.f.cf = k === 0 || k === 3 ? +(au + bu > mask >>> 0) : k === 1 || k === 4 ? +(au < bu) : 0;
+    this.f.of =
+      k === 0 || k === 3
+        ? +!!(~(au ^ bu) & (au ^ ru) & sign)
+        : k === 1 || k === 4
+          ? +!!((au ^ bu) & (au ^ ru) & sign)
+          : 0;
     if (k === 3 || k === 4) this.f.cf = carry;
     if (originalKind === 6 || originalKind === 7) {
       const signed = (x) => (width === 32 ? x | 0 : (x << (32 - width)) >> (32 - width));
@@ -527,7 +525,15 @@ export class CPU {
     // ADD/SUB/ADC/SBB/CMP/INC/DEC/NEG define AF as the carry or borrow
     // across bit 3. Logical, shift, and multiply instructions leave AF
     // undefined, so retain its prior internal value without promising it.
-    this.af = [0, 1, 3, 4, 6, 7].includes(originalKind) ? +!!((au ^ bu ^ ru) & 0x10) : previousAf;
+    this.af =
+      originalKind === 0 ||
+      originalKind === 1 ||
+      originalKind === 3 ||
+      originalKind === 4 ||
+      originalKind === 6 ||
+      originalKind === 7
+        ? +!!((au ^ bu ^ ru) & 0x10)
+        : previousAf;
     if (k === 5) {
       const signed = (x) => BigInt(width === 32 ? x | 0 : (x << (32 - width)) >> (32 - width));
       const product = signed(a) * signed(b);
@@ -664,24 +670,42 @@ export class CPU {
 
   condition(c) {
     const { cf, zf, sf, of, pf } = this.f;
-    return +[
-      of,
-      !of,
-      cf,
-      !cf,
-      zf,
-      !zf,
-      cf || zf,
-      !cf && !zf,
-      sf,
-      !sf,
-      pf,
-      !pf,
-      sf !== of,
-      sf === of,
-      zf || sf !== of,
-      !zf && sf === of,
-    ][c];
+    switch (c) {
+      case 0:
+        return +of;
+      case 1:
+        return +!of;
+      case 2:
+        return +cf;
+      case 3:
+        return +!cf;
+      case 4:
+        return +zf;
+      case 5:
+        return +!zf;
+      case 6:
+        return +(cf || zf);
+      case 7:
+        return +(!cf && !zf);
+      case 8:
+        return +sf;
+      case 9:
+        return +!sf;
+      case 10:
+        return +pf;
+      case 11:
+        return +!pf;
+      case 12:
+        return +(sf !== of);
+      case 13:
+        return +(sf === of);
+      case 14:
+        return +(zf || sf !== of);
+      case 15:
+        return +(!zf && sf === of);
+      default:
+        return NaN;
+    }
   }
   compile(ip, conservativeWritable = false) {
     const started = this.translationClock();

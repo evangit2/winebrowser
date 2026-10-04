@@ -1,0 +1,359 @@
+{
+  "date": "2026-10-04T03:05:43.807Z",
+  "baselineCommit": "63c1d87673065ed15aa0d0c1afd6b3a88ae61ec0",
+  "node": "v22.23.1",
+  "semanticComparisons": 49728,
+  "scope": "Paired Node runtime runs with unchanged upstream binaries and inputs. Both use the current compiler and support libraries; only CPU.flags and CPU.condition use baseline or revised methods. Seven pairs alternate order; pair zero is excluded from medians. PuTTY measures native Configuration population, then dispatches native Cancel and checks normal exit. AES ZIP outputs are independently decrypted and authenticated. These are developer measurements of VM workloads, not browser render/download timings or general frame-rate claims.",
+  "programs": [
+    {
+      "name": "putty.exe",
+      "sha256": "4c70267ca03a00ea761ec358498b990a7221decb36eace9b7dbe6a751be0fb3b"
+    },
+    {
+      "name": "7z.exe",
+      "sha256": "cd74719140d12a6c837a6f78257df326f79b1a6ffcd632e9a2048e278899b733"
+    },
+    {
+      "name": "7z.dll",
+      "sha256": "d132e89038c802c5d5281e543a83dc407680effe0144f21b4fb431dd45fca61d"
+    }
+  ],
+  "workloads": [
+    {
+      "workload": "putty-configuration",
+      "medianBeforeMs": 1990.8834375000006,
+      "medianAfterMs": 1894.753874500002,
+      "reductionPercent": 4.828487755200313
+    },
+    {
+      "workload": "7zip-aes-zip",
+      "medianBeforeMs": 7762.161999999997,
+      "medianAfterMs": 7069.966438000001,
+      "reductionPercent": 8.917561395909999
+    }
+  ],
+  "runs": [
+    {
+      "pair": 0,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 3495.587791,
+      "translationMs": 1712.2146529999932,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 3328.0845,
+        "instructions": 2550567,
+        "translationMs": 1614.2972999999974
+      }
+    },
+    {
+      "pair": 0,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 1609.3948339999997,
+      "translationMs": 931.3668190000608,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1522.8492500000002,
+        "instructions": 2550567,
+        "translationMs": 890.2003160000686
+      }
+    },
+    {
+      "pair": 0,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 8124.108625000001,
+      "translationMs": 2243.499835999979,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 0,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 6726.097250000001,
+      "translationMs": 1932.827512999993,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 1,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 2703.2006250000013,
+      "translationMs": 1931.3892759999799,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 2565.0634580000005,
+        "instructions": 2550567,
+        "translationMs": 1859.5407759999325
+      }
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 2128.3476249999985,
+      "translationMs": 1153.2528620000303,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1993.832957999999,
+        "instructions": 2550567,
+        "translationMs": 1083.5616880000016
+      }
+    },
+    {
+      "pair": 1,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 6982.171083999998,
+      "translationMs": 1910.1134980003226,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 1,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7791.414583000005,
+      "translationMs": 2293.7889219999925,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 2322.0667079999985,
+      "translationMs": 1264.8822210000144,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 2187.374665999996,
+        "instructions": 2550567,
+        "translationMs": 1195.6797230000448
+      }
+    },
+    {
+      "pair": 2,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 1903.220208000006,
+      "translationMs": 1155.1827609997854,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1771.4243750000023,
+        "instructions": 2550567,
+        "translationMs": 1085.9767259997388
+      }
+    },
+    {
+      "pair": 2,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 8860.531791000001,
+      "translationMs": 2203.3120900002104,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 2,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 8494.253082999996,
+      "translationMs": 3047.918584000523,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 3,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 1975.067415999998,
+      "translationMs": 1196.4515279992265,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1827.8024579999983,
+        "instructions": 2550567,
+        "translationMs": 1120.6276099992465
+      }
+    },
+    {
+      "pair": 3,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 2149.3880840000056,
+      "translationMs": 1373.0228359997418,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1987.933917000002,
+        "instructions": 2550567,
+        "translationMs": 1290.3454590000474
+      }
+    },
+    {
+      "pair": 3,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 6691.777542000011,
+      "translationMs": 1830.8857499999722,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 3,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7498.528874999989,
+      "translationMs": 2246.399697000248,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 4,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 2341.3702090000006,
+      "translationMs": 1553.2643490006885,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 2201.0860840000096,
+        "instructions": 2550567,
+        "translationMs": 1480.1927680006484
+      }
+    },
+    {
+      "pair": 4,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 2098.016583000004,
+      "translationMs": 1145.6515079995443,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1961.7052910000057,
+        "instructions": 2550567,
+        "translationMs": 1073.5798799996264
+      }
+    },
+    {
+      "pair": 4,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7352.905917000011,
+      "translationMs": 2060.622644999632,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 4,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 6973.86641599999,
+      "translationMs": 2073.463468000293,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 5,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 1923.0487500000017,
+      "translationMs": 1164.0195640004385,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1787.1934160000092,
+        "instructions": 2550567,
+        "translationMs": 1092.2611870005057
+      }
+    },
+    {
+      "pair": 5,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 1967.8217080000031,
+      "translationMs": 1174.9854689992499,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1824.5045830000017,
+        "instructions": 2550567,
+        "translationMs": 1099.4864689994138
+      }
+    },
+    {
+      "pair": 5,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7177.907040999999,
+      "translationMs": 2049.0467899999203,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 5,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7803.058917000002,
+      "translationMs": 2010.339016000391,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 6,
+      "mode": "before",
+      "workload": "putty-configuration",
+      "elapsedMs": 1997.6487909999996,
+      "translationMs": 1190.2979570001626,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 1850.5717909999948,
+        "instructions": 2550567,
+        "translationMs": 1116.5472410002403
+      }
+    },
+    {
+      "pair": 6,
+      "mode": "after",
+      "workload": "putty-configuration",
+      "elapsedMs": 2233.3507500000123,
+      "translationMs": 1391.4524089995684,
+      "instructions": 2867480,
+      "compiledBlocks": 7154,
+      "ready": {
+        "elapsedMs": 2049.0827500000014,
+        "instructions": 2550567,
+        "translationMs": 1279.510951999633
+      }
+    },
+    {
+      "pair": 6,
+      "mode": "before",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7732.909416999988,
+      "translationMs": 2271.995392998593,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    },
+    {
+      "pair": 6,
+      "mode": "after",
+      "workload": "7zip-aes-zip",
+      "elapsedMs": 7157.761792000005,
+      "translationMs": 2188.0175859990704,
+      "instructions": 85493241,
+      "compiledBlocks": 11181
+    }
+  ]
+}
