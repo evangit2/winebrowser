@@ -2264,6 +2264,13 @@ export function describeGdiFont(runtime, handle) {
   return font ? { ...font } : null;
 }
 
+// Printing calls may validate/store an abort procedure on existing display or
+// memory DCs. This accessor never creates GDI state for an invalid handle.
+export function activeGdiDC(runtime, handle) {
+  const state = states.get(runtime);
+  return state ? getDc(runtime, state, handle) : null;
+}
+
 /** WGL needs the live window owning a display DC, never a memory bitmap DC. */
 export function describeDisplayDC(runtime, handle) {
   const state = states.get(runtime);

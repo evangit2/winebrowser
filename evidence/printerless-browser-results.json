@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-04T10:20:42.144Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "fd4bf2d134d7e03ce4e83c43ab695b0d2b6da28effdf2c9917195284736e19ad",
+  "compiledBlocks": 106,
+  "x86TranslationMs": 29.295000106096268,
+  "checks": [
+    "Native A/W default-printer and page-setup queries return genuine missing-printer errors with structure validation",
+    "Native display/bitmap DC printing follows Wine null-device results; SetAbortProc executes the native callback and no job starts",
+    "Print/Page Setup display real no-printer notices; the owner disables and restores around modal requests",
+    "Native app receives FALSE/error results, exits zero and exports no fabricated print output"
+  ],
+  "scope": "Runtime has zero installed Windows printer queues and no printer DCs, spool jobs, driver loading or browser print backend. This validates accurate unavailable-device contracts, not printing support."
+}

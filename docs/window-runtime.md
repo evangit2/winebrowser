@@ -255,3 +255,20 @@ requested/output flags. This detects text encoding; it does not transcode file
 contents or implement all of Windows' undocumented heuristics. The translated
 Wine function retains its LGPL-2.1-or-later notice in `src/win32-text-unicode.js`
 and uses the license distributed as `public/runtime/COPYING.LIB`.
+
+The browser has zero installed Windows printer queues. `PrintDlgA/W` validates
+the packed PE32 structures: default-printer queries fail with
+`PDERR_NODEFAULTPRN`, and invalid preallocated default-query buffers fail with
+`PDERR_RETDEFFAILURE`. Interactive queries show a real no-printer warning and
+return FALSE, following Wine's empty-installation path. `PageSetupDlgA/W`
+validates size/page-paint hooks and reports an unavailable default printer,
+with the normal warning unless `PSD_NOWARNING` is requested. Native apps receive
+these results and can continue their other workflows. The owner restores after
+the modal notice.
+
+Existing display/bitmap DCs support `SetAbortProc` callback storage; `StartDoc`
+invokes it but returns zero because the device cannot start a print job.
+`StartPage`, `EndPage`, `EndDoc` and `AbortDoc` follow Wine's null-device results;
+invalid DCs fail. These contracts do not provide printer DCs, spool jobs, driver
+loading, browser printing or exported PDF output. Run `npm run test:printerless`
+for native EXE callback and modal-warning acceptance.

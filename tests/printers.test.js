@@ -61,3 +61,76 @@ test('printer APIs reject invalid enumeration, names, handles and output storage
   assert.deepEqual(call('ClosePrinter', 99), { result: 0, argc: 1 });
   assert.equal(r.lastError, 6);
 });
+
+test('printerless common dialogs validate PE32 structures and distinguish default queries from a real warning', async () => {
+  const view = new DataView(new ArrayBuffer(256)),
+    notices = [],
+    r = {
+      commonDialogError: 99,
+      lastError: 123,
+      check(p, n) {
+        assert.ok(p >= 16 && p + n <= 256);
+      },
+      read32(p) {
+        return view.getUint32(p, true);
+      },
+      write32(p, v) {
+        view.setUint32(p, v, true);
+      },
+      allocString(s) {
+        return s;
+      },
+      free() {},
+      apiProvider: new Map([
+        [
+          'user32.dll!MessageBoxA',
+          async (_r, a) => {
+            notices.push([a(0), a(1), a(2), a(3)]);
+            return { result: 1, argc: 4 };
+          },
+        ],
+      ]),
+    };
+  const call = (name, ...args) => printerApis[`comdlg32.dll!${name}`](r, (i) => args[i] ?? 0);
+  for (const suffix of ['A', 'W']) {
+    assert.equal((await call('PrintDlg' + suffix, 0)).result, 0);
+    assert.equal(r.commonDialogError, 2);
+    r.write32(16, 65);
+    await call('PrintDlg' + suffix, 16);
+    assert.equal(r.commonDialogError, 1);
+    r.write32(16, 66);
+    r.write32(36, 0x400);
+    await call('PrintDlg' + suffix, 16);
+    assert.equal(r.commonDialogError, 0x1008);
+    assert.equal(notices.length, 0);
+    r.write32(24, 1);
+    await call('PrintDlg' + suffix, 16);
+    assert.equal(r.commonDialogError, 0x1003);
+    r.write32(24, 0);
+  }
+  r.write32(36, 0);
+  await call('PrintDlgA', 16);
+  assert.equal(r.commonDialogError, 0);
+  assert.match(notices[0][1], /No Windows printers/);
+  assert.equal(r.lastError, 123);
+  notices.length = 0;
+  for (const suffix of ['A', 'W']) {
+    view.setUint8(100, 0x71);
+    r.write32(16, 84);
+    r.write32(32, 0x80);
+    await call('PageSetupDlg' + suffix, 16);
+    assert.equal(r.commonDialogError, 0x1008);
+    assert.equal(r.read32(32), 0x84);
+    assert.equal(view.getUint8(100), 0x71);
+    assert.equal(notices.length, 0);
+    r.write32(32, 0x40080);
+    r.write32(88, 0);
+    await call('PageSetupDlg' + suffix, 16);
+    assert.equal(r.commonDialogError, 0xb);
+  }
+  r.write32(32, 0);
+  await call('PageSetupDlgW', 16);
+  assert.equal(r.commonDialogError, 0x1008);
+  assert.match(notices[0][1], /No default Windows printer/);
+  assert.equal(r.lastError, 123);
+});
