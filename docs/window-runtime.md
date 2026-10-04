@@ -217,3 +217,19 @@ The authored property sheet EXE/DLL acceptance covers real native vetoes and
 callbacks. Wizard flows, dynamic page insertion/removal, page icons/help/RTL,
 activation contexts and remaining property sheet messages are explicitly
 unsupported. Metapad still has unresolved imports; this does not claim it runs.
+
+Profile APIs (`Get/WritePrivateProfileStringA/W`, section/name enumeration,
+integer reads and win.ini aliases) read and write real shared guest files.
+Names match without case; value queries strip matching quotes, and list queries
+use bounded double-NUL buffers. Existing ANSI, UTF8-BOM and UTF16 LE/BE files
+retain their encoding, and modifications preserve unrelated lines/comments.
+Reads and writes respect normal file sharing and mapped-file resize rules.
+Bare profile names resolve under the virtual `C:\Windows` directory, matching
+Wine; relative names with a separator and package DOS paths use the package cwd.
+The `C:\Windows` namespace maps to the isolated `windows/` guest tree, shared by
+file APIs, with system32/temp directories; it exposes no host files.
+Writes update exported package outputs, not browser storage across reloads.
+The public GUI settings workflow can export/re-upload `gui-settings.ini`.
+Registry IniFileMapping and complete locale-dependent profile parsing remain
+unimplemented. Native EXE/DLL settings acceptance tests UTF16 persistence,
+ReadFile coherence, repeated dialog creation, and exported content.

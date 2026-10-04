@@ -9,6 +9,7 @@ SOURCE_DATE_EPOCH=0 i686-w64-mingw32-gcc -m32 -mno-sse -O1 -ffreestanding -fno-b
 i686-w64-mingw32-strip --strip-all tests/fixtures/property-sheet/property-sheet.exe tests/fixtures/property-sheet/settings-pages.dll
 python3 - <<'PY'
 from pathlib import Path
+Path('tests/fixtures/property-sheet/native-settings.ini').write_bytes(b'\xff\xfe' + '; preserve this native Unicode settings file\r\n[Settings]\r\nNotes=original\r\n'.encode('utf-16le'))
 for name in ('property-sheet.exe', 'settings-pages.dll'):
     path = Path('tests/fixtures/property-sheet') / name
     data = bytearray(path.read_bytes())

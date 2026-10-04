@@ -36,6 +36,7 @@ try {
     .setInputFiles([
       'tests/fixtures/property-sheet/property-sheet.exe',
       'tests/fixtures/property-sheet/settings-pages.dll',
+      'tests/fixtures/property-sheet/native-settings.ini',
     ]);
   await page.locator('#run').click();
   const owner = page.locator('.virtual-desktop-window').filter({
@@ -49,7 +50,7 @@ try {
       .filter({ has: page.locator('.virtual-desktop-title', { hasText: name }) });
   const modal = sheet('Modal native settings');
   await modal.getByRole('textbox').waitFor();
-  await modal.getByRole('textbox').fill('edited by browser');
+  await modal.getByRole('textbox').fill('edited by browser Ω');
   await modal.getByRole('textbox').press('Tab');
   await expect(modal.getByRole('checkbox', { name: 'Keep this page active' })).toBeFocused();
   await toggle(modal, 'Keep this page active', true);
@@ -72,7 +73,7 @@ try {
     .waitFor();
   await expect(modal.getByRole('button', { name: 'Apply', exact: true })).toBeDisabled();
   await modal.getByRole('tab', { name: 'General', exact: true }).click();
-  await expect(modal.getByRole('textbox')).toHaveValue('edited by browser');
+  await expect(modal.getByRole('textbox')).toHaveValue('edited by browser Ω');
   await modal.screenshot({ path: 'evidence/property-sheet-browser.png' });
   await modal.getByRole('button', { name: 'OK', exact: true }).click();
   await owner.getByText('Modal native success', { exact: true }).waitFor();
@@ -80,6 +81,7 @@ try {
   await owner.getByRole('button', { name: 'Modeless settings', exact: true }).click();
   const modeless = sheet('Modeless native settings');
   await modeless.getByRole('textbox').waitFor();
+  await expect(modeless.getByRole('textbox')).toHaveValue('edited by browser Ω');
   await modeless.getByRole('tab', { name: 'Appearance Ω', exact: true }).click();
   await toggle(modeless, 'Reject Cancel', true);
   await modeless.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -93,6 +95,13 @@ try {
   const run = await page.evaluate(() => window.__lastRun);
   assert.equal(run.exitCode, 0, JSON.stringify(run));
   assert.deepEqual(errors, []);
+  const settingsOutput = run.outputs.find((f) => f.path === 'native-settings.ini');
+  assert.ok(settingsOutput);
+  const settingsBytes = new Uint8Array(Object.values(settingsOutput.bytes));
+  assert.deepEqual([...settingsBytes.slice(0, 2)], [255, 254]);
+  const savedSettings = new TextDecoder('utf-16le').decode(settingsBytes);
+  assert.match(savedSettings, /Notes=edited by browser Ω/);
+  assert.match(savedSettings, /; preserve this native Unicode settings file/);
   const hash = async (p) =>
     createHash('sha256')
       .update(await readFile(p))
@@ -109,6 +118,7 @@ try {
     x86TranslationMs: run.x86TranslationMs,
     checks: [
       'Native Unicode property sheets use DLL dialog resources and preserve page edits across tabs',
+      'Native DLL uses real Get/WritePrivateProfileStringW; UTF16 settings survive reopening, native ReadFile sees the saved BOM, and exported output preserves text and comments',
       'PSN_KILLACTIVE, PSN_APPLY and PSN_QUERYCANCEL validation vetoes execute inside native DLL procedures',
       'Apply clears dirty state, OK returns modal success and restores the owner',
       'Modeless closure exposes native result/current-page state; application destroys the sheet and verifies all page initialization/reset/release callbacks',

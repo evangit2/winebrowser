@@ -10,7 +10,12 @@ static UINT CALLBACK page_callback(HWND w, UINT msg, LPPROPSHEETPAGEW p) {
 static INT_PTR CALLBACK page_proc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
  if (msg == WM_INITDIALOG) {
   PROPSHEETPAGEW *p = (PROPSHEETPAGEW *)lp;
-  if (p->lParam == 1) { SetWindowLongW(w, DWL_USER, 1); SetDlgItemTextW(w, 10, L"original"); }
+  if (p->lParam == 1) {
+   WCHAR value[64];
+   SetWindowLongW(w, DWL_USER, 1);
+   GetPrivateProfileStringW(L"Settings",L"Notes",L"original",value,64,L"./native-settings.ini");
+   SetDlgItemTextW(w, 10, value);
+  }
   ++initialized; return TRUE;
  }
  if (msg == WM_COMMAND) {
@@ -25,6 +30,16 @@ static INT_PTR CALLBACK page_proc(HWND w, UINT msg, WPARAM wp, LPARAM lp) {
   if (n->code == PSN_APPLY) {
    if (!general && IsDlgButtonChecked(w, 20)) {
     SetDlgItemTextW(w, 22, L"Native Apply veto"); SetWindowLongW(w, DWL_MSGRESULT, PSNRET_INVALID); return TRUE;
+   }
+   if (general) {
+    WCHAR value[64], check[64];GetDlgItemTextW(w,10,value,64);
+    if (!WritePrivateProfileStringW(L"Settings",L"Notes",value,L"./native-settings.ini")) ExitProcess(66);
+    GetPrivateProfileStringW(L"Settings",L"Notes",L"",check,64,L"./native-settings.ini");
+    if (lstrcmpW(value,check)) ExitProcess(67);
+    HANDLE f=CreateFileA("C:\\winebrowser\\native-settings.ini",GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,OPEN_EXISTING,0,NULL);
+    WORD bom=0;DWORD read=0;
+    if (f==INVALID_HANDLE_VALUE || !ReadFile(f,&bom,2,&read,NULL) || read!=2 || bom!=0xfeff) ExitProcess(68);
+    CloseHandle(f);
    }
    ++applies; SetDlgItemTextW(w, general ? 12 : 22, L"Applied by native DLL");
    SetWindowLongW(w, DWL_MSGRESULT, PSNRET_NOERROR); return TRUE;

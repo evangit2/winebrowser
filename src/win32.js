@@ -1,3 +1,4 @@
+import { profileApis } from './win32-profile.js';
 import { printerApis } from './win32-printers.js';
 import { dragListApis } from './win32-draglist.js';
 import { statusbarApis } from './win32-statusbar.js';
@@ -123,6 +124,7 @@ for (const key of [
   ...Object.keys(findDialogApis),
   ...Object.keys(toolbarApis),
   ...Object.keys(propertySheetApis),
+  ...Object.keys(profileApis),
   ...Object.keys(menuApis),
   ...Object.keys(imeApis),
   ...Object.keys(comDlgApis),
@@ -521,6 +523,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(findDialogApis),
     ...Object.entries(toolbarApis),
     ...Object.entries(propertySheetApis),
+    ...Object.entries(profileApis),
     ...Object.entries(menuApis),
     ...Object.entries(imeApis),
     ...Object.entries(comDlgApis),

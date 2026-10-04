@@ -12,3 +12,7 @@ modeless result polling/destruction, and page release/reset callbacks. The EXE
 checks the counters and exits zero. A separate unit test covers ANSI descriptors,
 page handles, descriptor copies/reference counts, malformed data and unsupported
 wizard styles. These fixtures do not establish arbitrary application compatibility.
+
+The DLL also loads/saves the authored UTF16 `native-settings.ini` through native
+profile APIs. It reopens settings, checks the saved BOM through ordinary ReadFile,
+and the browser acceptance checks the exported Unicode text and preserved comment.

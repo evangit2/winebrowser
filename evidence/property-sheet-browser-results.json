@@ -1,15 +1,16 @@
 {
-  "date": "2026-10-04T09:20:52.956Z",
-  "url": "https://evangit2.github.io/winebrowser/",
+  "date": "2026-10-04T09:44:54.279Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "b4e83330d050e780a867af19223c35bb715703959b6dedb707be8864b650856b",
-  "dllSha256": "6861bf0dfda5a992155fe50a86303acef7d5842b226ac00b7a3b65f570636eca",
-  "compiledBlocks": 72,
-  "x86TranslationMs": 56.879999697208405,
+  "dllSha256": "43c63b87c11fe66ac4c0d6d824cbd52205402dced827034f5ea6b9389edd672e",
+  "compiledBlocks": 2906,
+  "x86TranslationMs": 513.384999781847,
   "checks": [
     "Native Unicode property sheets use DLL dialog resources and preserve page edits across tabs",
+    "Native DLL uses real Get/WritePrivateProfileStringW; UTF16 settings survive reopening, native ReadFile sees the saved BOM, and exported output preserves text and comments",
     "PSN_KILLACTIVE, PSN_APPLY and PSN_QUERYCANCEL validation vetoes execute inside native DLL procedures",
     "Apply clears dirty state, OK returns modal success and restores the owner",
     "Modeless closure exposes native result/current-page state; application destroys the sheet and verifies all page initialization/reset/release callbacks"

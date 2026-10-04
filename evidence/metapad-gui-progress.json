@@ -1,13 +1,11 @@
 {
-  "date": "2026-10-04T08:50:33.549Z",
+  "date": "2026-10-04T09:44:44.971Z",
   "target": "Metapad 3.6 Light Edition, official native i386 binary",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
   "upstreamSource": "https://github.com/alexd/metapad",
   "status": "blocked-imports",
   "missingImports": [
-    "kernel32.dll!GetPrivateProfileStringA",
-    "kernel32.dll!WritePrivateProfileStringA",
     "gdi32.dll!EndDoc",
     "gdi32.dll!SetAbortProc",
     "gdi32.dll!StartPage",
@@ -25,7 +23,8 @@
     "Upstream CreateToolbarEx uses common-control standard small-color assets and adds custom bitmaps",
     "Native FindTextA/ReplaceTextA imports now resolve through shared modeless dialogs; custom templates and subclass forwarding pass separate authored native EXE/DLL acceptance",
     "CreateToolbarEx imports now resolve. Shared standard/custom bitmap strips, TB_CHECKBUTTON/TB_ENABLEBUTTON and native command callbacks pass authored EXE/DLL acceptance; unchanged Metapad execution remains blocked by other imports.",
-    "PropertySheetA imports now resolve. Classic modal/modeless native pages, DLL resources, callbacks, Apply/Cancel validation and keyboard navigation pass authored EXE/DLL acceptance. Metapad remains blocked and has not been executed."
+    "PropertySheetA imports now resolve. Classic modal/modeless native pages, DLL resources, callbacks, Apply/Cancel validation and keyboard navigation pass authored EXE/DLL acceptance. Metapad remains blocked and has not been executed.",
+    "GetPrivateProfileStringA/WritePrivateProfileStringA imports now resolve through shared file-backed INI services. Native Unicode EXE/DLL settings, direct ReadFile coherence, exported output and re-uploaded public GUI settings pass browser acceptance. Metapad remains blocked by 11 imports and has not executed."
   ],
   "scope": "Static import audit and source inspection only. The unchanged editor has not passed execution acceptance. Its remaining dependencies and full editing workflow remain unverified; no upstream binary is published with this record."
 }

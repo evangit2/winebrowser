@@ -88,6 +88,9 @@ export class Runtime {
       this.fileTimes = fileState.fileTimes;
       this.fileIds = fileState.fileIds;
     }
+    this.virtualDirectories ??= new Set();
+    for (const directory of ['windows/', 'windows/system32/', 'windows/temp/'])
+      this.virtualDirectories.add(directory);
     this.cwd = cwd ?? (exe.includes('/') ? exe.slice(0, exe.lastIndexOf('/') + 1) : '');
     this.processSession = processSession;
     this.processId = processId;
