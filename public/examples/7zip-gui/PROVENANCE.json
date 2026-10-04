@@ -1,0 +1,152 @@
+{
+  "format": 1,
+  "name": "7zip-gui",
+  "entry": "7zG.exe",
+  "args": ["a", "-ad", "out.zip", "message.txt", "binary.bin", "-tzip", "-mmt=2"],
+  "provenance": "Unchanged upstream 7-Zip 26.03 PE32 7zG.exe and 7z.dll extracted from the original installer. LGPL-2.1-or-later, BSD and upstream unRAR restriction; original license and complete source included. Native Wine base loads automatically.",
+  "inputs": [
+    {
+      "name": "7z2603.exe",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.03/7z2603.exe",
+      "sha256": "0f6ec2eda1f8c5dc4c267ee761c0dad8a9d5e8863e0c84b7ac026bc9625a1560"
+    },
+    {
+      "name": "7zip-source.tar.xz",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.03/7z2603-src.tar.xz",
+      "sha256": "9cbde5099c6deb73691b0579063da5827522ccbbcba3f0020fd04e8c8c16c0d4"
+    }
+  ],
+  "files": [
+    {
+      "path": "7zG.exe",
+      "bytes": 459264,
+      "sha256": "4e6d8e866a10746a44602ec2e31057d8a552efc837b726033d72fd7739546e22"
+    },
+    {
+      "path": "7z.dll",
+      "bytes": 1317376,
+      "sha256": "d132e89038c802c5d5281e543a83dc407680effe0144f21b4fb431dd45fca61d"
+    },
+    {
+      "path": "License.txt",
+      "bytes": 6031,
+      "sha256": "519ac0a4bded9c18ea02e0afb71f663d8c47373bd9facd3ac96a79f51d77765d"
+    },
+    {
+      "path": "readme.txt",
+      "bytes": 1711,
+      "sha256": "5a937b86702b4ee9ca878725ada8886f156fb64faf909092327bf85ca2fc159a"
+    },
+    {
+      "path": "message.txt",
+      "bytes": 59,
+      "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+    },
+    {
+      "path": "binary.bin",
+      "bytes": 8192,
+      "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+    }
+  ],
+  "dependencyClosure": [
+    {
+      "name": "7zg.exe",
+      "path": "7zG.exe",
+      "host": false,
+      "imports": 205,
+      "sha256": "4e6d8e866a10746a44602ec2e31057d8a552efc837b726033d72fd7739546e22"
+    },
+    {
+      "name": "comctl32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "comdlg32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "gdi32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "oleaut32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "ole32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "user32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "advapi32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "shell32.dll",
+      "path": "@runtime/shell32.dll",
+      "host": false,
+      "imports": 6,
+      "sha256": "9d13139e6a8dcafd4fc5565736b97bb323fc0d50a183bb642843337df012b4ea"
+    },
+    {
+      "name": "shell32.dll",
+      "host": true,
+      "imports": 0,
+      "sha256": null
+    },
+    {
+      "name": "msvcrt.dll",
+      "path": "@runtime/msvcrt.dll",
+      "host": false,
+      "imports": 142,
+      "sha256": "ae706b617b11cf59d52bd668b1f9ae5c9d6e1b5be2a7cead6bfeb33664b5b1bc"
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "host": false,
+      "imports": 925,
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f"
+    },
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "host": false,
+      "imports": 0,
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd"
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "host": false,
+      "imports": 428,
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
+    },
+    {
+      "name": "7z.dll",
+      "path": "7z.dll",
+      "host": false,
+      "imports": 90,
+      "sha256": "d132e89038c802c5d5281e543a83dc407680effe0144f21b4fb431dd45fca61d"
+    }
+  ],
+  "dynamicDependencies": ["7z.dll"],
+  "unresolvedImports": []
+}

@@ -867,7 +867,26 @@ export class WindowManager {
       ((!hwnd || (hwnd === 0xffffffff ? !m.hwnd : m.hwnd === hwnd)) &&
         ((!min && !max) || (m.message >= min && m.message <= max)));
     let index = this.queue.findIndex(accepts);
-    if (index >= 0) return remove ? this.queue.splice(index, 1)[0] : this.queue[index];
+    if (index >= 0) {
+      const message = remove ? this.queue.splice(index, 1)[0] : this.queue[index];
+      // Modal dialogs consume this queue directly. GetKeyState must describe
+      // the removed message in both modal and public Get/PeekMessage loops.
+      if (remove && [0x100, 0x101, 0x104, 0x105].includes(message.message)) {
+        const down = !(message.message & 1),
+          vk = message.wParam,
+          previous = this.keyboardState.get(vk) ?? 0,
+          toggle = [20, 144, 145].includes(vk) && down && !(previous & 0x8000);
+        this.keyboardState.set(vk, (down ? 0x8000 : 0) | ((previous ^ (toggle ? 1 : 0)) & 1));
+        if (message.modifiers)
+          for (const [key, code] of [
+            ['shiftKey', 16],
+            ['ctrlKey', 17],
+            ['altKey', 18],
+          ])
+            this.keyboardState.set(code, message.modifiers[key] ? 0x8000 : 0);
+      }
+      return message;
+    }
     for (const window of this.windows.values()) {
       const message = {
         hwnd: window.id,
@@ -918,21 +937,6 @@ export class WindowManager {
           this.wake = resolve;
         }),
       );
-    }
-    if ((!peek || a(4) & 1) && [0x100, 0x101, 0x104, 0x105].includes(message.message)) {
-      const down = !(message.message & 1),
-        vk = message.wParam;
-      const previous = this.keyboardState.get(vk) ?? 0;
-      const toggle = [20, 144, 145].includes(vk) && down && !(previous & 0x8000);
-      this.keyboardState.set(vk, (down ? 0x8000 : 0) | ((previous ^ (toggle ? 1 : 0)) & 1));
-      if (message.modifiers) {
-        for (const [key, code] of [
-          ['shiftKey', 16],
-          ['ctrlKey', 17],
-          ['altKey', 18],
-        ])
-          this.keyboardState.set(code, message.modifiers[key] ? 0x8000 : 0);
-      }
     }
     if (
       message.hardwareMouse &&

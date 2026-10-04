@@ -203,6 +203,19 @@
       "sourceZip": "7zip-full/source.zip",
       "sourceZipSha256": "ed8c474eff59714a328bd5c1d8670928330f53e41b76feaec5d7c34bcb91fbca",
       "provenance": "Unchanged upstream 7-Zip 26.03 PE32 7z.exe and 7z.dll extracted from the original installer. LGPL-2.1-or-later, BSD and upstream unRAR restriction; original license and complete source included. Native Wine base loads automatically."
+    },
+    {
+      "name": "7zip-gui",
+      "description": "Original 7-Zip 26.03 Windows GUI and codec DLL. Opens Add to archive with editable compression settings; native compression, extraction and error dialogs are browser-tested.",
+      "entry": "7zG.exe",
+      "args": ["a", "-ad", "out.zip", "message.txt", "binary.bin", "-tzip", "-mmt=2"],
+      "exe": "7zip-gui/7zG.exe",
+      "exeSha256": "4e6d8e866a10746a44602ec2e31057d8a552efc837b726033d72fd7739546e22",
+      "zip": "7zip-gui/7zip-gui.zip",
+      "zipSha256": "9991b0dcfd8cca89af22f4c4aedc15e665fc30e3acd0b43396364b04104cff21",
+      "sourceZip": "7zip-gui/source.zip",
+      "sourceZipSha256": "ed8c474eff59714a328bd5c1d8670928330f53e41b76feaec5d7c34bcb91fbca",
+      "provenance": "Unchanged upstream 7-Zip 26.03 PE32 7zG.exe and 7z.dll extracted from the original installer. LGPL-2.1-or-later, BSD and upstream unRAR restriction; original license and complete source included. Native Wine base loads automatically."
     }
   ]
 }

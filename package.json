@@ -214,6 +214,8 @@
     "test:foss-tools": "node scripts/test-foss-tools-browser.mjs",
     "package:7zip-full": "node scripts/package-7zip-full.mjs",
     "test:7zip-full": "node scripts/test-7zip-full-browser.mjs",
+    "package:7zip-gui": "node scripts/package-7zip-gui.mjs",
+    "test:7zip-gui": "node scripts/test-7zip-gui-browser.mjs",
     "build:lua": "sh scripts/build-lua-fixture.sh && python3 scripts/package-lua.py",
     "test:lua": "node scripts/test-lua-browser.mjs",
     "build:dll-search": "sh scripts/build-dll-search-fixtures.sh",

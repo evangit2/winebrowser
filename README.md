@@ -48,6 +48,11 @@ with preserved 16-bit precision. See [texture/depth scope](docs/rgba16-targets.m
 
 The hosted PE32 x86 examples below have passed the browser suite. Open a ZIP in the harness when the program needs packaged assets or a DLL; the ZIP contains the executable and its working directory.
 
+**Original 7-Zip GUI:** choose **Load 7zip-gui**, then **Run executable** to open
+the native Add to archive dialog. Plain/AES ZIP and LZMA2 compression/extraction,
+password entry, Cancel and native error lists are browser-tested with the
+original `7zG.exe` and `7z.dll`. See [the tested scope, download and source](docs/7zip-gui.md).
+
 | Example    | Download                                                                                                                                           | What it exercises and expected result                                                                           |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Console    | [EXE](https://evangit2.github.io/winebrowser/demos/console/console.exe) · [ZIP](https://evangit2.github.io/winebrowser/demos/console.zip)          | `WriteFile`; prints `console demo: hello from WriteFile` and exits with code 0.                                 |

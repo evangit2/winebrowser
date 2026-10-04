@@ -5,6 +5,23 @@ import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { describeListview } from '../src/win32-listview.js';
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
+test('modal and public message consumption update native keyboard state exactly once; nonremoving peeks preserve it', async (t) => {
+  const { r, hwnd } = await setup(t, 'SysListView32', 1);
+  r.windows.queue = [];
+  r.windows.post(hwnd, 0x100, 65, 1, { modifiers: { ctrlKey: true } });
+  r.windows.next(0, 0x100, 0x100, false);
+  assert.equal(r.windows.keyboardState.get(17), undefined);
+  r.windows.next(0, 0x100, 0x100, true);
+  assert.equal(r.windows.keyboardState.get(17), 0x8000);
+  r.windows.post(hwnd, 0x100, 20, 1);
+  const msg = r.allocate(28);
+  const peek = r.apiProvider.get('user32.dll!PeekMessageA');
+  await peek(r, (i) => [msg, hwnd, 0x100, 0x100, 1][i]);
+  assert.equal(r.windows.keyboardState.get(20), 0x8001);
+  r.windows.post(hwnd, 0x101, 20, 1);
+  r.windows.next(0, 0, 0, true);
+  assert.equal(r.windows.keyboardState.get(20), 1);
+});
 async function setup(t, kind, style) {
   const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
   t.after(() => {
