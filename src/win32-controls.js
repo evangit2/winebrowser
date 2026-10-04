@@ -89,7 +89,10 @@ export function controlStyle(kind, style, extended) {
     throw Error('Unsupported BUTTON modifier bits');
   if (kind === 'button' && (local & 0xc0) === 0xc0)
     throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
-  const ownerDraw = (kind === 'static' && (local & 0x1f) === 0xd) || buttonType === 'owner-draw';
+  const ownerDraw =
+    (kind === 'listbox' && !!(local & 0x30)) ||
+    (kind === 'static' && (local & 0x1f) === 0xd) ||
+    buttonType === 'owner-draw';
   if (kind === 'static' && (local & ~0x29f || ![0, 1, 2, 0xc, 0xd].includes(local & 0x1f)))
     throw Error(`Unsupported STATIC style 0x${local.toString(16)}`);
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
@@ -107,7 +110,7 @@ export function controlStyle(kind, style, extended) {
   }
   if (kind === 'combobox' && (![1, 2, 3].includes(local & 3) || local & ~0x6f43))
     throw Error('Unsupported ComboBox style');
-  if (kind === 'listbox' && local & ~0x1c3) throw Error('Unsupported ListBox style');
+  if (kind === 'listbox' && local & ~0x1f3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
@@ -117,6 +120,8 @@ export function controlStyle(kind, style, extended) {
     throw Error('Only text report ListView styles are supported');
   return {
     ownerDraw,
+    ownerVariable: kind === 'listbox' && !!(local & 0x20) && !(local & 0x10),
+    hasStrings: kind !== 'listbox' || !ownerDraw || !!(local & 0x40),
     comboType: kind === 'combobox' ? local & 3 : 0,
     sorted: kind === 'combobox' ? !!(local & 0x100) : kind === 'listbox' && !!(local & 2),
     noWordWrap: kind === 'static' && (local & 0x1f) === 0xc,
@@ -452,6 +457,8 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     }
     return 0;
   }
+  if (window.controlType === 'listbox' && window.ownerDraw && (message === 7 || message === 8))
+    return listMessage(r, window, message, wp, lp, fallback, wide);
   if (message === 7 || message === 8) {
     if (window.controlType === 'button') {
       window.buttonFocused = message === 7;

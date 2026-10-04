@@ -282,7 +282,9 @@
     "build:owner-buttons": "sh scripts/build-owner-buttons-fixture.sh",
     "test:owner-buttons": "node scripts/test-owner-buttons-browser.mjs",
     "build:gdi-clipping": "sh scripts/build-gdi-clipping-fixture.sh",
-    "test:gdi-clipping": "node scripts/test-gdi-clipping-browser.mjs"
+    "test:gdi-clipping": "node scripts/test-gdi-clipping-browser.mjs",
+    "build:owner-lists": "sh scripts/build-owner-lists-fixture.sh",
+    "test:owner-lists": "node scripts/test-owner-lists-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

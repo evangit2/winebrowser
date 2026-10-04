@@ -1,5 +1,6 @@
 import { dialogX, dialogY } from './dialog-units.js';
 import { receiveDroppedFiles } from './win32-drop-files.js';
+import { paintOwnerList } from './win32-owner-lists.js';
 import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
 import { describeTabs } from './win32-tabs.js';
@@ -468,7 +469,10 @@ export class WindowManager {
     return pointer;
   }
   async baseControlMessage(window, message, wParam, lParam, textWide) {
-    if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
+    if (window.ownerDraw && message === 0xf)
+      return window.controlType === 'listbox'
+        ? paintOwnerList(this.runtime, window)
+        : paintOwnerDraw(this.runtime, window);
     if (message === 0xf && window.controlType !== 'custom')
       clearControlDrawing(this.runtime, window.id, window.invalid);
     if (message === 0xf && colorControl(window)) return paintControlColors(this.runtime, window);

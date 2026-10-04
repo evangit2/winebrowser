@@ -315,3 +315,16 @@ to its rectangle unless `DT_NOCLIP` is set. Run `npm run test:gdi-clipping`
 for an unchanged authored PE32 executable rendered through Chromium's in-browser
 x86 compilation. General region handles and coordinate transforms remain
 incomplete; this increment does not establish universal Windows compatibility.
+
+Single-selection `LBS_OWNERDRAWFIXED` and `LBS_OWNERDRAWVARIABLE` listboxes now
+execute native `WM_MEASUREITEM`, `WM_DRAWITEM`, `WM_COMPAREITEM` and
+`WM_DELETEITEM` callbacks with PE32 structures, real child HWNDs and HDCs.
+Lists without `LBS_HASSTRINGS` retain raw DWORD values; string-backed lists
+retain ANSI/Unicode text separately from application item data. Fixed and
+measured row heights govern item rectangles, paging, scrolling and mouse
+selection. Rendering isolates each row's DC state and visible pixels, including
+selection, focus and disabled flags. Deletion, reset and native HWND destruction
+notify the parent once for each item. Run `npm run test:owner-lists` for the
+unchanged authored native EXE and actual Chromium pixel/input acceptance.
+Multi-selection, owner-drawn combo popups, horizontal/multicolumn lists and full
+native mouse tracking remain incomplete.

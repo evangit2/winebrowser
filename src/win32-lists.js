@@ -1,3 +1,14 @@
+import {
+  maxListTop,
+  listItemHeight,
+  listItemY,
+  revealListItem,
+  updateList,
+  measureListItem,
+  compareListItem,
+  deleteListItem,
+  paintOwnerList,
+} from './win32-owner-lists.js';
 import { encodeAnsi } from './encoding.js';
 import { dragListMessage } from './win32-draglist.js';
 
@@ -8,6 +19,7 @@ function list(w) {
   return (w.list ??= {
     items: [],
     selected: -1,
+    caret: 0,
     top: 0,
     itemHeight: 20,
     next: 1,
@@ -19,7 +31,13 @@ export function describeList(w) {
   if (!['listbox', 'combobox'].includes(w.controlType)) return undefined;
   const s = list(w);
   return {
-    items: s.items.map((i) => ({ id: i.id, text: i.text })),
+    items: s.items.map((i, index) => ({
+      id: i.id,
+      text: i.text,
+      height: w.ownerVariable ? listItemHeight(w, index) : undefined,
+    })),
+    ownerDraw: !!w.ownerDraw,
+    maxTop: w.ownerDraw ? maxListTop(w) : undefined,
     selected: s.selected,
     itemHeight: s.itemHeight,
     top: s.top,
@@ -50,17 +68,35 @@ function writeText(r, p, text, wide, count) {
   r.guestMemory.write(p + bytes.length, 0, 1);
   return bytes.length;
 }
-function choose(r, w, index) {
+async function choose(r, w, index) {
+  const old = list(w).selected,
+    oldTop = list(w).top,
+    oldCaret = list(w).caret;
   const s = list(w);
   if (index < -1 || index >= s.items.length) {
     s.selected = -1;
     if (w.comboType === 3) w.title = '';
-    r.windows.emit(w);
+    updateList(r, w);
     return -1;
   }
   s.selected = index;
+  if (index >= 0) s.caret = index;
+  if (w.ownerDraw) revealListItem(w, index);
   if (w.controlType === 'combobox') w.title = s.items[index]?.text ?? '';
   r.windows.emit(w);
+  if (w.ownerDraw) {
+    if (w.invalid || oldTop !== s.top) await paintOwnerList(r, w);
+    else {
+      if (oldCaret !== s.caret && oldCaret !== old && oldCaret >= 0)
+        await paintOwnerList(r, w, 4, [oldCaret]);
+      await paintOwnerList(
+        r,
+        w,
+        2,
+        [...new Set([old, index])].filter((i) => i >= 0),
+      );
+    }
+  }
   return index;
 }
 function notify(r, w, code) {
@@ -144,9 +180,52 @@ const listOps = new Map([
 export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cls.wide) {
   const s = list(w),
     combo = w.controlType === 'combobox';
+  if (w.ownerDraw && message === 1) {
+    if (!w.ownerVariable) s.itemHeight = await measureListItem(r, w, -1, 0);
+    return 0;
+  }
+  if (w.ownerDraw && message === 0x82) {
+    for (const [index, item] of s.items.entries()) await deleteListItem(r, w, index, item);
+    s.items = [];
+    return 0;
+  }
+  if (w.ownerDraw && (message === 7 || message === 8)) {
+    await paintOwnerList(r, w, 4, [s.items.length ? s.caret : -1]);
+    if (w.style & 1) await notify(r, w, message === 7 ? 4 : 5);
+    return 0;
+  }
+  if (w.ownerDraw && message === 0xa) {
+    updateList(r, w);
+    return 0;
+  }
+  if (w.ownerDraw && message === 0x100) {
+    if (!r.windows.isEnabled(w.id) || !s.items.length) return 0;
+    let index = s.caret;
+    if (wp === 0x28) index++;
+    else if (wp === 0x26) index--;
+    else if (wp === 0x24) index = 0;
+    else if (wp === 0x23) index = s.items.length - 1;
+    else if (wp === 0x22 || wp === 0x21) {
+      const direction = wp === 0x22 ? 1 : -1;
+      let height = 0;
+      do {
+        index += direction;
+        height += listItemHeight(w, index);
+      } while (index > 0 && index < s.items.length - 1 && height < w.height);
+    } else return fallback();
+    index = Math.max(0, Math.min(s.items.length - 1, index));
+    const old = s.selected;
+    await choose(r, w, index);
+    if (old !== index && w.style & 1) await notify(r, w, 1);
+    return 0;
+  }
   if (await dragListMessage(r, w, message, wp, lp)) return 0;
   if (message === USER_SCROLL) {
-    s.top = Math.max(0, Math.min(wp, s.items.length - 1));
+    const top = Math.max(0, Math.min(wp, w.ownerDraw ? maxListTop(w) : s.items.length - 1));
+    if (top !== s.top) {
+      s.top = top;
+      updateList(r, w);
+    } else if (w.ownerDraw && wp !== top) r.windows.emit(w);
     return 0;
   }
   if (!combo && w.dragList && message === 0x201) {
@@ -161,25 +240,28 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
       index < s.items.length &&
       index !== s.selected
     ) {
-      choose(r, w, index);
+      await choose(r, w, index);
       if (w.style & 1) await notify(r, w, 1);
     }
     return 0;
   }
   if (!combo && message === 0x198) {
-    // LB_GETITEMRECT for uniform-height string lists
+    // LB_GETITEMRECT follows fixed or measured row heights, including offscreen rows.
     const index = wp | 0;
     if (index < 0 || index >= s.items.length) return -1;
-    const y = (index - s.top) * s.itemHeight;
+    const y = listItemY(w, index);
     r.check(lp, 16, true);
-    [0, y, w.width, y + s.itemHeight].forEach((value, i) => r.write32(lp + i * 4, value));
+    [0, y, w.width, y + listItemHeight(w, index)].forEach((value, i) =>
+      r.write32(lp + i * 4, value),
+    );
     return 0;
   }
   if (message === USER_SELECT) {
+    if (!r.windows.isEnabled(w.id)) return 0;
     const index = wp | 0;
     if (index < 0 || index >= s.items.length) return 0;
     if (index === s.selected) return 0;
-    choose(r, w, index);
+    await choose(r, w, index);
     if (combo || w.style & 1) await notify(r, w, 1); // CBN_SELCHANGE/LBN_SELCHANGE
     return 0;
   }
@@ -275,81 +357,149 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
       r.lastError = 8;
       return -2;
     }
-    const text = readText(r, lp, wide);
+    const raw = w.ownerDraw && !w.hasStrings;
+    const text = raw ? '' : readText(r, lp, wide);
     if (text.length > 32767) throw Error('List control text limit exceeded');
     let at = op === 'add' ? s.items.length : index;
     if (at === -1) at = s.items.length;
     if (at < 0 || at > s.items.length) return -1;
     if (op === 'add' && w.sorted) {
-      at = s.items.findIndex(
-        (i) => i.text.localeCompare(text, undefined, { sensitivity: 'base' }) > 0,
-      );
-      if (at < 0) at = s.items.length;
+      if (raw) {
+        let low = 0,
+          high = s.items.length;
+        while (low < high) {
+          const mid = (low + high) >>> 1;
+          if ((await compareListItem(r, w, mid, lp)) > 0) high = mid;
+          else low = mid + 1;
+        }
+        at = low;
+      } else {
+        at = s.items.findIndex(
+          (i) =>
+            i.text.localeCompare(
+              text,
+              { 0x409: 'en-US', 0x809: 'en-GB', 0xc0a: 'es-ES' }[s.locale ?? 0x409],
+              { sensitivity: 'base' },
+            ) > 0,
+        );
+        if (at < 0) at = s.items.length;
+      }
     }
-    s.items.splice(at, 0, { id: s.next++, text, data: 0 });
+    const inserted = { id: s.next++, text, data: raw ? lp >>> 0 : 0 };
+    s.items.splice(at, 0, inserted);
+    if (w.ownerVariable) inserted.height = await measureListItem(r, w, at, lp);
     if (s.selected >= at) s.selected++;
-    r.windows.emit(w);
+    if (s.caret >= at && s.items.length > 1) s.caret++;
+    updateList(r, w);
     return at;
   }
   if (op === 'count') return s.items.length;
   if (op === 'reset') {
+    for (const [index, item] of s.items.entries()) await deleteListItem(r, w, index, item);
     s.items = [];
+    s.caret = 0;
     s.selected = -1;
     s.top = 0;
     w.title = '';
-    r.windows.emit(w);
+    updateList(r, w);
     return 0;
   }
   if (op === 'delete') {
     if (!item) return -1;
+    await deleteListItem(r, w, index, item);
     s.items.splice(index, 1);
+    s.caret = Math.max(0, Math.min(s.items.length - 1, s.caret - (s.caret >= index ? 1 : 0)));
     if (s.selected === index) {
       s.selected = -1;
       if (combo) w.title = '';
     } else if (s.selected > index) s.selected--;
     s.top = Math.max(0, Math.min(s.top, s.items.length - 1));
-    r.windows.emit(w);
+    updateList(r, w);
     return s.items.length;
   }
   if (op === 'getsel') return s.selected;
   if (op === 'setsel') return choose(r, w, index);
-  if (op === 'text') return item ? writeText(r, lp, item.text, wide) : -1;
+  if (op === 'text') {
+    if (!item) return -1;
+    if (w.ownerDraw && !w.hasStrings) {
+      r.check(lp, 4, true);
+      r.write32(lp, item.data);
+      return 4;
+    }
+    return writeText(r, lp, item.text, wide);
+  }
   if (op === 'length')
-    return item ? (wide ? item.text.length : encodeAnsi(item.text).bytes.length) : -1;
+    return item
+      ? w.ownerDraw && !w.hasStrings
+        ? 4
+        : wide
+          ? item.text.length
+          : encodeAnsi(item.text).bytes.length
+      : -1;
   if (op === 'data') return item ? item.data : -1;
   if (op === 'setdata') {
     if (!item) return -1;
     item.data = lp;
+    if (w.ownerDraw) updateList(r, w);
     return 0;
   }
   if (['find', 'findexact', 'select'].includes(op)) {
-    const text = readText(r, lp, wide).toLocaleLowerCase();
+    const raw = w.ownerDraw && !w.hasStrings;
+    const text = raw ? '' : readText(r, lp, wide).toLocaleLowerCase();
     let found = -1;
     for (let i = 1; i <= s.items.length; i++) {
       const at = (Math.max(-1, index) + i) % s.items.length,
         value = s.items[at].text.toLocaleLowerCase();
-      if (op === 'findexact' ? value === text : value.startsWith(text)) {
+      if (
+        raw
+          ? s.items[at].data === lp >>> 0
+          : op === 'findexact'
+            ? value === text
+            : value.startsWith(text)
+      ) {
         found = at;
         break;
       }
     }
-    if (op === 'select' && found >= 0) choose(r, w, found);
+    if (op === 'select' && found >= 0) await choose(r, w, found);
     return found;
   }
   if (op === 'gettop') return s.top;
   if (op === 'settop') {
     if (index < 0 || index >= s.items.length) return -1;
     s.top = index;
-    r.windows.emit(w);
+    updateList(r, w);
     return 0;
   }
   if (op === 'height') {
     if (lp < 1 || lp > 256) return -1;
-    s.itemHeight = lp;
-    r.windows.emit(w);
+    if (w.ownerVariable) {
+      if (!item) return -1;
+      item.height = lp;
+    } else s.itemHeight = lp;
+    updateList(r, w);
     return 0;
   }
-  if (op === 'getheight') return s.itemHeight;
+  if (op === 'getheight')
+    return w.ownerVariable ? (item ? listItemHeight(w, index) : -1) : s.itemHeight;
+  if (!combo && message === 0x19f) return s.caret;
+  if (!combo && message === 0x19e) {
+    if (!item) return -1;
+    s.caret = index;
+    revealListItem(w, index);
+    updateList(r, w);
+    return 0;
+  }
+  if (!combo && message === 0x1a6) return s.locale ?? 0x409;
+  if (!combo && message === 0x1a5) {
+    const old = s.locale ?? 0x409;
+    if (![0x409, 0x809, 0xc0a].includes(wp)) {
+      r.lastError = 87;
+      return -1;
+    }
+    s.locale = wp;
+    return old;
+  }
   if (!combo && message === 0x187) return item ? (s.selected === index ? 1 : 0) : -1; // LB_GETSEL
   if (!combo && [0x185, 0x190, 0x191].includes(message)) return -1; // multi-selection API on single-select list
   if (

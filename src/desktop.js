@@ -645,7 +645,7 @@ export class VirtualDesktop {
       }
     } else if (
       controlType === 'listbox' &&
-      (state.list?.drag || state.list?.tabStops !== undefined)
+      (state.list?.ownerDraw || state.list?.drag || state.list?.tabStops !== undefined)
     ) {
       element = document.createElement('div');
       tabList = true;
@@ -656,7 +656,12 @@ export class VirtualDesktop {
       element.addEventListener('scroll', () => {
         if (control.listState)
           this.#emit(control.id, 'list-scroll', {
-            top: Math.floor(element.scrollTop / control.listState.itemHeight),
+            top: control.listState.ownerDraw
+              ? Math.max(
+                  0,
+                  control.listOffsets.findLastIndex((y) => y <= element.scrollTop),
+                )
+              : Math.floor(element.scrollTop / control.listState.itemHeight),
           });
       });
       element.addEventListener('pointerdown', (event) => {
@@ -678,7 +683,12 @@ export class VirtualDesktop {
         });
       element.addEventListener('keydown', (event) => {
         const s = control.listState;
-        if (!s?.items.length || s.drag?.dragging) return;
+        if (!s?.items.length || s.drag?.dragging || !control.enabled) return;
+        if (s.ownerDraw) {
+          if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key))
+            event.preventDefault();
+          return;
+        }
         let index = s.selected;
         if (event.key === 'ArrowDown') index = Math.min(s.items.length - 1, index + 1);
         else if (event.key === 'ArrowUp') index = Math.max(0, index - 1);
@@ -917,6 +927,8 @@ export class VirtualDesktop {
 
   #applyList(control, list) {
     if (control.tabList) {
+      control.element.tabIndex = control.enabled ? 0 : -1;
+      control.element.setAttribute('aria-disabled', String(!control.enabled));
       this.#applyTabList(control, list);
       control.listState = list;
       return;
@@ -968,6 +980,12 @@ export class VirtualDesktop {
       stops.length === 1
         ? (Math.floor(x / stops[0]) + 1) * stops[0]
         : (stops.find((stop) => stop > x) ?? (Math.floor(x / (8 * base)) + 1) * 8 * base);
+    control.listOffsets = [];
+    let offset = 0;
+    for (const item of list.items) {
+      control.listOffsets.push(offset);
+      offset += item.height ?? list.itemHeight;
+    }
     const scrollTop = element.scrollTop,
       fragment = document.createDocumentFragment();
     element.removeAttribute('aria-activedescendant');
@@ -975,13 +993,13 @@ export class VirtualDesktop {
       const row = document.createElement('div');
       row.className = 'virtual-desktop-tablist-row';
       row.setAttribute('role', 'option');
-      row.setAttribute('aria-label', item.text);
+      row.setAttribute('aria-label', item.text || `Item ${index + 1}`);
       row.setAttribute('aria-selected', String(index === list.selected));
       row.id = `guest-list-${control.id}-${item.id}`;
-      row.style.height = `${list.itemHeight}px`;
+      row.style.height = `${item.height ?? list.itemHeight}px`;
       if (index === list.selected) element.setAttribute('aria-activedescendant', row.id);
       let x = 0;
-      for (const [column, text] of item.text.split('\t').entries()) {
+      for (const [column, text] of (list.ownerDraw ? [] : item.text.split('\t')).entries()) {
         if (column) x = nextTab(x);
         const span = document.createElement('span');
         span.textContent = text;
@@ -995,9 +1013,16 @@ export class VirtualDesktop {
       });
       fragment.append(row);
     }
+    if (list.ownerDraw) {
+      const spacer = document.createElement('div');
+      spacer.setAttribute('aria-hidden', 'true');
+      spacer.style.height = `${Math.max(0, (control.listOffsets[list.maxTop] ?? 0) + element.clientHeight - offset)}px`;
+      fragment.append(spacer);
+    }
     element.replaceChildren(fragment);
     element.scrollTop = scrollTop;
-    if (control.listState?.top !== list.top) element.scrollTop = list.top * list.itemHeight;
+    if (list.ownerDraw) element.scrollTop = control.listOffsets[list.top] ?? 0;
+    else if (control.listState?.top !== list.top) element.scrollTop = list.top * list.itemHeight;
     else if (control.listState?.selected !== list.selected && list.selected >= 0)
       element.children[list.selected]?.scrollIntoView({ block: 'nearest' });
     element.style.cursor = { 1: 'not-allowed', 2: 'copy', 3: 'move' }[list.drag?.cursor] ?? '';

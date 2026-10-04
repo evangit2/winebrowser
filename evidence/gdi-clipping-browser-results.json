@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T20:39:27.467Z",
-  "url": "http://127.0.0.1:50507/",
+  "date": "2026-10-04T21:09:12.028Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "59409574006a35457e39fe93b68cbfd10b477136714e02a6831f2c7c5ec77ced",
   "compiledBlocks": 96,
-  "x86TranslationMs": 49.20999988913536,
+  "x86TranslationMs": 56.74999988079071,
   "checks": [
     "Unchanged PE32 executable compiles x86 blocks in Chromium and exits zero",
     "Native SaveDC/RestoreDC and complex clip classification preserve rectangular holes",

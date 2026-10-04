@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-04T21:11:08.223Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "aa46f7cda19ce7f14eb50c5a17c01533ed9a3bc25fb292a6c9ea1b4e8471dc66",
+  "compiledBlocks": 251,
+  "x86TranslationMs": 66.25500032305717,
+  "checks": [
+    "Unchanged ANSI/Unicode PE32 owner-drawn fixed/variable lists compile and execute inside Chromium",
+    "Native WM_MEASUREITEM, WM_COMPAREITEM, WM_DRAWITEM and WM_DELETEITEM structure fields, raw data, geometry, font, clipped HDC and lifecycle pass",
+    "Real pixels confirm selection, focus, disabled state, variable height, scrolling, resize and row isolation",
+    "Mouse and native keyboard selection, sorted raw-data lookup, Unicode strings, delete/reset and destruction exit zero"
+  ],
+  "scope": "Single-selection fixed/variable owner-drawn listboxes. Multi-selection, owner-drawn combo popups, horizontal/multicolumn lists and universal compatibility remain incomplete."
+}
