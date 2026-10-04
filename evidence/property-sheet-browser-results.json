@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-04T08:55:26.303Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T09:20:52.956Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "b4e83330d050e780a867af19223c35bb715703959b6dedb707be8864b650856b",
   "dllSha256": "6861bf0dfda5a992155fe50a86303acef7d5842b226ac00b7a3b65f570636eca",
   "compiledBlocks": 72,
-  "x86TranslationMs": 39.41500008106232,
+  "x86TranslationMs": 56.879999697208405,
   "checks": [
     "Native Unicode property sheets use DLL dialog resources and preserve page edits across tabs",
     "PSN_KILLACTIVE, PSN_APPLY and PSN_QUERYCANCEL validation vetoes execute inside native DLL procedures",
