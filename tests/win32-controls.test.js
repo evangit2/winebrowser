@@ -803,3 +803,84 @@ test('edit limits honor replacement and typing while WM_SETTEXT and native read-
   runtime.windows.input({ windowId: edit, type: 'selection', start: -1, end: 99 });
   assert.equal(await send(0xb0), (2 << 16) | 1);
 });
+
+test('owner-drawn buttons deliver native type/action/state, selected font and release before commands', async (t) => {
+  const { runtime, parentId, setParentHook } = await makeHarness(t);
+  const child = await createChild(runtime, parentId, {
+    style: WS_CHILD | WS_VISIBLE | 0xb,
+    controlId: 70,
+  });
+  const draws = [],
+    commands = [];
+  setParentHook(async ([hwnd, message, wp, lp]) => {
+    if (message === 0x135) await call(runtime, 'gdi32.dll!SetTextColor', [wp, 0x332211]);
+    if (message === 0x2b) {
+      draws.push(Array.from({ length: 12 }, (_, i) => runtime.read32(lp + i * 4)));
+      assert.equal(draws.at(-1)[0], 4);
+      assert.equal(draws.at(-1)[1], 70);
+      assert.equal(draws.at(-1)[5], child.result);
+      assert.equal(draws.at(-1)[11], 0);
+      assert.equal(
+        (await call(runtime, 'gdi32.dll!GetTextColor', [draws.at(-1)[6]])).result,
+        0x332211,
+      );
+    }
+    if (message === WM_COMMAND)
+      commands.push(
+        (await call(runtime, 'user32.dll!SendMessageA', [child.result, 0xf2, 0, 0])).result,
+      );
+  });
+  await call(runtime, 'user32.dll!UpdateWindow', [child.result]);
+  assert.equal(draws.at(-1)[3], 1);
+  await call(runtime, 'user32.dll!SetFocus', [child.result]);
+  assert.equal(draws.at(-1)[3], 4);
+  assert.equal(draws.at(-1)[4] & 16, 16);
+  await call(runtime, 'user32.dll!SendMessageA', [child.result, 0xf3, 1, 0]);
+  assert.equal(draws.at(-1)[3], 2);
+  assert.equal(draws.at(-1)[4] & 1, 1);
+  assert.equal(
+    (await call(runtime, 'user32.dll!SendMessageA', [child.result, 0xf2, 0, 0])).result,
+    12,
+  );
+  await call(runtime, 'user32.dll!SendMessageA', [child.result, 0xf3, 0, 0]);
+  await call(runtime, 'user32.dll!SendMessageA', [child.result, 0xf5, 0, 0]);
+  assert.equal(commands.length, 1);
+  assert.equal(commands[0] & 4, 0);
+  assert.equal(runtime.windows.capture, 0);
+  await call(runtime, 'user32.dll!EnableWindow', [child.result, 0]);
+  assert.equal(draws.at(-1)[4] & 4, 4);
+  await call(runtime, 'user32.dll!SendMessageA', [child.result, 0xf5, 0, 0]);
+  assert.equal(commands.length, 1);
+});
+
+test('capture transfer cancels owner-button pressure and translates source client coordinates to the captured HWND', async (t) => {
+  const { runtime, parentId } = await makeHarness(t);
+  await call(runtime, 'user32.dll!ShowWindow', [parentId, 5]);
+  const first = (
+    await createChild(runtime, parentId, { style: WS_CHILD | WS_VISIBLE | 0xb, controlId: 70 })
+  ).result;
+  const second = (await createChild(runtime, parentId, { x: 90, y: 50, controlId: 71 })).result;
+  await call(runtime, 'user32.dll!SendMessageA', [first, 0x201, 1, (10 << 16) | 10]);
+  assert.equal(runtime.windows.capture, first);
+  assert.equal((await call(runtime, 'user32.dll!SendMessageA', [first, 0xf2, 0, 0])).result & 4, 4);
+  assert.equal((await call(runtime, 'user32.dll!SetCapture', [second])).result, first);
+  assert.equal(runtime.windows.capture, second);
+  assert.equal((await call(runtime, 'user32.dll!SendMessageA', [first, 0xf2, 0, 0])).result & 4, 0);
+  runtime.windows.input({
+    type: 'mousemove',
+    windowId: parentId,
+    x: 112,
+    y: 80,
+    buttons: 1,
+    button: 0,
+  });
+  const move = runtime.windows.queue.filter((m) => m.message === 0x200).at(-1);
+  assert.equal(move.hwnd, second);
+  assert.equal(move.lParam, (30 << 16) | 22);
+  await call(runtime, 'user32.dll!ReleaseCapture', []);
+  assert.equal(runtime.windows.capture, 0);
+  await call(runtime, 'user32.dll!SendMessageA', [first, 0x100, 32, 0]);
+  assert.equal(runtime.windows.capture, first);
+  await call(runtime, 'user32.dll!SetCapture', [second]);
+  assert.equal((await call(runtime, 'user32.dll!SendMessageA', [first, 0xf2, 0, 0])).result & 4, 0);
+});

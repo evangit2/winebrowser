@@ -278,7 +278,9 @@
     "test:color-dialogs": "node scripts/test-color-dialogs-browser.mjs",
     "test:metapad-appearance": "node scripts/test-metapad-appearance-browser.mjs",
     "build:control-drawing": "sh scripts/build-control-drawing-fixture.sh",
-    "test:control-drawing": "node scripts/test-control-drawing-browser.mjs"
+    "test:control-drawing": "node scripts/test-control-drawing-browser.mjs",
+    "build:owner-buttons": "sh scripts/build-owner-buttons-fixture.sh",
+    "test:owner-buttons": "node scripts/test-owner-buttons-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -89,7 +89,7 @@ export function controlStyle(kind, style, extended) {
     throw Error('Unsupported BUTTON modifier bits');
   if (kind === 'button' && (local & 0xc0) === 0xc0)
     throw Error('BS_ICON and BS_BITMAP are mutually exclusive');
-  const ownerDraw = kind === 'static' && (local & 0x1f) === 0xd;
+  const ownerDraw = (kind === 'static' && (local & 0x1f) === 0xd) || buttonType === 'owner-draw';
   if (kind === 'static' && (local & ~0x29f || ![0, 1, 2, 0xc, 0xd].includes(local & 0x1f)))
     throw Error(`Unsupported STATIC style 0x${local.toString(16)}`);
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
@@ -230,7 +230,81 @@ function clearRadioGroup(r, window) {
     }
   }
 }
+async function buttonState(r, window, pushed) {
+  window.pushed = !!pushed;
+  if (window.ownerDraw)
+    await r.windows.drawOwnerControl(window, 2); // ODA_SELECT
+  else r.windows.emit(window);
+}
+function buttonPoint(window, lp) {
+  const x = (lp << 16) >> 16,
+    y = lp >> 16;
+  return x >= 0 && y >= 0 && x < window.width && y < window.height;
+}
+async function ownerButtonMessage(r, window, message, wp, lp) {
+  if (message === 0x201) {
+    if (!r.windows.isEnabled(window.id)) return 0;
+    window.buttonTracking = 'mouse';
+    await r.windows.changeCapture(window.id);
+    await r.windows.setFocus(window.id);
+    if (r.windows.windows.has(window.id)) await buttonState(r, window, true);
+    return 0;
+  }
+  if (message === 0x200 && window.buttonTracking === 'mouse' && r.windows.capture === window.id) {
+    const inside = buttonPoint(window, lp);
+    if (inside !== !!window.pushed) await buttonState(r, window, inside);
+    return 0;
+  }
+  if (message === 0x202) {
+    const clicked = window.buttonTracking === 'mouse' && window.pushed && buttonPoint(window, lp);
+    window.buttonTracking = null;
+    await buttonState(r, window, false);
+    if (r.windows.capture === window.id) await r.windows.changeCapture(0);
+    if (clicked && r.windows.windows.has(window.id) && r.windows.isEnabled(window.id))
+      await notify(r, window, 0);
+    return 0;
+  }
+  if (message === 0x100 && wp === 32) {
+    if (r.windows.isEnabled(window.id) && window.buttonTracking !== 'key') {
+      window.buttonTracking = 'key';
+      await r.windows.changeCapture(window.id);
+      await buttonState(r, window, true);
+    }
+    return 0;
+  }
+  if (message === 0x101 && wp === 32) {
+    const clicked = window.buttonTracking === 'key' && window.pushed;
+    window.buttonTracking = null;
+    await buttonState(r, window, false);
+    if (r.windows.capture === window.id) await r.windows.changeCapture(0);
+    if (clicked && r.windows.windows.has(window.id) && r.windows.isEnabled(window.id))
+      await notify(r, window, 0);
+    return 0;
+  }
+  if (message === 0x100 && wp === 13 && !(lp & 0x40000000)) {
+    await r.windows.send(window.id, 0xf5);
+    return 0;
+  }
+  if (message === 0x215 && lp === window.id) return 0;
+  if (message === 0x1f || message === 0x215 || (message === 0xa && !wp)) {
+    window.buttonTracking = null;
+    if (r.windows.capture === window.id) await r.windows.changeCapture(0);
+    if (window.pushed) await buttonState(r, window, false);
+    if (message === 0xa) await r.windows.drawOwnerControl(window, 1);
+    return 0;
+  }
+  if (message === 0xa) {
+    await r.windows.drawOwnerControl(window, 1);
+    return 0;
+  }
+  return null;
+}
+
 export async function controlMessage(r, window, message, wp, lp, fallback, wide) {
+  if (window.controlType === 'button' && window.ownerDraw) {
+    const handled = await ownerButtonMessage(r, window, message, wp, lp);
+    if (handled !== null) return handled;
+  }
   if (message === 0x30) {
     // WM_SETFONT
     const font = wp ? describeGdiFont(r, wp) : null;
@@ -343,8 +417,15 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
           : window.controlType === 'listview'
             ? 0x81
             : 0x100;
+  if (window.controlType === 'button' && message === 0xf2)
+    return (window.checkState ?? 0) | (window.pushed ? 4 : 0) | (window.buttonFocused ? 8 : 0);
+  if (window.controlType === 'button' && message === 0xf3) {
+    await buttonState(r, window, wp);
+    return 0;
+  }
   if (window.controlType === 'button' && message === 0xf0) return window.checkState ?? 0;
   if (window.controlType === 'button' && message === 0xf1) {
+    if (window.ownerDraw) return 0; // Native owner-drawn push buttons have no check state.
     // BM_SETCHECK: the state is one of unchecked, checked or indeterminate, and
     // a two-state button cannot hold the third.
     const state = wp >>> 0;
@@ -359,7 +440,12 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
   }
   if (window.controlType === 'button' && message === 0xf5) {
     // BM_CLICK: a checked radio clears its group, then the parent is notified.
-    if (window.enabled) {
+    if (r.windows.isEnabled(window.id)) {
+      if (window.ownerDraw) {
+        await r.windows.send(window.id, 0x201);
+        if (r.windows.windows.has(window.id)) await r.windows.send(window.id, 0x202);
+        return 0;
+      }
       activateButton(r, window);
       if (window.checkState) clearRadioGroup(r, window);
       await notify(r, window, 0);
@@ -367,6 +453,16 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     return 0;
   }
   if (message === 7 || message === 8) {
+    if (window.controlType === 'button') {
+      window.buttonFocused = message === 7;
+      if (message === 8) {
+        window.buttonTracking = null;
+        window.pushed = false;
+        if (r.windows.capture === window.id) await r.windows.changeCapture(0);
+      }
+      if (window.ownerDraw) await r.windows.drawOwnerControl(window, 4); // ODA_FOCUS
+      if (window.style & 0x4000) await notify(r, window, message === 7 ? 6 : 7);
+    }
     if (window.controlType === 'edit') await notify(r, window, message === 7 ? 0x100 : 0x200);
     return 0;
   }
@@ -416,8 +512,12 @@ export function controlInput(r, window, event) {
   if (window.controlType === 'tabcontrol' && tabInput(r, window, event)) return true;
   if (window.controlType === 'toolbar' && toolbarInput(r, window, event)) return true;
   if (window.controlType === 'listview' && listviewInput(r, window, event)) return true;
+  if (event.type === 'button-cancel' && window.ownerDraw && window.controlType === 'button') {
+    r.windows.post(window.id, 0x1f);
+    return true;
+  }
   if (event.type === 'command' && window.controlType === 'button') {
-    if (r.windows.isControlSubclass(window)) {
+    if (window.ownerDraw || r.windows.isControlSubclass(window)) {
       r.windows.post(window.id, 0xf5);
       return true;
     }

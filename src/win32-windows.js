@@ -493,6 +493,10 @@ export class WindowManager {
       textWide ?? !!window.cls.wide,
     );
   }
+  async drawOwnerControl(window, action) {
+    if (!this.windows.has(window.id)) return 0;
+    return paintOwnerDraw(this.runtime, window, action);
+  }
   isControlSubclass(window) {
     return !!(
       window.controlType &&
@@ -638,6 +642,13 @@ export class WindowManager {
           topmost: window.topmost,
         });
     }
+  }
+  async changeCapture(hwnd) {
+    const previous = this.capture;
+    this.capture = hwnd;
+    if (previous && previous !== hwnd && this.windows.has(previous))
+      await this.send(previous, 0x215, 0, hwnd);
+    return previous;
   }
   async setFocus(hwnd, raise = true) {
     const previous = this.focus;
@@ -1459,22 +1470,31 @@ async function paintControlColors(r, window) {
   }
 }
 
-// SS_OWNERDRAW is painted by the parent's WNDPROC, using a real child HDC.
+// SS_OWNERDRAW and BS_OWNERDRAW call the parent's native drawing procedure.
 // DRAWITEMSTRUCT is 48 bytes on PE32; its RECT uses child-client coordinates.
-async function paintOwnerDraw(r, window) {
+async function paintOwnerDraw(r, window, action = 1) {
   const paint = r.allocate(64),
     item = r.allocate(48);
   let dc = 0;
   try {
-    dc = (await beginPaint(r, (i) => [window.id, paint][i])).result;
+    dc =
+      action === 1 && window.invalid
+        ? (await beginPaint(r, (i) => [window.id, paint][i])).result
+        : gdiApis['user32.dll!GetDC'](r, () => window.id).result;
     if (!dc) return 0;
+    if (window.fontHandle) gdiApis['gdi32.dll!SelectObject'](r, (i) => [dc, window.fontHandle][i]);
+    if (window.controlType === 'button')
+      await r.windows.send(window.parentId, 0x135, dc, window.id);
+    if (!r.windows.windows.has(window.id)) return 0;
     r.data.fill(0, item, item + 48);
     [
-      5,
+      window.controlType === 'button' ? 4 : 5,
       window.controlId,
       0,
-      1,
-      r.windows.isEnabled(window.id) ? 0 : 4,
+      action,
+      (r.windows.isEnabled(window.id) ? 0 : 4) |
+        (window.pushed ? 1 : 0) |
+        (window.buttonFocused ? 16 : 0),
       window.id,
       dc,
       0,
@@ -1706,14 +1726,15 @@ Object.assign(windowApis, {
   'user32.dll!RemovePropW': (r, a) => result(removeProp(r, a(0), a(1), true), 2),
   'user32.dll!RegisterWindowMessageA': (r, a) => result(registerWindowMessage(r, a(0)), 1),
   'user32.dll!RegisterWindowMessageW': (r, a) => result(registerWindowMessage(r, a(0), true), 1),
-  'user32.dll!EnableWindow': (r, a) => {
+  'user32.dll!EnableWindow': async (r, a) => {
     const window = r.windows.windows.get(a(0));
     if (!window) return r.windows.fail(1400, 2);
     const previous = window.enabled !== false;
     window.enabled = a(1) !== 0;
     r.windows.emit(window);
+    if (previous !== window.enabled) await r.windows.send(window.id, 0xa, window.enabled ? 1 : 0);
     if (window.ownerDraw) r.windows.invalidate(window, null, true);
-    return result(previous ? 1 : 0, 2);
+    return result(previous ? 0 : 1, 2);
   },
   'user32.dll!IsWindowEnabled': (r, a) => {
     const window = r.windows.windows.get(a(0));
@@ -1799,14 +1820,12 @@ Object.assign(windowApis, {
   'user32.dll!GetForegroundWindow': (r) => result(r.windows.active),
   'user32.dll!GetActiveWindow': (r) => result(r.windows.active),
   'user32.dll!SetFocus': (r, a) => r.windows.setFocus(a(0)),
-  'user32.dll!SetCapture': (r, a) => {
+  'user32.dll!SetCapture': async (r, a) => {
     if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
-    const previous = r.windows.capture;
-    r.windows.capture = a(0);
-    return result(previous, 1);
+    return result(await r.windows.changeCapture(a(0)), 1);
   },
-  'user32.dll!ReleaseCapture': (r) => {
-    r.windows.capture = 0;
+  'user32.dll!ReleaseCapture': async (r) => {
+    await r.windows.changeCapture(0);
     return result(1);
   },
   'user32.dll!GetAsyncKeyState': (r, a) => {

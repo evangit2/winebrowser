@@ -144,3 +144,26 @@ HDCs, resize and destruction/recreation. Evidence is in
 to browser-painted content that has no native readback yet; these reads fail
 explicitly with error120. Exact native control rasterization, scrolling,
 caret/IME and arbitrary GUI/DLL support remain incomplete.
+
+`BS_OWNERDRAW` buttons now use a real native `WM_DRAWITEM` callback, with
+`ODT_BUTTON`, the child client RECT/HWND, the assigned font selected in its HDC,
+and `WM_CTLCOLORBTN` before drawing. The interactive browser button contains a
+canvas showing the application's pixels. `BM_GETSTATE`/`BM_SETSTATE` retain
+pressed/focused state; callbacks distinguish `ODA_DRAWENTIRE`, `ODA_SELECT` and
+`ODA_FOCUS`, and report `ODS_SELECTED`, `ODS_DISABLED` and `ODS_FOCUS`. Mouse,
+Space/Enter and `BM_CLICK` release the pressed state before native `BN_CLICKED`.
+Dragging outside cancels activation. Capture transfers notify the old HWND
+with `WM_CAPTURECHANGED` and translate incoming client coordinates to the
+captured HWND. `EnableWindow` now sends `WM_ENABLE`, so native controls can
+repaint or cancel their pending input, and its result correctly reports whether
+the window was previously disabled.
+
+`npm run test:owner-buttons` verifies unchanged ANSI/Unicode native buttons,
+held-pointer pixels and drag-out cancellation, focus/disabled GDI, native
+keyboard/programmatic activation, selected font/color state, resizing and
+zero exit. The authored fixture is reproducible with
+`npm run build:owner-buttons`; evidence is in
+`evidence/owner-buttons-browser-results.json`. The behavior follows
+[Wine's button procedure](https://github.com/wine-mirror/wine/blob/master/dlls/user32/button.c).
+Owner-drawn lists/menus, dynamic `BM_SETSTYLE`, exact native pointer/nonclient
+behavior and arbitrary GUI/DLL compatibility remain incomplete.

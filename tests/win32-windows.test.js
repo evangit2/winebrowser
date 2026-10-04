@@ -697,11 +697,11 @@ test('pointer, window-from-point and enable state round-trip through the virtual
   );
   assert.equal((await call(r, 'user32.dll!WindowFromPoint', [0x7fff, 0x7fff])).result, 0);
 
-  // EnableWindow reports the previous state and IsWindowEnabled reflects it.
+  // EnableWindow reports whether the window was previously disabled.
   assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 1);
-  assert.equal((await call(r, 'user32.dll!EnableWindow', [hwnd, 0])).result, 1);
+  assert.equal((await call(r, 'user32.dll!EnableWindow', [hwnd, 0])).result, 0);
   assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 0);
-  assert.equal((await call(r, 'user32.dll!EnableWindow', [hwnd, 1])).result, 0);
+  assert.equal((await call(r, 'user32.dll!EnableWindow', [hwnd, 1])).result, 1);
   assert.equal((await call(r, 'user32.dll!IsWindowEnabled', [hwnd])).result, 1);
   assert.equal((await call(r, 'user32.dll!EnableWindow', [0xdead, 1])).result, 0);
   assert.equal(r.lastError, 1400);

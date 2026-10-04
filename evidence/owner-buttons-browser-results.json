@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-04T19:51:18.422Z",
+  "url": "http://127.0.0.1:65283/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "6190ac9bdc8fa211a8ca51f5c195f3f841ba5505ece3f9d6a1c545fca1037627",
+  "compiledBlocks": 177,
+  "x86TranslationMs": 54.54499977827072,
+  "checks": [
+    "Unchanged ANSI/Unicode BS_OWNERDRAW buttons call native WM_DRAWITEM with ODT_BUTTON, client RECT, child HWND and font-selected HDC after WM_CTLCOLORBTN",
+    "ODA_DRAWENTIRE/SELECT/FOCUS and ODS_SELECTED/DISABLED/FOCUS match native BM_GETSTATE; actual pressed/focused/disabled GDI pixels visible in Chromium",
+    "Held pointer, drag-out cancellation and release, Space, Enter, native BM_SETSTATE and BM_CLICK; each activation delivers exactly one native command after clearing pushed state",
+    "Disabled button rejects BM_CLICK; Unicode button paints native text; SetWindowPos resizes its canvas; destruction and native exit zero"
+  ],
+  "scope": "Owner-drawn fixed-style BUTTON controls in ordinary Chromium. Owner-drawn lists/menus, dynamic BM_SETSTYLE, exact native capture/nonclient behavior and universal GUI/DLL compatibility remain incomplete."
+}

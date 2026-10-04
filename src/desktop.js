@@ -631,9 +631,17 @@ export class VirtualDesktop {
         if (state.controlStyle?.flat) element.classList.add('virtual-desktop-control-flat');
         element.addEventListener('click', (event) => {
           event.stopPropagation();
-          if (!element.disabled && !element.hidden)
+          if (!element.disabled && !element.hidden && !control.controlStyle?.ownerDraw)
             this.#emit(control.id, 'command', { notification: 0 });
         });
+        if (state.controlStyle?.ownerDraw) {
+          canvas = document.createElement('canvas');
+          canvas.style.cssText =
+            'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+          element.append(canvas);
+          element.style.padding = '0';
+          element.style.background = 'transparent';
+        }
       }
     } else if (
       controlType === 'listbox' &&
@@ -819,6 +827,22 @@ export class VirtualDesktop {
     element.addEventListener('pointerdown', (event) => {
       event.stopPropagation();
       this.#focus(control);
+      if (
+        control.controlType === 'button' &&
+        control.controlStyle?.ownerDraw &&
+        event.button === 0
+      ) {
+        element.setPointerCapture(event.pointerId);
+        this.#sendMouse(control, 'mousedown', event);
+      }
+    });
+    element.addEventListener('pointerup', (event) => {
+      if (control.controlType === 'button' && control.controlStyle?.ownerDraw && event.button === 0)
+        this.#sendMouse(control, 'mouseup', event);
+    });
+    element.addEventListener('pointercancel', () => {
+      if (control.controlType === 'button' && control.controlStyle?.ownerDraw)
+        this.#emit(control.id, 'button-cancel');
     });
     element.addEventListener('focusin', () => this.#focus(control));
     element.addEventListener('mousemove', (event) => {
@@ -836,6 +860,12 @@ export class VirtualDesktop {
           ((this.#topLevel(control)?.isDialog || control.controlStyle?.subclassed) &&
             ['Tab', 'Enter', 'Escape'].includes(event.key) &&
             !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn))
+        )
+          event.preventDefault();
+        if (
+          controlType === 'button' &&
+          control.controlStyle?.ownerDraw &&
+          [' ', 'Enter'].includes(event.key)
         )
           event.preventDefault();
         // Chromium on macOS interprets Control+H as delete-backward inside
@@ -1263,7 +1293,7 @@ export class VirtualDesktop {
       control.controlBorder = border;
       control.element.style.border = border
         ? `${border}px ${border === 2 ? 'inset' : 'solid'} #888`
-        : control.controlType === 'button'
+        : control.controlType === 'button' && !control.controlStyle?.ownerDraw
           ? ''
           : '0';
     }
@@ -1286,6 +1316,8 @@ export class VirtualDesktop {
         );
       else control.element.removeAttribute('role');
       if (control.toggle && !style.pushLike)
+        control.element.setAttribute('aria-label', stripCaptionMnemonics(control.titleText ?? ''));
+      else if (control.canvas)
         control.element.setAttribute('aria-label', stripCaptionMnemonics(control.titleText ?? ''));
       else control.element.removeAttribute('aria-label');
       // The native control reports a three-state button's indeterminate state
