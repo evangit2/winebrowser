@@ -113,6 +113,51 @@ function commandWords(message) {
   };
 }
 
+test('bitmap statics retain borrowed handles, auto-size or center native pixels, and return replaced images', async (t) => {
+  const { runtime: r, parentId } = await makeHarness(t);
+  const bits = r.allocate(8);
+  r.data.set([0, 0, 255, 0, 0, 255, 0, 0], bits);
+  const bitmap = (await call(r, 'gdi32.dll!CreateBitmap', [2, 1, 1, 32, bits])).result;
+  assert.ok(bitmap);
+  for (const center of [false, true]) {
+    const id = (
+      await createChild(r, parentId, {
+        className: 'STATIC',
+        title: '',
+        style: WS_CHILD | WS_VISIBLE | 0xe | (center ? 0x200 : 0),
+        width: 8,
+        height: 5,
+      })
+    ).result;
+    assert.ok(id);
+    assert.equal(await r.windows.send(id, 0x172, 0, bitmap), 0);
+    assert.equal(await r.windows.send(id, 0x173, 0, 0), bitmap);
+    assert.equal(
+      await r.windows.send(id, 0x172, 1, bitmap),
+      0,
+      'wrong image type leaves state unchanged',
+    );
+    assert.equal(await r.windows.send(id, 0x172, 0, 0xdeadbeef), 0);
+    assert.equal(await r.windows.send(id, 0x173, 0, 0), bitmap);
+    const w = r.windows.windows.get(id);
+    assert.deepEqual([w.width, w.height], center ? [8, 5] : [2, 1]);
+    await r.windows.send(id, 0xf, 0, 0);
+    const dc = (await call(r, 'user32.dll!GetDC', [id])).result;
+    const x = center ? 3 : 0,
+      y = center ? 2 : 0;
+    assert.equal((await call(r, 'gdi32.dll!GetPixel', [dc, x, y])).result, 0xff);
+    assert.equal((await call(r, 'gdi32.dll!GetPixel', [dc, x + 1, y])).result, 0xff00);
+    if (center) assert.equal((await call(r, 'gdi32.dll!GetPixel', [dc, 0, 0])).result, 0xc0c0c0);
+    await call(r, 'user32.dll!ReleaseDC', [id, dc]);
+    assert.equal(await r.windows.send(id, 0x172, 0, 0), bitmap);
+    assert.equal(await r.windows.send(id, 0x173, 0, 0), 0);
+    await r.windows.destroy(id);
+  }
+  const object = r.allocate(24);
+  assert.equal((await call(r, 'gdi32.dll!GetObjectA', [bitmap, 24, object])).result, 24);
+  assert.equal((await call(r, 'gdi32.dll!DeleteObject', [bitmap])).result, 1);
+});
+
 test('WS_EX_STATICEDGE uses one-pixel client geometry while CLIENTEDGE takes precedence', async (t) => {
   const { runtime, events, parentId } = await makeHarness(t);
   const rect = runtime.allocate(16);
