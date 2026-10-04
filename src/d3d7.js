@@ -262,7 +262,11 @@ async function createDevice(r, owner, factory, a) {
   await callD3D(r, native, 69, 0, 7, 0); // D3DTFP_NONE -> D3DTEXF_NONE.
   ts.presentGPU = () => callD3D(r, native, 17, 0, 0, 0, 0);
   ts.syncGPU = async () =>
-    setDDSurfacePixels(r, ts, await readTargetPixels(r, native, native.state.renderTarget));
+    setDDSurfacePixels(
+      r,
+      ts,
+      await readTargetPixels(r, native, native.state.renderTarget, { store: false }),
+    );
   const refreshTextures = async () => {
     if (ts.locked) return DD.BUSY;
     for (const surface of state.textures.values())

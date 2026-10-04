@@ -142,11 +142,19 @@ export function ddSurfacePixels(r, s) {
 }
 export function setDDSurfacePixels(r, s, rgba) {
   if (rgba.length !== s.width * s.height * 4) throw Error('Invalid DirectDraw readback');
+  // Formats are immutable. Precompute each byte's packed channel contribution
+  // once instead of recalculating shifts and rounding for every pixel of every frame.
+  const tables = (s.readbackChannels ??= s.format
+    .slice(3)
+    .map((mask) => Uint32Array.from({ length: 256 }, (_, value) => pack(value, mask))));
   for (let y = 0; y < s.height; y++)
     for (let x = 0; x < s.width; x++) {
       const p = (y * s.width + x) * 4;
-      let v = 0;
-      for (let i = 0; i < 4; i++) v |= pack(rgba[p + i], s.format[3 + i]);
+      const v =
+        tables[0][rgba[p]] |
+        tables[1][rgba[p + 1]] |
+        tables[2][rgba[p + 2]] |
+        tables[3][rgba[p + 3]];
       storePixel(r, s, x, y, v);
     }
   s.dirty = true;
