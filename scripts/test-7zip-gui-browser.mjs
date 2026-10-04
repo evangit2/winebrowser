@@ -274,6 +274,8 @@ try {
     );
     const errorText = await page.getByRole('gridcell').allTextContents();
     assert.match(errorText.join('\n'), pattern);
+    const close = button('Close');
+    await close.waitFor({ timeout: 30000 });
     const rows = page.getByRole('row').filter({ has: page.getByRole('gridcell') });
     await rows.first().click();
     await expect(rows.first()).toHaveAttribute('aria-selected', 'true');
@@ -281,17 +283,16 @@ try {
     await expect
       .poll(() =>
         rows.evaluateAll(
-          (items) => items.filter((e) => e.getAttribute('aria-selected') === 'true').length,
+          (items) =>
+            items.length > 0 && items.every((e) => e.getAttribute('aria-selected') === 'true'),
         ),
       )
-      .toBe(await rows.count());
+      .toBe(true);
     await page.getByRole('grid').press('Control+c');
     await page.screenshot({
       path: process.env.WINEBROWSER_7ZIP_GUI_ERROR_SCREENSHOT || 'evidence/7zip-gui-errors.png',
       fullPage: true,
     });
-    const close = button('Close');
-    await close.waitFor({ timeout: 30000 });
     await close.click();
     const result = await finish(label, 2);
     assert.ok(result.seen.report);
