@@ -219,7 +219,7 @@ function dialogUnitsToPixels(value) {
   return Math.round((value * 8) / 4);
 }
 
-async function buildDialog(r, template, owner, proc, instance) {
+export async function buildDialog(r, template, owner, proc, instance, wide = false) {
   const frame = windowFrame(template.style);
   const customClass =
     template.className && ![32770, 0x8002, '#32770', '32770'].includes(template.className);
@@ -236,6 +236,7 @@ async function buildDialog(r, template, owner, proc, instance) {
     exStyle: template.exStyle,
     instance,
     proc,
+    wide,
   });
   if (created.error !== undefined || !created.id) return { error: created.error ?? 1407 };
   const window = r.windows.windows.get(created.id);
@@ -265,6 +266,7 @@ async function buildDialog(r, template, owner, proc, instance) {
       style: item.style | 0x10000000,
       exStyle: item.exStyle,
       instance,
+      wide,
     });
     if (child.error) {
       await r.windows.destroy(created.id);

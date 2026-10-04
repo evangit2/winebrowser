@@ -259,6 +259,7 @@ export class WindowManager {
       enabled,
       font,
       readOnly,
+      textLimit,
       textAlign,
       noPrefix,
       buttonType,
@@ -344,6 +345,11 @@ export class WindowManager {
         frame: parentId ? undefined : frameForWindow(window),
         font,
         readOnly,
+        textLimit,
+        selection:
+          controlType === 'edit' && window.selectionStart !== undefined
+            ? { start: window.selectionStart, end: window.selectionEnd }
+            : undefined,
         textAlign,
         noPrefix,
         icon:
@@ -452,7 +458,7 @@ export class WindowManager {
             window.cls.wide,
           )
         ).result,
-      textWide,
+      textWide ?? !!window.cls.wide,
     );
   }
   isControlSubclass(window) {
@@ -472,14 +478,21 @@ export class WindowManager {
     if (message === EDIT_INPUT && window.pendingTextEvents?.has(wParam)) {
       const value = window.pendingTextEvents.get(wParam);
       window.pendingTextEvents.delete(wParam);
-      const bytes = window.cls.wide ? null : encodeAnsi(value).bytes;
+      const incoming = typeof value === 'string' ? value : value.text;
+      const bytes = window.cls.wide ? null : encodeAnsi(incoming).bytes;
       const text = bytes
         ? this.runtime.allocate(bytes.length + 1)
-        : this.runtime.allocString(value, true);
+        : this.runtime.allocString(incoming, true);
       if (bytes) this.runtime.data.set(bytes, text);
+      if (typeof value === 'object')
+        window.browserSelection = {
+          start: Math.max(0, value.start ?? incoming.length),
+          end: Math.max(0, value.end ?? incoming.length),
+        };
       try {
         return await this.send(hwnd, 0xc, 0, text);
       } finally {
+        delete window.browserSelection;
         this.runtime.free(text);
         if (this.windows.has(hwnd)) this.emit(window);
       }
@@ -1362,13 +1375,14 @@ async function paintOwnerDraw(r, window) {
 // call the class-create path expects, so register/create/defaultProc all run
 // exactly as they do for a guest CreateWindowEx.
 export async function createWindowFromHost(r, spec) {
+  const wide = !!spec.wide;
   const classPointer =
     typeof spec.className === 'number'
       ? spec.className
       : spec.className
-        ? r.allocString(spec.className, false)
+        ? r.allocString(spec.className, wide)
         : 0;
-  const titlePointer = spec.title ? r.allocString(spec.title, false) : 0;
+  const titlePointer = spec.title ? r.allocString(spec.title, wide) : 0;
   try {
     const style = (spec.style ?? 0) >>> 0;
     const parent = spec.parent >>> 0;
@@ -1387,12 +1401,24 @@ export async function createWindowFromHost(r, spec) {
       spec.instance ?? r.pe.imageBase,
       0,
     ];
-    const response = await create(r, (i) => args[i] ?? 0, false);
+    const response = await create(r, (i) => args[i] ?? 0, wide);
     return response.result ? { id: response.result } : { error: r.lastError };
   } finally {
     if (classPointer && typeof spec.className !== 'number') r.free(classPointer);
     if (titlePointer) r.free(titlePointer);
   }
+}
+
+/** Register a callable host WNDPROC that survives native module rollback. */
+export function registerHostWindowProcedure(r, key, entry) {
+  const manager = r.windows;
+  manager.controlProcedures ??= new Map();
+  manager.controlProcedureEntries ??= new Map();
+  if (manager.controlProcedures.has(key)) return manager.controlProcedures.get(key);
+  const pointer = registerThunk(r.thunks, entry);
+  manager.controlProcedures.set(key, pointer);
+  manager.controlProcedureEntries.set(pointer, entry);
+  return pointer;
 }
 
 // A host-provided top-level class the dialog layer builds its frames with. It
@@ -1418,6 +1444,8 @@ function builtinWindowClass(name) {
 }
 
 export const windowApis = { ...cursorApis, ...windowFindApis, ...windowDataApis };
+windowApis['user32.dll!IsWindowUnicode'] = (r, a) =>
+  result(+!!r.windows.windows.get(a(0))?.cls.wide, 1);
 
 // ---------------------------------------------------------------------------
 // Dialog-item accessors. SetDlgItemText/GetDlgItemText forward WM_SETTEXT and

@@ -237,6 +237,87 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     r.windows.emit(window);
     return 1;
   }
+  if (window.controlType === 'edit' && message === 0xc5) {
+    // EM_SETLIMITTEXT applies to user input, not WM_SETTEXT. Retain the
+    // runtime's existing 32767-character bound and report the effective limit.
+    window.textLimit = Math.min(32767, wp >>> 0 || 32767);
+    r.windows.emit(window);
+    return 0;
+  }
+  if (window.controlType === 'edit' && message === 0xd5) return window.textLimit ?? 32767;
+  if (window.controlType === 'edit' && message === 0xb0) {
+    const start = window.selectionStart ?? 0,
+      end = window.selectionEnd ?? start;
+    if (wp) {
+      r.check(wp, 4, true);
+      r.write32(wp, start);
+    }
+    if (lp) {
+      r.check(lp, 4, true);
+      r.write32(lp, end);
+    }
+    return start > 0xffff || end > 0xffff ? 0xffffffff : (start | (end << 16)) >>> 0;
+  }
+  if (window.controlType === 'edit' && message === 0xb1) {
+    const length = window.title.length;
+    const start = wp | 0,
+      end = lp | 0;
+    if (start === -1) window.selectionStart = window.selectionEnd = window.selectionEnd ?? 0;
+    else {
+      const first = Math.min(length, Math.max(0, start));
+      const last = end === -1 ? length : Math.min(length, Math.max(0, end));
+      window.selectionStart = Math.min(first, last);
+      window.selectionEnd = Math.max(first, last);
+    }
+    r.windows.emit(window);
+    return 0;
+  }
+  if (window.controlType === 'edit' && message === 0xc2) {
+    // Native programmatic replacement is allowed on read-only controls too;
+    // ES_READONLY blocks user editing, not the application's messages.
+    let text = lp ? applyEditFilters(window, wide ? r.wideString(lp) : r.string(lp)) : '';
+    const start = window.selectionStart ?? 0,
+      end = window.selectionEnd ?? start;
+    const available = Math.max(
+      0,
+      (window.textLimit ?? 32767) - (window.title.length - (end - start)),
+    );
+    if (text.length > available) {
+      await notify(r, window, 0x501); // EN_MAXTEXT
+      if (!r.windows.windows.has(window.id)) return 0;
+      text = text.slice(0, available);
+    }
+    const value = window.title.slice(0, start) + text + window.title.slice(end);
+    const previous = { text: window.title, start, end };
+    window.title = value;
+    window.selectionStart = window.selectionEnd = start + text.length;
+    window.editUndo = wp ? previous : null;
+    r.windows.emit(window);
+    await notify(r, window, 0x400);
+    if (r.windows.windows.has(window.id)) await notify(r, window, 0x300);
+    return 1;
+  }
+  if (window.controlType === 'edit' && message === 0xc6) return window.editUndo ? 1 : 0;
+  if (window.controlType === 'edit' && message === 0xcd) {
+    window.editUndo = null;
+    return 0;
+  }
+  if (window.controlType === 'edit' && [0xc7, 0x304].includes(message)) {
+    const undo = window.editUndo;
+    if (!undo || window.readOnly) return 0;
+    window.editUndo = {
+      text: window.title,
+      start: window.selectionStart ?? 0,
+      end: window.selectionEnd ?? 0,
+    };
+    window.title = undo.text;
+    window.selectionStart = undo.start;
+    window.selectionEnd = undo.end;
+    r.windows.emit(window);
+    await notify(r, window, 0x400);
+    if (r.windows.windows.has(window.id)) await notify(r, window, 0x300);
+    return 1;
+  }
   if (message === 0x87)
     return window.dragList?.dragging
       ? 4
@@ -281,6 +362,11 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
   const value = await fallback();
   if (message === 0xc && window.ownerDraw && value) r.windows.invalidate(window, null, true);
   if (message === 0xc && window.controlType === 'edit' && value) {
+    const selection = window.browserSelection;
+    window.selectionStart = Math.min(window.title.length, selection?.start ?? 0);
+    window.selectionEnd = Math.min(window.title.length, selection?.end ?? 0);
+    window.editUndo = null;
+    r.windows.emit(window);
     await notify(r, window, 0x400); // EN_UPDATE, followed by EN_CHANGE
     if (r.windows.windows.has(window.id)) await notify(r, window, 0x300);
   }
@@ -325,14 +411,46 @@ export function controlInput(r, window, event) {
     if (r.windows.isControlSubclass(window)) {
       window.pendingTextEvents ??= new Map();
       const id = (window.nextTextEvent = ((window.nextTextEvent ?? 0) + 1) >>> 0);
-      window.pendingTextEvents.set(id, applyEditFilters(window, text).slice(0, 32767));
+      window.pendingTextEvents.set(id, {
+        text: applyEditFilters(window, text).slice(0, window.textLimit ?? 32767),
+        start: event.selectionStart,
+        end: event.selectionEnd,
+      });
       r.windows.post(window.id, EDIT_INPUT, id);
       return true;
     }
-    window.title = applyEditFilters(window, text).slice(0, 32767);
+    const oldText = window.title;
+    window.title = applyEditFilters(window, text).slice(0, window.textLimit ?? 32767);
+    window.editUndo = {
+      text: oldText,
+      start: window.selectionStart ?? 0,
+      end: window.selectionEnd ?? 0,
+    };
+    window.selectionStart = Math.min(
+      window.title.length,
+      Number.isInteger(event.selectionStart)
+        ? Math.max(0, event.selectionStart)
+        : window.title.length,
+    );
+    window.selectionEnd = Math.min(
+      window.title.length,
+      Number.isInteger(event.selectionEnd) ? Math.max(0, event.selectionEnd) : window.title.length,
+    );
     r.windows.emit(window);
     r.windows.post(window.parentId, 0x111, command(window, 0x400), window.id);
     r.windows.post(window.parentId, 0x111, command(window, 0x300), window.id);
+    return true;
+  }
+  if (event.type === 'selection' && window.controlType === 'edit') {
+    if (
+      Number.isInteger(event.start) &&
+      Number.isInteger(event.end) &&
+      event.start >= 0 &&
+      event.end >= event.start
+    ) {
+      window.selectionStart = Math.min(window.title.length, event.start);
+      window.selectionEnd = Math.min(window.title.length, event.end);
+    }
     return true;
   }
   return false;

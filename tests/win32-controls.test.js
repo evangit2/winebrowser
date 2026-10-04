@@ -698,3 +698,108 @@ test('BUTTON layout and notification modifiers are published to the desktop', as
   assert.equal(plain.horizontalAlign, 'center');
   assert.equal(plain.verticalAlign, 'center');
 });
+
+test('native edit replacement uses A/W encoding, selection pointers, undo and ordered notifications', async (t) => {
+  const { runtime, parentId, callbacks } = await makeHarness(t);
+  for (const wide of [false, true]) {
+    const edit = (
+      await createChild(runtime, parentId, {
+        className: 'EDIT',
+        title: 'alpha tail',
+        wide,
+        controlId: 90,
+      })
+    ).result;
+    const send = async (message, wp = 0, lp = 0, callerWide = wide) =>
+      (
+        await call(runtime, `user32.dll!SendMessage${callerWide ? 'W' : 'A'}`, [
+          edit,
+          message,
+          wp,
+          lp,
+        ])
+      ).result;
+    assert.equal((await call(runtime, 'user32.dll!IsWindowUnicode', [edit])).result, +wide);
+    await send(0xb1, 5, 0); // reversed ranges are normalized
+    const out = runtime.allocate(12);
+    runtime.data.fill(0xaa, out, out + 12);
+    assert.equal(await send(0xb0, out, out + 4), 5 << 16);
+    assert.equal(runtime.read32(out), 0);
+    assert.equal(runtime.read32(out + 4), 5);
+    assert.equal(runtime.read32(out + 8), 0xaaaaaaaa);
+    callbacks.length = 0;
+    await send(0xc2, 1, runtime.allocString('β€', true), true);
+    assert.equal(runtime.windows.windows.get(edit).title, wide ? 'β€ tail' : '?€ tail');
+    assert.equal(await send(0xb0), (2 << 16) | 2);
+    assert.deepEqual(
+      callbacks.filter((a) => a[1] === WM_COMMAND).map((a) => a[2] >>> 16),
+      [0x400, 0x300],
+    );
+    assert.equal(await send(0xc6), 1);
+    assert.equal(await send(0xc7), 1);
+    assert.equal(runtime.windows.windows.get(edit).title, 'alpha tail');
+    assert.equal(await send(0xb0), 5 << 16);
+    assert.equal(await send(0xc7), 1);
+    assert.equal(runtime.windows.windows.get(edit).title, wide ? 'β€ tail' : '?€ tail');
+    await send(0xcd);
+    assert.equal(await send(0xc6), 0);
+    await send(0xb1, 0, 0xffffffff);
+    await send(0xc2, 0, runtime.allocString('café', false), false);
+    assert.equal(runtime.windows.windows.get(edit).title, 'café');
+    await send(0xb1, 1, 3);
+    await send(0xc2, 0, 0); // null replacement deletes the selected text
+    assert.equal(runtime.windows.windows.get(edit).title, 'cé');
+  }
+});
+
+test('edit limits honor replacement and typing while WM_SETTEXT and native read-only writes remain available', async (t) => {
+  const { runtime, parentId, callbacks } = await makeHarness(t);
+  await call(runtime, 'user32.dll!ShowWindow', [parentId, 5]);
+  const edit = (await createChild(runtime, parentId, { className: 'EDIT', title: 'abc' })).result;
+  const send = async (message, wp = 0, lp = 0) =>
+    (await call(runtime, 'user32.dll!SendMessageA', [edit, message, wp, lp])).result;
+  const window = runtime.windows.windows.get(edit);
+  await send(0xc5, 5);
+  assert.equal(await send(0xd5), 5);
+  await send(0xb1, 3, 3);
+  callbacks.length = 0;
+  await send(0xc2, 1, runtime.allocString('defgh'));
+  assert.equal(window.title, 'abcde');
+  assert.equal(await send(0xb0), (5 << 16) | 5);
+  assert.deepEqual(
+    callbacks.filter((a) => a[1] === WM_COMMAND).map((a) => a[2] >>> 16),
+    [0x501, 0x400, 0x300],
+  );
+  await send(0xc, 0, runtime.allocString('longer than five'));
+  assert.equal(window.title, 'longer than five');
+  assert.equal(await send(0xc6), 0);
+  assert.equal(await send(0xb0), 0);
+  await send(0xb1, 0, 0xffffffff);
+  await send(0xcf, 1); // EM_SETREADONLY
+  await send(0xc2, 0, runtime.allocString('app'));
+  assert.equal(window.title, 'app');
+  runtime.windows.input({
+    windowId: edit,
+    type: 'text',
+    text: 'blocked',
+    selectionStart: 7,
+    selectionEnd: 7,
+  });
+  assert.equal(window.title, 'app');
+  await send(0xcf, 0);
+  runtime.windows.input({
+    windowId: edit,
+    type: 'text',
+    text: '12345678',
+    selectionStart: 8,
+    selectionEnd: 8,
+  });
+  assert.equal(window.title, '12345');
+  assert.equal(await send(0xb0), (5 << 16) | 5);
+  await send(0xc7);
+  assert.equal(window.title, 'app');
+  runtime.windows.input({ windowId: edit, type: 'selection', start: 1, end: 2 });
+  assert.equal(await send(0xb0), (2 << 16) | 1);
+  runtime.windows.input({ windowId: edit, type: 'selection', start: -1, end: 99 });
+  assert.equal(await send(0xb0), (2 << 16) | 1);
+});

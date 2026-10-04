@@ -6,11 +6,11 @@ export async function sendWindowMessage(r, hwnd, message, wParam, lParam, wide) 
   if (['combobox', 'listbox'].includes(window?.controlType))
     return r.windows.send(hwnd, message, wParam, lParam, wide);
   const targetWide = !!window?.cls?.wide;
-  if (!window || wide === targetWide || ![0xc, 0xd].includes(message))
+  if (!window || wide === targetWide || ![0xc, 0xd, 0xc2].includes(message))
     return r.windows.send(hwnd, message, wParam, lParam);
   let temporary;
   try {
-    if (message === 0xc) {
+    if (message === 0xc || message === 0xc2) {
       const value = wide ? r.wideString(lParam) : r.string(lParam);
       const bytes = targetWide ? null : encodeAnsi(value).bytes;
       temporary = targetWide ? r.allocString(value, true) : r.allocate(bytes.length + 1);

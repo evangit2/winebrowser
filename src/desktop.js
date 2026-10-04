@@ -712,8 +712,19 @@ export class VirtualDesktop {
         'virtual-desktop-control virtual-desktop-control-edit' +
         (multiline ? ' virtual-desktop-control-edit-multiline' : '');
       element.addEventListener('input', () =>
-        this.#emit(control.id, 'text', { text: element.value }),
+        this.#emit(control.id, 'text', {
+          text: element.value,
+          selectionStart: element.selectionStart,
+          selectionEnd: element.selectionEnd,
+        }),
       );
+      for (const type of ['select', 'keyup', 'click'])
+        element.addEventListener(type, () =>
+          this.#emit(control.id, 'selection', {
+            start: element.selectionStart,
+            end: element.selectionEnd,
+          }),
+        );
     } else if (controlType === 'custom') {
       element = canvas = document.createElement('canvas');
       element.className = 'virtual-desktop-control virtual-desktop-control-custom';
@@ -1153,6 +1164,14 @@ export class VirtualDesktop {
     const readOnly = state.readOnly ?? controlStyle.readOnly;
     if (control.controlType === 'edit' && readOnly !== undefined)
       control.element.readOnly = !!readOnly;
+    if (control.controlType === 'edit') control.element.maxLength = state.textLimit ?? 32767;
+    if (
+      control.controlType === 'edit' &&
+      state.selection &&
+      (control.element.selectionStart !== state.selection.start ||
+        control.element.selectionEnd !== state.selection.end)
+    )
+      control.element.setSelectionRange(state.selection.start, state.selection.end);
     if (control.controlType === 'edit') {
       const multiline = !!(state.controlStyle?.multiline ?? control.multiline);
       control.multiline = multiline;

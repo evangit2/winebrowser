@@ -2,6 +2,7 @@ import { printerApis } from './win32-printers.js';
 import { dragListApis } from './win32-draglist.js';
 import { statusbarApis } from './win32-statusbar.js';
 import { resourceBitmapApis } from './win32-resource-bitmaps.js';
+import { findDialogApis } from './win32-find-dialog.js';
 import { releaseHandleLocks, fileLockConflict } from './file-locks.js';
 import { shellFolderApis } from './win32-shell-folders.js';
 import { lzApis } from './win32-lz.js';
@@ -117,6 +118,7 @@ for (const key of [
   ...Object.keys(dragListApis),
   ...Object.keys(statusbarApis),
   ...Object.keys(resourceBitmapApis),
+  ...Object.keys(findDialogApis),
   ...Object.keys(menuApis),
   ...Object.keys(imeApis),
   ...Object.keys(comDlgApis),
@@ -512,6 +514,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(dragListApis),
     ...Object.entries(statusbarApis),
     ...Object.entries(resourceBitmapApis),
+    ...Object.entries(findDialogApis),
     ...Object.entries(menuApis),
     ...Object.entries(imeApis),
     ...Object.entries(comDlgApis),

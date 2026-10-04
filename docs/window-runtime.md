@@ -118,6 +118,25 @@ error. The [native acceptance](../evidence/font-dialog-browser-results.json)
 checks A/W selections and actual GDI text from the chosen font. Run
 `npm run test:font-dialog`.
 
+FindTextA/W and ReplaceTextA/W create real owned modeless windows with standard
+Find/Replace controls. FINDREPLACE buffers and capacities, case/whole-word/
+direction flags, Find Next/Replace/Replace All, Help and FR_DIALOGTERM owner
+notifications use native memory and registered messages. The native EXE/DLL
+[acceptance](../evidence/find-dialogs-browser-results.json) checks an ordinal
+DLL RT_DIALOG template, a DLL hook veto and EXE subclass forwarding through
+CallWindowProc. HGLOBAL template handles, complete custom controls and exact
+Windows dialog layout remain incomplete. Run `npm run test:find-dialogs`.
+
+Standard edit controls now support EM_GETSEL/EM_SETSEL, A/W EM_REPLACESEL,
+EM_SETLIMITTEXT/EM_GETLIMITTEXT and basic one-level undo/toggle. Native replacements
+update browser text/caret and send EN_UPDATE/EN_CHANGE; excess text sends
+EN_MAXTEXT. Input/replacement limits retain the runtime's 32767-character bound,
+while WM_SETTEXT bypasses the chosen input limit and clears undo. Read-only
+controls block user edits but permit native programmatic replacement. Browser
+selection changes synchronize with native selection queries. Rich Edit, large
+documents, multi-level undo, CRLF index mapping and complete keyboard/IME parity
+remain incomplete.
+
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 
 Custom nonclient geometry, minimize/maximize behavior, full input-method handling and graphics APIs beyond the documented raster subset still need implementation. Resize repaints the client surface; the application remains responsible for adapting its layout and game logic. The virtual registry is process-local and is not persisted between runs. Fonts use browser matching and may differ from Windows. Shell icon extraction is not implemented. Offscreen compatible bitmaps, SRCCOPY BitBlt, accelerator tables, Unicode registry storage and Wine guest formatting are covered in [desktop compatibility](desktop-compatibility.md). Wine CRT/NLS support remains under development for broader library dependencies.
@@ -148,6 +167,9 @@ registered GDI child canvas with nested-button repaint and mouse input, draggabl
 priority reordering and Escape cancellation, native Priorities/Notes tabs with
 retained edit text and list order, Appearance → Font acceptance/cancellation,
 selected control fonts and GDI text color, menu Reset, close and ZIP/Stop cleanup.
+Notes → Find/Replace demonstrates actual native search selection, single/all
+replacement and Undo while the owner remains editable. This sample's search is
+ASCII and its notes capacity is 4095 characters.
 See [the acceptance record](../evidence/gui-controls-browser-results.json).
 
 `node scripts/test-custom-child-browser.mjs` uploads a native EXE and companion DLL whose registered child-window procedure paints independent surfaces and receives nested button, resize, mouse/double-click, context-menu, wheel and keyboard messages. The EXE subclasses one child while its sibling retains the original DLL procedure. The test verifies visibility, enabled state, native destruction and invalid HWND/DC cleanup; see [the acceptance record](../evidence/custom-child-browser-results.json). Wheel messages use screen coordinates and default handling forwards them to the parent; captured pointer messages convert coordinates between client areas. These are bounded native contracts, not general GUI framework acceptance.

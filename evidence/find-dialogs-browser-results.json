@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-04T06:16:20.640Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "0b5a9b8b21457e7246f0dd6031d8ed2e002a5c0a5445703c86b5a8021a75f455",
+  "dllSha256": "bcb0dd0fa1583696dc3c5df4d517bdc008a7d1f13ab2f80249c901935189f0d7",
+  "compiledBlocks": 195,
+  "x86TranslationMs": 101.93999966979027,
+  "checks": [
+    "Unchanged native EXE/DLL runs modeless FindTextA/W and ReplaceTextA through in-browser x86 compilation; owner remains enabled and editable",
+    "Native DLL hook receives the original FINDREPLACE pointer and can veto Find Next; ordinal DLL dialog template and native window subclass/CallWindowProc remain callable",
+    "Standard control IDs, edit input limits, A/W strings, whole-word/case/direction flags, Help, synchronous owner notifications and buffer-tail guards are checked",
+    "Native Replace and Replace All callbacks change actual owner edit text; Escape/Cancel/close deliver FR_DIALOGTERM with stale action bits cleared",
+    "Invalid structures, zero buffers and absent hook errors are checked; native cleanup and close exit zero"
+  ],
+  "scope": "Shared modeless standard/resource-template Find/Replace dialogs, native hooks and subclass forwarding. HGLOBAL template handles, complete custom controls, exact Windows dialog/font layout and arbitrary editor execution remain incomplete."
+}

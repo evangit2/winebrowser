@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-04T04:05:10.196Z",
+  "date": "2026-10-04T06:15:37.403Z",
   "target": "Metapad 3.6 Light Edition, official native i386 binary",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
@@ -17,8 +17,6 @@
     "gdi32.dll!AbortDoc",
     "gdi32.dll!StartDocA",
     "comdlg32.dll!PageSetupDlgA",
-    "comdlg32.dll!ReplaceTextA",
-    "comdlg32.dll!FindTextA",
     "comdlg32.dll!PrintDlgA",
     "advapi32.dll!IsTextUnicode",
     "shell32.dll!DragQueryFileA",
@@ -26,7 +24,8 @@
   ],
   "sourceFindings": [
     "Upstream Find/Replace dialogs call CreateMappedBitmap with flags 0 and the default color map",
-    "Upstream CreateToolbarEx uses common-control standard small-color assets and adds custom bitmaps"
+    "Upstream CreateToolbarEx uses common-control standard small-color assets and adds custom bitmaps",
+    "Native FindTextA/ReplaceTextA imports now resolve through shared modeless dialogs; custom templates and subclass forwarding pass separate authored native EXE/DLL acceptance"
   ],
   "scope": "Static import audit and source inspection only. The unchanged editor has not passed execution acceptance. Its remaining dependencies and full editing workflow remain unverified; no upstream binary is published with this record."
 }

@@ -249,7 +249,9 @@
     "test:draglist": "node scripts/test-draglist-browser.mjs",
     "build:custom-child": "sh scripts/build-custom-child-fixture.sh",
     "test:custom-child": "node scripts/test-custom-child-browser.mjs",
-    "test:gui-controls": "node scripts/test-gui-controls-browser.mjs"
+    "test:gui-controls": "node scripts/test-gui-controls-browser.mjs",
+    "build:find-dialogs": "sh scripts/build-find-dialogs-fixture.sh",
+    "test:find-dialogs": "node scripts/test-find-dialogs-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
