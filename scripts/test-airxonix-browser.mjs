@@ -86,9 +86,11 @@ try {
             if (x < 35 && y < 35 && r > 150 && r > g * 1.5 && r > b * 1.5) heart++;
             if (y > 450 && r > 180 && g > 150 && b < 80) hud++;
             if (y > 20 && y < 340 && r > 80 && r > g * 1.25 && g > b * 1.15) border++;
+            // The initial-level foreground band excludes cyan water textures
+            // and enemy balls while retaining the ship's body as it moves right.
             if (
-              y > 240 &&
-              y < 400 &&
+              y > 282 &&
+              y < 320 &&
               g > 65 &&
               g > r * 1.8 &&
               b > r * 1.8 &&
@@ -171,7 +173,7 @@ try {
     await page.keyboard.press('Enter');
     await until(
       'textured level, ship, lives and score',
-      (s) => s.heart > 100 && s.hud > 100 && s.border > 2000 && s.ship?.pixels > 100,
+      (s) => s.heart > 100 && s.hud > 100 && s.border > 2000 && s.ship?.pixels > 20,
     );
     const levelLoadMs = performance.now() - levelStart;
     const level = await capture('level');
