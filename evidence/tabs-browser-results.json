@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-03T23:46:24.812Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T00:07:38.542Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "c1426eb92ee930765c30b183f5ab7b4de21279e886028f805308a71a31766664",
   "compiledBlocks": 150,
-  "x86TranslationMs": 73.44999983906746,
+  "x86TranslationMs": 37.29000002145767,
   "checks": [
     "PE32 TCITEMA/W text and LPARAM, insert/delete, selected/focused state and programmatic selection without notifications",
     "Fixed tab rectangles, hit testing and reversible page/client rectangle conversion",

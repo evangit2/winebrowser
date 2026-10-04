@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-04T00:13:18.738Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedRevision": "304487b4e7a4ad30db24d999f7b640226e0aeaea",
+  "ci": "https://github.com/evangit2/winebrowser/actions/runs/37163021721",
+  "ciConclusion": "success",
+  "verifyConclusion": "success",
+  "deployConclusion": "success",
+  "exeSha256": "b1ca162ed96f13500c03565dfc2797e9b57de09f54264c45d4be959148070b36",
+  "sourceRebuild": "byte-identical",
+  "unitTestsPassed": 1001,
+  "scope": "Native tab and drag-list runtime plus original MIT public GUI showcase. Broader Windows compatibility remains incomplete; no proprietary game assets are published."
+}
