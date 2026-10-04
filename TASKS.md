@@ -8,6 +8,23 @@ DLLs, browser-time translation, the original Hamsterball, and DirectX through
 version 12. Existing D3D12 triangle/cube tests must remain regression gates;
 D3D10/11 and broader D3D12 support are still required.
 
+## October 4 GUI and performance checkpoint
+
+- [x] Remove repeated CPU arithmetic-flag and branch-condition allocations.
+      49,728 semantic comparisons match the baseline; paired developer VM
+      medians improve 4.8% for PuTTY Configuration population and 8.9% for
+      full original 7-Zip AES ZIP creation. These exclude browser rendering
+      and downloads. See `docs/startup-performance.md`.
+- [x] Publish unchanged upstream 7-Zip 26.03 `7zG.exe` and `7z.dll` with original
+      licenses, complete source and deterministic packaging. Nine real GUI
+      cases pass on public Pages: ZIP/AES and two-thread LZMA2 compression and
+      extraction, native Cancel with C++ catching, and native error-list
+      selection/Copy. Shared services now include progress/report controls,
+      shell icons/task allocation, atomic archive rename, native first-chance
+      exception delivery and modal modifier-key state. Full CI passes 1,085
+      units plus browser gates. File Manager, additional GUI modes and general
+      Windows compatibility remain open. See `docs/7zip-gui.md`.
+
 ## October 2 checkpoint
 
 - [x] Unchanged Humus Water renders reflective landscape and ripple physics;

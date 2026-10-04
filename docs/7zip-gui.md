@@ -40,6 +40,17 @@ API calls, outputs and browser version in
 `evidence/7zip-gui-browser-results.json`. Local timing is observational and is
 not a paired GUI performance claim.
 
+On **October 4, 2026**, all nine cases also passed the built static site and the
+public GitHub Pages deployment. The final
+[Actions run](https://github.com/evangit2/winebrowser/actions/runs/37228373303)
+passed **1,085 unit tests** and the complete browser gates, then deployed
+`82cd38a8f36cdcafa0472a409344f6b6d42e6c18`. See
+`evidence/7zip-gui-static-results.json`, `evidence/7zip-gui-live-results.json` and
+`evidence/7zip-gui-live-deployment.json` for operation results, original asset
+pins, deployment status and matching UI/worker bundles. The final commit
+adjusts only browser assertion retries; its published assets match those used
+by the live acceptance.
+
 `scripts/package-7zip-gui.mjs` verifies the original installer and complete
 source archive, audits the full static import closure and dynamically loaded
 `7z.dll`, and creates deterministic ZIPs. SHA-256 pins:

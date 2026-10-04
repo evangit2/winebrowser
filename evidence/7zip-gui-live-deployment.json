@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-04T19:51:22.333Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedCommit": "82cd38a8f36cdcafa0472a409344f6b6d42e6c18",
+  "deploymentId": 6845811362,
+  "ci": {
+    "id": 37228373303,
+    "url": "https://github.com/evangit2/winebrowser/actions/runs/37228373303",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "verify",
+        "conclusion": "success",
+        "url": "https://github.com/evangit2/winebrowser/actions/runs/37228373303/job/111512659148"
+      },
+      {
+        "name": "deploy",
+        "conclusion": "success",
+        "url": "https://github.com/evangit2/winebrowser/actions/runs/37228373303/job/111515870833"
+      }
+    ]
+  },
+  "deployment": {
+    "state": "success",
+    "createdAt": "2026-10-04T19:45:19Z",
+    "environmentUrl": "https://evangit2.github.io/winebrowser/",
+    "logUrl": "https://github.com/evangit2/winebrowser/actions/runs/37228373303/job/111515870833"
+  },
+  "liveAcceptance": {
+    "report": "7zip-gui-live-results.json",
+    "browser": "154.0.8037.97",
+    "runs": 9,
+    "exitCodes": [
+      0,
+      0,
+      0,
+      0,
+      255,
+      0,
+      0,
+      2,
+      2
+    ],
+    "errors": []
+  },
+  "assetVerification": {
+    "indexSha256": "1a5f1573f0dd65e0ed1e4e588ffc21d7795cfbac6b458626d97dac908adad2d7",
+    "observedAssetsUnchangedDuringLiveAcceptance": true,
+    "finalDeploymentMatchesTestedAssetSet": true,
+    "workerBundleVerified": true,
+    "assets": [
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/index-CZ2C80E3.js",
+        "bytes": 71372,
+        "sha256": "75b5da7ea921510c16819b944ab0282678d228ff834ba702b76735881963d5b5"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/index-SZzkHqNM.css",
+        "bytes": 11084,
+        "sha256": "d69852d7ea8d1ae68f5d4b9ef42b10fe7188462ba4339dcb4aa2a5d3ba8cdfd7"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/assets/worker-D9I8wC_T.js",
+        "bytes": 1503995,
+        "sha256": "d4a8b6f208ea1ad0b0a0ddd89efd9d04dceadffb7519fa1c0ca0b0fa7f2c40f6"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-gui/7z.dll",
+        "bytes": 1317376,
+        "sha256": "d132e89038c802c5d5281e543a83dc407680effe0144f21b4fb431dd45fca61d"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-gui/7zG.exe",
+        "bytes": 459264,
+        "sha256": "4e6d8e866a10746a44602ec2e31057d8a552efc837b726033d72fd7739546e22"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-gui/7zip-gui.zip",
+        "bytes": 949335,
+        "sha256": "9991b0dcfd8cca89af22f4c4aedc15e665fc30e3acd0b43396364b04104cff21"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-gui/License.txt",
+        "bytes": 6031,
+        "sha256": "519ac0a4bded9c18ea02e0afb71f663d8c47373bd9facd3ac96a79f51d77765d"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-gui/PROVENANCE.json",
+        "bytes": 4043,
+        "sha256": "6161c437870eea7f74f2e5888c5f01f9221666bf5ec6005b65a59304faaf175e"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/7zip-gui/source.zip",
+        "bytes": 1552647,
+        "sha256": "ed8c474eff59714a328bd5c1d8670928330f53e41b76feaec5d7c34bcb91fbca"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/examples/manifest.json",
+        "bytes": 15969,
+        "sha256": "58c99ba06f65aac619615c066ce1677fdf57d986b0dd91733e9993bda6cb980d"
+      },
+      {
+        "url": "https://evangit2.github.io/winebrowser/runtime/wine-base/manifest.json",
+        "bytes": 5098,
+        "sha256": "22246ebbe36685463116aec7bd0875b39d4d6b7995bdf2ed3099058996f74579"
+      }
+    ]
+  },
+  "scope": "Nine real original 7-Zip GUI operations passed on public Pages. The final deployment changes only the browser assertion retry compared with the preceding tested deployment; index, UI/worker bundles, runtime manifest and original program/package/source assets retain identical hashes. Full File Manager and arbitrary Windows compatibility remain outside this acceptance."
+}
