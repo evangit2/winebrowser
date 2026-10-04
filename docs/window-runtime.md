@@ -45,6 +45,25 @@ call EM_SETREADONLY, update the menu caption and preserve note text. Programmati
 WM_SETTEXT remains available while user editing is locked; Reset restores editable
 mode. Complete Edit control message coverage remains incomplete.
 
+Horizontal `msctls_statusbar32` controls now support named CreateStatusWindow A/W
+creation and the published COMCTL32 ordinal 6 for CreateStatusWindowA. Textual
+parts retain their strings, types and right edges across multipart/simple mode
+switches. SB_SETPARTS/GETPARTS, SB_GETRECT, ANSI/Unicode text and packed length/type
+results, borders, minimum height, background color, Unicode format and bounded
+tooltip text queries share the native control model. Browser rendering supports
+sunken/raised/borderless parts and left/center/right tabbed labels. Native
+SBN_SIMPLEMODECHANGE and PE32 NMMOUSE callbacks run on the guest dispatcher;
+WM_SIZE docks the control to its parent's client bottom unless CCS_NORESIZE is
+set. The [native acceptance](../evidence/statusbar-browser-results.json) checks
+named/ordinal creation, rejected layouts, text, callbacks, mode persistence and
+parent resize in ordinary Chromium. The public GUI showcase now displays callback
+messages through this control. Icons, owner-drawn parts, native resize grips,
+tooltip HWNDs, exact font/theme metrics and complete control coverage remain
+incomplete. Run `npm run test:statusbar`. Contracts were checked against Wine's
+[status implementation](https://github.com/wine-mirror/wine/blob/master/dlls/comctl32/status.c)
+and [COMCTL32 exports](https://github.com/wine-mirror/wine/blob/master/dlls/comctl32/comctl32.spec).
+Ordinal 8 is CreateMappedBitmap and remains a separate dependency.
+
 Resource dialogs use client dimensions, render their controls, and support Tab/Shift+Tab, default-button Enter and cancel Escape. Modal dialogs disable their owner and restore focus on exit; modeless visibility follows the template style. Caption ampersands are interpreted unless SS_NOPREFIX is set. `DrawEdge` uses the caller's HDC for raised/sunken edges, optional middle fill and rectangle adjustment; `SaveDC`/`RestoreDC` preserve implemented drawing state and object ownership. These remain bounded raster implementations, without full native clipping or all DrawEdge style combinations.
 
 Custom nonclient geometry, minimize/maximize behavior, full input-method handling and graphics APIs beyond the documented raster subset still need implementation. Resize repaints the client surface; the application remains responsible for adapting its layout and game logic. The virtual registry is process-local and is not persisted between runs. Fonts use browser matching and may differ from Windows. Shell icon extraction is not implemented. Offscreen compatible bitmaps, SRCCOPY BitBlt, accelerator tables, Unicode registry storage and Wine guest formatting are covered in [desktop compatibility](desktop-compatibility.md). Wine CRT/NLS support remains under development for broader library dependencies.

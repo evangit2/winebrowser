@@ -8,7 +8,7 @@ static HMENU notes_menu;
 static UINT drag_message;
 static int drag_source=-1;
 static const char *priority_names[]={"Paint window", "Handle input", "Update controls", "Save settings"};
-static void say(const char *text) { SetWindowTextA(status,text); }
+static void say(const char *text) { SendMessageA(status,SB_SETTEXTA,SBT_NOBORDERS,(LPARAM)text); }
 static void note_mode(HWND window,BOOL locked) {
   SendMessageA(notes,EM_SETREADONLY,locked,0);
   CheckMenuRadioItem(notes_menu,110,111,locked?111:110,MF_BYCOMMAND);
@@ -57,6 +57,7 @@ static void reset(HWND window) {
   TreeView_SelectItem(tree,first);say("Choose a category, list item or option.");
 }
 static LRESULT CALLBACK proc(HWND window,UINT message,WPARAM wp,LPARAM lp) {
+  if(message==WM_SIZE&&status){SendMessageA(status,WM_SIZE,wp,lp);return 0;}
   if(message==WM_NOTIFY && ((NMHDR*)lp)->hwndFrom==pages) {
     if(((NMHDR*)lp)->code==TCN_SELCHANGE) {
       int page=TabCtrl_GetCurSel(pages);
@@ -154,7 +155,8 @@ void start(void) {
   tree=child(window,instance,WC_TREEVIEWA,"Categories",WS_BORDER|TVS_HASBUTTONS|TVS_HASLINES|TVS_SHOWSELALWAYS,12,42,144,348,11);
   items=child(window,instance,"LISTBOX","Items",WS_BORDER|LBS_NOTIFY|LBS_SORT|LBS_HASSTRINGS|LBS_NOINTEGRALHEIGHT,172,42,152,108,20);
   combo=child(window,instance,"COMBOBOX","Value",WS_BORDER|CBS_DROPDOWN|CBS_AUTOHSCROLL,172,168,152,120,21);
-  status=child(window,instance,"STATIC","",SS_LEFT,12,402,476,32,22);
+  status=CreateStatusWindowA(WS_CHILD|WS_VISIBLE|CCS_BOTTOM,"",window,22);
+  if(status){SendMessageA(status,WM_SETFONT,(WPARAM)font,TRUE);SendMessageA(status,SB_SETMINHEIGHT,32,0);SendMessageA(status,WM_SIZE,0,0);}
   child(window,instance,"BUTTON","Enable option",BS_AUTOCHECKBOX,344,46,144,24,30);
   child(window,instance,"BUTTON","First radio",BS_AUTORADIOBUTTON|WS_GROUP,344,86,144,24,31);
   child(window,instance,"BUTTON","Second radio",BS_AUTORADIOBUTTON,344,116,144,24,32);

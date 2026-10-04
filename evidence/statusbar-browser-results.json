@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T02:58:56.219Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "9d51470aa916672a977e4f157f60b56e1b65131bfe57a26b2009a6b40199009b",
+  "compiledBlocks": 197,
+  "x86TranslationMs": 134.5650001168251,
+  "checks": [
+    "Native named A/W and ordinal 6 status creation use real handles and shared control procedures",
+    "PE32 parts and rectangle queries preserve sentinels; rejected layouts retain previous state",
+    "ANSI/Unicode text, packed length/style results, tab alignment, bounded tooltip output and background color",
+    "Simple mode notifies only on changes and retains multipart text; native NMMOUSE callbacks report the selected part",
+    "Parent resize docks the bar while CCS_NORESIZE preserves a fixed Unicode bar; native close exits zero"
+  ],
+  "scope": "Bounded horizontal textual COMCTL32 status bars in ordinary Chromium. Icons, owner-drawn parts, native resize grip, tooltip HWNDs, exact native font/theme metrics and complete common-control coverage remain incomplete."
+}

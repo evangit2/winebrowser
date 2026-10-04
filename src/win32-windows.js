@@ -1,6 +1,7 @@
 import { describeList } from './win32-lists.js';
 import { describeTree } from './win32-treeview.js';
 import { describeTabs } from './win32-tabs.js';
+import { describeStatusbar } from './win32-statusbar.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
   builtinControlClass,
@@ -354,6 +355,7 @@ export class WindowManager {
         controlId: window.controlId,
         tree: describeTree(window),
         tabs: describeTabs(window),
+        statusbar: describeStatusbar(window),
         list: describeList(window),
       },
     });

@@ -575,6 +575,7 @@ export class VirtualDesktop {
         'edit',
         'treeview',
         'tabcontrol',
+        'statusbar',
         'combobox',
         'listbox',
         'custom',
@@ -687,6 +688,18 @@ export class VirtualDesktop {
       element.setAttribute('role', 'tablist');
       element.setAttribute('aria-label', state.title || 'Tabs');
       element.tabIndex = 0;
+    } else if (controlType === 'statusbar') {
+      element = document.createElement('div');
+      element.className = 'virtual-desktop-control virtual-desktop-control-statusbar';
+      element.setAttribute('role', 'status');
+      element.setAttribute('aria-label', 'Status bar');
+      element.style.overflow = 'hidden';
+      for (const type of ['mouseup', 'dblclick', 'contextmenu'])
+        element.addEventListener(type, (event) => {
+          event.stopPropagation();
+          if (type === 'contextmenu') event.preventDefault();
+          else this.#sendMouse(control, type, event);
+        });
     } else if (controlType === 'edit') {
       // ES_MULTILINE needs a text area; a single-line edit is an input. The
       // element is chosen at creation because the style cannot change later.
@@ -890,6 +903,52 @@ export class VirtualDesktop {
     }
   }
 
+  #applyStatusbar(control, bar) {
+    const element = control.element;
+    element.style.backgroundColor =
+      bar.background === 0xff000000
+        ? '#c0c0c0'
+        : `rgb(${bar.background & 255},${(bar.background >>> 8) & 255},${(bar.background >>> 16) & 255})`;
+    element.dataset.simple = String(bar.simple);
+    const fragment = document.createDocumentFragment();
+    bar.parts.forEach((part, index) => {
+      const row = document.createElement('div'),
+        [left, top, right, bottom] = part.rect;
+      row.dataset.statusPart = String(bar.simple ? 255 : index);
+      row.title = part.tip;
+      Object.assign(row.style, {
+        position: 'absolute',
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${Math.max(0, right - left)}px`,
+        height: `${Math.max(0, bottom - top)}px`,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        whiteSpace: 'pre',
+        padding: '1px 4px',
+        border: part.style & 0x100 ? '0' : `2px ${part.style & 0x200 ? 'outset' : 'inset'} #ddd`,
+        direction: part.style & 0x400 ? 'rtl' : 'ltr',
+      });
+      if (part.style & 0x800 || !part.text.includes('\t')) row.textContent = part.text;
+      else {
+        const labels = part.text.split('\t').slice(0, 3);
+        ['left', 'center', 'right'].forEach((align, i) => {
+          const label = document.createElement('span');
+          label.textContent = labels[i] ?? '';
+          Object.assign(label.style, {
+            position: 'absolute',
+            left: '4px',
+            right: '4px',
+            textAlign: align,
+          });
+          row.append(label);
+        });
+      }
+      fragment.append(row);
+    });
+    element.replaceChildren(fragment);
+  }
+
   #applyTree(control, tree) {
     const color = (value) => `rgb(${value & 255},${(value >>> 8) & 255},${(value >>> 16) & 255})`;
     control.element.style.backgroundColor = color(tree.background);
@@ -991,6 +1050,8 @@ export class VirtualDesktop {
           control.listEdit.value = control.titleText;
       } else if (['treeview', 'tabcontrol'].includes(control.controlType)) {
         control.element.setAttribute('aria-label', control.titleText || 'Categories');
+      } else if (control.controlType === 'statusbar') {
+        // The part model owns rendered text; WM_SETTEXT updates part zero.
       } else if (control.canvas) {
         control.element.setAttribute('aria-label', control.titleText);
       } else if (control.legend) {
@@ -1112,6 +1173,8 @@ export class VirtualDesktop {
     if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);
+    if (control.controlType === 'statusbar' && state.statusbar)
+      this.#applyStatusbar(control, state.statusbar);
 
     control.isControl = true;
     control.controlType = state.controlType ?? control.controlType;

@@ -2,6 +2,7 @@ import { describeGdiFont } from './win32-gdi.js';
 import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
 import { tabMessage, tabInput } from './win32-tabs.js';
+import { statusbarMessage } from './win32-statusbar.js';
 export const EDIT_INPUT = 0x7fc0;
 
 const kinds = new Map([
@@ -12,6 +13,7 @@ const kinds = new Map([
   ['listbox', 'listbox'],
   ['combobox', 'combobox'],
   ['systabcontrol32', 'tabcontrol'],
+  ['msctls_statusbar32', 'statusbar'],
 ]);
 export function builtinControlClass(name, wide) {
   const kind = kinds.get(name.toLowerCase());
@@ -19,7 +21,11 @@ export function builtinControlClass(name, wide) {
     ? {
         name: kind,
         originalName:
-          { treeview: 'SysTreeView32', tabcontrol: 'SysTabControl32' }[kind] ?? kind.toUpperCase(),
+          {
+            treeview: 'SysTreeView32',
+            tabcontrol: 'SysTabControl32',
+            statusbar: 'msctls_statusbar32',
+          }[kind] ?? kind.toUpperCase(),
         controlType: kind,
         wide,
         proc: 0,
@@ -93,6 +99,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'listbox' && local & ~0x1c3) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   if (kind === 'tabcontrol' && local & ~0xc00) throw Error('Unsupported Tab control style');
+  if (kind === 'statusbar' && local & ~0x84f) throw Error('Unsupported status bar style');
   return {
     ownerDraw,
     comboType: kind === 'combobox' ? local & 3 : 0,
@@ -267,6 +274,8 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
   }
   if (window.controlType === 'treeview') return treeMessage(r, window, message, wp, lp, fallback);
   if (window.controlType === 'tabcontrol') return tabMessage(r, window, message, wp, lp, fallback);
+  if (window.controlType === 'statusbar')
+    return statusbarMessage(r, window, message, wp, lp, fallback, wide);
   if (['combobox', 'listbox'].includes(window.controlType))
     return listMessage(r, window, message, wp, lp, fallback, wide);
   const value = await fallback();

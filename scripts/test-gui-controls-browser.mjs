@@ -31,6 +31,9 @@ try {
     tree = window.getByRole('tree', { name: 'Categories' });
   const reset = 'Choose a category, list item or option.';
   await status.getByText(reset, { exact: true }).waitFor();
+  await expect(status).toHaveAttribute('role', 'status');
+  await expect(status.locator('[data-status-part="0"]')).toHaveText(reset);
+  assert.deepEqual(await status.evaluate((el) => [el.offsetWidth, el.offsetHeight]), [500, 34]);
   await tree.getByRole('treeitem', { name: 'List box', exact: true }).click();
   await status
     .getByText('ListBox: strings, sorted insertion and selection.', { exact: true })
@@ -201,6 +204,7 @@ try {
       'Native registered child canvas, nested button command, independent GDI repaint and mouse callback',
       'Public priorities list reorders through native COMCTL32 drag callbacks; Escape cancels and Reset restores order',
       'Native tabs switch priorities/notes visibility; edited notes and priority order survive switching pages',
+      'Native COMCTL32 status bar displays callback text through SB_SETTEXTA with minimum height and bottom docking',
       'Native MENUITEMINFO radio choices lock/unlock notes through EM_SETREADONLY, preserve text, update menu captions/default state and reset correctly',
       'Native menu Reset restores control state; close exits zero',
       'Public source/license ZIP package runs and Stop removes its window',

@@ -233,6 +233,8 @@
     "test:putty-gui": "node scripts/test-putty-gui-browser.mjs",
     "build:gui-controls": "sh scripts/build-gui-controls.sh",
     "build:legacy-text": "sh scripts/build-legacy-text-fixture.sh",
+    "build:statusbar": "sh scripts/build-statusbar-fixture.sh",
+    "test:statusbar": "node scripts/test-statusbar-browser.mjs",
     "test:legacy-text": "node scripts/test-legacy-text-browser.mjs",
     "build:host-subclass": "sh scripts/build-host-subclass-fixture.sh",
     "test:host-subclass": "node scripts/test-host-subclass-browser.mjs",
