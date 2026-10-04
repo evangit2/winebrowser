@@ -1,7 +1,9 @@
 import './desktop.css';
+import { paintRect } from './gdi-raster.js';
 import { stripCaptionMnemonics } from './caption-text.js';
 import { CURSOR_STYLES, CURSOR_SIZE } from './cursors.js';
 import { compareWindowOrder, windowFrame } from './window-frame.js';
+import { createReportControl, applyReportControl } from './desktop-report.js';
 
 const MIN_CLIENT_WIDTH = 64;
 const MIN_CLIENT_HEIGHT = 48;
@@ -601,6 +603,8 @@ export class VirtualDesktop {
         'tabcontrol',
         'statusbar',
         'toolbar',
+        'progress',
+        'listview',
         'combobox',
         'listbox',
         'custom',
@@ -718,6 +722,8 @@ export class VirtualDesktop {
         'virtual-desktop-control virtual-desktop-control-list' +
         (controlType === 'combobox' ? ' virtual-desktop-control-combo' : '');
       if (comboType === 1) element.classList.add('virtual-desktop-control-combo-simple');
+    } else if (controlType === 'progress' || controlType === 'listview') {
+      element = createReportControl(controlType);
     } else if (controlType === 'treeview') {
       element = document.createElement('div');
       element.className = 'virtual-desktop-control virtual-desktop-control-tree';
@@ -1346,7 +1352,42 @@ export class VirtualDesktop {
       if (multiline)
         control.element.style.whiteSpace = state.controlStyle?.autoHScroll ? 'pre' : 'pre-wrap';
     }
+    // Native group boxes are transparent to mouse hits over sibling controls.
+    const hitStyle = state.controlStyle ?? control.controlStyle;
+    control.container.style.pointerEvents =
+      hitStyle?.groupBox || hitStyle?.buttonType === 'group-box' ? 'none' : 'auto';
+    if (state.controlColors) {
+      const color = (value) =>
+        `rgb(${value & 255}, ${(value >>> 8) & 255}, ${(value >>> 16) & 255})`;
+      const colors = state.controlColors;
+      control.element.style.color = color(colors.text);
+      control.element.style.backgroundColor = colors.transparent
+        ? 'transparent'
+        : color(colors.background);
+      control.element.style.backgroundImage = '';
+      if (colors.hatch !== undefined) {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 8;
+        const pixels = new Uint8ClampedArray(8 * 8 * 4);
+        paintRect(
+          { width: 8, height: 8, pixels },
+          0,
+          0,
+          8,
+          8,
+          { color: colors.background, hatch: colors.hatch },
+          'copy',
+          { backgroundColor: colors.hatchBackground, bkMode: colors.backgroundMode },
+        );
+        canvas.getContext('2d').putImageData(new ImageData(pixels, 8, 8), 0, 0);
+        control.element.style.backgroundImage = `url(${canvas.toDataURL()})`;
+        control.element.style.backgroundColor =
+          colors.backgroundMode === 1 ? 'transparent' : color(colors.hatchBackground);
+      }
+    }
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
+    if (state.progress || state.report)
+      applyReportControl(control.element, state, (type, data) => this.#emit(control.id, type, data));
     if (state.list && (control.listSelect || control.tabList)) this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);

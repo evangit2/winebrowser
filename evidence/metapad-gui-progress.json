@@ -1,10 +1,10 @@
 {
-  "date": "2026-10-04T13:24:00Z",
+  "date": "2026-10-04T17:01:53.130494+00:00",
   "target": "Metapad 3.6 Light Edition, official native i386 binary",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "binarySource": "https://liquidninja.com/metapad/downloads/metapad36LE.zip",
   "upstreamSource": "https://github.com/alexd/metapad",
-  "status": "passed-editor-dialogs-and-settings",
+  "status": "passed-editor-settings-and-appearance",
   "missingImports": [],
   "sourceFindings": [
     "Upstream Find/Replace dialogs call CreateMappedBitmap with flags 0 and the default color map",
@@ -19,10 +19,12 @@
     "The pinned unchanged Metapad 3.6 LE executable passes actual Chromium startup without error notices, file-drop loading, text editing, Ctrl+S native filesystem writes, output export, re-upload/command-line reopen and two clean zero exits. Browser x86 compilation takes 0.58-1.08 seconds in this recorded static run.",
     "Shared GetOpenFileNameA/W and GetSaveFileNameA/W now return actual browser selections, import local snapshots and honor native filename buffers/offsets/default extensions and overwrite confirmation. Unchanged Metapad native Open and Save As passes real file creation, overwrite and reopen acceptance in Chromium.",
     "Native custom Find/Replace windows exposed unsupported CB_LIMITTEXT/CB_SETEDITSEL. Shared editable ComboBox limits/selection and browser keyboard routing now pass unchanged Metapad Find Next and Replace All, with two replacements and exact native Ctrl+S output bytes. Chromium macOS Control+H had also been deleting selected text before opening Replace; browser edits for native shortcut chords are prevented.",
-    "Classic/extended resource FONT data now creates real HFONTs before initialization, controls use measured dialog units and MapDialogRect matches geometry. Unchanged Metapad four-page Settings passes native validation, Cancel rollback, OK applying six-space indentation and file-backed portable INI export/re-upload persistence. Font-aware tab sizing and native escaped-ampersand presentation also pass."
+    "Classic/extended resource FONT data now creates real HFONTs before initialization, controls use measured dialog units and MapDialogRect matches geometry. Unchanged Metapad four-page Settings passes native validation, Cancel rollback, OK applying six-space indentation and file-backed portable INI export/re-upload persistence. Font-aware tab sizing and native escaped-ampersand presentation also pass.",
+    "Shared ChooseColorA/W now returns real browser color choices, preserves native custom palettes and executes ColorOK owner veto. Native control-color callbacks use borrowed HDCs and display actual brush/text colors; groupbox frames no longer intercept sibling-control clicks. Unchanged Metapad View settings passes chosen font/color rendering and native INI export/reupload restoration with two zero exits."
   ],
-  "scope": "ANSI editing/drop/save/reopen, standard Open/Save As, bounded Find Next/Replace All and four-page Settings/portable INI acceptance. RichEdit, single Replace, advanced matching, language plugins, font/color pickers, encodings and other commands remain unverified; native file-dialog hooks/templates and legacy multiselect remain incomplete; no installed printers. Executable stays privately cached. Arbitrary Windows compatibility is unproved.",
+  "scope": "ANSI editing/drop/save/reopen, standard Open/Save As, bounded Find Next/Replace All and four-page Settings/portable INI acceptance. RichEdit, single Replace, advanced matching, language plugins, encodings and other commands remain unverified; native file-dialog hooks/templates and legacy multiselect remain incomplete; no installed printers. Executable stays privately cached. Arbitrary Windows compatibility is unproved.",
   "acceptance": "evidence/metapad-gui-browser-results.json",
   "additionalAcceptance": "evidence/metapad-find-browser-results.json",
-  "settingsAcceptance": "evidence/metapad-settings-browser-results.json"
+  "settingsAcceptance": "evidence/metapad-settings-browser-results.json",
+  "appearanceAcceptance": "evidence/metapad-appearance-browser-results.json"
 }

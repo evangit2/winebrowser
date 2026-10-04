@@ -5,6 +5,8 @@ import { describeTree } from './win32-treeview.js';
 import { describeTabs } from './win32-tabs.js';
 import { describeStatusbar } from './win32-statusbar.js';
 import { describeToolbar } from './win32-toolbar.js';
+import { describeProgress } from './win32-progress.js';
+import { describeListview } from './win32-listview.js';
 import { legacyUiApis } from './win32-legacy-ui.js';
 import { resolveGuestPath } from './guest-paths.js';
 import {
@@ -19,6 +21,9 @@ import { sendWindowMessage } from './win32-window-text.js';
 import {
   gdiApis,
   describeGdiFont,
+  describeGdiBrush,
+  activeGdiDC,
+  acquireControlColorDC,
   flushGdi,
   resizeWindowSurface,
   destroyWindowSurface,
@@ -357,6 +362,7 @@ export class WindowManager {
         zOrder: window.zOrder,
         frame: parentId ? undefined : frameForWindow(window),
         font,
+        controlColors: window.controlColors,
         readOnly,
         textLimit,
         selection:
@@ -376,6 +382,8 @@ export class WindowManager {
         tabs: describeTabs(window),
         statusbar: describeStatusbar(window),
         toolbar: describeToolbar(window),
+        progress: describeProgress(window),
+        report: describeListview(window),
         list: describeList(window),
       },
     });
@@ -458,6 +466,7 @@ export class WindowManager {
   }
   async baseControlMessage(window, message, wParam, lParam, textWide) {
     if (window.ownerDraw && message === 0xf) return paintOwnerDraw(this.runtime, window);
+    if (message === 0xf && colorControl(window)) return paintControlColors(this.runtime, window);
     return controlMessage(
       this.runtime,
       window,
@@ -489,6 +498,7 @@ export class WindowManager {
       this.runtime.lastError = 1400;
       return 0;
     }
+    if (message === 0xa) invalidateControlColors(this, hwnd);
     if (message === EDIT_INPUT && window.pendingTextEvents?.has(wParam)) {
       const value = window.pendingTextEvents.get(wParam);
       window.pendingTextEvents.delete(wParam);
@@ -567,6 +577,7 @@ export class WindowManager {
     if (window.dialogResourceFont)
       gdiApis['gdi32.dll!DeleteObject'](this.runtime, () => window.dialogResourceFont);
     this.windows.delete(hwnd);
+    if (window.ownerId && window.visible) invalidateControlColors(this, window.ownerId);
     this.runtime.dialogs?.byWindow.delete(hwnd);
     this.wake?.();
     this.wake = null;
@@ -869,7 +880,10 @@ export class WindowManager {
       };
       if (
         this.isVisible(window.id) &&
-        (!window.controlType || window.controlType === 'custom' || window.ownerDraw) &&
+        (!window.controlType ||
+          window.controlType === 'custom' ||
+          window.ownerDraw ||
+          colorControl(window)) &&
         (window.invalid || window.internalPaint) &&
         accepts(message)
       ) {
@@ -1339,12 +1353,14 @@ async function defaultProc(r, a, wide) {
   }
   return result(0, 4);
 }
-async function beginPaint(r, a) {
+async function beginPaint(r, a, controlColorCallback = false) {
   const w = r.windows.windows.get(a(0)),
     p = a(1);
   if (!w) return r.windows.fail(1400, 2);
   r.check(p, 64, true);
-  const dc = gdiApis['user32.dll!GetDC'](r, (i) => (i ? 0 : w.id)).result;
+  const dc = controlColorCallback
+    ? acquireControlColorDC(r, w.id)
+    : gdiApis['user32.dll!GetDC'](r, (i) => (i ? 0 : w.id)).result;
   if (!dc) return result(0, 2);
   r.data.fill(0, p, p + 64);
   r.write32(p, dc);
@@ -1363,6 +1379,69 @@ async function beginPaint(r, a) {
   if (erase)
     r.write32(p + 4, (await r.windows.send(w.id, 0x14, dc)) ? 0 : w.cls.background ? 0 : 1);
   return result(dc, 2);
+}
+
+// Ordinary DOM-backed controls still execute their native parent's color
+// callbacks with a real borrowed HDC. Colors are copied before releasing it.
+function colorControl(window) {
+  return ['edit', 'static', 'button', 'listbox'].includes(window.controlType);
+}
+function invalidateControlColors(manager, hwnd) {
+  for (const control of manager.windows.values()) {
+    if (!colorControl(control)) continue;
+    let current = control;
+    while (current) {
+      if (current.id === hwnd) {
+        manager.invalidate(control, null, true);
+        break;
+      }
+      current = manager.windows.get(current.parentId);
+    }
+  }
+}
+async function paintControlColors(r, window) {
+  const paint = r.allocate(64);
+  let dc = 0;
+  try {
+    dc = (await beginPaint(r, (i) => [window.id, paint][i], true)).result;
+    if (!dc) throw Error(`Native control color HDC unavailable (${r.lastError})`);
+    if (!r.windows.windows.has(window.id)) return 0;
+    const message =
+      window.controlType === 'edit'
+        ? window.readOnly || !r.windows.isEnabled(window.id)
+          ? 0x138
+          : 0x133
+        : { static: 0x138, button: 0x135, listbox: 0x134 }[window.controlType];
+    if (window.fontHandle) gdiApis['gdi32.dll!SelectObject'](r, (i) => [dc, window.fontHandle][i]);
+    let brushHandle;
+    if (window.parentId)
+      brushHandle = await r.windows.send(window.parentId, message, dc, window.id);
+    else
+      brushHandle = (
+        await defaultProc(r, (i) => [window.id, message, dc, window.id][i], window.cls.wide)
+      ).result;
+    if (!r.windows.windows.has(window.id)) return 0;
+    const state = activeGdiDC(r, dc),
+      brush = describeGdiBrush(r, brushHandle);
+    if (state) {
+      window.controlColors = {
+        text: state.textColor,
+        background: brush && !brush.null ? brush.color : state.backgroundColor,
+        transparent: !!brush?.null || !brushHandle,
+        hatch: brush?.hatch,
+        hatchBackground: state.backgroundColor,
+        backgroundMode: state.bkMode,
+      };
+      r.windows.emit(window);
+    }
+    return 0;
+  } finally {
+    if (dc) {
+      gdiApis['user32.dll!ReleaseDC'](r, (i) => [window.id, dc][i]);
+      destroyWindowSurface(r, window.id);
+    }
+    r.free(paint);
+  }
 }
 
 // SS_OWNERDRAW is painted by the parent's WNDPROC, using a real child HDC.

@@ -4,6 +4,7 @@
 // object that reports an empty composition and accepts the font/window calls a
 // program makes while setting one up. File and font dialogs use actual
 // browser pickers and return native A/W output structures.
+import { chooseBrowserColor } from './win32-color-dialog.js';
 import { chooseBrowserFont } from './win32-font-dialog.js';
 import { chooseBrowserFile } from './win32-file-dialog.js';
 
@@ -350,25 +351,9 @@ async function messageBoxIndirect(r, a, wide = true) {
   const answer = await r.request('messagebox', detail);
   return ok(answer, 1);
 }
-// ChooseColorA/W takes a CHOOSECOLORA/W. No native colour picker can open in
-// the sandbox, so this validates the structure and reports the documented
-// user-cancel result; the caller's colour fields are left untouched.
-function chooseColor(r, a) {
-  r.commonDialogError = 0;
-  const pointer = a(0);
-  if (!pointer) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  if (r.guestMemory.read(pointer, 4) !== 36) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  r.check(pointer, 36);
-  const owner = r.read32(pointer + 4);
-  if (owner && !r.windows.windows.has(owner)) return fail(r, ERROR_INVALID_PARAMETER, 1);
-  const customColors = r.read32(pointer + 16);
-  if (customColors) r.check(customColors, 64, true);
-  r.lastError = 0;
-  return ok(0, 1);
-}
 export const dialogExtraApis = {
   'user32.dll!MessageBoxIndirectW': messageBoxIndirect,
   'user32.dll!MessageBoxIndirectA': (r, a) => messageBoxIndirect(r, a, false),
-  'comdlg32.dll!ChooseColorA': chooseColor,
-  'comdlg32.dll!ChooseColorW': chooseColor,
+  'comdlg32.dll!ChooseColorA': chooseBrowserColor,
+  'comdlg32.dll!ChooseColorW': chooseBrowserColor,
 };

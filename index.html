@@ -128,6 +128,40 @@
         </div>
       </form>
     </dialog>
+    <dialog id="color-dialog" aria-labelledby="color-title">
+      <h2 id="color-title">Choose a color</h2>
+      <form id="color-form">
+        <fieldset>
+          <legend>Basic colors</legend>
+          <div id="color-basic" class="color-swatches"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Custom colors</legend>
+          <div id="color-custom" class="color-swatches"></div>
+        </fieldset>
+        <p id="color-preview" aria-live="polite"></p>
+        <button type="button" id="color-expand">Define custom colors</button>
+        <fieldset id="color-advanced">
+          <legend>Color values</legend>
+          <label>Color <input id="color-rgb" type="color" /></label>
+          <label
+            >Red <input id="color-red" type="number" min="0" max="255" step="1" required
+          /></label>
+          <label
+            >Green <input id="color-green" type="number" min="0" max="255" step="1" required
+          /></label>
+          <label
+            >Blue <input id="color-blue" type="number" min="0" max="255" step="1" required
+          /></label>
+          <button type="button" id="color-add">Add to custom colors</button>
+        </fieldset>
+        <div class="file-picker-actions">
+          <button type="button" id="color-stop">Stop program</button
+          ><button type="button" id="color-cancel">Cancel</button
+          ><button type="submit" id="color-ok">Choose color</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="font-dialog" aria-labelledby="font-dialog-title">
       <h2 id="font-dialog-title">Choose a font</h2>
       <form id="font-form">

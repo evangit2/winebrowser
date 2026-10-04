@@ -229,14 +229,19 @@ function getDesktopWindow(runtime) {
   return success(DESKTOP_WINDOW);
 }
 
-function getDC(runtime, argument) {
+function getDC(runtime, argument, controlColorCallback = false) {
   const state = stateFor(runtime);
   const hwnd = argument(0) >>> 0;
   if (hwnd === 0 || hwnd === DESKTOP_WINDOW) state.desktopActive = true;
   if (hwnd !== 0 && hwnd !== DESKTOP_WINDOW) {
     const window = runtime.windows?.windows?.get(hwnd);
     if (!window) return failure(runtime, ERROR_INVALID_WINDOW_HANDLE, 0, 1);
-    if (window.controlType && window.controlType !== 'custom' && !window.ownerDraw)
+    if (
+      !controlColorCallback &&
+      window.controlType &&
+      window.controlType !== 'custom' &&
+      !window.ownerDraw
+    )
       return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 1);
     if (
       !state.windowSurfaces.has(hwnd) &&
@@ -260,6 +265,12 @@ function getDC(runtime, argument) {
     currentPoint: { x: 0, y: 0 },
   });
   return allocated;
+}
+
+// This borrowed child HDC exists only during native WM_CTLCOLOR callbacks.
+// General GetDC painting on DOM controls still needs a visible drawing bridge.
+export function acquireControlColorDC(runtime, hwnd) {
+  return getDC(runtime, () => hwnd, true).result;
 }
 
 /** Resize or create the client-area bitmap backing a virtual HWND. */
@@ -2256,6 +2267,11 @@ export function describeGdiBitmap(runtime, handle) {
   return bitmap
     ? { width: bitmap.width, height: bitmap.height, pixels: new Uint8ClampedArray(bitmap.pixels) }
     : null;
+}
+/** Clone a control's background brush without taking native ownership. */
+export function describeGdiBrush(runtime, handle) {
+  const brush = states.get(runtime)?.brushes.get(handle >>> 0);
+  return brush ? { ...brush } : null;
 }
 /** A read-only, cloned descriptor for DOM control font propagation. */
 export function describeGdiFont(runtime, handle) {

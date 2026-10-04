@@ -335,6 +335,51 @@ try {
     false,
   );
   assert.equal(await page.locator('.virtual-desktop-control-container').count(), 4);
+  const brushPixels = await page.evaluate(async () => {
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: {
+        id: 4,
+        controlColors: {
+          text: 0xa05014,
+          background: 0xfff0e8,
+          transparent: false,
+          hatch: 4,
+          hatchBackground: 0x554433,
+          backgroundMode: 2,
+        },
+      },
+    });
+    const element = document.querySelector('[data-window-id="4"]');
+    const url = element.style.backgroundImage.slice(5, -2);
+    const bitmap = await createImageBitmap(await (await fetch(url)).blob());
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 8;
+    const context = canvas.getContext('2d');
+    context.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return {
+      color: getComputedStyle(element).color,
+      pixels: [...context.getImageData(0, 0, 8, 8).data],
+    };
+  });
+  assert.equal(brushPixels.color, 'rgb(20, 80, 160)');
+  for (let y = 0; y < 8; y++)
+    for (let x = 0; x < 8; x++)
+      assert.deepEqual(
+        brushPixels.pixels.slice((y * 8 + x) * 4, (y * 8 + x) * 4 + 4),
+        x === 0 || y === 0 ? [232, 240, 255, 255] : [51, 68, 85, 255],
+      );
+  await page.evaluate(() =>
+    window.virtualDesktop.update({
+      operation: 'update',
+      window: { id: 4, controlColors: { text: 0, background: 0xffffff, transparent: true } },
+    }),
+  );
+  assert.equal(
+    await page.locator('[data-window-id="4"]').evaluate((e) => getComputedStyle(e).backgroundColor),
+    'rgba(0, 0, 0, 0)',
+  );
   await page.evaluate(() => {
     const desktop = window.virtualDesktop;
     desktop.update({
@@ -374,7 +419,11 @@ try {
   const commandsBefore = await page.evaluate(
     () => window.desktopEvents.filter((e) => e.type === 'command').length,
   );
-  await group.locator('legend').click();
+  const captionBounds = await group.locator('legend').boundingBox();
+  await page.mouse.click(
+    captionBounds.x + captionBounds.width / 2,
+    captionBounds.y + captionBounds.height / 2,
+  );
   assert.equal(
     await page.evaluate(() => window.desktopEvents.filter((e) => e.type === 'command').length),
     commandsBefore,
@@ -385,6 +434,36 @@ try {
   );
   assert.equal(await group.locator('legend').textContent(), 'Renamed');
   assert.equal(await page.locator('[data-window-id="11"]').textContent(), 'Inside group');
+  await page.evaluate(() => {
+    window.virtualDesktop.update({ operation: 'update', window: { id: 10, zOrder: 100 } });
+    window.virtualDesktop.update({
+      operation: 'create',
+      window: {
+        id: 13,
+        parentId: 1,
+        controlType: 'button',
+        title: 'Inside sibling group',
+        controlStyle: { buttonType: 'push' },
+        x: 220,
+        y: 145,
+        width: 135,
+        height: 24,
+        visible: true,
+        enabled: true,
+        zOrder: 0,
+      },
+    });
+  });
+  await page.getByRole('button', { name: 'Inside sibling group', exact: true }).click();
+  assert.ok(
+    await page.evaluate(() =>
+      window.desktopEvents.some((e) => e.windowId === 13 && e.type === 'command'),
+    ),
+    'a native group frame above sibling controls must allow their mouse input',
+  );
+  await page.evaluate(() =>
+    window.virtualDesktop.update({ operation: 'destroy', window: { id: 13 } }),
+  );
   await page.evaluate(() =>
     window.virtualDesktop.update({ operation: 'destroy', window: { id: 10 } }),
   );

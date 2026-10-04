@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T17:02:39.054Z",
+  "url": "http://127.0.0.1:4377/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "4f96a4394559c4be8aa58ed61795bfd1b346d2dd3ad5013a362a6306b828ece5",
+  "compiledBlocks": 68,
+  "x86TranslationMs": 49.00999987125397,
+  "checks": [
+    "Native ChooseColorA/W share a real picker and COLORREF byte order; initial RGB and Escape cancellation preserve result and untouched custom palette",
+    "Native registered ColorOK owner veto reopens the pending selection, preserves palette and next custom slot, then accepts a different RGB color; disabled owner is restored",
+    "Custom colors use native column order and survive Cancel; RGB numeric fields and selected custom colors feed unchanged native memory",
+    "CC_PREVENTFULLOPEN hides/disables custom expansion even with CC_FULLOPEN; unsupported hooks return an explicit common-dialog error",
+    "Stop and replacement dismiss pending pickers; replacement native executable receives no stale response and exits zero"
+  ],
+  "scope": "Solid RGB A/W color selection, custom colors and owner ColorOK validation. Native dialog HWNDs/hooks/templates/help, arbitrary GUI frameworks, palette devices and exact Windows dialog rendering remain incomplete."
+}

@@ -264,3 +264,39 @@ dialog p {
   border: 1px solid #84909b;
   margin-bottom: 12px;
 }
+
+#color-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: auto;
+}
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+}
+.color-swatch {
+  height: 30px;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid #84909b;
+}
+.color-swatch[aria-pressed='true'] {
+  outline: 2px solid #183b69;
+  outline-offset: 1px;
+}
+#color-preview {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #84909b;
+}
+#color-advanced label {
+  display: inline-block;
+  margin: 8px 4px;
+}
+#color-advanced input[type='number'] {
+  width: 64px;
+}
+#color-stop {
+  margin-right: auto;
+}

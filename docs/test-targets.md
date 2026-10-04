@@ -97,3 +97,32 @@ hit testing and page margins. Explicit tab dimensions still take precedence.
 Evidence is in `evidence/metapad-settings-browser-results.json`. Font/color
 pickers, language plugins, printing and arbitrary GUI frameworks remain
 unproved; these bounded tests do not establish universal Windows compatibility.
+
+`ChooseColorA/W` now use an actual browser color picker instead of forced
+cancellation. The shared PE32 structure retains COLORREF byte order and the
+caller's 16 custom colors, including palette additions on Cancel and the
+column order used by Wine. `CC_RGBINIT`, full-open/prevent-full-open and solid
+RGB choices work. The native owner receives the registered `commdlg_ColorOK`
+message and can veto acceptance. Owner enable state and pending pickers survive
+Cancel, Stop and package replacement. Native hooks/templates/help fail explicitly.
+The palette behavior follows [Wine's color dialog](https://github.com/wine-mirror/wine/blob/master/dlls/comdlg32/colordlg.c).
+
+Ordinary edit/static/button/list controls now run native `WM_CTLCOLOR` callbacks
+with a borrowed child HDC during painting, and copy its text/background brush
+colors into the browser control. Solid/null/hatch brushes retain their native
+ownership; hatch tiles use the same rasterizer as GDI. Read-only and disabled
+edits send `WM_CTLCOLORSTATIC`. Enable changes and closing an owned dialog
+invalidate underlying control colors. Borrowed contexts/surfaces are released;
+general `GetDC` drawing on DOM controls remains incomplete and still reports
+an explicit unsupported result. Group-box frames now let mouse clicks reach
+sibling controls, while actual nested HWND controls remain interactive.
+
+`npm run test:color-dialogs` runs authored native A/W buffers, custom colors,
+ColorOK veto and lifecycle acceptance. `npm run test:metapad-appearance` runs the
+unchanged Metapad View page: font and color pickers set the preview and actual
+editor, native INI output records those choices, and uploading that output
+restores them in a fresh run. Evidence is in
+`evidence/color-dialogs-browser-results.json` and
+`evidence/metapad-appearance-browser-results.json`. Native common-dialog HWNDs,
+indexed palettes, printing, language plugins and arbitrary GUI frameworks remain
+unproved.
