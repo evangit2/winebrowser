@@ -86,3 +86,10 @@ shader compilation, animation, controls and shutdown regression also passes. The
 startup blocker; current gameplay acceptance is linked above. See `evidence/processes-live-deployment.json`,
 `evidence/processes-live-browser-results.json`, and
 `evidence/processes-airxonix-live-results.json`.
+
+The later deployment `eb6deee11fcf00601ae0679b4f00daa1e97b0058` verifies playable
+AirXonix through the unchanged launcher and direct game selection on live Pages.
+The textured first level, arrow input, pause/resume, return to menu and every
+process exit zero pass. Current evidence is
+`evidence/directdraw-airxonix-live-deployment.json`; the earlier process reports
+above retain the blockers observed at those earlier revisions.

@@ -1,0 +1,83 @@
+{
+  "verifiedAt": "2026-10-05T00:54:41.102Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedCommit": "eb6deee11fcf00601ae0679b4f00daa1e97b0058",
+  "workflow": "https://github.com/evangit2/winebrowser/actions/runs/37246444151",
+  "ciConclusion": "success",
+  "assets": [
+    {
+      "path": "assets/index-uNZ7y9F0.css",
+      "bytes": 11368,
+      "sha256": "074176178011b804ad7ee6a67639f665e6b03307ac95aebf880d4c096fd4dca4",
+      "matches": true
+    },
+    {
+      "path": "assets/index-xKRVI-pw.js",
+      "bytes": 75400,
+      "sha256": "b916564d12cea3f6cd12c29621b1a17f346f512b363a1e7d09b7b96e12b3aba6",
+      "matches": true
+    },
+    {
+      "path": "assets/worker-EgSSgrpi.js",
+      "bytes": 1534635,
+      "sha256": "f75648e0dd57129b2afb8c01d82fed438f7044ef0a3241cc1faa6d3afc7322b3",
+      "matches": true
+    }
+  ],
+  "gameAcceptance": "evidence/directdraw-airxonix-live-results.json",
+  "nativeRegression": "evidence/directdraw-airxonix-live-regression.json",
+  "binariesRedistributed": false,
+  "runtimeExecutableSpecificBranches": false,
+  "archiveSha256": "d4f77c84a6f798bf856aca296cf2cb1948267df18241bb0bc797b93f1b710df7",
+  "gameFrameVerified": true,
+  "playable": true,
+  "runs": [
+    {
+      "executable": "airxonix.exe",
+      "fps": 7.901476814824156,
+      "levelLoadMs": 17242.650459,
+      "processes": [
+        {
+          "exe": "airxonix/airxonix.exe",
+          "exitCode": 0
+        },
+        {
+          "exe": "airxonix/program.exe",
+          "exitCode": 0
+        }
+      ],
+      "checks": [
+        "unchanged complete private ZIP",
+        "native launcher/startup dialog",
+        "animated 3D menu",
+        "textured first level",
+        "arrow-key ship movement",
+        "pause/resume timer",
+        "Ctrl+Q main menu",
+        "native Exit menu and every process exit zero"
+      ]
+    },
+    {
+      "executable": "program.exe",
+      "fps": 8.254404715444212,
+      "levelLoadMs": 19084.942958,
+      "processes": [
+        {
+          "exe": "airxonix/program.exe",
+          "exitCode": 0
+        }
+      ],
+      "checks": [
+        "unchanged complete private ZIP",
+        "native launcher/startup dialog",
+        "animated 3D menu",
+        "textured first level",
+        "arrow-key ship movement",
+        "pause/resume timer",
+        "Ctrl+Q main menu",
+        "native Exit menu and every process exit zero"
+      ]
+    }
+  ],
+  "scope": "Unchanged private AirXonix v1.36 launcher and direct game selection: native startup dialog, animated menu, textured Easy first level, movement, pause/resume, return to menu and clean process exits. Later levels and the full game are not verified."
+}

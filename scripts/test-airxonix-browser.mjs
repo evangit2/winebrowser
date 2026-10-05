@@ -199,14 +199,18 @@ try {
     const moved = await capture('move');
     assert.ok(moved.ship && moved.ship.x > level.ship.x + 10, 'arrow input moves the actual ship');
     assert.notEqual(moved.boardHash, level.boardHash);
-    await page.keyboard.press('p');
+    await page.keyboard.down('p');
+    await page.waitForTimeout(350);
+    await page.keyboard.up('p');
     await page.waitForTimeout(1000);
     const paused = await capture('pause');
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(5000);
     const stillPaused = await capture('pause-stable');
     assert.equal(stillPaused.timerHash, paused.timerHash, 'P freezes the level timer');
-    await page.keyboard.press('p');
-    await page.waitForTimeout(3000);
+    await page.keyboard.down('p');
+    await page.waitForTimeout(350);
+    await page.keyboard.up('p');
+    await until('resumed level timer', (s) => s.timerHash !== paused.timerHash, 15000);
     const resumed = await capture('resume');
     assert.notEqual(resumed.timerHash, paused.timerHash, 'P resumes the level timer');
     const perfStart = performance.now(),

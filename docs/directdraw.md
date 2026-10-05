@@ -104,6 +104,16 @@ The independent fixtures still verify frontbuffer/backbuffer pixels and depth.
 
 ## Deployment verification
 
+The full GitHub gate passed for `eb6deee11fcf00601ae0679b4f00daa1e97b0058`.
+Live Pages JavaScript, worker and CSS bytes match the verified static build,
+including Wine Unix diagnostic service 2. Both private AirXonix launch paths
+passed native menus, the textured first level, arrow movement, five seconds of
+paused timer stability, resumed countdown, return to menu and every process
+exit zero. Live gameplay measured 7.9–8.3 FPS and first-level loading 17–19 seconds.
+All six independent DD1/DD7/D3D7 pixel and depth regressions passed there too.
+See `evidence/directdraw-airxonix-live-deployment.json` and its linked reports.
+Later game levels remain unverified.
+
 The full GitHub gate passed for `aaf9e2c56ecf81d7caec1f8623f71fe3a7304fcb`.
 Live Pages uploads passed all six DD1/DD7/D3D7 acceptance runs, and the OpenGL
 shader compilation, animation, camera/pause controls and shutdown regression
