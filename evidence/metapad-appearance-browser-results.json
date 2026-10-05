@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-04T17:02:47.113Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T23:46:10.408Z",
+  "url": "http://127.0.0.1:4214/winebrowser/",
   "browser": "154.0.8037.97",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "status": "passed-font-and-color-settings",
@@ -10,7 +10,7 @@
     0
   ],
   "compiledBlocks": 5775,
-  "x86TranslationMs": 1327.6700010299683,
+  "x86TranslationMs": 928.6049985587597,
   "appearance": {
     "font": "italic 700 24px Arial",
     "color": "rgb(20, 80, 160)",

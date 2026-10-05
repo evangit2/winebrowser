@@ -266,17 +266,8 @@ export class WindowManager {
     return this._active ?? 0;
   }
   set active(value) {
-    const previous = this._active ?? 0;
     this._active = value;
     this.runtime.directInput?.foregroundChanged();
-    if (previous !== value) {
-      if (previous && this.windows.has(previous) && !this.windows.get(previous).destroying) {
-        this.post(previous, 0x6, 0, value);
-      }
-      if (value && this.windows.has(value)) {
-        this.post(value, 0x6, 1, previous);
-      }
-    }
     this.applicationActivation(!!value && !this.appBlurred);
   }
   applicationActivation(active) {
