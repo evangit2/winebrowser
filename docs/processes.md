@@ -48,14 +48,13 @@ termination before resume. Browser results are saved in
 
 ## Private game acceptance
 
-The user's unchanged AirXonix v1.36 archive now launches `program.exe` from
-`AirXonix.exe` through native Wine. It gets past `NtCreateUserProcess`, then stops
-after an unsupported `IDirectDraw7.GetDeviceIdentifier` query, at the shared
-native C++ exception-dispatch gap, code `0xe06d7363`. The game is
-**not yet verified playable**; no game frame or gameplay acceptance has passed.
-The archive is used only as private local acceptance input and is not published.
-Native exception dispatch is a separate next milestone; no game-specific branch
-was added to this process runtime.
+The user's unchanged AirXonix v1.36 archive launches `program.exe` from
+`AirXonix.exe` through native Wine. The [DirectDraw/D3D7 acceptance](directdraw.md)
+now verifies its original startup dialog, animated menu, first level, movement,
+pause/resume, return to the menu and native exit. Both process exit results are
+checked. The archive is private local acceptance input and is not published.
+The runtime fixes apply to arbitrary programs; there is no game-specific process
+branch. See `evidence/directdraw-airxonix-results.json` for current gameplay evidence.
 
 ## Deployment regression repair
 
@@ -83,8 +82,7 @@ The complete GitHub gate and Pages deployment passed for
 [run 37096795046](https://github.com/evangit2/winebrowser/actions/runs/37096795046).
 The live main/worker bundle hashes match the locally validated build. All six
 launcher upload/window/Stop cases pass on the live site. The live OpenGL EXE/ZIP
-shader compilation, animation, controls and shutdown regression also passes. The unchanged private
-AirXonix archive starts process 2 (`program.exe`) there and reaches the same
-DirectDraw/native C++ exception blocker. See `evidence/processes-live-deployment.json`,
+shader compilation, animation, controls and shutdown regression also passes. The private AirXonix reports from that earlier deployment record the original
+startup blocker; current gameplay acceptance is linked above. See `evidence/processes-live-deployment.json`,
 `evidence/processes-live-browser-results.json`, and
 `evidence/processes-airxonix-live-results.json`.

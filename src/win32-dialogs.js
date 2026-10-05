@@ -267,7 +267,9 @@ async function buildDialogWithFont(r, template, owner, proc, instance, wide, chi
   const units = measureDialogUnits(font);
   const mapX = (value) => dialogX(units, value),
     mapY = (value) => dialogY(units, value);
-  const frame = child ? { border: 0, title: 0 } : windowFrame(template.style);
+  const frame = child
+    ? { border: 0, title: 0 }
+    : windowFrame(template.style, false, template.exStyle);
   const customClass =
     template.className && ![32770, 0x8002, '#32770', '32770'].includes(template.className);
   const created = await createWindowFromHost(r, {

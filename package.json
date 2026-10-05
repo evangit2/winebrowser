@@ -288,7 +288,8 @@
     "build:multi-lists": "sh scripts/build-multi-lists-fixture.sh",
     "test:multi-lists": "node scripts/test-multi-lists-browser.mjs",
     "build:owner-combos": "sh scripts/build-owner-combos-fixture.sh",
-    "test:owner-combos": "node scripts/test-owner-combos-browser.mjs"
+    "test:owner-combos": "node scripts/test-owner-combos-browser.mjs",
+    "test:airxonix": "node scripts/test-airxonix-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

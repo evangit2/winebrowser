@@ -98,7 +98,7 @@ export function controlStyle(kind, style, extended) {
     (['listbox', 'combobox'].includes(kind) && !!(local & 0x30)) ||
     (kind === 'static' && (local & 0x1f) === 0xd) ||
     buttonType === 'owner-draw';
-  if (kind === 'static' && (local & ~0x29f || ![0, 1, 2, 0xc, 0xd].includes(local & 0x1f)))
+  if (kind === 'static' && (local & ~0x29f || ![0, 1, 2, 0xc, 0xd, 0xe].includes(local & 0x1f)))
     throw Error(`Unsupported STATIC style 0x${local.toString(16)}`);
   // EDIT styles: ES_LEFT/CENTER/RIGHT (0x3), MULTILINE (0x4), UPPERCASE (0x8),
   // LOWERCASE (0x10), PASSWORD (0x20), AUTOVSCROLL (0x40), AUTOHSCROLL (0x80),
@@ -166,6 +166,7 @@ export function controlStyle(kind, style, extended) {
     notify: kind === 'button' && !!(local & 0x4000),
     icon: kind === 'button' && !!(local & 0x40),
     bitmap: kind === 'button' && !!(local & 0x80),
+    staticBitmap: kind === 'static' && (local & 0x1f) === 0xe,
     toggle:
       kind === 'button' &&
       ['checkbox', 'auto-checkbox', 'radio', 'auto-radio'].includes(buttonType),

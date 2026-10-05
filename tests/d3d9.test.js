@@ -2705,8 +2705,8 @@ test('D3D9 reads standalone targets into matching SYSTEMMEM surfaces with exact 
   assert.equal((await call(device, 32, src, dst)).result, 0);
   assert.equal(
     events.filter((e) => e.type === 'render').length,
-    2,
-    'pending rendering precedes source readback',
+    1,
+    'pending rendering and source readback share one GPU submission',
   );
   assert.equal((await call(dst, 13, lock, 0, 0x10)).result, 0);
   assert.equal(r.read32(lock), 16);
@@ -2857,4 +2857,34 @@ test('disabled D3D9 depth testing suppresses writes while retaining queried ZWRI
   assert.equal(command.depthWrite, false);
   await call(device, 58, 14, out);
   assert.equal(r.read32(out), 1);
+});
+
+test('active backbuffer readback combines pending draws and can avoid duplicate CPU storage', async () => {
+  const { runtime: r, create, call, events } = fixture(9, 4 * 1024 * 1024);
+  const device = await create(),
+    d = r.comObjects.objects.get(device),
+    back = d.state.backBuffer;
+  r.graphics.render = async (batch) => {
+    events.push({ type: 'render', ...batch });
+    const rgba = new Uint8Array(640 * 480 * 4);
+    for (let i = 0; i < rgba.length; i += 4) rgba.set([17, 33, 65, 129], i);
+    return rgba;
+  };
+  await call(device, 43, 0, 0, 1, 0xff112141, 0x3f800000, 0);
+  const { readTargetPixels } = await import('../src/d3d9-targets.js');
+  const rgba = await readTargetPixels(r, d, back, { store: false });
+  const renders = events.filter((e) => e.type === 'render');
+  assert.equal(renders.length, 1);
+  assert.equal(renders[0].commands.length, 1);
+  assert.equal(renders[0].readback, true);
+  assert.deepEqual([...rgba.slice(0, 4)], [17, 33, 65, 129]);
+  assert.equal(back.state.base, 0, 'DirectDraw owns its own pixel storage');
+  assert.equal(d.state.commands.length, 0);
+  await readTargetPixels(r, d, back);
+  assert.deepEqual(
+    [...r.data.slice(back.state.base, back.state.base + 4)],
+    [65, 33, 17, 255],
+    'ordinary D3D9 readbacks still populate opaque BGRA storage',
+  );
+  await call(device, 2);
 });

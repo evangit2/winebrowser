@@ -41,6 +41,7 @@ import {
 } from './win32-menus.js';
 import { virtualSystemMetric } from './win32-display.js';
 import { iconForHandle } from './win32-icons.js';
+import { staticBitmapMessage } from './win32-static-bitmaps.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
 import { windowFindApis } from './win32-window-find.js';
 import {
@@ -53,6 +54,7 @@ import {
 } from './window-frame.js';
 import { windowDataApis } from './win32-window-data.js';
 import { setWindowPos } from './win32-window-position.js';
+import { currentDisplayMode } from './win32-display.js';
 import { inputState } from './dinput-device.js';
 import { registerThunk } from './thunk-addresses.js';
 
@@ -264,8 +266,27 @@ export class WindowManager {
     return this._active ?? 0;
   }
   set active(value) {
+    const previous = this._active ?? 0;
     this._active = value;
     this.runtime.directInput?.foregroundChanged();
+    if (previous !== value) {
+      if (previous && this.windows.has(previous) && !this.windows.get(previous).destroying) {
+        this.post(previous, 0x6, 0, value);
+      }
+      if (value && this.windows.has(value)) {
+        this.post(value, 0x6, 1, previous);
+      }
+    }
+    this.applicationActivation(!!value && !this.appBlurred);
+  }
+  applicationActivation(active) {
+    if (this.appActive === active) return;
+    this.appActive = active;
+    // WM_ACTIVATEAPP belongs to the application, not an individual child or
+    // a switch between two of its top-level windows. Browser events queue it
+    // for the guest message loop so no guest callback runs on a host input stack.
+    for (const window of this.windows.values())
+      if (!window.parentId && !window.destroying) this.post(window.id, 0x1c, Number(active), 0);
   }
   fail(code, argc, value = 0) {
     this.runtime.lastError = code;
@@ -477,6 +498,15 @@ export class WindowManager {
     return pointer;
   }
   async baseControlMessage(window, message, wParam, lParam, textWide) {
+    const bitmapResult = await staticBitmapMessage(
+      this.runtime,
+      window,
+      message,
+      wParam,
+      lParam,
+      textWide,
+    );
+    if (bitmapResult !== null) return bitmapResult;
     if (window.ownerDraw && message === 0xf)
       return window.controlType === 'combobox'
         ? paintOwnerCombo(this.runtime, window)
@@ -755,12 +785,16 @@ export class WindowManager {
   input(event) {
     const directInput = inputState(this.runtime);
     if (event.type === 'app-blur') {
+      this.appBlurred = true;
+      this.applicationActivation(false);
       directInput.blur();
       this.keys.clear();
       this.keyboardState.clear();
       return;
     }
     if (event.type === 'app-focus') {
+      this.appBlurred = false;
+      this.applicationActivation(!!this.active);
       directInput.focused = true;
       return;
     }
@@ -1133,7 +1167,8 @@ async function create(r, a, wide) {
   if (cls.controlType && !child) throw Error('Standard controls require a parent window');
   const controlType = cls.controlType ?? (child ? 'custom' : undefined);
   const control = child ? controlStyle(controlType, a(3), a(0)) : {};
-  if (!child && a(0) & ~0x40018) throw Error('Unsupported extended window style');
+  if (!child && a(0) & ~0x40218)
+    throw Error('Unsupported extended window style 0x' + (a(0) >>> 0).toString(16));
   const count = [...m.windows.values()].filter((w) => !!w.parentId === child).length;
   if (count >= (child ? 256 : 8)) return m.fail(8, 12);
   const width = a(6) === 0x80000000 ? 480 : a(6) | 0,
@@ -1149,7 +1184,7 @@ async function create(r, a, wide) {
   const menu = child
     ? 0
     : a(9) || (cls.menuName ? loadClassMenu(r, a(10) || cls.instance, cls.menuName, wide) : 0);
-  const frame = windowFrame(a(3), !!menu),
+  const frame = windowFrame(a(3), !!menu, a(0)),
     border = child ? control.controlBorder : frame.border,
     titleHeight = child ? 0 : frame.title;
   if (
@@ -1250,9 +1285,22 @@ async function create(r, a, wide) {
 async function show(r, a) {
   const w = r.windows.windows.get(a(0));
   if (!w) return r.windows.fail(1400, 2);
-  if (![0, 1, 5, 8, 9, 10].includes(a(1)))
-    throw Error('Minimized/maximized windows are not implemented');
+  if (![0, 1, 3, 5, 8, 9, 10].includes(a(1))) throw Error('Unsupported ShowWindow command ' + a(1));
   const previous = w.visible;
+  if (a(1) === 3 && !w.parentId) {
+    w.normalRectangle ??= [w.x, w.y, ...outerWindowSize(w)];
+    w.showCmd = 3;
+    w.style = (w.style | 0x01000000) >>> 0;
+    const mode = currentDisplayMode(r);
+    const resized = await setWindowPos(r, (i) => [w.id, 0, 0, 0, mode.width, mode.height, 0x14][i]);
+    if (!resized.result) return result(previous ? 1 : 0, 2);
+  } else if ([1, 9].includes(a(1)) && w.normalRectangle) {
+    const [x, y, width, height] = w.normalRectangle;
+    w.showCmd = 1;
+    w.style = (w.style & ~0x01000000) >>> 0;
+    await setWindowPos(r, (i) => [w.id, 0, x, y, width, height, 0x14][i]);
+    delete w.normalRectangle;
+  }
   w.visible = a(1) !== 0;
   if (!w.parentId) {
     if (w.visible && a(1) !== 8) {
@@ -1264,7 +1312,7 @@ async function show(r, a) {
   await r.windows.send(w.id, 0x18, w.visible ? 1 : 0);
   if (w.visible) {
     r.windows.invalidate(w, null, true);
-    await r.windows.send(w.id, 5, 0, pair(w.width, w.height));
+    await r.windows.send(w.id, 5, w.showCmd === 3 ? 2 : 0, pair(w.width, w.height));
   }
   return result(previous ? 1 : 0, 2);
 }
@@ -1331,7 +1379,7 @@ async function defaultProc(r, a, wide) {
     if (!(flags & 0x1000))
       await r.windows.send(hwnd, 3, 0, pair(w.x + frame.border, w.y + frame.border + frame.title));
     if (!(flags & 0x800) && r.windows.windows.has(hwnd))
-      await r.windows.send(hwnd, 5, 0, pair(w.width, w.height));
+      await r.windows.send(hwnd, 5, w.showCmd === 3 ? 2 : 0, pair(w.width, w.height));
     return result(0, 4);
   }
   if (msg === 0x46) {
@@ -2184,10 +2232,11 @@ function getWindowPlacement(r, a) {
   r.write32(out + 16, 0);
   r.write32(out + 20, 0);
   r.write32(out + 24, 0);
-  r.write32(out + 28, x);
-  r.write32(out + 32, y);
-  r.write32(out + 36, x + outer.width);
-  r.write32(out + 40, y + outer.height);
+  const normal = window.normalRectangle ?? [x, y, outer.width, outer.height];
+  r.write32(out + 28, normal[0]);
+  r.write32(out + 32, normal[1]);
+  r.write32(out + 36, normal[0] + normal[2]);
+  r.write32(out + 40, normal[1] + normal[3]);
   return result(1, 2);
 }
 function setWindowPlacement(r, a) {
@@ -2565,10 +2614,10 @@ function adjustRect(r, a, extended) {
   // that would produce it. A menu adds the menu-bar height above the client
   // area, which is why the caller passes bMenu TRUE for a window with a menu.
   const menu = !!a(2);
-  if (extended && a(3) & ~0x40108) throw Error('Unsupported extended window styles');
+  if (extended && a(3) & ~0x40308) throw Error('Unsupported extended window styles');
   r.check(a(0), 16, true);
   const rect = [0, 4, 8, 12].map((i) => r.read32(a(0) + i) | 0);
-  const { border, title } = windowFrame(a(1));
+  const { border, title } = windowFrame(a(1), false, extended ? a(3) : 0);
   rectangle(r, a(0), [
     rect[0] - border,
     rect[1] - title - border - (menu ? MENU_BAR_HEIGHT : 0),

@@ -88,7 +88,7 @@ export function storeTargetPixels(runtime, surface, rgba) {
   if (surface.state.texture) invalidate(surface.state.texture);
 }
 
-export async function flushTargets(runtime, device) {
+export async function flushTargets(runtime, device, { readback, store = true } = {}) {
   const state = device.state;
   if (!state.commands.length) return;
   const target = targetDescription(runtime, device);
@@ -98,12 +98,13 @@ export async function flushTargets(runtime, device) {
     commands: [...state.commands],
     target,
     depth: depthDescription(runtime, device),
-    readback: !!target,
+    readback: readback ?? !!target,
   });
-  if (target) storeTargetPixels(runtime, state.renderTarget, rgba);
+  if ((readback ?? !!target) && store) storeTargetPixels(runtime, state.renderTarget, rgba);
   state.commands = [];
   state.frameBytes = state.frameTextureBytes = 0;
   state.textureSnapshots.clear();
+  return rgba;
 }
 
 // Binding retains private references, allowing GetRenderTarget to return a
@@ -197,7 +198,11 @@ export function validatedTarget(runtime, device, pointer, depth = false) {
   return surface;
 }
 
-export async function readTargetPixels(runtime, device, source) {
+export async function readTargetPixels(runtime, device, source, { store = true } = {}) {
+  // Read the current target in the same submission as its pending draws. A
+  // second empty render/readback only adds a GPU synchronization boundary.
+  if (source === device.state.renderTarget && device.state.commands.length)
+    return flushTargets(runtime, device, { readback: true, store });
   await flushTargets(runtime, device);
   const rgba = await runtime.graphics.render({
     id: device.state.id,
@@ -206,7 +211,7 @@ export async function readTargetPixels(runtime, device, source) {
     depth: null,
     readback: true,
   });
-  storeTargetPixels(runtime, source, rgba);
+  if (store) storeTargetPixels(runtime, source, rgba);
   return rgba;
 }
 

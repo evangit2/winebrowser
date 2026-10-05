@@ -32,6 +32,51 @@ async function makeRuntime(t) {
   return { runtime, events };
 }
 
+test('sunken top-level clients round-trip outer geometry through maximize and restore', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const hwnd = (
+    await call(r, 'user32.dll!CreateWindowExA', [
+      0x200,
+      atom,
+      r.allocString('Sunken'),
+      0,
+      13,
+      19,
+      300,
+      180,
+      0,
+      0,
+      r.pe.imageBase,
+      0,
+    ])
+  ).result;
+  assert.ok(hwnd);
+  const w = r.windows.windows.get(hwnd);
+  assert.deepEqual([w.width, w.height], [294, 146]);
+  const rect = r.allocate(16),
+    placement = r.allocate(44);
+  [0, 0, 294, 146].forEach((v, i) => r.write32(rect + i * 4, v));
+  assert.equal((await call(r, 'user32.dll!AdjustWindowRectEx', [rect, 0, 0, 0x200])).result, 1);
+  assert.deepEqual(
+    [0, 4, 8, 12].map((i) => r.read32(rect + i) | 0),
+    [-3, -31, 297, 149],
+  );
+  await call(r, 'user32.dll!ShowWindow', [hwnd, 3]);
+  assert.equal((await call(r, 'user32.dll!IsZoomed', [hwnd])).result, 1);
+  assert.deepEqual([w.x, w.y, w.width, w.height], [0, 0, 1018, 734]);
+  await call(r, 'user32.dll!GetWindowPlacement', [hwnd, placement]);
+  assert.equal(r.read32(placement + 8), 3);
+  assert.deepEqual(
+    [28, 32, 36, 40].map((i) => r.read32(placement + i)),
+    [13, 19, 313, 199],
+  );
+  await call(r, 'user32.dll!ShowWindow', [hwnd, 9]);
+  assert.deepEqual([w.x, w.y, w.width, w.height], [13, 19, 294, 146]);
+  assert.equal((await call(r, 'user32.dll!IsZoomed', [hwnd])).result, 0);
+});
+
 function api(runtime, name) {
   const handler = runtime.apiProvider.get(name);
   assert.ok(handler, `API is registered: ${name}`);
@@ -828,4 +873,55 @@ test('GetClassName preserves registered case, ANSI/Unicode conversion, truncatio
     assert.deepEqual(await call(r, name, [0, out, 20]), { result: 0, argc: 3 });
     assert.equal(r.lastError, 1400);
   }
+});
+
+test('application activation wakes the native message loop and follows browser focus without child activation', async (t) => {
+  const { runtime: r } = await makeRuntime(t),
+    proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const first = (await createWindow(r, atom)).result;
+  const second = (await createWindow(r, atom)).result;
+  await call(r, 'user32.dll!ShowWindow', [first, 5]);
+  const appMessages = () =>
+    r.windows.queue.filter((m) => m.message === 0x1c).map((m) => [m.hwnd, m.wParam]);
+  assert.deepEqual(appMessages(), [
+    [first, 1],
+    [second, 1],
+  ]);
+  r.windows.queue = [];
+  await call(r, 'user32.dll!SetActiveWindow', [second]);
+  assert.deepEqual(
+    appMessages(),
+    [],
+    'switching windows in one application does not deactivate it',
+  );
+  assert.deepEqual(
+    r.windows.queue.filter((m) => m.message === 6).map((m) => [m.hwnd, m.wParam, m.lParam]),
+    [
+      [first, 0, second],
+      [second, 1, first],
+    ],
+  );
+  r.windows.queue = [];
+  r.windows.input({ type: 'app-blur' });
+  r.windows.input({ type: 'app-blur' });
+  assert.deepEqual(appMessages(), [
+    [first, 0],
+    [second, 0],
+  ]);
+  r.windows.queue = [];
+  r.windows.input({ type: 'app-focus' });
+  r.windows.input({ type: 'app-focus' });
+  assert.deepEqual(appMessages(), [
+    [first, 1],
+    [second, 1],
+  ]);
+  const msg = r.allocate(28);
+  await call(r, 'user32.dll!GetMessageA', [msg, 0, 0x1c, 0x1c]);
+  assert.equal(r.read32(msg + 4), 0x1c);
+  assert.equal(r.read32(msg + 8), 1);
+  await call(r, 'user32.dll!DispatchMessageA', [msg]);
+  assert.ok(proc.messages().includes(0x1c), 'native guest WndProc receives the activation');
+  await r.windows.destroy(second);
+  assert.ok(!r.windows.queue.some((m) => m.hwnd === second), 'no activation to a destroyed window');
 });
