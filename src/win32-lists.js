@@ -14,12 +14,13 @@ import {
 } from './win32-owner-lists.js';
 import { decodeAnsi, encodeAnsi } from './encoding.js';
 import { dragListMessage } from './win32-draglist.js';
+import { listPointerMessage } from './win32-list-pointer.js';
 
 const USER_SELECT = 0x7fe0,
   USER_TEXT = 0x7fe1,
   USER_SCROLL = 0x7fe2;
 function nativeKeyboard(w) {
-  return w.ownerDraw || listMultiple(w) || !!(w.style & 0x480) || !!w.dragList || !!w.comboHostId;
+  return w.controlType === 'listbox' || w.ownerDraw;
 }
 function list(w) {
   return (w.list ??= {
@@ -46,11 +47,13 @@ export function describeList(w) {
     })),
     ownerDraw: !!w.ownerDraw,
     nativeKeyboard: !!nativeKeyboard(w),
+    nativePointer: w.controlType === 'listbox' && !w.dragList,
+    tracking: !!s.pointer,
     wantKeyboardInput: w.controlType === 'listbox' && !!(w.style & 0x400),
     multiple: listMultiple(w),
     caret: s.caret,
     anchor: s.anchor ?? -1,
-    maxTop: w.ownerDraw || listMultiple(w) ? maxListTop(w) : undefined,
+    maxTop: w.controlType === 'listbox' ? maxListTop(w) : undefined,
     selected: s.selected,
     itemHeight: s.itemHeight,
     top: s.top,
@@ -226,6 +229,10 @@ function notify(r, w, code) {
 }
 export function listInput(r, w, event) {
   const s = list(w);
+  if (event.type === 'list-cancel') {
+    r.windows.post(w.id, 0x1f);
+    return true;
+  }
   if (event.type === 'combo-toggle') {
     r.windows.post(w.id, COMBO_TOGGLE, 0, 0);
     return true;
@@ -316,6 +323,8 @@ const listOps = new Map([
 export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cls.wide) {
   const s = list(w),
     combo = w.controlType === 'combobox';
+  const pointerHandled = await listPointerMessage(r, w, message, wp, lp, choose);
+  if (pointerHandled !== null) return pointerHandled;
   if (listMultiple(w)) {
     const handled = await multiMessage(r, w, message, wp, lp);
     if (handled !== null) return handled;
@@ -334,7 +343,7 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     s.items = [];
     return 0;
   }
-  if ((w.ownerDraw || listMultiple(w)) && (message === 7 || message === 8)) {
+  if (!combo && (message === 7 || message === 8)) {
     if (w.ownerDraw) await paintOwnerList(r, w, 4, [s.items.length ? s.caret : -1]);
     else r.windows.emit(w);
     if (w.style & 1) await notify(r, w, message === 7 ? 4 : 5);

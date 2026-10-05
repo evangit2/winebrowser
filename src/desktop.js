@@ -714,9 +714,29 @@ export class VirtualDesktop {
           });
       });
       element.addEventListener('pointerdown', (event) => {
-        if (control.listState?.drag && event.button === 0)
+        if (control.listState?.nativePointer && control.enabled && event.button === 0) {
+          event.preventDefault();
+          if (!control.comboPopup) element.focus({ preventScroll: true });
+          control.listPointerId = event.pointerId;
+          element.setPointerCapture(event.pointerId);
+          this.#sendMouse(control, 'mousedown', event);
+        } else if (control.listState?.drag && event.button === 0)
           element.setPointerCapture(event.pointerId);
       });
+      element.addEventListener('pointerup', (event) => {
+        if (control.listPointerId !== event.pointerId) return;
+        control.listPointerId = null;
+        this.#sendMouse(control, 'mouseup', event);
+      });
+      element.addEventListener('pointermove', (event) => {
+        if (control.listState?.nativePointer) this.#sendMouse(control, 'mousemove', event);
+      });
+      for (const type of ['pointercancel', 'lostpointercapture'])
+        element.addEventListener(type, (event) => {
+          if (control.listPointerId !== event.pointerId) return;
+          control.listPointerId = null;
+          this.#emit(control.id, 'list-cancel');
+        });
       element.addEventListener('contextmenu', (event) => {
         if (control.listState?.drag) event.preventDefault();
       });
@@ -922,6 +942,7 @@ export class VirtualDesktop {
     );
     element.addEventListener('mousemove', (event) => {
       event.stopPropagation();
+      if (control.listState?.nativePointer) return;
       this.#sendMouse(control, 'mousemove', event);
     });
     for (const type of ['keydown', 'keyup'])
@@ -1022,6 +1043,12 @@ export class VirtualDesktop {
       control.element.tabIndex = control.enabled ? 0 : -1;
       control.element.setAttribute('aria-disabled', String(!control.enabled));
       this.#applyTabList(control, list);
+      if (control.listState?.tracking && !list.tracking && control.listPointerId != null) {
+        const pointerId = control.listPointerId;
+        control.listPointerId = null;
+        if (control.element.hasPointerCapture(pointerId))
+          control.element.releasePointerCapture(pointerId);
+      }
       control.listState = list;
       return;
     }
@@ -1106,7 +1133,7 @@ export class VirtualDesktop {
         x += measurement.measureText(text).width;
       }
       row.addEventListener('click', (event) => {
-        if (control.enabled && !control.listState?.drag)
+        if (control.enabled && !control.listState?.drag && !control.listState?.nativePointer)
           this.#emit(control.id, 'list-select', {
             index,
             shiftKey: event.shiftKey,
@@ -1115,7 +1142,7 @@ export class VirtualDesktop {
       });
       fragment.append(row);
     }
-    if (list.ownerDraw) {
+    if (list.nativePointer || list.ownerDraw) {
       const spacer = document.createElement('div');
       spacer.setAttribute('aria-hidden', 'true');
       spacer.style.height = `${Math.max(0, (control.listOffsets[list.maxTop] ?? 0) + element.clientHeight - offset)}px`;
@@ -1123,7 +1150,8 @@ export class VirtualDesktop {
     }
     element.replaceChildren(fragment);
     element.scrollTop = scrollTop;
-    if (list.ownerDraw || list.multiple) element.scrollTop = control.listOffsets[list.top] ?? 0;
+    if (list.nativePointer || list.ownerDraw || list.multiple)
+      element.scrollTop = control.listOffsets[list.top] ?? 0;
     else if (control.listState?.top !== list.top) element.scrollTop = list.top * list.itemHeight;
     else if (control.listState?.selected !== list.selected && list.selected >= 0)
       element.children[list.selected]?.scrollIntoView({ block: 'nearest' });
@@ -1635,7 +1663,7 @@ export class VirtualDesktop {
       x: Math.round(event.clientX - rect.left - border),
       y: Math.round(event.clientY - rect.top - border),
       shiftKey: event.shiftKey,
-      ctrlKey: event.ctrlKey,
+      ctrlKey: event.ctrlKey || (window.tabList && event.metaKey),
       buttons: event.buttons,
       button: event.button,
       movementX: event.movementX,

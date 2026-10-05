@@ -494,11 +494,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     }
     return 0;
   }
-  if (
-    window.controlType === 'listbox' &&
-    (window.ownerDraw || window.style & 0x808) &&
-    (message === 7 || message === 8)
-  )
+  if (window.controlType === 'listbox' && (message === 7 || message === 8))
     return listMessage(r, window, message, wp, lp, fallback, wide);
   if (message === 7 || message === 8) {
     if (window.controlType === 'button') {

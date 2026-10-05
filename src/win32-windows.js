@@ -417,12 +417,16 @@ export class WindowManager {
   post(hwnd, message, wParam = 0, lParam = 0, extra = {}) {
     if (hwnd && !this.windows.has(hwnd)) return false;
     if (this.queue.length >= 4096) throw Error('Window message queue limit exceeded');
+    // Preserve input barriers: a move after button-down must never replace a
+    // queued hover before button-down. Only adjacent moves can share a slot.
+    const last = this.queue.at(-1);
     const coalesced =
-      [0x200, 0x113].includes(message) &&
-      this.queue.find(
-        (m) =>
-          m.hwnd === hwnd && m.message === message && (message !== 0x113 || m.wParam === wParam),
-      );
+      message === 0x200
+        ? last?.hwnd === hwnd && last.message === message
+          ? last
+          : null
+        : [0x113, 0x118].includes(message) &&
+          this.queue.find((m) => m.hwnd === hwnd && m.message === message && m.wParam === wParam);
     if (coalesced) {
       if (message === 0x200)
         Object.assign(coalesced, {
@@ -687,6 +691,24 @@ export class WindowManager {
       await this.send(previous, 0x215, 0, hwnd);
     return previous;
   }
+  setSystemTimer(hwnd, id, delay) {
+    const key = `${hwnd}:system:${id}`;
+    if (!this.windows.has(hwnd) || this.timers.has(key)) return;
+    this.timers.set(key, {
+      hwnd,
+      interval: setInterval(() => this.post(hwnd, 0x118, id, 0), delay),
+    });
+  }
+  killSystemTimer(hwnd, id) {
+    const key = `${hwnd}:system:${id}`,
+      timer = this.timers.get(key);
+    if (!timer) return;
+    clearInterval(timer.interval);
+    this.timers.delete(key);
+    this.queue = this.queue.filter(
+      (m) => !(m.hwnd === hwnd && m.message === 0x118 && m.wParam === id),
+    );
+  }
   async setFocus(hwnd, raise = true) {
     const previous = this.focus;
     if (hwnd && !this.windows.has(hwnd)) return this.fail(1400, 1);
@@ -793,6 +815,7 @@ export class WindowManager {
       directInput.blur();
       this.keys.clear();
       this.keyboardState.clear();
+      if (this.capture) this.post(this.capture, 0x1f);
       return;
     }
     if (event.type === 'app-focus') {

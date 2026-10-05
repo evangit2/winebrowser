@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createServer } from 'vite';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 let server, browser, page;
 try {
   let url = process.env.WINEBROWSER_TEST_URL;
@@ -37,8 +37,14 @@ try {
     );
   await list.getByRole('option', { name: 'Beta', exact: true }).waitFor();
   const rowPoint = async (name) => {
-    const box = await list.getByRole('option', { name, exact: true }).boundingBox();
-    assert.ok(box);
+    // Native updates replace rows; wait for current geometry before input.
+    let box;
+    await expect
+      .poll(async () => {
+        box = await list.getByRole('option', { name, exact: true }).boundingBox();
+        return box;
+      })
+      .not.toBeNull();
     return { x: Math.round(box.x + 20), y: Math.round(box.y + box.height / 2) };
   };
   const down = async (name) => {

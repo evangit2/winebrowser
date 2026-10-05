@@ -738,6 +738,25 @@ Evidence: [native uploads](evidence/vulkan-browser-results.json) and
 [readback presentation](evidence/vulkan-readback-results.json).
 This does not establish x64 or arbitrary Vulkan-program compatibility.
 
+## Native list pointer GUI milestone (October 4)
+
+- [x] Route ordinary single-string LISTBOX keyboard and pointer input through
+      native control procedures, including real application subclasses.
+- [x] Track held-pointer single selection, extended range growth/shrink,
+      Control/Shift gestures and multiple-selection caret movement.
+- [x] Hit-test measured owner-drawn rows and scroll vertically while a captured
+      pointer remains stationary outside the client, using private system timers.
+- [x] Preserve application timers and MakeDragList callbacks; release capture
+      before selection notification and clean up on cancellation, capture
+      transfer, focus loss, disable, reset, application blur and destruction.
+- [x] Verify native queries, messages, combo drag commitment, owner-drawn pixels
+      and exit zero in Chromium with an unchanged MIT PE32 executable.
+
+See [scope and reproduction](docs/window-runtime.md) and
+[browser acceptance](evidence/list-pointer-browser-results.json).
+Horizontal/multicolumn lists, complete popup hover/monitor placement and
+arbitrary GUI/DLL compatibility remain open.
+
 - Added shared services for the imports reported by the ATI Treasure Chest installer. The authored native installer-service client passes in the browser; see [installer scope](docs/installer-runtime.md). Keep exact ATI installer installation/rendering acceptance open.
 - Humus Dynamic Branching and RollerCoaster both rendered on the live Pages site in ordinary headed Chromium 153, with no unsafe WebGPU flags. Startup is still approximately 90–120 seconds. First x87 dispatch optimization removes repeated initialization awaits; few-second startup is not achieved.
 

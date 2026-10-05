@@ -49,8 +49,7 @@ export function updateList(r, w) {
     if (!w.destroying) r.windows.invalidate(w, null, true);
     return;
   }
-  if (w.ownerDraw || listMultiple(w) || w.comboHostId)
-    w.list.top = Math.min(w.list.top, maxListTop(w));
+  if (w.controlType === 'listbox') w.list.top = Math.min(w.list.top, maxListTop(w));
   r.windows.emit(w);
   if (w.comboHostId) {
     const host = ownerListHost(r, w);

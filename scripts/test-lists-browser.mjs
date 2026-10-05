@@ -32,13 +32,13 @@ try {
   await page.waitForFunction(
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'Native Lists',
   );
-  const list = window.locator('select[data-control-id="80"]');
+  const list = window.locator('[data-control-id="80"]');
   const combo = window.locator('[data-control-id="81"]');
   const editable = window.locator('[data-control-id="82"]');
   const simple = window.locator('[data-control-id="83"]');
   await expect(nativeComboEdit(simple)).toHaveValue('Two');
-  assert.deepEqual(await list.locator('option').allTextContents(), ['Alpha', 'Beta']);
-  assert.equal(await list.evaluate((e) => e.selectedIndex), 0);
+  assert.deepEqual(await list.getByRole('option').allTextContents(), ['Alpha', 'Beta']);
+  await expect(list.getByRole('option').nth(0)).toHaveAttribute('aria-selected', 'true');
   assert.equal(await nativeComboEdit(editable).inputValue(), 'initial');
   assert.deepEqual(
     await (
@@ -48,7 +48,7 @@ try {
       .allTextContents(),
     ['Unicode λ', 'Other'],
   );
-  await list.selectOption({ label: 'Beta' });
+  await list.getByRole('option', { name: 'Beta', exact: true }).click();
   await page.waitForFunction(
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'List selected Beta',
   );

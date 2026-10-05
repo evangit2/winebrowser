@@ -373,7 +373,7 @@ caret, preserve disabled state and use fixed/variable scrolling coordinates.
 native APIs, bounded buffers, mouse/keyboard behavior, selected/focus/disabled
 pixels, selection retention, reset and destruction. See
 [the acceptance record](../evidence/multi-lists-browser-results.json).
-Owner-drawn, multiple, extended, tabbed and drag-list controls now route
+Ordinary single-string, owner-drawn, multiple, extended, tabbed and drag-list controls route
 keyboard selection through the native control procedure. `LBS_WANTKEYBOARDINPUT`
 is accepted on string and raw owner-drawn lists. Parent `WM_VKEYTOITEM` and
 `WM_CHARTOITEM` callbacks receive the key/Unicode character, current caret and
@@ -393,7 +393,32 @@ MIT PE32 fixture, native queries and real owner-drawing pixels. See
 [the acceptance record](../evidence/list-keyboard-browser-results.json) and
 [Wine's listbox implementation](https://github.com/wine-mirror/wine/blob/master/dlls/user32/listbox.c).
 
-Ordinary single-string lists still use the older DOM selection provider.
+LISTBOX controls now receive standard native pointer messages through their
+actual control procedure, including application subclasses and callable originals.
+Single-selection lists follow the held pointer; extended lists grow and shrink
+the selected range, preserve Shift anchors and support Control toggling followed
+by range dragging. Multiple-selection lists toggle the initial item and move
+the caret over subsequent rows. Variable owner-drawn rows use their native
+measured heights for hit testing and selected/focused painting.
+
+The native list owns capture. Holding the pointer above or below its client
+area scrolls vertically through a private `WM_SYSTIMER` at 100 ms intervals,
+including when the pointer stops moving. That timer does not replace an
+application's `WM_TIMER` with the same ID. Release clears capture before
+`LBN_SELCHANGE`; native cancel mode, capture transfer, focus loss, disable,
+reset, application blur and destruction stop tracking and clean up timers.
+Combo list drags commit inside the popup and restore the original selection
+when released outside. MakeDragList retains its separate parent-directed
+drag/drop protocol. Adjacent mouse moves coalesce without crossing button,
+keyboard or window-message boundaries.
+
+`npm run test:list-pointer` uploads an unchanged MIT PE32 program into Chromium.
+Its guest subclasses count the actual pointer and system timer messages; native
+queries verify selection, caret, anchor, HWND capture, notifications, cancellation,
+capture transfer and application timer separation. Browser acceptance also
+checks real owner-drawn selection pixels and stationary autoscroll. See
+[the acceptance record](../evidence/list-pointer-browser-results.json).
+
 Simple, editable dropdown and dropdown-list string combos now use actual
 ComboLBox/EDIT child HWNDs and the same native popup/selection path as owner-drawn
 combos. `GetComboBoxInfo` and `CB_GETCOMBOBOXINFO` expose those handles, classes,
@@ -429,6 +454,5 @@ original callable procedure. Native font/height queries and actual browser
 geometry verify larger and restored fonts without replacing children or losing
 selection. See [the acceptance record](../evidence/native-combos-browser-results.json).
 
-Exact native control layout, monitor-edge placement, held-pointer range
-tracking/autoscroll, horizontal or
+Exact native control layout, monitor-edge placement, full popup hover tracking, horizontal or
 multicolumn lists and universal GUI/DLL compatibility remain incomplete.

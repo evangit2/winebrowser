@@ -39,7 +39,10 @@ try {
   await status
     .getByText('ListBox: strings, sorted insertion and selection.', { exact: true })
     .waitFor();
-  await window.locator('select[data-control-id="20"]').selectOption({ label: 'Gamma' });
+  await window
+    .locator('[data-control-id="20"]')
+    .getByRole('option', { name: 'Gamma', exact: true })
+    .click();
   await status.getByText('Gamma', { exact: true }).waitFor();
   await nativeComboEdit(window.locator('[data-control-id="21"]')).fill('Typed in browser');
   await status.getByText('Typed in browser', { exact: true }).waitFor();
