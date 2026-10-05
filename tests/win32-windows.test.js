@@ -32,6 +32,50 @@ async function makeRuntime(t) {
   return { runtime, events };
 }
 
+test('cursor clipping applies to guest positioning and delivered mouse coordinates and releases cleanly', async (t) => {
+  const { runtime: r } = await makeRuntime(t);
+  const proc = installGuestWindowProc(r);
+  const { atom } = await registerClass(r, proc.address);
+  const hwnd = (
+    await call(r, 'user32.dll!CreateWindowExA', [
+      0,
+      atom,
+      r.allocString('Clipped'),
+      0,
+      0,
+      0,
+      320,
+      240,
+      0,
+      0,
+      r.pe.imageBase,
+      0,
+    ])
+  ).result;
+  await call(r, 'user32.dll!ShowWindow', [hwnd, 5]);
+  const rect = r.allocate(16),
+    point = r.allocate(8);
+  [10, 40, 30, 60].forEach((v, i) => r.write32(rect + i * 4, v));
+  assert.equal((await call(r, 'user32.dll!ClipCursor', [rect])).result, 1);
+  r.windows.input({ type: 'mousemove', windowId: hwnd, x: 1000, y: -1000 });
+  await call(r, 'user32.dll!GetCursorPos', [point]);
+  assert.deepEqual([r.read32(point), r.read32(point + 4)], [29, 40]);
+  const origin = r.windows.clientPosition(r.windows.windows.get(hwnd));
+  const mouse = r.windows.queue.findLast((m) => m.message === 0x200);
+  assert.ok(mouse);
+  assert.deepEqual(
+    [(mouse.lParam << 16) >> 16, mouse.lParam >> 16],
+    [29 - origin[0], 40 - origin[1]],
+  );
+  r.write32(rect + 8, 5);
+  assert.equal((await call(r, 'user32.dll!ClipCursor', [rect])).result, 0);
+  assert.equal(r.lastError, 87);
+  await call(r, 'user32.dll!ClipCursor', [0]);
+  await call(r, 'user32.dll!SetCursorPos', [1000, 1000]);
+  await call(r, 'user32.dll!GetCursorPos', [point]);
+  assert.deepEqual([r.read32(point), r.read32(point + 4)], [1000, 1000]);
+});
+
 test('sunken top-level clients round-trip outer geometry through maximize and restore', async (t) => {
   const { runtime: r } = await makeRuntime(t),
     proc = installGuestWindowProc(r);
