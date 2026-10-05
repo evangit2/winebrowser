@@ -1,12 +1,12 @@
 {
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
-  "date": "2026-10-04T12:28:00.195Z",
-  "url": "http://127.0.0.1:4377/winebrowser/",
+  "date": "2026-10-04T23:39:11.935Z",
+  "url": "http://127.0.0.1:4214/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed-find-and-replace-all",
   "exitCode": 0,
-  "compiledBlocks": 5096,
-  "x86TranslationMs": 1147.4299989938736,
+  "compiledBlocks": 5111,
+  "x86TranslationMs": 805.9950008094311,
   "checks": [
     "Unchanged Metapad native custom Find template/subclass creates editable ComboBox with CB_LIMITTEXT/CB_SETEDITSEL",
     "Native Find Next reads browser ComboBox text and selects matching beta then alpha ranges in the actual native editor",

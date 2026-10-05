@@ -157,6 +157,8 @@ try {
         if (predicate(s)) return s;
         await page.waitForTimeout(500);
       }
+      const diagnostic = await capture('failed-' + label.replace(/[^a-z0-9]+/gi, '-'));
+      console.error(JSON.stringify(diagnostic));
       throw Error('Timed out waiting for ' + label);
     }
     await until('animated native menu', (s) => s.frames > 15 && s.green > 1000);
@@ -167,13 +169,24 @@ try {
     assert.ok(animated.frames > menu.frames);
     assert.notEqual(animated.hash, menu.hash);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(1500);
+    await until(
+      'game selection menu',
+      (s) =>
+        s.lit > 10000 &&
+        s.lit < 100000 &&
+        s.green > 1300 &&
+        s.green < 5000 &&
+        s.frames > menu.frames + 60,
+    );
     await capture('select-game');
     const levelStart = performance.now();
-    await page.keyboard.press('Enter');
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(250);
+    await page.keyboard.up('Enter');
     await until(
       'textured level, ship, lives and score',
-      (s) => s.heart > 100 && s.hud > 100 && s.border > 2000 && s.ship?.pixels > 20,
+      (s) =>
+        s.heart > 100 && s.hud > 100 && s.lit > 200000 && s.colors > 1000 && s.ship?.pixels > 20,
     );
     const levelLoadMs = performance.now() - levelStart;
     const level = await capture('level');

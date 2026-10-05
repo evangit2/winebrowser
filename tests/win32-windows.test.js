@@ -895,12 +895,9 @@ test('application activation wakes the native message loop and follows browser f
     [],
     'switching windows in one application does not deactivate it',
   );
-  assert.deepEqual(
-    r.windows.queue.filter((m) => m.message === 6).map((m) => [m.hwnd, m.wParam, m.lParam]),
-    [
-      [first, 0, second],
-      [second, 1, first],
-    ],
+  assert.ok(
+    !r.windows.queue.some((m) => m.message === 6),
+    'sent WM_ACTIVATE notifications must not be delayed into the posted message queue',
   );
   r.windows.queue = [];
   r.windows.input({ type: 'app-blur' });
