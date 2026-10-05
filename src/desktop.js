@@ -39,7 +39,7 @@ export class VirtualDesktop {
       'pointerdown',
       (event) => {
         for (const combo of this.windows.values()) {
-          if (!combo.ownerCombo || !combo.listState?.dropped) continue;
+          if (!combo.nativeCombo || !combo.listState?.dropped) continue;
           const popup = [...this.windows.values()].find((w) => w.comboHostId === combo.id);
           if (!combo.container.contains(event.target) && !popup?.container.contains(event.target))
             this.#emit(combo.id, 'combo-dismiss');
@@ -657,9 +657,17 @@ export class VirtualDesktop {
           element.style.background = 'transparent';
         }
       }
-    } else if (controlType === 'combobox' && state.controlStyle?.ownerDraw) {
+    } else if (
+      controlType === 'combobox' &&
+      (state.controlStyle?.ownerDraw || state.controlStyle?.nativeCombo)
+    ) {
       element = document.createElement('div');
-      element.className = 'virtual-desktop-control virtual-desktop-control-owner-combo';
+      element.className = 'virtual-desktop-control virtual-desktop-control-native-combo';
+      if (!state.controlStyle?.ownerDraw && state.list?.comboType === 3) {
+        const text = document.createElement('span');
+        text.className = 'virtual-desktop-combo-text';
+        element.append(text);
+      }
       element.tabIndex = 0;
       element.setAttribute('role', 'combobox');
       element.setAttribute('aria-label', state.title || 'Choices');
@@ -925,7 +933,7 @@ export class VirtualDesktop {
           event.preventDefault();
         if (
           ((controlType === 'button' && control.controlStyle?.ownerDraw) ||
-            control.ownerCombo ||
+            control.nativeCombo ||
             control.comboPopup) &&
           [
             ' ',
@@ -971,7 +979,9 @@ export class VirtualDesktop {
       listSelect,
       listEdit,
       tabList,
-      ownerCombo: controlType === 'combobox' && !!state.controlStyle?.ownerDraw,
+      nativeCombo:
+        controlType === 'combobox' &&
+        !!(state.controlStyle?.ownerDraw || state.controlStyle?.nativeCombo),
       canvas,
       context: canvas?.getContext('2d', { alpha: false }),
       container,
@@ -991,9 +1001,13 @@ export class VirtualDesktop {
   }
 
   #applyList(control, list) {
-    if (control.ownerCombo) {
+    if (control.nativeCombo) {
       control.listState = list;
       control.element.setAttribute('aria-expanded', String(!!list.dropped));
+      control.element.dataset.comboType = String(list.comboType);
+      const text = control.element.querySelector('.virtual-desktop-combo-text');
+      if (text) text.textContent = control.titleText ?? '';
+      control.element.setAttribute('aria-disabled', String(!control.enabled));
       const arrow = control.element.querySelector('.virtual-desktop-combo-arrow');
       if (arrow) arrow.disabled = !control.enabled;
       return;
@@ -1529,7 +1543,7 @@ export class VirtualDesktop {
       applyReportControl(control.element, state, (type, data) =>
         this.#emit(control.id, type, data),
       );
-    if (state.list && (control.listSelect || control.tabList || control.ownerCombo))
+    if (state.list && (control.listSelect || control.tabList || control.nativeCombo))
       this.#applyList(control, state.list);
     if (control.controlType === 'treeview' && state.tree) this.#applyTree(control, state.tree);
     if (control.controlType === 'tabcontrol' && state.tabs) this.#applyTabs(control, state.tabs);

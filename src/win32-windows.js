@@ -349,6 +349,7 @@ export class WindowManager {
         controlStyle: controlType
           ? {
               ownerDraw: !!ownerDraw,
+              nativeCombo: controlType === 'combobox',
               noWordWrap: !!window.noWordWrap,
               subclassed: this.isControlSubclass(window),
               centerImage: !!window.centerImage,
@@ -1199,15 +1200,14 @@ async function create(r, a, wide) {
     parentId,
     controlType,
     comboRequestedHeight: controlType === 'combobox' ? requestedHeight : undefined,
-    comboHostId: cls.comboList && m.windows.get(parentId)?.ownerDraw ? parentId : undefined,
+    comboHostId:
+      cls.comboList && m.windows.get(parentId)?.controlType === 'combobox' ? parentId : undefined,
     comboEditHostId:
-      controlType === 'edit' &&
-      m.windows.get(parentId)?.controlType === 'combobox' &&
-      m.windows.get(parentId)?.ownerDraw
+      controlType === 'edit' && m.windows.get(parentId)?.controlType === 'combobox'
         ? parentId
         : undefined,
     list:
-      cls.comboList && m.windows.get(parentId)?.ownerDraw
+      cls.comboList && m.windows.get(parentId)?.controlType === 'combobox'
         ? m.windows.get(parentId).list
         : undefined,
     fontHandle: cls.comboList ? m.windows.get(parentId)?.fontHandle : 0,
@@ -1728,7 +1728,6 @@ for (const wide of [false, true]) {
     'user32.dll!GetComboBoxInfo': (r, a) => {
       const w = r.windows.windows.get(a(0));
       if (!w || w.controlType !== 'combobox') return r.windows.fail(1400, 2);
-      if (!w.ownerDraw) return r.windows.fail(120, 2);
       return result(writeComboInfo(r, w, a(1)), 2);
     },
     [`user32.dll!GetClassInfo${suffix}`]: (r, a) => classInfo(r, a, wide),

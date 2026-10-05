@@ -113,7 +113,7 @@ export async function deleteListItem(r, w, index, item) {
 // Each PE32 DRAWITEMSTRUCT uses the actual child HDC and client coordinates.
 // Save/restore isolates callback state and bounds drawing to the visible item.
 export async function paintOwnerList(r, w, action = 1, indices = null) {
-  if (w.listPainting || w.destroying || !r.windows.windows.has(w.id)) return 0;
+  if (!w.ownerDraw || w.listPainting || w.destroying || !r.windows.windows.has(w.id)) return 0;
   const host = ownerListHost(r, w);
   w.listPainting = true;
   const top = Math.min(w.list.top, maxListTop(w));

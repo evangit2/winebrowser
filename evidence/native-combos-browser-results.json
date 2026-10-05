@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-05T01:55:30.945Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "a6c3b063abb2752da82e54ed5f0de006749c5976d3a3f0fd785bb6bc42abaeb6",
+  "compiledBlocks": 166,
+  "x86TranslationMs": 42.455000042915344,
+  "checks": [
+    "Unchanged native PE32 ordinary sorted dropdown, editable dropdown and simple string combos compile and execute in Chromium",
+    "GetComboBoxInfo and CB_GETCOMBOBOXINFO expose actual ComboLBox/EDIT HWNDs with class names, parents, buffer guards and visibility state",
+    "GetFocus reaches the native EDIT; CB_LIMITTEXT and CB_SETEDITSEL forward to the actual child and preserve native query results",
+    "Trusted keyboard/text input enters a real guest EDIT subclass and forwards through the callable original procedure",
+    "Native popup mouse selection, sorting, selected text, simple lists and programmatic notification suppression pass",
+    "CB_RESETCONTENT clears native edit/list state and destroys all child handles before exit zero"
+  ],
+  "scope": "Native child HWNDs and string controls for ordinary ANSI/Unicode combo boxes. Complete native dropdown geometry, monitor-edge placement and universal GUI/DLL compatibility remain incomplete."
+}

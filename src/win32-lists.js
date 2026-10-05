@@ -1,9 +1,4 @@
-import {
-  ownerComboMessage,
-  syncComboSelection,
-  COMBO_TOGGLE,
-  COMBO_DISMISS,
-} from './win32-combos.js';
+import { comboMessage, syncComboSelection, COMBO_TOGGLE, COMBO_DISMISS } from './win32-combos.js';
 import {
   listMultiple,
   listItemSelected,
@@ -24,7 +19,7 @@ const USER_SELECT = 0x7fe0,
   USER_TEXT = 0x7fe1,
   USER_SCROLL = 0x7fe2;
 function nativeKeyboard(w) {
-  return w.ownerDraw || listMultiple(w) || !!(w.style & 0x480) || !!w.dragList;
+  return w.ownerDraw || listMultiple(w) || !!(w.style & 0x480) || !!w.dragList || !!w.comboHostId;
 }
 function list(w) {
   return (w.list ??= {
@@ -63,8 +58,11 @@ export function describeList(w) {
     dropped: !!w.comboDropped,
     comboTextHeight: w.comboTextHeight,
     comboHostId: w.comboHostId,
-    textLimit: w.textLimit ?? 32767,
-    selection: { start: w.selectionStart ?? 0, end: w.selectionEnd ?? 0 },
+    textLimit: w.comboEditWindow?.textLimit ?? w.textLimit ?? 32767,
+    selection: {
+      start: (w.comboEditWindow ?? w).selectionStart ?? 0,
+      end: (w.comboEditWindow ?? w).selectionEnd ?? 0,
+    },
     tabStops: w.controlType === 'listbox' && w.style & 0x80 ? (s.tabStops ?? []) : undefined,
     drag: w.dragList
       ? { dragging: w.dragList.dragging, marker: w.dragList.marker, cursor: w.dragList.cursor }
@@ -105,7 +103,7 @@ async function choose(r, w, index) {
   if (nativeKeyboard(w)) revealListItem(w, index);
   if (w.controlType === 'combobox') w.title = s.items[index]?.text ?? '';
   r.windows.emit(w);
-  if (w.ownerDraw && w.controlType === 'combobox') {
+  if (w.comboListWindow && w.controlType === 'combobox') {
     await syncComboSelection(r, w);
     return index;
   }
@@ -267,8 +265,9 @@ export function listInput(r, w, event) {
       event.start >= 0 &&
       event.end >= event.start
     ) {
-      w.selectionStart = Math.min(w.title.length, event.start);
-      w.selectionEnd = Math.min(w.title.length, event.end);
+      const edit = w.comboEditWindow ?? w;
+      edit.selectionStart = Math.min(edit.title.length, event.start);
+      edit.selectionEnd = Math.min(edit.title.length, event.end);
     }
     return true;
   }
@@ -322,8 +321,8 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     if (handled !== null) return handled;
   }
   if (listMultiple(w) && message === 0x101 && wp === 16) s.shiftBase = null;
-  if (combo && w.ownerDraw) {
-    const handled = await ownerComboMessage(r, w, message, wp, lp, wide);
+  if (combo) {
+    const handled = await comboMessage(r, w, message, wp, lp, wide);
     if (handled !== null) return handled;
   }
   if (w.ownerDraw && message === 1) {
@@ -537,6 +536,23 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
       w.title.length,
       Math.max(w.selectionStart, value.end ?? w.title.length),
     );
+    if (w.comboEditWindow) {
+      const edit = w.comboEditWindow,
+        start = w.selectionStart,
+        end = w.selectionEnd;
+      const bytes = edit.cls.wide ? null : encodeAnsi(w.title).bytes;
+      const text = bytes ? r.allocate(bytes.length + 1) : r.allocString(w.title, true);
+      if (bytes) r.data.set(bytes, text);
+      try {
+        await r.windows.send(edit.id, 0xc, 0, text);
+      } finally {
+        r.free(text);
+      }
+      edit.selectionStart = w.selectionStart = start;
+      edit.selectionEnd = w.selectionEnd = end;
+      r.windows.emit(edit);
+      return 0;
+    }
     s.selected = -1;
     r.windows.emit(w);
     await notify(r, w, 6);

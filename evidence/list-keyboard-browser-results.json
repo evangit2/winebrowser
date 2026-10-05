@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-05T00:57:39.341Z",
-  "url": "http://127.0.0.1:4389/winebrowser/",
+  "date": "2026-10-05T01:32:59.818Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "9d78252a0aa1cc738313b1f59759a5066a3294e30cf47e4b17ffa3148a5b88df",
   "compiledBlocks": 181,
-  "x86TranslationMs": 90.64499980211258,
+  "x86TranslationMs": 71.26499989628792,
   "checks": [
     "Unchanged native ANSI/Unicode PE32 list and owner-combo controls execute browser-compiled x86 blocks in Chromium",
     "WM_VKEYTOITEM/WM_CHARTOITEM validate caret, actual HWND, signed default/handled returns, explicit index zero and rejected out-of-range targets",

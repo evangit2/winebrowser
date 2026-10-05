@@ -102,15 +102,20 @@ export async function layoutCombo(r, w) {
   }
 }
 
-export async function initializeOwnerCombo(r, w) {
-  // Wine measures the selected text area first, then fixed popup rows.
-  w.comboTextHeight = (await measureListItem(r, w, -1, 0)) + 2;
-  if (!w.ownerVariable) w.list.itemHeight = await measureListItem(r, w, 0, 0);
+export async function initializeCombo(r, w) {
+  if (w.ownerDraw) {
+    // Wine measures the selected text area first, then fixed popup rows.
+    w.comboTextHeight = (await measureListItem(r, w, -1, 0)) + 2;
+    if (!w.ownerVariable) w.list.itemHeight = await measureListItem(r, w, 0, 0);
+  } else {
+    w.comboTextHeight = 20;
+    w.list.itemHeight = 20;
+  }
   if (!alive(r, w)) return;
   const popupStyle =
     0x40008001 |
     0x800000 |
-    (w.ownerVariable ? 0x20 : 0x10) |
+    (w.ownerDraw ? (w.ownerVariable ? 0x20 : 0x10) : 0) |
     (w.hasStrings ? 0x40 : 0) |
     (w.sorted ? 2 : 0) |
     (w.comboType === 1 ? 0x10000000 : 0);
@@ -133,7 +138,7 @@ export async function initializeOwnerCombo(r, w) {
     const editCreated = await createWindowFromHost(r, {
       className: 'EDIT',
       title: w.title,
-      style: 0x50000080,
+      style: 0x50000080 | (w.style & 0x2000 ? 0x8 : 0) | (w.style & 0x4000 ? 0x10 : 0),
       parent: w.id,
       controlId: 1001,
       instance: w.instance,
@@ -142,6 +147,7 @@ export async function initializeOwnerCombo(r, w) {
       wide: w.cls.wide,
     });
     w.comboEditId = editCreated.id;
+    w.comboEditWindow = r.windows.windows.get(w.comboEditId);
     if (!w.comboEditId) throw Error('Unable to create native combo edit');
   }
   await layoutCombo(r, w);
@@ -168,7 +174,7 @@ export async function syncComboSelection(r, w) {
 }
 
 export async function paintOwnerCombo(r, w) {
-  if (w.comboPainting || !alive(r, w)) return 0;
+  if (!w.ownerDraw || w.comboPainting || !alive(r, w)) return 0;
   w.comboPainting = true;
   w.invalid = null;
   w.erase = false;
@@ -275,9 +281,9 @@ export function writeComboInfo(r, w, p) {
   return 1;
 }
 
-export async function ownerComboMessage(r, w, msg, wp, lp, wide) {
+export async function comboMessage(r, w, msg, wp, lp, wide) {
   if (msg === 1) {
-    await initializeOwnerCombo(r, w);
+    await initializeCombo(r, w);
     return 0;
   }
   if (msg === 0x82) return 0; // the real ComboLBox owns item deletion callbacks.
@@ -305,9 +311,14 @@ export async function ownerComboMessage(r, w, msg, wp, lp, wide) {
     return 0;
   }
   if (msg === 7 || msg === 8) {
-    if (msg === 8 && wp !== w.comboEditId) await showCombo(r, w, false);
+    // Browser focus notifications may still be queued when a native dialog
+    // returns focus to this combo. Keep the popup while one of its windows
+    // actually owns focus, including its native list or edit child.
+    const focused = comboFocused(r, w) || r.windows.focus === w.comboListId;
+    if (msg === 8 && !focused && wp !== w.comboEditId && wp !== w.comboListId)
+      await showCombo(r, w, false);
     if (msg === 7 && w.comboEditId) await r.windows.setFocus(w.comboEditId);
-    if (!w.comboEditId) await notify(r, w, msg === 7 ? 3 : 4);
+    if (!w.comboEditId && (msg === 7 || !focused)) await notify(r, w, msg === 7 ? 3 : 4);
     await paintOwnerCombo(r, w);
     return 0;
   }
@@ -422,7 +433,10 @@ export async function ownerComboMessage(r, w, msg, wp, lp, wide) {
     }
     return sendWindowMessage(r, w.comboEditId, msg, wp, lp, wide);
   }
-  if (msg === 0x141 && w.comboEditId) return r.windows.send(w.comboEditId, 0xc5, wp, 0);
+  if (msg === 0x141 && w.comboEditId) {
+    w.textLimit = Math.min(32767, wp >>> 0 || 32767);
+    return r.windows.send(w.comboEditId, 0xc5, wp, 0);
+  }
   if (msg === 0x140 && w.comboEditId) return r.windows.send(w.comboEditId, 0xb0, wp, lp);
   if (msg === 0x142 && w.comboEditId)
     return r.windows.send(w.comboEditId, 0xb1, (lp << 16) >> 16, lp >> 16);

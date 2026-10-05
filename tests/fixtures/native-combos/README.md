@@ -1,0 +1,3 @@
+Authored MIT native PE32 fixture; rebuild with `npm run build:native-combos`.
+
+`npm run test:native-combos` uploads the unchanged executable into Chromium and exercises normal sorted dropdown-list, editable dropdown and simple combos. The native program checks actual child HWNDs, class names, parent relationships, COMBOBOXINFO buffer guards, focus and edit message forwarding. It subclasses the real EDIT child and validates that browser keyboard/text input enters its guest procedure and forwards through the original callable procedure. Selection and edit notifications, popup mouse interaction, limits, reset and child destruction must pass before native exit zero. No third-party application binaries are included.

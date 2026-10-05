@@ -1,3 +1,4 @@
+import { nativeComboEdit } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -45,7 +46,7 @@ try {
   const find = page
     .locator('.virtual-desktop-window')
     .filter({ has: page.locator('.virtual-desktop-title', { hasText: /^Find$/ }) });
-  const findInput = find.locator('[data-control-id="1154"] input');
+  const findInput = nativeComboEdit(find.locator('[data-control-id=\"1154\"]'));
   await expect(findInput).toHaveAttribute('maxlength', '100');
   await findInput.fill('x'.repeat(120));
   await expect(findInput).toHaveValue('x'.repeat(100));
@@ -65,14 +66,14 @@ try {
   const replace = page
     .locator('.virtual-desktop-window')
     .filter({ has: page.locator('.virtual-desktop-title', { hasText: /^Replace$/ }) });
-  await replace.locator('[data-control-id="1154"] input').waitFor();
-  await expect(replace.locator('[data-control-id="1153"] input')).toHaveAttribute(
+  await nativeComboEdit(replace.locator('[data-control-id=\"1154\"]')).waitFor();
+  await expect(nativeComboEdit(replace.locator('[data-control-id=\"1153\"]'))).toHaveAttribute(
     'maxlength',
     '100',
   );
   await expect(edit).toHaveValue('alpha beta alpha');
-  await replace.locator('[data-control-id="1154"] input').fill('alpha');
-  await replace.locator('[data-control-id="1153"] input').fill('gamma');
+  await nativeComboEdit(replace.locator('[data-control-id=\"1154\"]')).fill('alpha');
+  await nativeComboEdit(replace.locator('[data-control-id=\"1153\"]')).fill('gamma');
   await replace.getByRole('button', { name: 'Replace All', exact: true }).click();
   await expect(edit).toHaveValue('gamma beta gamma');
   await expect(page.locator('#dialog-text')).toHaveText(/2/);

@@ -226,7 +226,10 @@ test('ANSI-created ComboBox accepts Unicode list messages and SendDlgItemMessage
     argc: 5,
   });
   assert.equal(r.lastError, 1400);
-  await assert.rejects(() => send(0x14f, 1), /Unsupported ComboBox message/);
+  assert.equal(await send(0x14f, 1), 1);
+  assert.equal(await send(0x157), 1);
+  assert.equal(w.comboListWindow.visible, true);
+  await send(0x14f, 0);
 });
 
 test('editable combo limits user text without clipping WM_SETTEXT and carries native A/W selection', async (t) => {
@@ -245,7 +248,11 @@ test('editable combo limits user text without clipping WM_SETTEXT and carries na
   assert.equal(await send(0x142, 0, 0xffffffff), 0);
   assert.equal(await send(0x140), (6 << 16) | 6);
   assert.equal(await send(0xc, 0, r.allocString('Ω € text', true), true), 1);
-  assert.equal(w.title, 'Ω € text');
+  assert.equal(
+    w.title,
+    '? € text',
+    'Unicode WM_SETTEXT converts at the ANSI EDIT procedure boundary',
+  );
   listInput(r, w, { type: 'list-text', text: 'typed long', start: 10, end: 10 });
   const event = w.list.nextEvent - 1;
   await send(0x7fe1, event);

@@ -1,8 +1,9 @@
+import { selectNativeCombo, nativeComboList, nativeComboEdit } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createServer } from 'vite';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 let server, browser;
 try {
   let url = process.env.WINEBROWSER_TEST_URL;
@@ -32,33 +33,38 @@ try {
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'Native Lists',
   );
   const list = window.locator('select[data-control-id="80"]');
-  const combo = window.locator('select[data-control-id="81"]');
+  const combo = window.locator('[data-control-id="81"]');
   const editable = window.locator('[data-control-id="82"]');
   const simple = window.locator('[data-control-id="83"]');
-  await page.waitForFunction(
-    () => document.querySelector('[data-control-id="83"] input')?.value === 'Two',
-  );
+  await expect(nativeComboEdit(simple)).toHaveValue('Two');
   assert.deepEqual(await list.locator('option').allTextContents(), ['Alpha', 'Beta']);
   assert.equal(await list.evaluate((e) => e.selectedIndex), 0);
-  assert.equal(await editable.locator('input').inputValue(), 'initial');
-  assert.deepEqual(await editable.locator('option').allTextContents(), ['Unicode λ', 'Other']);
+  assert.equal(await nativeComboEdit(editable).inputValue(), 'initial');
+  assert.deepEqual(
+    await (
+      await nativeComboList(editable)
+    )
+      .getByRole('option', { includeHidden: true })
+      .allTextContents(),
+    ['Unicode λ', 'Other'],
+  );
   await list.selectOption({ label: 'Beta' });
   await page.waitForFunction(
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'List selected Beta',
   );
-  await combo.selectOption({ label: 'Second' });
+  await selectNativeCombo(combo, { label: 'Second' });
   await page.waitForFunction(
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'Combo selected Second',
   );
-  await editable.locator('input').fill('typed text');
+  await nativeComboEdit(editable).fill('typed text');
   await page.waitForFunction(
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'Typed native text',
   );
-  await simple.locator('select').selectOption({ label: 'One' });
+  await selectNativeCombo(simple, { label: 'One' });
   await page.waitForFunction(
     () => document.querySelector('.virtual-desktop-title')?.textContent === 'Simple selected One',
   );
-  assert.equal(await simple.locator('input').inputValue(), 'One');
+  assert.equal(await nativeComboEdit(simple).inputValue(), 'One');
   const checkbox = window.getByRole('checkbox', { name: 'Enable option' }),
     first = window.getByRole('radio', { name: 'First radio', exact: true }),
     second = window.getByRole('radio', { name: 'Second radio', exact: true });

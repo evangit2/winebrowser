@@ -1,3 +1,4 @@
+import { selectNativeCombo, nativeComboText } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -50,7 +51,7 @@ try {
   const tabs = sheet.getByRole('tab');
   const tabSize = sheet.locator('[data-control-id="1025"]');
   const spaces = sheet.getByRole('checkbox', { name: 'Insert tabs as spaces', exact: true });
-  const format = sheet.locator('select[data-control-id="1074"]');
+  const format = sheet.locator('[data-control-type="combobox"][data-control-id="1074"]');
   const open = async () => {
     await edit.press('Alt+Enter');
     await expect(tabSize).toHaveValue('4');
@@ -86,19 +87,19 @@ try {
     await tabs.nth(index).click();
     await expect(tabs.nth(index)).toHaveAttribute('aria-selected', 'true');
   }
-  await format.selectOption({ label: 'UNIX Text' });
+  await selectNativeCombo(format, { label: 'UNIX Text' });
   await sheet.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(sheet).toHaveCount(0);
   await expect(edit).toHaveValue('alpha');
   await open();
   await expect(spaces).toHaveAttribute('aria-checked', 'false');
   await tabs.nth(3).click();
-  await expect(format.locator('option:checked')).toHaveText('DOS Text');
+  await expect.poll(() => nativeComboText(format)).toBe('DOS Text');
   await tabs.nth(0).click();
   await tabSize.fill('6');
   await spaces.click();
   await tabs.nth(3).click();
-  await format.selectOption({ label: 'UNIX Text' });
+  await selectNativeCombo(format, { label: 'UNIX Text' });
   await sheet.screenshot({ path: 'evidence/metapad-settings-browser.png' });
   await sheet.getByRole('button', { name: 'OK', exact: true }).click();
   await expect(sheet).toHaveCount(0);
@@ -127,7 +128,7 @@ try {
   await expect(tabSize).toHaveValue('6');
   await expect(spaces).toHaveAttribute('aria-checked', 'true');
   await tabs.nth(3).click();
-  await expect(format.locator('option:checked')).toHaveText('UNIX Text');
+  await expect.poll(() => nativeComboText(format)).toBe('UNIX Text');
   await sheet.getByRole('button', { name: 'Cancel', exact: true }).click();
   await owner.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun !== null);

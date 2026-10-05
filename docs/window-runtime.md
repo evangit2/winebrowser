@@ -349,8 +349,8 @@ Run `npm run test:owner-combos` for the unchanged MIT PE32 fixture, real Chromiu
 pixels and native exit-zero assertions; rebuild with `npm run build:owner-combos`.
 See [the acceptance record](../evidence/owner-combos-browser-results.json) and
 [Wine's combo implementation](https://github.com/wine-mirror/wine/blob/master/dlls/user32/combo.c).
-Native children/GetComboBoxInfo remain limited to owner-drawn combos; ordinary
-string combos still use the older DOM provider. Exact native dropdown geometry,
+Native children/GetComboBoxInfo also cover ordinary string combos, as described
+below. Exact native dropdown geometry,
 monitor-edge placement, hover/held-button tracking and universal GUI/DLL
 compatibility remain incomplete.
 
@@ -393,6 +393,26 @@ MIT PE32 fixture, native queries and real owner-drawing pixels. See
 [the acceptance record](../evidence/list-keyboard-browser-results.json) and
 [Wine's listbox implementation](https://github.com/wine-mirror/wine/blob/master/dlls/user32/listbox.c).
 
-Ordinary single-string lists and ordinary combos still use the older DOM
-selection provider. Held-pointer range tracking/autoscroll, horizontal or
+Ordinary single-string lists still use the older DOM selection provider.
+Simple, editable dropdown and dropdown-list string combos now use actual
+ComboLBox/EDIT child HWNDs and the same native popup/selection path as owner-drawn
+combos. `GetComboBoxInfo` and `CB_GETCOMBOBOXINFO` expose those handles, classes,
+parent relationships and text/button rectangles. Applications can query and
+subclass their real native EDIT child. `CB_LIMITTEXT`, `CB_SETEDITSEL` and
+`CB_GETEDITSEL` forward to that edit; focus, fonts and enabled state propagate to
+the actual children. ANSI edits convert text at their procedure boundary using
+Windows-1252; Unicode edits preserve Unicode text. Programmatic combo selection
+and text setters suppress user edit/selection notifications. Reset clears the
+native list and edit, and combo destruction removes its children.
+
+Ordinary combos render their native children and string popups in the browser.
+F4, Alt+Up/Down, character navigation, popup mouse selection, Enter/Escape and
+outside dismissal use guest messages and native combo notifications. Simple
+combos retain a visible list. `npm run test:native-combos` uploads an unchanged
+MIT PE32 program that asserts child handles/queries and actually subclasses its
+EDIT child; browser input enters that guest procedure and forwards through the
+original callable procedure. See [the acceptance record](../evidence/native-combos-browser-results.json).
+
+Exact native control layout, monitor-edge placement, held-pointer range
+tracking/autoscroll, horizontal or
 multicolumn lists and universal GUI/DLL compatibility remain incomplete.

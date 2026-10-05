@@ -1,3 +1,4 @@
+import { selectNativeCombo, nativeComboEdit, nativeComboText } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -164,10 +165,10 @@ try {
   await load('hosted');
   await start();
   await button('OK').waitFor({ timeout: 60000 });
-  assert.equal(await control(104).locator('option:checked').textContent(), 'zip');
-  await control(104).selectOption({ label: '7z' });
-  await control(104).selectOption({ label: 'zip' });
-  await control(102).selectOption({ label: '7 - Maximum' });
+  assert.equal(await nativeComboText(control(104)), 'zip');
+  await selectNativeCombo(control(104), { label: '7z' });
+  await selectNativeCombo(control(104), { label: 'zip' });
+  await selectNativeCombo(control(102), { label: '7 - Maximum' });
   await page.screenshot({
     path: process.env.WINEBROWSER_7ZIP_GUI_SCREENSHOT || 'evidence/7zip-gui-add.png',
     fullPage: true,
@@ -187,7 +188,7 @@ try {
   await load('zip', { 'plain.zip': plainZip });
   await start(['x', '-ad', 'plain.zip']);
   await button('OK').waitFor({ timeout: 60000 });
-  await control(100).locator('input').fill('C:\\winebrowser\\gui-extracted');
+  await nativeComboEdit(control(100)).fill('C:\\winebrowser\\gui-extracted');
   if (await control(131).isChecked()) {
     await control(131).click();
     await expect(control(131)).not.toBeChecked();
@@ -203,7 +204,7 @@ try {
   await button('OK').waitFor({ timeout: 60000 });
   await control(120).fill(password);
   await control(121).fill(password);
-  await control(122).selectOption({ label: 'AES-256' });
+  await selectNativeCombo(control(122), { label: 'AES-256' });
   await button('OK').click();
   const aes = await finish('Loose original EXE/DLL: native password controls create AES-256 ZIP');
   const aesZip = aes.outputs.find((e) => e.path === 'encrypted.zip').bytes,
@@ -214,7 +215,7 @@ try {
   await load('zip', { 'encrypted.zip': aesZip });
   await start(['x', '-ad', 'encrypted.zip']);
   await button('OK').waitFor({ timeout: 60000 });
-  await control(100).locator('input').fill('C:\\winebrowser\\gui-aes');
+  await nativeComboEdit(control(100)).fill('C:\\winebrowser\\gui-aes');
   if (await control(131).isChecked()) {
     await control(131).click();
     await expect(control(131)).not.toBeChecked();
@@ -235,7 +236,7 @@ try {
   await load('zip');
   await start(['a', '-ad', 'native.7z', 'message.txt', 'binary.bin', '-mmt=2']);
   await button('OK').waitFor({ timeout: 60000 });
-  await control(110).selectOption({ label: '2' });
+  await selectNativeCombo(control(110), { label: '2' });
   await button('OK').click();
   const lzma = await finish('Original GUI compresses with native multithreaded LZMA2');
   const lzmaArchive = lzma.outputs.find((e) => e.path === 'native.7z').bytes;

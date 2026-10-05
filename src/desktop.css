@@ -466,7 +466,7 @@
   border-right: 1px solid #eee;
 }
 
-.virtual-desktop-control-owner-combo {
+.virtual-desktop-control-native-combo {
   background: white;
 }
 .virtual-desktop-combo-arrow {
@@ -482,4 +482,23 @@
 .virtual-desktop-control-tablist:focus .virtual-desktop-tablist-row[data-caret='true'] {
   outline: 1px dotted currentColor;
   outline-offset: -2px;
+}
+
+.virtual-desktop-combo-text {
+  position: absolute;
+  inset: 1px 21px 1px 1px;
+  display: flex;
+  align-items: center;
+  padding-left: 3px;
+  white-space: pre;
+  overflow: hidden;
+}
+.virtual-desktop-control-native-combo:focus .virtual-desktop-combo-text {
+  background: navy;
+  color: white;
+  outline: 1px dotted white;
+  outline-offset: -1px;
+}
+.virtual-desktop-control-native-combo[aria-disabled='true'] .virtual-desktop-combo-text {
+  color: #777;
 }

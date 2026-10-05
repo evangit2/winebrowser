@@ -291,7 +291,9 @@
     "test:owner-combos": "node scripts/test-owner-combos-browser.mjs",
     "test:airxonix": "node scripts/test-airxonix-browser.mjs",
     "build:list-keyboard": "sh scripts/build-list-keyboard-fixture.sh",
-    "test:list-keyboard": "node scripts/test-list-keyboard-browser.mjs"
+    "test:list-keyboard": "node scripts/test-list-keyboard-browser.mjs",
+    "build:native-combos": "sh scripts/build-native-combos-fixture.sh",
+    "test:native-combos": "node scripts/test-native-combos-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

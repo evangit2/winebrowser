@@ -195,3 +195,12 @@ extended anchor ranges, tabbed lists and owner-combo popup forwarding. Native
 queries/callback counts, selected pixels and exit zero provide acceptance.
 Rebuild with `npm run build:list-keyboard`; see
 `evidence/list-keyboard-browser-results.json`.
+
+`npm run test:native-combos` checks ordinary sorted dropdown-list, editable and
+simple string combos through a native MIT PE32 fixture. Native GetComboBoxInfo,
+child classes/parents, focus, edit limits/ranges and popup state assertions run
+before trusted browser interaction. The program subclasses its actual EDIT
+HWND, checks input forwarded through the original callable native procedure,
+then verifies selection/notification counters, reset and child destruction.
+Rebuild with `npm run build:native-combos`; evidence is in
+`evidence/native-combos-browser-results.json`.

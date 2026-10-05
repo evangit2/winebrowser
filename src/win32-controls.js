@@ -1,4 +1,4 @@
-import { ownerComboMessage } from './win32-combos.js';
+import { comboMessage } from './win32-combos.js';
 import { describeGdiFont } from './win32-gdi.js';
 import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
@@ -315,7 +315,7 @@ async function ownerButtonMessage(r, window, message, wp, lp) {
 }
 
 export async function controlMessage(r, window, message, wp, lp, fallback, wide) {
-  if (window.controlType === 'combobox' && window.ownerDraw && message !== 0x30)
+  if (window.controlType === 'combobox' && message !== 0x30)
     return listMessage(r, window, message, wp, lp, fallback, wide);
   if (window.comboEditHostId) {
     const combo = r.windows.windows.get(window.comboEditHostId);
@@ -325,7 +325,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
       ([0x73, 0x26, 0x28, 0x21, 0x22].includes(wp) ||
         (combo.comboDropped && [0xd, 0x1b].includes(wp)))
     ) {
-      const handled = await ownerComboMessage(r, combo, message, wp, lp, wide);
+      const handled = await comboMessage(r, combo, message, wp, lp, wide);
       if (handled !== null) return handled;
     }
     if (
@@ -352,8 +352,7 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     window.font = font;
     r.windows.emit(window);
     if (window.ownerDraw) r.windows.invalidate(window, null, true);
-    if (window.controlType === 'combobox' && window.ownerDraw)
-      await ownerComboMessage(r, window, message, wp, lp, wide);
+    if (window.controlType === 'combobox') await comboMessage(r, window, message, wp, lp, wide);
     return 0;
   }
   if (message === 0x31) return window.fontHandle;

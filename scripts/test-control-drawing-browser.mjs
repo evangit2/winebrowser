@@ -1,3 +1,4 @@
+import { selectNativeCombo } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -32,7 +33,7 @@ try {
     label = root.locator('[data-control-id="70"]'),
     edit = root.locator('input[data-control-id="71"]'),
     button = root.locator('button[data-control-id="72"]'),
-    combo = root.locator('select[data-control-id="73"]');
+    combo = root.locator('[data-control-id="73"]');
   const title = (text) =>
     page.waitForFunction(
       (text) => document.querySelector('.virtual-desktop-title')?.textContent === text,
@@ -86,7 +87,7 @@ try {
   // Click inside the actual opaque GDI rectangle, proving it cannot capture input.
   await button.click({ position: { x: 10, y: 10 } });
   await title('Clicked through drawing');
-  await combo.selectOption({ index: 1 });
+  await selectNativeCombo(combo, { index: 1 });
   await title('Combo selection through drawing');
   await edit.fill('typed');
   await title('Typed through drawing');
