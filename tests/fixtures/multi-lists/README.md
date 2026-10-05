@@ -1,0 +1,3 @@
+Project-authored MIT PE32 fixture; rebuild with `npm run build:multi-lists`.
+
+`npm run test:multi-lists` uploads the unchanged EXE into ordinary Chromium. It tests ordinary multiple-selection Unicode strings, extended fixed raw owner-drawn rows and variable Unicode owner-drawn rows. Native assertions verify selection APIs and buffer limits, caret/anchor state, inclusive ranges, data and callbacks, insertion/deletion retention, programmatic notification suppression and lifecycle. Browser interaction checks independent toggles, Control/Shift selections, keyboard caret/Space operations, scrolling and real selected/focus/disabled pixels.

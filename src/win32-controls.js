@@ -115,7 +115,7 @@ export function controlStyle(kind, style, extended) {
   }
   if (kind === 'combobox' && (![1, 2, 3].includes(local & 3) || local & ~0x6f73))
     throw Error('Unsupported ComboBox style');
-  if (kind === 'listbox' && local & ~0x81f3) throw Error('Unsupported ListBox style');
+  if (kind === 'listbox' && local & ~0x89fb) throw Error('Unsupported ListBox style');
   if (kind === 'treeview' && local & ~0xb7) throw Error('Unsupported TreeView style');
   if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
@@ -489,7 +489,11 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     }
     return 0;
   }
-  if (window.controlType === 'listbox' && window.ownerDraw && (message === 7 || message === 8))
+  if (
+    window.controlType === 'listbox' &&
+    (window.ownerDraw || window.style & 0x808) &&
+    (message === 7 || message === 8)
+  )
     return listMessage(r, window, message, wp, lp, fallback, wide);
   if (message === 7 || message === 8) {
     if (window.controlType === 'button') {

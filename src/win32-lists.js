@@ -5,6 +5,8 @@ import {
   COMBO_DISMISS,
 } from './win32-combos.js';
 import {
+  listMultiple,
+  listItemSelected,
   maxListTop,
   listItemHeight,
   listItemY,
@@ -26,6 +28,7 @@ function list(w) {
     items: [],
     selected: -1,
     caret: 0,
+    anchor: -1,
     top: 0,
     itemHeight: 20,
     next: 1,
@@ -40,10 +43,14 @@ export function describeList(w) {
     items: s.items.map((i, index) => ({
       id: i.id,
       text: i.text,
+      selected: listItemSelected(w, index),
       height: w.ownerVariable ? listItemHeight(w, index) : undefined,
     })),
     ownerDraw: !!w.ownerDraw,
-    maxTop: w.ownerDraw ? maxListTop(w) : undefined,
+    multiple: listMultiple(w),
+    caret: s.caret,
+    anchor: s.anchor ?? -1,
+    maxTop: w.ownerDraw || listMultiple(w) ? maxListTop(w) : undefined,
     selected: s.selected,
     itemHeight: s.itemHeight,
     top: s.top,
@@ -116,6 +123,101 @@ async function choose(r, w, index) {
   }
   return index;
 }
+async function repaintSelection(r, w) {
+  updateList(r, w);
+  if (w.ownerDraw) await paintOwnerList(r, w);
+}
+async function multiChoose(r, w, index, flags = 0, keyboard = false, toggle = false) {
+  const s = list(w);
+  if (index < 0 || index >= s.items.length) return false;
+  const old = s.items.map((i) => !!i.selected),
+    shift = !!(flags & 4),
+    ctrl = !!(flags & 8);
+  const extended = !!(w.style & 0x800);
+  if (!shift) s.shiftBase = null;
+  if (extended && shift) {
+    if ((s.anchor ?? -1) < 0) s.anchor = s.caret;
+    if (!s.shiftBase) s.shiftBase = new Set(s.items.filter((i) => i.selected).map((i) => i.id));
+    const low = Math.min(s.anchor, index),
+      high = Math.max(s.anchor, index);
+    s.items.forEach((item, i) => {
+      item.selected = (i >= low && i <= high) || (ctrl && s.shiftBase.has(item.id));
+    });
+  } else if (toggle || (!keyboard && (!extended || ctrl))) {
+    s.items[index].selected = !s.items[index].selected;
+    s.anchor = index;
+  } else if (extended && !ctrl) {
+    s.items.forEach((item, i) => {
+      item.selected = i === index;
+    });
+    s.anchor = index;
+  } else if (!keyboard) s.anchor = index;
+  s.caret = index;
+  revealListItem(w, index);
+  await repaintSelection(r, w);
+  return s.items.some((item, i) => !!item.selected !== old[i]);
+}
+async function multiMessage(r, w, msg, wp, lp) {
+  const s = list(w),
+    index = wp | 0;
+  if (msg === 0x186) return -1; // LB_SETCURSEL is single-selection only.
+  if (msg === 0x188) return s.items.length ? s.caret : -1;
+  if (msg === 0x187) return s.items[index] ? (s.items[index].selected ? 1 : 0) : -1;
+  if (msg === 0x190) return s.items.filter((i) => i.selected).length;
+  if (msg === 0x191) {
+    const selected = s.items
+      .map((item, i) => (item.selected ? i : -1))
+      .filter((i) => i >= 0)
+      .slice(0, Math.max(0, index));
+    if (selected.length) r.check(lp, selected.length * 4, true);
+    selected.forEach((i, offset) => r.write32(lp + offset * 4, i));
+    return selected.length;
+  }
+  if (msg === 0x19c) {
+    if (index < -1 || index >= s.items.length) {
+      r.lastError = 1413;
+      return -1;
+    }
+    s.anchor = index;
+    s.shiftBase = null;
+    return 0;
+  }
+  if (msg === 0x19d) return s.anchor ?? -1;
+  if (msg === 0x185) {
+    s.shiftBase = null;
+    const target = lp | 0;
+    if (target < -1 || target >= s.items.length) return -1;
+    s.items.forEach((item, i) => {
+      if (target === -1 || target === i) item.selected = !!wp;
+    });
+    if (wp) {
+      s.anchor = target;
+      if (target >= 0) {
+        s.caret = target;
+        revealListItem(w, target);
+      }
+    }
+    await repaintSelection(r, w);
+    return 0;
+  }
+  if (msg === 0x19b || msg === 0x183) {
+    s.shiftBase = null;
+    const first = msg === 0x19b ? lp & 0xffff : wp | 0,
+      last = msg === 0x19b ? lp >>> 16 : lp | 0;
+    let low = Math.min(first, last),
+      high = Math.max(first, last);
+    const on = msg === 0x19b ? !!wp : last >= first;
+    if (msg === 0x183 && last >= first && last === -1) high = s.items.length - 1;
+    low = Math.max(0, low);
+    high = Math.min(s.items.length - 1, high);
+    s.items.forEach((item, i) => {
+      if (i >= low && i <= high) item.selected = on;
+    });
+    await repaintSelection(r, w);
+    return 0;
+  }
+  return null;
+}
 function notify(r, w, code) {
   return r.windows.send(w.parentId, 0x111, ((code << 16) | (w.controlId & 0xffff)) >>> 0, w.id);
 }
@@ -135,7 +237,12 @@ export function listInput(r, w, event) {
     return true;
   }
   if (event.type === 'list-select') {
-    r.windows.post(w.id, USER_SELECT, event.index >>> 0, 0);
+    r.windows.post(
+      w.id,
+      USER_SELECT,
+      event.index >>> 0,
+      (event.shiftKey ? 4 : 0) | (event.ctrlKey ? 8 : 0),
+    );
     return true;
   }
   if (event.type === 'list-text' && w.comboType !== 3 && typeof event.text === 'string') {
@@ -205,6 +312,11 @@ const listOps = new Map([
 export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cls.wide) {
   const s = list(w),
     combo = w.controlType === 'combobox';
+  if (listMultiple(w)) {
+    const handled = await multiMessage(r, w, message, wp, lp);
+    if (handled !== null) return handled;
+  }
+  if (listMultiple(w) && message === 0x101 && wp === 16) s.shiftBase = null;
   if (combo && w.ownerDraw) {
     const handled = await ownerComboMessage(r, w, message, wp, lp, wide);
     if (handled !== null) return handled;
@@ -218,8 +330,9 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     s.items = [];
     return 0;
   }
-  if (w.ownerDraw && (message === 7 || message === 8)) {
-    await paintOwnerList(r, w, 4, [s.items.length ? s.caret : -1]);
+  if ((w.ownerDraw || listMultiple(w)) && (message === 7 || message === 8)) {
+    if (w.ownerDraw) await paintOwnerList(r, w, 4, [s.items.length ? s.caret : -1]);
+    else r.windows.emit(w);
     if (w.style & 1) await notify(r, w, message === 7 ? 4 : 5);
     return 0;
   }
@@ -227,8 +340,24 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     updateList(r, w);
     return 0;
   }
-  if (w.ownerDraw && !combo && message === 0x100) {
+  if ((w.ownerDraw || listMultiple(w)) && !combo && message === 0x100) {
     if (!r.windows.isEnabled(w.id) || !s.items.length) return 0;
+    const multiple = listMultiple(w),
+      flags =
+        (r.windows.keyboardState.get(16) & 0x8000 ? 4 : 0) |
+        (r.windows.keyboardState.get(17) & 0x8000 ? 8 : 0);
+    if (multiple && wp === 0x20) {
+      const changed = await multiChoose(
+        r,
+        w,
+        s.caret,
+        flags,
+        true,
+        !(w.style & 0x800) || !!(flags & 8),
+      );
+      if (changed && w.style & 1) await notify(r, w, 1);
+      return 0;
+    }
     let index = s.caret;
     if (wp === 0x28) index++;
     else if (wp === 0x26) index--;
@@ -243,6 +372,11 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
       } while (index > 0 && index < s.items.length - 1 && height < w.height);
     } else return fallback();
     index = Math.max(0, Math.min(s.items.length - 1, index));
+    if (multiple) {
+      const changed = await multiChoose(r, w, index, flags, true);
+      if (changed && w.style & 1) await notify(r, w, 1);
+      return 0;
+    }
     const old = s.selected;
     await choose(r, w, index);
     if (old !== index && w.style & 1) await notify(r, w, 1);
@@ -250,7 +384,10 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
   }
   if (await dragListMessage(r, w, message, wp, lp)) return 0;
   if (message === USER_SCROLL) {
-    const top = Math.max(0, Math.min(wp, w.ownerDraw ? maxListTop(w) : s.items.length - 1));
+    const top = Math.max(
+      0,
+      Math.min(wp, w.ownerDraw || listMultiple(w) ? maxListTop(w) : s.items.length - 1),
+    );
     if (top !== s.top) {
       s.top = top;
       updateList(r, w);
@@ -289,6 +426,11 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     if (!r.windows.isEnabled(w.id)) return 0;
     const index = wp | 0;
     if (index < 0 || index >= s.items.length) return 0;
+    if (listMultiple(w)) {
+      const changed = await multiChoose(r, w, index, lp);
+      if (changed && w.style & 1) await notify(r, w, 1);
+      return 0;
+    }
     if (index === s.selected) {
       if (w.comboHostId) {
         w.comboCommit = true;
@@ -432,6 +574,7 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     const inserted = { id: s.next++, text, data: raw ? lp >>> 0 : 0 };
     s.items.splice(at, 0, inserted);
     if (w.ownerVariable) inserted.height = await measureListItem(r, w, at, lp);
+    if ((s.anchor ?? -1) >= at) s.anchor++;
     if (s.selected >= at) s.selected++;
     if (s.caret >= at && s.items.length > 1) s.caret++;
     updateList(r, w);
@@ -442,6 +585,8 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     for (const [index, item] of s.items.entries()) await deleteListItem(r, w, index, item);
     s.items = [];
     s.caret = 0;
+    s.anchor = -1;
+    s.shiftBase = null;
     s.selected = -1;
     s.top = 0;
     w.title = '';
@@ -452,6 +597,8 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     if (!item) return -1;
     await deleteListItem(r, w, index, item);
     s.items.splice(index, 1);
+    if (s.anchor === index) s.anchor = -1;
+    else if (s.anchor > index) s.anchor--;
     s.caret = Math.max(0, Math.min(s.items.length - 1, s.caret - (s.caret >= index ? 1 : 0)));
     if (s.selected === index) {
       s.selected = -1;
@@ -505,7 +652,10 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
         break;
       }
     }
-    if (op === 'select' && found >= 0) await choose(r, w, found);
+    if (op === 'select' && found >= 0) {
+      if (listMultiple(w)) await multiMessage(r, w, 0x185, 1, found);
+      else await choose(r, w, found);
+    }
     return found;
   }
   if (op === 'gettop') return s.top;

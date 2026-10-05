@@ -682,7 +682,10 @@ export class VirtualDesktop {
       }
     } else if (
       controlType === 'listbox' &&
-      (state.list?.ownerDraw || state.list?.drag || state.list?.tabStops !== undefined)
+      (state.list?.ownerDraw ||
+        state.list?.multiple ||
+        state.list?.drag ||
+        state.list?.tabStops !== undefined)
     ) {
       element = document.createElement('div');
       tabList = true;
@@ -721,8 +724,10 @@ export class VirtualDesktop {
       element.addEventListener('keydown', (event) => {
         const s = control.listState;
         if (!s?.items.length || s.drag?.dragging || !control.enabled) return;
-        if (s.ownerDraw) {
-          if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key))
+        if (s.ownerDraw || s.multiple) {
+          if (
+            ['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageUp', 'PageDown', ' '].includes(event.key)
+          )
             event.preventDefault();
           return;
         }
@@ -1053,15 +1058,21 @@ export class VirtualDesktop {
     const scrollTop = element.scrollTop,
       fragment = document.createDocumentFragment();
     element.removeAttribute('aria-activedescendant');
+    element.setAttribute('aria-multiselectable', String(!!list.multiple));
     for (const [index, item] of list.items.entries()) {
       const row = document.createElement('div');
       row.className = 'virtual-desktop-tablist-row';
       row.setAttribute('role', 'option');
       row.setAttribute('aria-label', item.text || `Item ${index + 1}`);
-      row.setAttribute('aria-selected', String(index === list.selected));
+      row.setAttribute(
+        'aria-selected',
+        String(list.multiple ? item.selected : index === list.selected),
+      );
       row.id = `guest-list-${control.id}-${item.id}`;
+      if (list.multiple) row.dataset.caret = String(index === list.caret);
       row.style.height = `${item.height ?? list.itemHeight}px`;
-      if (index === list.selected) element.setAttribute('aria-activedescendant', row.id);
+      if (index === (list.multiple ? list.caret : list.selected))
+        element.setAttribute('aria-activedescendant', row.id);
       let x = 0;
       for (const [column, text] of (list.ownerDraw ? [] : item.text.split('\t')).entries()) {
         if (column) x = nextTab(x);
@@ -1071,9 +1082,13 @@ export class VirtualDesktop {
         row.append(span);
         x += measurement.measureText(text).width;
       }
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (event) => {
         if (control.enabled && !control.listState?.drag)
-          this.#emit(control.id, 'list-select', { index });
+          this.#emit(control.id, 'list-select', {
+            index,
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey || event.metaKey,
+          });
       });
       fragment.append(row);
     }
@@ -1085,7 +1100,7 @@ export class VirtualDesktop {
     }
     element.replaceChildren(fragment);
     element.scrollTop = scrollTop;
-    if (list.ownerDraw) element.scrollTop = control.listOffsets[list.top] ?? 0;
+    if (list.ownerDraw || list.multiple) element.scrollTop = control.listOffsets[list.top] ?? 0;
     else if (control.listState?.top !== list.top) element.scrollTop = list.top * list.itemHeight;
     else if (control.listState?.selected !== list.selected && list.selected >= 0)
       element.children[list.selected]?.scrollIntoView({ block: 'nearest' });

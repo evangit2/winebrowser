@@ -1,6 +1,15 @@
 import { comboFocused } from './win32-combos.js';
 import { gdiApis, flushGdi, clearControlDrawing } from './win32-gdi.js';
 
+export function listMultiple(w) {
+  return w.controlType === 'listbox' && !!(w.style & 0x808);
+}
+export function listItemSelected(w, index) {
+  return listMultiple(w)
+    ? !!w.list.items[index]?.selected
+    : index >= 0 && index === w.list.selected;
+}
+
 export function ownerListHost(r, w) {
   return w.comboHostId ? (r.windows.windows.get(w.comboHostId) ?? w) : w;
 }
@@ -40,7 +49,7 @@ export function updateList(r, w) {
     if (!w.destroying) r.windows.invalidate(w, null, true);
     return;
   }
-  if (w.ownerDraw) w.list.top = Math.min(w.list.top, maxListTop(w));
+  if (w.ownerDraw || listMultiple(w)) w.list.top = Math.min(w.list.top, maxListTop(w));
   r.windows.emit(w);
   if (w.comboHostId) {
     const host = ownerListHost(r, w);
@@ -155,7 +164,7 @@ export async function paintOwnerList(r, w, action = 1, indices = null) {
           host.controlId,
           index,
           action,
-          (index === w.list.selected && index >= 0 ? 1 : 0) |
+          (listItemSelected(w, index) ? 1 : 0) |
             (!r.windows.isEnabled(w.id) ? 4 : 0) |
             ((r.windows.focus === w.id ||
               (w.comboHostId && host.comboDropped && comboFocused(r, host))) &&

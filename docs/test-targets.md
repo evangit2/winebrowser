@@ -177,3 +177,12 @@ outside the parent, selection/focus/disabled pixels, F4/Escape, Unicode input,
 native text setters, resize, reset and destruction. Evidence is in
 `evidence/owner-combos-browser-results.json`. Only project-authored MIT source
 and its reproducible EXE are included; no Hamsterball assets are published.
+
+`npm run test:multi-lists` verifies authored native multiple string,
+extended raw owner-drawn and variable Unicode listboxes. Native code checks
+selection queries, bounded selected-index arrays, reversed ranges, caret and
+anchor contracts, item data/drawing and cleanup; browser input checks independent
+and extended selection, Control/Shift keyboard/mouse operations, disabled
+pixels and insertion/deletion retention. Rebuild with
+`npm run build:multi-lists`; evidence is in
+`evidence/multi-lists-browser-results.json`.

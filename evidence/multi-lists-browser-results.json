@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-04T23:55:31.474Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "edf433fb9bb782c7360ea9bb39434821065d617da3cd9bdc0bb1f51d0fa8e0b2",
+  "compiledBlocks": 270,
+  "x86TranslationMs": 93.65499982237816,
+  "checks": [
+    "Unchanged native PE32 multiple string, extended raw owner-drawn and variable Unicode listboxes compile and run inside Chromium",
+    "Native LB_SETSEL/GETSEL/GETSELCOUNT/GETSELITEMS, packed/reversed ranges, caret and anchor API contracts, buffer limits and zero programmatic notifications pass",
+    "Independent selections, Control toggles, Shift ranges, Space toggles and caret-only keyboard moves match real native item queries",
+    "Owner callbacks and real pixels distinguish selection from focus, retain disabled state and clip fixed/variable rows while scrolling",
+    "Insertion/deletion preserve selected items; select-all, reset, destruction and owner item cleanup exit zero"
+  ],
+  "scope": "Multiple and extended selection on ordinary string and fixed/variable owner-drawn listboxes. Held-pointer selection/autoscroll, full native typeahead and universal Windows compatibility remain incomplete."
+}
