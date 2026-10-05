@@ -104,6 +104,14 @@ The independent fixtures still verify frontbuffer/backbuffer pixels and depth.
 
 ## Deployment verification
 
+The subsequent multimedia/window compatibility deployment
+`e8a6cc1b94990029a7accc74d9d1867f327fa811` passed the full GitHub gate and
+the same live AirXonix first-level regression through both launch paths.
+Movement, pause/resume, return to menu and every process exit zero passed.
+Live gameplay measured 7.8–8.9 FPS and first-level loading 15–16 seconds.
+See [the deployment evidence](../evidence/mmio-live-deployment.json) and
+[multimedia API verification](multimedia-files.md#live-deployment-verification).
+
 The full GitHub gate passed for `eb6deee11fcf00601ae0679b4f00daa1e97b0058`.
 Live Pages JavaScript, worker and CSS bytes match the verified static build,
 including Wine Unix diagnostic service 2. Both private AirXonix launch paths
