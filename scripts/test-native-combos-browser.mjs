@@ -1,4 +1,4 @@
-import { selectNativeCombo, nativeComboEdit } from './lib/native-combo-input.mjs';
+import { selectNativeCombo, nativeComboEdit, nativeComboList } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -63,7 +63,22 @@ try {
   await expect(nativeComboEdit(combos[2])).toHaveValue('Apricot');
   await root.getByRole('button', { name: 'Verify native handles', exact: true }).click();
   await title('Native combo handles verified');
+  await root.getByRole('button', { name: 'Use larger fonts', exact: true }).click();
+  await title('Larger native fonts verified');
+  for (const combo of combos) await expect(combo).toHaveCSS('font-size', '28px');
+  await expect(edit).toHaveCSS('font-size', '28px');
+  assert.equal((await edit.boundingBox()).height, 32);
+  const row = (await nativeComboList(combos[2])).getByRole('option', {
+    name: 'Apricot',
+    exact: true,
+  });
+  await expect(row).toHaveCSS('height', '28px');
+  await expect(nativeComboEdit(combos[2])).toHaveValue('Apricot');
   await root.screenshot({ path: 'evidence/native-combos-browser.png' });
+  await root.getByRole('button', { name: 'Restore default fonts', exact: true }).click();
+  await title('Default native fonts restored');
+  await expect(edit).toHaveCSS('font-size', '16px');
+  await expect(row).toHaveCSS('height', '16px');
   await root.getByRole('button', { name: 'Reset editable combo', exact: true }).click();
   await title('Native edit cleared on reset');
   await expect(edit).toHaveValue('');
@@ -90,6 +105,7 @@ try {
       'GetComboBoxInfo and CB_GETCOMBOBOXINFO expose actual ComboLBox/EDIT HWNDs with class names, parents, buffer guards and visibility state',
       'GetFocus reaches the native EDIT; CB_LIMITTEXT and CB_SETEDITSEL forward to the actual child and preserve native query results',
       'Trusted keyboard/text input enters a real guest EDIT subclass and forwards through the callable original procedure',
+      'Native font metrics resize text areas, real EDIT children and visible popup rows; default font restoration, explicit heights and selection/handle preservation pass',
       'Native popup mouse selection, sorting, selected text, simple lists and programmatic notification suppression pass',
       'CB_RESETCONTENT clears native edit/list state and destroys all child handles before exit zero',
     ],

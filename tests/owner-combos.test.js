@@ -79,6 +79,14 @@ test('fixed raw combos measure both areas, expose real ComboLBox handles and sor
   assert.equal(w.height, 28);
   assert.equal(await send(0x154, -1), 26);
   assert.equal(await send(0x154, 0), 32);
+  const font = r.apiProvider.get('gdi32.dll!CreateFontW')(
+    r,
+    (i) => [-36, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, 0][i] >>> 0,
+  ).result;
+  assert.ok(font);
+  await send(0x30, font, 1);
+  assert.equal(await send(0x154, -1), 26, 'font changes preserve owner text measurements');
+  assert.equal(await send(0x154, 0), 32, 'font changes preserve owner row measurements');
   const p = r.allocate(56);
   r.write32(p, 52);
   r.write32(p + 52, 0xfeed);

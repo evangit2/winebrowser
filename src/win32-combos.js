@@ -1,6 +1,12 @@
 import { sendWindowMessage } from './win32-window-text.js';
 import { createWindowFromHost } from './win32-windows.js';
-import { gdiApis, clearControlDrawing, flushGdi } from './win32-gdi.js';
+import {
+  gdiApis,
+  clearControlDrawing,
+  flushGdi,
+  measureGdiFont,
+  describeGdiFont,
+} from './win32-gdi.js';
 import { measureListItem, paintOwnerList, updateList } from './win32-owner-lists.js';
 
 const COMBO_LIST_MESSAGES = new Map([
@@ -103,13 +109,15 @@ export async function layoutCombo(r, w) {
 }
 
 export async function initializeCombo(r, w) {
+  w.font = describeGdiFont(r, w.fontHandle);
   if (w.ownerDraw) {
     // Wine measures the selected text area first, then fixed popup rows.
     w.comboTextHeight = (await measureListItem(r, w, -1, 0)) + 2;
     if (!w.ownerVariable) w.list.itemHeight = await measureListItem(r, w, 0, 0);
   } else {
-    w.comboTextHeight = 20;
-    w.list.itemHeight = 20;
+    const height = measureGdiFont(r, w.fontHandle).height;
+    w.comboTextHeight = height + 4;
+    w.list.itemHeight = height;
   }
   if (!alive(r, w)) return;
   const popupStyle =
@@ -150,6 +158,8 @@ export async function initializeCombo(r, w) {
     w.comboEditWindow = r.windows.windows.get(w.comboEditId);
     if (!w.comboEditId) throw Error('Unable to create native combo edit');
   }
+  for (const child of [w.comboEditId, w.comboListId])
+    if (child) await r.windows.send(child, 0x30, w.fontHandle || 0, 0);
   await layoutCombo(r, w);
   r.windows.emit(w);
 }
@@ -305,6 +315,7 @@ export async function comboMessage(r, w, msg, wp, lp, wide) {
   }
   if (msg === 0x31) return w.fontHandle;
   if (msg === 0x30) {
+    if (!w.ownerDraw) w.comboTextHeight = measureGdiFont(r, w.fontHandle).height + 4;
     for (const child of [w.comboEditId, w.comboListId])
       if (child) await r.windows.send(child, msg, wp, lp);
     await layoutCombo(r, w);
@@ -413,11 +424,15 @@ export async function comboMessage(r, w, msg, wp, lp, wide) {
   if (msg === 0x154 && (wp | 0) < 0) return w.comboTextHeight;
   if (msg === 0x153 && (wp | 0) === -1) {
     if (lp >= 32768) return -1;
-    w.comboTextHeight = lp + 2;
+    w.comboTextHeight = Math.max(
+      lp + 2,
+      w.ownerDraw || w.comboType === 1 ? 0 : measureGdiFont(r, w.fontHandle).height + 4,
+    );
     await layoutCombo(r, w);
     await paintOwnerCombo(r, w);
     return lp;
   }
+  if (msg === 0x153 && !w.ownerDraw) return -1;
   if ([0xc, 0xd, 0xe].includes(msg) && w.comboEditId) {
     if (msg === 0xc) {
       w.comboUpdatingEdit = true;

@@ -1,3 +1,4 @@
+import { nativeComboEdit } from './lib/native-combo-input.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createServer } from 'vite';
@@ -40,7 +41,7 @@ try {
     .waitFor();
   await window.locator('select[data-control-id="20"]').selectOption({ label: 'Gamma' });
   await status.getByText('Gamma', { exact: true }).waitFor();
-  await window.locator('[data-control-id="21"] input').fill('Typed in browser');
+  await nativeComboEdit(window.locator('[data-control-id="21"]')).fill('Typed in browser');
   await status.getByText('Typed in browser', { exact: true }).waitFor();
   const checkbox = window.getByRole('checkbox', { name: 'Enable option', exact: true }),
     first = window.getByRole('radio', { name: 'First radio', exact: true }),

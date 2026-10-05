@@ -2383,6 +2383,13 @@ export function describeGdiFont(runtime, handle) {
   return font ? { ...font } : null;
 }
 
+/** Control layout uses the same selected-font metrics as GetTextMetrics. */
+export function measureGdiFont(runtime, handle = 0) {
+  const state = stateFor(runtime);
+  if (handle && !getFont(state, handle)) return null;
+  return fontMetrics(runtime, state, { font: handle || STOCK_SYSTEM_FONT });
+}
+
 // Printing calls may validate/store an abort procedure on existing display or
 // memory DCs. This accessor never creates GDI state for an invalid handle.
 export function activeGdiDC(runtime, handle) {

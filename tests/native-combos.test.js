@@ -154,3 +154,67 @@ test('queued focus loss cannot dismiss a combo after native dialog code restores
   await call('SetFocus', other);
   assert.equal(w.comboDropped, false, 'actual native focus loss still dismisses the popup');
 });
+
+test('combo font changes resize actual children and popup rows while preserving text, selection and handles', async (t) => {
+  for (const type of [1, 2, 3]) {
+    const { r, w, call, send, events } = await setup(t, type);
+    const gdi = async (name, ...args) =>
+      (await r.apiProvider.get(`gdi32.dll!${name}`)(r, (i) => args[i] >>> 0)).result;
+    const font = await gdi('CreateFontW', -28, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, 0);
+    assert.ok(font);
+    const text = r.allocString('Selected text', true);
+    await send(0x143, 0, text);
+    await send(0x14e, 0);
+    const info = r.allocate(52),
+      metrics = r.allocate(60),
+      rect = r.allocate(16),
+      dc = await call('GetDC', w.id);
+    const previous = await gdi('SelectObject', dc, font);
+    await gdi('GetTextMetricsW', dc, metrics);
+    const height = r.read32(metrics);
+    await gdi('SelectObject', dc, previous);
+    await call('ReleaseDC', w.id, dc);
+    const children = [w.comboEditId, w.comboListId],
+      simpleHeight = w.height;
+    events.length = 0;
+    await send(0x30, font, 1);
+    assert.equal(await send(0x154, -1), height + 4);
+    assert.equal(await send(0x154, 0), height);
+    assert.equal(await send(0x147), 0);
+    assert.equal(w.title, 'Selected text');
+    assert.deepEqual([w.comboEditId, w.comboListId], children);
+    assert.equal(await call('SendMessageW', w.comboListId, 0x31), font);
+    r.write32(info, 52);
+    assert.equal(await call('GetComboBoxInfo', w.id, info), 1);
+    assert.equal(r.read32(info + 16), height + 6);
+    if (w.comboEditId) {
+      assert.equal(await call('SendMessageW', w.comboEditId, 0x31), font);
+      await call('GetClientRect', w.comboEditId, rect);
+      assert.equal(r.read32(rect + 12), height + 4);
+    }
+    assert.equal(w.height, type === 1 ? simpleHeight : height + 6);
+    assert.equal(
+      events.length,
+      0,
+      'relayout cannot notify the parent of user selection or owner drawing',
+    );
+    assert.equal(
+      await send(0x153, 0, 55),
+      0xffffffff,
+      'ordinary list item heights follow the font',
+    );
+    assert.equal(await send(0x153, -1, 50), 50);
+    assert.equal(await send(0x154, -1), 52);
+    assert.equal(await send(0x153, -1, 2), 2);
+    assert.equal(
+      await send(0x154, -1),
+      type === 1 ? 4 : height + 4,
+      'collapsed dropdown text cannot clip its font; simple controls honor explicit height',
+    );
+    await send(0x30, 0, 1);
+    assert.equal(await send(0x154, -1), 20);
+    assert.equal(await send(0x154, 0), 16);
+    await r.windows.destroy(w.id);
+    assert.equal(await gdi('DeleteObject', font), 1);
+  }
+});

@@ -182,6 +182,35 @@ try {
     ),
     'edit input is reported to the guest bridge',
   );
+  await page.evaluate(() => {
+    window.desktopEvents = [];
+    window.nativeEditSelectEvents = 0;
+    document.querySelector('[data-window-id="4"]').addEventListener('select', () => {
+      window.nativeEditSelectEvents++;
+    });
+    for (const [start, end] of [
+      [0, 5],
+      [5, 5],
+      [11, 16],
+    ])
+      window.virtualDesktop.update({
+        operation: 'update',
+        window: { id: 4, title: 'gamma beta alpha', selection: { start, end } },
+      });
+  });
+  // The browser queues select events from programmatic setSelectionRange.
+  await page.waitForFunction(() => window.nativeEditSelectEvents > 0);
+  assert.deepEqual(
+    (await page.evaluate(() => window.desktopEvents)).filter((event) => event.type === 'selection'),
+    [],
+    'native edit ranges cannot echo delayed select events into the guest message stream',
+  );
+  await edit.evaluate((element) => element.setSelectionRange(1, 4));
+  await page.waitForFunction(() =>
+    window.desktopEvents.some(
+      (event) => event.type === 'selection' && event.start === 1 && event.end === 4,
+    ),
+  );
   assert.deepEqual(pageErrors, []);
   await page.evaluate(() =>
     window.virtualDesktop.update({

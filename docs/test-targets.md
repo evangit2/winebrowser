@@ -202,5 +202,8 @@ child classes/parents, focus, edit limits/ranges and popup state assertions run
 before trusted browser interaction. The program subclasses its actual EDIT
 HWND, checks input forwarded through the original callable native procedure,
 then verifies selection/notification counters, reset and child destruction.
+Font changes are checked against native GDI metrics, queried child rectangles
+and actual browser row/edit dimensions, including system-font restoration,
+explicit text heights and preservation of selected values and child HWNDs.
 Rebuild with `npm run build:native-combos`; evidence is in
 `evidence/native-combos-browser-results.json`.

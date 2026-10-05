@@ -1,5 +1,6 @@
 import { comboMessage } from './win32-combos.js';
-import { describeGdiFont } from './win32-gdi.js';
+import { describeGdiFont, measureGdiFont } from './win32-gdi.js';
+import { updateList } from './win32-owner-lists.js';
 import { listMessage, listInput } from './win32-lists.js';
 import { treeMessage, treeInput } from './win32-treeview.js';
 import { tabMessage, tabInput } from './win32-tabs.js';
@@ -343,13 +344,17 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
   }
   if (message === 0x30) {
     // WM_SETFONT
-    const font = wp ? describeGdiFont(r, wp) : null;
+    const font = describeGdiFont(r, wp);
     if (wp && !font) {
       r.lastError = 6;
       return 0;
     }
     window.fontHandle = wp;
     window.font = font;
+    if (window.controlType === 'listbox' && !window.ownerDraw) {
+      window.list.itemHeight = measureGdiFont(r, wp).height;
+      updateList(r, window);
+    }
     r.windows.emit(window);
     if (window.ownerDraw) r.windows.invalidate(window, null, true);
     if (window.controlType === 'combobox') await comboMessage(r, window, message, wp, lp, wide);

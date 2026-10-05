@@ -843,12 +843,18 @@ export class VirtualDesktop {
         }),
       );
       for (const type of ['select', 'keyup', 'click'])
-        element.addEventListener(type, () =>
+        element.addEventListener(type, () => {
+          // setSelectionRange also schedules trusted DOM select events. Echoing
+          // native ranges back to the worker can overwrite a newer EM_SETSEL
+          // while an application is replacing several matches.
+          const expected = control.nativeSelection;
+          if (expected?.start === element.selectionStart && expected?.end === element.selectionEnd)
+            return;
           this.#emit(control.id, 'selection', {
             start: element.selectionStart,
             end: element.selectionEnd,
-          }),
-        );
+          });
+        });
     } else if (controlType === 'custom') {
       element = canvas = document.createElement('canvas');
       element.className = 'virtual-desktop-control virtual-desktop-control-custom';
@@ -1482,6 +1488,8 @@ export class VirtualDesktop {
     if (control.controlType === 'edit' && readOnly !== undefined)
       control.element.readOnly = !!readOnly;
     if (control.controlType === 'edit') control.element.maxLength = state.textLimit ?? 32767;
+    if (control.controlType === 'edit' && state.selection)
+      control.nativeSelection = { ...state.selection };
     if (
       control.controlType === 'edit' &&
       state.selection &&
