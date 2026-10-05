@@ -1,138 +1,273 @@
 {
-  "date": "2026-10-02T17:49:53.577Z",
-  "browser": "154.0.8037.97",
-  "url": "http://127.0.0.1:4197/winebrowser/",
+  "date": "2026-10-05T04:29:37.089Z",
+  "browser": "153.0.8010.12",
+  "url": "http://127.0.0.1:4389/winebrowser/",
   "exeSha256": "37df64605e11c7a23df2d5befeb0bf38d2b9b6d2bf1322ffb1d0a437030b2903",
   "zipSha256": "9c74c3a787a1320e9cd7e7f708ff923f4a83be5a6e1dc93b80763c3c398e61f7",
   "runs": [
     {
       "mode": "zip-upload",
-      "elapsedMs": 86456,
+      "elapsedMs": 36828,
       "samples": [
         {
           "path": "shader-constant batching",
           "width": 798,
           "height": 570,
           "frames": 8,
-          "draws": 1593,
-          "lit": 39997,
-          "white": 3980,
-          "colors": 3378,
-          "hash": "da6ff8bfffbc65b36471c987ab77dd503116cc620b7e64348c4d6dce24287011"
+          "draws": 2028,
+          "lit": 51307,
+          "white": 2394,
+          "colors": 4096,
+          "hash": "a65f46d6eeafb6fd5d054860f3506569b2eb67c827e1d7170ca41455c4f3d476",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 8,
+              "draws": 2028,
+              "lit": 51307,
+              "white": 2394,
+              "colors": 4096,
+              "hash": "a65f46d6eeafb6fd5d054860f3506569b2eb67c827e1d7170ca41455c4f3d476"
+            }
+          ]
         },
         {
           "path": "shader-constant batching",
           "width": 798,
           "height": 570,
-          "frames": 16,
-          "draws": 3927,
-          "lit": 138588,
-          "white": 5877,
+          "frames": 20,
+          "draws": 5549,
+          "lit": 92339,
+          "white": 2730,
           "colors": 4096,
-          "hash": "5e6612eed639d162cfb5e9c91c55f3e4ce969ecd93404ce3fb8b6fe20978634d"
+          "hash": "4fae60c78cfce068b46d2f39b474791ea0ade6af743c7afbe7cf39a9abf93bce",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 16,
+              "draws": 4402,
+              "lit": 34219,
+              "white": 0,
+              "colors": 729,
+              "hash": "a94f64e0b2ad40eea0933a8c1756df8b6813a2f6e97b23165a33cd87ab4a9077"
+            },
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 20,
+              "draws": 5549,
+              "lit": 92339,
+              "white": 2730,
+              "colors": 4096,
+              "hash": "4fae60c78cfce068b46d2f39b474791ea0ade6af743c7afbe7cf39a9abf93bce"
+            }
+          ]
         },
         {
           "path": "shader-constant batching",
           "width": 798,
           "height": 570,
           "frames": 32,
-          "draws": 8531,
-          "lit": 90610,
-          "white": 5595,
-          "colors": 4096,
-          "hash": "1d8ba1c36b288f2e6b1fb43389774e1ebb2c6a9546654b31430ccf01cb27d1d0"
+          "draws": 9115,
+          "lit": 37308,
+          "white": 1897,
+          "colors": 1739,
+          "hash": "480c2c0c638fa1525ad3c82a542dc972d70c09eaccea04b2a11fb7152a29ef86",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 32,
+              "draws": 9115,
+              "lit": 37308,
+              "white": 1897,
+              "colors": 1739,
+              "hash": "480c2c0c638fa1525ad3c82a542dc972d70c09eaccea04b2a11fb7152a29ef86"
+            }
+          ]
         },
         {
           "path": "vertex-buffer upload",
           "width": 798,
           "height": 570,
           "frames": 40,
-          "draws": 9296,
-          "lit": 52358,
-          "white": 849,
-          "colors": 2089,
-          "hash": "e74f1900c83b1fb766cd0bd720a81ab071ed48de1119c167be37ad4addc5ae3a"
+          "draws": 9876,
+          "lit": 60521,
+          "white": 7696,
+          "colors": 3715,
+          "hash": "bca114e37143ca5c902f8392418943cea0a2269c5d6fda05e2249563e255f610",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 40,
+              "draws": 9876,
+              "lit": 60521,
+              "white": 7696,
+              "colors": 3715,
+              "hash": "bca114e37143ca5c902f8392418943cea0a2269c5d6fda05e2249563e255f610"
+            }
+          ]
         },
         {
           "path": "user-pointer arrays",
           "width": 798,
           "height": 570,
           "frames": 48,
-          "draws": 9924,
-          "lit": 123074,
-          "white": 1161,
-          "colors": 4096,
-          "hash": "3b9f983e2551ff047803be9ffaa667ee377ea42debf6ab92ac2a53505d2bdecc"
+          "draws": 10504,
+          "lit": 31664,
+          "white": 1872,
+          "colors": 2219,
+          "hash": "98d4d5ae4528c312482ea0511fec1b990fa40ff707fff45d0389e5f66b3e9f36",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 48,
+              "draws": 10504,
+              "lit": 31664,
+              "white": 1872,
+              "colors": 2219,
+              "hash": "98d4d5ae4528c312482ea0511fec1b990fa40ff707fff45d0389e5f66b3e9f36"
+            }
+          ]
         }
       ],
       "exitCode": 0,
-      "instructions": 281593671,
-      "apiCalls": 26244
+      "instructions": 220051107,
+      "apiCalls": 27970
     },
     {
       "mode": "hosted-zip",
-      "elapsedMs": 60709,
+      "elapsedMs": 31396,
       "samples": [
         {
           "path": "shader-constant batching",
           "width": 798,
           "height": 570,
           "frames": 8,
-          "draws": 1746,
-          "lit": 87650,
-          "white": 11378,
+          "draws": 2111,
+          "lit": 131824,
+          "white": 2249,
           "colors": 4096,
-          "hash": "8e911e3e9dab38f2eba37b34068a9dd22cb54dc99d8f194e73ebc1332693b33a"
+          "hash": "5efc63d31c7defca418afd967b4259e7c269bc1c977a62d2709d58c4df59fc73",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 8,
+              "draws": 2111,
+              "lit": 131824,
+              "white": 2249,
+              "colors": 4096,
+              "hash": "5efc63d31c7defca418afd967b4259e7c269bc1c977a62d2709d58c4df59fc73"
+            }
+          ]
         },
         {
           "path": "shader-constant batching",
           "width": 798,
           "height": 570,
           "frames": 16,
-          "draws": 4036,
-          "lit": 44462,
-          "white": 2375,
-          "colors": 4004,
-          "hash": "1ef73b40082d7731d31aaf3350ab30f914165ba1dfdbd35f99ec692b1c222ca9"
+          "draws": 4539,
+          "lit": 47721,
+          "white": 1321,
+          "colors": 3828,
+          "hash": "eb4d69ae471b8c2c925a092034cc17e9820f456d84e91c38d7239ea5ebb7c39f",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 16,
+              "draws": 4539,
+              "lit": 47721,
+              "white": 1321,
+              "colors": 3828,
+              "hash": "eb4d69ae471b8c2c925a092034cc17e9820f456d84e91c38d7239ea5ebb7c39f"
+            }
+          ]
         },
         {
           "path": "shader-constant batching",
           "width": 798,
           "height": 570,
           "frames": 32,
-          "draws": 8564,
-          "lit": 54122,
-          "white": 3593,
+          "draws": 9367,
+          "lit": 100575,
+          "white": 323,
           "colors": 4096,
-          "hash": "ed5d0f5f5af906aedcadfda1cbd4e05a6247383bbb333136a3963c39d73d3d3b"
+          "hash": "898ba11b058a74c84a627c2b6a1e51977370e2a658a9453dddf2921fdcf22822",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 32,
+              "draws": 9367,
+              "lit": 100575,
+              "white": 323,
+              "colors": 4096,
+              "hash": "898ba11b058a74c84a627c2b6a1e51977370e2a658a9453dddf2921fdcf22822"
+            }
+          ]
         },
         {
           "path": "vertex-buffer upload",
           "width": 798,
           "height": 570,
           "frames": 40,
-          "draws": 9322,
-          "lit": 25248,
-          "white": 853,
-          "colors": 1446,
-          "hash": "dedc8789fa8e6d5e769ca8d423b27f1e64a9415df2fccee21d1595b978ec294d"
+          "draws": 10148,
+          "lit": 37075,
+          "white": 2202,
+          "colors": 2618,
+          "hash": "ad872420cf0d2339b134f2eb413fd52fe5f2f57232a1c09d88ef6b8289ede2a5",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 40,
+              "draws": 10148,
+              "lit": 37075,
+              "white": 2202,
+              "colors": 2618,
+              "hash": "ad872420cf0d2339b134f2eb413fd52fe5f2f57232a1c09d88ef6b8289ede2a5"
+            }
+          ]
         },
         {
           "path": "user-pointer arrays",
           "width": 798,
           "height": 570,
           "frames": 48,
-          "draws": 9948,
-          "lit": 37177,
-          "white": 965,
-          "colors": 2295,
-          "hash": "5e23b4b0c6dfb168c7f6d97cc7155e9e952b174b890f743863171771a798440e"
+          "draws": 10776,
+          "lit": 16852,
+          "white": 0,
+          "colors": 2838,
+          "hash": "23575504b993f7ba692eb2efa9d58b109add760ced77fa98b64cc13a580117c6",
+          "observations": [
+            {
+              "width": 798,
+              "height": 570,
+              "frames": 48,
+              "draws": 10776,
+              "lit": 16852,
+              "white": 0,
+              "colors": 2838,
+              "hash": "23575504b993f7ba692eb2efa9d58b109add760ced77fa98b64cc13a580117c6"
+            }
+          ]
         }
       ],
       "exitCode": 0,
-      "instructions": 241009140,
-      "apiCalls": 26325
+      "instructions": 218193623,
+      "apiCalls": 28784
     }
   ],
-  "errors": []
+  "errors": [],
+  "sceneRegion": {
+    "top": 64,
+    "bottomHeightFraction": 0.82
+  },
+  "maxObservationsPerSample": 5
 }

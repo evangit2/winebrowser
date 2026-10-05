@@ -56,43 +56,66 @@ try {
         await page.locator('.virtual-desktop-canvas').focus();
         await page.keyboard.down(key);
       }
-      await page.waitForFunction(
-        (goal) => {
-          const state = document.querySelector('#state')?.textContent;
-          if (['ERROR', 'EXITED'].includes(state))
-            throw Error(document.querySelector('#status')?.textContent);
-          return (
-            Number(document.querySelector('.virtual-desktop-canvas')?.dataset.graphicsFrames) >=
-            goal
-          );
-        },
-        goal,
-        { timeout: 600000 },
-      );
+      // The particle emitter follows wall-clock time. A slower adapter can
+      // sample a briefly saturated cloud at the same nominal frame number.
+      // Path switches must render new frames even if prior observations advanced.
+      const frameGoal = key
+        ? Number(
+            await page.locator('.virtual-desktop-canvas').getAttribute('data-graphics-frames'),
+          ) + 8
+        : Math.max(goal, (samples.at(-1)?.frames ?? 0) + 4);
+      const waitFrame = (target) =>
+        page.waitForFunction(
+          (goal) => {
+            const state = document.querySelector('#state')?.textContent;
+            if (['ERROR', 'EXITED'].includes(state))
+              throw Error(document.querySelector('#status')?.textContent);
+            return (
+              Number(document.querySelector('.virtual-desktop-canvas')?.dataset.graphicsFrames) >=
+              goal
+            );
+          },
+          target,
+          { timeout: 600000 },
+        );
+      await waitFrame(frameGoal);
       if (key) await page.keyboard.up(key);
-      const sample = await page.locator('.virtual-desktop-canvas').evaluate(async (canvas) => {
-        const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-        let lit = 0,
-          white = 0;
-        const colors = new Set();
-        for (let i = 0; i < pixels.length; i += 4) {
-          if (Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 24) lit++;
-          if (Math.min(pixels[i], pixels[i + 1], pixels[i + 2]) > 245) white++;
-          if (colors.size < 4096) colors.add(pixels[i] + ',' + pixels[i + 1] + ',' + pixels[i + 2]);
-        }
-        return {
-          width: canvas.width,
-          height: canvas.height,
-          frames: Number(canvas.dataset.graphicsFrames),
-          draws: Number(canvas.dataset.graphicsDraws),
-          lit,
-          white,
-          colors: colors.size,
-          hash: [...new Uint8Array(await crypto.subtle.digest('SHA-256', pixels))]
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join(''),
-        };
-      });
+      const capture = () =>
+        page.locator('.virtual-desktop-canvas').evaluate(async (canvas) => {
+          // Main.cpp draws path/count text at y=0.82*height and FPS at the top.
+          // Only the actual particle scene may satisfy shading/animation checks.
+          const pixels = canvas
+            .getContext('2d')
+            .getImageData(0, 64, canvas.width, Math.floor(canvas.height * 0.82) - 64).data;
+          let lit = 0,
+            white = 0;
+          const colors = new Set();
+          for (let i = 0; i < pixels.length; i += 4) {
+            if (Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 24) lit++;
+            if (Math.min(pixels[i], pixels[i + 1], pixels[i + 2]) > 245) white++;
+            if (colors.size < 4096)
+              colors.add(pixels[i] + ',' + pixels[i + 1] + ',' + pixels[i + 2]);
+          }
+          return {
+            width: canvas.width,
+            height: canvas.height,
+            frames: Number(canvas.dataset.graphicsFrames),
+            draws: Number(canvas.dataset.graphicsDraws),
+            lit,
+            white,
+            colors: colors.size,
+            hash: [...new Uint8Array(await crypto.subtle.digest('SHA-256', pixels))]
+              .map((b) => b.toString(16).padStart(2, '0'))
+              .join(''),
+          };
+        });
+      let sample = await capture();
+      const observations = [sample];
+      for (let extra = 0; (sample.lit <= 10000 || sample.colors < 1000) && extra < 4; extra++) {
+        await waitFrame(sample.frames + 4);
+        sample = await capture();
+        observations.push(sample);
+      }
       assert.equal(sample.width, 798);
       assert.equal(sample.height, 570);
       assert.ok(sample.lit > 10000, 'particle scene: ' + JSON.stringify(sample));
@@ -102,7 +125,7 @@ try {
           .screenshot({ path: 'evidence/instancing-shading-failure.png' });
         await writeFile(
           'evidence/instancing-shading-failure.json',
-          JSON.stringify({ mode, goal, sample }, null, 2) + '\n',
+          JSON.stringify({ mode, goal, frameGoal, sample, observations }, null, 2) + '\n',
         );
       }
       assert.ok(sample.colors >= 1000, 'scene has textured shading: ' + JSON.stringify(sample));
@@ -114,6 +137,7 @@ try {
               ? 'vertex-buffer upload'
               : 'user-pointer arrays',
         ...sample,
+        observations,
       });
     }
     assert.ok(
@@ -152,6 +176,8 @@ try {
     url,
     exeSha256: entry.exeSha256,
     zipSha256: entry.zipSha256,
+    sceneRegion: { top: 64, bottomHeightFraction: 0.82 },
+    maxObservationsPerSample: 5,
     runs,
     errors,
   };
