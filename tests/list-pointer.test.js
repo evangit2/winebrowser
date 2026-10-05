@@ -186,7 +186,7 @@ test('application-cleared anchors during capture preserve flags while the pointe
   await send(0x202, 0, point(8, 48));
 });
 
-test('ComboLBox releases commit inside the popup and restore original selection on outside cancellation', async (t) => {
+test('ComboLBox commits inside, cancels outside and releases capture/timers on programmatic close', async (t) => {
   const { r, w, call, events } = await setup(t);
   const combo = (
     await createWindowFromHost(r, {
@@ -223,6 +223,21 @@ test('ComboLBox releases commit inside the popup and restore original selection 
   assert.equal(await send(0x147), 0);
   assert.equal(await send(0x157), 0);
   assert.equal(await call('GetCapture'), 0);
+  assert.deepEqual(
+    events.filter((e) => e.msg === 0x111 && e.lp === combo).map((e) => e.wp >>> 16),
+    [10, 8],
+  );
+  await send(0x14f, 1);
+  await call('SendMessageW', list, 0x201, 1, point(8, 24));
+  await call('SendMessageW', list, 0x200, 1, point(8, 300));
+  assert.equal(await call('GetCapture'), list);
+  assert.ok(r.windows.timers.has(`${list}:system:2`));
+  events.length = 0;
+  await send(0x14f, 0);
+  assert.equal(await send(0x157), 0);
+  assert.equal(await call('GetCapture'), 0);
+  assert.equal(r.windows.windows.get(list).list.pointer, null);
+  assert.equal(r.windows.timers.has(`${list}:system:2`), false);
   assert.deepEqual(
     events.filter((e) => e.msg === 0x111 && e.lp === combo).map((e) => e.wp >>> 16),
     [10, 8],

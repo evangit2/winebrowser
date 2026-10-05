@@ -251,6 +251,9 @@ export async function showCombo(r, w, show, ok = false) {
     if (!alive(r, w)) return;
     w.comboDropped = false;
     await call(r, 'ShowWindow', w.comboListId, 0);
+    // Wine's CBRollUp releases the hidden ComboLBox. Capture-change enters
+    // the actual list procedure and cancels held-pointer/system-timer state.
+    if (r.windows.capture === w.comboListId) await r.windows.changeCapture(0);
     await notify(r, w, 8);
   }
   if (alive(r, w)) {

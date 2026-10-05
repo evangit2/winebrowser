@@ -408,7 +408,11 @@ application's `WM_TIMER` with the same ID. Release clears capture before
 `LBN_SELCHANGE`; native cancel mode, capture transfer, focus loss, disable,
 reset, application blur and destruction stop tracking and clean up timers.
 Combo list drags commit inside the popup and restore the original selection
-when released outside. MakeDragList retains its separate parent-directed
+when released outside. Programmatic popup closure releases the hidden list's
+capture and cancels its private timer. Browser list scrolling aligns to whole
+native rows and synchronizes before pointer input, including when Chromium
+scrolls an offscreen row into a tiny popup before delivering its scroll event.
+MakeDragList retains its separate parent-directed
 drag/drop protocol. Adjacent mouse moves coalesce without crossing button,
 keyboard or window-message boundaries.
 

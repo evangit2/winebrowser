@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-04T18:44:32.608Z",
+  "date": "2026-10-05T03:54:02.064Z",
   "url": "http://127.0.0.1:4389/winebrowser/",
-  "browser": "154.0.8037.97",
+  "browser": "153.0.8010.12",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "1f8e17d90d934aa40a90686f56103e574bd5c5cc9f0acf1935f3df90899f9b00",
   "compiledBlocks": 205,
-  "x86TranslationMs": 52.929999977350235,
+  "x86TranslationMs": 76.14500018954277,
   "checks": [
     "Native GetDC/FillRect/GetPixel on standard STATIC, EDIT, BUTTON and COMBOBOX produce visible independent RGBA client overlays",
     "Bordered edit canvas has real client dimensions/insets; untouched content remains transparent; native TextOut preserves antialias alpha",

@@ -702,20 +702,27 @@ export class VirtualDesktop {
       element.setAttribute('role', 'listbox');
       element.setAttribute('aria-label', state.title || 'List');
       element.tabIndex = 0;
-      element.addEventListener('scroll', () => {
-        if (control.listState)
-          this.#emit(control.id, 'list-scroll', {
-            top: control.listState.ownerDraw
-              ? Math.max(
-                  0,
-                  control.listOffsets.findLastIndex((y) => y <= element.scrollTop),
-                )
-              : Math.floor(element.scrollTop / control.listState.itemHeight),
-          });
-      });
+      const syncListScroll = () => {
+        const list = control.listState;
+        if (!list) return;
+        const top = Math.min(
+          list.maxTop ?? Infinity,
+          Math.max(
+            0,
+            control.listOffsets.findLastIndex((y) => y <= element.scrollTop),
+          ),
+        );
+        // Win32 scrolls by whole items. Chromium can scroll an offscreen row
+        // into view before dispatching its deferred scroll event. Synchronize
+        // that viewport before native pointer hit testing, including tiny lists.
+        if (list.nativePointer) element.scrollTop = control.listOffsets[top] ?? 0;
+        if (top !== list.top) this.#emit(control.id, 'list-scroll', { top });
+      };
+      element.addEventListener('scroll', syncListScroll);
       element.addEventListener('pointerdown', (event) => {
         if (control.listState?.nativePointer && control.enabled && event.button === 0) {
           event.preventDefault();
+          syncListScroll();
           if (!control.comboPopup) element.focus({ preventScroll: true });
           control.listPointerId = event.pointerId;
           element.setPointerCapture(event.pointerId);
@@ -729,7 +736,10 @@ export class VirtualDesktop {
         this.#sendMouse(control, 'mouseup', event);
       });
       element.addEventListener('pointermove', (event) => {
-        if (control.listState?.nativePointer) this.#sendMouse(control, 'mousemove', event);
+        if (control.listState?.nativePointer) {
+          syncListScroll();
+          this.#sendMouse(control, 'mousemove', event);
+        }
       });
       for (const type of ['pointercancel', 'lostpointercapture'])
         element.addEventListener(type, (event) => {

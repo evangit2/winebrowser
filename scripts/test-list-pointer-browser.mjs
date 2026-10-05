@@ -190,6 +190,7 @@ try {
       'Variable owner-drawn row hit-testing and stationary out-of-client autoscroll use native capture and WM_SYSTIMER',
       'Application WM_TIMER ID 2 remains independent of private list system timer ID 2; native release queries capture zero and real LBN_SELCHANGE HWNDs',
       'Native WM_CANCELMODE during stationary autoscroll and SetCapture transfer while dragging cancel tracking through the actual original list procedure',
+      'Guest CB_SHOWDROPDOWN(FALSE) during a captured out-of-client combo drag hides the popup and releases its real HWND capture',
       'Actual ComboLBox pointer drag selects and commits native combo state; all stage assertions and native window destruction exit zero',
     ],
     scope:

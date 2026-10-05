@@ -1,18 +1,19 @@
 {
-  "date": "2026-10-05T03:36:45.949Z",
+  "date": "2026-10-05T03:53:22.039Z",
   "url": "http://127.0.0.1:4389/winebrowser/",
   "browser": "153.0.8010.12",
   "status": "passed",
   "exitCode": 0,
-  "exeSha256": "1e19b9936022a447a4762ba3a59657a8c4650cda78ea3a98b87a8a394c7f3761",
-  "compiledBlocks": 221,
-  "x86TranslationMs": 58.544999837875366,
+  "exeSha256": "72c7d7129ed066df40f44b5a8b678dab89d134f71fcc27b572252de5d3fd2bd6",
+  "compiledBlocks": 231,
+  "x86TranslationMs": 102.31999996304512,
   "checks": [
     "Unchanged native PE32 receives actual WM_LBUTTONDOWN/MOVE/UP through guest LISTBOX subclasses and callable originals",
     "Single-string drag selection, extended grow/shrink, Control toggles/ranges, Shift anchors and multiple caret-only tracking pass native queries",
     "Variable owner-drawn row hit-testing and stationary out-of-client autoscroll use native capture and WM_SYSTIMER",
     "Application WM_TIMER ID 2 remains independent of private list system timer ID 2; native release queries capture zero and real LBN_SELCHANGE HWNDs",
     "Native WM_CANCELMODE during stationary autoscroll and SetCapture transfer while dragging cancel tracking through the actual original list procedure",
+    "Guest CB_SHOWDROPDOWN(FALSE) during a captured out-of-client combo drag hides the popup and releases its real HWND capture",
     "Actual ComboLBox pointer drag selects and commits native combo state; all stage assertions and native window destruction exit zero"
   ],
   "scope": "Native pointer capture and vertical autoscroll on ordinary, multiple, extended and owner-drawn listboxes and combo list children. Horizontal/multicolumn lists, complete popup hover tracking and universal Windows/DLL compatibility remain incomplete."

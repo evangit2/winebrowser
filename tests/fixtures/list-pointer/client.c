@@ -15,7 +15,7 @@ static void verify(unsigned step){
  if(step==4){CHECK(SendMessageW(lists[3],LB_GETTOPINDEX,0,0)>1&&SendMessageW(lists[3],LB_GETCARETINDEX,0,0)>=7&&systemTicks[3]>0&&userTicks>0);}
  if(step==5){CHECK(mask(lists[1])==56);}
  if(step==6){CHECK(mask(lists[1])==120&&SendMessageW(lists[1],LB_GETANCHORINDEX,0,0)==3);}
- if(step==7){CHECK(SendMessageW(combo,CB_GETCURSEL,0,0)==2&&!SendMessageW(combo,CB_GETDROPPEDSTATE,0,0));}
+ if(step==7){CHECK(SendMessageW(combo,CB_GETCURSEL,0,0)==2&&!SendMessageW(combo,CB_GETDROPPEDSTATE,0,0));SendMessageW(combo,CB_SHOWDROPDOWN,TRUE,0);SendMessageW(comboList,WM_LBUTTONDOWN,MK_LBUTTON,MAKELPARAM(8,1));CHECK(GetCapture()==comboList);SendMessageW(comboList,WM_MOUSEMOVE,MK_LBUTTON,MAKELPARAM(8,200));SendMessageW(combo,CB_SHOWDROPDOWN,FALSE,0);CHECK(GetCapture()==NULL&&!SendMessageW(combo,CB_GETDROPPEDSTATE,0,0));}
  const char *titles[10]={"Single pointer verified","Extended shrink verified","Multiple caret verified","Variable pointer verified","Stationary autoscroll verified","Control pointer verified","Shift pointer verified","Combo pointer verified","Native cancel mode verified","Native pointer checks complete"};if(step==8){CHECK(canceled==1);}if(step==9){CHECK(captureTransfers==1);}stage=step+1;SetWindowTextA(root,titles[step]);
 }
 static LRESULT CALLBACK proc(HWND w,UINT msg,WPARAM wp,LPARAM lp){
