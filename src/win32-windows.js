@@ -1880,7 +1880,9 @@ Object.assign(windowApis, {
       r.windows.post(
         message.hwnd,
         message.message === 0x104 ? 0x106 : 0x102,
-        message.character.charCodeAt(0),
+        r.windows.windows.get(message.hwnd)?.cls?.wide !== false
+          ? message.character.charCodeAt(0)
+          : encodeAnsi(message.character).bytes[0],
         message.lParam,
       );
       message.character = '';

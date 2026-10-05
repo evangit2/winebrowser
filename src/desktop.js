@@ -684,6 +684,7 @@ export class VirtualDesktop {
       controlType === 'listbox' &&
       (state.list?.ownerDraw ||
         state.list?.multiple ||
+        state.list?.nativeKeyboard ||
         state.list?.drag ||
         state.list?.tabStops !== undefined)
     ) {
@@ -724,21 +725,23 @@ export class VirtualDesktop {
       element.addEventListener('keydown', (event) => {
         const s = control.listState;
         if (!s?.items.length || s.drag?.dragging || !control.enabled) return;
-        if (s.ownerDraw || s.multiple) {
-          if (
-            ['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageUp', 'PageDown', ' '].includes(event.key)
-          )
-            event.preventDefault();
-          return;
-        }
-        let index = s.selected;
-        if (event.key === 'ArrowDown') index = Math.min(s.items.length - 1, index + 1);
-        else if (event.key === 'ArrowUp') index = Math.max(0, index - 1);
-        else if (event.key === 'Home') index = 0;
-        else if (event.key === 'End') index = s.items.length - 1;
-        else return;
-        event.preventDefault();
-        this.#emit(control.id, 'list-select', { index });
+        if (
+          (s.wantKeyboardInput && event.key !== 'Tab') ||
+          event.key.length === 1 ||
+          [
+            'ArrowDown',
+            'ArrowUp',
+            'ArrowLeft',
+            'ArrowRight',
+            'Home',
+            'End',
+            'PageUp',
+            'PageDown',
+          ].includes(event.key)
+        )
+          event.preventDefault();
+        // Selection belongs to the native control procedure, including parent
+        // keyboard callbacks. The shared key listener queues the guest message.
       });
     } else if (['combobox', 'listbox'].includes(controlType)) {
       const comboType = state.list?.comboType ?? 0;

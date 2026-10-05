@@ -1,0 +1,3 @@
+Project-authored MIT native PE32 fixture; rebuild with `npm run build:list-keyboard`.
+
+`npm run test:list-keyboard` uploads the unchanged EXE into ordinary Chromium. The Windows program asserts real HWND/caret fields and signed `WM_VKEYTOITEM`/`WM_CHARTOITEM` results, raw item data, ANSI/Unicode character selection, independent multiple selections, extended anchor ranges, tabbed strings and owner-drawn combo popup forwarding. Native queries and notification counters verify the final selections before exit zero. Browser tests use trusted Chromium keyboard events (CDP supplies characters absent from Playwright's key-name table) and inspect owner-drawn pixels. No proprietary application binaries are included.

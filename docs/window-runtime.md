@@ -373,5 +373,26 @@ caret, preserve disabled state and use fixed/variable scrolling coordinates.
 native APIs, bounded buffers, mouse/keyboard behavior, selected/focus/disabled
 pixels, selection retention, reset and destruction. See
 [the acceptance record](../evidence/multi-lists-browser-results.json).
-Held-pointer range tracking/autoscroll, full native typeahead, horizontal or
+Owner-drawn, multiple, extended, tabbed and drag-list controls now route
+keyboard selection through the native control procedure. `LBS_WANTKEYBOARDINPUT`
+is accepted on string and raw owner-drawn lists. Parent `WM_VKEYTOITEM` and
+`WM_CHARTOITEM` callbacks receive the key/Unicode character, current caret and
+actual list HWND: signed `-1` requests default behavior, `-2` handles the input,
+and a valid nonnegative result chooses a target. Invalid targets leave the
+control unchanged; callbacks may destroy the control safely.
+
+Character search cycles matching prefixes from the next row and wraps,
+using the list locale and Windows-1252 conversion for ANSI messages. Simple
+multiple lists move their caret without changing selected flags; extended
+lists retain their anchor and select its range to the matching caret. Raw
+owner-drawn items use parent callbacks instead of reading item data as text.
+Owner-drawn dropdown-list combos forward characters to their real ComboLBox,
+update the selection and retain the popup until commitment or dismissal.
+`npm run test:list-keyboard` verifies these paths in Chromium with an unchanged
+MIT PE32 fixture, native queries and real owner-drawing pixels. See
+[the acceptance record](../evidence/list-keyboard-browser-results.json) and
+[Wine's listbox implementation](https://github.com/wine-mirror/wine/blob/master/dlls/user32/listbox.c).
+
+Ordinary single-string lists and ordinary combos still use the older DOM
+selection provider. Held-pointer range tracking/autoscroll, horizontal or
 multicolumn lists and universal GUI/DLL compatibility remain incomplete.

@@ -289,7 +289,9 @@
     "test:multi-lists": "node scripts/test-multi-lists-browser.mjs",
     "build:owner-combos": "sh scripts/build-owner-combos-fixture.sh",
     "test:owner-combos": "node scripts/test-owner-combos-browser.mjs",
-    "test:airxonix": "node scripts/test-airxonix-browser.mjs"
+    "test:airxonix": "node scripts/test-airxonix-browser.mjs",
+    "build:list-keyboard": "sh scripts/build-list-keyboard-fixture.sh",
+    "test:list-keyboard": "node scripts/test-list-keyboard-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

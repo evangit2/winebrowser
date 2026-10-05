@@ -17,12 +17,15 @@ import {
   deleteListItem,
   paintOwnerList,
 } from './win32-owner-lists.js';
-import { encodeAnsi } from './encoding.js';
+import { decodeAnsi, encodeAnsi } from './encoding.js';
 import { dragListMessage } from './win32-draglist.js';
 
 const USER_SELECT = 0x7fe0,
   USER_TEXT = 0x7fe1,
   USER_SCROLL = 0x7fe2;
+function nativeKeyboard(w) {
+  return w.ownerDraw || listMultiple(w) || !!(w.style & 0x480) || !!w.dragList;
+}
 function list(w) {
   return (w.list ??= {
     items: [],
@@ -47,6 +50,8 @@ export function describeList(w) {
       height: w.ownerVariable ? listItemHeight(w, index) : undefined,
     })),
     ownerDraw: !!w.ownerDraw,
+    nativeKeyboard: !!nativeKeyboard(w),
+    wantKeyboardInput: w.controlType === 'listbox' && !!(w.style & 0x400),
     multiple: listMultiple(w),
     caret: s.caret,
     anchor: s.anchor ?? -1,
@@ -97,7 +102,7 @@ async function choose(r, w, index) {
   }
   s.selected = index;
   if (index >= 0) s.caret = index;
-  if (w.ownerDraw) revealListItem(w, index);
+  if (nativeKeyboard(w)) revealListItem(w, index);
   if (w.controlType === 'combobox') w.title = s.items[index]?.text ?? '';
   r.windows.emit(w);
   if (w.ownerDraw && w.controlType === 'combobox') {
@@ -340,38 +345,106 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     updateList(r, w);
     return 0;
   }
-  if ((w.ownerDraw || listMultiple(w)) && !combo && message === 0x100) {
+  if (await dragListMessage(r, w, message, wp, lp)) return 0;
+  if (nativeKeyboard(w) && !combo && message === 0x102) {
+    if (!r.windows.isEnabled(w.id) || !s.items.length) return 0;
+    const character = wide
+      ? String.fromCharCode(wp & 0xffff)
+      : decodeAnsi(Uint8Array.of(wp & 0xff));
+    let index = -1;
+    if (w.style & 0x400) {
+      index =
+        (await r.windows.send(
+          w.parentId,
+          0x2f, // WM_CHARTOITEM: Unicode character, caret, real list HWND.
+          (character.charCodeAt(0) | (s.caret << 16)) >>> 0,
+          w.id,
+        )) | 0;
+      if (index === -2 || r.windows.windows.get(w.id) !== w) return 0;
+    }
+    if (index === -1 && !(w.ownerDraw && !w.hasStrings) && character.charCodeAt(0) >= 0x20) {
+      const locale = { 0x409: 'en-US', 0x809: 'en-GB', 0xc0a: 'es-ES' }[s.locale ?? 0x409],
+        prefix = character.toLocaleLowerCase(locale);
+      for (let offset = 1; offset <= s.items.length; offset++) {
+        const at = (s.caret + offset) % s.items.length,
+          value = s.items[at].text.toLocaleLowerCase(locale);
+        if (
+          [
+            value,
+            ...(value.startsWith('[') ? [value.slice(1)] : []),
+            ...(value.startsWith('[-') ? [value.slice(2)] : []),
+          ].some((text) => text.startsWith(prefix))
+        ) {
+          index = at;
+          break;
+        }
+      }
+    }
+    if (index < 0 || index >= s.items.length) return 0;
+    if (listMultiple(w)) {
+      // Character search moves the caret without toggling a multiple selection.
+      // An extended list retains its anchor and selects the anchor-to-caret range.
+      if (w.style & 0x800 && s.anchor >= 0) {
+        const low = Math.min(s.anchor, index),
+          high = Math.max(s.anchor, index);
+        s.items.forEach((item, i) => {
+          item.selected = i >= low && i <= high;
+        });
+      }
+      s.shiftBase = null;
+      s.caret = index;
+      revealListItem(w, index);
+      await repaintSelection(r, w);
+    } else await choose(r, w, index);
+    if (w.style & 1) await notify(r, w, 1);
+    return 0;
+  }
+  if (nativeKeyboard(w) && !combo && message === 0x100) {
     if (!r.windows.isEnabled(w.id) || !s.items.length) return 0;
     const multiple = listMultiple(w),
       flags =
         (r.windows.keyboardState.get(16) & 0x8000 ? 4 : 0) |
         (r.windows.keyboardState.get(17) & 0x8000 ? 8 : 0);
-    if (multiple && wp === 0x20) {
-      const changed = await multiChoose(
-        r,
-        w,
-        s.caret,
-        flags,
-        true,
-        !(w.style & 0x800) || !!(flags & 8),
-      );
-      if (changed && w.style & 1) await notify(r, w, 1);
-      return 0;
+    let index = -1;
+    if (w.style & 0x400) {
+      index =
+        (await r.windows.send(
+          w.parentId,
+          0x2e, // WM_VKEYTOITEM
+          ((wp & 0xffff) | (s.caret << 16)) >>> 0,
+          w.id,
+        )) | 0;
+      if (index === -2 || r.windows.windows.get(w.id) !== w) return 0;
     }
-    let index = s.caret;
-    if (wp === 0x28) index++;
-    else if (wp === 0x26) index--;
-    else if (wp === 0x24) index = 0;
-    else if (wp === 0x23) index = s.items.length - 1;
-    else if (wp === 0x22 || wp === 0x21) {
-      const direction = wp === 0x22 ? 1 : -1;
-      let height = 0;
-      do {
-        index += direction;
-        height += listItemHeight(w, index);
-      } while (index > 0 && index < s.items.length - 1 && height < w.height);
-    } else return fallback();
-    index = Math.max(0, Math.min(s.items.length - 1, index));
+    if (index === -1) {
+      if (multiple && wp === 0x20) {
+        const changed = await multiChoose(
+          r,
+          w,
+          s.caret,
+          flags,
+          true,
+          !(w.style & 0x800) || !!(flags & 8),
+        );
+        if (changed && w.style & 1) await notify(r, w, 1);
+        return 0;
+      }
+      index = s.caret;
+      if (wp === 0x28 || wp === 0x27) index++;
+      else if (wp === 0x26 || wp === 0x25) index--;
+      else if (wp === 0x24) index = 0;
+      else if (wp === 0x23) index = s.items.length - 1;
+      else if (wp === 0x22 || wp === 0x21) {
+        const direction = wp === 0x22 ? 1 : -1;
+        let height = 0;
+        do {
+          index += direction;
+          height += listItemHeight(w, index);
+        } while (index > 0 && index < s.items.length - 1 && height < w.height);
+      } else return fallback();
+      index = Math.max(0, Math.min(s.items.length - 1, index));
+    }
+    if (index < 0 || index >= s.items.length) return 0;
     if (multiple) {
       const changed = await multiChoose(r, w, index, flags, true);
       if (changed && w.style & 1) await notify(r, w, 1);
@@ -382,7 +455,6 @@ export async function listMessage(r, w, message, wp, lp, fallback, wide = !!w.cl
     if (old !== index && w.style & 1) await notify(r, w, 1);
     return 0;
   }
-  if (await dragListMessage(r, w, message, wp, lp)) return 0;
   if (message === USER_SCROLL) {
     const top = Math.max(
       0,

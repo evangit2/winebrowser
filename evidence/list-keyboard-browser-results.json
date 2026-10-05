@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-05T00:57:39.341Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.97",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "9d78252a0aa1cc738313b1f59759a5066a3294e30cf47e4b17ffa3148a5b88df",
+  "compiledBlocks": 181,
+  "x86TranslationMs": 90.64499980211258,
+  "checks": [
+    "Unchanged native ANSI/Unicode PE32 list and owner-combo controls execute browser-compiled x86 blocks in Chromium",
+    "WM_VKEYTOITEM/WM_CHARTOITEM validate caret, actual HWND, signed default/handled returns, explicit index zero and rejected out-of-range targets",
+    "Real character input cycles prefixes, wraps, selects Windows-1252 euro/accented rows and Unicode Greek rows",
+    "Multiple character search preserves selected flags; extended search retains its anchor and selects the native range",
+    "Tabbed string lists use native keyboard selection; owner-combo character forwarding retains the popup until Enter",
+    "Native guest queries, callback counters, owner drawing pixels and exit-zero assertions pass"
+  ],
+  "scope": "Character cycling and application keyboard callbacks for owner-drawn, multi-selection, tabbed and WANTKEYBOARDINPUT listboxes, plus owner-drawn dropdown-list combos. Held-pointer ranges/autoscroll and universal Windows compatibility remain incomplete."
+}

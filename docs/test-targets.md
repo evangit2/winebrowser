@@ -186,3 +186,12 @@ and extended selection, Control/Shift keyboard/mouse operations, disabled
 pixels and insertion/deletion retention. Rebuild with
 `npm run build:multi-lists`; evidence is in
 `evidence/multi-lists-browser-results.json`.
+
+`npm run test:list-keyboard` verifies the authored native ANSI/Unicode PE32
+keyboard GUI fixture. Actual Chromium keyboard events exercise signed parent
+callbacks, caret/HWND fields, explicit and default selection, character cycling,
+Windows-1252 and Unicode search, raw owner data, multiple selection independence,
+extended anchor ranges, tabbed lists and owner-combo popup forwarding. Native
+queries/callback counts, selected pixels and exit zero provide acceptance.
+Rebuild with `npm run build:list-keyboard`; see
+`evidence/list-keyboard-browser-results.json`.

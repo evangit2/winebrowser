@@ -366,6 +366,10 @@ export async function ownerComboMessage(r, w, msg, wp, lp, wide) {
       return 0;
     }
   }
+  if (msg === 0x102 && w.comboType === 3) {
+    await r.windows.send(w.comboListId, msg, wp, lp, wide);
+    return 0;
+  }
   if (msg === 0x157) return w.comboDropped ? 1 : 0;
   if (msg === 0x14f) {
     await showCombo(r, w, !!wp);
