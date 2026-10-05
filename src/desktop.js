@@ -600,7 +600,7 @@ export class VirtualDesktop {
     this.#applyGeometry(window);
     this.#applyIcon(window, state.icon);
     this.#applyMenu(window, state.menu);
-    this.#setVisibility(window, state.visible !== false);
+    this.#setVisibility(window, state.visible !== false && !state.minimized);
     return window;
   }
 
@@ -1728,9 +1728,10 @@ export class VirtualDesktop {
     window.titleElement.title = window.titleText;
     window.titlebar.querySelector('button').setAttribute('aria-label', `Close ${window.titleText}`);
     if (state.visible !== undefined) {
-      this.#setVisibility(window, state.visible);
+      const visible = state.visible && !state.minimized;
+      this.#setVisibility(window, visible);
       const active = this.windows.get(this.activeWindowId);
-      if (!state.visible && this.#descendantOf(active, state.id)) {
+      if (!visible && this.#descendantOf(active, state.id)) {
         this.activeWindowId = null;
         const next = [...this.windows.values()]
           .filter((item) => !item.isControl && item.visible)

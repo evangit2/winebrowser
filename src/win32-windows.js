@@ -339,6 +339,7 @@ export class WindowManager {
         width: parentId ? outerWindowSize(window)[0] : width,
         height: parentId ? outerWindowSize(window)[1] : height,
         visible,
+        minimized: [2, 6, 7, 11].includes(window.showCmd),
         parentId,
         controlType,
         comboHostId: window.comboHostId,
@@ -738,6 +739,11 @@ export class WindowManager {
     return this.pointer ?? { x: 0, y: 0 };
   }
   setPointerPosition(x, y) {
+    if (this.cursorClip) {
+      const [left, top, right, bottom] = this.cursorClip;
+      x = Math.max(left, Math.min(Math.max(left, right - 1), x));
+      y = Math.max(top, Math.min(Math.max(top, bottom - 1), y));
+    }
     this.pointer = { x: x | 0, y: y | 0 };
   }
   // The deepest visible top-level or child window under a screen point.
@@ -753,7 +759,12 @@ export class WindowManager {
       );
     };
     const candidates = [...this.windows.values()]
-      .filter((w) => this.isVisible(w.id) && inside(w))
+      .filter(
+        (w) =>
+          this.isVisible(w.id) &&
+          ![2, 6, 7, 11].includes(this.windows.get(this.topLevel(w.id))?.showCmd) &&
+          inside(w),
+      )
       .sort((a, b) => (b.parentId ? 1 : 0) - (a.parentId ? 1 : 0));
     return candidates[0]?.id ?? 0;
   }
@@ -817,7 +828,9 @@ export class WindowManager {
         };
       }
       const [originX, originY] = this.clientPosition(window);
-      this.pointer = { x: (originX + event.x) | 0, y: (originY + event.y) | 0 };
+      this.setPointerPosition((originX + event.x) | 0, (originY + event.y) | 0);
+      if (this.cursorClip)
+        event = { ...event, x: this.pointer.x - originX, y: this.pointer.y - originY };
     }
     if (directInput.input(event, window)) return;
     if (controlInput(this.runtime, window, event)) return;
@@ -1276,16 +1289,29 @@ async function create(r, a, wide) {
 async function show(r, a) {
   const w = r.windows.windows.get(a(0));
   if (!w) return r.windows.fail(1400, 2);
-  if (![0, 1, 3, 5, 8, 9, 10].includes(a(1))) throw Error('Unsupported ShowWindow command ' + a(1));
+  if (![0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11].includes(a(1)))
+    throw Error('Unsupported ShowWindow command ' + a(1));
+  let command = a(1);
+  const wasMinimized = [2, 6, 7, 11].includes(w.showCmd);
+  if (command === 9 && wasMinimized) command = w.minimizedFrom ?? 1;
   const previous = w.visible;
-  if (a(1) === 3 && !w.parentId) {
+  if ([2, 6, 7, 11].includes(command)) {
+    if (!wasMinimized) w.minimizedFrom = w.showCmd === 3 ? 3 : 1;
+    w.showCmd = command;
+    w.style = (w.style | 0x20000000) >>> 0;
+  } else if ([1, 3, 9].includes(command)) {
+    w.style = (w.style & ~0x20000000) >>> 0;
+    w.showCmd = command === 3 ? 3 : 1;
+    delete w.minimizedFrom;
+  }
+  if (command === 3 && !w.parentId) {
     w.normalRectangle ??= [w.x, w.y, ...outerWindowSize(w)];
     w.showCmd = 3;
     w.style = (w.style | 0x01000000) >>> 0;
     const mode = currentDisplayMode(r);
     const resized = await setWindowPos(r, (i) => [w.id, 0, 0, 0, mode.width, mode.height, 0x14][i]);
     if (!resized.result) return result(previous ? 1 : 0, 2);
-  } else if ([1, 9].includes(a(1)) && w.normalRectangle) {
+  } else if ([1, 9].includes(command) && w.normalRectangle) {
     const [x, y, width, height] = w.normalRectangle;
     w.showCmd = 1;
     w.style = (w.style & ~0x01000000) >>> 0;
@@ -1293,18 +1319,20 @@ async function show(r, a) {
     delete w.normalRectangle;
   }
   w.visible = a(1) !== 0;
+  const minimized = [2, 6, 7, 11].includes(w.showCmd);
   if (!w.parentId) {
-    if (w.visible && a(1) !== 8) {
+    if (w.visible && !minimized && a(1) !== 8) {
       r.windows.active = w.id;
       r.windows.raise(w.id);
-    } else if (!w.visible && r.windows.active === w.id) r.windows.active = 0;
+    } else if ((!w.visible || minimized) && r.windows.active === w.id) r.windows.active = 0;
   }
   r.windows.emit(w);
   await r.windows.send(w.id, 0x18, w.visible ? 1 : 0);
-  if (w.visible) {
+  if (w.visible && !minimized) {
     r.windows.invalidate(w, null, true);
     await r.windows.send(w.id, 5, w.showCmd === 3 ? 2 : 0, pair(w.width, w.height));
   }
+  if (w.visible && minimized) await r.windows.send(w.id, 5, 1, 0);
   return result(previous ? 1 : 0, 2);
 }
 function rectangle(r, p, rect) {
@@ -1760,6 +1788,29 @@ for (const wide of [false, true]) {
   });
 }
 Object.assign(windowApis, {
+  'user32.dll!ClipCursor': (r, a) => {
+    const rect = a(0) ? readRect(r, a(0)) : null;
+    if (rect && (rect[2] < rect[0] || rect[3] < rect[1])) return r.windows.fail(87, 1);
+    r.windows.cursorClip = rect;
+    const point = r.windows.pointerPosition();
+    r.windows.setPointerPosition(point.x, point.y);
+    return result(1, 1);
+  },
+  'user32.dll!GetClipCursor': (r, a) => {
+    const mode = currentDisplayMode(r);
+    rectangle(r, a(0), r.windows.cursorClip ?? [0, 0, mode.width, mode.height]);
+    return result(1, 1);
+  },
+  'user32.dll!OpenIcon': async (r, a) => {
+    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
+    await show(r, (i) => [a(0), 9][i]);
+    return result(1, 1);
+  },
+  'user32.dll!CloseWindow': async (r, a) => {
+    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
+    await show(r, (i) => [a(0), 6][i]);
+    return result(1, 1);
+  },
   'user32.dll!GetCursorPos': (r, a) => {
     const point = a(0);
     if (!point) return result(0, 1);
@@ -1977,7 +2028,7 @@ Object.assign(windowApis, {
   'user32.dll!IsIconic': (r, a) => {
     const window = r.windows.windows.get(a(0));
     return window
-      ? result(window.showCmd === 6 || window.showCmd === 7 ? 1 : 0, 1)
+      ? result([2, 6, 7, 11].includes(window.showCmd) ? 1 : 0, 1)
       : r.windows.fail(1400, 1);
   },
   'user32.dll!IsZoomed': (r, a) => {

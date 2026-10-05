@@ -4,6 +4,7 @@ import { mixerApis, applyMixerGain } from './winmm-mixer.js';
 import { multimediaTimeApis } from './winmm-time.js';
 import { driverApis } from './winmm-driver.js';
 import { dsoundApis } from './dsound.js';
+import { mmioApis } from './winmm-mmio.js';
 
 async function playSound(runtime, argument, wide) {
   const name = argument(0),
@@ -37,6 +38,7 @@ async function playSound(runtime, argument, wide) {
 }
 
 export const audioApis = {
+  ...mmioApis,
   ...dsoundApis,
   ...driverApis,
   ...mixerApis,
