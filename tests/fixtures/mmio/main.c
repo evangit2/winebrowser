@@ -69,6 +69,11 @@ void mainCRTStartup(void) {
   CHECK(window != 0, 31);
   ShowWindow(window, SW_SHOWMAXIMIZED);
   CHECK(IsZoomed(window), 32);
+  CHECK(!OpenIcon(window) && IsZoomed(window), 44);
+  HWND child = CreateWindowExA(0, cls.lpszClassName, "child", WS_CHILD | WS_VISIBLE,
+                             10, 10, 40, 30, window, (HMENU)42, cls.hInstance, 0);
+  CHECK(child && !CloseWindow(child) && !IsIconic(child), 45);
+  CHECK(DestroyWindow(child), 46);
   RECT before, after, clip = {10, 20, 30, 50}, got;
   POINT point;
   GetWindowRect(window, &before);
@@ -79,9 +84,11 @@ void mainCRTStartup(void) {
   CHECK(point.x == 100 && point.y == 200, 37);
   print("WINDOW VISIBLE\n"); Sleep(1500);
   CHECK(CloseWindow(window) && IsIconic(window) && IsWindowVisible(window), 38);
+  CHECK((GetWindowLongA(window, GWL_STYLE) & (WS_MINIMIZE | WS_MAXIMIZE)) == WS_MINIMIZE, 48);
   CHECK(WindowFromPoint(point) != window, 43);
   print("WINDOW MINIMIZED\n"); Sleep(1500);
   CHECK(OpenIcon(window) && !IsIconic(window) && IsZoomed(window), 39);
+  CHECK(!OpenIcon(window) && IsZoomed(window), 47);
   GetWindowRect(window, &after);
   CHECK(before.left == after.left && before.top == after.top &&
         before.right == after.right && before.bottom == after.bottom, 40);

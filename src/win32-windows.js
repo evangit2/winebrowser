@@ -1293,12 +1293,12 @@ async function show(r, a) {
     throw Error('Unsupported ShowWindow command ' + a(1));
   let command = a(1);
   const wasMinimized = [2, 6, 7, 11].includes(w.showCmd);
-  if (command === 9 && wasMinimized) command = w.minimizedFrom ?? 1;
+  if ([1, 9].includes(command) && wasMinimized) command = w.minimizedFrom ?? 1;
   const previous = w.visible;
   if ([2, 6, 7, 11].includes(command)) {
     if (!wasMinimized) w.minimizedFrom = w.showCmd === 3 ? 3 : 1;
     w.showCmd = command;
-    w.style = (w.style | 0x20000000) >>> 0;
+    w.style = ((w.style | 0x20000000) & ~0x01000000) >>> 0;
   } else if ([1, 3, 9].includes(command)) {
     w.style = (w.style & ~0x20000000) >>> 0;
     w.showCmd = command === 3 ? 3 : 1;
@@ -1797,17 +1797,22 @@ Object.assign(windowApis, {
     return result(1, 1);
   },
   'user32.dll!GetClipCursor': (r, a) => {
+    if (!a(0)) return r.windows.fail(87, 1);
     const mode = currentDisplayMode(r);
     rectangle(r, a(0), r.windows.cursorClip ?? [0, 0, mode.width, mode.height]);
     return result(1, 1);
   },
   'user32.dll!OpenIcon': async (r, a) => {
-    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
-    await show(r, (i) => [a(0), 9][i]);
+    const window = r.windows.windows.get(a(0));
+    if (!window) return r.windows.fail(1400, 1);
+    if (![2, 6, 7, 11].includes(window.showCmd)) return result(0, 1);
+    await show(r, (i) => [a(0), 1][i]);
     return result(1, 1);
   },
   'user32.dll!CloseWindow': async (r, a) => {
-    if (!r.windows.windows.has(a(0))) return r.windows.fail(1400, 1);
+    const window = r.windows.windows.get(a(0));
+    if (!window) return r.windows.fail(1400, 1);
+    if (window.style & 0x40000000) return result(0, 1);
     await show(r, (i) => [a(0), 6][i]);
     return result(1, 1);
   },
