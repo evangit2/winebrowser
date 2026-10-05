@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-05T02:10:35.738Z",
-  "url": "http://127.0.0.1:4389/winebrowser/",
+  "date": "2026-10-05T02:43:04.315Z",
+  "url": "https://evangit2.github.io/winebrowser/",
   "browser": "154.0.8037.97",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "18f162a2bdeabe404246c883864d2388417af49aaed0b7a176a4d28e14329215",
   "compiledBlocks": 237,
-  "x86TranslationMs": 83.21999993920326,
+  "x86TranslationMs": 78.41999983787537,
   "checks": [
     "Unchanged native PE32 ordinary sorted dropdown, editable dropdown and simple string combos compile and execute in Chromium",
     "GetComboBoxInfo and CB_GETCOMBOBOXINFO expose actual ComboLBox/EDIT HWNDs with class names, parents, buffer guards and visibility state",
