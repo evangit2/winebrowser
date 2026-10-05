@@ -79,7 +79,7 @@ Upload your **complete v1.36 ZIP**, select `airxonix/airxonix.exe`, click Run, t
 START. Focus the game display, press Enter for New Game, wait for the difficulty
 selection menu, then press Enter for Easy.
 The first level currently takes about 17–20 seconds to load on the development Mac;
-measured gameplay is about 7–9 FPS, so performance still needs work. Native C++
+measured gameplay is about 5–9 FPS, so performance still needs work. Native C++
 exception delivery, application activation notifications, bitmap static controls,
 managed texture storage and vertex buffers are shared runtime implementations.
 There are no game-specific runtime branches or patched game executables.
