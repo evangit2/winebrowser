@@ -1,13 +1,13 @@
 {
-  "date": "2026-10-06T15:16:38.057Z",
+  "date": "2026-10-06T15:46:49.493Z",
   "status": "passed",
-  "url": "http://127.0.0.1:4389/winebrowser/",
+  "url": "https://evangit2.github.io/winebrowser/",
   "input": "hosted example",
   "executable": "tests/fixtures/gdi-dib/gdi-dib.exe",
   "sha256": "fa3475b27dce7cf485b2858224d0ee297a9b9b2533c3b0568414ab43e4e76fa3",
   "exitCode": 0,
   "compiledBlocks": 248,
-  "x86TranslationMs": 60.68500053882599,
+  "x86TranslationMs": 63.765000104904175,
   "browser": "154.0.8037.98",
   "observations": [
     {
