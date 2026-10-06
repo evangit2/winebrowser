@@ -14,6 +14,12 @@ import { guestHandleRecord, guestHandleFlags } from './wine-object.js';
 import { processLookup } from './process-session.js';
 import { findGuestSearchPath } from './guest-search-path.js';
 import { setProcessDirectory } from './process-directory.js';
+import {
+  volumeUsage,
+  volumePathError,
+  SECTORS_PER_CLUSTER,
+  BYTES_PER_SECTOR,
+} from './guest-volume.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -1163,10 +1169,10 @@ export const systemApis = {
   'kernel32.dll!SetCurrentDirectoryW': (r, a) => setCurrentDirectory(r, a, true),
   'kernel32.dll!GetTempPathA': (r, a) => getTempPath(r, a, false),
   'kernel32.dll!GetTempPathW': (r, a) => getTempPath(r, a, true),
-  'kernel32.dll!GetDiskFreeSpaceExW': getDiskFreeSpaceEx,
-  'kernel32.dll!GetDiskFreeSpaceExA': getDiskFreeSpaceEx,
-  'kernel32.dll!GetDiskFreeSpaceW': getDiskFreeSpace,
-  'kernel32.dll!GetDiskFreeSpaceA': getDiskFreeSpace,
+  'kernel32.dll!GetDiskFreeSpaceExW': (r, a) => getDiskFreeSpaceEx(r, a, true),
+  'kernel32.dll!GetDiskFreeSpaceExA': (r, a) => getDiskFreeSpaceEx(r, a, false),
+  'kernel32.dll!GetDiskFreeSpaceW': (r, a) => getDiskFreeSpace(r, a, true),
+  'kernel32.dll!GetDiskFreeSpaceA': (r, a) => getDiskFreeSpace(r, a, false),
   'kernel32.dll!GetLogicalDriveStringsW': (r, a) => getLogicalDriveStrings(r, a, true),
   'kernel32.dll!GetLogicalDriveStringsA': (r, a) => getLogicalDriveStrings(r, a, false),
   'kernel32.dll!GetFileInformationByHandle': getFileInformationByHandle,
@@ -1485,75 +1491,46 @@ function getTempPath(r, a, wide) {
   return writeCountedString(r, a(0), a(1), packageDosPath('temp', true), wide, 2);
 }
 
-// GetDiskFreeSpaceExW/GetDiskFreeSpaceW report a bounded in-memory volume. The
-// guest filesystem allows 128 MiB of content, so the free figures reflect what
-// is actually left rather than a fabricated disk size.
-const VOLUME_BYTES = 256 * 1024 * 1024;
-function volumeUsage(r) {
-  let used = 0;
-  for (const bytes of r.files.values()) used += bytes.length;
-  return { total: VOLUME_BYTES, free: Math.max(0, VOLUME_BYTES - used) };
+// All output regions are validated before publishing any disk information.
+function diskPathError(r, a, wide) {
+  return volumePathError(r, a(0) ? (wide ? r.wideString(a(0)) : r.string(a(0))) : null);
 }
-function getDiskFreeSpaceEx(r, a) {
+function getDiskFreeSpaceEx(r, a, wide) {
+  const error = diskPathError(r, a, wide);
+  if (error) return fail(r, error, 4);
+  const pointers = [a(1), a(2), a(3)];
+  for (const pointer of pointers) if (pointer) r.check(pointer, 8, true);
   const { free, total } = volumeUsage(r);
-  // (lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes)
-  if (a(0)) {
-    r.check(a(0), 8, true);
-    r.view.setBigUint64(a(0), BigInt(free), true);
-  }
-  if (a(1)) {
-    r.check(a(1), 8, true);
-    r.view.setBigUint64(a(1), BigInt(total), true);
-  }
-  if (a(2)) {
-    r.check(a(2), 8, true);
-    r.view.setBigUint64(a(2), BigInt(free), true);
-  }
-  return ok(1, 3);
-}
-function getDiskFreeSpace(r, a) {
-  const { free, total } = volumeUsage(r);
-  const sectorsPerCluster = 8,
-    bytesPerSector = 512;
-  const cluster = sectorsPerCluster * bytesPerSector;
-  if (a(0)) {
-    r.check(a(0), 4, true);
-    r.write32(a(0), sectorsPerCluster);
-  }
-  if (a(1)) {
-    r.check(a(1), 4, true);
-    r.write32(a(1), bytesPerSector);
-  }
-  if (a(2)) {
-    r.check(a(2), 4, true);
-    r.write32(a(2), Math.floor(free / cluster));
-  }
-  if (a(3)) {
-    r.check(a(3), 4, true);
-    r.write32(a(3), Math.floor(total / cluster));
-  }
+  [free, total, free].forEach((value, i) => {
+    if (pointers[i]) r.view.setBigUint64(pointers[i], BigInt(value), true);
+  });
   return ok(1, 4);
 }
+function getDiskFreeSpace(r, a, wide) {
+  const error = diskPathError(r, a, wide);
+  if (error) return fail(r, error, 5);
+  const pointers = [a(1), a(2), a(3), a(4)];
+  for (const pointer of pointers) if (pointer) r.check(pointer, 4, true);
+  const { availableUnits, totalUnits } = volumeUsage(r);
+  [SECTORS_PER_CLUSTER, BYTES_PER_SECTOR, availableUnits, totalUnits].forEach((value, i) => {
+    if (pointers[i]) r.write32(pointers[i], value);
+  });
+  return ok(1, 5);
+}
 
-// GetLogicalDriveStringsW names the single package volume.
+// SDK capacities and return values count characters for both A and W.
 function getLogicalDriveStrings(r, a, wide) {
-  const value = 'C:\\';
-  const buffer = a(0);
-  const capacity = a(1) | 0;
-  if (!buffer) return ok(value.length * (wide ? 2 : 1) + (wide ? 2 : 1), 2);
+  const capacity = a(0) >>> 0,
+    buffer = a(1) >>> 0;
+  if (capacity < 5) return ok(5, 2);
   const unit = wide ? 2 : 1;
-  const bytes = wide ? null : encodeAnsi(value).bytes;
-  const length = value.length + 1; // trailing NUL, then a second NUL terminator
-  const needed = (length + 1) * unit;
-  if (capacity < needed) return fail(r, 122, 2);
-  r.check(buffer, needed, true);
-  for (let i = 0; i < length; i++) {
-    const code = i === value.length ? 0 : value.charCodeAt(i);
-    if (wide) r.guestMemory.write(buffer + i * 2, code, 2);
-    else r.data[buffer + i] = bytes[i];
-  }
-  r.data.fill(0, buffer + length * unit, buffer + needed);
-  return ok(length * unit, 2);
+  r.check(buffer, 5 * unit, true);
+  const codes = [67, 58, 92, 0, 0];
+  codes.forEach((code, i) => {
+    if (wide) r.view.setUint16(buffer + i * unit, code, true);
+    else r.data[buffer + i] = code;
+  });
+  return ok(4, 2);
 }
 
 // GetFileInformationByHandle fills BY_HANDLE_FILE_INFORMATION (52 bytes).

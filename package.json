@@ -310,6 +310,8 @@
     "test:gdi-dib": "node scripts/test-gdi-dib-browser.mjs",
     "build:gdi-section": "sh scripts/build-gdi-section-fixture.sh && python3 scripts/package-gdi-section.py",
     "test:gdi-section": "node scripts/test-gdi-section-browser.mjs",
+    "build:guest-drive": "sh scripts/build-guest-drive-fixture.sh && python3 scripts/package-guest-drive.py",
+    "test:guest-drive": "node scripts/test-guest-drive-browser.mjs",
     "build:load-images": "sh scripts/build-load-images-fixture.sh && python3 scripts/package-load-images.py",
     "test:load-images": "node scripts/test-load-images-browser.mjs"
   },

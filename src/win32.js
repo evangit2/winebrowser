@@ -1,3 +1,4 @@
+import { canResizeGuestFile } from './guest-volume.js';
 import { textUnicodeApis } from './win32-text-unicode.js';
 import { dropFileApis } from './win32-drop-files.js';
 import { profileApis } from './win32-profile.js';
@@ -456,6 +457,7 @@ function readFile(runtime, argument) {
 
 function writeFile(runtime, argument) {
   if (argument(4)) throw Error('Overlapped I/O unsupported');
+  if (argument(3)) runtime.check(argument(3), 4, true);
   const count = argument(2);
   if (count > 4 * 1024 * 1024) throw Error('WriteFile exceeds per-call limit');
   const address = argument(1);
@@ -473,12 +475,12 @@ function writeFile(runtime, argument) {
     if (!handle || !(handle.access & 0x40000000)) return failure(runtime, 6, 5);
     if (fileLockConflict(runtime, handleValue, handle.position, count, true))
       return failure(runtime, 33, 5);
-    if (handle.position + count > 16 * 1024 * 1024) throw Error('Virtual file size limit exceeded');
     const previousBytes = runtime.files.get(handle.path);
     const newLength = Math.max(previousBytes.length, handle.position + count);
-    const total = [...runtime.files.values()].reduce((sum, b) => sum + b.length, 0);
-    if (total + newLength - previousBytes.length > 128 * 1024 * 1024)
-      throw Error('Virtual filesystem size limit exceeded');
+    if (!canResizeGuestFile(runtime, handle.path, newLength)) {
+      if (argument(3)) runtime.write32(argument(3), 0);
+      return failure(runtime, 112, 5);
+    }
     const updatedBytes = new Uint8Array(newLength);
     updatedBytes.set(previousBytes);
     updatedBytes.set(bytes, handle.position);
@@ -489,7 +491,7 @@ function writeFile(runtime, argument) {
     runtime.dirty.add(handle.path);
   }
 
-  runtime.write32(argument(3), count);
+  if (argument(3)) runtime.write32(argument(3), count);
   return success(1, 5);
 }
 

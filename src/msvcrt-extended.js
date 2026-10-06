@@ -1,3 +1,4 @@
+import { volumeUsage, SECTORS_PER_CLUSTER, BYTES_PER_SECTOR } from './guest-volume.js';
 // The wider msvcrt surface: character classification, numeric conversion, the
 // byte/wide/multibyte string families, the environment, and the CRT's path and
 // file-statistic calls. Everything here runs over guest memory; the one piece
@@ -1718,26 +1719,21 @@ function umaskImpl(r, a) {
 function getDrivesImpl() {
   return ok(0b100, 0);
 }
-// _getdiskfree fills _diskfree_t (sectors per cluster, bytes per sector, free
-// clusters, total clusters) from the bounded volume's own usage figures.
-function guestVolumeUsage(r) {
-  let used = 0;
-  for (const bytes of r.files?.values() ?? []) used += bytes.length;
-  const total = 256 * 1024 * 1024;
-  return { total, free: Math.max(0, total - used) };
-}
+// SDK _diskfree_t: total clusters, available clusters, sectors, bytes.
 function getDiskFreeImpl(r, a) {
-  const out = a(1) >>> 0;
-  if (!out) return ok(-1, 2);
-  r.check(out, 20, true);
-  const { free, total } = guestVolumeUsage(r);
-  const sectorsPerCluster = 8,
-    bytesPerSector = 512,
-    cluster = sectorsPerCluster * bytesPerSector;
-  r.write32(out, sectorsPerCluster);
-  r.write32(out + 4, bytesPerSector);
-  r.write32(out + 8, Math.floor(free / cluster));
-  r.write32(out + 12, Math.floor(total / cluster));
+  const drive = a(0) >>> 0,
+    out = a(1) >>> 0;
+  if (drive > 26) return ok(87, 2);
+  if (drive !== 0 && drive !== 3) {
+    r.write32(errnoAddress(r), 2); // ENOENT
+    r.write32(errnoAddress(r, 'doserrno'), 15); // ERROR_INVALID_DRIVE
+    return ok(15, 2);
+  }
+  r.check(out, 16, true);
+  const { availableUnits, totalUnits } = volumeUsage(r);
+  [totalUnits, availableUnits, SECTORS_PER_CLUSTER, BYTES_PER_SECTOR].forEach((value, i) =>
+    r.write32(out + i * 4, value),
+  );
   return ok(0, 2);
 }
 // _tempnam allocates a unique temporary name; the isolated volume's temp

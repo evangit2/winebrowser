@@ -1,9 +1,9 @@
 {
-  "date": "2026-10-06T19:35:33.785Z",
+  "date": "2026-10-06T20:43:09.031Z",
   "status": "passed",
   "url": "http://127.0.0.1:4389/winebrowser/",
-  "browser": "155.0.8059.39",
-  "input": "hosted example",
+  "browser": "153.0.8010.12",
+  "input": "local upload",
   "binaries": {
     "tests/fixtures/load-images/load-images.exe": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da",
     "tests/fixtures/load-images/core4.bmp": "71a4f767ed7549b28475d77f7f5afb2f7630a91921871b118346469aa86e2cb5",
@@ -17,13 +17,10 @@
     "tests/fixtures/load-images/truncated.bmp": "8cf0ace1fa39b93ef624ffd682e8b22c082612edaec8841e523d07953a93e50c",
     "tests/fixtures/load-images/bitmap-resources.dll": "5984c4eff63442c2c6d9c2f63d8a26a04f3513c25797cd602035c35101d3bd12"
   },
-  "hostedInputs": {
-    "zipSha256": "d75e10c675750b99318bad0b250b72b9cf119baa89f142cdb6cf13b74765406a",
-    "exeSha256": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da"
-  },
+  "hostedInputs": null,
   "resourceLibrary": {
     "name": "bitmap-resources.dll",
-    "path": "load-images/bitmap-resources.dll",
+    "path": "bitmap-resources.dll",
     "base": 20971520,
     "host": false
   },
@@ -48,8 +45,8 @@
     }
   ],
   "exitCode": 0,
-  "compiledBlocks": 3383,
-  "x86TranslationMs": 511.3700014948845,
+  "compiledBlocks": 3382,
+  "x86TranslationMs": 755.7250016331673,
   "observations": [
     {
       "updated": false,

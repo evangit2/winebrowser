@@ -537,9 +537,10 @@ test('the CRT process and console helpers answer from the runtime model', async 
   // The disk-free figures come from the bounded volume's real usage.
   const info = r.allocate(20);
   assert.equal((await call('_getdiskfree', 3, info)).result, 0);
-  assert.equal(r.read32(info), 8, 'sectors per cluster');
-  assert.equal(r.read32(info + 4), 512, 'bytes per sector');
-  assert.ok(r.read32(info + 12) > 0, 'total clusters');
+  assert.equal(r.read32(info), 32768, 'total clusters');
+  assert.ok(r.read32(info + 4) <= r.read32(info), 'available clusters');
+  assert.equal(r.read32(info + 8), 8, 'sectors per cluster');
+  assert.equal(r.read32(info + 12), 512, 'bytes per sector');
   // Console input is not interactive: a poll reports no key, a read EOF.
   assert.equal((await call('_kbhit')).result, 0);
   assert.equal((await call('_getch')).result | 0, -1);

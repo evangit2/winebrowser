@@ -280,3 +280,37 @@ score progress and a fall. Automatic recovery renders and execution remains
 RUNNING beyond 400 additional race frames. See [race evidence](../evidence/hamsterball-race-gameplay.json).
 This supersedes the earlier unverified-race observations above. Completion,
 later levels, sustained real-time speed and audio remain unverified.
+
+The authored **guest-drive** native GUI now displays actual bounded guest capacity
+and has ordinary buttons to write 8192 bytes, resize the file to 4096 bytes and
+delete it. Its guest code verifies each free-space change. The Open file button
+can cancel, reopen, import and read a selected file; the browser checks the new
+visible request before importing. The public MIT EXE, ZIP and complete source
+build are included in the hosted example catalog. The source ZIP independently
+rebuilds both the native GUI and host-only SDK client byte for byte.
+
+This fixes concrete disk-space SDK failures: the old browser fallback omitted
+the input path and attempted to write into read-only executable data, returned
+the wrong stdcall argument counts, and reversed the logical-drive-string
+capacity and buffer. A/W outputs now follow SDK pointer/character contracts,
+including optional outputs, guards and short multistring buffers. CRT
+`_diskfree_t` now uses its actual 16-byte SDK layout. Native Wine receives
+`FileFsSizeInformation` and `FileFsFullSizeInformation` from the same volume
+model. Narrow owned C-root metadata handles support NULL/root capacity queries;
+they grant no file data or current-directory traversal access. Read-only NT
+object-directory enumeration exposes the actual C-drive symbolic link and
+existing named events/semaphores with access, context, restart, pagination,
+counted strings and terminal entries. Its packing and statuses follow Wine's
+[NT directory implementation](https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/unix/sync.c).
+
+Capacity reporting and NT, Win32 and CRT writes share the 128 MiB content budget.
+Free figures round down to 4096-byte units; imported packages may already exceed
+the writable budget and then report zero free space. Quota failures return disk
+full or ENOSPC without changing content. Existing content can be overwritten or
+shrunk within supported I/O bounds. Per-file growth remains bounded to 16 MiB;
+network shares, general C-root traversal, broader volume information classes and
+full Windows filesystem behavior remain unfinished. `npm run test:guest-drive`
+checks the host SDK client, real native Wine GUI loose EXE/ZIP uploads and the
+hosted example. Unit checks cover NT layouts, error/ownership contracts,
+directory enumeration and quota accounting. This is an additional compatibility
+increment; arbitrary Windows software support remains an active, unproven goal.

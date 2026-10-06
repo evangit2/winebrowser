@@ -298,6 +298,8 @@ dialog, animated menu and playable first level, with movement, pause/resume and
 clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.exe`;
 [reproduction and current performance](docs/directdraw.md#airxonix-v136-probe).
 
+**Native drive GUI:** choose **Load guest-drive** to write, resize and delete a real guest file while free-space figures update. **Open file…** imports and reads a selected file through native Wine. Disk-space A/W APIs, native drive enumeration and CRT disk information share the guest's 128 MiB content budget (`npm run test:guest-drive`). This is an authored MIT native EXE compiled to Wasm inside the browser; the [complete source build](https://evangit2.github.io/winebrowser/examples/guest-drive/source.zip) is included. Full Windows filesystem compatibility remains unfinished.
+
 **GUI image loading:** LoadImage A/W load bitmap resources and BMP files, requested sizes, theme palette changes and native writable DIB sections. The public **Load load-images** GUI edits a file-loaded bitmap through its native pointer (`npm run test:load-images`). HALFTONE filtering, compressed images and sized/file icons/cursors remain unfinished.
 
 **Shared GUI bitmaps:** CreateDIBSection gives native EXEs, DLLs and GDI coherent packed/BGR pixel memory, with color tables, descriptors and bitmap format inheritance. The public **Load gdi-section** GUI cycles DLL writes, GDI paint and CRT clearing (`npm run test:gdi-section`). File-mapping-backed DIB sections remain unfinished.

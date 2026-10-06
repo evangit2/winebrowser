@@ -74,6 +74,66 @@ export function syncHandles(r, count, pointer) {
   if (!syncChecked(r, pointer, count * 4)) return { status: SYNC.FAULT };
   return { handles: Array.from({ length: count }, (_, i) => r.read32(pointer + 4 * i)) };
 }
+function queryDirectory(r, a) {
+  const objects = syncObjects(r),
+    found = objects.lookup(a(0), 'sync-directory', SYNC.QUERY);
+  if (found.status) return found.status;
+  const buffer = a(1) >>> 0,
+    length = a(2) >>> 0,
+    context = a(5) >>> 0,
+    returned = a(6) >>> 0;
+  if (!syncChecked(r, context, 4, true) || (returned && !syncChecked(r, returned, 4, true)))
+    return SYNC.FAULT;
+  const entries = objects.directoryEntries(found.object.name);
+  const start = a(4) ? 0 : r.read32(context);
+  const terminal = () => {
+    if (length >= 16) {
+      if (!syncChecked(r, buffer, 16, true)) return false;
+      r.data.fill(0, buffer, buffer + 16);
+    }
+    return true;
+  };
+  if (start >= entries.length) {
+    if (!terminal()) return SYNC.FAULT;
+    if (returned) r.write32(returned, 16);
+    return 0x8000001a; // STATUS_NO_MORE_ENTRIES
+  }
+  const stringBytes = (entry) => (entry.name.length + entry.type.length + 2) * 2;
+  const required = 32 + stringBytes(entries[start]);
+  if (length < required) {
+    if (!terminal()) return SYNC.FAULT;
+    if (returned) r.write32(returned, a(3) ? required : 16);
+    if (!a(3)) r.write32(context, start);
+    return a(3) ? 0xc0000023 : 0x105;
+  }
+  const selected = [];
+  let size = 16;
+  for (let i = start; i < entries.length; i++) {
+    const entry = entries[i],
+      next = size + 16 + stringBytes(entry);
+    if (next > length) break;
+    selected.push(entry);
+    size = next;
+    if (a(3)) break;
+  }
+  if (!syncChecked(r, buffer, size, true)) return SYNC.FAULT;
+  r.data.fill(0, buffer, buffer + size);
+  let strings = buffer + (selected.length + 1) * 16;
+  selected.forEach((entry, i) => {
+    for (const [j, text] of [entry.name, entry.type].entries()) {
+      const unicode = buffer + i * 16 + j * 8;
+      r.view.setUint16(unicode, text.length * 2, true);
+      r.view.setUint16(unicode + 2, (text.length + 1) * 2, true);
+      r.write32(unicode + 4, strings);
+      for (let k = 0; k < text.length; k++)
+        r.view.setUint16(strings + k * 2, text.charCodeAt(k), true);
+      strings += (text.length + 1) * 2;
+    }
+  });
+  r.write32(context, start + selected.length);
+  if (returned) r.write32(returned, size);
+  return !a(3) && start + selected.length < entries.length ? 0x105 : 0;
+}
 export const syncNtServices = {
   NtCreateSemaphore: { argc: 5, call: (r, a) => create(r, a, false, 'semaphore') },
   NtOpenSemaphore: { argc: 3, call: (r, a) => create(r, a, true, 'semaphore') },
@@ -104,6 +164,7 @@ export const syncNtServices = {
   NtCreateEvent: { argc: 5, call: (r, a) => create(r, a) },
   NtOpenEvent: { argc: 3, call: (r, a) => create(r, a, true) },
   NtOpenDirectoryObject: { argc: 3, call: (r, a) => create(r, a, true, 'directory') },
+  NtQueryDirectoryObject: { argc: 7, call: queryDirectory },
   NtSetEvent: { argc: 2, call: (r, a) => change(r, a, 'set') },
   NtResetEvent: { argc: 2, call: (r, a) => change(r, a, 'reset') },
   NtPulseEvent: { argc: 2, call: (r, a) => change(r, a, 'pulse') },

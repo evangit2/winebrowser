@@ -1,3 +1,5 @@
+import { canResizeGuestFile } from './guest-volume.js';
+import { touchFile } from './file-metadata.js';
 // Common kernel32 APIs that CRT startup and ordinary Win32 programs import
 // before they touch any application logic. They are deliberately bounded: each
 // one either answers from the runtime's own model of the process or fails with
@@ -408,11 +410,13 @@ function setEndOfFile(r, a) {
   if (!handle) return fail(r, 6, 1);
   if (!(handle.access & 0x40000000)) return fail(r, 5, 1);
   const bytes = r.files.get(handle.path) ?? new Uint8Array();
-  if (handle.position > 16 * 1024 * 1024) throw Error('Virtual file size limit exceeded');
+  if (!canResizeGuestFile(r, handle.path, handle.position)) return fail(r, 112, 1);
+  if (r.fileSections?.canResize(handle.path, handle.position) === false) return fail(r, 1224, 1);
   const updated = new Uint8Array(handle.position);
   updated.set(bytes.subarray(0, Math.min(bytes.length, handle.position)));
   r.files.set(handle.path, updated);
   r.fileSections?.fileChanged(handle.path);
+  touchFile(r, handle.path, { write: true });
   r.dirty.add(handle.path);
   return ok(1, 1);
 }

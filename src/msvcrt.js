@@ -1,3 +1,4 @@
+import { canResizeGuestFile } from './guest-volume.js';
 // msvcrt.dll: real handlers where the runtime implements the entry point, an
 // explicit trap otherwise. The msvcrt surface for the entry points applications import when
 // they statically link a CRT or load one indirectly. Everything here is pure
@@ -1362,7 +1363,11 @@ function writeStream(r, stream, bytes) {
   const previous = r.files.get(stream.path) ?? new Uint8Array();
   if (stream.append) stream.position = Math.max(stream.position, previous.length);
   const end = stream.position + bytes.length;
-  if (end > 16 * 1024 * 1024) throw Error('Virtual file size limit exceeded');
+  if (!canResizeGuestFile(r, stream.path, Math.max(previous.length, end))) {
+    stream.error = true;
+    r.write32(errnoCell(r, 'errno'), 28); // ENOSPC
+    return 0;
+  }
   const updated = new Uint8Array(Math.max(previous.length, end));
   updated.set(previous);
   updated.set(bytes, stream.position);
@@ -1946,6 +1951,10 @@ async function writeDescriptor(r, a) {
   const write = win32Handler(r, 'WriteFile');
   const bytesWritten = r.allocate(4);
   const response = await write(r, (index) => [handle, buffer, count, bytesWritten, 0][index] ?? 0);
+  if (!response.result && [39, 112].includes(r.lastError)) {
+    r.write32(errnoCell(r, 'errno'), 28); // ENOSPC
+    r.write32(errnoCell(r, 'doserrno'), r.lastError);
+  }
   return response.result ? ok(r.read32(bytesWritten) >>> 0, 3) : ok(0xffffffff, 3);
 }
 async function seekDescriptor(r, a) {

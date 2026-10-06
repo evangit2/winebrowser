@@ -73,6 +73,7 @@ export class SyncObjects {
     }
     if (!name.startsWith('\\')) return { status: SYNC.SYNTAX };
     const equal = (a, b) => (insensitive ? a.toLowerCase() === b.toLowerCase() : a === b);
+    if (equal(name, '\\DosDevices')) return { name: '\\DosDevices', directory: true, status: 0 };
     for (const prefix of ['\\BaseNamedObjects', this.local]) {
       if (equal(name, prefix)) return { name: prefix, directory: true, status: 0 };
       if (!equal(name.slice(0, prefix.length + 1), prefix + '\\')) continue;
@@ -152,6 +153,16 @@ export class SyncObjects {
     access = syncAccess(access, true);
     if (access === null) return { status: SYNC.ACCESS };
     return this.openHandle({ kind: 'sync-directory', name, refs: 0 }, access, inherit);
+  }
+  directoryEntries(name) {
+    if (name === '\\DosDevices') return [{ name: 'C:', type: 'SymbolicLink' }];
+    const types = { 'sync-event': 'Event', 'sync-semaphore': 'Semaphore' };
+    const prefix = name + '\\';
+    return [...this.names.values()]
+      .filter((object) => object.name?.startsWith(prefix) && types[object.kind])
+      .map((object) => ({ name: object.name.slice(prefix.length), type: types[object.kind] }))
+      .filter((entry) => !entry.name.includes('\\'))
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   }
   change(handle, operation) {
     const found = this.lookup(handle, 'sync-event', SYNC.MODIFY);

@@ -12,6 +12,14 @@ import { syncObjects, SYNC } from './sync-objects.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { fileMetadata, fileIdentity, writeFileMetadata, touchFile } from './file-metadata.js';
 import { virtualNames, matchWildcard } from './guest-directory.js';
+import {
+  volumeUsage,
+  canResizeGuestFile,
+  isGuestVolumeRoot,
+  MAX_GUEST_FILE_BYTES,
+  SECTORS_PER_CLUSTER,
+  BYTES_PER_SECTOR,
+} from './guest-volume.js';
 const SUCCESS = 0;
 const ACCESS_VIOLATION = 0xc0000005;
 const INVALID_HANDLE = 0xc0000008;
@@ -23,14 +31,13 @@ const DISK_FULL = 0xc000007f;
 const FILE_DEVICE_DISK = 7;
 const FILE_DEVICE_NAMED_PIPE = 0x11;
 const MAX_IO = 4 * 1024 * 1024;
-const MAX_FILE = 16 * 1024 * 1024;
-const MAX_FILESYSTEM = 128 * 1024 * 1024;
+const MAX_FILE = MAX_GUEST_FILE_BYTES;
 const MAX_OUTPUT = 1024 * 1024;
 const NOT_SUPPORTED = 0xc00000bb;
 const NAME_NOT_FOUND = 0xc0000034;
 const PATH_NOT_FOUND = 0xc000003a;
 
-function objectPath(runtime, pointer, allowRoot = false) {
+function objectPath(runtime, pointer, allowRoot = false, allowVolume = false) {
   if (!checked(runtime, pointer, 24)) return { status: ACCESS_VIOLATION };
   if (runtime.read32(pointer) !== 24) return { status: INVALID_PARAMETER };
   // Root-directory handles and caller-supplied security are separate services.
@@ -54,6 +61,7 @@ function objectPath(runtime, pointer, allowRoot = false) {
     path += String.fromCharCode(runtime.view.getUint16(buffer + i, true));
   // NT absolute names have already been normalized by Wine's DOS path routines.
   if (!path.startsWith('\\??\\')) return { status: PATH_NOT_FOUND };
+  if (allowVolume && isGuestVolumeRoot(path)) return { volume: true };
   try {
     return { path: resolveGuestPath(path, '', { allowRoot }) };
   } catch {
@@ -87,8 +95,19 @@ function create(runtime, argument) {
   if (options & 1 && options & 0x40) return complete(INVALID_PARAMETER);
   if (options & 0x1000 && !(access & 0x10000)) return complete(ACCESS_DENIED);
   if (!(access & 0x100000)) return complete(INVALID_PARAMETER);
-  const named = objectPath(runtime, argument(2), true);
+  const named = objectPath(runtime, argument(2), true, true);
   if (named.status) return complete(named.status);
+  if (named.volume) {
+    // Wine opens the drive root solely to query volume metadata. Do not grant
+    // traversal/data access or pass this handle to current-directory services.
+    if (access !== 0x100000 || disposition !== 1 || options !== 0x21)
+      return complete(ACCESS_DENIED);
+    if (runtime.handles.size >= 4096) return complete(0xc000009a);
+    const handle = runtime.nextHandle++;
+    runtime.handles.set(handle, { kind: 'volume-metadata', access, share, options });
+    runtime.write32(argument(0), handle);
+    return complete(SUCCESS, 1);
+  }
   const metadata = fileMetadata(runtime, named.path);
   if (runtime.pendingFileDeletes?.has(named.path)) return complete(0xc0000056);
   let ancestor = named.path;
@@ -294,8 +313,7 @@ function information(runtime, argument, set) {
       if (!(opened.access & 0x40000000) || opened.appendOnly) return complete(ACCESS_DENIED);
       if (runtime.fileSections?.canResize(opened.path, Number(value)) === false)
         return complete(0xc0000243);
-      const total = [...runtime.files.values()].reduce((sum, file) => sum + file.length, 0);
-      if (total - bytes.length + Number(value) > MAX_FILESYSTEM) return complete(DISK_FULL);
+      if (!canResizeGuestFile(runtime, opened.path, Number(value))) return complete(DISK_FULL);
       const resized = new Uint8Array(Number(value));
       resized.set(bytes.subarray(0, resized.length));
       runtime.files.set(opened.path, resized);
@@ -535,8 +553,7 @@ function write(runtime, argument) {
     return complete(FILE_LOCK_CONFLICT);
   const previous = runtime.files.get(opened.path);
   const newLength = Math.max(previous.length, start.value + count);
-  const total = [...runtime.files.values()].reduce((sum, file) => sum + file.length, 0);
-  if (total + newLength - previous.length > MAX_FILESYSTEM) return complete(DISK_FULL);
+  if (!canResizeGuestFile(runtime, opened.path, newLength)) return complete(DISK_FULL);
   const updated = new Uint8Array(newLength);
   updated.set(previous);
   updated.set(bytes, start.value);
@@ -554,8 +571,28 @@ function queryVolume(runtime, argument) {
   const handle = argument(0) >>> 0;
   const isPipe = handle === 1 || handle === 2;
   if (isPipe && runtime.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
-  if (!isPipe && !regular(runtime, handle) && !directoryHandle(runtime, handle))
+  if (
+    !isPipe &&
+    !regular(runtime, handle) &&
+    !directoryHandle(runtime, handle) &&
+    runtime.handles.get(handle)?.kind !== 'volume-metadata'
+  )
     return complete(INVALID_HANDLE);
+  const kind = argument(4) >>> 0;
+  if (kind === 3 || kind === 7) {
+    if (isPipe) return complete(INVALID_PARAMETER);
+    const size = kind === 3 ? 24 : 32;
+    if (argument(3) >>> 0 < size) return complete(BUFFER_TOO_SMALL);
+    const buffer = argument(2) >>> 0;
+    if (!checked(runtime, buffer, size, true)) return complete(ACCESS_VIOLATION);
+    const { totalUnits, availableUnits } = volumeUsage(runtime);
+    runtime.view.setBigInt64(buffer, BigInt(totalUnits), true);
+    runtime.view.setBigInt64(buffer + 8, BigInt(availableUnits), true);
+    if (kind === 7) runtime.view.setBigInt64(buffer + 16, BigInt(availableUnits), true);
+    runtime.write32(buffer + size - 8, SECTORS_PER_CLUSTER);
+    runtime.write32(buffer + size - 4, BYTES_PER_SECTOR);
+    return complete(SUCCESS, size);
+  }
   if (argument(4) >>> 0 === 1) {
     if (isPipe) return complete(INVALID_PARAMETER);
     const length = argument(3) >>> 0;
@@ -584,6 +621,10 @@ function queryVolume(runtime, argument) {
 
 export function closeFileHandle(runtime, handle) {
   const value = handle >>> 0;
+  if (runtime.handles.get(value)?.kind === 'volume-metadata') {
+    runtime.handles.delete(value);
+    return SUCCESS;
+  }
   if (value === 1 || value === 2) {
     const closed = (runtime.closedStandardOutputs ??= new Set());
     if (closed.has(value)) return INVALID_HANDLE;

@@ -249,6 +249,17 @@
       "sourceZip": "load-images/source.zip",
       "sourceZipSha256": "dd6e3739383bac8d7b27c56dd8e2fe3ad8171c7654bf586a291a58214dfa7785",
       "provenance": "Original WineBrowser contributors MIT C programs and generated images; complete source build included."
+    },
+    {
+      "name": "guest-drive",
+      "description": "Native drive GUI: write an 8 KiB file, resize it to 4 KiB and delete it while free-space figures update. Open file imports and reads a selected file. Close the window to finish.",
+      "exe": "guest-drive/guest-drive.exe",
+      "exeSha256": "1e8cdc61ea7dd9e9b07a11d67f4af468d6dda09cfd0bf8a4ce89d71be7140cd6",
+      "zip": "guest-drive/guest-drive.zip",
+      "zipSha256": "e226e18da0b0cffbb460a2870f17a2f9c4643518593fa9c1622bd8d755a5ab27",
+      "sourceZip": "guest-drive/source.zip",
+      "sourceZipSha256": "a27b235d086b1e256c442bfe1768aeccc3b86a42751c08da79fba5c7ee5346b8",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }
