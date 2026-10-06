@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-06T20:02:50.388Z",
+  "status": "passed",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "browser": "155.0.8059.39",
+  "input": "hosted example",
+  "binaries": {
+    "tests/fixtures/load-images/load-images.exe": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da",
+    "tests/fixtures/load-images/core4.bmp": "71a4f767ed7549b28475d77f7f5afb2f7630a91921871b118346469aa86e2cb5",
+    "tests/fixtures/load-images/gap.bmp": "965f7a1d71a10ccf6326397906c26afa255bc2a84930764644a8b0ea16822e67",
+    "tests/fixtures/load-images/indexed4.bmp": "41ef0ce6459547d3c7d3ea438c6ee740f5e3f8578ec46f6e0342098a22d0fe1e",
+    "tests/fixtures/load-images/indexed8.bmp": "ee063591cb8df73255cf57d8cce21ebfc94be7946385a9dd1bf05dc63a098c0f",
+    "tests/fixtures/load-images/mono.bmp": "10c77009ea2f39aa7d1af4cfb7d03e77a418472772edb55abe16a206820b0a4e",
+    "tests/fixtures/load-images/rgb24.bmp": "827f2ea48fc780cc44a5c88c5b663bee95e8e214d277714ea0b32789ecf800e2",
+    "tests/fixtures/load-images/rgb32.bmp": "387dfc1daac3fe4523789374eee5bf828adb671d59b1b284c5fd05bff8bd1cd9",
+    "tests/fixtures/load-images/rgb565.bmp": "0f4784ad17269d4ae9dc09f3960def2ceb92763e6c5c1bf3a6a39637e750335c",
+    "tests/fixtures/load-images/truncated.bmp": "8cf0ace1fa39b93ef624ffd682e8b22c082612edaec8841e523d07953a93e50c",
+    "tests/fixtures/load-images/bitmap-resources.dll": "5984c4eff63442c2c6d9c2f63d8a26a04f3513c25797cd602035c35101d3bd12"
+  },
+  "hostedInputs": {
+    "zipSha256": "d75e10c675750b99318bad0b250b72b9cf119baa89f142cdb6cf13b74765406a",
+    "exeSha256": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da"
+  },
+  "resourceLibrary": {
+    "name": "bitmap-resources.dll",
+    "path": "load-images/bitmap-resources.dll",
+    "base": 20971520,
+    "host": false
+  },
+  "nativeRuntime": [
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "base": 20185088,
+      "host": false
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "base": 16908288,
+      "host": false
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "base": 17432576,
+      "host": false
+    }
+  ],
+  "exitCode": 0,
+  "compiledBlocks": 3383,
+  "x86TranslationMs": 504.39000034332275,
+  "observations": [
+    {
+      "updated": false,
+      "checkedPixels": 49152,
+      "mismatches": 0,
+      "images": [
+        {
+          "image": 0,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        },
+        {
+          "image": 1,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        },
+        {
+          "image": 2,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        }
+      ]
+    },
+    {
+      "updated": true,
+      "checkedPixels": 49152,
+      "mismatches": 0,
+      "images": [
+        {
+          "image": 0,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        },
+        {
+          "image": 1,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        },
+        {
+          "image": 2,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        }
+      ]
+    },
+    {
+      "updated": false,
+      "checkedPixels": 49152,
+      "mismatches": 0,
+      "images": [
+        {
+          "image": 0,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        },
+        {
+          "image": 1,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        },
+        {
+          "image": 2,
+          "checkedPixels": 16384,
+          "mismatches": 0
+        }
+      ]
+    }
+  ],
+  "pickerObservations": [
+    {
+      "updated": false,
+      "checkedPixels": 16384,
+      "mismatches": 0
+    },
+    {
+      "updated": true,
+      "checkedPixels": 16384,
+      "mismatches": 0
+    },
+    {
+      "updated": false,
+      "checkedPixels": 16384,
+      "mismatches": 0
+    }
+  ],
+  "checks": [
+    "Unchanged native SDK EXE calls both six-argument LoadImage interfaces for integer/named bitmap resources, icon and cursor resources",
+    "Native Wine SearchPath A/W locates actual BMP and resource DLL inputs; buffers, file-part pointers, extensions, explicit lists and PATH are checked by the SDK client",
+    "Native SDK GetFullPathName A/W checks nonexistent names, required sizes, file-part pointers, rooted/current-drive paths and in-place expansion",
+    "Native directory creation, traversal, current-directory changes and empty-directory deletion complete without host filesystem access",
+    "Relative LoadImage sees native Wine directory changes; the Open bitmap button and F7 cancel/import dialogs update native GetCurrentDirectory and load relative file names from the selected directory",
+    "Seven authored bitmap resources and BMP files cover indexed/CORE/monochrome/RGB24/32 and RGB565; a real file pixel offset skips a deliberate metadata/pixel gap",
+    "LR_CREATEDIBSECTION exposes private writable native pointers; bitmap pixels survive resource DLL unload",
+    "Requested sizes, system palette mapping and transparent-index color replacement match native GetPixel assertions",
+    "Missing/truncated files and invalid sizes fail; native F6 pointer writes repaint actual file-loaded pixels",
+    "Chromium independently scans all 49152 displayed pixels in each of three stages and requires native cleanup/exit zero",
+    "A visibly different imported BMP passes 16384-pixel scans before native pointer changes and after their restoration; closing restores the original native directory",
+    "Cancellation and reopening wait for a new visible picker request before importing, even when both requests use the same title"
+  ],
+  "scope": "Native Wine file search and private-volume directory traversal/deletion, plus uncompressed bitmap resource/file loading and nearest-neighbor sizing. HALFTONE resampling, compressed/embedded-image BMPs, OEM bitmap assets, custom-sized/file icons and cursors, and full Windows compatibility remain unfinished."
+}
