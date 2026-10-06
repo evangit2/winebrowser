@@ -303,7 +303,9 @@
     "build:monitor-popup": "sh scripts/build-monitor-popup-fixture.sh",
     "test:monitor-popup": "node scripts/test-monitor-popup-browser.mjs",
     "build:monitor-enum": "sh scripts/build-monitor-enum-fixture.sh",
-    "test:monitor-enum": "node scripts/test-monitor-enum-browser.mjs"
+    "test:monitor-enum": "node scripts/test-monitor-enum-browser.mjs",
+    "build:gdi-screen": "sh scripts/build-gdi-screen-fixture.sh",
+    "test:gdi-screen": "node scripts/test-gdi-screen-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

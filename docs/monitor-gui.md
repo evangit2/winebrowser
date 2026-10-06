@@ -1,5 +1,7 @@
 # Virtual monitor and popup placement
 
+[GDI display contracts](gdi-display.md) describe the shared screen DC dimensions and corrected SDK capability queries.
+
 USER32 monitor information, system work-area queries, D3D8/9 adapter monitors and DXGI output descriptions share one process-local virtual monitor. Its device name is `\\.\DISPLAY1`; monitor and work-area rectangles reflect the active mode in the shared display catalogue. Extended ANSI and Unicode MONITORINFO structures retain the caller's size and preserve bytes outside the structure. Signed point, rectangle and window lookups honor explicit primary/nearest fallback flags; minimized windows use their normal rectangle.
 
 DXGI_OUTPUT_DESC uses the native PE32 SDK layout: a 64-byte UTF-16 name, RECT at offset 64, AttachedToDesktop at 80, rotation at 84 and HMONITOR at 88. D3D8/9 GetAdapterMonitor returns the same USER32-resolvable handle for adapter zero. These queries do not create a rendering device or change the host monitor.

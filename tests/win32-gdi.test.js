@@ -53,6 +53,114 @@ function framePixel(frame, x, y) {
   return [...frame.pixels.subarray(offset, offset + 4)];
 }
 
+test('Windows SDK device-cap indices report the display driver dimensions and actual CPU GDI pixel profile', () => {
+  const runtime = makeRuntime(),
+    dc = call(runtime, 'user32.dll!GetDC', 0).result,
+    memory = call(runtime, 'gdi32.dll!CreateCompatibleDC', dc).result;
+  for (const handle of [dc, memory]) {
+    for (const [index, value] of [
+      [2, 1],
+      [8, 1024],
+      [10, 768],
+      [12, 32],
+      [14, 1],
+      [24, -1],
+      [88, 96],
+      [90, 96],
+      [104, 0],
+      [106, 0],
+      [108, 24],
+      [110, 0],
+      [111, 0],
+      [112, 0],
+      [113, 0],
+      [116, 60],
+      [117, 768],
+      [118, 1024],
+    ])
+      assert.equal(
+        call(runtime, 'gdi32.dll!GetDeviceCaps', handle, index).result,
+        value,
+        `${handle}:${index}`,
+      );
+    assert.equal(
+      call(runtime, 'gdi32.dll!GetDeviceCaps', handle, 38).result & 0x100,
+      0,
+      'no palette capability',
+    );
+    assert.equal(
+      call(runtime, 'gdi32.dll!GetDeviceCaps', handle, 38).result & 0x2200,
+      0,
+      'unfinished SetDIBitsToDevice and StretchDIBits stay unadvertised',
+    );
+  }
+  runtime.displayMode = { width: 800, height: 600, frequency: 60 };
+  for (const handle of [dc, memory]) {
+    assert.equal(call(runtime, 'gdi32.dll!GetDeviceCaps', handle, 8).result, 800);
+    assert.equal(call(runtime, 'gdi32.dll!GetDeviceCaps', handle, 10).result, 600);
+  }
+  call(runtime, 'user32.dll!ReleaseDC', 0, dc);
+  assert.equal(call(runtime, 'gdi32.dll!GetDeviceCaps', dc, 8).result, 0);
+  assert.equal(runtime.lastError, 6);
+  call(runtime, 'gdi32.dll!DeleteDC', memory);
+});
+
+test('retained desktop DCs rebind across shrink, expansion and flush while overlap pixels survive and new pixels are opaque black', () => {
+  const runtime = makeRuntime(),
+    desktop = call(runtime, 'user32.dll!GetDesktopWindow').result,
+    dc = call(runtime, 'user32.dll!GetDC', 0).result,
+    alias = call(runtime, 'user32.dll!GetDC', desktop).result;
+  call(runtime, 'gdi32.dll!SetPixel', dc, 10, 10, 0xabcdef);
+  assert.equal(call(runtime, 'gdi32.dll!SetPixel', dc, 1023, 767, 0xff).result, 0xff);
+  assert.equal(call(runtime, 'gdi32.dll!GetPixel', alias, 1023, 767).result, 0xff);
+  flushGdi(runtime);
+  for (const [width, height] of [
+    [800, 600],
+    [640, 480],
+    [1024, 768],
+  ]) {
+    runtime.displayMode = { width, height, frequency: 60 };
+    const frame = flushGdi(runtime);
+    assert.deepEqual([frame.width, frame.height], [width, height]);
+    assert.deepEqual(framePixel(frame, 10, 10), [239, 205, 171, 255]);
+    assert.deepEqual(framePixel(frame, width - 1, height - 1), [0, 0, 0, 255]);
+    assert.equal(flushGdi(runtime), null);
+    assert.equal(call(runtime, 'gdi32.dll!GetClipBox', alias, 0x100).result, 2);
+    assert.deepEqual(
+      [0, 4, 8, 12].map((offset) => runtime.view.getInt32(0x100 + offset, true)),
+      [0, 0, width, height],
+    );
+    assert.equal(
+      call(runtime, 'gdi32.dll!SetPixel', dc, width, height - 1, 0xff).result,
+      0xffffffff,
+    );
+    assert.equal(
+      call(runtime, 'gdi32.dll!SetPixel', alias, width - 1, height - 1, 0x123456).result,
+      0x123456,
+    );
+    assert.equal(call(runtime, 'gdi32.dll!GetPixel', dc, width - 1, height - 1).result, 0x123456);
+  }
+});
+
+test('mode changes intersect GetClipBox with the current surface and preserve the caller selected complex region for expansion', () => {
+  const runtime = makeRuntime(),
+    dc = call(runtime, 'user32.dll!GetDC', 0).result;
+  call(runtime, 'gdi32.dll!IntersectClipRect', dc, 600, 10, 900, 20);
+  assert.equal(call(runtime, 'gdi32.dll!ExcludeClipRect', dc, 700, 0, 810, 768).result, 3);
+  for (const [width, kind, wanted] of [
+    [640, 2, [600, 10, 640, 20]],
+    [500, 1, [0, 0, 0, 0]],
+    [1024, 3, [600, 10, 900, 20]],
+  ]) {
+    runtime.displayMode = { width, height: 768, frequency: 60 };
+    assert.equal(call(runtime, 'gdi32.dll!GetClipBox', dc, 0x100).result, kind);
+    assert.deepEqual(
+      [0, 4, 8, 12].map((offset) => runtime.view.getInt32(0x100 + offset, true)),
+      wanted,
+    );
+  }
+});
+
 test('new runtime receives an opaque black desktop frame at flush', () => {
   const runtime = makeRuntime(false);
   assert.equal(runtime.events.length, 0);
@@ -85,8 +193,8 @@ test('desktop DC, FillRect, COLORREF conversion, clipping, and flush output', ()
   assert.equal(runtime.events.length, 1);
   assert.equal(frame, runtime.events[0]);
   assert.equal(frame.type, 'frame');
-  assert.equal(frame.width, 640);
-  assert.equal(frame.height, 480);
+  assert.equal(frame.width, 1024);
+  assert.equal(frame.height, 768);
   assert.ok(frame.pixels instanceof Uint8ClampedArray);
   assert.deepEqual(framePixel(frame, 0, 0), [1, 2, 3, 255]);
   assert.deepEqual(framePixel(frame, 2, 1), [0, 0, 0, 255]);

@@ -1,6 +1,7 @@
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
+import { currentDisplayMode, VIRTUAL_DISPLAY_MODES } from './win32-display.js';
 import { encodeAnsi, decodeAnsi } from './encoding.js';
 import {
   colorRefRgb as colorRgb,
@@ -19,8 +20,9 @@ import {
   paintGdiText,
 } from './gdi-text.js';
 
-const WIDTH = 640;
-const HEIGHT = 480;
+const MAX_DESKTOP_PIXELS = Math.max(
+  ...VIRTUAL_DISPLAY_MODES.map((mode) => mode.width * mode.height),
+);
 export const DESKTOP_WINDOW = 0x101;
 const STOCK_WHITE_BRUSH = 0x11001;
 const STOCK_BLACK_BRUSH = 0x11002;
@@ -103,7 +105,8 @@ function stateFor(runtime) {
     throw new TypeError('GDI APIs require a runtime object');
   let state = states.get(runtime);
   if (!state) {
-    const pixels = opaquePixels(WIDTH, HEIGHT);
+    const { width, height } = currentDisplayMode(runtime);
+    const pixels = opaquePixels(width, height);
     const brushes = new Map([
       [STOCK_WHITE_BRUSH, { kind: 'brush', stock: true, color: 0xffffff }],
       [STOCK_BLACK_BRUSH, { kind: 'brush', stock: true, color: 0x000000 }],
@@ -126,7 +129,7 @@ function stateFor(runtime) {
         systemColor: index,
       });
     state = {
-      desktopSurface: { width: WIDTH, height: HEIGHT, pixels, dirty: true },
+      desktopSurface: { width, height, pixels, dirty: true },
       desktopActive: false,
       brushes,
       pens,
@@ -143,6 +146,21 @@ function stateFor(runtime) {
     states.set(runtime, state);
   }
   return state;
+}
+
+function syncDesktopSurface(runtime, state) {
+  const { width, height } = currentDisplayMode(runtime),
+    old = state.desktopSurface;
+  if (width === old.width && height === old.height) return;
+  const pixels = opaquePixels(width, height),
+    copyWidth = Math.min(width, old.width),
+    copyHeight = Math.min(height, old.height);
+  for (let y = 0; y < copyHeight; y++)
+    pixels.set(
+      old.pixels.subarray(y * old.width * 4, (y * old.width + copyWidth) * 4),
+      y * width * 4,
+    );
+  state.desktopSurface = { width, height, pixels, dirty: true };
 }
 
 function allocateHandle(runtime, state, argc) {
@@ -177,8 +195,10 @@ function getDc(runtime, state, handle) {
     dc.surface = bitmap;
     return dc;
   }
-  if (dc.hwnd === 0 || dc.hwnd === DESKTOP_WINDOW) dc.surface = state.desktopSurface;
-  else {
+  if (dc.hwnd === 0 || dc.hwnd === DESKTOP_WINDOW) {
+    syncDesktopSurface(runtime, state);
+    dc.surface = state.desktopSurface;
+  } else {
     const window = runtime.windows?.windows?.get(dc.hwnd);
     const surface = state.windowSurfaces.get(dc.hwnd);
     if (!window || !surface) return null;
@@ -201,7 +221,9 @@ function getFont(state, handle) {
 
 function totalSurfacePixels(state) {
   return (
-    state.desktopSurface.width * state.desktopSurface.height +
+    // Reserve every catalogue mode so changing modes cannot exceed the GDI
+    // allocation budget after a smaller desktop allowed more bitmap creation.
+    Math.max(MAX_DESKTOP_PIXELS, state.desktopSurface.width * state.desktopSurface.height) +
     [...state.windowSurfaces.values()].reduce(
       (sum, surface) => sum + surface.width * surface.height,
       0,
@@ -599,44 +621,50 @@ function getTextMetrics(runtime, argument, wide) {
   );
   return success(1, 2);
 }
-// GetDeviceCaps(HDC, int): the virtual display reports the same fixed profile
-// for every DC, which is what the renderer actually honours.
-const DEVICE_CAPS = {
-  8: 88, // HORZSIZE (millimetres)
-  10: 66, // VERTSIZE
-  12: 96, // BITSPIXEL
+// SDK GetDeviceCaps indices describe the implemented 32-bit CPU raster device.
+// Window and memory DCs retain the compatible display's device capabilities;
+// their selected surfaces affect clipping and bitmap layout, not HORZRES.
+const DEVICE_CAPS = Object.freeze({
+  2: 1, // TECHNOLOGY: DT_RASDISPLAY.
+  12: 32, // BITSPIXEL: CPU GDI backing pixels remain RGBA8 in every mode.
   14: 1, // PLANES
-  16: 8, // CLIPCAPS (rectangle clipping)
-  18: 1, // SIZEPALETTE
-  20: 1, // NUMRESERVED
-  22: 24, // RASTERCAPS
-  24: 0, // ASPECTX
-  26: 0, // ASPECTY
-  28: 0, // ASPECTXY
-  30: 0, // LOGPIXELSX is 88 in Win32? set below
-  38: 0, // VREFRESH
-  40: 1, // NUMCOLORS for a palette device
-  52: 1, // COLORRES
+  16: -1, // NUMBRUSHES: dynamically created brushes.
+  18: -1, // NUMPENS: dynamically created pens.
+  24: -1, // NUMCOLORS: true color, not a palette device.
+  28: 0x89, // CURVECAPS: circles, ellipses and interiors.
+  30: 2, // LINECAPS: polylines.
+  32: 0x83, // POLYGONALCAPS: polygons, rectangles and interiors (alternate fill).
+  36: 3, // CLIPCAPS: rectangular and bounded complex regions.
+  38: 0x881, // RASTERCAPS: BITBLT, DI_BITMAP and STRETCHBLT.
+  40: 36, // ASPECTX: square device pixels, conventional GDI aspect units.
+  42: 36, // ASPECTY.
+  44: 51, // ASPECTXY: rounded diagonal in the same aspect units.
   88: 96, // LOGPIXELSX
   90: 96, // LOGPIXELSY
-  104: 0, // PHYSICALWIDTH (unknown)
-  106: 0, // PHYSICALHEIGHT
-  108: 0, // PHYSICALOFFSETX
-  110: 0, // PHYSICALOFFSETY
-  112: 1, // SCALINGFACTORX
-  114: 1, // SCALINGFACTORY
-};
+  108: 24, // COLORRES: eight significant bits in each RGB channel.
+});
 function getDeviceCaps(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
   if (!dc) return failure(runtime, ERROR_INVALID_HANDLE, 0, 2);
   const index = argument(1) | 0;
-  // The virtual display is a 96-dpi colour raster device with rectangle
-  // clipping; every other capability is reported as zero rather than guessed.
-  const values = { ...DEVICE_CAPS };
-  values[10] = 66;
-  values[30] = 0;
-  return success(values[index] ?? 0, 2);
+  const { width, height, frequency } = currentDisplayMode(runtime);
+  switch (index) {
+    case 4:
+      return success(Math.round((width * 25.4) / 96), 2); // HORZSIZE: nominal 96-dpi millimetres.
+    case 6:
+      return success(Math.round((height * 25.4) / 96), 2); // VERTSIZE.
+    case 8:
+    case 118:
+      return success(width, 2); // HORZRES, DESKTOPHORZRES.
+    case 10:
+    case 117:
+      return success(height, 2); // VERTRES, DESKTOPVERTRES.
+    case 116:
+      return success(frequency, 2); // VREFRESH.
+    default:
+      return success(DEVICE_CAPS[index] ?? 0, 2);
+  }
 }
 // Get(Current)Object reports the handle a DC currently has selected.
 function getCurrentObject(runtime, argument) {
@@ -830,13 +858,23 @@ function getClipRect(runtime, argument) {
   if (!dc) return badDc(runtime, 2, CLR_INVALID);
   const out = argument(1);
   if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
-  const clip = dc.clip ?? [0, 0, dc.surface.width, dc.surface.height];
+  const pieces = intersectClip(clipPieces(dc, dc.surface), [
+    0,
+    0,
+    dc.surface.width,
+    dc.surface.height,
+  ]);
+  const clip = pieces.length
+    ? [
+        Math.min(...pieces.map((p) => p[0])),
+        Math.min(...pieces.map((p) => p[1])),
+        Math.max(...pieces.map((p) => p[2])),
+        Math.max(...pieces.map((p) => p[3])),
+      ]
+    : [0, 0, 0, 0];
   runtime.check(out, 16, true);
   clip.forEach((value, i) => runtime.write32(out + i * 4, value));
-  return success(
-    clip[2] > clip[0] && clip[3] > clip[1] ? (dc.clipRects?.length > 1 ? 3 : 2) : 1,
-    2,
-  );
+  return success(pieces.length > 1 ? 3 : pieces.length ? 2 : 1, 2);
 }
 function intersectClipRect(runtime, argument) {
   const state = stateFor(runtime);
@@ -2623,6 +2661,7 @@ export const gdiApis = {
 export function flushGdi(runtime) {
   const state = states.get(runtime);
   if (!state) return null;
+  if (state.desktopActive) syncDesktopSurface(runtime, state);
   const desktop = state.desktopSurface;
   const frames = [];
   if (state.desktopActive && desktop.dirty) {
