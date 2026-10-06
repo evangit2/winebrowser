@@ -238,6 +238,17 @@
       "sourceZip": "gdi-section/source.zip",
       "sourceZipSha256": "4a308ac9dc0c725bf90af0d5d45859c59463fdd2c196bc695fb5dff106f59e04",
       "provenance": "Original WineBrowser contributors C program, MIT; reproducible source and MinGW build included."
+    },
+    {
+      "name": "load-images",
+      "description": "Image loader GUI: original, themed and file-loaded bitmaps. Press F6 to change a pixel through the native bitmap pointer, then restore it. Close the window to finish.",
+      "exe": "load-images/load-images.exe",
+      "exeSha256": "d679eddd2d1e5aaadefcee36bc3e8fe63bf0a3c72ec2d8b84044aaf716776c63",
+      "zip": "load-images/load-images.zip",
+      "zipSha256": "7bb55b9f92b2e0c0fc80217cff3868a72796d1a1ef671b4e9eee1ba4d5a9f7e6",
+      "sourceZip": "load-images/source.zip",
+      "sourceZipSha256": "9f63e5cf0fd49f5e6db2a40e6cfd6a6ee72f2322d9545f661546daa4bb62d317",
+      "provenance": "Original WineBrowser contributors MIT C programs and generated images; complete source build included."
     }
   ]
 }

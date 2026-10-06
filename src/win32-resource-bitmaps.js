@@ -8,7 +8,7 @@ function fail(r, error) {
 
 // Locate and validate a resource DIB before forwarding it to the shared GDI
 // converter. The PE resource bytes are immutable: colour mapping uses a copy.
-export function resourceDibLayout(bytes) {
+export function resourceDibLayout(bytes, pixelOffset = null) {
   if (!(bytes instanceof Uint8Array) || bytes.length < 12) return null;
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
     size = v.getUint32(0, true),
@@ -39,9 +39,11 @@ export function resourceDibLayout(bytes) {
     entry = core ? 3 : 4,
     palette = size + (size === 40 && compression === 3 ? 12 : 0);
   if (colors > 256 || (depth <= 8 && colors > 1 << depth)) return null;
-  const bits = palette + colors * entry,
+  const minimum = palette + colors * entry,
+    bits = pixelOffset ?? minimum,
     stride = Math.ceil((width * depth) / 32) * 4;
-  if (bits + stride * height > bytes.length) return null;
+  if (bits < minimum || !Number.isSafeInteger(bits) || bits + stride * height > bytes.length)
+    return null;
   return { width, height, depth, palette, colors, entry, bits };
 }
 function loadResourceBitmap(r, instance, name, maps) {

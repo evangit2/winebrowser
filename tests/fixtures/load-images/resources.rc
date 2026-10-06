@@ -1,0 +1,3 @@
+#include "../resource-bitmaps/resources.rc"
+201 CURSOR "../custom-cursors/mono.cur"
+202 ICON "../icon24/icon24.ico"

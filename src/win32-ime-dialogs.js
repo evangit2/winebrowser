@@ -4,6 +4,7 @@
 // object that reports an empty composition and accepts the font/window calls a
 // program makes while setting one up. File and font dialogs use actual
 // browser pickers and return native A/W output structures.
+import { loadImage } from './win32-images.js';
 import { chooseBrowserColor } from './win32-color-dialog.js';
 import { chooseBrowserFont } from './win32-font-dialog.js';
 import { chooseBrowserFile } from './win32-file-dialog.js';
@@ -246,28 +247,6 @@ async function msgWaitForMultipleObjects(r, a, multiple, extended) {
   }
   if (hasMessage()) return ok(0, argc); // WAIT_OBJECT_0 + the message index
   return ok(0x102, argc); // WAIT_TIMEOUT
-}
-// LoadImageA/W loads an icon, cursor or bitmap from a module or a file. The
-// runtime already decodes icons and cursors from PE resources, so this routes
-// to the same loaders for the resource forms.
-function loadImage(r, a, wide) {
-  const type = a(1) >>> 0;
-  const name = a(2);
-  const flags = a(4) >>> 0;
-  if (flags & ~(0x1 | 0x2 | 0x10 | 0x20 | 0x40 | 0x4000 | 0x8000))
-    return fail(r, ERROR_INVALID_PARAMETER, 6);
-  if (type === 1) {
-    // IMAGE_ICON: delegate to LoadIcon, which decodes a real RT_GROUP_ICON.
-    const handler = r.apiProvider.get('user32.dll!LoadIcon' + (wide ? 'W' : 'A'));
-    return handler ? handler(r, (i) => [a(0), name][i] ?? 0) : fail(r, 6, 6);
-  }
-  if (type === 2) {
-    const handler = r.apiProvider.get('user32.dll!LoadCursor' + (wide ? 'W' : 'A'));
-    return handler ? handler(r, (i) => [a(0), name][i] ?? 0) : fail(r, 6, 6);
-  }
-  // IMAGE_BITMAP needs a bitmap resource decoder the runtime does not have, so
-  // this reports failure rather than a handle that would not paint.
-  return fail(r, 6, 6);
 }
 // GetClipboardOwner reports the window that currently owns the clipboard. The
 // runtime has a single in-process clipboard, so the owner is the window the
