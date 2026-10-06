@@ -5,6 +5,7 @@ import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { chooseBrowserFile } from '../src/win32-file-dialog.js';
 import { OFN, fileDialogSelection, matchesFileFilter } from '../src/file-dialog-model.js';
+import { PROCESS_LAYOUT } from '../src/process-layout.js';
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
 function setup(wide = false, save = false, capacity = 260, flags = OFN.NOCHANGEDIR) {
   const r = new Runtime(iced, {
@@ -41,6 +42,53 @@ test('Open/Save A/W cancellation preserves filenames, structs, outputs, imports 
       assert.deepEqual(r.data.slice(p, buffer + 8), before);
       assert.equal(r.cwd, cwd);
     }
+});
+
+test('a rejected native directory change rolls back imported files and timestamps without changing caller output', async (t) => {
+  const { r, p, buffer, call } = setup(false, false, 260, OFN.FILEMUSTEXIST | OFN.PATHMUSTEXIST);
+  t.after(() => {
+    r.windows.dispose();
+    r.cpu.dispose();
+  });
+  const parameters = r.read32(PROCESS_LAYOUT.peb + 0x10);
+  r.guestMemory.write(parameters + 0x26, 520, 2);
+  r.wineProcess = {
+    parameters,
+    module: {
+      base: 0x1000000,
+      pe: {
+        exports: [
+          { name: 'RtlSetCurrentDirectory_U', rva: 16 },
+          { name: 'RtlNtStatusToDosError', rva: 32 },
+        ],
+      },
+    },
+  };
+  r.callGuest = async (address, args) => {
+    if (address === 0x1000010) return 0xc0000022;
+    assert.equal(address, 0x1000020);
+    assert.equal(args[0], 0xc0000022);
+    return 5;
+  };
+  r.fileTimes = new Map([['', { creation: 1n, access: 2n, write: 3n, change: 4n }]]);
+  const beforeTimes = new Map(r.fileTimes),
+    beforeStruct = r.data.slice(p, p + 88),
+    beforeName = r.data.slice(buffer, buffer + 260);
+  r.request = async (_kind, req) => ({
+    directory: req.importPrefix.slice(0, -1),
+    names: ['local.txt'],
+    filterIndex: 1,
+    imports: [{ path: req.importPrefix + 'local.txt', bytes: new Uint8Array([9]) }],
+  });
+  assert.equal((await call()).result, 0);
+  assert.equal(r.commonDialogError, 0x3002);
+  assert.equal(r.lastError, 5);
+  assert.deepEqual(r.data.slice(p, p + 88), beforeStruct);
+  assert.deepEqual(r.data.slice(buffer, buffer + 260), beforeName);
+  assert.deepEqual(r.fileTimes, beforeTimes);
+  assert.equal(r.files.size, 3);
+  assert.equal(r.fileDialogImportBatch, undefined);
+  assert.equal(r.cwd, '');
 });
 test('A/W selected files write native offsets, title, extension and nFilterIndex, without creating output', async () => {
   for (const wide of [false, true]) {

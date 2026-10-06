@@ -13,6 +13,7 @@ import { PROCESS_LAYOUT } from './process-layout.js';
 import { guestHandleRecord, guestHandleFlags } from './wine-object.js';
 import { processLookup } from './process-session.js';
 import { findGuestSearchPath } from './guest-search-path.js';
+import { setProcessDirectory } from './process-directory.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -1461,7 +1462,7 @@ function writeCountedString(r, rLength, lpBuffer, value, wide, argc) {
 function getCurrentDirectory(r, a, wide) {
   return writeCountedString(r, a(0), a(1), packageDosPath(r.cwd), wide, 2);
 }
-function setCurrentDirectory(r, a, wide) {
+async function setCurrentDirectory(r, a, wide) {
   let resolved;
   try {
     resolved = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd, {
@@ -1470,15 +1471,8 @@ function setCurrentDirectory(r, a, wide) {
   } catch {
     return fail(r, 3, 1);
   }
-  // The directory must exist: the empty root always does, and any other name
-  // must be a virtual directory or a parent of a packaged file.
-  if (
-    resolved &&
-    !virtualNames(r, directoryPrefix(resolved)).size &&
-    !r.virtualDirectories?.has(resolved + '/')
-  )
-    return fail(r, 3, 1);
-  r.cwd = resolved ? resolved + '/' : '';
+  const error = await setProcessDirectory(r, resolved);
+  if (error) return fail(r, error, 1);
   return ok(1, 1);
 }
 

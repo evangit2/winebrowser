@@ -28,6 +28,7 @@ export function initializeProcessLayout(runtime) {
   // Provide normalized PE32 RTL_USER_PROCESS_PARAMETERS even without ntdll.
   // Native Wine replaces this bootstrap allocation with its own parameters.
   const parameters = runtime.allocate(0x290);
+  runtime.bootstrapProcessParameters = parameters;
   runtime.write32(parameters, 0x290);
   runtime.write32(parameters + 4, 0x290);
   runtime.write32(parameters + 8, 1); // RTL_USER_PROC_PARAMS_NORMALIZED
@@ -42,6 +43,7 @@ export function initializeProcessLayout(runtime) {
     if (value.length > 32766 || value.includes('\0'))
       throw Error('Invalid process parameter string');
     const buffer = runtime.allocString(value, true);
+    if (offset === 0x24) runtime.hostCurrentDirectoryBuffer = buffer;
     runtime.guestMemory.write(parameters + offset, value.length * 2, 2);
     runtime.guestMemory.write(parameters + offset + 2, (value.length + 1) * 2, 2);
     runtime.write32(parameters + offset + 4, buffer);

@@ -34,7 +34,13 @@ static void search_paths(void) {
     CHECK(SearchPathA("search-b;search-a","choice", ".bin",MAX_PATH,path,&part));
     CHECK(!lstrcmpA(part,"choice.bin"));
     CHAR expected[MAX_PATH];lstrcpyA(expected,saved);lstrcatA(expected,"\\search-b\\choice.bin");CHECK(!lstrcmpiA(path,expected));
+    BYTE copied[512];DWORD count,written;
+    HANDLE input=CreateFileA("rgb24.bmp",GENERIC_READ,7,NULL,OPEN_EXISTING,0,NULL);CHECK(input!=INVALID_HANDLE_VALUE);
+    CHECK(ReadFile(input,copied,sizeof(copied),&count,NULL)&&count&&count<sizeof(copied)&&CloseHandle(input));
+    HANDLE output=CreateFileA("search-a/nested.bmp",GENERIC_WRITE,7,NULL,CREATE_ALWAYS,0,NULL);CHECK(output!=INVALID_HANDLE_VALUE);
+    CHECK(WriteFile(output,copied,count,&written,NULL)&&written==count&&CloseHandle(output));
     CHECK(SetCurrentDirectoryA("search-a"));
+    bitmap=(HBITMAP)LoadImageW(NULL,L"nested.bmp",IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION);CHECK(bitmap&&DeleteObject(bitmap));
     CHECK(SearchPathA(NULL,"rgb24.bmp",NULL,MAX_PATH,path,&part)==length);
     lstrcpyA(expected,saved);lstrcatA(expected,"\\search-b");CHECK(SetEnvironmentVariableA("PATH",expected));
     CHECK(SearchPathW(NULL,L"path-only",L".dat",MAX_PATH,wide,&wide_part));
@@ -47,6 +53,7 @@ static void search_paths(void) {
     CHECK(!SetSearchPathMode(0)&&GetLastError()==ERROR_INVALID_PARAMETER);
     CHECK(SetEnvironmentVariableA("PATH","C:\\"));
     CHECK(SetCurrentDirectoryA(saved));
+    CHECK(DeleteFileA("search-a/nested.bmp"));
     CHECK(DeleteFileA("search-a/choice.bin")&&DeleteFileA("search-b/choice.bin")&&DeleteFileA("search-b/path-only.dat"));
     CHECK(RemoveDirectoryA("search-a")&&RemoveDirectoryA("search-b"));
 }

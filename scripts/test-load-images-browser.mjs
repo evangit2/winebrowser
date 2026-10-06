@@ -141,13 +141,99 @@ try {
     observations.push(pixels);
     if (updated) await root.screenshot({ path: '.scratch/load-images-browser.png' });
   }
+  await canvas.press('F7');
+  await expect(page.locator('#file-picker')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#file-picker')).toBeHidden();
+  await expect(root.locator('.virtual-desktop-title')).toHaveText(
+    'LoadImage resources and BMP files — F6 changes pixels',
+  );
+  await root.getByRole('button', { name: 'Open bitmap… (F7)' }).click();
+  await expect(page.locator('#file-picker-title')).toHaveText(
+    'Load a bitmap and change current directory',
+  );
+  // Import a visibly different authored BMP so stale display pixels cannot
+  // pass the picker check. Swap the two actual top-down RGB24 scanlines.
+  const picked = Buffer.from(await readFile(folder + 'rgb24.bmp'));
+  const pixelOffset = picked.readUInt32LE(10);
+  for (let at = 0; at < 12; at++) {
+    const first = picked[pixelOffset + at];
+    picked[pixelOffset + at] = picked[pixelOffset + 12 + at];
+    picked[pixelOffset + 12 + at] = first;
+  }
+  await page
+    .locator('#file-picker-import')
+    .setInputFiles({ name: 'picked.bmp', mimeType: 'image/bmp', buffer: picked });
+  await expect(page.locator('#file-picker-name')).toHaveValue('picked.bmp');
+  await page.locator('#file-picker-ok').click();
+  await expect(page.locator('#file-picker')).toBeHidden();
+  await expect(root.locator('.virtual-desktop-title')).toHaveText(
+    'LoadImage picked bitmap from current directory',
+  );
+  await page.waitForFunction(() => {
+    const c = document.querySelector('.virtual-desktop-canvas');
+    const p = c?.getContext('2d').getImageData(16, 176, 1, 1).data;
+    return p && p[0] === 1 && p[1] === 2 && p[2] === 3;
+  });
+  const pickerObservations = [];
+  for (const [index, updated] of [false, true, false].entries()) {
+    if (index) await canvas.press('F6');
+    await page.waitForFunction((updated) => {
+      const p = document
+        .querySelector('.virtual-desktop-canvas')
+        .getContext('2d')
+        .getImageData(16, 176, 1, 1).data;
+      return (
+        p[0] === (updated ? 255 : 1) && p[1] === (updated ? 0 : 2) && p[2] === (updated ? 255 : 3)
+      );
+    }, updated);
+    const pixels = await canvas.evaluate((c, updated) => {
+      const rows = [
+        [
+          [1, 2, 3],
+          [4, 5, 6],
+          [7, 8, 9],
+        ],
+        [
+          [10, 20, 30],
+          [255, 255, 255],
+          [255, 255, 0],
+        ],
+      ];
+      const data = c.getContext('2d').getImageData(16, 176, 256, 64).data;
+      let mismatches = 0;
+      for (let y = 0; y < 64; y++)
+        for (let x = 0; x < 256; x++) {
+          const row = Math.floor(y / 32),
+            col = Math.floor((x * 3) / 256);
+          const rgb = updated && !row && !col ? [255, 0, 255] : rows[row][col];
+          const at = (y * 256 + x) * 4;
+          if (
+            data[at] !== rgb[0] ||
+            data[at + 1] !== rgb[1] ||
+            data[at + 2] !== rgb[2] ||
+            data[at + 3] !== 255
+          )
+            mismatches++;
+        }
+      return { updated, checkedPixels: 16384, mismatches };
+    }, updated);
+    assert.equal(pixels.mismatches, 0, JSON.stringify(pixels));
+    pickerObservations.push(pixels);
+  }
+  await root.screenshot({ path: '.scratch/load-images-picked-browser.png' });
   await root.locator('.virtual-desktop-close').click();
   await page.waitForFunction(() => window.__lastRun != null);
   const run = await page.evaluate(() => window.__lastRun);
   assert.equal(run.exitCode, 0, JSON.stringify(run));
   assert.ok(run.compiledBlocks > 0);
   assert.deepEqual(errors, []);
-  for (const api of ['user32.dll!LoadImageA', 'user32.dll!LoadImageW', 'gdi32.dll!GetObjectW'])
+  for (const api of [
+    'user32.dll!LoadImageA',
+    'user32.dll!LoadImageW',
+    'gdi32.dll!GetObjectW',
+    'comdlg32.dll!GetOpenFileNameW',
+  ])
     assert.ok(run.apiNames.includes(api), api);
   const resourceLibrary = run.loadedModules.find(
     (module) => module.name.toLowerCase() === 'bitmap-resources.dll',
@@ -177,15 +263,18 @@ try {
     compiledBlocks: run.compiledBlocks,
     x86TranslationMs: run.x86TranslationMs,
     observations,
+    pickerObservations,
     checks: [
       'Unchanged native SDK EXE calls both six-argument LoadImage interfaces for integer/named bitmap resources, icon and cursor resources',
       'Native Wine SearchPath A/W locates actual BMP and resource DLL inputs; buffers, file-part pointers, extensions, explicit lists and PATH are checked by the SDK client',
       'Native directory creation, traversal, current-directory changes and empty-directory deletion complete without host filesystem access',
+      'Relative LoadImage sees native Wine directory changes; the Open bitmap button and F7 cancel/import dialogs update native GetCurrentDirectory and load relative file names from the selected directory',
       'Seven authored bitmap resources and BMP files cover indexed/CORE/monochrome/RGB24/32 and RGB565; a real file pixel offset skips a deliberate metadata/pixel gap',
       'LR_CREATEDIBSECTION exposes private writable native pointers; bitmap pixels survive resource DLL unload',
       'Requested sizes, system palette mapping and transparent-index color replacement match native GetPixel assertions',
       'Missing/truncated files and invalid sizes fail; native F6 pointer writes repaint actual file-loaded pixels',
       'Chromium independently scans all 49152 displayed pixels in each of three stages and requires native cleanup/exit zero',
+      'A visibly different imported BMP passes 16384-pixel scans before native pointer changes and after their restoration; closing restores the original native directory',
     ],
     scope:
       'Native Wine file search and private-volume directory traversal/deletion, plus uncompressed bitmap resource/file loading and nearest-neighbor sizing. HALFTONE resampling, compressed/embedded-image BMPs, OEM bitmap assets, custom-sized/file icons and cursors, and full Windows compatibility remain unfinished.',
@@ -202,6 +291,17 @@ try {
         state: document.querySelector('#state')?.textContent,
         logs: document.querySelector('#logs')?.textContent,
         run: window.__lastRun,
+        picker: {
+          directory: document.querySelector('#file-picker-directory')?.value,
+          directories: [...(document.querySelector('#file-picker-directory')?.options ?? [])].map(
+            (option) => option.value,
+          ),
+          name: document.querySelector('#file-picker-name')?.value,
+          files: [...(document.querySelector('#file-picker-list')?.options ?? [])].map(
+            (option) => ({ path: option.value, selected: option.selected }),
+          ),
+          error: document.querySelector('#file-picker-error')?.textContent,
+        },
       })),
     );
   throw error;

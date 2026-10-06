@@ -5,11 +5,11 @@ Original WineBrowser contributors C programs and generated images, MIT.
 MinGW creates native Windows SDK EXE/DLL inputs. The browser translates their
 unchanged x86 code into Wasm during execution; there is no application-specific Wasm build.
 
-Executable SHA-256: `de8cc620f83df813b3d24a59693edc59d0002dbbed10afcf8c1402d1cbd303cc`
+Executable SHA-256: `289018a7eb014a401500ade2d21b583272436934478da82e186679f6c8df096d`
 
 Resource DLL SHA-256: `5984c4eff63442c2c6d9c2f63d8a26a04f3513c25797cd602035c35101d3bd12`
 
-Client source SHA-256: `ea3f6bf3d652a6de4aa194b2e877f173c50bbf155dd73aee5b1c459958951e8b`
+Client source SHA-256: `696f6a346408019fee33c7bb77fc6ceeb39f3defb5aa097ad3c6292f79b4d065`
 
 All image/resource data are authored fixtures. The source archive contains the
 client, DLL source, bitmap generator, resource scripts and required cursor/icon

@@ -163,7 +163,7 @@ test('profile UTF16 LE/BE and UTF8 BOM files keep their encoding when changed th
     assert.equal(r.wideString(out), 'Ω changed');
   }
 });
-test('profile filenames and system file APIs resolve one isolated Windows namespace, with sharing and parent failures', (t) => {
+test('profile filenames and system file APIs resolve one isolated Windows namespace, with sharing and parent failures', async (t) => {
   const { r, call, str } = setup(t),
     out = r.allocate(40);
   assert.equal(resolveGuestPath('C:\\Windows\\System32\\..\\app.ini'), 'windows/app.ini');
@@ -184,10 +184,13 @@ test('profile filenames and system file APIs resolve one isolated Windows namesp
     call('kernel32.dll!GetPrivateProfileStringA', str('App'), str('Name'), 0, out, 40, file).result,
     5,
   );
-  assert.equal(call('kernel32.dll!SetCurrentDirectoryA', str('C:\\Windows')).result, 1);
+  assert.equal((await call('kernel32.dll!SetCurrentDirectoryA', str('C:\\Windows'))).result, 1);
   assert.equal(call('kernel32.dll!GetCurrentDirectoryA', 40, out).result, 10);
   assert.equal(r.string(out), 'C:\\Windows');
-  assert.equal(call('kernel32.dll!SetCurrentDirectoryA', str('C:\\winebrowser\\')).result, 1);
+  assert.equal(
+    (await call('kernel32.dll!SetCurrentDirectoryA', str('C:\\winebrowser\\'))).result,
+    1,
+  );
   const h = call('kernel32.dll!CreateFileA', file, 0x80000000, 1, 0, 3, 0, 0).result;
   assert.equal(
     call('kernel32.dll!WritePrivateProfileStringA', str('App'), str('Name'), str('blocked'), file)

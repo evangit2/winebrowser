@@ -4,6 +4,7 @@ import { decodeAnsi, encodeAnsi } from './encoding.js';
 import { resolveGuestPath, packageDosPath } from './guest-paths.js';
 import { normalizePath } from './package.js';
 import { touchFile, fileMetadata } from './file-metadata.js';
+import { setProcessDirectory } from './process-directory.js';
 import {
   OFN,
   parentPath,
@@ -225,6 +226,38 @@ export async function chooseBrowserFile(r, a, wide, save) {
     if (capacity * (wide ? 2 : 1) >= 2) r.view.setUint16(buffer, Math.min(length, 65535), true);
     return error(r, 0x3003, 122);
   }
+  const previousTimes = new Map();
+  for (const file of imports) {
+    let path = file.path;
+    for (;;) {
+      if (!previousTimes.has(path)) previousTimes.set(path, r.fileTimes?.get(path));
+      if (!path) break;
+      path = parentPath(path);
+    }
+  }
+  for (const file of imports) {
+    r.files.set(file.path, file.bytes);
+    touchFile(r, file.path, { created: true });
+  }
+  const appliedTimes = new Map(
+    [...previousTimes.keys()].map((path) => [path, r.fileTimes?.get(path)]),
+  );
+  if (!(flags & OFN.NOCHANGEDIR)) {
+    const directoryError = await setProcessDirectory(r, parentPath(paths[0]));
+    if (directoryError) {
+      for (const file of imports)
+        if (r.files.get(file.path) === file.bytes) r.files.delete(file.path);
+      // Restore only our own timestamp writes; unrelated guest work may have
+      // run while Wine's directory setter was waiting on its process lock.
+      for (const [path, previous] of previousTimes)
+        if (r.fileTimes?.get(path) === appliedTimes.get(path)) {
+          if (previous) r.fileTimes.set(path, previous);
+          else r.fileTimes.delete(path);
+        }
+      return error(r, 0x3002, directoryError);
+    }
+  }
+  if (imports.length) r.fileDialogImportBatch = batch;
   // All output pointers were checked before requesting the picker; writes are
   // committed only after selection and capacity validation have succeeded.
   write(r, buffer, output, wide, capacity);
@@ -262,11 +295,5 @@ export async function chooseBrowserFile(r, a, wide, save) {
     if (units(value, wide).length <= customCapacity)
       write(r, customPointer, value, wide, customCapacity);
   }
-  for (const file of imports) {
-    r.files.set(file.path, file.bytes);
-    touchFile(r, file.path, { created: true });
-  }
-  if (imports.length) r.fileDialogImportBatch = batch;
-  if (!(flags & OFN.NOCHANGEDIR)) r.cwd = parentPath(paths[0]) ? parentPath(paths[0]) + '/' : '';
   return ok(1);
 }

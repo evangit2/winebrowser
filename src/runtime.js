@@ -1,4 +1,5 @@
 import { GuestHeap } from './heap.js';
+import { currentProcessDirectory } from './process-directory.js';
 import { PROCESS_LAYOUT, initializeProcessLayout } from './process-layout.js';
 import { VirtualMemory } from './virtual-memory.js';
 import { SectionViews } from './section-views.js';
@@ -243,6 +244,13 @@ export class Runtime {
 
   string(address) {
     return this.guestMemory.string(address);
+  }
+
+  get cwd() {
+    return currentProcessDirectory(this);
+  }
+  set cwd(value) {
+    this._cwd = value;
   }
 
   async api(entry) {

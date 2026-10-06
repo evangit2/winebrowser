@@ -49,7 +49,7 @@ archive(DEST / 'source.zip', [(name, (ROOT / name).read_bytes()) for name in sou
 path = PUBLIC / 'manifest.json'
 entry = {
     'name': 'load-images',
-    'description': 'Image loader GUI: original, themed and file-loaded bitmaps. Press F6 to change a pixel through the native bitmap pointer, then restore it. Close the window to finish.',
+    'description': 'Image loader GUI: original, themed and file-loaded bitmaps. Open bitmap or F7 previews an uploaded BMP. F6 changes and restores a pixel in RGB24 images. Close the window to finish.',
     'exe': 'load-images/load-images.exe', 'exeSha256': digest(DEST / 'load-images.exe'),
     'zip': 'load-images/load-images.zip', 'zipSha256': digest(DEST / 'load-images.zip'),
     'sourceZip': 'load-images/source.zip', 'sourceZipSha256': digest(DEST / 'source.zip'),

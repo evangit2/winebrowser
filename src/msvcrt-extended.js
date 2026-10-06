@@ -6,6 +6,7 @@
 // isalpha and friends answer from the table the real msvcrt.dll exports.
 import { packageDosPath, resolveGuestPath } from './guest-paths.js';
 import { environmentEntries } from './guest-environment.js';
+import { setProcessDirectory } from './process-directory.js';
 import { fileMetadata, touchFile } from './file-metadata.js';
 import { encodeAnsi } from './encoding.js';
 import { CTYPE_TABLE, WCTYPE_TABLE } from './msvcrt-ctype.js';
@@ -704,7 +705,7 @@ function getdcwdImpl(r, a, wide) {
   }
   return getcwdImpl(r, accessor([a(1), a(2)]), wide);
 }
-function chdirImpl(r, a, wide) {
+async function chdirImpl(r, a, wide) {
   let resolved;
   try {
     resolved = resolveGuestPath(wide ? r.wideString(a(0)) : r.string(a(0)), r.cwd, {
@@ -723,7 +724,11 @@ function chdirImpl(r, a, wide) {
     setErrno(r, ENOENT);
     return ok(0xffffffff, 1);
   }
-  r.cwd = prefix;
+  const error = await setProcessDirectory(r, resolved);
+  if (error) {
+    setErrno(r, [2, 3, 267].includes(error) ? ENOENT : EACCES);
+    return ok(0xffffffff, 1);
+  }
   return ok(0, 1);
 }
 function getdriveImpl(r) {
