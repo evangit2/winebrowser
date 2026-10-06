@@ -1,4 +1,10 @@
 import {
+  allocateDibStorage,
+  releaseDibStorage,
+  refreshDibPixels,
+  commitDibPixels,
+} from './gdi-section.js';
+import {
   defaultDibPalette,
   readDibLayout,
   readDibPixel,
@@ -18,6 +24,7 @@ import {
   drawLine,
   clippedBounds,
   visiblePixel,
+  markGdiDirty,
 } from './gdi-raster.js';
 import {
   DEFAULT_GDI_FONT,
@@ -156,6 +163,7 @@ function stateFor(runtime) {
       ]),
       dcs: new Map(),
       bitmaps: new Map(),
+      dibBitmaps: new Set(),
       windowSurfaces: new Map(),
       stockBrushCount: brushes.size,
       stockBitmapCount: 0,
@@ -214,6 +222,7 @@ function getDc(runtime, state, handle) {
   if (dc.kind === 'memory-dc') {
     const bitmap = state.bitmaps.get(dc.bitmap);
     if (!bitmap) return null;
+    refreshDibPixels(runtime, bitmap);
     dc.surface = bitmap;
     return dc;
   }
@@ -507,6 +516,24 @@ function createCompatibleBitmap(runtime, argument) {
   if (width > 4096 || height > 4096) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
   if (width * height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
     return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 3);
+  if (!monochrome && dc?.surface.dib) {
+    const original = dc.surface.dib.layout;
+    return allocateSectionBitmap(
+      runtime,
+      state,
+      {
+        ...original,
+        width,
+        height,
+        signedHeight: original.signedHeight < 0 ? -height : height,
+        stride: Math.ceil((width * original.depth) / 32) * 4,
+        palette: original.palette.map((color) => color.slice()),
+        paletteCache: new Map(),
+      },
+      dc.surface.dib.header.slice(),
+      3,
+    );
+  }
   const allocated = allocateHandle(runtime, state, 3);
   if (!allocated.result) return allocated;
   state.bitmaps.set(allocated.result, {
@@ -712,18 +739,33 @@ function getObject(runtime, argument, wide) {
   if (size < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
   const bitmap = state.bitmaps.get(handle);
   if (bitmap) {
-    // PE32 BITMAP is 24 bytes, including bmType and the two WORD fields.
+    // PE32 BITMAP is 24 bytes. A DIBSECTION adds its normalized 40-byte
+    // header, three masks, section handle and offset (84 bytes total).
     if (!out) return success(24, 3);
     if (size < 24) return success(0, 3);
-    runtime.check(out, 24, true);
-    runtime.data.fill(0, out, out + 24);
+    const count = bitmap.dib && size >= 84 ? 84 : 24;
+    runtime.check(out, count, true);
+    runtime.data.fill(0, out, out + count);
     runtime.write32(out + 4, bitmap.width);
     runtime.write32(out + 8, bitmap.height);
-    const depth = bitmap.monochrome ? 1 : 32;
-    runtime.write32(out + 12, Math.ceil((bitmap.width * depth) / 16) * 2);
+    const depth = bitmap.dib?.layout.depth ?? (bitmap.monochrome ? 1 : 32);
+    runtime.write32(
+      out + 12,
+      bitmap.dib?.layout.stride ?? Math.ceil((bitmap.width * depth) / 16) * 2,
+    );
     runtime.view.setUint16(out + 16, 1, true);
     runtime.view.setUint16(out + 18, depth, true);
-    return success(24, 3);
+    if (bitmap.dib) {
+      runtime.write32(out + 20, bitmap.dib.bits);
+      if (count === 84) {
+        runtime.data.set(bitmap.dib.header, out + 24);
+        runtime.write32(out + 28, bitmap.width);
+        runtime.write32(out + 32, bitmap.height);
+        if (bitmap.dib.layout.compression === 3)
+          bitmap.dib.layout.masks.forEach((mask, i) => runtime.write32(out + 64 + i * 4, mask));
+      }
+    }
+    return success(count, 3);
   }
   const font = getFont(state, handle);
   const pen = getPen(state, handle);
@@ -962,6 +1004,79 @@ function createFontIndirect(runtime, argument, wide) {
 // runtime only models the 1/4/8/24/32-bit colour layouts it can rasterize.
 // CreateDIBitmap converts the caller's BITMAPINFO and DIB rows into a display
 // bitmap. Unlike CreateBitmap, indexed DIB colours come from its actual palette.
+function allocateSectionBitmap(r, state, layout, header, argc) {
+  if (layout.width * layout.height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
+    return failure(r, ERROR_NOT_ENOUGH_MEMORY, 0, argc);
+  const allocated = allocateHandle(r, state, argc);
+  if (!allocated.result) return allocated;
+  const dib = allocateDibStorage(r, layout);
+  if (!dib) return failure(r, ERROR_NOT_ENOUGH_MEMORY, 0, argc);
+  dib.header = header;
+  const bitmap = {
+    kind: 'bitmap',
+    stock: false,
+    width: layout.width,
+    height: layout.height,
+    monochrome: false,
+    pixels: opaquePixels(layout.width, layout.height),
+    dirty: false,
+    selectedBy: null,
+    dib,
+  };
+  state.bitmaps.set(allocated.result, bitmap);
+  state.dibBitmaps.add(bitmap);
+  return allocated;
+}
+function createDIBSection(r, a) {
+  const state = stateFor(r),
+    usage = a(2) >>> 0,
+    output = a(3) >>> 0;
+  if (output) {
+    r.check(output, 4, true);
+    r.write32(output, 0);
+  }
+  if (a(4)) return failure(r, ERROR_CALL_NOT_IMPLEMENTED, 0, 6);
+  const dc = a(0) ? getDc(r, state, a(0)) : null;
+  if ((a(0) && !dc) || (usage === 1 && !dc)) return badDc(r, 6);
+  const layout = readDibLayout(r, a(1), usage, { paletteEntries: dc && dibPalette(state, dc) });
+  if (!layout) return failure(r, ERROR_INVALID_PARAMETER, 0, 6);
+  const header = new Uint8Array(40),
+    view = new DataView(header.buffer);
+  if (!layout.core) header.set(r.data.subarray(a(1), a(1) + 40));
+  view.setUint32(0, 40, true);
+  view.setInt32(4, layout.width, true);
+  view.setInt32(8, layout.height, true);
+  view.setUint16(12, 1, true);
+  view.setUint16(14, layout.depth, true);
+  view.setUint32(16, layout.compression, true);
+  view.setUint32(32, layout.palette.length, true);
+  const result = allocateSectionBitmap(r, state, layout, header, 6);
+  if (result.result && output) r.write32(output, state.bitmaps.get(result.result).dib.bits);
+  return result;
+}
+function dibColorTable(r, a, set) {
+  const dc = getDc(r, stateFor(r), a(0));
+  if (!dc) return badDc(r, 4);
+  const dib = dc.surface.dib;
+  if (!dib || dib.layout.depth > 8) return success(0, 4);
+  const start = a(1) >>> 0,
+    count = Math.min(a(2) >>> 0, dib.layout.palette.length - start);
+  if (count <= 0) return success(0, 4);
+  const pointer = a(3) >>> 0;
+  if (!pointer) return failure(r, ERROR_INVALID_PARAMETER, 0, 4);
+  r.check(pointer, count * 4, !set);
+  for (let i = 0; i < count; i++) {
+    const at = pointer + i * 4;
+    if (set) dib.layout.palette[start + i] = [r.data[at + 2], r.data[at + 1], r.data[at]];
+    else r.data.set([...dib.layout.palette[start + i].slice().reverse(), 0], at);
+  }
+  if (set) {
+    dib.layout.paletteCache.clear();
+    for (let row = 0; row < dib.layout.height; row++) dib.dirtyRows.add(row);
+  }
+  return success(count, 4);
+}
+
 function createDIBitmap(r, a) {
   const state = stateFor(r),
     header = a(1),
@@ -1336,6 +1451,7 @@ function setDIBits(r, a) {
   if (!dc) return badDc(r, 7);
   const bitmap = state.bitmaps.get(a(1) >>> 0);
   if (!bitmap) return failure(r, ERROR_INVALID_HANDLE, 0, 7);
+  refreshDibPixels(r, bitmap);
   const start = a(2) >>> 0,
     lines = a(3) >>> 0,
     bits = a(4),
@@ -1370,7 +1486,7 @@ function setDIBits(r, a) {
     changes.push([y, pixels]);
   }
   for (const [y, pixels] of changes) bitmap.pixels.set(pixels, y * bitmap.width * 4);
-  bitmap.dirty = changes.length > 0 || bitmap.dirty;
+  for (const [y] of changes) markGdiDirty(bitmap, 0, y, width, y + 1);
   return success(count, 7);
 }
 function getDIBits(r, a) {
@@ -1379,6 +1495,7 @@ function getDIBits(r, a) {
   if (!dc) return badDc(r, 7);
   const bitmap = state.bitmaps.get(a(1) >>> 0);
   if (!bitmap) return failure(r, ERROR_INVALID_HANDLE, 0, 7);
+  refreshDibPixels(r, bitmap);
   const start = a(2) >>> 0,
     lines = a(3) >>> 0,
     bits = a(4),
@@ -1391,7 +1508,7 @@ function getDIBits(r, a) {
   if (![12, 40, 52, 56, 108, 124].includes(size)) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
   r.check(info, size, true);
   if (!r.view.getUint16(info + (core ? 10 : 14), true) && (!bits || !lines)) {
-    const depth = bitmap.monochrome ? 1 : 32;
+    const depth = bitmap.dib?.layout.depth ?? (bitmap.monochrome ? 1 : 32);
     if (core) {
       r.view.setUint16(info + 4, bitmap.width, true);
       r.view.setUint16(info + 6, bitmap.height, true);
@@ -1402,7 +1519,7 @@ function getDIBits(r, a) {
       r.write32(info + 8, bitmap.height);
       r.view.setUint16(info + 12, 1, true);
       r.view.setUint16(info + 14, depth, true);
-      r.write32(info + 16, 0);
+      r.write32(info + 16, bitmap.dib?.layout.compression ?? 0);
       r.write32(info + 20, Math.ceil((bitmap.width * depth) / 32) * 4 * bitmap.height);
       for (const offset of [24, 28, 32, 36]) r.write32(info + offset, 0);
     }
@@ -1413,6 +1530,10 @@ function getDIBits(r, a) {
     paletteEntries: dibPalette(state, dc),
   });
   if (!layout) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  if (bitmap.dib && layout.depth === bitmap.dib.layout.depth) {
+    if (layout.depth <= 8 && usage === 0) layout.palette = bitmap.dib.layout.palette;
+    if (layout.compression === 3) layout.masks = bitmap.dib.layout.masks;
+  }
   if (!bits || !lines || start >= layout.height) {
     writeDibColorTable(r, layout, usage);
     return success(1, 7);
@@ -1683,7 +1804,7 @@ function drawIconEx(runtime, argument) {
       surface.pixels[offset + 3] = 255;
     }
   }
-  surface.dirty = true;
+  markGdiDirty(surface, x, y, x + width, y + height);
   return success(1, 9);
 }
 
@@ -1886,6 +2007,10 @@ function deleteObject(runtime, argument) {
   if (!bitmap) return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
   if (bitmap.stock || bitmap.selectedBy || savedSelection(state, handle, 'bitmap'))
     return bitmap.stock ? success(1, 1) : failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+  if (bitmap.dib) {
+    releaseDibStorage(runtime, bitmap.dib);
+    state.dibBitmaps.delete(bitmap);
+  }
   state.bitmaps.delete(handle);
   return success(1, 1);
 }
@@ -2053,7 +2178,7 @@ function stretchBlt(r, a) {
       dst.surface.pixels.set(rgb, q);
       dst.surface.pixels[q + 3] = 255;
     }
-  dst.surface.dirty = true;
+  markGdiDirty(dst.surface, left, top, right, bottom);
   return success(1, 11);
 }
 
@@ -2145,7 +2270,7 @@ function bitBlt(runtime, argument) {
       destinationPixels[destinationOffset + 3] = 255;
     }
   }
-  if (changed) destination.surface.dirty = true;
+  if (changed) markGdiDirty(destination.surface, left, top, right, bottom);
   return success(1, 9);
 }
 
@@ -2169,7 +2294,7 @@ function setPixel(runtime, argument) {
     pixels[offset + 2] !== rgb[2] ||
     pixels[offset + 3] !== 255
   )
-    surface.dirty = true;
+    markGdiDirty(surface, x, y, x + 1, y + 1);
   pixels[offset] = rgb[0];
   pixels[offset + 1] = rgb[1];
   pixels[offset + 2] = rgb[2];
@@ -2509,6 +2634,7 @@ function drawText(runtime, argument, wide, extended) {
 /** Copy bitmap pixels before a common control releases its source object. */
 export function describeGdiBitmap(runtime, handle) {
   const bitmap = states.get(runtime)?.bitmaps.get(handle >>> 0);
+  if (bitmap) refreshDibPixels(runtime, bitmap);
   return bitmap
     ? { width: bitmap.width, height: bitmap.height, pixels: new Uint8ClampedArray(bitmap.pixels) }
     : null;
@@ -2668,6 +2794,10 @@ export const gdiApis = {
   'gdi32.dll!GetCharWidthFloatW': (runtime, argument) => charWidths(runtime, argument, true, true),
   'gdi32.dll!GetDIBits': getDIBits,
   'gdi32.dll!SetDIBits': setDIBits,
+  'gdi32.dll!CreateDIBSection': createDIBSection,
+  'gdi32.dll!GetDIBColorTable': (r, a) => dibColorTable(r, a, false),
+  'gdi32.dll!SetDIBColorTable': (r, a) => dibColorTable(r, a, true),
+  'gdi32.dll!GdiFlush': () => success(1, 0),
   'gdi32.dll!CreateDIBitmap': createDIBitmap,
   'gdi32.dll!EnumFontFamiliesExA': (r, a) => enumFontFamilies(r, a, false),
   'gdi32.dll!EnumFontFamiliesExW': (r, a) => enumFontFamilies(r, a, true),
@@ -2761,6 +2891,24 @@ export const gdiApis = {
   'gdi32.dll!SetPixel': setPixel,
   'gdi32.dll!GetPixel': getPixel,
 };
+
+// GDI raster calls are synchronous; finish shared-storage writes at each API
+// boundary, including callbacks nested inside asynchronous font enumeration.
+for (const [name, handler] of Object.entries(gdiApis)) {
+  gdiApis[name] = (r, a) => {
+    const finish = (response) => {
+      const state = states.get(r);
+      if (state) for (const bitmap of state.dibBitmaps) commitDibPixels(r, bitmap);
+      if (name === 'gdi32.dll!SetPixel' && response.result !== CLR_INVALID) {
+        const dc = state && getDc(r, state, a(0));
+        if (dc?.surface.dib) response.result = getPixel(r, (i) => a(i)).result;
+      }
+      return response;
+    };
+    const result = handler(r, a);
+    return result?.then ? result.then(finish) : finish(result);
+  };
+}
 
 /** Emit copied RGBA frames for the desktop and dirty guest client areas. */
 export function flushGdi(runtime) {

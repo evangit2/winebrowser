@@ -307,7 +307,9 @@
     "build:gdi-screen": "sh scripts/build-gdi-screen-fixture.sh",
     "test:gdi-screen": "node scripts/test-gdi-screen-browser.mjs",
     "build:gdi-dib": "sh scripts/build-gdi-dib-fixture.sh && python3 scripts/package-gdi-dib.py",
-    "test:gdi-dib": "node scripts/test-gdi-dib-browser.mjs"
+    "test:gdi-dib": "node scripts/test-gdi-dib-browser.mjs",
+    "build:gdi-section": "sh scripts/build-gdi-section-fixture.sh && python3 scripts/package-gdi-section.py",
+    "test:gdi-section": "node scripts/test-gdi-section-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

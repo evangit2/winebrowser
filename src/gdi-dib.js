@@ -160,8 +160,15 @@ export function writeDibPixel(r, layout, row, x, rgb) {
       if (paletteCache.size < 4096) paletteCache.set(key, index);
     }
     if (depth === 8) r.data[row + x] = index;
-    else if (depth === 4) r.data[row + (x >> 1)] |= index << (x & 1 ? 0 : 4);
-    else r.data[row + (x >> 3)] |= index << (7 - (x & 7));
+    else if (depth === 4) {
+      const at = row + (x >> 1),
+        shift = x & 1 ? 0 : 4;
+      r.data[at] = (r.data[at] & ~(15 << shift)) | (index << shift);
+    } else {
+      const at = row + (x >> 3),
+        shift = 7 - (x & 7);
+      r.data[at] = (r.data[at] & ~(1 << shift)) | (index << shift);
+    }
   } else if (depth === 24) r.data.set([rgb[2], rgb[1], rgb[0]], row + x * 3);
   else {
     let value = 0;

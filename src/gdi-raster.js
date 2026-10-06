@@ -16,6 +16,22 @@ export function rgbColorRef(rgb) {
   return ((rgb[2] << 16) | (rgb[1] << 8) | rgb[0]) >>> 0;
 }
 
+// Display surfaces only need a dirty flag. A shared DIB also retains a damage
+// rectangle, so one changed pixel doesn't cause a full guest-buffer rewrite.
+export function markGdiDirty(surface, left, top, right, bottom) {
+  surface.dirty = true;
+  if (!surface.dib) return;
+  const rect = surface.dib.damage;
+  surface.dib.damage = rect
+    ? [
+        Math.min(rect[0], left),
+        Math.min(rect[1], top),
+        Math.max(rect[2], right),
+        Math.max(rect[3], bottom),
+      ]
+    : [left, top, right, bottom];
+}
+
 function hatchPixel(hatch, x, y) {
   const ix = ((x % 8) + 8) % 8;
   const iy = ((y % 8) + 8) % 8;
@@ -100,7 +116,7 @@ export function paintRect(surface, left, top, right, bottom, brush, operation = 
       pixels[offset + 3] = 255;
     }
   }
-  if (changed) surface.dirty = true;
+  if (changed) markGdiDirty(surface, x1, y1, x2, y2);
   return changed;
 }
 
@@ -174,6 +190,13 @@ export function drawLine(surface, x0, y0, x1, y1, pen, dc = null) {
       y += sy;
     }
   }
-  if (changed) surface.dirty = true;
+  if (changed)
+    markGdiDirty(
+      surface,
+      Math.min(clipped[0], clipped[2]),
+      Math.min(clipped[1], clipped[3]),
+      Math.max(clipped[0], clipped[2]) + 1,
+      Math.max(clipped[1], clipped[3]) + 1,
+    );
   return changed;
 }

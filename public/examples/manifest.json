@@ -227,6 +227,17 @@
       "sourceZip": "gdi-dib/source.zip",
       "sourceZipSha256": "0fc97515d4091e5a4198977c05652fa5d6f8b8074d651afdf3834587d022b553",
       "provenance": "Original WineBrowser contributors C program, MIT; reproducible source and MinGW build included."
+    },
+    {
+      "name": "gdi-section",
+      "description": "Native EXE + DLL shared bitmap GUI. Press F6 for DLL pixel writes, GDI painting, CRT clearing and restoration. Close the window to finish.",
+      "exe": "gdi-section/gdi-section.exe",
+      "exeSha256": "3295a313a521e700b0c0892f7d7818fa14bc2714a65c436d1ac5f1e9570ec75c",
+      "zip": "gdi-section/gdi-section.zip",
+      "zipSha256": "5b5e36fed420fe6ce8e86e5fa02e6e60ad79d9eece29a1f619571d2c9a3ea8ab",
+      "sourceZip": "gdi-section/source.zip",
+      "sourceZipSha256": "4a308ac9dc0c725bf90af0d5d45859c59463fdd2c196bc695fb5dff106f59e04",
+      "provenance": "Original WineBrowser contributors C program, MIT; reproducible source and MinGW build included."
     }
   ]
 }

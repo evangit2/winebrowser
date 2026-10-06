@@ -1,0 +1,7 @@
+Authored MIT native PE32 EXE and DLL. Rebuild with `npm run build:gdi-section`; run Chromium acceptance with `npm run test:gdi-section`.
+
+The unchanged EXE loads `bitmap-producer.dll` with LoadLibrary/GetProcAddress. The producer fills CreateDIBSection storage through native scalar stores and a real imported CRT memset. Windows SDK checks cover 1/4/8/16/24/32-bit BI_RGB, both scan orders, DIBSECTION descriptors, VirtualQuery, SetPixel writeback, compatible-bitmap format inheritance, color tables and storage release. The distributed fixture uses API-set imports resolving to the native Wine UCRT library, which also executes as guest x86 translated in the browser.
+
+The GUI displays an 8×6 shared bitmap enlarged to 256×192. Press F6 to cycle through DLL pixel writes, a white row painted by GDI, a black row cleared by CRT, and restoration. Native checks compare pointer bytes and GetPixel on both the source and the bottom-up BitBlt destination. Chromium independently scans all 49,152 displayed pixels at each of five stages, then closes the window and requires exit zero. The report records input hashes, native DLL loading, browser version, compiled blocks and browser-local translation time. Host MinGW creates the native fixture inputs; the browser compiles their unchanged x86 code to Wasm during execution.
+
+Private DIB memory is covered. File-mapping-backed sections, compressed DIBs, full GDI conformance and arbitrary Windows/DLL compatibility remain unfinished. No third-party or proprietary application binaries are included.

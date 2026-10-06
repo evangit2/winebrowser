@@ -228,7 +228,7 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
         surface.pixels[offset + 2] = bg[2];
         surface.pixels[offset + 3] = 255;
       }
-    surface.dirty = true;
+    markGdiDirty(surface, left, top, right, bottom);
   }
   const fg = surfaceRgb(surface, colorRefRgb(dc.textColor));
   let changed = false;
@@ -255,7 +255,7 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
       surface.pixels[offset + 2] = blue;
       surface.pixels[offset + 3] = Math.round(outAlpha);
     }
-  if (changed) surface.dirty = true;
+  if (changed) markGdiDirty(surface, left, top, right, bottom);
   for (const decorationY of [
     font.underline ? Math.min(bottom - 1, y + font.height - 2) : -1,
     font.strikeout ? y + Math.floor(font.height / 2) : -1,
@@ -269,11 +269,17 @@ export function paintGdiText(surface, dc, x, y, mask, font) {
         surface.pixels[offset + 2] = fg[2];
         surface.pixels[offset + 3] = 255;
       }
-      surface.dirty = true;
+      markGdiDirty(surface, left, top, right, bottom);
     }
   }
 }
-import { colorRefRgb, surfaceRgb, clippedBounds, visiblePixel } from './gdi-raster.js';
+import {
+  colorRefRgb,
+  surfaceRgb,
+  clippedBounds,
+  visiblePixel,
+  markGdiDirty,
+} from './gdi-raster.js';
 
 export const DEFAULT_GDI_FONT = Object.freeze({
   kind: 'font',

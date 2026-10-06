@@ -298,4 +298,6 @@ dialog, animated menu and playable first level, with movement, pause/resume and
 clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.exe`;
 [reproduction and current performance](docs/directdraw.md#airxonix-v136-probe).
 
+**Shared GUI bitmaps:** CreateDIBSection gives native EXEs, DLLs and GDI coherent packed/BGR pixel memory, with color tables, descriptors and bitmap format inheritance. The public **Load gdi-section** GUI cycles DLL writes, GDI paint and CRT clearing (`npm run test:gdi-section`). File-mapping-backed DIB sections remain unfinished.
+
 **GUI bitmap transfers:** [GetDIBits/SetDIBits](docs/gdi-display.md) support uncompressed RGB, palettes, bitfields and partial scanline updates. The authored native GUI fixture checks six pixel depths and independently verified keyboard-driven bitmap repaints in Chromium (`npm run test:gdi-dib`). Compressed DIBs and full GDI conformance remain unfinished.

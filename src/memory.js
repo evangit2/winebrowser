@@ -8,6 +8,7 @@ export class GuestMemory {
     this.view = new DataView(memory.buffer);
     this.data = new Uint8Array(memory.buffer);
     this.onCodeWrite = onCodeWrite;
+    this.writeObservers = [];
     // Index-validated region cache for the locality fast path.
     this.cachedRegion = undefined;
     this.cachedRegions = new Array(64);
@@ -99,6 +100,7 @@ export class GuestMemory {
     ) {
       this.cachedRegion = cached;
       if (write && cached.region.exec) this.onCodeWrite(address, size);
+      if (write && this.writeObservers.length) this.noteDataWrite(address, size);
       return address;
     }
     let cursor = address;
@@ -149,7 +151,47 @@ export class GuestMemory {
     }
     if (write && size && this.onCodeWrite && regions[coverIndex]?.exec)
       this.onCodeWrite(address, size);
+    if (write && this.writeObservers.length) this.noteDataWrite(address, size);
     return address;
+  }
+  // Notifications precede a validated write. Consumers defer reading its
+  // bytes until the next API boundary, so both scalar stores and checked bulk
+  // copies can cheaply invalidate derived data such as a shared DIB image.
+  observeWrites(start, size, callback) {
+    if (
+      !Number.isSafeInteger(start) ||
+      !Number.isSafeInteger(size) ||
+      start < 0 ||
+      size <= 0 ||
+      start + size > this.data.length ||
+      typeof callback !== 'function'
+    )
+      throw Error('Invalid guest write observer');
+    const observer = { start, end: start + size, callback };
+    this.writeObservers.push(observer);
+    this.writeObservers.sort((a, b) => a.start - b.start);
+    this.updateObserverBounds();
+    return () => {
+      const index = this.writeObservers.indexOf(observer);
+      if (index >= 0) this.writeObservers.splice(index, 1);
+      this.updateObserverBounds();
+    };
+  }
+  updateObserverBounds() {
+    this.observerStart = this.writeObservers[0]?.start ?? Infinity;
+    this.observerEnd = this.writeObservers.reduce(
+      (end, observer) => Math.max(end, observer.end),
+      0,
+    );
+  }
+  noteDataWrite(address, size) {
+    if (!size || address >= this.observerEnd || address + size <= this.observerStart) return;
+    const end = address + size;
+    for (const observer of this.writeObservers) {
+      if (observer.start >= end) break;
+      if (observer.end > address)
+        observer.callback(Math.max(address, observer.start), Math.min(end, observer.end));
+    }
   }
   read(address, width = 4) {
     address >>>= 0;
@@ -192,6 +234,7 @@ export class GuestMemory {
   noteCodeWrite(address, size) {
     address >>>= 0;
     size >>>= 0;
+    if (this.writeObservers.length) this.noteDataWrite(address, size);
     if (!size || !this.onCodeWrite) return;
     const end = address + size;
     for (const region of this.regions) {

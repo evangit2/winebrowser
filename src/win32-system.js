@@ -1,3 +1,4 @@
+import { queryVirtualMemory } from './memory-query.js';
 import { virtualNames, matchWildcard } from './guest-directory.js';
 // Process, resource, TLS and filesystem-enumeration services that ordinary
 // Win32 applications import. Everything answers from the runtime's own model:
@@ -1053,27 +1054,9 @@ function readConsole(r, a) {
 }
 
 function virtualQuery(r, a) {
-  const address = a(0) >>> 0,
-    out = a(1),
-    size = a(2) >>> 0;
-  if (!out || !size) return fail(r, 87, 3);
-  const range = r.virtualMemory.rangeFor(address);
-  if (!range) return ok(0, 3);
-  const start = range.base,
-    end = range.end;
-  r.check(out, Math.min(size, 28), true);
-  r.data.fill(0, out, out + Math.min(size, 28));
-  const committed = range.committed.some((run) => address >= run[0] && address < run[1]);
-  const protection = committed ? 0x04 : 0x01; // PAGE_READWRITE / PAGE_NOACCESS.
-  const base = committed
-    ? range.committed.find((run) => address >= run[0] && address < run[1])[0]
-    : start;
-  r.write32(out, base);
-  r.write32(out + 4, start);
-  r.write32(out + 8, protection);
-  r.write32(out + 12, (end - start) >>> 0);
-  r.write32(out + 16, committed ? 0x1000 : 0x2000);
-  r.write32(out + 20, protection);
+  if (a(2) >>> 0 < 28) return fail(r, 87, 3);
+  const status = queryVirtualMemory(r, (i) => [0xffffffff, a(0), 0, a(1), a(2), 0][i]);
+  if (status) return fail(r, status === 0xc0000005 ? 998 : 87, 3);
   return ok(28, 3);
 }
 function virtualProtect(r, a) {
