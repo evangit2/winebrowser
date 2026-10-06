@@ -44,6 +44,67 @@ function fileAttributes(r, path) {
   return attrs;
 }
 
+test('Wine current-directory traversal opens real directories without granting data access', () => {
+  const { r } = fixture();
+  r.virtualDirectories.add('created/');
+  const out = r.allocate(4),
+    status = io(r),
+    buffer = r.allocate(8);
+  const attrs = fileAttributes(r, '\\??\\C:\\winebrowser\\created');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100020, attrs, status, 7, 0x21]), 0);
+  const handle = r.read32(out);
+  assert.equal(r.handles.get(handle).path, 'created');
+  assert.equal(call(r, 'NtReadFile', [handle, 0, 0, 0, status, buffer, 1, 0, 0]), 0xc00000ba);
+  assert.equal(call(r, 'NtQueryVolumeInformationFile', [handle, status, buffer, 8, 4]), 0);
+  assert.equal(call(r, 'NtClose', [handle]), 0);
+  const file = fileAttributes(r, '\\??\\C:\\winebrowser\\data.bin');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100020, file, status, 7, 0x21]), 0xc0000103);
+});
+
+test('directory disposition deletes only empty directories after the final shared handle closes', () => {
+  const { r } = fixture();
+  r.virtualDirectories.add('empty/');
+  r.virtualDirectories.add('nonempty/');
+  r.virtualDirectories.add('nonempty/child/');
+  const out = r.allocate(4),
+    status = io(r),
+    flag = r.allocate(1);
+  r.data[flag] = 1;
+  const attrs = fileAttributes(r, '\\??\\C:\\winebrowser\\empty');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100020, attrs, status, 3, 0x21]), 0);
+  const blocked = r.read32(out);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x110080, attrs, status, 7, 0x21]), 0xc0000043);
+  assert.equal(call(r, 'NtClose', [blocked]), 0);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x110080, attrs, status, 7, 0x21]), 0);
+  const deleting = r.read32(out);
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100020, attrs, status, 7, 0x21]), 0);
+  const retained = r.read32(out);
+  assert.equal(call(r, 'NtSetInformationFile', [retained, status, flag, 1, 13]), 0xc0000022);
+  assert.equal(call(r, 'NtSetInformationFile', [deleting, status, flag, 1, 13]), 0);
+  assert.ok(r.virtualDirectories.has('empty/'));
+  assert.equal(call(r, 'NtOpenFile', [out, 0x100020, attrs, status, 7, 0x21]), 0xc0000056);
+  const child = fileAttributes(r, '\\??\\C:\\winebrowser\\empty\\new.bin');
+  assert.equal(
+    call(r, 'NtCreateFile', [out, 0xc0100080, child, status, 0, 0x80, 7, 2, 0x60, 0, 0]),
+    0xc0000056,
+  );
+  assert.equal(call(r, 'NtClose', [deleting]), 0);
+  assert.ok(r.virtualDirectories.has('empty/'));
+  assert.equal(call(r, 'NtClose', [retained]), 0);
+  assert.equal(r.virtualDirectories.has('empty/'), false);
+  assert.equal(r.pendingFileDeletes.has('empty'), false);
+  const nonempty = fileAttributes(r, '\\??\\C:\\winebrowser\\nonempty');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x110080, nonempty, status, 7, 0x21]), 0);
+  const handle = r.read32(out);
+  assert.equal(call(r, 'NtSetInformationFile', [handle, status, flag, 1, 13]), 0xc0000101);
+  assert.equal(r.pendingFileDeletes.has('nonempty'), false);
+  assert.equal(call(r, 'NtClose', [handle]), 0);
+  const root = fileAttributes(r, '\\??\\C:\\winebrowser\\');
+  assert.equal(call(r, 'NtOpenFile', [out, 0x110080, root, status, 7, 0x21]), 0);
+  assert.equal(call(r, 'NtSetInformationFile', [r.read32(out), status, flag, 1, 13]), 0xc0000022);
+  assert.equal(call(r, 'NtClose', [r.read32(out)]), 0);
+});
+
 test('NT create/open, seek, metadata and truncate operate on the shared package files', () => {
   const { r } = fixture();
   const status = io(r),

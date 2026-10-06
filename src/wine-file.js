@@ -80,7 +80,7 @@ function create(runtime, argument) {
     argument(10) ||
     options & ~0x205865 ||
     (!(options & 0x20) && !!(access & 0xc0000007)) ||
-    access & ~0xc013019f ||
+    access & ~0xc01301bf ||
     disposition === 0
   )
     return complete(NOT_SUPPORTED);
@@ -90,6 +90,16 @@ function create(runtime, argument) {
   const named = objectPath(runtime, argument(2), true);
   if (named.status) return complete(named.status);
   const metadata = fileMetadata(runtime, named.path);
+  if (runtime.pendingFileDeletes?.has(named.path)) return complete(0xc0000056);
+  let ancestor = named.path;
+  while (ancestor.includes('/')) {
+    ancestor = ancestor.slice(0, ancestor.lastIndexOf('/'));
+    if (runtime.pendingFileDeletes?.has(ancestor)) return complete(0xc0000056);
+  }
+  // FILE_TRAVERSE (0x20) is the access requested by Wine's current-directory
+  // handle. Its same-valued FILE_EXECUTE bit on ordinary files remains outside
+  // the supported file-open surface.
+  if (access & 0x20 && !metadata.directory && !(options & 1)) return complete(NOT_SUPPORTED);
   if (metadata.directory && options & 0x40) return complete(0xc00000ba);
   if (options & 1 || metadata.directory) {
     if (runtime.handles.size >= 4096) return complete(0xc000009a);
@@ -98,6 +108,12 @@ function create(runtime, argument) {
     const info = fileMetadata(runtime, named.path);
     if (!info.status && !info.directory) return complete(0xc0000103); // NOT_A_DIRECTORY
     if (!info.status && disposition === 2) return complete(0xc0000035);
+    const sharingAccess =
+      ((access & 0x80000001 ? 0x80000000 : 0) |
+        (access & 0x40000006 ? 0x40000000 : 0) |
+        (access & 0x10000)) >>>
+      0;
+    if (fileShareConflict(runtime, named.path, sharingAccess, share)) return complete(0xc0000043);
     if (info.status) {
       if (disposition === 1) return complete(info.status);
       const parent = named.path.includes('/')
@@ -115,7 +131,7 @@ function create(runtime, argument) {
       kind: 'file-directory',
       path: named.path,
       ntAccess: access,
-      access,
+      access: (access | sharingAccess) >>> 0,
       share,
       options,
       inherit: !!(runtime.read32(argument(2) + 12) & 2),
@@ -183,7 +199,8 @@ function information(runtime, argument, set) {
   const opened = regular(runtime, argument(0)) ?? directoryHandle(runtime, argument(0));
   if (!opened) return complete(INVALID_HANDLE);
   const kind = argument(4) >>> 0;
-  if (opened.kind === 'file-directory' && set && kind !== 4) return complete(NOT_SUPPORTED);
+  if (opened.kind === 'file-directory' && set && ![4, 13].includes(kind))
+    return complete(NOT_SUPPORTED);
   if (set && kind === 10) return complete(renameFile(runtime, opened, argument(2), argument(3)));
   if (set && kind === 4) {
     if (argument(3) < 40) return complete(0xc0000004);
@@ -208,6 +225,15 @@ function information(runtime, argument, set) {
     if (!checked(runtime, argument(2), 1)) return complete(ACCESS_VIOLATION);
     if (!(opened.access & 0x10000)) return complete(ACCESS_DENIED);
     const pending = !!runtime.data[argument(2)];
+    if (pending && opened.kind === 'file-directory') {
+      if (!opened.path) return complete(ACCESS_DENIED);
+      const prefix = opened.path + '/';
+      if (
+        [...runtime.files.keys()].some((path) => path.startsWith(prefix)) ||
+        [...runtime.virtualDirectories].some((path) => path !== prefix && path.startsWith(prefix))
+      )
+        return complete(0xc0000101); // STATUS_DIRECTORY_NOT_EMPTY
+    }
     if (
       pending &&
       (fileShareConflict(runtime, opened.path, 0x10000, 7) ||
@@ -558,17 +584,13 @@ function queryVolume(runtime, argument) {
 
 export function closeFileHandle(runtime, handle) {
   const value = handle >>> 0;
-  if (runtime.handles.get(value)?.kind === 'file-directory') {
-    runtime.handles.delete(value);
-    return SUCCESS;
-  }
   if (value === 1 || value === 2) {
     const closed = (runtime.closedStandardOutputs ??= new Set());
     if (closed.has(value)) return INVALID_HANDLE;
     closed.add(value);
     return SUCCESS;
   }
-  if (!regular(runtime, value)) return null;
+  if (!regular(runtime, value) && !directoryHandle(runtime, value)) return null;
   releaseHandleLocks(runtime, value);
   const opened = runtime.handles.get(value);
   runtime.handles.delete(value);
@@ -576,7 +598,8 @@ export function closeFileHandle(runtime, handle) {
     runtime.pendingFileDeletes?.has(opened.path) &&
     ![...runtime.handles.values()].some((handle) => handle.path === opened.path)
   ) {
-    runtime.files.delete(opened.path);
+    if (opened.kind === 'file-directory') runtime.virtualDirectories.delete(opened.path + '/');
+    else runtime.files.delete(opened.path);
     runtime.fileTimes?.delete(opened.path);
     runtime.pendingFileDeletes.delete(opened.path);
     runtime.dirty.add(opened.path);

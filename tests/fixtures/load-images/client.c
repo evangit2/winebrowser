@@ -1,6 +1,7 @@
 /* Authored MIT Windows SDK acceptance for ordinary LoadImage A/W clients. */
 #include <windows.h>
 #define CHECK(x) do { if(!(x)) ExitProcess(1000+__LINE__); } while(0)
+#include "search-path.h"
 static HBITMAP shown[3]; static HDC screen; static HWND root; static unsigned stage;
 static const COLORREF colors[4]={0,RGB(128,128,128),RGB(192,192,192),RGB(255,255,255)};
 static HBITMAP load(HINSTANCE module, const WCHAR *name, unsigned width,unsigned height,unsigned flags) {
@@ -18,6 +19,7 @@ static void pixels(HBITMAP bitmap,unsigned width,unsigned height,BOOL mapped) {
     CHECK(SelectObject(dc,old)==bitmap&&DeleteDC(dc));
 }
 static void verify(void) {
+    search_paths();
     HINSTANCE module=GetModuleHandleW(NULL); DIBSECTION desc;
     HBITMAP bitmap=(HBITMAP)LoadImageA(module,MAKEINTRESOURCEA(101),IMAGE_BITMAP,0,0,0);CHECK(bitmap);pixels(bitmap,8,2,FALSE);
     CHECK(GetObjectW(bitmap,sizeof(desc),&desc)==sizeof(BITMAP)&&!desc.dsBm.bmBits&&desc.dsBm.bmBitsPixel==32&&DeleteObject(bitmap));
@@ -32,7 +34,8 @@ static void verify(void) {
     }
     const WCHAR *files[]={L"indexed4.bmp",L"indexed8.bmp",L"core4.bmp",L"mono.bmp",L"rgb24.bmp",L"rgb565.bmp",L"rgb32.bmp"};
     for(unsigned i=0;i<7;i++) { bitmap=load(NULL,files[i],0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION);CHECK(GetObjectW(bitmap,sizeof(desc),&desc)==sizeof(desc)&&desc.dsBm.bmBits);CHECK(DeleteObject(bitmap)); }
-    HMODULE library=LoadLibraryA("bitmap-resources.dll");CHECK(library);
+    WCHAR path[MAX_PATH],*file_part=NULL;CHECK(SearchPathW(NULL,L"bitmap-resources",L".dll",MAX_PATH,path,&file_part));CHECK(same_wide(file_part,L"bitmap-resources.dll"));
+    HMODULE library=LoadLibraryW(path);CHECK(library);
     bitmap=load(library,L"NamedBitmap",8,2,LR_CREATEDIBSECTION);CHECK(FreeLibrary(library));pixels(bitmap,8,2,FALSE);CHECK(DeleteObject(bitmap));
     bitmap=load(module,L"NamedBitmap",16,4,LR_CREATEDIBSECTION|LR_SHARED|LR_DEFAULTSIZE);pixels(bitmap,16,4,FALSE);CHECK(DeleteObject(bitmap));
     bitmap=load(module,MAKEINTRESOURCEW(101),8,2,LR_CREATEDIBSECTION|LR_LOADMAP3DCOLORS|LR_LOADTRANSPARENT);pixels(bitmap,8,2,TRUE);CHECK(DeleteObject(bitmap));
@@ -46,7 +49,8 @@ static void verify(void) {
     HICON icon=(HICON)LoadImageA(module,MAKEINTRESOURCEA(202),IMAGE_ICON,0,0,LR_SHARED);CHECK(icon);
     shown[0]=load(module,L"NamedBitmap",8,2,LR_CREATEDIBSECTION);
     shown[1]=load(module,MAKEINTRESOURCEW(101),8,2,LR_LOADMAP3DCOLORS|LR_LOADTRANSPARENT);
-    shown[2]=load(NULL,L"rgb24.bmp",3,2,LR_LOADFROMFILE|LR_CREATEDIBSECTION);
+    CHECK(SearchPathW(NULL,L"rgb24",L".bmp",MAX_PATH,path,&file_part));
+    shown[2]=load(NULL,path,3,2,LR_LOADFROMFILE|LR_CREATEDIBSECTION);
     CHECK(GetObjectW(shown[2],sizeof(desc),&desc)==sizeof(desc));
 }
 static LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM wp,LPARAM lp) {
@@ -66,6 +70,11 @@ static LRESULT CALLBACK procedure(HWND window,UINT message,WPARAM wp,LPARAM lp) 
     return DefWindowProcW(window,message,wp,lp);
 }
 void start(void) {
+    const CHAR *command=GetCommandLineA();
+    for(;*command;command++) {
+        const CHAR *flag="--search-path-only",*at=command;while(*flag&&*at==*flag){at++;flag++;}
+        if(!*flag){search_paths();ExitProcess(0);}
+    }
     screen=GetDC(NULL);CHECK(screen);verify();HINSTANCE module=GetModuleHandleW(NULL);WNDCLASSW cls={0};cls.hInstance=module;cls.lpfnWndProc=procedure;cls.lpszClassName=L"NativeLoadImages";CHECK(RegisterClassW(&cls));
     root=CreateWindowW(cls.lpszClassName,L"LoadImage resources and BMP files — F6 changes pixels",WS_OVERLAPPEDWINDOW|WS_VISIBLE,30,40,304,296,NULL,NULL,module,NULL);CHECK(root);CHECK(InvalidateRect(root,NULL,FALSE));
     MSG msg;while(GetMessageW(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}ExitProcess((UINT)msg.wParam);

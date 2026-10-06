@@ -3,6 +3,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
+import { unpackPackage } from '../src/package.js';
 let browser, server, page;
 try {
   let url = process.env.WINEBROWSER_TEST_URL;
@@ -31,8 +32,28 @@ try {
     ...(await readdir(folder)).filter((name) => name.endsWith('.bmp')),
   ].map((name) => folder + name);
   files.push('tests/fixtures/load-images/bitmap-resources.dll');
+  let hostedInputs = null;
   if (process.env.WINEBROWSER_LOAD_IMAGES_EXAMPLE === '1') {
+    const manifestResponse = await fetch(new URL('examples/manifest.json', url));
+    assert.ok(manifestResponse.ok);
+    const manifest = await manifestResponse.json();
+    const example = manifest.interactive.find((entry) => entry.name === 'load-images');
+    assert.ok(example);
+    const responsePromise = page.waitForResponse((response) =>
+      response.url().endsWith('/examples/' + example.zip),
+    );
     await page.locator('[data-demo="load-images"]').click();
+    const response = await responsePromise;
+    assert.ok(response.ok());
+    const zip = new Uint8Array(await response.body());
+    const zipSha256 = createHash('sha256').update(zip).digest('hex');
+    assert.equal(zipSha256, example.zipSha256);
+    const pkg = await unpackPackage(zip, 'load-images.zip');
+    for (const file of files) {
+      const name = 'load-images/' + file.split('/').at(-1);
+      assert.deepEqual(pkg.files.get(name), new Uint8Array(await readFile(file)), name);
+    }
+    hostedInputs = { zipSha256, exeSha256: example.exeSha256 };
     await expect(page.locator('#exe')).toHaveValue('load-images/load-images.exe');
   } else await page.locator('#file').setInputFiles(files);
   await page.locator('#run').click();
@@ -132,6 +153,11 @@ try {
     (module) => module.name.toLowerCase() === 'bitmap-resources.dll',
   );
   assert.ok(resourceLibrary && !resourceLibrary.host);
+  const nativeRuntime = ['ntdll.dll', 'kernel32.dll', 'kernelbase.dll'].map((name) => {
+    const module = run.loadedModules.find((module) => module.name.toLowerCase() === name);
+    assert.ok(module && !module.host, name);
+    return module;
+  });
   const binaries = {};
   for (const file of files)
     binaries[file] = createHash('sha256')
@@ -144,13 +170,17 @@ try {
     browser: browser.version(),
     input: process.env.WINEBROWSER_LOAD_IMAGES_EXAMPLE === '1' ? 'hosted example' : 'local upload',
     binaries,
+    hostedInputs,
     resourceLibrary,
+    nativeRuntime,
     exitCode: run.exitCode,
     compiledBlocks: run.compiledBlocks,
     x86TranslationMs: run.x86TranslationMs,
     observations,
     checks: [
       'Unchanged native SDK EXE calls both six-argument LoadImage interfaces for integer/named bitmap resources, icon and cursor resources',
+      'Native Wine SearchPath A/W locates actual BMP and resource DLL inputs; buffers, file-part pointers, extensions, explicit lists and PATH are checked by the SDK client',
+      'Native directory creation, traversal, current-directory changes and empty-directory deletion complete without host filesystem access',
       'Seven authored bitmap resources and BMP files cover indexed/CORE/monochrome/RGB24/32 and RGB565; a real file pixel offset skips a deliberate metadata/pixel gap',
       'LR_CREATEDIBSECTION exposes private writable native pointers; bitmap pixels survive resource DLL unload',
       'Requested sizes, system palette mapping and transparent-index color replacement match native GetPixel assertions',
@@ -158,7 +188,7 @@ try {
       'Chromium independently scans all 49152 displayed pixels in each of three stages and requires native cleanup/exit zero',
     ],
     scope:
-      'Uncompressed bitmap resource/file loading and nearest-neighbor sizing. HALFTONE resampling, compressed/embedded-image BMPs, OEM bitmap assets, custom-sized/file icons and cursors, and full Windows compatibility remain unfinished.',
+      'Native Wine file search and private-volume directory traversal/deletion, plus uncompressed bitmap resource/file loading and nearest-neighbor sizing. HALFTONE resampling, compressed/embedded-image BMPs, OEM bitmap assets, custom-sized/file icons and cursors, and full Windows compatibility remain unfinished.',
   };
   await writeFile(
     'evidence/load-images-browser-results.json',

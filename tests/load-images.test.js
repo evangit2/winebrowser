@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
-const exe = new Uint8Array(await readFile('tests/fixtures/load-images/load-images.exe'));
+const exe = new Uint8Array(await readFile('tests/fixtures/load-images/load-images-host.exe'));
 const names = [
   'indexed4.bmp',
   'indexed8.bmp',

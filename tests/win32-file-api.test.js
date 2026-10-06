@@ -125,12 +125,13 @@ test('SearchPath finds a packaged file and reports the required length otherwise
   const { r, call } = setup(t);
   const buffer = r.allocate(256);
   const length =
-    call('kernel32.dll!SearchPathA', 0, r.allocString('console.exe'), 0, buffer, 256).result >>> 0;
+    call('kernel32.dll!SearchPathA', 0, r.allocString('console.exe'), 0, 256, buffer, 0).result >>>
+    0;
   assert.ok(length > 0, 'a packaged executable is found');
   assert.equal(r.string(buffer), 'C:\\winebrowser\\console.exe');
   r.lastError = 0;
   assert.equal(
-    call('kernel32.dll!SearchPathA', 0, r.allocString('nope.exe'), 0, buffer, 256).result,
+    call('kernel32.dll!SearchPathA', 0, r.allocString('nope.exe'), 0, 256, buffer, 0).result,
     0,
   );
   assert.equal(r.lastError, 2, 'a missing file reports ERROR_FILE_NOT_FOUND');

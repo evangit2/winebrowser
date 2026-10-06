@@ -37,7 +37,7 @@ shutil.copyfile(ROOT / 'LICENSE', DEST / 'LICENSE')
 archive(DEST / 'load-images.zip', [('load-images/' + name, (DEST / name).read_bytes()) for name in names + ['LICENSE', 'PROVENANCE.md']])
 source_names = [
     'scripts/build-load-images-fixture.sh', 'LICENSE',
-    'tests/fixtures/load-images/client.c', 'tests/fixtures/load-images/generate.py',
+    'tests/fixtures/load-images/client.c', 'tests/fixtures/load-images/search-path.h', 'tests/fixtures/load-images/generate.py',
     'tests/fixtures/load-images/resources.rc', 'tests/fixtures/load-images/README.md',
     'tests/fixtures/resource-bitmaps/resources.rc', 'tests/fixtures/resource-bitmaps/generate.py',
     'tests/fixtures/resource-bitmaps/library.c', 'tests/fixtures/resource-bitmaps/README.md',

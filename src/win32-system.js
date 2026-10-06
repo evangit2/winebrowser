@@ -12,6 +12,7 @@ import { protectMemory } from './memory-protection.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
 import { guestHandleRecord, guestHandleFlags } from './wine-object.js';
 import { processLookup } from './process-session.js';
+import { findGuestSearchPath } from './guest-search-path.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -649,34 +650,51 @@ function expandEnvironmentStrings(r, a, wide) {
   }
   return ok(expanded.length, 3);
 }
-// SearchPathA looks a file up in the same places LoadLibrary and CreateFile do:
-// the current directory first, then the package volume root.
+// SDK ABI: (path, name, extension, capacity, buffer, filePart).
 function searchPath(r, a, wide) {
+  if (!a(1)) return fail(r, 87, 6);
+  const read = (pointer) => (wide ? r.wideString(pointer) : r.string(pointer));
   const name = wide ? r.wideString(a(1)) : r.string(a(1));
-  const out = a(3);
-  const capacity = a(4) | 0;
-  let resolved = null;
-  try {
-    const candidate = resolveGuestPath(name, r.cwd);
-    if (r.files.has(candidate)) resolved = candidate;
-  } catch {
-    resolved = null;
-  }
-  const value = resolved ? packageDosPath(resolved) : null;
+  if (!name || /^ +$/.test(name)) return fail(r, 87, 6);
+  const value = findGuestSearchPath(r, a(0) ? read(a(0)) : null, name, a(2) ? read(a(2)) : null);
   if (!value) return fail(r, 2, 6);
-  const needed = value.length + 1;
+  // Wine's A wrapper uses a MAX_PATH UTF-16 intermediate; W can be longer.
+  if (!wide && value.length + 1 > 260) return fail(r, 206, 6);
+  const out = a(4),
+    capacity = a(3) >>> 0,
+    filePart = a(5);
+  const bytes = wide ? null : encodeAnsi(value).bytes;
+  const length = wide ? value.length : bytes.length;
+  const needed = length + 1;
+  // W's full-path routine clears this on a found-but-insufficient result;
+  // A leaves it untouched until the converted output actually fits.
+  if (filePart && wide) {
+    r.check(filePart, 4, true);
+    r.write32(filePart, 0);
+  }
   if (!out || capacity < needed) return ok(needed, 6);
+  r.check(out, needed * (wide ? 2 : 1), true);
   if (wide) {
-    r.check(out, needed * 2, true);
     for (let i = 0; i < needed; i++)
       r.guestMemory.write(out + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
   } else {
-    const bytes = encodeAnsi(value).bytes;
-    r.check(out, bytes.length + 1, true);
     r.data.set(bytes, out);
     r.data[out + bytes.length] = 0;
   }
-  return ok(value.length, 6);
+  if (filePart) {
+    const prefix = value.slice(0, value.lastIndexOf('\\') + 1);
+    r.check(filePart, 4, true);
+    r.write32(filePart, out + (wide ? prefix.length * 2 : encodeAnsi(prefix).bytes.length));
+  }
+  return ok(length, 6);
+}
+function setSearchPathMode(r, a) {
+  const flags = a(0) >>> 0;
+  if (![1, 0x10000, 0x8001].includes(flags)) return fail(r, 87, 1);
+  if (r.searchPathPermanent && flags !== 0x8001) return fail(r, 5, 1);
+  r.searchPathSafeMode = flags !== 0x10000;
+  if (flags === 0x8001) r.searchPathPermanent = true;
+  return ok(1, 1);
 }
 // GetDriveTypeA reports the package volume as a fixed disk.
 function getDriveType(r, _a) {
@@ -914,7 +932,7 @@ function setEnvironmentVariable(r, a, wide) {
   const value = a(1) ? (wide ? r.wideString(a(1)) : r.string(a(1))) : null;
   environmentEntries(r, wide);
   const key = name.toUpperCase();
-  for (const kind of wide ? ['wide'] : ['ansi']) {
+  for (const kind of ['wide', 'ansi']) {
     const list = r.environment[kind];
     const index = list.findIndex((item) => item.slice(0, item.indexOf('=')).toUpperCase() === key);
     if (value === null) {
@@ -1173,6 +1191,7 @@ export const systemApis = {
   'kernel32.dll!ExpandEnvironmentStringsW': (r, a) => expandEnvironmentStrings(r, a, true),
   'kernel32.dll!SearchPathA': (r, a) => searchPath(r, a, false),
   'kernel32.dll!SearchPathW': (r, a) => searchPath(r, a, true),
+  'kernel32.dll!SetSearchPathMode': setSearchPathMode,
   'kernel32.dll!GetDriveTypeA': getDriveType,
   'kernel32.dll!GetDriveTypeW': getDriveType,
   'kernel32.dll!GetLogicalDrives': getLogicalDrives,
