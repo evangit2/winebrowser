@@ -635,7 +635,7 @@ const DEVICE_CAPS = Object.freeze({
   30: 2, // LINECAPS: polylines.
   32: 0x83, // POLYGONALCAPS: polygons, rectangles and interiors (alternate fill).
   36: 3, // CLIPCAPS: rectangular and bounded complex regions.
-  38: 0x881, // RASTERCAPS: BITBLT, DI_BITMAP and STRETCHBLT.
+  38: 0x801, // RASTERCAPS: BITBLT and STRETCHBLT. DI_BITMAP also requires SetDIBits.
   40: 36, // ASPECTX: square device pixels, conventional GDI aspect units.
   42: 36, // ASPECTY.
   44: 51, // ASPECTXY: rounded diagonal in the same aspect units.

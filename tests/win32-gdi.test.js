@@ -89,9 +89,9 @@ test('Windows SDK device-cap indices report the display driver dimensions and ac
       'no palette capability',
     );
     assert.equal(
-      call(runtime, 'gdi32.dll!GetDeviceCaps', handle, 38).result & 0x2200,
+      call(runtime, 'gdi32.dll!GetDeviceCaps', handle, 38).result & 0x2280,
       0,
-      'unfinished SetDIBitsToDevice and StretchDIBits stay unadvertised',
+      'unfinished SetDIBits, SetDIBitsToDevice and StretchDIBits stay unadvertised',
     );
   }
   runtime.displayMode = { width: 800, height: 600, frequency: 60 };

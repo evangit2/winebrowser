@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-06T03:53:02.662Z",
+  "date": "2026-10-06T04:00:07.303Z",
   "url": "http://127.0.0.1:4389/winebrowser/",
   "browser": "154.0.8037.98",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "ccd4bde084d5d2fe7350ead48a545c096c9abf69b7dd678e1590c34c565dada0",
   "compiledBlocks": 182,
-  "x86TranslationMs": 88.24999988079071,
+  "x86TranslationMs": 49.42999970912933,
   "observations": [
     {
       "width": 1024,
