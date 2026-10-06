@@ -260,6 +260,17 @@
       "sourceZip": "guest-drive/source.zip",
       "sourceZipSha256": "a27b235d086b1e256c442bfe1768aeccc3b86a42751c08da79fba5c7ee5346b8",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "window-defer",
+      "description": "Native layout GUI: arrange two independently painted child windows side by side or stacked, then resize the window. Native guest code verifies deferred moves, merged requests and final geometry. Close to finish.",
+      "exe": "window-defer/window-defer.exe",
+      "exeSha256": "fbeb8befc466e4456abb87cb55bacc5d56e179f259d16ef973a66d8e7726aca3",
+      "zip": "window-defer/window-defer.zip",
+      "zipSha256": "18acba12ed3d1af5961850a97f819c2c24d85c5bb786c3977ecd3620291936fa",
+      "sourceZip": "window-defer/source.zip",
+      "sourceZipSha256": "bbd215fd97314d1b9f0c6c357a9346adff38a762b9551ae60270057a9647bd5e",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

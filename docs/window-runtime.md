@@ -498,5 +498,31 @@ transparent-middle, transparent-front `WM_PAINT` callbacks through
 Top-level standard controls still require implementation; this test uses a
 registered custom top-level class.
 
+`BeginDeferWindowPos`, `DeferWindowPos` and `EndDeferWindowPos` now stage sibling
+layout changes without modifying geometry or entering application procedures
+until the batch ends. Repeated HWNDs retain their insertion order and merge
+move, size, z-order and suppression flags following
+[Wine's deferred-position implementation](https://github.com/wine-mirror/wine/blob/master/dlls/win32u/window.c).
+Ending a batch consumes its handle before callbacks and routes each merged
+request through the same `SetWindowPos` path, including mutable WINDOWPOS,
+nonclient calculation, MOVE/SIZE, repaint and browser geometry updates.
+
+The browser runtime bounds this support to 64 live batches, 512 distinct
+positions per batch and windows with a common parent. The initial count is a
+capacity hint, with zero supported; exceeding the supported bound reports
+out-of-memory. Invalid requests return errors without modifying staged entries.
+End failures consume the batch and return failure; earlier applied positions
+remain applied. This is sequential guest message processing, without a promise
+of atomic compositor presentation or rollback.
+
+The public MIT **window-defer** example is a native two-pane GUI. Ordinary
+buttons arrange independently painted custom children side by side or stacked
+and resize the root window. Its guest checks unchanged staged geometry,
+repeated-HWND merging, callback order, final SDK rectangles and handle
+consumption. `npm run test:window-defer` verifies trusted button input, actual
+geometry and GDI pixels through EXE upload, ZIP upload and hosted example runs.
+See [the acceptance record](../evidence/window-defer-browser-results.json).
+The published source ZIP independently rebuilds the exact EXE.
+
 Exact native control layout, monitor-edge placement, horizontal or multicolumn
 lists and universal GUI/DLL compatibility remain incomplete.

@@ -217,3 +217,124 @@ test('custom nonclient rectangles fail explicitly and free callback scratch memo
   await assert.rejects(pos(r, 100, 0, 0, 0, 90, 80), /Custom nonclient window positioning/);
   assert.deepEqual(freed.sort(), allocated.sort());
 });
+
+test('deferred layout stages geometry without callbacks and merges repeated windows in insertion order', async (t) => {
+  const { r, messages, events, w } = await setup(t);
+  const begin = (count) => api(r, 'user32.dll!BeginDeferWindowPos', count);
+  const defer = (handle, ...args) => api(r, 'user32.dll!DeferWindowPos', handle, ...args);
+  assert.deepEqual(begin(-1), { result: 0, argc: 1 });
+  assert.equal(r.lastError, 87);
+  const batch = begin(1).result;
+  assert.ok(batch);
+  assert.deepEqual(defer(batch, 100, 0, 30, 40, 0, 0, 1 | 4 | 8 | 16), {
+    result: batch,
+    argc: 8,
+  });
+  assert.equal(defer(batch, 101, 0, 50, 60, 100, 90, 4 | 16).result, batch);
+  assert.equal(defer(batch, 100, 0, -99, -99, 120, 100, 2 | 4 | 16).result, batch);
+  assert.equal(defer(batch, 102, 0, 70, 80, 100, 90, 4 | 16 | 128).result, batch);
+  assert.deepEqual([w.x, w.y, w.width, w.height], [5, 10, 80, 60]);
+  assert.deepEqual(messages, []);
+  assert.deepEqual(events, []);
+  assert.deepEqual(await api(r, 'user32.dll!EndDeferWindowPos', batch), { result: 1, argc: 1 });
+  assert.deepEqual([w.x, w.y, w.width, w.height], [30, 40, 120, 100]);
+  assert.equal(r.windows.windows.get(101).x, 50);
+  assert.equal(r.windows.windows.get(102).visible, false);
+  assert.deepEqual(
+    messages.filter((m) => m.message === 0x46).map((m) => m.hwnd),
+    [100, 101, 102],
+  );
+  assert.ok(w.invalid, 'later redraw request wins over NOREDRAW');
+  assert.deepEqual(await api(r, 'user32.dll!EndDeferWindowPos', batch), { result: 0, argc: 1 });
+  assert.equal(r.lastError, 6);
+});
+
+test('deferred callbacks can mutate WINDOWPOS, consume the batch reentrantly and preserve accumulated visibility flags', async (t) => {
+  let handle, reentrant;
+  const { r, w, messages } = await setup(t, async (r, hwnd, message, _wp, lp) => {
+    if (hwnd === 100 && message === 0x46) {
+      reentrant = await api(r, 'user32.dll!EndDeferWindowPos', handle);
+      r.write32(lp + 8, 77);
+    }
+  });
+  w.visible = false;
+  handle = api(r, 'user32.dll!BeginDeferWindowPos', 0).result;
+  api(r, 'user32.dll!DeferWindowPos', handle, 100, 0, 30, 40, 90, 80, 4 | 16 | 64);
+  api(r, 'user32.dll!DeferWindowPos', handle, 100, 0, 0, 0, 0, 0, 1 | 2 | 4 | 16);
+  assert.equal((await api(r, 'user32.dll!EndDeferWindowPos', handle)).result, 1);
+  assert.deepEqual(reentrant, { result: 0, argc: 1 });
+  assert.deepEqual([w.x, w.y, w.width, w.height, w.visible], [77, 40, 90, 80, true]);
+  assert.equal(messages.filter((m) => m.message === 0x46).length, 1);
+});
+
+test('deferred batches validate handles, flags and siblings without mutating staged operations', async (t) => {
+  const { r, w } = await setup(t);
+  const handle = api(r, 'user32.dll!BeginDeferWindowPos', 0).result;
+  for (const [args, error] of [
+    [[0xdead, 100, 0, 0, 0, 80, 60, 16], 6],
+    [[handle, 999, 0, 0, 0, 80, 60, 16], 1400],
+    [[handle, 100, 0, 0, 0, 80, 60, 0x8000], 87],
+    [[handle, 100, 0xdead, 0, 0, 80, 60, 16], 1400],
+  ]) {
+    assert.equal(api(r, 'user32.dll!DeferWindowPos', ...args).result, 0);
+    assert.equal(r.lastError, error);
+  }
+  assert.equal(
+    api(r, 'user32.dll!DeferWindowPos', handle, 100, 0xdead, 30, 40, 90, 80, 4 | 16).result,
+    handle,
+  );
+  r.windows.windows.get(101).parentId = 100;
+  assert.equal(
+    api(r, 'user32.dll!DeferWindowPos', handle, 101, 0, 10, 20, 50, 40, 4 | 16).result,
+    0,
+  );
+  assert.equal(r.lastError, 87);
+  assert.equal((await api(r, 'user32.dll!EndDeferWindowPos', handle)).result, 1);
+  assert.deepEqual([w.x, w.y, w.width, w.height], [30, 40, 90, 80]);
+});
+
+test('deferred resource bounds and empty batches recover; destroyed windows and callback errors consume the handle', async (t) => {
+  let throwing = false;
+  const { r } = await setup(t, (_r, _hwnd, message) => {
+    if (message === 0x46 && throwing) throw Error('native callback failed');
+  });
+  assert.equal(api(r, 'user32.dll!BeginDeferWindowPos', 513).result, 0);
+  assert.equal(r.lastError, 8);
+  const handles = Array.from(
+    { length: 64 },
+    () => api(r, 'user32.dll!BeginDeferWindowPos', 0).result,
+  );
+  assert.ok(handles.every(Boolean));
+  assert.equal(api(r, 'user32.dll!BeginDeferWindowPos', 0).result, 0);
+  assert.equal(r.lastError, 8);
+  for (const handle of handles)
+    assert.equal((await api(r, 'user32.dll!EndDeferWindowPos', handle)).result, 1);
+  for (const failure of ['destroy', 'throw']) {
+    const handle = api(r, 'user32.dll!BeginDeferWindowPos', 0).result;
+    api(
+      r,
+      'user32.dll!DeferWindowPos',
+      handle,
+      failure === 'destroy' ? 101 : 100,
+      0,
+      30,
+      40,
+      90,
+      80,
+      4 | 16,
+    );
+    if (failure === 'destroy') {
+      await r.windows.destroy(101);
+      assert.equal((await api(r, 'user32.dll!EndDeferWindowPos', handle)).result, 0);
+      assert.equal(r.lastError, 1400);
+    } else {
+      throwing = true;
+      await assert.rejects(
+        api(r, 'user32.dll!EndDeferWindowPos', handle),
+        /native callback failed/,
+      );
+    }
+    assert.equal((await api(r, 'user32.dll!EndDeferWindowPos', handle)).result, 0);
+    assert.equal(r.lastError, 6);
+  }
+});

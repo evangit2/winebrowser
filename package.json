@@ -312,6 +312,8 @@
     "test:gdi-section": "node scripts/test-gdi-section-browser.mjs",
     "build:window-query": "sh scripts/build-window-query-fixture.sh",
     "test:window-query": "node scripts/test-window-query-browser.mjs",
+    "build:window-defer": "sh scripts/build-window-defer-fixture.sh && python3 scripts/package-window-defer.py",
+    "test:window-defer": "node scripts/test-window-defer-browser.mjs",
     "build:guest-drive": "sh scripts/build-guest-drive-fixture.sh && python3 scripts/package-guest-drive.py",
     "test:guest-drive": "node scripts/test-guest-drive-browser.mjs",
     "build:load-images": "sh scripts/build-load-images-fixture.sh && python3 scripts/package-load-images.py",

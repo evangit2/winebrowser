@@ -325,3 +325,14 @@ unchanged Metapad GUI regressions. See
 [the query acceptance](../evidence/window-query-browser-results.json).
 Native Wine comctl32 still has unresolved host GUI dependencies, and 7-Zip File
 Manager remains blocked before creating a window. Neither is claimed working.
+
+The authored **window-defer** GUI adds native batched layout: buttons arrange
+two GDI-painted child windows side by side or stacked and resize the root.
+`BeginDeferWindowPos`, `DeferWindowPos` and `EndDeferWindowPos` merge repeated
+HWND requests with Wine's flag rules and apply real application procedures via
+the shared positioning path. Guest assertions verify staged geometry, callback
+order, final rectangles and consumed handles. Browser acceptance checks actual
+pixels and trusted clicks in loose EXE, ZIP and hosted-example modes; the source
+ZIP independently rebuilds the exact public EXE. All 1231 unit checks pass.
+The Chromium acceptance translates 2080 x86 blocks inside the browser in about
+315–417 ms. Larger native Wine common-control and shell dependencies remain.

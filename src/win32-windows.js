@@ -56,6 +56,7 @@ import {
 } from './window-frame.js';
 import { windowDataApis } from './win32-window-data.js';
 import { setWindowPos } from './win32-window-position.js';
+import { windowDeferApis } from './win32-window-defer.js';
 import { currentDisplayMode } from './win32-display.js';
 import { inputState } from './dinput-device.js';
 import { registerThunk } from './thunk-addresses.js';
@@ -1923,6 +1924,7 @@ Object.assign(windowApis, {
     return result(1, 1);
   },
   'user32.dll!SetWindowPos': setWindowPos,
+  ...windowDeferApis,
   'user32.dll!AdjustWindowRect': (r, a) => adjustRect(r, a, false),
   'user32.dll!AdjustWindowRectEx': (r, a) => adjustRect(r, a, true),
   'user32.dll!ShowWindow': show,
