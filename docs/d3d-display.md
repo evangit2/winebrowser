@@ -6,6 +6,10 @@ mode; the default remains 1024×768 X8R8G8B8. D3D8 enumerates all six modes, whi
 D3D9 filters by format. Windowed backbuffer sizes do not change the desktop.
 No host monitor properties are read or changed.
 
+USER32, DXGI and D3D8/9 expose the same resolvable virtual monitor. Monitor
+information and system work-area queries follow the active display mode; see
+[monitor and GUI contracts](monitor-gui.md) for layouts and native acceptance.
+
 Invalid adapters, mode indices and output buffers return D3DERR_INVALIDCALL.
 The complete 16-byte D3DDISPLAYMODE buffer is validated before writing. Invalid
 adapter/format mode counts are zero. `CheckDepthStencilMatch` accepts the current

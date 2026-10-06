@@ -44,6 +44,7 @@ import {
 import { dialogApis } from './win32-dialogs.js';
 import { acceleratorApis } from './win32-accelerators.js';
 import { displayApis } from './win32-display.js';
+import { monitorApis } from './win32-monitor.js';
 import { iconApis } from './win32-icons.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { closeFileHandle, fileShareConflict } from './wine-file.js';
@@ -138,6 +139,7 @@ for (const key of [
   ...Object.keys(dialogApis),
   ...Object.keys(acceleratorApis),
   ...Object.keys(displayApis),
+  ...Object.keys(monitorApis),
   ...Object.keys(iconApis),
   ...Object.keys(formatApis),
   ...Object.keys(nativeForwarderApis),
@@ -539,6 +541,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(dialogApis),
     ...Object.entries(acceleratorApis),
     ...Object.entries(displayApis),
+    ...Object.entries(monitorApis),
     ...Object.entries(iconApis),
     ...Object.entries(msvcrtApis),
     ...Object.entries(formatApis),

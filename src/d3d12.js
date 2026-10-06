@@ -1,4 +1,6 @@
 import { privateDataMethods, releasePrivateData } from './d3d-private-data.js';
+import { currentDisplayMode } from './win32-display.js';
+import { VIRTUAL_MONITOR, VIRTUAL_MONITOR_DEVICE } from './win32-monitor.js';
 import { pipelineStreamDescriptor } from './d3d12-pipeline-stream.js';
 import { dxgiDebugApis } from './dxgi-debug.js';
 import { BC_FORMATS, textureRows } from './d3d12-footprint.js';
@@ -3935,7 +3937,7 @@ function factoryMethods() {
 // is the desktop the runtime presents to, reported through the 28-byte
 // DXGI_MODE_DESC the callers expect.
 function outputMethods() {
-  const display = (r) => r.windows?.display ?? { width: 640, height: 480 };
+  const display = currentDisplayMode;
   const writeMode = (r, pointer, width, height) => {
     r.check(pointer, 28, true);
     r.data.fill(0, pointer, pointer + 28);
@@ -3957,15 +3959,16 @@ function outputMethods() {
         const out = number(a(1));
         r.check(out, 92, true);
         r.data.fill(0, out, out + 92);
-        for (const [i, ch] of [...'\\\\.\\DISPLAY1'].entries())
+        for (const [i, ch] of [...VIRTUAL_MONITOR_DEVICE].entries())
           r.view.setUint16(out + i * 2, ch.charCodeAt(0), true);
         const { width, height } = display(r);
         // DesktopCoordinates: the output's top-left is the desktop origin.
-        r.write32(out + 76, width);
-        r.write32(out + 84, height);
-        r.write32(out + 88, 1); // AttachedToDesktop
-        // Rotation stays DXGI_MODE_ROTATION_IDENTITY.
-        return undefined;
+        r.write32(out + 72, width);
+        r.write32(out + 76, height);
+        r.write32(out + 80, 1); // AttachedToDesktop.
+        r.write32(out + 84, 1); // DXGI_MODE_ROTATION_IDENTITY.
+        r.write32(out + 88, VIRTUAL_MONITOR);
+        return S_OK;
       },
     },
     // GetDisplayModeList(Format, Flags, UINT *pNumModes, DXGI_MODE_DESC *pDesc):
@@ -4063,7 +4066,7 @@ function outputMethods() {
 // The modes the virtual display reports: the desktop it presents at, plus the
 // common sizes a fullscreen request is clamped to.
 function DISPLAY_MODES(r) {
-  const { width, height } = r.windows?.display ?? { width: 640, height: 480 };
+  const { width, height } = currentDisplayMode(r);
   const modes = [[width, height]];
   for (const [w, h] of [
     [640, 480],

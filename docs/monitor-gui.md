@@ -1,0 +1,11 @@
+# Virtual monitor and popup placement
+
+USER32 monitor information, system work-area queries, D3D8/9 adapter monitors and DXGI output descriptions share one process-local virtual monitor. Its device name is `\\.\DISPLAY1`; monitor and work-area rectangles reflect the active mode in the shared display catalogue. Extended ANSI and Unicode MONITORINFO structures retain the caller's size and preserve bytes outside the structure. Signed point, rectangle and window lookups honor explicit primary/nearest fallback flags; minimized windows use their normal rectangle.
+
+DXGI_OUTPUT_DESC uses the native PE32 SDK layout: a 64-byte UTF-16 name, RECT at offset 64, AttachedToDesktop at 80, rotation at 84 and HMONITOR at 88. D3D8/9 GetAdapterMonitor returns the same USER32-resolvable handle for adapter zero. These queries do not create a rendering device or change the host monitor.
+
+Dropdowns that would cross the bottom of the virtual work area open above their actual COMBOBOX HWND. Oversized popups fit the available height. The actual ComboLBox retains native capture, signed pointer coordinates and ordinary selection/cancellation notifications. Simple combos keep their child layout. Horizontal edge placement, multiple monitors and full DPI behavior remain unfinished.
+
+SystemParametersInfoA/W now uses Windows SDK action identifiers for common scalar, mouse, work-area, NONCLIENTMETRICS and icon LOGFONT queries. Scalar queries write four bytes; mouse queries write three integers. Both modern and XP NONCLIENTMETRICS layouts preserve output guards. Common preference setters round-trip process-local values and queue WM_SETTINGCHANGE when requested. Host settings and persistent theme state are not modified; theme setters and full preference effects remain unfinished.
+
+The authored MIT [native fixture](../tests/fixtures/monitor-popup/README.md) checks these contracts using Windows headers and actual native interfaces. `npm run test:monitor-popup` verifies visible Chromium popup geometry alongside guest assertions across 1024×768, 800×600 and 640×480. The [acceptance report](../evidence/monitor-popup-browser-results.json) records the executable hash, translated block count and time spent compiling x86 blocks to WebAssembly in the browser. It establishes this fixture's covered behaviors, not universal application or DLL compatibility.

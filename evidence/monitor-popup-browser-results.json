@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-06T03:09:31.373Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "154.0.8037.98",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "cced386aa04e094cd3c1f860a7770000a1a13487030e02608acd8e0fbf89b6a2",
+  "compiledBlocks": 430,
+  "x86TranslationMs": 254.0799998641014,
+  "observations": [
+    {
+      "mode": [
+        1024,
+        768
+      ],
+      "host": {
+        "x": 174,
+        "y": 1625.6875,
+        "width": 180,
+        "height": 24,
+        "bottom": 1649.6875
+      },
+      "popup": {
+        "x": 174,
+        "y": 1479.6875,
+        "width": 180,
+        "height": 146,
+        "bottom": 1625.6875
+      },
+      "desktopOrigin": [
+        123,
+        938.6875
+      ]
+    },
+    {
+      "mode": [
+        800,
+        600
+      ],
+      "host": {
+        "x": 174,
+        "y": 1457.6875,
+        "width": 180,
+        "height": 24,
+        "bottom": 1481.6875
+      },
+      "popup": {
+        "x": 174,
+        "y": 1311.6875,
+        "width": 180,
+        "height": 146,
+        "bottom": 1457.6875
+      },
+      "desktopOrigin": [
+        123,
+        938.6875
+      ]
+    },
+    {
+      "mode": [
+        640,
+        480
+      ],
+      "host": {
+        "x": 174,
+        "y": 1337.6875,
+        "width": 180,
+        "height": 24,
+        "bottom": 1361.6875
+      },
+      "popup": {
+        "x": 174,
+        "y": 1191.6875,
+        "width": 180,
+        "height": 146,
+        "bottom": 1337.6875
+      },
+      "desktopOrigin": [
+        123,
+        938.6875
+      ]
+    },
+    {
+      "mode": [
+        640,
+        480
+      ],
+      "oversized": {
+        "x": 594,
+        "y": 938.6875,
+        "width": 140,
+        "height": 480,
+        "bottom": 1418.6875
+      },
+      "desktopOrigin": [
+        123,
+        938.6875
+      ]
+    },
+    {
+      "mode": [
+        640,
+        480
+      ],
+      "host": {
+        "x": 384,
+        "y": 1337.6875,
+        "width": 180,
+        "height": 24,
+        "bottom": 1361.6875
+      },
+      "popup": {
+        "x": 384,
+        "y": 1191.6875,
+        "width": 180,
+        "height": 146,
+        "bottom": 1337.6875
+      },
+      "desktopOrigin": [
+        123,
+        938.6875
+      ]
+    }
+  ],
+  "checks": [
+    "Unchanged MIT PE32 includes SDK static assertions for DXGI_OUTPUT_DESC offsets and queries actual USER32/DXGI/D3D8/D3D9 interfaces",
+    "MONITORINFOEXA/W names, both rectangles, flags and output guards match system work-area/screen metrics and native DXGI output fields",
+    "DXGI and D3D8/9 return the same USER32-resolvable monitor; invalid adapters and monitor handles are rejected; signed point/rectangle boundaries honor primary/nearest fallback flags",
+    "Native mode changes to 800x600 and 640x480 update every monitor/work-area query and deliver actual WM_DISPLAYCHANGE messages; restoration returns 1024x768",
+    "SDK SystemParametersInfoA/W identifiers return scalar/mouse settings, modern and XP NONCLIENTMETRICS and icon LOGFONT without overwriting guard bytes",
+    "Process-local mouse and keyboard-speed preferences round-trip through native setters/getters and the guest receives WM_SETTINGCHANGE",
+    "Dropdowns near the bottom open above the actual native combo HWND at all three modes; browser geometry agrees with native GetWindowRect",
+    "Held arrow dragging upward hands native HWND capture and signed coordinates to actual ComboLBox; native selection and release notification order pass",
+    "Oversized popup fills the active 640x480 work area, retains its actual list capture and closes through native WM_CANCELMODE",
+    "Editable upward hover and outside dismissal restore unmatched Unicode text; native interface release and normal destruction exit zero"
+  ],
+  "scope": "One process-local virtual monitor, base/extended monitor queries, common desktop preference queries and vertical dropdown placement. Multiple monitors, full DPI handling, horizontal popup placement, persistent theme changes and universal Windows/DLL compatibility remain incomplete."
+}

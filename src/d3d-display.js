@@ -1,4 +1,5 @@
 import { VIRTUAL_DISPLAY_MODES, currentDisplayMode } from './win32-display.js';
+import { VIRTUAL_MONITOR } from './win32-monitor.js';
 
 const INVALID = 0x8876086c;
 const X8R8G8B8 = 22;
@@ -75,6 +76,10 @@ export function displayMethods(version) {
       ? VIRTUAL_DISPLAY_MODES.filter((m) => version === 8 || displayFormat(m) === a(2))
       : [];
   return {
+    [version === 8 ? 14 : 15]: {
+      argc: 2,
+      invoke: (_r, a) => (a(1) === 0 ? VIRTUAL_MONITOR : 0),
+    },
     5: {
       // GetAdapterIdentifier(Adapter, Flags, D3DADAPTER_IDENTIFIER*)
       argc: 4,

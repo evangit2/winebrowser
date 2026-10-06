@@ -609,7 +609,7 @@ test('GetMonitorInfo writes both RECTs at the offsets the header declares', asyn
   const info = runtime.allocate(40);
   runtime.write32(info, 40);
   const handler = provider.get(importKey('user32.dll', 'GetMonitorInfoA'));
-  assert.equal((await handler(runtime, (i) => [1, info][i])).result, 1);
+  assert.equal((await handler(runtime, (i) => [0x10001, info][i])).result, 1);
   const word = (offset) => view.getInt32(info + offset, true);
   assert.equal(word(0), 40, 'cbSize');
   assert.deepEqual(

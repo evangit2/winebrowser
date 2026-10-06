@@ -9,6 +9,7 @@ import {
 } from './win32-gdi.js';
 import { measureListItem, paintOwnerList, updateList } from './win32-owner-lists.js';
 import { comboPointerMessage } from './win32-combo-pointer.js';
+import { virtualWorkArea } from './win32-monitor.js';
 
 const COMBO_LIST_MESSAGES = new Map([
   [0x143, 0x180],
@@ -86,11 +87,21 @@ export async function layoutCombo(r, w) {
     const popup = w.comboListWindow;
     if (popup) {
       const outerWidth = w.comboDroppedWidth || w.width + border * 2;
-      const y = w.comboType === 1 ? textHeight + 2 : w.height + border;
-      const height =
+      let y = w.comboType === 1 ? textHeight + 2 : w.height + border;
+      let height =
         w.comboType === 1
           ? Math.max(2, w.height - y)
           : Math.max(2, (w.comboRequestedHeight ?? 120) - (w.height + 2 * border));
+      if (w.comboType !== 1 && w.comboDropped) {
+        const [, outerTop] = r.windows.screenPosition(w),
+          [, originY] = r.windows.clientPosition(w),
+          [, workTop, , workBottom] = virtualWorkArea(r);
+        let top = originY + y;
+        if (top + height > workBottom) top = Math.max(workTop, outerTop - height);
+        top = Math.max(workTop, Math.min(top, workBottom - 2));
+        height = Math.max(2, Math.min(height, workBottom - top));
+        y = top - originY;
+      }
       await call(
         r,
         'SetWindowPos',

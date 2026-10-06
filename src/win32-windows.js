@@ -40,6 +40,7 @@ import {
   menuCommandAllowed,
 } from './win32-menus.js';
 import { virtualSystemMetric } from './win32-display.js';
+import { virtualWorkArea } from './win32-monitor.js';
 import { iconForHandle } from './win32-icons.js';
 import { staticBitmapMessage } from './win32-static-bitmaps.js';
 import { cursorApis, setCursor } from './win32-cursors.js';
@@ -2513,104 +2514,124 @@ function getQueueStatus(r, a) {
   return result(((status & flags & 0xffff) << 16) | (status & 0xffff), 1);
 }
 
-// SystemParametersInfoA/W(uiAction, uiParam, pvParam, fWinIni). The getters
-// answer from the same values GetSystemMetrics and the display module use; a
-// setter that would change desktop state is refused rather than silently
-// ignored.
+const SYSTEM_PARAMETER_GETTERS = Object.freeze({
+  0x0001: ['beep', 1],
+  0x0005: ['border', BORDER],
+  0x000a: ['keyboardSpeed', 31],
+  0x000e: ['screenSaverTimeout', 600],
+  0x0010: ['screenSaverActive', 0],
+  0x0016: ['keyboardDelay', 1],
+  0x0019: ['iconTitleWrap', 1],
+  0x001b: ['menuDropAlignment', 0],
+  0x0026: ['dragFullWindows', 1],
+  0x0044: ['keyboardPreference', 0],
+  0x0046: ['screenReader', 0],
+  0x004a: ['fontSmoothing', 1],
+  0x005e: ['mouseTrails', 0],
+  0x0062: ['mouseHoverWidth', 4],
+  0x0064: ['mouseHoverHeight', 4],
+  0x0066: ['mouseHoverTime', 400],
+  0x0068: ['wheelScrollLines', 3],
+  0x006a: ['menuShowDelay', 400],
+  0x006c: ['wheelScrollChars', 3],
+  0x1002: ['menuAnimation', 0],
+});
+const SYSTEM_PARAMETER_SETTERS = Object.freeze({
+  0x0002: ['beep', 1],
+  0x000b: ['keyboardSpeed', 31],
+  0x000f: ['screenSaverTimeout', 0xffffffff],
+  0x0011: ['screenSaverActive', 1],
+  0x0017: ['keyboardDelay', 3],
+  0x001a: ['iconTitleWrap', 1],
+  0x001c: ['menuDropAlignment', 1],
+  0x0025: ['dragFullWindows', 1],
+  0x0045: ['keyboardPreference', 1],
+  0x0047: ['screenReader', 1],
+  0x004b: ['fontSmoothing', 1],
+  0x005d: ['mouseTrails', 0xffffffff],
+  0x0063: ['mouseHoverWidth', 0xffffffff],
+  0x0065: ['mouseHoverHeight', 0xffffffff],
+  0x0067: ['mouseHoverTime', 0xffffffff],
+  0x0069: ['wheelScrollLines', 0xffffffff],
+  0x006b: ['menuShowDelay', 0xffffffff],
+  0x006d: ['wheelScrollChars', 0xffffffff],
+});
+
+// Process-local desktop preferences use the Windows SDK action identifiers.
+// Getter buffers have their declared type/size; uiParam is not a byte count for
+// scalar or three-integer mouse queries. No host desktop settings are changed.
 function systemParametersInfo(r, a, wide) {
-  const action = a(0) >>> 0;
-  const param = a(1) >>> 0;
-  const output = a(2) >>> 0;
-  const winIni = a(3) >>> 0;
-  if (winIni & ~0x7) return r.windows.fail(87, 4);
+  const action = a(0) >>> 0,
+    param = a(1) >>> 0,
+    output = a(2) >>> 0,
+    flags = a(3) >>> 0;
+  if (flags & ~7) return r.windows.fail(87, 4);
+  const settings = (r.systemParameters ??= {});
+
+  if (SYSTEM_PARAMETER_GETTERS[action]) {
+    if (!output) return r.windows.fail(87, 4);
+    r.check(output, 4, true);
+    const [key, value] = SYSTEM_PARAMETER_GETTERS[action];
+    r.write32(output, settings[key] ?? value);
+    return result(1, 4);
+  }
+
+  const changed = () => {
+    if (flags & 2)
+      for (const w of r.windows.windows.values())
+        if (!w.parentId) r.windows.post(w.id, 0x1a, action, 0); // WM_SETTINGCHANGE.
+    return result(1, 4);
+  };
+  if (SYSTEM_PARAMETER_SETTERS[action]) {
+    const [key, max] = SYSTEM_PARAMETER_SETTERS[action];
+    if (param > max) return r.windows.fail(87, 4);
+    settings[key] = param;
+    return changed();
+  }
   switch (action) {
-    case 0x0004: // SPI_GETBEEP
-    case 0x0006: // SPI_GETMOUSE
-      if (!output || param < 4) return r.windows.fail(87, 4);
-      r.check(output, param, true);
-      r.data.fill(0, output, output + param);
-      return result(1, 4);
-    case 0x0008: // SPI_SETBEEP
-    case 0x000a: // SPI_SETMOUSE
-      return result(1, 4);
-    case 0x000c: // SPI_GETBORDER
+    case 0x0003: // SPI_GETMOUSE: three signed integers, uiParam unused.
       if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, BORDER);
+      r.check(output, 12, true);
+      (settings.mouse ?? [6, 10, 1]).forEach((v, i) => r.write32(output + i * 4, v));
       return result(1, 4);
-    case 0x000e: // SPI_GETKEYBOARDSPEED
+    case 0x0004: {
+      // SPI_SETMOUSE.
       if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 31);
-      return result(1, 4);
-    case 0x0010: // SPI_SETKEYBOARDSPEED
-    case 0x0014: // SPI_SETKEYBOARDDELAY
-    case 0x001c: // SPI_SETSCREENSAVEACTIVE-inverted: accepted as a no-op
-      return result(1, 4);
-    case 0x0012: // SPI_GETKEYBOARDDELAY
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 1);
-      return result(1, 4);
-    case 0x0016: // SPI_ICONHORIZONTALSPACING
-    case 0x0017: // SPI_GETSCREENSAVETIMEOUT
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, action === 0x0016 ? 75 : 600);
-      return result(1, 4);
-    case 0x0024: // SPI_GETKEYBOARDPREF
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 0);
-      return result(1, 4);
-    case 0x0026: // SPI_GETSCREENREADER
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 0);
-      return result(1, 4);
-    case 0x002a: // SPI_GETMENUANIMATION
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 1);
-      return result(1, 4);
-    case 0x0032: // SPI_GETDRAGFULLWINDOWS
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 1);
-      return result(1, 4);
-    case 0x0036: // SPI_GETNONCLIENTMETRICS
+      r.check(output, 12);
+      const values = [0, 4, 8].map((o) => r.read32(output + o) | 0);
+      if (values.some((v) => v < 0) || values[2] > 2) return r.windows.fail(87, 4);
+      settings.mouse = values;
+      return changed();
+    }
+    case 0x000d: // SPI_ICONHORIZONTALSPACING: pvParam queries, uiParam sets.
+    case 0x0018: {
+      // SPI_ICONVERTICALSPACING.
+      const key = action === 0x000d ? 'iconHorizontalSpacing' : 'iconVerticalSpacing';
+      if (output) {
+        r.check(output, 4, true);
+        r.write32(output, settings[key] ?? 75);
+        return result(1, 4);
+      }
+      if (!param) return r.windows.fail(87, 4);
+      settings[key] = Math.max(32, param);
+      return changed();
+    }
+    case 0x0029: // SPI_GETNONCLIENTMETRICS.
       return nonClientMetrics(r, param, output, wide);
-    case 0x0037: // SPI_SETNONCLIENTMETRICS
-      return result(1, 4);
-    case 0x0042: // SPI_GETICONTITLELOGFONT
+    case 0x002a: // SPI_SETNONCLIENTMETRICS: changing the theme is unfinished.
+      return r.windows.fail(120, 4);
+    case 0x001f: // SPI_GETICONTITLELOGFONT.
       return iconTitleLogFont(r, param, output, wide);
-    case 0x0049: // SPI_GETICONTITLEWRAP
+    case 0x0030: // SPI_GETWORKAREA.
       if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 1);
+      rectangle(r, output, virtualWorkArea(r));
       return result(1, 4);
-    case 0x005a: // SPI_GETMOUSETRAILS
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 0);
-      return result(1, 4);
-    case 0x005c: // SPI_GETWHEELSCROLLLINES
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 3);
-      return result(1, 4);
-    case 0x0060: // SPI_GETWORKAREA
-      if (!output) return r.windows.fail(87, 4);
-      rectangle(r, output, [0, 0, 1024, 768]);
-      return result(1, 4);
-    case 0x0064: // SPI_GETMENUSHOWDELAY
-      if (!output) return r.windows.fail(87, 4);
-      r.check(output, 4, true);
-      r.write32(output, 400);
+    case 0x0048: // SPI_GETANIMATION: ANIMATIONINFO.cbSize, iMinAnimate.
+      if (!output || r.read32(output) !== 8) return r.windows.fail(87, 4);
+      r.check(output, 8, true);
+      r.write32(output + 4, 0);
       return result(1, 4);
     default:
-      // An unrecognised action is refused rather than answered with a value a
-      // caller would then store as a setting.
       return r.windows.fail(87, 4);
   }
 }
@@ -2642,10 +2663,10 @@ function nonClientMetrics(r, size, output, wide) {
   if (!output) return r.windows.fail(87, 4);
   const font = wide ? 92 : 60;
   const total = wide ? NONCLIENTMETRICS_BYTES.wide : NONCLIENTMETRICS_BYTES.ansi;
-  if (size < total) return r.windows.fail(87, 4);
-  r.check(output, total, true);
-  r.data.fill(0, output, output + total);
-  r.write32(output, total);
+  if (![total, total - 4].includes(size) || r.read32(output) !== size) return r.windows.fail(87, 4);
+  r.check(output, size, true);
+  r.data.fill(0, output, output + size);
+  r.write32(output, size);
   let at = output + 4;
   // iBorderWidth, iScrollWidth, iScrollHeight, iCaptionWidth, iCaptionHeight.
   for (const value of [BORDER, 17, 17, TITLE, TITLE]) {
@@ -2668,13 +2689,13 @@ function nonClientMetrics(r, size, output, wide) {
   at += font;
   writeLogFont(r, at, wide, 12); // lfMessageFont
   at += font;
-  r.write32(at, 0); // iPaddedBorderWidth
+  if (size === total) r.write32(at, 0); // iPaddedBorderWidth
   return result(1, 4);
 }
 function iconTitleLogFont(r, size, output, wide) {
   const font = wide ? 92 : 60;
   if (!output) return r.windows.fail(87, 4);
-  if (size < font) return r.windows.fail(87, 4);
+  if (size && size < font) return r.windows.fail(87, 4);
   r.check(output, font, true);
   writeLogFont(r, output, wide, 12);
   return result(1, 4);

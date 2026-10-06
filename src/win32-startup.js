@@ -748,30 +748,6 @@ function setThreadAffinityMask(r, a) {
   thread.affinity = mask;
   return ok(previous, 2);
 }
-function getMonitorInfo(r, a, wide) {
-  // MONITORINFO is a 40-byte structure: cbSize, rcMonitor, rcWork, dwFlags.
-  const monitor = a(0) >>> 0,
-    out = a(1);
-  if (!out) return fail(r, 87, 2);
-  const size = r.read32(out);
-  if (size !== 40) return fail(r, 87, 2);
-  const display = r.windows?.display ?? { width: 640, height: 480 };
-  r.check(out, 40, true);
-  r.data.fill(0, out, out + 40);
-  r.write32(out, 40);
-  // rcMonitor is at 4 and rcWork at 20 (the header records both offsets); each
-  // is a 16-byte RECT. Writing them four bytes apart would put every field in
-  // the wrong slot and hand the caller a rectangle with a zero height.
-  for (const offset of [4, 20]) {
-    r.write32(out + offset, 0);
-    r.write32(out + offset + 4, 0);
-    r.write32(out + offset + 8, display.width);
-    r.write32(out + offset + 12, display.height);
-  }
-  r.write32(out + 36, 1); // MONITORINFOF_PRIMARY
-  return ok(1, 2);
-}
-
 export const startupApis5 = {
   'kernel32.dll!IsDebuggerPresent': isDebuggerPresent,
   'kernel32.dll!CheckRemoteDebuggerPresent': (r, a) => {
@@ -783,11 +759,6 @@ export const startupApis5 = {
   },
   'kernel32.dll!SetThreadAffinityMask': setThreadAffinityMask,
   'kernel32.dll!GetCurrentProcessorNumber': () => ok(0, 0),
-  'user32.dll!GetMonitorInfoA': (r, a) => getMonitorInfo(r, a, false),
-  'user32.dll!GetMonitorInfoW': (r, a) => getMonitorInfo(r, a, true),
-  'user32.dll!MonitorFromWindow': (r, a) => ok(0x10001, 2),
-  'user32.dll!MonitorFromPoint': (r, a) => ok(0x10001, 3),
-  'user32.dll!MonitorFromRect': (r, a) => ok(0x10001, 2),
 };
 export const startupApis2 = {
   'kernel32.dll!VirtualAlloc': virtualAlloc,

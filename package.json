@@ -299,7 +299,9 @@
     "build:list-pointer": "sh scripts/build-list-pointer-fixture.sh",
     "test:list-pointer": "node scripts/test-list-pointer-browser.mjs",
     "build:combo-pointer": "sh scripts/build-combo-pointer-fixture.sh",
-    "test:combo-pointer": "node scripts/test-combo-pointer-browser.mjs"
+    "test:combo-pointer": "node scripts/test-combo-pointer-browser.mjs",
+    "build:monitor-popup": "sh scripts/build-monitor-popup-fixture.sh",
+    "test:monitor-popup": "node scripts/test-monitor-popup-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
