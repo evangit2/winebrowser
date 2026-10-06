@@ -477,5 +477,26 @@ exercises these cases. The final drag runs without intermediate state waits.
 Every native stage and normal destruction must exit zero. See
 [the acceptance record](../evidence/combo-pointer-browser-results.json).
 
+Native child queries now support `ChildWindowFromPoint[Ex]`, `GetTopWindow` and
+`IsChild`. The point queries use the SDK's POINT-by-value ABI, parent client
+coordinates, immediate child z-order and nonclient borders, with independent
+invisible, disabled and transparent skip flags. Hierarchy queries distinguish
+descendants from owned top-level windows and the window itself. RECT copy,
+intersection, union, subtraction, empty checks and clearing preserve aliased
+destinations and SDK output bounds; subtraction returns the remaining bounding
+rectangle.
+
+`WS_EX_TRANSPARENT` child windows defer generated paint messages until pending
+siblings below them have painted. This preserves the message loop's HWND and
+message filters and posted-message priority. The style changes paint order;
+control background brushes and pointer input retain their existing behavior.
+`npm run test:window-query` uploads an unchanged MIT PE32 SDK client both loose
+and zipped. Actual native window procedures verify opaque-back,
+transparent-middle, transparent-front `WM_PAINT` callbacks through
+`PeekMessage`, `DispatchMessage`, `BeginPaint` and `EndPaint`. See
+[the acceptance record](../evidence/window-query-browser-results.json).
+Top-level standard controls still require implementation; this test uses a
+registered custom top-level class.
+
 Exact native control layout, monitor-edge placement, horizontal or multicolumn
 lists and universal GUI/DLL compatibility remain incomplete.

@@ -49,6 +49,7 @@ import {
   windowFrame,
   frameForWindow,
   outerWindowSize,
+  compareWindowOrder,
   effectiveControlBorder,
   MAX_WINDOW_WIDTH,
   MAX_WINDOW_HEIGHT,
@@ -984,6 +985,7 @@ export class WindowManager {
       }
       return message;
     }
+    const paints = [];
     for (const window of this.windows.values()) {
       const message = {
         hwnd: window.id,
@@ -1004,9 +1006,33 @@ export class WindowManager {
         (window.invalid || window.internalPaint) &&
         accepts(message)
       ) {
-        if (remove) window.internalPaint = false;
-        return message;
+        if (!paints.length && !(window.parentId && window.exStyle & 0x20)) {
+          if (remove) window.internalPaint = false;
+          return message;
+        }
+        paints.push({ window, message });
       }
+    }
+    // Transparent child windows paint after pending siblings underneath them
+    // in the same guest GUI thread. Keep HWND/message filters intact and do not
+    // change an opaque control's background or pointer-input behavior.
+    const selectPaint = (entry) => {
+      if (entry.window.parentId && entry.window.exStyle & 0x20) {
+        const below = paints
+          .filter(
+            (other) =>
+              other.window.parentId === entry.window.parentId &&
+              compareWindowOrder(other.window, entry.window) > 0,
+          )
+          .sort((a, b) => compareWindowOrder(b.window, a.window));
+        if (below.length) return selectPaint(below[0]);
+      }
+      return entry;
+    };
+    if (paints.length) {
+      const selected = selectPaint(paints[0]);
+      if (remove) selected.window.internalPaint = false;
+      return selected.message;
     }
     return null;
   }

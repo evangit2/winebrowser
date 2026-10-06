@@ -314,3 +314,14 @@ checks the host SDK client, real native Wine GUI loose EXE/ZIP uploads and the
 hosted example. Unit checks cover NT layouts, error/ownership contracts,
 directory enumeration and quota accounting. This is an additional compatibility
 increment; arbitrary Windows software support remains an active, unproven goal.
+
+The native window-query SDK client now passes ordinary loose EXE and ZIP uploads
+with actual Wine base DLLs. Ten additional USER32 query/RECT APIs cover immediate
+child hit testing, z-order, hierarchy and aliased geometry. Native transparent
+custom children now paint after pending siblings beneath them, verified by their
+actual guest `WM_PAINT` procedures. The executable rebuilds byte for byte; 1227
+unit checks pass, together with custom-child, guest-drive, window-position and
+unchanged Metapad GUI regressions. See
+[the query acceptance](../evidence/window-query-browser-results.json).
+Native Wine comctl32 still has unresolved host GUI dependencies, and 7-Zip File
+Manager remains blocked before creating a window. Neither is claimed working.

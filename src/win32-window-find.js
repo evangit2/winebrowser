@@ -1,3 +1,4 @@
+import { windowQueryApis } from './win32-window-query.js';
 import { compareWindowOrder } from './window-frame.js';
 import { encodeAnsi } from './encoding.js';
 const result = (value, argc) => ({ result: value >>> 0, argc });
@@ -50,7 +51,7 @@ function find(r, a, wide, extended) {
   return result(0, argc);
 }
 
-export const windowFindApis = {};
+export const windowFindApis = { ...windowQueryApis };
 for (const wide of [false, true])
   windowFindApis[`user32.dll!GetClassName${wide ? 'W' : 'A'}`] = (r, a) => {
     const w = r.windows.windows.get(a(0));

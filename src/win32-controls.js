@@ -54,7 +54,7 @@ export function controlStyle(kind, style, extended) {
   // Registered classes own their low style bits. Only the client frame is
   // interpreted by the host; painting and control messages stay in the EXE/DLL.
   if (kind === 'custom') {
-    if (extended & ~0x30215) throw Error('Unsupported custom child-window extended style');
+    if (extended & ~0x30235) throw Error('Unsupported custom child-window extended style');
     return {
       controlBorder: extended & 0x200 ? 2 : extended & 0x20000 || style & 0x800000 ? 1 : 0,
     };
@@ -64,7 +64,9 @@ export function controlStyle(kind, style, extended) {
   const local = style & 0xffff;
   // WS_EX_STATICEDGE is a one-pixel control frame, used by native read-only
   // dialog edits. WS_EX_CLIENTEDGE retains its two-pixel inset precedence.
-  if (extended & ~0x20215) throw Error('Unsupported child-control extended style');
+  // WS_EX_TRANSPARENT affects sibling paint order and explicit child hit
+  // queries; it does not make an otherwise opaque control brush transparent.
+  if (extended & ~0x20235) throw Error('Unsupported child-control extended style');
   // BUTTON styles: BS_PUSHBUTTON (0), DEFPUSHBUTTON (1), CHECKBOX (2),
   // AUTOCHECKBOX (3), RADIOBUTTON (4), 3STATE (5), AUTO3STATE (6), GROUPBOX (7),
   // USERBUTTON (8, undocumented), AUTORADIOBUTTON (9), PUSHBOX (0xa),
