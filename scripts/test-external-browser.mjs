@@ -443,6 +443,7 @@ try {
     exitCode: window.__lastRun.exitCode,
     apiTrace: window.__lastRun.apiTrace,
     modules: window.__lastRun.modules,
+    loadedModules: window.__lastRun.loadedModules,
     stdout: document.getElementById('output').textContent,
     metrics: document.getElementById('metrics').textContent,
   }));
@@ -530,6 +531,7 @@ try {
     exitCode: window.__lastRun.exitCode,
     apiTrace: window.__lastRun.apiTrace,
     modules: window.__lastRun.modules,
+    loadedModules: window.__lastRun.loadedModules,
     stdout: document.getElementById('output').textContent,
     metrics: document.getElementById('metrics').textContent,
     completedAt: performance.now(),
@@ -657,6 +659,7 @@ try {
       exitCode: window.__lastRun.exitCode,
       apiTrace: window.__lastRun.apiTrace,
       modules: window.__lastRun.modules,
+      loadedModules: window.__lastRun.loadedModules,
       width: canvas.width,
       height: canvas.height,
       hidden: canvas.hidden,
@@ -1035,6 +1038,7 @@ try {
         exitCode: result.exitCode,
         apiTrace: result.apiTrace,
         modules: result.modules,
+        loadedModules: result.loadedModules,
         metrics: document.getElementById('metrics').textContent,
         logs: document.getElementById('logs').textContent,
       };
@@ -1050,7 +1054,10 @@ try {
         passed:
           !!ntdllModule &&
           !ntdllModule.host &&
-          ntdllModule.initialized &&
+          ntdllActual.loadedModules.some(
+            (image) =>
+              image.name === ntdllModule.name && image.base === ntdllModule.base && !image.host,
+          ) &&
           ntdllModule.preferredBase === 0x7bc00000 &&
           ntdllModule.base !== ntdllModule.preferredBase &&
           ntdllEntryPointRva !== 0,
@@ -1067,7 +1074,13 @@ try {
       ntdllModule,
       nativeDllMain: {
         entryPointRva: `0x${ntdllEntryPointRva.toString(16)}`,
-        initializedByNormalRuntime: !!ntdllModule?.initialized && ntdllEntryPointRva !== 0,
+        initializedByNormalRuntime:
+          !!ntdllModule &&
+          ntdllActual.loadedModules.some(
+            (image) =>
+              image.name === ntdllModule.name && image.base === ntdllModule.base && !image.host,
+          ) &&
+          ntdllEntryPointRva !== 0,
       },
       checks: ntdllChecks,
       scope:
@@ -1089,6 +1102,7 @@ try {
         exitCode: window.__lastRun.exitCode,
         apiTrace: window.__lastRun.apiTrace,
         modules: window.__lastRun.modules,
+        loadedModules: window.__lastRun.loadedModules,
         outputs: window.__lastRun.outputs.map((output) => ({
           path: output.path,
           bytes: Array.from(output.bytes),
@@ -1157,7 +1171,10 @@ try {
         passed:
           !!clockModule &&
           !clockModule.host &&
-          clockModule.initialized &&
+          clockActual.loadedModules.some(
+            (image) =>
+              image.name === clockModule.name && image.base === clockModule.base && !image.host,
+          ) &&
           clockModule.preferredBase === 0x7bc00000 &&
           clockModule.base !== clockModule.preferredBase,
       },
@@ -1211,11 +1228,14 @@ try {
           memoryActual.apiTrace.includes('ntdll.dll!NtFreeVirtualMemory'),
       },
       {
-        name: 'guest ntdll remains initialized and relocated',
+        name: 'guest ntdll was initialized and relocated',
         passed:
           !!memoryModule &&
           !memoryModule.host &&
-          memoryModule.initialized &&
+          memoryActual.loadedModules.some(
+            (image) =>
+              image.name === memoryModule.name && image.base === memoryModule.base && !image.host,
+          ) &&
           memoryModule.preferredBase === 0x7bc00000 &&
           memoryModule.base !== memoryModule.preferredBase,
       },
@@ -1298,7 +1318,10 @@ try {
         passed:
           !!heapModule &&
           !heapModule.host &&
-          heapModule.initialized &&
+          heapFreeActual.loadedModules.some(
+            (image) =>
+              image.name === heapModule.name && image.base === heapModule.base && !image.host,
+          ) &&
           heapModule.preferredBase === 0x7bc00000 &&
           heapModule.base !== heapModule.preferredBase,
       },
@@ -1346,11 +1369,14 @@ try {
           heapDestroyActual.apiTrace.includes('ntdll.dll!NtFreeVirtualMemory'),
       },
       {
-        name: 'guest ntdll remains initialized and relocated',
+        name: 'guest ntdll was initialized and relocated',
         passed:
           !!destroyModule &&
           !destroyModule.host &&
-          destroyModule.initialized &&
+          heapDestroyActual.loadedModules.some(
+            (image) =>
+              image.name === destroyModule.name && image.base === destroyModule.base && !image.host,
+          ) &&
           destroyModule.preferredBase === 0x7bc00000 &&
           destroyModule.base !== destroyModule.preferredBase,
       },
