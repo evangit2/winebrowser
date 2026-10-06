@@ -524,5 +524,30 @@ geometry and GDI pixels through EXE upload, ZIP upload and hosted example runs.
 See [the acceptance record](../evidence/window-defer-browser-results.json).
 The published source ZIP independently rebuilds the exact EXE.
 
+GDI regions now have owned handles and canonical disjoint horizontal bands.
+Rectangle construction normalizes reversed coordinates; boolean combination
+supports AND, OR, XOR, DIFF and COPY with aliased sources/destinations. Region
+queries, offsets, object types and guarded RGNDATA serialization/reconstruction
+answer from the actual shape. Selecting a region copies its geometry into the
+DC; changing or deleting the original handle cannot alter current or saved
+clips. Clip combination and rectangle visibility use actual complex regions.
+`FillRgn` and `FrameRgn` use the shared brush and clipped pixel renderer. Frame
+edges follow Wine's four axial-translation intersections, so internal rectangle
+boundaries do not appear as seams.
+
+The **gdi-region** MIT native GUI selects difference, union, XOR and intersection
+using ordinary buttons. Guest SDK assertions verify ownership, guarded region
+data and sampled fill/frame/empty pixels. `npm run test:gdi-region` checks
+100,000 browser pixels per stage through EXE, ZIP and hosted-example loading.
+See [the acceptance record](../evidence/gdi-region-browser-results.json).
+The public source ZIP independently rebuilds the exact EXE.
+
+Region coordinates use the SDK's signed 27-bit domain. Canonical output is
+bounded to 256 rectangles, input RGNDATA to 1024 rectangles, and region handles
+share the 4096-object GDI allocation budget. Complexity failures preserve
+destination shapes and clips. `ExtCreateRegion` currently supports NULL or
+identity XFORM; nonidentity transforms return error 120. Polygon and rounded
+regions, window-region ownership and broader GDI mapping remain unfinished.
+
 Exact native control layout, monitor-edge placement, horizontal or multicolumn
 lists and universal GUI/DLL compatibility remain incomplete.

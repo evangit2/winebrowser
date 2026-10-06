@@ -336,3 +336,17 @@ pixels and trusted clicks in loose EXE, ZIP and hosted-example modes; the source
 ZIP independently rebuilds the exact public EXE. All 1231 unit checks pass.
 The Chromium acceptance translates 2080 x86 blocks inside the browser in about
 315–417 ms. Larger native Wine common-control and shell dependencies remain.
+
+Owned GDI region handles now provide exact rectangle-piece geometry, canonical
+RGNDATA, aliased boolean combinations and copied DC clips. Fill and frame calls
+produce actual clipped pixels, including holes and concave outlines without
+internal seams. The public **gdi-region** native Windows SDK GUI uses ordinary
+buttons to select difference, union, XOR and intersection. Guest geometry,
+ownership and pixel assertions pass; browser acceptance checks 100,000 pixels
+per stage in EXE, ZIP and hosted-example modes. The source ZIP independently
+rebuilds the exact executable, and all 1239 unit checks pass. See
+[the acceptance](../evidence/gdi-region-browser-results.json).
+Native Wine comctl32 now has 41 unresolved imports versus 47 before this change;
+actual native comctl32 execution and 7-Zip File Manager remain blocked. Polygon
+and rounded regions, nonidentity transforms and window-region support remain
+unfinished. Universal Windows/DLL compatibility is still active and unproven.

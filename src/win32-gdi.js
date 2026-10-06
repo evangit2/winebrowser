@@ -13,6 +13,7 @@ import {
 } from './gdi-dib.js';
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
+import { createRegionApis } from './gdi-region.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
 import { currentDisplayMode, VIRTUAL_DISPLAY_MODES } from './win32-display.js';
 import { encodeAnsi, decodeAnsi } from './encoding.js';
@@ -163,6 +164,7 @@ function stateFor(runtime) {
       ]),
       dcs: new Map(),
       bitmaps: new Map(),
+      regions: new Map(),
       dibBitmaps: new Set(),
       windowSurfaces: new Map(),
       stockBrushCount: brushes.size,
@@ -202,6 +204,7 @@ function allocateHandle(runtime, state, argc) {
       state.stockFontCount +
       state.bitmaps.size -
       state.stockBitmapCount +
+      state.regions.size +
       state.palettes.size -
       1 >=
       4096 ||
@@ -914,12 +917,12 @@ function polyline(runtime, argument) {
   strokePolygon(dc, points, shapePen(runtime, state, dc), false);
   return success(1, 3);
 }
-// SetRectRgn/IntersectClipRect/ExcludeClipRect adjust the DC's clip rectangle.
-// The runtime tracks one rectangular clip, so these are exact for that case.
+// Clip queries and rectangle operations use the DC's actual disjoint pieces,
+// including complex clips copied from owned region handles.
 function getClipRect(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
-  if (!dc) return badDc(runtime, 2, CLR_INVALID);
+  if (!dc) return badDc(runtime, 2);
   const out = argument(1);
   if (!out) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
   const pieces = intersectClip(clipPieces(dc, dc.surface), [
@@ -943,7 +946,7 @@ function getClipRect(runtime, argument) {
 function intersectClipRect(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
-  if (!dc) return badDc(runtime, 5, CLR_INVALID);
+  if (!dc) return badDc(runtime, 5);
   return success(
     setClipPieces(
       dc,
@@ -958,24 +961,13 @@ function intersectClipRect(runtime, argument) {
 function excludeClipRect(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
-  if (!dc) return badDc(runtime, 5, CLR_INVALID);
+  if (!dc) return badDc(runtime, 5);
   const pieces = subtractClip(
     clipPieces(dc, dc.surface),
     [1, 2, 3, 4].map((i) => signed(argument(i))),
   );
   if (pieces.length > 256) return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 5);
   return success(setClipPieces(dc, pieces), 5);
-}
-function selectClipRgn(runtime, argument) {
-  const state = stateFor(runtime);
-  const dc = getDc(runtime, state, argument(0));
-  if (!dc) return badDc(runtime, 2, CLR_INVALID);
-  if (!argument(1)) {
-    delete dc.clip;
-    delete dc.clipRects;
-    return success(2, 2);
-  }
-  return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 2);
 }
 
 // ---------------------------------------------------------------------------
@@ -1921,6 +1913,8 @@ function selectObject(runtime, argument) {
   const dc = getDc(runtime, state, dcHandle);
   if (!dc) return badDc(runtime, 2);
   const objectHandle = argument(1) >>> 0;
+  const region = state.regions.get(objectHandle);
+  if (region) return success(setClipPieces(dc, region.pieces), 2);
   const brush = getBrush(state, objectHandle);
   if (brush) {
     const previous = dc.brush;
@@ -1958,6 +1952,7 @@ function selectObject(runtime, argument) {
 function deleteObject(runtime, argument) {
   const state = stateFor(runtime);
   const handle = argument(0) >>> 0;
+  if (state.regions.delete(handle)) return success(1, 1);
   const palette = state.palettes.get(handle);
   if (palette) {
     if (palette.stock) return success(1, 1);
@@ -2745,6 +2740,23 @@ function arc(runtime, argument) {
 }
 
 export const gdiApis = {
+  ...createRegionApis({ stateFor, getDc, getBrush, readRect, allocateHandle, success, failure }),
+  'gdi32.dll!GetObjectType': (r, a) => {
+    const state = stateFor(r),
+      handle = a(0) >>> 0,
+      dc = state.dcs.get(handle);
+    if (dc?.active) return success(dc.kind === 'memory-dc' ? 10 : 3, 1);
+    for (const [table, kind] of [
+      [state.pens, 1],
+      [state.brushes, 2],
+      [state.palettes, 5],
+      [state.fonts, 6],
+      [state.bitmaps, 7],
+      [state.regions, 8],
+    ])
+      if (table.has(handle)) return success(kind, 1);
+    return failure(r, ERROR_INVALID_HANDLE, 0, 1);
+  },
   'user32.dll!DrawIconEx': drawIconEx,
   'user32.dll!GetDesktopWindow': getDesktopWindow,
   'user32.dll!GetDC': getDC,
@@ -2857,7 +2869,6 @@ export const gdiApis = {
   'gdi32.dll!GetClipBox': getClipRect,
   'gdi32.dll!IntersectClipRect': intersectClipRect,
   'gdi32.dll!ExcludeClipRect': excludeClipRect,
-  'gdi32.dll!SelectClipRgn': selectClipRgn,
   'gdi32.dll!SetBkMode': setBkMode,
   'gdi32.dll!MoveToEx': moveToEx,
   'gdi32.dll!LineTo': lineTo,

@@ -271,6 +271,17 @@
       "sourceZip": "window-defer/source.zip",
       "sourceZipSha256": "bbd215fd97314d1b9f0c6c357a9346adff38a762b9551ae60270057a9647bd5e",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-region",
+      "description": "Native region GUI: choose Difference, Union, Xor or Intersection to combine two shapes. GDI fills and frames the actual result, and native pixel checks verify it. Close to finish.",
+      "exe": "gdi-region/gdi-region.exe",
+      "exeSha256": "0015fc4fa044a06bff79806f55fdb9649c8acc8cb940e2b281494cbede09c502",
+      "zip": "gdi-region/gdi-region.zip",
+      "zipSha256": "a3010fec6df2be8277214270742de87f13f0d8ada6f8c71385b51616a3a4ea89",
+      "sourceZip": "gdi-region/source.zip",
+      "sourceZipSha256": "012d162843bb08a353bb44cb84434d73ce7301e7f05e756bc6d06981f2138cd6",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }
