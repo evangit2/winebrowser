@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-06T14:26:46.218Z",
+  "date": "2026-10-06T15:18:25.641Z",
   "target": {
     "id": "winapiexec-1.2-x86",
     "path": ".cache/targets/winapiexec.exe",
@@ -25,7 +25,7 @@
     "winapiexecPcmPackage": {
       "id": "winapiexec-1.2-x86+generated-pcm-test-data",
       "archive": "winapiexec-pcm.zip",
-      "archiveSha256": "f70fb27c0eee739e78ebd8f7663fdf7af39a1ce831d44b0eec52a3d0516b3133",
+      "archiveSha256": "accf814fa1a7191b67b1c41e0b517d81922d990b467a036fe280cdf82e511fc2",
       "executableId": "winapiexec-1.2-x86",
       "executablePath": ".cache/targets/winapiexec.exe",
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
@@ -123,7 +123,7 @@
     "wineNtdllPackage": {
       "id": "winapiexec-1.2-x86+verified-wine-ntdll",
       "archive": "winapiexec-wine-ntdll.zip",
-      "archiveSha256": "1a1890e950ac4b3cedc47120c54691483e24ac3bc9c339877c166f609dd801b8",
+      "archiveSha256": "b0740bfcbf665dd5e5100d6ea8ff3111b1a3c4d841b324679db0f4c2014e7cfc",
       "entries": [
         "winapiexec.exe",
         "ntdll.dll"
@@ -236,7 +236,7 @@
           "initialized": false
         }
       ],
-      "metrics": "168 Wasm blocks · 47.2 ms x86 translation · 4587 x86 instructions · 32 API calls · 60.9 ms total",
+      "metrics": "168 Wasm blocks · 46.6 ms x86 translation · 4587 x86 instructions · 32 API calls · 59.1 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe",
       "dialog": null,
       "checks": [
@@ -370,7 +370,7 @@
           "initialized": false
         }
       ],
-      "metrics": "165 Wasm blocks · 24.3 ms x86 translation · 7744 x86 instructions · 41 API calls · 32.6 ms total",
+      "metrics": "165 Wasm blocks · 32.7 ms x86 translation · 7744 x86 instructions · 41 API calls · 43.4 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "dialog": null,
       "checks": [
@@ -452,7 +452,7 @@
           "initialized": false
         }
       ],
-      "metrics": "140 Wasm blocks · 19.8 ms x86 translation · 4415 x86 instructions · 14 API calls · 79.8 ms total",
+      "metrics": "140 Wasm blocks · 19.9 ms x86 translation · 4415 x86 instructions · 14 API calls · 61.0 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "dialog": {
         "title": "External target",
@@ -535,13 +535,13 @@
           "initialized": false
         }
       ],
-      "metrics": "123 Wasm blocks · 19.1 ms x86 translation · 1684 x86 instructions · 14 API calls · 45.2 ms total",
+      "metrics": "123 Wasm blocks · 22.7 ms x86 translation · 1684 x86 instructions · 14 API calls · 48.4 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "tone": {
         "frequency": 440,
         "gain": 0.11999999731779099,
-        "start": 0.576,
-        "stop": 0.596,
+        "start": 0.6666666666666666,
+        "stop": 0.6866666666666666,
         "durationMs": 20
       },
       "dialog": null,
@@ -622,7 +622,7 @@
         }
       ],
       "stdout": "",
-      "metrics": "11 Wasm blocks · 14.1 ms x86 translation · 26 x86 instructions · 4 API calls · 128.2 ms total",
+      "metrics": "11 Wasm blocks · 13.1 ms x86 translation · 26 x86 instructions · 4 API calls · 330.5 ms total",
       "expectedTrace": [
         "LoadLibraryA",
         "GetProcAddress",
@@ -655,7 +655,7 @@
         "0x20002"
       ],
       "executableSha256": "643766cf70bcdd707ec5db2b1eac610f4314c3fbd5881c520fc8bf4c205db69b",
-      "generatedArchiveSha256": "f70fb27c0eee739e78ebd8f7663fdf7af39a1ce831d44b0eec52a3d0516b3133",
+      "generatedArchiveSha256": "accf814fa1a7191b67b1c41e0b517d81922d990b467a036fe280cdf82e511fc2",
       "audioFixture": {
         "path": "tone.wav",
         "format": "PCM WAV",
@@ -750,7 +750,7 @@
         "created": true,
         "started": true,
         "ended": true,
-        "startedAt": 2376.9049999713898,
+        "startedAt": 2374.539999961853,
         "numberOfChannels": 1,
         "sampleRate": 8000,
         "length": 80,
@@ -836,7 +836,7 @@
           0.25,
           -0.25
         ],
-        "endedAt": 2383.724999964237
+        "endedAt": 2382.3449999690056
       },
       "exitCode": 1,
       "apiTrace": [
@@ -936,14 +936,14 @@
         }
       ],
       "stdout": "",
-      "metrics": "139 Wasm blocks · 34.5 ms x86 translation · 2621 x86 instructions · 15 API calls · 57.1 ms total",
-      "completedAt": 2405.6749999523163,
+      "metrics": "139 Wasm blocks · 32.3 ms x86 translation · 2621 x86 instructions · 15 API calls · 54.9 ms total",
+      "completedAt": 2393.774999976158,
       "bufferSources": [
         {
           "created": true,
           "started": true,
           "ended": true,
-          "startedAt": 2376.9049999713898,
+          "startedAt": 2374.539999961853,
           "numberOfChannels": 1,
           "sampleRate": 8000,
           "length": 80,
@@ -1029,7 +1029,7 @@
             0.25,
             -0.25
           ],
-          "endedAt": 2383.724999964237
+          "endedAt": 2382.3449999690056
         }
       ],
       "checks": [
@@ -1245,7 +1245,7 @@
         "SetPixel",
         "ReleaseDC"
       ],
-      "metrics": "162 Wasm blocks · 32.4 ms x86 translation · 12263 x86 instructions · 60 API calls · 57.7 ms total",
+      "metrics": "162 Wasm blocks · 24.3 ms x86 translation · 12263 x86 instructions · 60 API calls · 50.2 ms total",
       "checks": [
         {
           "name": "exit code 1",
@@ -1526,7 +1526,7 @@
           "initialized": true
         }
       ],
-      "metrics": "197 Wasm blocks · 35.5 ms x86 translation · 32236 x86 instructions · 114 API calls · 57.9 ms total",
+      "metrics": "197 Wasm blocks · 28.4 ms x86 translation · 32236 x86 instructions · 114 API calls · 48.0 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "dialog": null,
       "checks": [
@@ -1708,7 +1708,7 @@
           "initialized": false
         }
       ],
-      "metrics": "275 Wasm blocks · 41.2 ms x86 translation · 12097 x86 instructions · 48 API calls · 49.9 ms total",
+      "metrics": "275 Wasm blocks · 40.0 ms x86 translation · 12097 x86 instructions · 48 API calls · 48.6 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "assertedModule": {
         "name": "wine-format.dll",
@@ -1981,7 +1981,7 @@
           255
         ]
       },
-      "metrics": "167 Wasm blocks · 25.0 ms x86 translation · 30057 x86 instructions · 141 API calls · 48.0 ms total",
+      "metrics": "167 Wasm blocks · 24.2 ms x86 translation · 30057 x86 instructions · 141 API calls · 47.1 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "expectedSha256": "046d9c801994f5e6d5c740fb4902bc518131339c3dae94723afa0e2ab37b3ab3",
       "checks": [
@@ -2128,7 +2128,7 @@
           "host": false
         }
       ],
-      "metrics": "489 Wasm blocks · 309.9 ms x86 translation · 16543 x86 instructions · 24 API calls · 479.7 ms total",
+      "metrics": "489 Wasm blocks · 87.8 ms x86 translation · 16543 x86 instructions · 24 API calls · 122.3 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2319,24 +2319,24 @@
         {
           "path": "winebrowser-filetime.bin",
           "bytes": [
-            144,
-            113,
-            5,
-            188,
-            158,
+            224,
+            61,
+            247,
+            241,
+            165,
             85,
             221,
             1
           ]
         }
       ],
-      "metrics": "508 Wasm blocks · 192.2 ms x86 translation · 28545 x86 instructions · 49 API calls · 257.4 ms total",
+      "metrics": "508 Wasm blocks · 77.1 ms x86 translation · 28545 x86 instructions · 49 API calls · 103.6 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
-      "fileTime": "0x01dd559ebc057190",
-      "unixMilliseconds": 1791296813865,
+      "fileTime": "0x01dd55a5f1f73de0",
+      "unixMilliseconds": 1791299910846,
       "wallClockWindow": {
-        "before": 1791296813460,
-        "after": 1791296813928
+        "before": 1791299910679,
+        "after": 1791299910879
       },
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2508,7 +2508,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "520 Wasm blocks · 182.0 ms x86 translation · 23973 x86 instructions · 33 API calls · 231.3 ms total",
+      "metrics": "520 Wasm blocks · 78.0 ms x86 translation · 23973 x86 instructions · 33 API calls · 101.7 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "ntdllModule": {
         "name": "ntdll.dll",
@@ -2765,7 +2765,7 @@
           ]
         }
       ],
-      "metrics": "519 Wasm blocks · 118.4 ms x86 translation · 42938 x86 instructions · 65 API calls · 158.2 ms total",
+      "metrics": "519 Wasm blocks · 78.1 ms x86 translation · 42938 x86 instructions · 65 API calls · 105.6 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "zeroedHeapOutput": {
         "path": "winebrowser-heap-zero.bin",
@@ -2986,7 +2986,7 @@
         }
       ],
       "outputs": [],
-      "metrics": "523 Wasm blocks · 80.5 ms x86 translation · 33236 x86 instructions · 46 API calls · 104.8 ms total",
+      "metrics": "523 Wasm blocks · 74.8 ms x86 translation · 33236 x86 instructions · 46 API calls · 97.4 ms total",
       "logs": "\n{\"isolated\":true,\"wasm\":true,\"workers\":true,\"sab\":true,\"opfs\":true}\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: pts-hh4t.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nLoading x86 decoder…\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe\nProcess 1: winapiexec.exe",
       "ntdllModule": {
         "name": "ntdll.dll",

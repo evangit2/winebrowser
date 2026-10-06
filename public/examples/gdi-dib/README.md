@@ -1,0 +1,7 @@
+Authored MIT native PE32 fixture. Rebuild with `npm run build:gdi-dib`; run Chromium acceptance with `npm run test:gdi-dib`.
+
+The unchanged EXE uses Windows SDK prototypes and constants to test SetDIBits/GetDIBits at 1/4/8/16/24/32 bits per pixel, top-down and bottom-up rows, RGB565 masks, metadata queries, indexed RGB colors and selected logical-palette WORD indices. Native GetPixel and byte comparisons verify all colors; readback retains a sentinel immediately beyond the returned image. Invalid handles, overlapping masks and invalid usage fail. Palette selection returns the previous stock handle and the custom object can be released.
+
+The window shows an 8×6 bitmap scaled to 256×192. F6 toggles two top-down partial rows between the original and reversed colors. Native readback checks the placement. Chromium independently scans all 49,152 pixels before the update, after the update, after restoring the original rows and after updating again, then closes the window and requires exit zero. The report records the EXE hash, browser version, compiled block count and browser-local translation time; the native executable is compiled on the host only to create the input fixture, while execution translates its unchanged x86 code into Wasm in the browser.
+
+This covers uncompressed CPU GDI bitmap transfers. RLE, DIB sections, device/printer behavior, color management, full mapping transforms and universal Windows/DLL compatibility remain unfinished. The fixture contains no third-party or proprietary binaries.

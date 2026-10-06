@@ -1,3 +1,10 @@
+import {
+  defaultDibPalette,
+  readDibLayout,
+  readDibPixel,
+  writeDibPixel,
+  writeDibColorTable,
+} from './gdi-dib.js';
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
@@ -128,12 +135,25 @@ function stateFor(runtime) {
         color: SYSTEM_COLORS[index],
         systemColor: index,
       });
+    const defaultColors = defaultDibPalette(8);
     state = {
       desktopSurface: { width, height, pixels, dirty: true },
       desktopActive: false,
       brushes,
       pens,
       fonts,
+      palettes: new Map([
+        [
+          STOCK_DEFAULT_PALETTE,
+          {
+            kind: 'palette',
+            stock: true,
+            entries: [...defaultColors.slice(0, 10), ...defaultColors.slice(246)].map(
+              ([red, green, blue]) => ({ red, green, blue, flags: 0 }),
+            ),
+          },
+        ],
+      ]),
       dcs: new Map(),
       bitmaps: new Map(),
       windowSurfaces: new Map(),
@@ -173,7 +193,9 @@ function allocateHandle(runtime, state, argc) {
       state.fonts.size -
       state.stockFontCount +
       state.bitmaps.size -
-      state.stockBitmapCount >=
+      state.stockBitmapCount +
+      state.palettes.size -
+      1 >=
       4096 ||
     state.nextHandle >= 0x10000000
   )
@@ -635,7 +657,7 @@ const DEVICE_CAPS = Object.freeze({
   30: 2, // LINECAPS: polylines.
   32: 0x83, // POLYGONALCAPS: polygons, rectangles and interiors (alternate fill).
   36: 3, // CLIPCAPS: rectangular and bounded complex regions.
-  38: 0x801, // RASTERCAPS: BITBLT and STRETCHBLT. DI_BITMAP also requires SetDIBits.
+  38: 0x801, // RASTERCAPS: BITBLT and STRETCHBLT. Compressed DIB transfers remain unfinished.
   40: 36, // ASPECTX: square device pixels, conventional GDI aspect units.
   42: 36, // ASPECTY.
   44: 51, // ASPECTXY: rounded diagonal in the same aspect units.
@@ -1300,48 +1322,116 @@ function extTextOut(runtime, argument, wide) {
   }
   return success(1, 8);
 }
-// GetDIBits(Bitmap, DC, Start, Lines, Bits, BITMAPINFO, Usage): copies the
-// bitmap's pixels into the caller's DIB in the documented bottom-up order.
-function getDIBits(runtime, argument) {
-  const state = stateFor(runtime);
-  const bitmap = state.bitmaps.get(argument(0) >>> 0);
-  const start = argument(2) | 0;
-  const lines = argument(3) | 0;
-  const bits = argument(4);
-  const info = argument(5);
-  const usage = argument(6) >>> 0;
-  if (!bitmap) return failure(runtime, ERROR_INVALID_HANDLE, 0, 7);
-  if (usage > 2) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
-  if (!info || start < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
-  runtime.check(info, 40);
-  if (!bits) return success(bitmap.height, 7);
-  const bitCount = runtime.guestMemory.read(info + 14, 2);
-  if (![1, 4, 8, 24, 32].includes(bitCount)) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 7);
-  const count = Math.min(lines < 0 ? bitmap.height : lines, bitmap.height - start);
-  const stride = Math.ceil((bitmap.width * bitCount) / 32) * 4;
-  runtime.check(bits, stride * count, true);
-  for (let y = 0; y < count; y++) {
-    const sourceY = start + y;
-    const row = bits + (count - 1 - y) * stride;
-    for (let x = 0; x < bitmap.width; x++) {
-      const offset = (sourceY * bitmap.width + x) * 4;
-      const r = bitmap.pixels[offset],
-        g = bitmap.pixels[offset + 1],
-        b = bitmap.pixels[offset + 2];
-      if (bitCount === 32) {
-        runtime.data[row + x * 4] = b;
-        runtime.data[row + x * 4 + 1] = g;
-        runtime.data[row + x * 4 + 2] = r;
-        runtime.data[row + x * 4 + 3] = 0;
-      } else if (bitCount === 24) {
-        runtime.data[row + x * 3] = b;
-        runtime.data[row + x * 3 + 1] = g;
-        runtime.data[row + x * 3 + 2] = r;
-      } else if (bitCount === 8) {
-        runtime.data[row + x] = Math.round((r + g + b) / 3);
+// Both APIs take HDC first, then HBITMAP. A scan offset counts from the
+// bottom of the described image, including top-down partial buffers (the
+// latter begin at height - start - count). This matches Wine's native tests.
+function dibPalette(state, dc) {
+  return state.palettes
+    ?.get(dc.palette ?? STOCK_DEFAULT_PALETTE)
+    ?.entries.map((entry) => [entry.red, entry.green, entry.blue]);
+}
+function setDIBits(r, a) {
+  const state = stateFor(r),
+    dc = getDc(r, state, a(0));
+  if (!dc) return badDc(r, 7);
+  const bitmap = state.bitmaps.get(a(1) >>> 0);
+  if (!bitmap) return failure(r, ERROR_INVALID_HANDLE, 0, 7);
+  const start = a(2) >>> 0,
+    lines = a(3) >>> 0,
+    bits = a(4),
+    usage = a(6) >>> 0;
+  if (!bits) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  const layout = readDibLayout(r, a(5), usage, { paletteEntries: dibPalette(state, dc) });
+  if (!layout) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  if (!lines || start >= layout.height) return success(0, 7);
+  const count = layout.signedHeight < 0 ? lines : Math.min(lines, layout.height - start);
+  if (count > 4096) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  r.check(bits, layout.stride * count);
+  const width = Math.min(bitmap.width, layout.width);
+  // Stage decoded rows before modifying the object. Padding and unused
+  // source columns are ignored; callers retain ownership of the input bits.
+  const changes = [];
+  for (let row = 0; row < count; row++) {
+    const y =
+      layout.signedHeight < 0
+        ? layout.height - count - start + row
+        : layout.height - 1 - start - row;
+    if (y < 0 || y >= bitmap.height) continue;
+    const pixels = new Uint8ClampedArray(width * 4);
+    for (let x = 0; x < width; x++) {
+      let rgb = readDibPixel(r, layout, bits + row * layout.stride, x);
+      if (!rgb) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+      if (bitmap.monochrome) {
+        const value = rgb.reduce((sum, channel) => sum + channel, 0) >= 3 * 128 ? 255 : 0;
+        rgb = [value, value, value];
       }
+      pixels.set([...rgb, 255], x * 4);
+    }
+    changes.push([y, pixels]);
+  }
+  for (const [y, pixels] of changes) bitmap.pixels.set(pixels, y * bitmap.width * 4);
+  bitmap.dirty = changes.length > 0 || bitmap.dirty;
+  return success(count, 7);
+}
+function getDIBits(r, a) {
+  const state = stateFor(r),
+    dc = getDc(r, state, a(0));
+  if (!dc) return badDc(r, 7);
+  const bitmap = state.bitmaps.get(a(1) >>> 0);
+  if (!bitmap) return failure(r, ERROR_INVALID_HANDLE, 0, 7);
+  const start = a(2) >>> 0,
+    lines = a(3) >>> 0,
+    bits = a(4),
+    info = a(5),
+    usage = a(6) >>> 0;
+  if (!info || usage > 1) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  r.check(info, 12, true);
+  const size = r.read32(info),
+    core = size === 12;
+  if (![12, 40, 52, 56, 108, 124].includes(size)) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  r.check(info, size, true);
+  if (!r.view.getUint16(info + (core ? 10 : 14), true) && (!bits || !lines)) {
+    const depth = bitmap.monochrome ? 1 : 32;
+    if (core) {
+      r.view.setUint16(info + 4, bitmap.width, true);
+      r.view.setUint16(info + 6, bitmap.height, true);
+      r.view.setUint16(info + 8, 1, true);
+      r.view.setUint16(info + 10, depth, true);
+    } else {
+      r.write32(info + 4, bitmap.width);
+      r.write32(info + 8, bitmap.height);
+      r.view.setUint16(info + 12, 1, true);
+      r.view.setUint16(info + 14, depth, true);
+      r.write32(info + 16, 0);
+      r.write32(info + 20, Math.ceil((bitmap.width * depth) / 32) * 4 * bitmap.height);
+      for (const offset of [24, 28, 32, 36]) r.write32(info + offset, 0);
+    }
+    return success(1, 7);
+  }
+  const layout = readDibLayout(r, info, usage, {
+    output: true,
+    paletteEntries: dibPalette(state, dc),
+  });
+  if (!layout) return failure(r, ERROR_INVALID_PARAMETER, 0, 7);
+  if (!bits || !lines || start >= layout.height) {
+    writeDibColorTable(r, layout, usage);
+    return success(1, 7);
+  }
+  const count = Math.min(lines, layout.height - start);
+  r.check(bits, layout.stride * count, true);
+  r.data.fill(0, bits, bits + layout.stride * count);
+  for (let row = 0; row < count; row++) {
+    const y =
+      layout.signedHeight < 0
+        ? layout.height - count - start + row
+        : layout.height - 1 - start - row;
+    if (y < 0 || y >= bitmap.height) continue;
+    for (let x = 0; x < Math.min(layout.width, bitmap.width); x++) {
+      const at = (y * bitmap.width + x) * 4;
+      writeDibPixel(r, layout, bits + row * layout.stride, x, bitmap.pixels.subarray(at, at + 3));
     }
   }
+  writeDibColorTable(r, layout, usage);
   return success(count, 7);
 }
 
@@ -1385,7 +1475,7 @@ function selectPalette(runtime, argument) {
   dc.palette = argument(1) >>> 0;
   dc.paletteForced = !!argument(2);
   // Selecting a palette on a true-colour DC does not realize it.
-  return success(0, 3);
+  return success(previous, 3);
 }
 // RealizePalette reports how many palette entries the device mapped. A
 // true-colour device maps none of them, and Windows reports 0 in that case.
@@ -1405,6 +1495,7 @@ function setPaletteEntries(runtime, argument) {
   const state = stateFor(runtime);
   const palette = state.palettes?.get(argument(0) >>> 0);
   if (!palette) return failure(runtime, ERROR_INVALID_HANDLE, 0, 4);
+  if (palette.stock) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 4);
   const first = argument(1) >>> 0;
   const count = argument(2) >>> 0;
   const pointer = argument(3);
@@ -1642,6 +1733,7 @@ function getStockObject(runtime, argument) {
     [7, STOCK_BLACK_PEN],
     [8, STOCK_NULL_PEN],
     [13, STOCK_SYSTEM_FONT],
+    [15, STOCK_DEFAULT_PALETTE],
   ]);
   const handle = handles.get(index) ?? 0;
   if (!handle) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 1);
@@ -1745,6 +1837,18 @@ function selectObject(runtime, argument) {
 function deleteObject(runtime, argument) {
   const state = stateFor(runtime);
   const handle = argument(0) >>> 0;
+  const palette = state.palettes.get(handle);
+  if (palette) {
+    if (palette.stock) return success(1, 1);
+    if (
+      [...state.dcs.values()].some(
+        (dc) => dc.active && (dc.palette === handle || savedSelection(state, handle, 'palette')),
+      )
+    )
+      return failure(runtime, ERROR_INVALID_HANDLE, 0, 1);
+    state.palettes.delete(handle);
+    return success(1, 1);
+  }
   const brush = getBrush(state, handle);
   if (brush) {
     if (brush.stock) return success(1, 1);
@@ -2563,6 +2667,7 @@ export const gdiApis = {
   'gdi32.dll!GetCharWidthFloatA': (runtime, argument) => charWidths(runtime, argument, false, true),
   'gdi32.dll!GetCharWidthFloatW': (runtime, argument) => charWidths(runtime, argument, true, true),
   'gdi32.dll!GetDIBits': getDIBits,
+  'gdi32.dll!SetDIBits': setDIBits,
   'gdi32.dll!CreateDIBitmap': createDIBitmap,
   'gdi32.dll!EnumFontFamiliesExA': (r, a) => enumFontFamilies(r, a, false),
   'gdi32.dll!EnumFontFamiliesExW': (r, a) => enumFontFamilies(r, a, true),

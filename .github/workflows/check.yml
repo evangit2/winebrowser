@@ -110,6 +110,8 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:monitor-popup
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:monitor-enum
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-screen
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-dib
+          WINEBROWSER_GDI_DIB_EXAMPLE=1 WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-dib
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:presentation
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:native-combos
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:legacy-text

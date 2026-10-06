@@ -305,7 +305,9 @@
     "build:monitor-enum": "sh scripts/build-monitor-enum-fixture.sh",
     "test:monitor-enum": "node scripts/test-monitor-enum-browser.mjs",
     "build:gdi-screen": "sh scripts/build-gdi-screen-fixture.sh",
-    "test:gdi-screen": "node scripts/test-gdi-screen-browser.mjs"
+    "test:gdi-screen": "node scripts/test-gdi-screen-browser.mjs",
+    "build:gdi-dib": "sh scripts/build-gdi-dib-fixture.sh && python3 scripts/package-gdi-dib.py",
+    "test:gdi-dib": "node scripts/test-gdi-dib-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

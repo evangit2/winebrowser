@@ -297,3 +297,5 @@ parents. The unchanged private AirXonix v1.36 ZIP now reaches its native startup
 dialog, animated menu and playable first level, with movement, pause/resume and
 clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.exe`;
 [reproduction and current performance](docs/directdraw.md#airxonix-v136-probe).
+
+**GUI bitmap transfers:** [GetDIBits/SetDIBits](docs/gdi-display.md) support uncompressed RGB, palettes, bitfields and partial scanline updates. The authored native GUI fixture checks six pixel depths and independently verified keyboard-driven bitmap repaints in Chromium (`npm run test:gdi-dib`). Compressed DIBs and full GDI conformance remain unfinished.

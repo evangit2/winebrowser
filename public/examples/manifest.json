@@ -216,6 +216,17 @@
       "sourceZip": "7zip-gui/source.zip",
       "sourceZipSha256": "ed8c474eff59714a328bd5c1d8670928330f53e41b76feaec5d7c34bcb91fbca",
       "provenance": "Unchanged upstream 7-Zip 26.03 PE32 7zG.exe and 7z.dll extracted from the original installer. LGPL-2.1-or-later, BSD and upstream unRAR restriction; original license and complete source included. Native Wine base loads automatically."
+    },
+    {
+      "name": "gdi-dib",
+      "description": "Native Win32 bitmap GUI: RGB color bars, six DIB pixel formats and palette checks. Press F6 to update two rows through SetDIBits. Close the window to finish.",
+      "exe": "gdi-dib/gdi-dib.exe",
+      "exeSha256": "fa3475b27dce7cf485b2858224d0ee297a9b9b2533c3b0568414ab43e4e76fa3",
+      "zip": "gdi-dib/gdi-dib.zip",
+      "zipSha256": "6cb5001e3d0b2dc0cb0d1a16327d930d0f1e64d82a9b546e9828d871ec016d57",
+      "sourceZip": "gdi-dib/source.zip",
+      "sourceZipSha256": "0fc97515d4091e5a4198977c05652fa5d6f8b8074d651afdf3834587d022b553",
+      "provenance": "Original WineBrowser contributors C program, MIT; reproducible source and MinGW build included."
     }
   ]
 }
