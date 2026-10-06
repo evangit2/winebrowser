@@ -143,12 +143,20 @@ try {
   }
   await canvas.press('F7');
   await expect(page.locator('#file-picker')).toBeVisible();
+  const canceledPicker = await page.locator('#file-picker').getAttribute('data-request-token');
   await page.keyboard.press('Escape');
   await expect(page.locator('#file-picker')).toBeHidden();
   await expect(root.locator('.virtual-desktop-title')).toHaveText(
     'LoadImage resources and BMP files — F6 changes pixels',
   );
   await root.getByRole('button', { name: 'Open bitmap… (F7)' }).click();
+  // Both picker requests have the same title. setInputFiles can act on a
+  // hidden element, so wait for the next request to own the visible dialog.
+  await expect(page.locator('#file-picker')).toBeVisible();
+  await expect(page.locator('#file-picker')).not.toHaveAttribute(
+    'data-request-token',
+    canceledPicker,
+  );
   await expect(page.locator('#file-picker-title')).toHaveText(
     'Load a bitmap and change current directory',
   );
@@ -276,6 +284,7 @@ try {
       'Missing/truncated files and invalid sizes fail; native F6 pointer writes repaint actual file-loaded pixels',
       'Chromium independently scans all 49152 displayed pixels in each of three stages and requires native cleanup/exit zero',
       'A visibly different imported BMP passes 16384-pixel scans before native pointer changes and after their restoration; closing restores the original native directory',
+      'Cancellation and reopening wait for a new visible picker request before importing, even when both requests use the same title',
     ],
     scope:
       'Native Wine file search and private-volume directory traversal/deletion, plus uncompressed bitmap resource/file loading and nearest-neighbor sizing. HALFTONE resampling, compressed/embedded-image BMPs, OEM bitmap assets, custom-sized/file icons and cursors, and full Windows compatibility remain unfinished.',

@@ -1,8 +1,8 @@
 {
-  "date": "2026-10-06T19:21:51.296Z",
+  "date": "2026-10-06T19:35:33.785Z",
   "status": "passed",
   "url": "http://127.0.0.1:4389/winebrowser/",
-  "browser": "153.0.8010.12",
+  "browser": "155.0.8059.39",
   "input": "hosted example",
   "binaries": {
     "tests/fixtures/load-images/load-images.exe": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da",
@@ -49,7 +49,7 @@
   ],
   "exitCode": 0,
   "compiledBlocks": 3383,
-  "x86TranslationMs": 718.0699988603592,
+  "x86TranslationMs": 511.3700014948845,
   "observations": [
     {
       "updated": false,
@@ -146,7 +146,8 @@
     "Requested sizes, system palette mapping and transparent-index color replacement match native GetPixel assertions",
     "Missing/truncated files and invalid sizes fail; native F6 pointer writes repaint actual file-loaded pixels",
     "Chromium independently scans all 49152 displayed pixels in each of three stages and requires native cleanup/exit zero",
-    "A visibly different imported BMP passes 16384-pixel scans before native pointer changes and after their restoration; closing restores the original native directory"
+    "A visibly different imported BMP passes 16384-pixel scans before native pointer changes and after their restoration; closing restores the original native directory",
+    "Cancellation and reopening wait for a new visible picker request before importing, even when both requests use the same title"
   ],
   "scope": "Native Wine file search and private-volume directory traversal/deletion, plus uncompressed bitmap resource/file loading and nearest-neighbor sizing. HALFTONE resampling, compressed/embedded-image BMPs, OEM bitmap assets, custom-sized/file icons and cursors, and full Windows compatibility remain unfinished."
 }
