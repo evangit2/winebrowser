@@ -70,8 +70,8 @@ function makePcmWave() {
 }
 
 function expectedGdiCanvas() {
-  const width = 640;
-  const height = 480;
+  const width = 1024;
+  const height = 768;
   const pixels = new Uint8Array(width * height * 4);
   for (let offset = 3; offset < pixels.length; offset += 4) pixels[offset] = 255;
   for (let y = 20; y < 60; y++) {
@@ -90,8 +90,8 @@ function expectedGdiCanvas() {
 }
 
 function expectedOffscreenCanvas() {
-  const width = 640;
-  const height = 480;
+  const width = 1024;
+  const height = 768;
   const pixels = new Uint8Array(width * height * 4);
   for (let offset = 3; offset < pixels.length; offset += 4) pixels[offset] = 255;
   for (let y = 30; y < 32; y++) {
@@ -693,7 +693,7 @@ try {
   const gdiChecks = [
     { name: 'exit code 1', passed: gdiActual.exitCode === 1 },
     {
-      name: '640x480 visible display canvas',
+      name: '1024x768 visible display canvas',
       passed:
         gdiActual.width === expectedCanvas.width &&
         gdiActual.height === expectedCanvas.height &&
