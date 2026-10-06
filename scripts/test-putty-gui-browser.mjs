@@ -104,14 +104,20 @@ try {
   };
   const point = async (list, name, bottom = false) => {
     const row = list.getByRole('option', { name, exact: true });
-    await row.scrollIntoViewIfNeeded();
-    // Native LB messages rebuild rows while a drag is starting. Keep the
-    // geometry from a successful observation instead of reading a detached row.
+    // Native LB messages rebuild rows while a drag is starting. Scroll and
+    // observe geometry in one DOM evaluation so detachment cannot interrupt
+    // Playwright's actionability wait between those steps.
     let bounds;
     await expect
       .poll(
         async () => {
-          bounds = await row.boundingBox();
+          bounds = await row.evaluate((element) => {
+            element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            const rect = element.getBoundingClientRect();
+            return rect.width && rect.height
+              ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+              : null;
+          });
           return !!bounds;
         },
         { timeout: 30000 },
