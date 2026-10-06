@@ -368,3 +368,137 @@ test('desktop preference setters round-trip, preserve state on invalid input, an
   await call('SystemParametersInfoA', 3, 0, p + 16, 0);
   assert.equal(r.read32(p + 24), 2);
 });
+
+test('monitor enumeration intersects signed query bounds and skips empty results without touching the input', async (t) => {
+  const { r, call } = setup(t),
+    p = r.allocate(16),
+    dm = r.allocate(156);
+  const observed = [];
+  r.callGuest = async (callback, args) => {
+    assert.equal(callback, 0x1234);
+    assert.equal(args[1], 0);
+    assert.equal(args[3], 0xfedcba98);
+    observed.push(rect(r, args[2]));
+    r.write32(args[2], 9999);
+    return 1;
+  };
+  for (const [query, wanted] of [
+    [
+      [-20, 10, 120, 80],
+      [0, 10, 120, 80],
+    ],
+    [
+      [1023, 767, 1025, 769],
+      [1023, 767, 1024, 768],
+    ],
+    [[1024, 0, 1025, 20], null],
+    [[20, 20, 19, 30], null],
+  ]) {
+    query.forEach((v, i) => r.write32(p + i * 4, v));
+    const before = observed.length;
+    assert.equal(await call('EnumDisplayMonitors', 0, p, 0x1234, 0xfedcba98), 1);
+    assert.deepEqual(rect(r, p), query);
+    assert.equal(observed.length - before, wanted ? 1 : 0);
+    if (wanted) assert.deepEqual(observed.at(-1), wanted);
+  }
+  await call('EnumDisplaySettingsA', 0, 2, dm);
+  await call('ChangeDisplaySettingsA', dm, 0);
+  await call('EnumDisplayMonitors', 0, 0, 0x1234, 0xfedcba98);
+  assert.deepEqual(observed.at(-1), [0, 0, 800, 600]);
+});
+
+test('monitor enumeration uses actual nested DC origins, GDI bounding clips and selected memory bitmap bounds', async (t) => {
+  const { r, call } = setup(t);
+  const parent = (
+    await createWindowFromHost(r, {
+      className: 'winebrowser-dialog',
+      style: 0x10000000,
+      x: -80,
+      y: 40,
+      width: 300,
+      height: 180,
+    })
+  ).id;
+  const child = (
+    await createWindowFromHost(r, {
+      className: 'BUTTON',
+      style: 0x50000000,
+      parent,
+      x: 25,
+      y: 20,
+      width: 100,
+      height: 50,
+    })
+  ).id;
+  const dc = await call('GetDC', child),
+    p = r.allocate(16),
+    origin = r.windows.clientPosition(r.windows.windows.get(child)),
+    observed = [];
+  r.callGuest = async (_callback, args) => {
+    observed.push([args[1], rect(r, args[2])]);
+    return 1;
+  };
+  assert.ok(origin[0] < 0);
+  assert.equal(await call('EnumDisplayMonitors', dc, 0, 0x1234, 0), 1);
+  assert.deepEqual(observed.at(-1), [dc, [-origin[0], 0, 100, 50]]);
+  const gdi = async (name, ...args) =>
+    (await r.apiProvider.get(`gdi32.dll!${name}`)(r, (i) => args[i] >>> 0)).result;
+  await gdi('IntersectClipRect', dc, 60, 12, 90, 40);
+  await gdi('ExcludeClipRect', dc, 70, 20, 80, 30);
+  await call('EnumDisplayMonitors', dc, 0, 0x1234, 0);
+  assert.deepEqual(observed.at(-1), [dc, [60, 12, 90, 40]], 'complex clips use their bounding box');
+  [65, 0, 85, 50].forEach((v, i) => r.write32(p + i * 4, v));
+  await call('EnumDisplayMonitors', dc, p, 0x1234, 0);
+  assert.deepEqual(observed.at(-1), [dc, [65, 12, 85, 40]]);
+  await call('ReleaseDC', child, dc);
+  const before = observed.length;
+  assert.equal(await call('EnumDisplayMonitors', dc, 0, 0x1234, 0), 0);
+  assert.equal(r.lastError, 6);
+  assert.equal(observed.length, before);
+  const memory = await gdi('CreateCompatibleDC', 0);
+  await call('EnumDisplayMonitors', memory, 0, 0x1234, 0);
+  assert.deepEqual(observed.at(-1), [memory, [0, 0, 1, 1]]);
+  const display = await call('GetDC', 0),
+    bitmap = await gdi('CreateCompatibleBitmap', display, 20, 30),
+    old = await gdi('SelectObject', memory, bitmap);
+  await call('EnumDisplayMonitors', memory, 0, 0x1234, 0);
+  assert.deepEqual(observed.at(-1), [memory, [0, 0, 20, 30]]);
+  await gdi('SelectObject', memory, old);
+  await gdi('DeleteObject', bitmap);
+  await gdi('DeleteDC', memory);
+  await call('ReleaseDC', 0, display);
+});
+
+test('monitor callbacks cancel, reenter with independent rectangles and release temporary buffers even on exceptions', async (t) => {
+  const { r, call } = setup(t),
+    freed = [],
+    free = r.free.bind(r);
+  r.free = (pointer) => {
+    freed.push(pointer);
+    return free(pointer);
+  };
+  const pointers = [];
+  r.callGuest = async (callback, args) => {
+    pointers.push(args[2]);
+    assert.equal(args[0], await call('MonitorFromPoint', 0, 0, 0));
+    if (callback === 0x1234) {
+      const before = rect(r, args[2]);
+      assert.equal(await call('EnumDisplayMonitors', 0, 0, 0x5678, 0), 1);
+      assert.deepEqual(rect(r, args[2]), before);
+      return 0;
+    }
+    r.write32(args[2], 9999);
+    return 1;
+  };
+  assert.equal(await call('EnumDisplayMonitors', 0, 0, 0x1234, 0), 0);
+  assert.notEqual(pointers[0], pointers[1]);
+  assert.deepEqual(freed, [pointers[1], pointers[0]]);
+  r.callGuest = async (_callback, args) => {
+    pointers.push(args[2]);
+    throw new Error('native callback failed');
+  };
+  await assert.rejects(call('EnumDisplayMonitors', 0, 0, 0x1234, 0), /native callback failed/);
+  assert.equal(freed.at(-1), pointers.at(-1));
+  assert.equal(await call('EnumDisplayMonitors', 0, 0, 0, 0), 0);
+  assert.equal(r.lastError, 87);
+});

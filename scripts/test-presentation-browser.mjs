@@ -5,14 +5,18 @@ import { zipSync } from 'fflate';
 import { createServer } from 'vite';
 import { chromium } from '@playwright/test';
 import { webgpuBrowserOptions } from './lib/webgpu-browser.mjs';
-const server = await createServer({
-  base: '/',
-  logLevel: 'error',
-  server: { host: '127.0.0.1', port: 0 },
-});
+const externalUrl = process.env.WINEBROWSER_TEST_URL;
+const server = externalUrl
+  ? null
+  : await createServer({
+      base: '/',
+      logLevel: 'error',
+      server: { host: '127.0.0.1', port: 0 },
+    });
 let browser;
 try {
-  await server.listen();
+  await server?.listen();
+  const url = externalUrl || `http://127.0.0.1:${server.httpServer.address().port}/`;
   browser = await chromium.launch(webgpuBrowserOptions);
   const bytes = await readFile('tests/fixtures/presentation/fullscreen.exe');
   const runs = [];
@@ -23,10 +27,25 @@ try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`);
+    await page.goto(url);
+    await page.waitForFunction(
+      () => document.querySelector('#platform')?.textContent === 'ISOLATED / WASM READY',
+      null,
+      { timeout: 60000 },
+    );
     await page
       .locator('#file')
       .setInputFiles({ name, mimeType: 'application/octet-stream', buffer });
+    await page.waitForFunction(
+      () => ['LOADED', 'ERROR'].includes(document.querySelector('#state')?.textContent),
+      null,
+      { timeout: 60000 },
+    );
+    assert.equal(
+      await page.locator('#state').textContent(),
+      'LOADED',
+      await page.locator('#details').textContent(),
+    );
     await page.locator('#run').click();
     await page.waitForFunction(() => {
       if (document.querySelector('#state').textContent === 'ERROR')
@@ -99,6 +118,7 @@ try {
   }
   const report = {
     date: new Date().toISOString(),
+    url,
     status: 'passed',
     browser: browser.version(),
     exeSha256: createHash('sha256').update(bytes).digest('hex'),
@@ -113,5 +133,5 @@ try {
   console.log(JSON.stringify(report, null, 2));
 } finally {
   await browser?.close();
-  await server.close();
+  await server?.close();
 }

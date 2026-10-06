@@ -121,7 +121,7 @@ static int run(void)
         caps.ZCmpCaps != 0xff || !(caps.RasterCaps & D3DPRASTERCAPS_DITHER) ||
         caps.MaxPrimitiveCount < 21845 || caps.MaxVertexW <= 0 ||
         // The runtime implements stencil KEEP/ZERO/REPLACE/INCRSAT/DECRSAT/INVERT/
-        // INCR/DECR but not two-sided stencil, and one fixed-function stage.
+        // INCR/DECR but not two-sided stencil, and eight fixed-function stages.
         caps.MaxTextureWidth != 2048 || caps.MaxSimultaneousTextures < 8 ||
         caps.StencilCaps != (D3DSTENCILCAPS_KEEP | D3DSTENCILCAPS_ZERO | D3DSTENCILCAPS_REPLACE |
             D3DSTENCILCAPS_INCRSAT | D3DSTENCILCAPS_DECRSAT | D3DSTENCILCAPS_INVERT |

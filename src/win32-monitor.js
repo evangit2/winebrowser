@@ -1,6 +1,7 @@
 import { currentDisplayMode } from './win32-display.js';
 import { outerWindowSize } from './window-frame.js';
 import { encodeAnsi } from './encoding.js';
+import { activeGdiDC, DESKTOP_WINDOW } from './win32-gdi.js';
 
 export const VIRTUAL_MONITOR = 0x10001;
 export const VIRTUAL_MONITOR_DEVICE = '\\\\.\\DISPLAY1';
@@ -67,7 +68,50 @@ function monitorFromWindow(r, a) {
   return result(monitorForRect(r, position, flags), 2);
 }
 
+function intersect(a, b) {
+  return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
+}
+
+async function enumDisplayMonitors(r, a) {
+  const hdc = a(0) >>> 0,
+    clip = a(1) >>> 0,
+    callback = a(2) >>> 0,
+    data = a(3) >>> 0;
+  if (!callback) return fail(r, 87, 4);
+  let area = virtualWorkArea(r);
+  if (hdc) {
+    const dc = activeGdiDC(r, hdc);
+    if (!dc) return fail(r, 6, 4);
+    // Existing DCs use MM_TEXT client coordinates. Wine enumerates against the
+    // bounding clip box, even for a complex region, offset by the DC origin.
+    let origin = [0, 0];
+    if (dc.kind === 'display-dc' && dc.hwnd && dc.hwnd !== DESKTOP_WINDOW) {
+      const w = r.windows.windows.get(dc.hwnd);
+      if (!w) return fail(r, 6, 4);
+      origin = r.windows.clientPosition(w);
+    }
+    area = area.map((v, i) => v - origin[i % 2]);
+    area = intersect(area, dc.clip ?? [0, 0, dc.surface.width, dc.surface.height]);
+  }
+  if (clip) {
+    r.check(clip, 16);
+    area = intersect(
+      area,
+      [0, 4, 8, 12].map((offset) => r.read32(clip + offset) | 0),
+    );
+  }
+  if (area[2] <= area[0] || area[3] <= area[1]) return result(1, 4);
+  const pointer = r.allocate(16);
+  try {
+    area.forEach((v, i) => r.write32(pointer + i * 4, v));
+    return result((await r.callGuest(callback, [VIRTUAL_MONITOR, hdc, pointer, data])) ? 1 : 0, 4);
+  } finally {
+    r.free(pointer);
+  }
+}
+
 export const monitorApis = {
+  'user32.dll!EnumDisplayMonitors': enumDisplayMonitors,
   'user32.dll!GetMonitorInfoA': (r, a) => getMonitorInfo(r, a, false),
   'user32.dll!GetMonitorInfoW': (r, a) => getMonitorInfo(r, a, true),
   'user32.dll!MonitorFromWindow': monitorFromWindow,
