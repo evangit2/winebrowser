@@ -297,7 +297,9 @@
     "build:native-combos": "sh scripts/build-native-combos-fixture.sh",
     "test:native-combos": "node scripts/test-native-combos-browser.mjs",
     "build:list-pointer": "sh scripts/build-list-pointer-fixture.sh",
-    "test:list-pointer": "node scripts/test-list-pointer-browser.mjs"
+    "test:list-pointer": "node scripts/test-list-pointer-browser.mjs",
+    "build:combo-pointer": "sh scripts/build-combo-pointer-fixture.sh",
+    "test:combo-pointer": "node scripts/test-combo-pointer-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

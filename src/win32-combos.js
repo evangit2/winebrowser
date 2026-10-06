@@ -8,6 +8,7 @@ import {
   describeGdiFont,
 } from './win32-gdi.js';
 import { measureListItem, paintOwnerList, updateList } from './win32-owner-lists.js';
+import { comboPointerMessage } from './win32-combo-pointer.js';
 
 const COMBO_LIST_MESSAGES = new Map([
   [0x143, 0x180],
@@ -239,6 +240,8 @@ export async function showCombo(r, w, show, ok = false) {
     if (!r.windows.isEnabled(w.id)) return;
     await notify(r, w, 7); // CBN_DROPDOWN precedes the dropped state.
     if (!alive(r, w)) return;
+    w.comboDropSelectionId = w.list.items[w.list.selected]?.id;
+    w.comboDropText = w.title;
     w.comboDropped = true;
     await layoutCombo(r, w);
     w.list.top = Math.max(0, w.list.selected);
@@ -246,14 +249,20 @@ export async function showCombo(r, w, show, ok = false) {
     await call(r, 'ShowWindow', w.comboListId, 5);
     updateList(r, w.comboListWindow);
     await paintOwnerList(r, w.comboListWindow);
+    // Owner drawing may synchronously close or destroy this popup.
+    if (alive(r, w) && w.comboDropped && alive(r, w.comboListWindow) && r.windows.capture !== w.id)
+      await r.windows.changeCapture(w.comboListId);
   } else {
     await notify(r, w, ok ? 9 : 10); // selection end precedes hiding/close-up.
     if (!alive(r, w)) return;
     w.comboDropped = false;
+    w.comboPointer = false;
+    w.comboButtonDown = false;
     await call(r, 'ShowWindow', w.comboListId, 0);
     // Wine's CBRollUp releases the hidden ComboLBox. Capture-change enters
     // the actual list procedure and cancels held-pointer/system-timer state.
-    if (r.windows.capture === w.comboListId) await r.windows.changeCapture(0);
+    if (r.windows.capture === w.comboListId || r.windows.capture === w.id)
+      await r.windows.changeCapture(0);
     await notify(r, w, 8);
   }
   if (alive(r, w)) {
@@ -286,7 +295,7 @@ export function writeComboInfo(r, w, p) {
   [
     ...text,
     ...button,
-    w.comboType === 1 ? 0x8000 : 0,
+    w.comboType === 1 ? 0x8000 : w.comboButtonDown ? 8 : 0,
     w.id,
     w.comboEditId ?? 0,
     w.comboListId ?? 0,
@@ -300,13 +309,16 @@ export async function comboMessage(r, w, msg, wp, lp, wide) {
     return 0;
   }
   if (msg === 0x82) return 0; // the real ComboLBox owns item deletion callbacks.
+  const pointer = await comboPointerMessage(r, w, msg, wp, lp);
+  if (pointer !== null) return pointer;
   if (msg === COMBO_TOGGLE) {
     await r.windows.setFocus(w.comboEditId || w.id);
     await showCombo(r, w, !w.comboDropped);
     return 0;
   }
   if (msg === COMBO_DISMISS) {
-    await showCombo(r, w, false);
+    if (w.comboDropped) await r.windows.send(w.comboListId, 0x202, 0, 0xffffffff);
+    if (alive(r, w) && w.comboDropped) await showCombo(r, w, false);
     return 0;
   }
   if (msg === 0x14) return 1;

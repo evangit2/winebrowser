@@ -458,5 +458,24 @@ original callable procedure. Native font/height queries and actual browser
 geometry verify larger and restored fonts without replacing children or losing
 selection. See [the acceptance record](../evidence/native-combos-browser-results.json).
 
-Exact native control layout, monitor-edge placement, full popup hover tracking, horizontal or
-multicolumn lists and universal GUI/DLL compatibility remain incomplete.
+Keyboard/API dropdown opening captures the real ComboLBox. Hover selects its
+native row without sending edit or selection notifications. An arrow press
+captures the COMBOBOX and exposes `STATE_SYSTEM_PRESSED` in `GetComboBoxInfo`;
+entering its popup transfers capture and client coordinates to the actual list
+procedure. Releasing on the arrow leaves the list open for hover. Releasing a
+row commits; an outside press restores the selection, including unmatched
+Unicode text in editable combos, and closes the popup. Native cancel mode
+closes the popup and clears capture. Browser pointer capture transports the
+input across this HWND handoff; application window procedures own the behavior.
+Simple combo lists retain ordinary list selection without dropdown hover.
+
+`npm run test:combo-pointer` uploads a separate unchanged MIT PE32 program.
+Actual guest COMBOBOX, ComboLBox and EDIT subclasses call their original
+procedures and verify mouse/capture-change messages, pressed state, coordinates,
+selection/caret queries and notification order while trusted Chromium input
+exercises these cases. The final drag runs without intermediate state waits.
+Every native stage and normal destruction must exit zero. See
+[the acceptance record](../evidence/combo-pointer-browser-results.json).
+
+Exact native control layout, monitor-edge placement, horizontal or multicolumn
+lists and universal GUI/DLL compatibility remain incomplete.

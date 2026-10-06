@@ -7,6 +7,7 @@ import {
   paintOwnerList,
 } from './win32-owner-lists.js';
 import { showCombo } from './win32-combos.js';
+import { sendWindowMessage } from './win32-window-text.js';
 
 const SCROLL_TIMER = 2;
 const alive = (r, w) => r.windows.windows.get(w.id) === w && !w.destroying;
@@ -55,6 +56,27 @@ async function stop(r, w, release = true) {
   if (alive(r, w)) r.windows.emit(w);
 }
 
+async function cancelPopup(r, w, host, choose, originalId) {
+  await choose(
+    r,
+    w,
+    w.list.items.findIndex((item) => item.id === originalId),
+  );
+  if (originalId === undefined && host.comboEditId && alive(r, host)) {
+    host.title = host.comboDropText ?? '';
+    const text = r.allocString(host.title, true);
+    host.comboUpdatingEdit = true;
+    try {
+      await sendWindowMessage(r, host.comboEditId, 0xc, 0, text, true);
+    } finally {
+      r.free(text);
+      host.comboUpdatingEdit = false;
+    }
+  }
+  await stop(r, w);
+  if (alive(r, host)) await showCombo(r, host, false);
+}
+
 async function track(r, w, x, y, choose) {
   const s = w.list,
     pointer = s.pointer;
@@ -87,12 +109,19 @@ async function track(r, w, x, y, choose) {
 export async function listPointerMessage(r, w, msg, wp, lp, choose) {
   if (w.controlType !== 'listbox' || w.dragList) return null;
   const s = w.list;
+  const host = w.comboHostId ? r.windows.windows.get(w.comboHostId) : null;
   if ([8, 0x1f, 0x82, 0x184].includes(msg) || (msg === 0xa && !wp)) {
     await stop(r, w);
+    if (msg === 0x1f && host?.comboDropped) await showCombo(r, host, false);
     return null;
   }
   if (msg === 0x215) {
     if (lp !== w.id) await stop(r, w, false);
+    if (host && lp !== host.id && lp !== w.id) {
+      host.comboPointer = false;
+      host.comboButtonDown = false;
+      r.windows.emit(host);
+    }
     return 0;
   }
   if (![0x201, 0x200, 0x202, 0x203, 0x118].includes(msg)) return null;
@@ -107,8 +136,10 @@ export async function listPointerMessage(r, w, msg, wp, lp, choose) {
   if (msg === 0x201) {
     if (!r.windows.isEnabled(w.id)) return 0;
     const index = itemAt(w, x, y);
-    if (index < 0) return 0;
-    const host = w.comboHostId ? r.windows.windows.get(w.comboHostId) : null;
+    if (index < 0) {
+      if (host?.comboDropped) await cancelPopup(r, w, host, choose, host.comboDropSelectionId);
+      return 0;
+    }
     await r.windows.setFocus(host ? host.comboEditId || host.id : w.id);
     if (!alive(r, w)) return 0;
     if (!host && w.style & 1) await r.windows.send(w.parentId, 0x131, index, lp);
@@ -138,6 +169,10 @@ export async function listPointerMessage(r, w, msg, wp, lp, choose) {
   }
   if (msg === 0x200) {
     if (s.pointer && r.windows.capture === w.id) await track(r, w, x, y, choose);
+    else if (host?.comboDropped && host.comboType !== 1) {
+      const index = itemAt(w, x, y);
+      if (index >= 0) await move(r, w, index, choose);
+    }
     return 0;
   }
   if (msg === 0x203) {
@@ -145,17 +180,14 @@ export async function listPointerMessage(r, w, msg, wp, lp, choose) {
     return 0;
   }
   const pointer = s.pointer;
-  if (!pointer) return 0;
-  const host = w.comboHostId ? r.windows.windows.get(w.comboHostId) : null;
+  if (!pointer) {
+    if (host?.comboDropped && itemAt(w, x, y) < 0)
+      await cancelPopup(r, w, host, choose, host.comboDropSelectionId);
+    return 0;
+  }
   const commit = itemAt(w, x, y) >= 0;
   if (host && host.comboType !== 1 && !commit) {
-    await choose(
-      r,
-      w,
-      s.items.findIndex((item) => item.id === pointer.originalId),
-    );
-    await stop(r, w);
-    if (alive(r, host)) await showCombo(r, host, false);
+    await cancelPopup(r, w, host, choose, pointer.originalId);
     return 0;
   }
   await stop(r, w);

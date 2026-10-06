@@ -207,3 +207,13 @@ and actual browser row/edit dimensions, including system-font restoration,
 explicit text heights and preservation of selected values and child HWNDs.
 Rebuild with `npm run build:native-combos`; evidence is in
 `evidence/native-combos-browser-results.json`.
+
+`npm run test:combo-pointer` verifies dropdown pointer tracking through a
+separate authored MIT PE32 program with actual COMBOBOX, ComboLBox and EDIT
+subclasses. F4 opening, hover without held buttons, outside cancellation,
+arrow press and capture handoff, dragging/release, native cancel mode, unmatched
+editable Unicode text restoration and simple combo selection all pass native
+queries and exact notification-order assertions. A rapid drag has no
+intermediate selection/capture waits. Every stage must pass before native exit
+zero. Rebuild with `npm run build:combo-pointer`; evidence is in
+`evidence/combo-pointer-browser-results.json`.

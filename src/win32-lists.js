@@ -59,6 +59,8 @@ export function describeList(w) {
     top: s.top,
     comboType: w.comboType,
     dropped: !!w.comboDropped,
+    comboPointer: !!w.comboPointer,
+    comboButtonDown: !!w.comboButtonDown,
     comboTextHeight: w.comboTextHeight,
     comboHostId: w.comboHostId,
     textLimit: w.comboEditWindow?.textLimit ?? w.textLimit ?? 32767,

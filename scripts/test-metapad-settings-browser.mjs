@@ -56,7 +56,8 @@ try {
     await edit.press('Alt+Enter');
     await expect(tabSize).toHaveValue('4');
   };
-  await expect(edit).toHaveValue('alpha');
+  // Wait for the real EDIT child after native cold startup/browser compilation.
+  await expect(edit).toHaveValue('alpha', { timeout: 30000 });
   await open();
   await expect(tabs).toHaveCount(4);
   await expect(tabs.nth(2)).toHaveText('Buffers & Language');
@@ -123,7 +124,7 @@ try {
   assert.ok(text);
   assert.equal(Buffer.from(Object.values(text.bytes)).toString(), '      alpha');
   await upload(iniBytes);
-  await expect(edit).toHaveValue('alpha');
+  await expect(edit).toHaveValue('alpha', { timeout: 30000 });
   await edit.press('Alt+Enter');
   await expect(tabSize).toHaveValue('6');
   await expect(spaces).toHaveAttribute('aria-checked', 'true');

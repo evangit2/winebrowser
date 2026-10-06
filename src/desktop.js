@@ -673,8 +673,8 @@ export class VirtualDesktop {
       element.setAttribute('aria-label', state.title || 'Choices');
       element.setAttribute('aria-haspopup', 'listbox');
       if (state.list?.comboType === 3)
-        element.addEventListener('click', () => {
-          if (control.enabled) this.#emit(control.id, 'combo-toggle');
+        element.addEventListener('click', (event) => {
+          if (control.enabled && !event.detail) this.#emit(control.id, 'combo-toggle');
         });
       if (state.list?.comboType !== 1) {
         const arrow = document.createElement('button');
@@ -684,10 +684,39 @@ export class VirtualDesktop {
         arrow.setAttribute('aria-label', `Open ${state.title || 'choices'}`);
         arrow.addEventListener('click', (event) => {
           event.stopPropagation();
-          if (control.enabled) this.#emit(control.id, 'combo-toggle');
+          if (control.enabled && !event.detail) this.#emit(control.id, 'combo-toggle');
         });
         element.append(arrow);
       }
+      element.addEventListener('pointerdown', (event) => {
+        if (
+          !control.enabled ||
+          event.button !== 0 ||
+          control.listState?.comboType === 1 ||
+          (control.listState?.comboType === 2 &&
+            !event.target.closest('.virtual-desktop-combo-arrow'))
+        )
+          return;
+        event.preventDefault();
+        control.comboPointerId = event.pointerId;
+        element.setPointerCapture(event.pointerId);
+        this.#sendMouse(control, 'mousedown', event);
+      });
+      element.addEventListener('pointermove', (event) => {
+        if (control.comboPointerId === event.pointerId)
+          this.#sendMouse(control, 'mousemove', event);
+      });
+      element.addEventListener('pointerup', (event) => {
+        if (control.comboPointerId !== event.pointerId) return;
+        control.comboPointerId = null;
+        this.#sendMouse(control, 'mouseup', event);
+      });
+      for (const type of ['pointercancel', 'lostpointercapture'])
+        element.addEventListener(type, (event) => {
+          if (control.comboPointerId !== event.pointerId) return;
+          control.comboPointerId = null;
+          this.#emit(control.id, 'combo-dismiss');
+        });
     } else if (
       controlType === 'listbox' &&
       (state.list?.ownerDraw ||
@@ -952,7 +981,7 @@ export class VirtualDesktop {
     );
     element.addEventListener('mousemove', (event) => {
       event.stopPropagation();
-      if (control.listState?.nativePointer) return;
+      if (control.listState?.nativePointer || control.comboPointerId != null) return;
       this.#sendMouse(control, 'mousemove', event);
     });
     for (const type of ['keydown', 'keyup'])
@@ -1039,6 +1068,11 @@ export class VirtualDesktop {
 
   #applyList(control, list) {
     if (control.nativeCombo) {
+      if (control.listState?.comboPointer && !list.comboPointer && control.comboPointerId != null) {
+        const id = control.comboPointerId;
+        control.comboPointerId = null;
+        if (control.element.hasPointerCapture(id)) control.element.releasePointerCapture(id);
+      }
       control.listState = list;
       control.element.setAttribute('aria-expanded', String(!!list.dropped));
       control.element.dataset.comboType = String(list.comboType);
@@ -1046,7 +1080,10 @@ export class VirtualDesktop {
       if (text) text.textContent = control.titleText ?? '';
       control.element.setAttribute('aria-disabled', String(!control.enabled));
       const arrow = control.element.querySelector('.virtual-desktop-combo-arrow');
-      if (arrow) arrow.disabled = !control.enabled;
+      if (arrow) {
+        arrow.disabled = !control.enabled;
+        arrow.setAttribute('aria-pressed', String(!!list.comboButtonDown));
+      }
       return;
     }
     if (control.tabList) {

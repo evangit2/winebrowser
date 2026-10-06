@@ -477,6 +477,17 @@
   height: 100%;
   padding: 0;
   font: inherit;
+  border: 2px outset #eee;
+  border-radius: 0;
+  background: #ddd;
+  color: black;
+}
+.virtual-desktop-combo-arrow[aria-pressed='true'] {
+  border-style: inset;
+  background: #bbb;
+}
+.virtual-desktop-combo-arrow:disabled {
+  color: #777;
 }
 
 .virtual-desktop-control-tablist:focus .virtual-desktop-tablist-row[data-caret='true'] {

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-06T02:04:20.288Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "153.0.8010.12",
+  "status": "passed",
+  "exitCode": 0,
+  "exeSha256": "39f7d74dad20fc001cf9130ebcbd7120ed7543c6f36eca4a7da0cfca13b1ce20",
+  "compiledBlocks": 256,
+  "x86TranslationMs": 154.5350003838539,
+  "checks": [
+    "Unchanged authored native PE32 subclasses actual COMBOBOX, ComboLBox and EDIT HWNDs and calls each original procedure",
+    "F4 captures ComboLBox; unheld hover updates native selection/caret without selection or edit notifications; outside dismissal restores the opening selection and clears capture",
+    "Held arrow down captures COMBOBOX and exposes STATE_SYSTEM_PRESSED; entering the popup transfers HWND capture and signed client coordinates to actual list WM_LBUTTONDOWN",
+    "Held drag between native rows and release commits selection with capture released before CBN_SELCHANGE, then CBN_SELENDOK and CBN_CLOSEUP",
+    "Rapid arrow-to-row drag and release also commits through native procedures without intermediate selection/capture waits",
+    "Arrow down/up leaves the popup open with actual ComboLBox capture; native WM_CANCELMODE closes it and clears capture",
+    "Editable unmatched Unicode text is preserved across hover/outside cancellation with no edit/selection notifications",
+    "Simple combo hover leaves selection unchanged; actual list down/up selects and notifies; every native stage and native destruction exit zero"
+  ],
+  "scope": "Native vertical popup pointer tracking on string combos. Complete monitor-edge placement, horizontal/multicolumn lists and universal Windows/DLL compatibility remain incomplete."
+}
