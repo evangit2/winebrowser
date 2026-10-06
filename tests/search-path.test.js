@@ -20,7 +20,14 @@ test('unchanged native SDK file-search client executes its stdcall ABI through t
   const result = await r.run();
   assert.equal(result.exitCode, 0);
   assert.ok(result.compiledBlocks > 0);
-  for (const name of ['SearchPathA', 'SearchPathW', 'SetSearchPathMode', 'SetCurrentDirectoryA'])
+  for (const name of [
+    'SearchPathA',
+    'SearchPathW',
+    'SetSearchPathMode',
+    'SetCurrentDirectoryA',
+    'GetFullPathNameA',
+    'GetFullPathNameW',
+  ])
     assert.ok(result.apiNames.includes('kernel32.dll!' + name), name);
   assert.equal(r.virtualDirectories.has('app/search-a/'), false);
   assert.equal(r.virtualDirectories.has('app/search-b/'), false);

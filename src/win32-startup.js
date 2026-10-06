@@ -9,6 +9,7 @@ import { encodeAnsi, decodeAnsi, characterType1 } from './encoding.js';
 import { guestProcessorFeaturePresent } from './processor-features.js';
 import { GuestUnwind } from './seh.js';
 import { processLookup } from './process-session.js';
+import { fullDosPath } from './guest-full-path.js';
 
 const ok = (result = 0, argc = 0) => ({ result, argc });
 const fail = (r, error, argc = 0, value = 0) => {
@@ -262,45 +263,65 @@ function writeAnsi(r, address, value, capacity) {
   return { result: length + 1, argc: 4 };
 }
 
-// GetFullPathName resolves a path against the guest's working directory and
-// normalizes separators. It never touches the host filesystem.
 function getFullPathName(r, a, wide) {
-  const input = wide ? r.wideString(a(0)) : r.string(a(0));
-  const buffer = a(1),
-    length = a(2);
-  if (!buffer || !length) return fail(r, 87, 3);
-  let resolved = input.replace(/\//g, '\\');
-  if (!/^[a-z]:\\/i.test(resolved) && !resolved.startsWith('\\'))
-    resolved = (r.cwd ? packageDosPrefix(r.cwd) : 'C:\\') + resolved;
-  // Collapse "." and ".." textually; no path component is followed on disk.
-  const parts = [];
-  for (const part of resolved.split('\\')) {
-    if (part === '.' || part === '') continue;
-    if (part === '..') parts.pop();
-    else parts.push(part);
+  if (!a(0)) return ok(0, 4);
+  let input, resolved;
+  try {
+    input = wide ? r.wideString(a(0)) : r.string(a(0));
+  } catch {
+    return fail(r, 998, 4);
   }
-  const drive = resolved.slice(0, 2);
-  const full = drive + '\\' + parts.slice(1).join('\\');
-  if (wide) {
-    if (full.length + 1 <= length)
-      for (let i = 0; i <= full.length; i++)
-        r.guestMemory.write(buffer + i * 2, i === full.length ? 0 : full.charCodeAt(i), 2);
-  } else {
-    const bytes = encodeAnsi(full).bytes;
-    if (bytes.length + 1 <= length) {
-      r.data.set(bytes, buffer);
-      r.data[buffer + bytes.length] = 0;
+  try {
+    resolved = fullDosPath(r, input);
+  } catch {
+    return fail(r, 123, 4);
+  }
+  if (!resolved) {
+    if (wide && input && a(3)) {
+      try {
+        r.check(a(3), 4, true);
+        r.write32(a(3), 0);
+      } catch {
+        return fail(r, 998, 4);
+      }
     }
+    return ok(0, 4);
   }
-  if (a(3)) {
-    r.check(a(3), 4, true);
-    r.write32(a(3), 0);
+  const { path: full, device } = resolved;
+  if ((!wide && full.length >= 260) || full.length > 32766) return fail(r, 206, 4);
+  const capacity = a(1) >>> 0,
+    buffer = a(2) >>> 0,
+    part = a(3) >>> 0,
+    bytes = wide ? null : encodeAnsi(full).bytes,
+    length = wide ? full.length : bytes.length,
+    fits = buffer && capacity > length;
+  try {
+    // Snapshot the input above so in-place expansion is valid. Check both
+    // output regions before writing either of them.
+    if (part && (wide || fits)) r.check(part, 4, true);
+    if (fits) r.check(buffer, (length + 1) * (wide ? 2 : 1), true);
+  } catch {
+    return fail(r, 998, 4);
   }
-  return ok(full.length, 3);
-}
-function packageDosPrefix(cwd) {
-  // Runtime cwd is a package-relative path such as "dynamicbranching/".
-  return 'C:\\' + cwd.replace(/\//g, '\\');
+  if (wide && part) r.write32(part, 0);
+  if (!fits) return ok(length + 1, 4);
+  if (wide)
+    for (let i = 0; i <= length; i++)
+      r.guestMemory.write(buffer + i * 2, full.charCodeAt(i) || 0, 2);
+  else {
+    r.data.set(bytes, buffer);
+    r.data[buffer + length] = 0;
+  }
+  if (part) {
+    const offset = full.lastIndexOf('\\') + 1;
+    r.write32(
+      part,
+      !device && offset > 2 && offset < full.length
+        ? buffer + (wide ? offset * 2 : encodeAnsi(full.slice(0, offset)).bytes.length)
+        : 0,
+    );
+  }
+  return ok(length, 4);
 }
 
 function lstrcmpi(r, a, wide) {

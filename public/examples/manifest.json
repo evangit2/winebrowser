@@ -243,11 +243,11 @@
       "name": "load-images",
       "description": "Image loader GUI: original, themed and file-loaded bitmaps. Open bitmap or F7 previews an uploaded BMP. F6 changes and restores a pixel in RGB24 images. Close the window to finish.",
       "exe": "load-images/load-images.exe",
-      "exeSha256": "289018a7eb014a401500ade2d21b583272436934478da82e186679f6c8df096d",
+      "exeSha256": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da",
       "zip": "load-images/load-images.zip",
-      "zipSha256": "d489de881f5d1e88f073cf0ccfe01923f2263799a6ebad0aa18cb065535b3910",
+      "zipSha256": "d75e10c675750b99318bad0b250b72b9cf119baa89f142cdb6cf13b74765406a",
       "sourceZip": "load-images/source.zip",
-      "sourceZipSha256": "5ac107a3080cd1a490e000d41beb58cef9c0ab8b5f1ef3f66179aa18e0182b68",
+      "sourceZipSha256": "dd6e3739383bac8d7b27c56dd8e2fe3ad8171c7654bf586a291a58214dfa7785",
       "provenance": "Original WineBrowser contributors MIT C programs and generated images; complete source build included."
     }
   ]

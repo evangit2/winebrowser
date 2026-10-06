@@ -20,7 +20,8 @@ export function showFilePicker(dialog, request, active = () => true, stop = () =
         answer = null,
         selectedNames = [],
         confirmed = false,
-        generation = 0;
+        generation = 0,
+        closed = false;
       dialog.dataset.requestToken = String(request.token);
       dialog.style.resize = request.flags & 0x800000 ? 'both' : 'none';
       field('title').textContent = request.title;
@@ -102,6 +103,10 @@ export function showFilePicker(dialog, request, active = () => true, stop = () =
         renderFiles();
       };
       field('import').onchange = async () => {
+        // The dialog element is reused. An event queued for a dismissed
+        // picker can start after a new picker opens; its generation counter
+        // alone cannot distinguish the new element's open state.
+        if (closed || !active() || !dialog.open) return;
         const current = ++generation,
           browserFiles = [...field('import').files];
         field('ok').disabled = true;
@@ -125,7 +130,7 @@ export function showFilePicker(dialog, request, active = () => true, stop = () =
             used.add(path);
             staged.push({ path, bytes: new Uint8Array(await file.arrayBuffer()) });
           }
-          if (!active() || !dialog.open || generation !== current) return;
+          if (closed || !active() || !dialog.open || generation !== current) return;
           imports.push(...staged);
           files.push(...staged.map((f) => ({ path: f.path, size: f.bytes.length })));
           directories = fileDialogDirectories(files, request.directories);
@@ -140,12 +145,13 @@ export function showFilePicker(dialog, request, active = () => true, stop = () =
               : (selectedNames[0] ?? '');
           invalidate();
         } catch (e) {
-          if (active() && dialog.open) field('error').textContent = e.message;
+          if (!closed && active() && dialog.open) field('error').textContent = e.message;
         } finally {
-          if (generation === current) field('ok').disabled = false;
+          if (!closed && generation === current) field('ok').disabled = false;
         }
       };
       function submit() {
+        if (closed || !active() || !dialog.open) return;
         const folder = [...field('list').selectedOptions].find((o) => o.dataset.directory);
         if (folder && !field('name').value) {
           field('directory').value = folder.value;
@@ -197,6 +203,7 @@ export function showFilePicker(dialog, request, active = () => true, stop = () =
         dialog.close();
       };
       dialog.onclose = () => {
+        closed = true;
         generation++;
         resolve(answer);
       };

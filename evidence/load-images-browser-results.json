@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-06T18:57:11.652Z",
+  "date": "2026-10-06T19:21:51.296Z",
   "status": "passed",
   "url": "http://127.0.0.1:4389/winebrowser/",
-  "browser": "155.0.8059.39",
+  "browser": "153.0.8010.12",
   "input": "hosted example",
   "binaries": {
-    "tests/fixtures/load-images/load-images.exe": "289018a7eb014a401500ade2d21b583272436934478da82e186679f6c8df096d",
+    "tests/fixtures/load-images/load-images.exe": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da",
     "tests/fixtures/load-images/core4.bmp": "71a4f767ed7549b28475d77f7f5afb2f7630a91921871b118346469aa86e2cb5",
     "tests/fixtures/load-images/gap.bmp": "965f7a1d71a10ccf6326397906c26afa255bc2a84930764644a8b0ea16822e67",
     "tests/fixtures/load-images/indexed4.bmp": "41ef0ce6459547d3c7d3ea438c6ee740f5e3f8578ec46f6e0342098a22d0fe1e",
@@ -18,8 +18,8 @@
     "tests/fixtures/load-images/bitmap-resources.dll": "5984c4eff63442c2c6d9c2f63d8a26a04f3513c25797cd602035c35101d3bd12"
   },
   "hostedInputs": {
-    "zipSha256": "d489de881f5d1e88f073cf0ccfe01923f2263799a6ebad0aa18cb065535b3910",
-    "exeSha256": "289018a7eb014a401500ade2d21b583272436934478da82e186679f6c8df096d"
+    "zipSha256": "d75e10c675750b99318bad0b250b72b9cf119baa89f142cdb6cf13b74765406a",
+    "exeSha256": "13ba607ff8c0680f58c3db3acf9da7876094569023caa7c181ecb575ced1c7da"
   },
   "resourceLibrary": {
     "name": "bitmap-resources.dll",
@@ -48,8 +48,8 @@
     }
   ],
   "exitCode": 0,
-  "compiledBlocks": 3288,
-  "x86TranslationMs": 826.4849987626076,
+  "compiledBlocks": 3383,
+  "x86TranslationMs": 718.0699988603592,
   "observations": [
     {
       "updated": false,
@@ -138,6 +138,7 @@
   "checks": [
     "Unchanged native SDK EXE calls both six-argument LoadImage interfaces for integer/named bitmap resources, icon and cursor resources",
     "Native Wine SearchPath A/W locates actual BMP and resource DLL inputs; buffers, file-part pointers, extensions, explicit lists and PATH are checked by the SDK client",
+    "Native SDK GetFullPathName A/W checks nonexistent names, required sizes, file-part pointers, rooted/current-drive paths and in-place expansion",
     "Native directory creation, traversal, current-directory changes and empty-directory deletion complete without host filesystem access",
     "Relative LoadImage sees native Wine directory changes; the Open bitmap button and F7 cancel/import dialogs update native GetCurrentDirectory and load relative file names from the selected directory",
     "Seven authored bitmap resources and BMP files cover indexed/CORE/monochrome/RGB24/32 and RGB565; a real file pixel offset skips a deliberate metadata/pixel gap",

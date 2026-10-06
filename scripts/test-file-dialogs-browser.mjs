@@ -64,8 +64,20 @@ try {
       buffer: Buffer.from('must not enter guest filesystem'),
     });
     await expect(page.locator('#file-picker-name')).toHaveValue('cancelled-import.txt');
+    await page.evaluate(() => {
+      window.__closedPickerImport = document.querySelector('#file-picker-import').onchange;
+      window.__closedPickerSubmit = document.querySelector('#file-picker-form').onsubmit;
+    });
     await page.keyboard.press('Escape');
     await title('Native A text selection');
+    assert.equal(await page.locator('#file-picker-directory option[value="_opened/1"]').count(), 0);
+    // A callback already queued for the closed picker must not repopulate the
+    // reused dialog with its obsolete imported files or folder selection.
+    await page.evaluate(async () => {
+      await window.__closedPickerImport();
+      window.__closedPickerSubmit(new Event('submit', { cancelable: true }));
+    });
+    await expect(picker).toBeVisible();
     assert.equal(await page.locator('#file-picker-directory option[value="_opened/1"]').count(), 0);
     await page.locator('#file-picker-list').selectOption('docs');
     await page
@@ -126,6 +138,7 @@ try {
     x86TranslationMs: run.x86TranslationMs,
     checks: [
       'Native OPENFILENAME v4 A Escape cancellation preserves caller filename and clears extended error',
+      'Import and submit callbacks retained from a closed picker cannot alter a reopened picker or revive canceled imports',
       'Folder navigation and filters select real guest files; native A offsets/title and actual ReadFile validated',
       'Native W Save As returns Unicode name, offsets and default extension; caller creates/writes exact output bytes',
       'Native W Explorer multiselect returns directory and filenames as native double-NUL buffer',

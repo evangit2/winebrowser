@@ -6,7 +6,28 @@ static BOOL same_wide(const WCHAR *left,const WCHAR *right) {
     return lstrcmpW(left,right)==0;
 #endif
 }
+static void full_paths(void) {
+    static CHAR path[512],expected[512],saved[512];static WCHAR wide[514];
+    CHAR *part=(CHAR *)0x12345678;WCHAR *wide_part=(WCHAR *)0x12345678;
+    CHECK(GetCurrentDirectoryA(512,saved));lstrcpyA(expected,saved);lstrcatA(expected,"\\ghost.bmp");
+    DWORD length=(DWORD)lstrlenA(expected);
+    CHECK(GetFullPathNameA("ghost.bmp",512,path,&part)==length);
+    CHECK(!lstrcmpA(path,expected)&&!lstrcmpA(part,"ghost.bmp")&&part==path+length-9);
+    CHECK(GetFullPathNameA("ghost.bmp",0,NULL,NULL)==length+1);
+    for(unsigned i=0;i<514;i++)wide[i]=0xcccc;
+    CHECK(GetFullPathNameW(L"ghost.bmp",length,wide,&wide_part)==length+1);
+    CHECK(wide[0]==0xcccc&&!wide_part);
+    CHECK(GetFullPathNameW(L".\\sub\\..\\ghost.bmp",512,wide,&wide_part)==length);
+    CHECK(same_wide(wide_part,L"ghost.bmp")&&wide[length]==0);
+    CHECK(wide[512]==0xcccc&&wide[513]==0xcccc);
+    CHECK(GetFullPathNameA("C:\\ghost.bmp",512,path,&part)==12&&!lstrcmpA(path,"C:\\ghost.bmp")&&!lstrcmpA(part,"ghost.bmp"));
+    CHECK(GetFullPathNameA("\\ghost.bmp",512,path,&part)==12&&!lstrcmpA(path,"C:\\ghost.bmp"));
+    CHECK(GetFullPathNameA("C:ghost.bmp",512,path,&part)==length&&!lstrcmpA(path,expected));
+    CHECK(GetFullPathNameW(L"C:\\",512,wide,&wide_part)==3&&!wide_part&&same_wide(wide,L"C:\\"));
+    lstrcpyA(path,".\\ghost.bmp");CHECK(GetFullPathNameA(path,512,path,&part)==length&&!lstrcmpA(path,expected));
+}
 static void search_paths(void) {
+    full_paths();
     CHAR path[MAX_PATH], saved[MAX_PATH], *part=(CHAR *)0x12345678;
     WCHAR wide[MAX_PATH], *wide_part=(WCHAR *)0x12345678;
     DWORD length=SearchPathA(NULL,"rgb24.bmp",NULL,MAX_PATH,path,&part);

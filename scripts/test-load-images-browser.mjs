@@ -267,6 +267,7 @@ try {
     checks: [
       'Unchanged native SDK EXE calls both six-argument LoadImage interfaces for integer/named bitmap resources, icon and cursor resources',
       'Native Wine SearchPath A/W locates actual BMP and resource DLL inputs; buffers, file-part pointers, extensions, explicit lists and PATH are checked by the SDK client',
+      'Native SDK GetFullPathName A/W checks nonexistent names, required sizes, file-part pointers, rooted/current-drive paths and in-place expansion',
       'Native directory creation, traversal, current-directory changes and empty-directory deletion complete without host filesystem access',
       'Relative LoadImage sees native Wine directory changes; the Open bitmap button and F7 cancel/import dialogs update native GetCurrentDirectory and load relative file names from the selected directory',
       'Seven authored bitmap resources and BMP files cover indexed/CORE/monochrome/RGB24/32 and RGB565; a real file pixel offset skips a deliberate metadata/pixel gap',
