@@ -312,6 +312,8 @@ clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.e
 
 **Native classic control GUI:** choose **Load frame-controls** to try push buttons, checkboxes, three-state controls, scroll/combo arrows, size grips and menu marks. Switch native states, inspect tiny controls, clip holes, or mark adjusted rectangles. The unchanged MIT Windows SDK EXE compiles into Wasm in the browser (`npm run test:frame-controls`). The separate Wine-derived geometry adapter retains its LGPL source and notices.
 
+**Native scrollbar state inspector:** choose **Load scroll-state** to inspect range and page clamping, signed limits, legacy structures, and compiled custom-control callbacks. The unchanged MIT Windows SDK EXE compiles into Wasm in the browser (`npm run test:scroll-state`). This verifies API state and message forwarding; standard scrollbar widgets and thumb tracking remain unfinished.
+
 **Native brush raster GUI:** choose **Load gdi-brush-rop** to mix solid, color and monochrome brushes with sixteen paint rules. Try transparent hatches, elliptical clip holes and reversed bounds. The unchanged MIT Windows SDK EXE compiles into Wasm in the browser (`npm run test:gdi-brush-rop`); its complete native source build and independent Wine pixel captures are included.
 
 **Native bitmap color GUI:** choose **Load gdi-pixel-colors** to compare seven bitmap formats side by side. Try RGB and palette colors, direct bitmap indices, out-of-range indices and clipping. Its unchanged MIT Windows EXE checks 217 captured native results and raw bytes, then compiles into Wasm inside the browser (`npm run test:gdi-pixel-colors`). Its complete reproducible source build is included.

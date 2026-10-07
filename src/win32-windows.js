@@ -1,3 +1,4 @@
+import { scrollStateApis } from './win32-scroll-state.js';
 import { dialogX, dialogY } from './dialog-units.js';
 import { receiveDroppedFiles } from './win32-drop-files.js';
 import { paintOwnerCombo, writeComboInfo } from './win32-combos.js';
@@ -2075,8 +2076,7 @@ Object.assign(windowApis, {
   'user32.dll!GetKeyboardState': getKeyboardState,
   'user32.dll!SetKeyboardState': setKeyboardState,
   'user32.dll!GetKeyboardLayout': getKeyboardLayout,
-  'user32.dll!SetScrollInfo': setScrollInfo,
-  'user32.dll!GetScrollInfo': getScrollInfo,
+  ...scrollStateApis,
   'user32.dll!GetWindowPlacement': getWindowPlacement,
   'user32.dll!SetWindowPlacement': setWindowPlacement,
   'user32.dll!FlashWindow': (r, a) => {
@@ -2258,64 +2258,6 @@ function setKeyboardState(r, a) {
 function getKeyboardLayout(r, a) {
   if (a(0)) return r.windows.fail(87, 1);
   return result(0x04090409, 1); // MAKELANGID(en-US, SUBLANG_DEFAULT) twice
-}
-// Scroll-bar state: Set/GetScrollInfo and the pair helpers. The runtime keeps
-// one SCROLLINFO per window and bar so a control's position round-trips.
-function scrollBarIndex(bar) {
-  return bar === 0 ? 'horizontal' : bar === 1 ? 'vertical' : null;
-}
-function setScrollInfo(r, a) {
-  const window = r.windows.windows.get(a(0));
-  if (!window) return r.windows.fail(1400, 4);
-  const key = scrollBarIndex(a(1) >>> 0);
-  if (!key) return r.windows.fail(87, 4);
-  const info = a(2);
-  if (!info) return r.windows.fail(87, 4);
-  r.check(info, 28);
-  if (r.read32(info) !== 28) return r.windows.fail(87, 4);
-  const scroll = {
-    min: r.read32(info + 4) | 0,
-    max: r.read32(info + 8) | 0,
-    page: r.read32(info + 12) >>> 0,
-    pos: r.read32(info + 16) | 0,
-    track: r.read32(info + 20) >>> 0,
-  };
-  const mask = r.read32(info + 24) >>> 0;
-  if (mask & ~0x1f) return r.windows.fail(87, 4);
-  window.scrollInfo ??= {};
-  const previous = window.scrollInfo[key];
-  const merged = { ...(previous ?? { min: 0, max: 0, page: 0, pos: 0, track: 0 }) };
-  for (const [bit, field] of [
-    [1, 'min'],
-    [2, 'max'],
-    [4, 'page'],
-    [8, 'pos'],
-    [16, 'track'],
-  ])
-    if (mask & bit) merged[field] = scroll[field];
-  window.scrollInfo[key] = merged;
-  if (a(3)) r.windows.emit(window);
-  return result(previous ? previous.pos | 0 : 0, 4);
-}
-function getScrollInfo(r, a) {
-  const window = r.windows.windows.get(a(0));
-  if (!window) return r.windows.fail(1400, 3);
-  const key = scrollBarIndex(a(1) >>> 0);
-  if (!key) return r.windows.fail(87, 3);
-  const info = a(2);
-  if (!info) return r.windows.fail(87, 3);
-  r.check(info, 28, true);
-  const mask = r.read32(info + 24) >>> 0;
-  if (mask & ~0x1f) return r.windows.fail(87, 3);
-  const scroll = window.scrollInfo?.[key];
-  if (!scroll) return result(0, 3);
-  r.write32(info, 28);
-  if (mask & 1) r.write32(info + 4, scroll.min);
-  if (mask & 2) r.write32(info + 8, scroll.max);
-  if (mask & 4) r.write32(info + 12, scroll.page >>> 0);
-  if (mask & 8) r.write32(info + 16, scroll.pos >>> 0);
-  if (mask & 16) r.write32(info + 20, scroll.track >>> 0);
-  return result(1, 3);
 }
 // Get/SetWindowPlacement round-trip the placement a minimised or restored
 // window reports. The runtime keeps the show state and the normal rectangle.

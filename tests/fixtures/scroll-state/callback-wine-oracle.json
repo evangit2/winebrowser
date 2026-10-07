@@ -1,0 +1,69 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native Windows SDK scrollbar APIs",
+  "cases": [
+    {
+      "name": "set-info",
+      "message": 233,
+      "wp": 0,
+      "lp": 3341868,
+      "result": -5,
+      "error": 777
+    },
+    {
+      "name": "get-info",
+      "message": 234,
+      "wp": 0,
+      "lp": 3341976,
+      "result": 1,
+      "error": 777
+    },
+    {
+      "name": "query",
+      "out": [28, 23, -7, 33, 4, 15, 9]
+    },
+    {
+      "name": "set-pos",
+      "message": 233,
+      "wp": 1,
+      "lp": 3341804,
+      "result": -5,
+      "error": 777
+    },
+    {
+      "name": "get-pos",
+      "message": 225,
+      "wp": 0,
+      "lp": 0,
+      "result": -15,
+      "error": 777
+    },
+    {
+      "name": "set-range",
+      "message": 233,
+      "wp": 0,
+      "lp": 3341772,
+      "result": 1,
+      "error": 777
+    },
+    {
+      "name": "set-range-redraw",
+      "message": 233,
+      "wp": 1,
+      "lp": 3341772,
+      "result": 1,
+      "error": 777
+    },
+    {
+      "name": "get-range",
+      "message": 227,
+      "wp": 3341972,
+      "lp": 3341968,
+      "result": 1,
+      "error": 777
+    },
+    {
+      "name": "range",
+      "out": [-7, 33]
+    }
+  ]
+}

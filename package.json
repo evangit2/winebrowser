@@ -347,7 +347,9 @@
     "build:guest-drive": "sh scripts/build-guest-drive-fixture.sh && python3 scripts/package-guest-drive.py",
     "test:guest-drive": "node scripts/test-guest-drive-browser.mjs",
     "build:load-images": "sh scripts/build-load-images-fixture.sh && python3 scripts/package-load-images.py",
-    "test:load-images": "node scripts/test-load-images-browser.mjs"
+    "test:load-images": "node scripts/test-load-images-browser.mjs",
+    "build:scroll-state": "sh scripts/build-scroll-state-fixture.sh && python3 scripts/package-scroll-state.py",
+    "test:scroll-state": "node scripts/test-scroll-state-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

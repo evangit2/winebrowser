@@ -414,6 +414,17 @@
       "sourceZip": "gdi-brush-rop/source.zip",
       "sourceZipSha256": "cdbf50cfabf40d290b331ec611f6c4a3ae70f9573651e747b9e56d4a00456d77",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "scroll-state",
+      "description": "Native scrollbar state inspector: range/page clamping, signed limits, legacy structures and custom callbacks. Click stages and close to finish.",
+      "exe": "scroll-state/scroll-state.exe",
+      "exeSha256": "542c4172b229d904fb7ef39b77b791bc2353506e0071e3bbbc0b373d64a97f8d",
+      "zip": "scroll-state/scroll-state.zip",
+      "zipSha256": "2c7b1f5185a0365b5e17b8494b342e1db0372f947d1cab66c66e34bb0987e056",
+      "sourceZip": "scroll-state/source.zip",
+      "sourceZipSha256": "b0b5c41d7daa3a87cd46604319530288e069f4b1fc0fea69bcaede773e80913b",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }
