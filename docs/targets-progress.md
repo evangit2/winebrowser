@@ -441,3 +441,22 @@ direct DIB palette indices. An unchanged native SDK PE32 client repeats the
 comparisons and normal cleanup through actual Wine base DLLs and x86-to-Wasm
 execution. This closes GetNearestColor in the comctl32 import graph (25
 unresolved remain); native common-controls execution remains unproven.
+
+Pixel writes now use native high-bit channel truncation for packed bitmap formats.
+Memory DC SetPixel resolves logical-palette flags and direct DIB indices, including
+out-of-range indices that become zero. Writes preserve adjacent packed pixels and
+row padding, and clear the reserved 32-bit alpha byte even for unchanged RGB.
+217 independently reproduced desktop Wine cases compare result, LastError,
+GetPixel and every raw destination byte across seven bitmap formats.
+
+The original MIT **gdi-pixel-colors** native SDK GUI compares RGB, palette colors,
+direct indices, boundary values and clipping side by side. Startup repeats all
+217 expectations through actual Wine base DLLs. Browser acceptance checks
+156,160 drawing-area pixels per stage in EXE, ZIP and catalog modes. The unchanged
+x86 EXE compiles into Wasm in the browser. This adds bitmap GUI compatibility;
+universal EXE/DLL execution remains unproven.
+
+The generic bitfield decoder also matches 93 independently reproduced desktop
+Wine pixel writes with 444, 332 and 10-bit channels. Narrow channels append one
+copy of their significant bits; wider channels expose their high eight bits.
+This corrects normalized rounding and overexpansion for unusual bitmap masks.

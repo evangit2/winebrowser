@@ -119,6 +119,13 @@ export function readDibLayout(r, info, usage, { output = false, paletteEntries }
   };
 }
 
+export function expandDibChannel(channel, bits) {
+  if (bits >= 8) return Math.floor(channel / 2 ** (bits - 8));
+  const high = channel << (8 - bits);
+  // Native generic bitfields append one copy of their significant bits.
+  return high | (high >> bits);
+}
+
 export function readDibPixel(r, layout, row, x) {
   const { depth, masks, palette } = layout;
   if (depth <= 8) {
@@ -136,10 +143,7 @@ export function readDibPixel(r, layout, row, x) {
     const low = (mask & -mask) >>> 0,
       maximum = (mask >>> 0) / low;
     const channel = ((value & mask) >>> 0) / low;
-    // Native 5/6-bit channels expand by bit replication, not normalized rounding.
-    if (maximum === 31) return (channel << 3) | (channel >> 2);
-    if (maximum === 63) return (channel << 2) | (channel >> 4);
-    return Math.round((channel * 255) / maximum);
+    return expandDibChannel(channel, Math.log2(maximum + 1));
   });
 }
 
@@ -180,7 +184,9 @@ export function writeDibPixel(r, layout, row, x, rgb) {
       const mask = masks[i],
         low = (mask & -mask) >>> 0,
         maximum = (mask >>> 0) / low;
-      value = (value | ((Math.round((rgb[i] * maximum) / 255) * low) & mask)) >>> 0;
+      const bits = Math.log2(maximum + 1),
+        channel = bits < 8 ? rgb[i] >> (8 - bits) : rgb[i] * 2 ** (bits - 8);
+      value = (value | ((channel * low) & mask)) >>> 0;
     }
     if (depth === 16) r.view.setUint16(row + x * 2, value, true);
     else r.write32(row + x * 4, value);

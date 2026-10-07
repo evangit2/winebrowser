@@ -1,4 +1,5 @@
 import { colorRefRgb, rgbColorRef } from './gdi-raster.js';
+import { expandDibChannel } from './gdi-dib.js';
 export function createNearestColorApis({ stateFor, getDc, dibPalette, success, failure }) {
   return {
     'gdi32.dll!GetNearestColor': (r, a) => {
@@ -50,16 +51,7 @@ export function createNearestColorApis({ stateFor, getDc, dibPalette, success, f
             bits = Math.log2(max + 1);
           if (bits >= 8) return channel;
           const value = channel >> (8 - bits);
-          if (bits === 5) return (value << 3) | (value >> 2);
-          if (bits === 6) return (value << 2) | (value >> 4);
-          let expanded = 0,
-            remaining = 8;
-          while (remaining > 0) {
-            const take = Math.min(bits, remaining);
-            expanded = (expanded << take) | (value >> (bits - take));
-            remaining -= take;
-          }
-          return expanded;
+          return expandDibChannel(value, bits);
         });
       return success(rgbColorRef(rgb), 2);
     },

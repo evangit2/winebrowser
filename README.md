@@ -308,6 +308,8 @@ clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.e
 
 **Native polygon and line GUI:** choose **Load gdi-paths** to compare alternate/winding stars, nested contours, independent line groups, complex clipping and saved fill modes. Its original MIT Windows EXE compiles inside the browser and matches actual Wine pixels (`npm run test:gdi-paths`).
 
+**Native bitmap color GUI:** choose **Load gdi-pixel-colors** to compare seven bitmap formats side by side. Try RGB and palette colors, direct bitmap indices, out-of-range indices and clipping. Its unchanged MIT Windows EXE checks 217 captured native results and raw bytes, then compiles into Wasm inside the browser (`npm run test:gdi-pixel-colors`). Its complete reproducible source build is included.
+
 **Native bitmap scaling GUI:** choose **Load gdi-stretch** to compare four scaling modes, mirrored images, source crops, region clips and raster operations. **Shrink** shows AND/OR and nearest/smooth sampling differences. This original MIT Windows EXE compiles inside the browser (`npm run test:gdi-stretch`).
 
 **Native bitmap transfer GUI:** choose **Load gdi-transfer** to compare partial scanline buffers, row offsets, crops and clips across bottom-up/top-down 32-bit, 24-bit RGB and 16-bit 565 images (`npm run test:gdi-transfer`).

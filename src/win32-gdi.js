@@ -2479,8 +2479,39 @@ function setPixel(runtime, argument) {
   if (!visiblePixel(surface, dc, x, y))
     return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
   const color = argument(3) >>> 0;
-  if (color & 0xff000000) return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
-  const rgb = surfaceRgb(surface, colorRgb(color));
+  if (dc.kind !== 'memory-dc' && color & 0xff000000)
+    return failure(runtime, ERROR_INVALID_PARAMETER, CLR_INVALID, 4);
+  let rgb =
+    dc.kind === 'memory-dc'
+      ? colorRgb(
+          gdiApis['gdi32.dll!GetNearestColor'](runtime, (i) => (i ? color : argument(0))).result,
+        )
+      : surfaceRgb(surface, colorRgb(color));
+  const dib = surface.dib;
+  if (dib) {
+    const row = dib.layout.signedHeight < 0 ? y : surface.height - 1 - y,
+      address = dib.bits + row * dib.layout.stride;
+    runtime.check(address, dib.layout.stride, true);
+    if (color >>> 16 === 0x10ff && dib.layout.depth <= 8) {
+      const depth = dib.layout.depth,
+        requested = color & 0xffff,
+        index = requested < 1 << depth ? requested : 0;
+      if (depth === 8) runtime.data[address + x] = index;
+      else if (depth === 4) {
+        const at = address + (x >> 1),
+          shift = x & 1 ? 0 : 4;
+        runtime.data[at] = (runtime.data[at] & ~(15 << shift)) | (index << shift);
+      } else {
+        const at = address + (x >> 3),
+          shift = 7 - (x & 7);
+        runtime.data[at] = (runtime.data[at] & ~(1 << shift)) | ((index === 1 ? 1 : 0) << shift);
+      }
+    } else writeDibPixel(runtime, dib.layout, address, x, rgb);
+    rgb = readDibPixel(runtime, dib.layout, address, x);
+    dib.dirtyRows.add(row);
+    // SetPixel overwrites the reserved 32-bit alpha even when RGB is unchanged.
+    markGdiDirty(surface, x, y, x + 1, y + 1);
+  }
   const offset = (y * surface.width + x) * 4;
   const pixels = surface.pixels;
   if (

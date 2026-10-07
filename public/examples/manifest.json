@@ -370,6 +370,17 @@
       "sourceZip": "gdi-transfer/source.zip",
       "sourceZipSha256": "511696bce14dee1f129871f5e4b25e822b4b1fb4dda9d423b95ce65072023f20",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-pixel-colors",
+      "description": "Native bitmap color GUI: compare seven bitmap formats, RGB and palette colors, direct indices, range boundaries and clipping. Close to finish.",
+      "exe": "gdi-pixel-colors/gdi-pixel-colors.exe",
+      "exeSha256": "9dd4bc0425c94386c1a715e16fd3d64592d15f764d88822217390c26ee7fbf8f",
+      "zip": "gdi-pixel-colors/gdi-pixel-colors.zip",
+      "zipSha256": "60d8e8e080b8a9ac9659b2cc3c0cd48235a46c9c0d83b845c8d46eef803d4fe8",
+      "sourceZip": "gdi-pixel-colors/source.zip",
+      "sourceZipSha256": "2f3b6d37479a592daa58569ca0099e810f1c9b7f24c41e5c6a4a6ae76ec4ce03",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

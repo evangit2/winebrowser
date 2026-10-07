@@ -4,7 +4,7 @@ Screen DCs use the same virtual pixel dimensions as USER32, DXGI and the active 
 
 GetDeviceCaps uses Windows SDK indices. Window and compatible memory DCs report the display driver's capabilities; a selected bitmap controls its own dimensions and format rather than the driver's HORZRES. HORZRES, VERTRES, DESKTOPHORZRES, DESKTOPVERTRES and VREFRESH follow the active mode. CPU GDI backing pixels are 32-bit RGBA with 24 significant RGB bits, one plane and no palette. They remain RGBA8 when the separate D3D mode uses RGB565. Logical DPI is 96; physical millimetres are nominal values derived from that density and do not inspect the host monitor.
 
-Capability flags cover implemented one-pixel solid lines, alternate-fill polygons/ellipses, rectangular and bounded complex clipping, BitBlt and StretchBlt. CreateDIBitmap and the uncompressed GetDIBits/SetDIBits paths work. RC_DI_BITMAP stays unadvertised while compressed DIB formats and full conformance remain unfinished. SetDIBitsToDevice, StretchDIBits, winding fill, full text-capability conformance, color management, mapping transforms and printer devices remain unfinished. Their capability flags stay unadvertised. Unsupported capability indices return zero, and invalid or released DCs fail.
+Capability flags cover implemented one-pixel solid lines, alternate-fill polygons/ellipses, rectangular and bounded complex clipping, BitBlt and StretchBlt. CreateDIBitmap and the uncompressed GetDIBits/SetDIBits paths work. RC_DI_BITMAP stays unadvertised while compressed DIB formats and full conformance remain unfinished. SetDIBitsToDevice and StretchDIBits now cover uncompressed scanline transfers and scaled DIBs, with native snapshots and public GUIs. Winding fill is supported. Full text-capability conformance, color management, mapping transforms and printer devices remain unfinished. Capability flags have not been broadened. Unsupported capability indices return zero, and invalid or released DCs fail.
 
 The authored MIT [native screen fixture](../tests/fixtures/gdi-screen/README.md) queries actual SDK constants and paints/reads all four screen corners using the same native DC across 1024×768, 800×600, 640×480 and restoration. `npm run test:gdi-screen` independently checks every displayed pixel, frame dimensions and native exit status. The [report](../evidence/gdi-screen-browser-results.json) records the executable hash, compiled x86 block count, browser compilation time and per-mode observations. This proves these covered contracts; arbitrary Windows applications and DLLs remain an active goal.
 
@@ -33,3 +33,19 @@ The image demo's **Open bitmap…** button/F7 picker validates this direction of
 The host GetFullPathName A/W fallback now uses capacity argument 1, output argument 2 and four-argument stdcall cleanup. It returns required sizes and actual file-part pointers, validates output regions before writing, and supports in-place expansion. Path expansion is lexical: absent files and other-drive/UNC names can be named even when those volumes cannot be opened by the file bridge. Host expansion covers common DOS relative, rooted, drive-relative/absolute, UNC and device names, preserving the existing ANSI MAX_PATH and UTF-16 length distinction. Native Wine retains its own implementation. The authored SDK startup checks and focused fallback tests cover these contracts; extended namespaces, per-drive environment synchronization and complete Windows path conformance remain unfinished. References: Microsoft [GetFullPathName](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamew), MinGW fileapi.h and Wine kernelbase/ntdll path implementations linked above.
 
 File-picker sessions also retain a terminal closed state. Import callbacks queued for a dismissed picker cannot begin reading the next picker's input or replace its folders/files; callbacks finishing an asynchronous read cannot modify the reopened dialog or its submit button. Closed submit handlers do nothing. Browser acceptance retains and invokes old callbacks after cancellation and requires the new dialog and import list to remain intact. Acceptance also waits for a new visible picker request before uploading: identical titles can match the closed dialog while the next native request is still opening. This test race caused the imported-folder state mismatch observed during Chromium CI.
+
+SetPixel resolves memory DC logical-palette flags and direct DIB palette indices.
+555/565 writes truncate high channel bits and read back replicated channels.
+Indexed writes preserve the actual index even when multiple entries have the
+same RGB, while out-of-range indices become zero. Reserved 32-bit alpha is
+cleared even for unchanged RGB; neighboring pixels and padding survive.
+The original MIT **gdi-pixel-colors** GUI checks 217 independently reproduced
+native results and raw DWORDs across seven formats. Browser checks compare
+156,160 drawing-area pixels per stage (`npm run test:gdi-pixel-colors`).
+These contracts extend GUI compatibility; broader color management remains
+unfinished.
+
+The generic bitfield decoder also matches 93 independently reproduced desktop
+Wine pixel writes with 444, 332 and 10-bit channels. Narrow channels append one
+copy of their significant bits; wider channels expose their high eight bits.
+This corrects normalized rounding and overexpansion for unusual bitmap masks.

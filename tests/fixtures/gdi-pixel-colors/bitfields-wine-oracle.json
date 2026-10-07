@@ -1,0 +1,749 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native SetPixel/GetPixel and raw DIB bytes for 444, 332 and 10-bit channels",
+  "cases": [
+    {
+      "type": 7,
+      "color": 0,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 16777215,
+      "result": 16777215,
+      "error": 777,
+      "pixel": 16777215,
+      "raw": 1883246591
+    },
+    {
+      "type": 7,
+      "color": 197121,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 394500,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 460293,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 591879,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 8487039,
+      "result": 8947831,
+      "error": 777,
+      "pixel": 8947831,
+      "raw": 1883244424
+    },
+    {
+      "type": 7,
+      "color": 16316922,
+      "result": 16777215,
+      "error": 777,
+      "pixel": 16777215,
+      "raw": 1883246591
+    },
+    {
+      "type": 7,
+      "color": 11874067,
+      "result": 12263953,
+      "error": 777,
+      "pixel": 12263953,
+      "raw": 1883242795
+    },
+    {
+      "type": 7,
+      "color": 65280,
+      "result": 65280,
+      "error": 777,
+      "pixel": 65280,
+      "raw": 1883242736
+    },
+    {
+      "type": 7,
+      "color": 16777217,
+      "result": 136,
+      "error": 777,
+      "pixel": 136,
+      "raw": 1883244544
+    },
+    {
+      "type": 7,
+      "color": 16777235,
+      "result": 16777215,
+      "error": 777,
+      "pixel": 16777215,
+      "raw": 1883246591
+    },
+    {
+      "type": 7,
+      "color": 33554597,
+      "result": 170,
+      "error": 777,
+      "pixel": 170,
+      "raw": 1883245056
+    },
+    {
+      "type": 7,
+      "color": 285147137,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147138,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 4289449455,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147391,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147136,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147139,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147140,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147151,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147152,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147153,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147392,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147393,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285147647,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 285212671,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 7,
+      "color": 8413248,
+      "result": 8939076,
+      "error": 777,
+      "pixel": 8939076,
+      "raw": 1883243624
+    },
+    {
+      "type": 7,
+      "color": 16711935,
+      "result": 16711935,
+      "error": 777,
+      "pixel": 16711935,
+      "raw": 1883246351
+    },
+    {
+      "type": 7,
+      "color": 16776960,
+      "result": 16776960,
+      "error": 777,
+      "pixel": 16776960,
+      "raw": 1883242751
+    },
+    {
+      "type": 7,
+      "color": 65535,
+      "result": 65535,
+      "error": 777,
+      "pixel": 65535,
+      "raw": 1883246576
+    },
+    {
+      "type": 8,
+      "color": 0,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 16777215,
+      "result": 15793404,
+      "error": 777,
+      "pixel": 15793404,
+      "raw": 1883242751
+    },
+    {
+      "type": 8,
+      "color": 197121,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 394500,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 460293,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 591879,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 8487039,
+      "result": 10522732,
+      "error": 777,
+      "pixel": 10522732,
+      "raw": 1883242610
+    },
+    {
+      "type": 8,
+      "color": 16316922,
+      "result": 15793404,
+      "error": 777,
+      "pixel": 15793404,
+      "raw": 1883242751
+    },
+    {
+      "type": 8,
+      "color": 11874067,
+      "result": 10494976,
+      "error": 777,
+      "pixel": 10494976,
+      "raw": 1883242502
+    },
+    {
+      "type": 8,
+      "color": 65280,
+      "result": 64512,
+      "error": 777,
+      "pixel": 64512,
+      "raw": 1883242524
+    },
+    {
+      "type": 8,
+      "color": 16777217,
+      "result": 144,
+      "error": 777,
+      "pixel": 144,
+      "raw": 1883242624
+    },
+    {
+      "type": 8,
+      "color": 16777235,
+      "result": 15793404,
+      "error": 777,
+      "pixel": 15793404,
+      "raw": 1883242751
+    },
+    {
+      "type": 8,
+      "color": 33554597,
+      "result": 180,
+      "error": 777,
+      "pixel": 180,
+      "raw": 1883242656
+    },
+    {
+      "type": 8,
+      "color": 285147137,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147138,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 4289449455,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147391,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147136,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147139,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147140,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147151,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147152,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147153,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147392,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147393,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285147647,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 285212671,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 1883242496
+    },
+    {
+      "type": 8,
+      "color": 8413248,
+      "result": 10513480,
+      "error": 777,
+      "pixel": 10513480,
+      "raw": 1883242574
+    },
+    {
+      "type": 8,
+      "color": 16711935,
+      "result": 15728892,
+      "error": 777,
+      "pixel": 15728892,
+      "raw": 1883242723
+    },
+    {
+      "type": 8,
+      "color": 16776960,
+      "result": 15793152,
+      "error": 777,
+      "pixel": 15793152,
+      "raw": 1883242527
+    },
+    {
+      "type": 8,
+      "color": 65535,
+      "result": 64764,
+      "error": 777,
+      "pixel": 64764,
+      "raw": 1883242748
+    },
+    {
+      "type": 9,
+      "color": 0,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 16777215,
+      "result": 16777215,
+      "error": 777,
+      "pixel": 16777215,
+      "raw": 1070593020
+    },
+    {
+      "type": 9,
+      "color": 197121,
+      "result": 197121,
+      "error": 777,
+      "pixel": 197121,
+      "raw": 4202508
+    },
+    {
+      "type": 9,
+      "color": 394500,
+      "result": 394500,
+      "error": 777,
+      "pixel": 394500,
+      "raw": 16797720
+    },
+    {
+      "type": 9,
+      "color": 460293,
+      "result": 460293,
+      "error": 777,
+      "pixel": 460293,
+      "raw": 20996124
+    },
+    {
+      "type": 9,
+      "color": 591879,
+      "result": 591879,
+      "error": 777,
+      "pixel": 591879,
+      "raw": 29392932
+    },
+    {
+      "type": 9,
+      "color": 8487039,
+      "result": 8487039,
+      "error": 777,
+      "pixel": 8487039,
+      "raw": 533201412
+    },
+    {
+      "type": 9,
+      "color": 16316922,
+      "result": 16316922,
+      "error": 777,
+      "pixel": 16316922,
+      "raw": 1049596896
+    },
+    {
+      "type": 9,
+      "color": 11874067,
+      "result": 11874067,
+      "error": 777,
+      "pixel": 11874067,
+      "raw": 79885012
+    },
+    {
+      "type": 9,
+      "color": 65280,
+      "result": 65280,
+      "error": 777,
+      "pixel": 65280,
+      "raw": 1044480
+    },
+    {
+      "type": 9,
+      "color": 16777217,
+      "result": 128,
+      "error": 777,
+      "pixel": 128,
+      "raw": 536870912
+    },
+    {
+      "type": 9,
+      "color": 16777235,
+      "result": 16777215,
+      "error": 777,
+      "pixel": 16777215,
+      "raw": 1070593020
+    },
+    {
+      "type": 9,
+      "color": 33554597,
+      "result": 165,
+      "error": 777,
+      "pixel": 165,
+      "raw": 692060160
+    },
+    {
+      "type": 9,
+      "color": 285147137,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147138,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 4289449455,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147391,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147136,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147139,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147140,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147151,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147152,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147153,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147392,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147393,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285147647,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 285212671,
+      "result": 0,
+      "error": 777,
+      "pixel": 0,
+      "raw": 0
+    },
+    {
+      "type": 9,
+      "color": 8413248,
+      "result": 8413248,
+      "error": 777,
+      "pixel": 8413248,
+      "raw": 268829184
+    },
+    {
+      "type": 9,
+      "color": 16711935,
+      "result": 16711935,
+      "error": 777,
+      "pixel": 16711935,
+      "raw": 1069548540
+    },
+    {
+      "type": 9,
+      "color": 16776960,
+      "result": 16776960,
+      "error": 777,
+      "pixel": 16776960,
+      "raw": 1045500
+    },
+    {
+      "type": 9,
+      "color": 65535,
+      "result": 65535,
+      "error": 777,
+      "pixel": 65535,
+      "raw": 1070592000
+    }
+  ]
+}
