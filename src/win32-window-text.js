@@ -5,6 +5,11 @@ export async function sendWindowMessage(r, hwnd, message, wParam, lParam, wide) 
   const window = r.windows.windows.get(hwnd);
   if (['combobox', 'listbox'].includes(window?.controlType))
     return r.windows.send(hwnd, message, wParam, lParam, wide);
+  // Builtin EDIT stores Unicode independently of its creation API. Its native
+  // A/W entry points convert at the text query/replacement, not via an ANSI
+  // temporary that destroys characters before a Unicode caller can see them.
+  if (window?.controlType === 'edit' && !r.windows.isControlSubclass(window))
+    return r.windows.send(hwnd, message, wParam, lParam, wide);
   const targetWide = !!window?.cls?.wide;
   if (!window || wide === targetWide || ![0xc, 0xd, 0xc2].includes(message))
     return r.windows.send(hwnd, message, wParam, lParam);

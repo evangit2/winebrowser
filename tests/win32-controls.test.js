@@ -113,6 +113,63 @@ function commandWords(message) {
   };
 }
 
+test('native edit clipboard messages preserve text, readonly/password rules, limits and undo', async (t) => {
+  const { runtime: r, parentId } = await makeHarness(t);
+  const edit = async (wide, style = 0) =>
+    (
+      await createChild(r, parentId, {
+        className: 'EDIT',
+        title: '',
+        wide,
+        style: WS_CHILD | WS_VISIBLE | style,
+      })
+    ).result;
+  const ansi = await edit(false),
+    unicode = await edit(true, 4),
+    readonly = await edit(true, 0x800),
+    password = await edit(false, 0x20);
+  const send = async (hwnd, msg, wp = 0, lp = 0) =>
+    (await call(r, 'user32.dll!SendMessageW', [hwnd, msg, wp, lp])).result;
+  const value = (id) => r.windows.windows.get(id).title;
+  await send(unicode, 0xc, 0, r.allocString('Ω 😀 café\r\nrest', true));
+  await send(unicode, 0xb1, 0, 9);
+  await send(unicode, 0x301);
+  await send(ansi, 0x302);
+  assert.equal(value(ansi), 'Ω 😀 café');
+  await send(unicode, 0xb1, 0, 4);
+  await send(unicode, 0x300);
+  assert.equal(value(unicode), ' café\r\nrest');
+  await send(unicode, 0x304);
+  assert.equal(value(unicode), 'Ω 😀 café\r\nrest');
+  await send(readonly, 0xc, 0, r.allocString('read only', true));
+  await send(readonly, 0xb1, 0, 9);
+  await send(readonly, 0x300);
+  await send(readonly, 0x302);
+  await send(readonly, 0x303);
+  assert.equal(value(readonly), 'read only');
+  await send(readonly, 0x301);
+  await send(ansi, 0xb1, 0, -1);
+  await send(ansi, 0x302);
+  assert.equal(value(ansi), 'read only');
+  await send(password, 0xc, 0, r.allocString('secret', true));
+  await send(password, 0xb1, 0, -1);
+  await send(password, 0x301);
+  await send(password, 0x300);
+  assert.equal(value(password), 'secret');
+  await send(ansi, 0xb1, 0, -1);
+  await send(ansi, 0x302);
+  assert.equal(value(ansi), 'read only');
+  await send(ansi, 0xc5, 4);
+  await send(ansi, 0xb1, 0, -1);
+  await send(ansi, 0x302);
+  assert.equal(value(ansi), 'read');
+  await send(ansi, 0xb1, 1, 3);
+  await send(ansi, 0x303);
+  assert.equal(value(ansi), 'rd');
+  await send(ansi, 0x304);
+  assert.equal(value(ansi), 'read');
+});
+
 test('bitmap statics retain borrowed handles, auto-size or center native pixels, and return replaced images', async (t) => {
   const { runtime: r, parentId } = await makeHarness(t);
   const bits = r.allocate(8);
@@ -774,7 +831,7 @@ test('native edit replacement uses A/W encoding, selection pointers, undo and or
     assert.equal(runtime.read32(out + 8), 0xaaaaaaaa);
     callbacks.length = 0;
     await send(0xc2, 1, runtime.allocString('β€', true), true);
-    assert.equal(runtime.windows.windows.get(edit).title, wide ? 'β€ tail' : '?€ tail');
+    assert.equal(runtime.windows.windows.get(edit).title, 'β€ tail');
     assert.equal(await send(0xb0), (2 << 16) | 2);
     assert.deepEqual(
       callbacks.filter((a) => a[1] === WM_COMMAND).map((a) => a[2] >>> 16),
@@ -785,7 +842,7 @@ test('native edit replacement uses A/W encoding, selection pointers, undo and or
     assert.equal(runtime.windows.windows.get(edit).title, 'alpha tail');
     assert.equal(await send(0xb0), 5 << 16);
     assert.equal(await send(0xc7), 1);
-    assert.equal(runtime.windows.windows.get(edit).title, wide ? 'β€ tail' : '?€ tail');
+    assert.equal(runtime.windows.windows.get(edit).title, 'β€ tail');
     await send(0xcd);
     assert.equal(await send(0xc6), 0);
     await send(0xb1, 0, 0xffffffff);

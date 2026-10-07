@@ -964,6 +964,27 @@ export class VirtualDesktop {
       element.className =
         'virtual-desktop-control virtual-desktop-control-edit' +
         (multiline ? ' virtual-desktop-control-edit-multiline' : '');
+      // Menu messages and browser gestures must reach the same guest clipboard.
+      // Prevent Chromium from mutating the input before the native command runs.
+      for (const command of ['copy', 'cut', 'paste'])
+        element.addEventListener(command, (event) => {
+          event.preventDefault();
+          this.#emit(control.id, 'selection', {
+            start: element.selectionStart,
+            end: element.selectionEnd,
+          });
+          if (command !== 'paste')
+            event.clipboardData?.setData(
+              'text/plain',
+              element.value.slice(element.selectionStart, element.selectionEnd),
+            );
+          this.#emit(control.id, 'edit-command', {
+            command,
+            ...(command === 'paste' && event.clipboardData?.types.includes('text/plain')
+              ? { text: event.clipboardData.getData('text/plain') }
+              : {}),
+          });
+        });
       element.addEventListener('input', () =>
         this.#emit(control.id, 'text', {
           text: element.value,
@@ -1059,6 +1080,19 @@ export class VirtualDesktop {
       element.addEventListener(type, (event) => {
         event.stopPropagation();
         if (
+          controlType === 'edit' &&
+          ((event.ctrlKey && ['c', 'x', 'v', 'z'].includes(event.key.toLowerCase())) ||
+            (event.key === 'Insert' && (event.ctrlKey || event.shiftKey)) ||
+            (event.key === 'Delete' && event.shiftKey))
+        ) {
+          event.preventDefault();
+          if (type === 'keydown')
+            this.#emit(control.id, 'selection', {
+              start: element.selectionStart,
+              end: element.selectionEnd,
+            });
+        }
+        if (
           (['treeview', 'tabcontrol', 'scrollbar'].includes(controlType) &&
             ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
               event.key,
@@ -1089,7 +1123,8 @@ export class VirtualDesktop {
           event.preventDefault();
         // Chromium on macOS interprets Control+H as delete-backward inside
         // inputs. Native accelerator keys must not also edit browser text.
-        // Retain the browser's ordinary selection/clipboard/undo shortcuts.
+        // Selection remains native to the input; clipboard/undo keys above
+        // are queued once through the application's Windows message loop.
         if (
           (event.ctrlKey || event.metaKey || event.altKey) &&
           event.key.length === 1 &&

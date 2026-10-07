@@ -1,3 +1,4 @@
+import { destroyClipboardOwner } from './win32-clipboard.js';
 import { scrollbarInfoApis } from './win32-scrollbar-info.js';
 import { describeScrollbar } from './win32-scrollbars.js';
 import { scrollStateApis } from './win32-scroll-state.js';
@@ -535,7 +536,7 @@ export class WindowManager {
           await defaultProc(
             this.runtime,
             (i) => [window.id, message, wParam, lParam][i],
-            window.cls.wide,
+            textWide ?? window.cls.wide,
           )
         ).result,
       textWide ?? !!window.cls.wide,
@@ -619,6 +620,7 @@ export class WindowManager {
     const window = this.windows.get(hwnd);
     if (!window || window.destroying) return 0;
     window.destroying = true;
+    await destroyClipboardOwner(this.runtime, hwnd);
     await this.send(hwnd, 2);
     for (const child of [...this.windows.values()])
       if (child.parentId === hwnd) await this.destroy(child.id);
@@ -1809,7 +1811,7 @@ for (const wide of [false, true]) {
   windowApis[`user32.dll!GetWindowText${suffix}`] = async (r, a) =>
     result(await sendWindowMessage(r, a(0), 0xd, a(2), a(1), wide), 3);
   windowApis[`user32.dll!GetWindowTextLength${suffix}`] = async (r, a) =>
-    result(await r.windows.send(a(0), 0xe), 1);
+    result(await sendWindowMessage(r, a(0), 0xe, 0, 0, wide), 1);
   Object.assign(windowApis, {
     'user32.dll!GetComboBoxInfo': (r, a) => {
       const w = r.windows.windows.get(a(0));

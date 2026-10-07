@@ -9,7 +9,14 @@ import { statusbarMessage } from './win32-statusbar.js';
 import { toolbarMessage, toolbarInput } from './win32-toolbar.js';
 import { progressMessage } from './win32-progress.js';
 import { listviewMessage, listviewInput } from './win32-listview.js';
+import {
+  clipboardText,
+  publishClipboardText,
+  openClipboard,
+  closeClipboard,
+} from './win32-clipboard.js';
 export const EDIT_INPUT = 0x7fc0;
+const EDIT_CLIPBOARD_INPUT = 0x7fc1;
 
 const kinds = new Map([
   ['scrollbar', 'scrollbar'],
@@ -322,6 +329,23 @@ async function ownerButtonMessage(r, window, message, wp, lp) {
 }
 
 export async function controlMessage(r, window, message, wp, lp, fallback, wide) {
+  if (window.controlType === 'edit' && message === EDIT_CLIPBOARD_INPUT) {
+    const text = window.pendingClipboardEvents?.get(wp);
+    window.pendingClipboardEvents?.delete(wp);
+    if (typeof text !== 'string') return 0;
+    if (!(await publishClipboardText(r, window.id, text, true))) return 0;
+    return r.windows.send(window.id, 0x302);
+  }
+  if (window.controlType === 'edit' && message === 0x100) {
+    const ctrl = !!(r.windows.keyboardState.get(17) & 0x8000);
+    const shift = !!(r.windows.keyboardState.get(16) & 0x8000);
+    const command = ctrl
+      ? { 67: 0x301, 88: 0x300, 86: 0x302, 90: 0x304, 45: 0x301 }[wp]
+      : shift
+        ? { 45: 0x302, 46: 0x300 }[wp]
+        : 0;
+    if (command) return r.windows.send(window.id, command);
+  }
   if (window.controlType === 'scrollbar') {
     const handled = await scrollbarMessage(r, window, message, wp, lp);
     if (handled !== null) return handled;
@@ -412,6 +436,40 @@ export async function controlMessage(r, window, message, wp, lp, fallback, wide)
     }
     r.windows.emit(window);
     return 0;
+  }
+  if (window.controlType === 'edit' && [0x300, 0x301, 0x302, 0x303].includes(message)) {
+    // WM_CUT/COPY/PASTE/CLEAR run in the native control's message order, so
+    // menu commands and application subclasses share the same clipboard.
+    if (message !== 0x301 && window.readOnly) return 0;
+    const start = window.selectionStart ?? 0,
+      end = window.selectionEnd ?? start;
+    if ([0x300, 0x301].includes(message)) {
+      if (window.password || start === end) return 0;
+      if (!(await publishClipboardText(r, window.id, window.title.slice(start, end), true)))
+        return 0;
+      if (message === 0x301) return 0;
+    }
+    let text = '';
+    if (message === 0x302) {
+      if (!openClipboard(r, window.id).result) return 0;
+      try {
+        text = await clipboardText(r);
+      } finally {
+        closeClipboard(r);
+      }
+      if (text === null && !window.password) return 0;
+      text ??= '';
+      if (!window.multiline) text = text.split(/[\r\n]/, 1)[0];
+    }
+    // Reuse replacement limits, filtering, undo and native EN_UPDATE/CHANGE.
+    // Native EDIT storage and clipboard messages use Unicode even for an
+    // ANSI-created window; ANSI conversion belongs to its A/W text queries.
+    const pointer = r.allocString(text, true);
+    try {
+      return await controlMessage(r, window, 0xc2, 1, pointer, fallback, true);
+    } finally {
+      r.free(pointer);
+    }
   }
   if (window.controlType === 'edit' && message === 0xc2) {
     // Native programmatic replacement is allowed on read-only controls too;
@@ -566,6 +624,16 @@ export function controlInput(r, window, event) {
   if (window.controlType === 'tabcontrol' && tabInput(r, window, event)) return true;
   if (window.controlType === 'toolbar' && toolbarInput(r, window, event)) return true;
   if (window.controlType === 'listview' && listviewInput(r, window, event)) return true;
+  if (event.type === 'edit-command' && window.controlType === 'edit') {
+    const message = { cut: 0x300, copy: 0x301, paste: 0x302, clear: 0x303 }[event.command];
+    if (message === 0x302 && typeof event.text === 'string') {
+      window.pendingClipboardEvents ??= new Map();
+      const id = (window.nextClipboardEvent = ((window.nextClipboardEvent ?? 0) + 1) >>> 0);
+      window.pendingClipboardEvents.set(id, event.text);
+      r.windows.post(window.id, EDIT_CLIPBOARD_INPUT, id);
+    } else if (message) r.windows.post(window.id, message);
+    return true;
+  }
   if (event.type === 'button-cancel' && window.ownerDraw && window.controlType === 'button') {
     r.windows.post(window.id, 0x1f);
     return true;

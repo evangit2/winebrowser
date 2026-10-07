@@ -711,39 +711,6 @@ async function enumSystemLocales(r, a, wide, present) {
 }
 
 // ---------------------------------------------------------------------------
-// Clipboard. The clipboard is process-local storage for the runtime's own
-// windows; OpenClipboard tracks the owning window, and the data formats keep
-// the exact bytes the guest published.
-function openClipboard(r, a) {
-  if (r.clipboardOpen) return fail(r, 5, 1);
-  const owner = a(0);
-  if (owner && !r.windows.windows.has(owner)) return fail(r, 1400, 1);
-  r.clipboardOpen = { owner, formats: new Map() };
-  return ok(1, 1);
-}
-function emptyClipboard(r) {
-  if (!r.clipboardOpen) return fail(r, 5, 0);
-  r.clipboardOpen.formats.clear();
-  return ok(1, 0);
-}
-function setClipboardData(r, a) {
-  if (!r.clipboardOpen) return fail(r, 5, 2);
-  const bytes = r.handles.get(a(1));
-  // Only the runtime's own global-memory handles are accepted; the data is
-  // copied so the guest may free its handle afterwards.
-  if (a(1) && !bytes && !r.customHeaps) return fail(r, 6, 2);
-  r.clipboardOpen.formats.set(a(0), { handle: a(1) });
-  return ok(a(1), 2);
-}
-function closeClipboard(r) {
-  if (!r.clipboardOpen) return fail(r, 5, 0);
-  const data = r.clipboardOpen;
-  r.clipboardOpen = null;
-  r.clipboard = data;
-  return ok(1, 0);
-}
-
-// ---------------------------------------------------------------------------
 // Unhandled exception handling. WineBrowser has no SEH delivery, so the filter
 // is recorded (Set/Get round-trip) and a real unhandled exception still stops
 // the run with the guest's code instead of silently continuing.
@@ -813,18 +780,6 @@ export const startupApis2 = {
       retval,
       faultEip: r.cpu.instructionIp,
     });
-  },
-  'user32.dll!OpenClipboard': openClipboard,
-  'user32.dll!EmptyClipboard': emptyClipboard,
-  'user32.dll!SetClipboardData': setClipboardData,
-  'user32.dll!CloseClipboard': closeClipboard,
-  'user32.dll!GetClipboardData': (r, a) => {
-    if (!r.clipboardOpen) return fail(r, 5, 1);
-    return ok(r.clipboardOpen.formats.get(a(0))?.handle ?? 0, 1);
-  },
-  'user32.dll!IsClipboardFormatAvailable': (r, a) => {
-    const source = r.clipboardOpen ?? r.clipboard;
-    return ok(source?.formats.has(a(0)) ? 1 : 0, 1);
   },
 };
 

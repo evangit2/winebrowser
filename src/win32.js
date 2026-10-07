@@ -1,3 +1,4 @@
+import { clipboardApis } from './win32-clipboard.js';
 import { canResizeGuestFile } from './guest-volume.js';
 import { textUnicodeApis } from './win32-text-unicode.js';
 import { dropFileApis } from './win32-drop-files.js';
@@ -135,6 +136,7 @@ for (const key of [
   ...Object.keys(imeApis),
   ...Object.keys(comDlgApis),
   ...Object.keys(serialApis),
+  ...Object.keys(clipboardApis),
   ...Object.keys(imeExtraApis),
   ...Object.keys(dialogExtraApis),
   ...Object.keys(dialogApis),
@@ -538,6 +540,7 @@ export function createWin32ApiProvider() {
     ...Object.entries(imeApis),
     ...Object.entries(comDlgApis),
     ...Object.entries(serialApis),
+    ...Object.entries(clipboardApis),
     ...Object.entries(imeExtraApis),
     ...Object.entries(dialogExtraApis),
     ...Object.entries(dialogApis),

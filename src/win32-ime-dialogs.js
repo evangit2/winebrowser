@@ -248,12 +248,6 @@ async function msgWaitForMultipleObjects(r, a, multiple, extended) {
   if (hasMessage()) return ok(0, argc); // WAIT_OBJECT_0 + the message index
   return ok(0x102, argc); // WAIT_TIMEOUT
 }
-// GetClipboardOwner reports the window that currently owns the clipboard. The
-// runtime has a single in-process clipboard, so the owner is the window the
-// last SetClipboardData call came from.
-function getClipboardOwner(r) {
-  return ok(r.clipboardOwner ?? 0, 0);
-}
 export const imeExtraApis = {
   'user32.dll!ToAsciiEx': toAsciiEx,
   'user32.dll!ToUnicodeEx': (r, a) => {
@@ -271,7 +265,6 @@ export const imeExtraApis = {
   'user32.dll!MsgWaitForMultipleObjectsEx': (r, a) => msgWaitForMultipleObjects(r, a, true, true),
   'user32.dll!LoadImageA': (r, a) => loadImage(r, a, false),
   'user32.dll!LoadImageW': (r, a) => loadImage(r, a, true),
-  'user32.dll!GetClipboardOwner': getClipboardOwner,
 };
 
 // MessageBoxIndirectW takes a MSGBOXPARAMSW describing the same dialog
