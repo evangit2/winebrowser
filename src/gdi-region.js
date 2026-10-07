@@ -1,5 +1,7 @@
 import { clipPieces, setClipPieces } from './gdi-clip.js';
 import { paintRect } from './gdi-raster.js';
+import { polygonRegion, MAX_REGION_POINTS } from './gdi-polygon-region.js';
+import { roundedRegion } from './gdi-rounded-region.js';
 
 export const MAX_REGION_RECTS = 256;
 const validCoordinate = (value) => value >= -0x4000000 && value < 0x4000000;
@@ -22,7 +24,7 @@ const shifted = (pieces, x, y) => pieces.map(([l, t, r, b]) => [l + x, t + y, r 
 // Canonical ordered bands make shape equality and RGNDATA independent of the
 // original decomposition. Sweep coverage from both inputs, merge adjacent
 // intervals and extend identical consecutive bands without overlapping pixels.
-export function combineRegions(first, second, mode) {
+export function combineRegions(first, second, mode, maxRects = MAX_REGION_RECTS) {
   const a = first.filter(nonempty),
     b = second.filter(nonempty);
   const ys = [...new Set([...a, ...b].flatMap((p) => [p[1], p[3]]))].sort((x, y) => x - y);
@@ -75,7 +77,7 @@ export function combineRegions(first, second, mode) {
     } else {
       previous = intervals.map(([l, r]) => [l, top, r, bottom]);
       output.push(...previous);
-      if (output.length > MAX_REGION_RECTS) return null;
+      if (output.length > maxRects) return null;
     }
   }
   return output;
@@ -104,6 +106,29 @@ export function createRegionApis({
     if (!rect || !rect.every(validCoordinate)) return fail(r, 87, argc);
     const piece = ordered(rect);
     return allocate(r, nonempty(piece) ? [piece] : [], argc);
+  };
+  const makePolygon = (r, pointer, counts, mode, argc) => {
+    if (counts.some((n) => n < 0 || n > MAX_REGION_POINTS)) return fail(r, 87, argc);
+    const total = counts.reduce((sum, n) => sum + n, 0);
+    if (total > MAX_REGION_POINTS || (total && !pointer)) return fail(r, 87, argc);
+    if (total) r.check(pointer, total * 8);
+    let index = 0;
+    const polygons = counts.map((n) =>
+      Array.from({ length: n }, () => {
+        const p = pointer + index++ * 8;
+        return [r.read32(p) | 0, r.read32(p + 4) | 0];
+      }),
+    );
+    if (!polygons.every((points) => points.every((p) => p.every(validCoordinate))))
+      return fail(r, 87, argc);
+    // Wine's SDK entry point treats every non-WINDING value as ALTERNATE.
+    return allocate(r, polygonRegion(polygons, mode === 2 ? 2 : 1, MAX_REGION_RECTS), argc);
+  };
+  const makeRounded = (r, rect, width, height, argc) => {
+    if (!rect || !rect.every(validCoordinate)) return fail(r, 87, argc);
+    const pieces = roundedRegion(ordered(rect), width, height, MAX_REGION_RECTS);
+    if (pieces && !pieces.every((p) => p.every(validCoordinate))) return fail(r, 87, argc);
+    return allocate(r, pieces, argc);
   };
   const select = (r, a, extended) => {
     const argc = extended ? 3 : 2,
@@ -146,10 +171,12 @@ export function createRegionApis({
         [0, -y],
         [0, y],
       ]) {
-        inner = combineRegions(inner, shifted(pieces, dx, dy), 1);
+        // The frame is temporary raster geometry, not an owned region. A
+        // valid complex shape can have more outline bands than filled bands.
+        inner = combineRegions(inner, shifted(pieces, dx, dy), 1, MAX_REGION_RECTS * 16);
         if (!inner) return fail(r, 8, argc);
       }
-      pieces = combineRegions(pieces, inner, 4);
+      pieces = combineRegions(pieces, inner, 4, MAX_REGION_RECTS * 16);
       if (!pieces) return fail(r, 8, argc);
     }
     for (const [l, t, right, bottom] of pieces)
@@ -157,6 +184,25 @@ export function createRegionApis({
     return success(1, argc);
   };
   return {
+    'gdi32.dll!CreatePolygonRgn': (r, a) => makePolygon(r, a(0), [a(1) | 0], a(2) >>> 0, 3),
+    'gdi32.dll!CreatePolyPolygonRgn': (r, a) => {
+      const count = a(2) | 0;
+      if (count < 0 || count > MAX_REGION_POINTS || (count && !a(1))) return fail(r, 87, 4);
+      if (count) r.check(a(1), count * 4);
+      const counts = Array.from({ length: count }, (_, i) => r.read32(a(1) + i * 4) | 0);
+      return makePolygon(r, a(0), counts, a(3) >>> 0, 4);
+    },
+    'gdi32.dll!CreateRoundRectRgn': (r, a) =>
+      makeRounded(r, [a(0) | 0, a(1) | 0, a(2) | 0, a(3) | 0], a(4) | 0, a(5) | 0, 6),
+    'gdi32.dll!CreateEllipticRgn': (r, a) => {
+      const rect = [a(0) | 0, a(1) | 0, a(2) | 0, a(3) | 0];
+      return makeRounded(r, rect, rect[2] - rect[0], rect[3] - rect[1], 4);
+    },
+    'gdi32.dll!CreateEllipticRgnIndirect': (r, a) => {
+      const rect = a(0) ? readRect(r, a(0)) : null;
+      if (!rect) return fail(r, 87, 1);
+      return makeRounded(r, rect, rect[2] - rect[0], rect[3] - rect[1], 1);
+    },
     'gdi32.dll!CreateRectRgn': (r, a) =>
       makeRect(
         r,

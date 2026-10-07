@@ -91,3 +91,22 @@ are retained in `source.zip`. DirectXMath at
 and license are retained there. The native static GCC/libstdc++ runtime uses
 the [GCC Runtime Library Exception](https://www.gnu.org/licenses/gcc-exception-3.1.html).
 The application and shaders are not rewritten or supplied as application Wasm.
+
+## Wine rounded GDI regions
+
+`src/gdi-rounded-region.js` adapts Wine 11.0
+`dlls/win32u/region.c` (`NtGdiCreateRoundRectRgn`) at commit
+`db11d0fe6a169c457e23d007e20404643d067aa8`, copyright 1993–1995
+Alexandre Julliard, 1998 Huw Davies and 1999 Alex Korobka, LGPL-2.1-or-later.
+The upstream file is retained unmodified in `third_party/wine/win32u-region.c`
+(SHA-256 `5dc525867d05674b20f78d9568ebd61c81b6ac2c7fb9920c603c759de95c9f3d`),
+with the full license in `third_party/wine/COPYING.LIB`. The JavaScript adaptation
+uses BigInt decision arithmetic, bounded allocation, deterministic empty
+scanlines and canonical band merging. The module remains LGPL-2.1-or-later;
+the project's MIT license does not replace its terms.
+
+The complete source is available in this repository. Users may replace or
+modify this ESM module and relink the browser application using `npm ci` and
+`npm run build` (Pages: `WINEBROWSER_BASE_PATH=/winebrowser/ npm run build`).
+No opaque generated runtime is required. Polygon scan conversion in
+`src/gdi-polygon-region.js` is independently implemented, MIT licensed.

@@ -6,6 +6,9 @@ import { Runtime } from '../src/runtime.js';
 import { describeGdiBitmap } from '../src/win32-gdi.js';
 import { combineRegions } from '../src/gdi-region.js';
 const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
+const shapeOracle = JSON.parse(
+  await readFile('tests/fixtures/gdi-shapes/wine-oracle.json', 'utf8'),
+);
 function setup(t) {
   const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
   t.after(() => {
@@ -32,6 +35,90 @@ function setup(t) {
   return { r, api, call, region, put, box, get, data };
 }
 const has = (pieces, x, y) => pieces.some(([l, t, r, b]) => x >= l && y >= t && x < r && y < b);
+
+test('polygon, winding, polypolygon, rounded and elliptical region pixels match 289 desktop Wine 11 SDK oracle cases', (t) => {
+  const { r, api, call, put, data } = setup(t);
+  assert.equal(shapeOracle.cases.length, 289);
+  for (const [index, sample] of shapeOracle.cases.entries()) {
+    let result;
+    if (sample.kind === 'polygon') {
+      const [mode, count, ...points] = sample.args,
+        p = r.allocate(points.length * 4);
+      put(p, points);
+      result = api('CreatePolygonRgn', p, count, mode);
+      assert.equal(result.argc, 3);
+    } else if (sample.kind === 'polypolygon') {
+      const [mode, count, ...rest] = sample.args,
+        counts = rest.slice(0, count),
+        points = rest.slice(count),
+        p = r.allocate(points.length * 4),
+        c = r.allocate(count * 4);
+      put(p, points);
+      put(c, counts);
+      result = api('CreatePolyPolygonRgn', p, c, count, mode);
+      assert.equal(result.argc, 4);
+    } else {
+      result = api(
+        sample.kind === 'round' ? 'CreateRoundRectRgn' : 'CreateEllipticRgn',
+        ...sample.args,
+      );
+      assert.equal(result.argc, sample.kind === 'round' ? 6 : 4);
+    }
+    assert.ok(result.result, `${index}: ${JSON.stringify(sample)}`);
+    const words = data(result.result).words;
+    const actual = Array.from({ length: words[2] }, (_, i) => words.slice(8 + i * 4, 12 + i * 4));
+    assert.deepEqual(
+      actual,
+      combineRegions(sample.rects, [], 2),
+      `${index}: ${JSON.stringify(sample.args)}`,
+    );
+    if (sample.kind === 'ellipse') {
+      const rect = r.allocate(16);
+      put(rect, sample.args);
+      const indirect = api('CreateEllipticRgnIndirect', rect);
+      assert.equal(indirect.argc, 1);
+      assert.equal(call('EqualRgn', result.result, indirect.result), 1);
+      assert.equal(call('DeleteObject', indirect.result), 1);
+    }
+    assert.equal(call('DeleteObject', result.result), 1);
+  }
+});
+
+test('shape constructors bound guest counts and scan work, consume no failed handles, and support huge vertical polygons', (t) => {
+  const { r, api, call, put, get } = setup(t);
+  const p = r.allocate(32),
+    counts = r.allocate(8);
+  put(p, [0, -60000000, 20, -60000000, 20, 60000000, 0, 60000000]);
+  const large = call('CreatePolygonRgn', p, 4, 1);
+  assert.ok(large);
+  assert.deepEqual(get(large), [0, -60000000, 20, 60000000]);
+  assert.equal(call('DeleteObject', large), 1);
+  for (const [name, args, error] of [
+    ['CreatePolygonRgn', [p, -1, 1], 87],
+    ['CreatePolygonRgn', [p, 4097, 1], 87],
+    ['CreatePolygonRgn', [0, 3, 1], 87],
+    ['CreatePolyPolygonRgn', [p, counts, -1, 1], 87],
+    ['CreatePolyPolygonRgn', [p, 0, 1, 1], 87],
+    ['CreateEllipticRgnIndirect', [0], 87],
+    ['CreateEllipticRgn', [0, 0, 50000, 50000], 8],
+    ['CreateRoundRectRgn', [0, 0, 50000, 8, 50000, 6], 8],
+    ['CreateRoundRectRgn', [-0x4000000, 0, -0x4000000, 4, 0, 0], 87],
+  ]) {
+    assert.equal(api(name, ...args).result, 0, name);
+    assert.equal(r.lastError, error, name);
+  }
+  put(counts, [4096, 1]);
+  assert.equal(call('CreatePolyPolygonRgn', p, counts, 2, 1), 0);
+  assert.equal(r.lastError, 87);
+  put(p, [0, 0, 20, 40000, 0, 40000]);
+  assert.equal(call('CreatePolygonRgn', p, 3, 1), 0);
+  assert.equal(r.lastError, 8);
+  // Construction failures leave existing geometry and selected clips intact.
+  assert.ok(call('CreateEllipticRgn', 0, 0, 20, 20));
+  const empty = call('CreatePolygonRgn', 0, 0, 1);
+  assert.ok(empty);
+  assert.deepEqual(get(empty), [0, 0, 0, 0]);
+});
 
 test('region boolean sweep matches independent pixel membership across overlapping decompositions and emits canonical bands', () => {
   let seed = 19;
@@ -297,4 +384,40 @@ test('FillRgn and FrameRgn draw actual complex-region pixels, preserve selected 
         );
       }
   }
+});
+
+test('FrameRgn rasterizes outlines exceeding the owned-region band budget without weakening that budget', (t) => {
+  const { r, call, put, data } = setup(t),
+    sample = shapeOracle.cases[278];
+  const p = r.allocate(40);
+  put(p, sample.args.slice(2));
+  const shape = call('CreatePolygonRgn', p, 5, 1);
+  assert.ok(shape);
+  assert.equal(data(shape).words[2], 226);
+  const display = r.apiProvider.get('user32.dll!GetDC')(r, () => 0).result,
+    dc = call('CreateCompatibleDC', display),
+    bitmap = call('CreateCompatibleBitmap', display, 480, 280);
+  call('SelectObject', dc, bitmap);
+  const all = r.allocate(16);
+  put(all, [0, 0, 480, 280]);
+  r.apiProvider.get('user32.dll!FillRect')(r, (i) => [dc, all, call('GetStockObject', 0)][i]);
+  const brush = call('CreateSolidBrush', 0xff);
+  assert.equal(call('FrameRgn', dc, shape, brush, 3, 3), 1);
+  const pixels = describeGdiBitmap(r, bitmap).pixels;
+  for (let y = 80; y < 280; y++)
+    for (let x = 0; x < 480; x++) {
+      const inside = has(sample.rects, x, y),
+        edge =
+          inside &&
+          ![
+            [-3, 0],
+            [3, 0],
+            [0, -3],
+            [0, 3],
+          ].every(([dx, dy]) => has(sample.rects, x + dx, y + dy)),
+        i = (y * 480 + x) * 4;
+      assert.equal(pixels[i], 255);
+      assert.equal(pixels[i + 1], edge ? 0 : 255, `${x},${y}`);
+      assert.equal(pixels[i + 2], edge ? 0 : 255);
+    }
 });

@@ -282,6 +282,17 @@
       "sourceZip": "gdi-region/source.zip",
       "sourceZipSha256": "012d162843bb08a353bb44cb84434d73ce7301e7f05e756bc6d06981f2138cd6",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-shapes",
+      "description": "Native shape GUI: choose alternate/winding polygons, holes, rounded rectangles, ellipses or copied clipping. Native GDI renders the pixels; close to finish.",
+      "exe": "gdi-shapes/gdi-shapes.exe",
+      "exeSha256": "1f3b72937b543192fb6a341fad22d05360fc11009338f673d0470edd4b855953",
+      "zip": "gdi-shapes/gdi-shapes.zip",
+      "zipSha256": "414df35df1952f34f39d0925d6453c6b0f6bbc8e702524cf60f7df142e5dd036",
+      "sourceZip": "gdi-shapes/source.zip",
+      "sourceZipSha256": "5f55dab684d7fd4666de926f49ae5079454e1dbe8aa156ee67a13bef254d2876",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

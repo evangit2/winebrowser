@@ -350,3 +350,21 @@ Native Wine comctl32 now has 41 unresolved imports versus 47 before this change;
 actual native comctl32 execution and 7-Zip File Manager remain blocked. Polygon
 and rounded regions, nonidentity transforms and window-region support remain
 unfinished. Universal Windows/DLL compatibility is still active and unproven.
+
+Five additional GDI shape constructors now create actual owned polygon,
+polypolygon, rounded and elliptical regions. Integer edges implement alternate
+and winding coverage, including self-intersections and holes. A reproducible
+desktop Wine 11 oracle supplies 289 geometry cases, including small/degenerate
+shapes and nonstandard mode values (Wine uses alternate unless WINDING).
+Temporary FrameRgn raster geometry has its own 4096-band bound, so a valid
+226-band filled polygon can paint its more complex outline; owned regions
+retain their 256-band limit.
+
+The authored MIT **gdi-shapes** native GUI uses six ordinary buttons and verifies
+actual guest pixels before each completed stage. Browser acceptance compares
+96,000 pixels per stage against desktop Wine geometry, with EXE, ZIP and hosted
+example loading in Chromium 153 and Chrome 155. Native x86-to-Wasm translation
+compiled 2110 blocks in roughly 320–730 ms in those runs. The public source ZIP
+independently rebuilds the exact EXE. Native comctl32 import auditing now finds
+39 unresolved dependencies; actual native common-controls execution, 7-Zip
+File Manager and universal DLL support remain unfinished.

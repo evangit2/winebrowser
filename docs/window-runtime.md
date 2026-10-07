@@ -546,8 +546,28 @@ Region coordinates use the SDK's signed 27-bit domain. Canonical output is
 bounded to 256 rectangles, input RGNDATA to 1024 rectangles, and region handles
 share the 4096-object GDI allocation budget. Complexity failures preserve
 destination shapes and clips. `ExtCreateRegion` currently supports NULL or
-identity XFORM; nonidentity transforms return error 120. Polygon and rounded
-regions, window-region ownership and broader GDI mapping remain unfinished.
+identity XFORM; nonidentity transforms return error 120. Window-region ownership and broader GDI mapping remain unfinished.
 
 Exact native control layout, monitor-edge placement, horizontal or multicolumn
 lists and universal GUI/DLL compatibility remain incomplete.
+
+Polygon constructors now scan directed integer edges with ALTERNATE/WINDING
+fill rules, including self-intersections and multiple contours. As on Wine,
+nonstandard fill-mode values use alternate coverage unless the value is WINDING. Elliptical and
+rounded constructors use Wine's integer boundary rules, including the extra
+right/bottom exclusion. Five GDI shape constructors feed the existing owned
+regions, copied clips, boolean operations and fill/frame drawing. Their geometry
+matches 289 desktop Wine 11 oracle cases; the captured SDK outputs and original
+oracle source live in `tests/fixtures/gdi-shapes/`.
+
+The MIT **gdi-shapes** native GUI displays alternate/winding pentagrams, a hole,
+a rounded rectangle, an ellipse and a copied clip whose source was deleted.
+`npm run test:gdi-shapes` compares 96,000 browser pixels per stage against
+desktop Wine geometry in EXE/ZIP/hosted modes. Region output remains bounded to
+256 canonical rectangles, polygon inputs to 4096 points/contours, each sloped
+edge and each rounded ellipse dimension to 32,768 units, and accumulated
+sloped-edge work to 4,194,304 rows. Vertical polygon spans skip scanlines and
+can cover the full signed coordinate domain. Excess complexity returns an
+allocation error without consuming a region handle. Temporary FrameRgn raster
+geometry permits up to 4096 bands, independently of the owned-region budget. General window regions,
+nonidentity XFORMs and full GDI mapping remain unfinished.

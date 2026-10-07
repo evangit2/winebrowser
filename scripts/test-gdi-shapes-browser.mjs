@@ -6,6 +6,14 @@ import { createServer } from 'vite';
 import { chromium, expect } from '@playwright/test';
 import { unpackPackage } from '../src/package.js';
 
+const oracle = JSON.parse(await readFile('tests/fixtures/gdi-shapes/wine-oracle.json', 'utf8'));
+const cases = Object.fromEntries(
+  ['alternate', 'winding', 'rounded', 'ellipse', 'hole'].map((name, i) => [
+    name,
+    oracle.cases[278 + i].rects,
+  ]),
+);
+cases['copied clip'] = cases.winding;
 let server, browser;
 try {
   let url = process.env.WINEBROWSER_TEST_URL;
@@ -19,7 +27,7 @@ try {
     url = `http://127.0.0.1:${server.httpServer.address().port}/`;
   }
   browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chromium' });
-  const executable = await readFile('tests/fixtures/gdi-region/gdi-region.exe'),
+  const executable = await readFile('tests/fixtures/gdi-shapes/gdi-shapes.exe'),
     sha256 = createHash('sha256').update(executable).digest('hex'),
     runs = [],
     errors = [];
@@ -35,24 +43,24 @@ try {
     if (mode === 'hosted-example') {
       const response = await page.request.get(new URL('examples/manifest.json', url).href);
       assert.ok(response.ok());
-      const entry = (await response.json()).interactive.find((e) => e.name === 'gdi-region');
+      const entry = (await response.json()).interactive.find((e) => e.name === 'gdi-shapes');
       assert.equal(entry.exeSha256, sha256);
       const fetched = page.waitForResponse((r) => r.url().endsWith('/examples/' + entry.zip));
-      await page.locator('[data-demo="gdi-region"]').click();
+      await page.locator('[data-demo="gdi-shapes"]').click();
       const archive = await fetched;
       assert.ok(archive.ok());
       const bytes = await archive.body();
       assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.zipSha256);
-      const pkg = await unpackPackage(new Uint8Array(bytes), 'gdi-region.zip');
+      const pkg = await unpackPackage(new Uint8Array(bytes), 'gdi-shapes.zip');
       assert.deepEqual(pkg.files.get(entry.exe), new Uint8Array(executable));
     } else {
       await page.locator('#file').setInputFiles({
-        name: mode === 'exe-upload' ? 'gdi-region.exe' : 'gdi-region.zip',
+        name: mode === 'exe-upload' ? 'gdi-shapes.exe' : 'gdi-shapes.zip',
         mimeType: mode === 'exe-upload' ? 'application/octet-stream' : 'application/zip',
         buffer:
           mode === 'exe-upload'
             ? executable
-            : Buffer.from(zipSync({ 'app/gdi-region.exe': executable })),
+            : Buffer.from(zipSync({ 'app/gdi-shapes.exe': executable })),
       });
     }
     await page.waitForFunction(
@@ -83,28 +91,19 @@ try {
       title = root.locator('.virtual-desktop-title');
     const observations = [];
     const verify = async (mode) => {
-      await expect(title).toHaveText('Native regions - ' + mode);
+      await expect(title).toHaveText('Native shapes - ' + mode);
       const pixels = await root.locator('.virtual-desktop-canvas').evaluate((canvas) => {
         const bytes = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
         return { width: canvas.width, height: canvas.height, bytes: Array.from(bytes) };
       });
-      assert.equal(pixels.width, 500);
-      assert.equal(pixels.height, 260);
-      const inside = (x, y) => {
-        const a = x >= 20 && x < 300 && y >= 70 && y < 230,
-          b = x >= 140 && x < 460 && y >= 100 && y < 250;
-        return mode === 'intersection'
-          ? a && b
-          : mode === 'union'
-            ? a || b
-            : mode === 'xor'
-              ? a !== b
-              : a && !b;
-      };
+      assert.equal(pixels.width, 480);
+      assert.equal(pixels.height, 280);
+      const inside = (x, y) =>
+        cases[mode].some(([l, t, r, b]) => x >= l && y >= t && x < r && y < b);
       let filled = 0,
         framed = 0;
-      for (let y = 60; y < 260; y++)
-        for (let x = 0; x < 500; x++) {
+      for (let y = 80; y < 280; y++)
+        for (let x = 0; x < 480; x++) {
           const ink = inside(x, y),
             edge =
               ink &&
@@ -113,27 +112,31 @@ try {
             ? [255, 255, 255, 255]
             : edge
               ? [240, 145, 30, 255]
-              : [28, 85, 138, 255];
-          const i = (y * 500 + x) * 4;
+              : mode === 'copied clip'
+                ? [25, 130, 90, 255]
+                : [28, 85, 138, 255];
+          const i = (y * 480 + x) * 4;
           if (color.some((v, channel) => pixels.bytes[i + channel] !== v))
             assert.deepEqual(pixels.bytes.slice(i, i + 4), color, `${mode}/${x},${y}`);
           if (edge) framed++;
           else if (ink) filled++;
         }
       assert.ok(filled > 0 && framed > 0);
-      observations.push({ mode, filled, framed, verifiedPixels: 100000 });
+      observations.push({ mode, filled, framed, verifiedPixels: 96000 });
     };
-    await verify('difference');
+    await verify('alternate');
     for (const [button, mode] of [
-      ['Union', 'union'],
-      ['Xor', 'xor'],
-      ['Intersection', 'intersection'],
-      ['Difference', 'difference'],
+      ['Winding', 'winding'],
+      ['Hole', 'hole'],
+      ['Rounded', 'rounded'],
+      ['Ellipse', 'ellipse'],
+      ['Clip', 'copied clip'],
+      ['Alternate', 'alternate'],
     ]) {
       await root.getByRole('button', { name: button, exact: true }).click();
       await verify(mode);
     }
-    await root.screenshot({ path: `evidence/gdi-region-${mode}.png` });
+    await root.screenshot({ path: `evidence/gdi-shapes-${mode}.png` });
     await root.locator('.virtual-desktop-close').click();
     await page.waitForFunction(() => window.__lastRun != null, null, { timeout: 60000 });
     const result = await page.evaluate(() => ({
@@ -143,7 +146,7 @@ try {
       isolated: crossOriginIsolated,
     }));
     assert.equal(result.run?.exitCode, 0, JSON.stringify(result));
-    assert.equal(result.output, 'NATIVE REGION GUI PASS\n');
+    assert.equal(result.output, 'NATIVE SHAPES GUI PASS\n');
     for (const name of ['kernel32.dll', 'kernelbase.dll', 'ntdll.dll'])
       assert.ok(
         result.run.modules.some((m) => m.name === name && !m.host && m.path === '@runtime/' + name),
@@ -152,22 +155,15 @@ try {
     for (const api of ['BeginPaint', 'EndPaint'])
       assert.ok(result.run.apiNames.includes('user32.dll!' + api), api);
     for (const api of [
-      'CreateRectRgn',
-      'CreateRectRgnIndirect',
-      'SetRectRgn',
-      'CombineRgn',
-      'GetRgnBox',
-      'GetRegionData',
-      'ExtCreateRegion',
+      'CreatePolygonRgn',
+      'CreatePolyPolygonRgn',
+      'CreateRoundRectRgn',
+      'CreateEllipticRgn',
+      'CreateEllipticRgnIndirect',
       'PtInRegion',
-      'RectInRegion',
-      'EqualRgn',
-      'OffsetRgn',
-      'GetObjectType',
+      'GetRgnBox',
       'SelectClipRgn',
-      'ExtSelectClipRgn',
       'GetClipRgn',
-      'RectVisible',
       'FillRgn',
       'FrameRgn',
     ])
@@ -185,12 +181,13 @@ try {
     browser: browser.version(),
     exeSha256: sha256,
     scope:
-      'Unchanged Windows SDK region GUI compiled to Wasm in browser with real Wine base DLLs. Native aliasing, normalized rectangles, guarded canonical RGNDATA, round-trip reconstruction, offsets, copied clips after source deletion, saved DC clips, visibility and object-type checks. Trusted buttons select four boolean region operations; native pixel assertions and 100000 actual browser pixels per stage verify fill/frame/hole/empty colors. EXE, ZIP and hosted-example modes. Nonidentity transforms, window regions and universal Windows support remain incomplete.',
+      'Unchanged native Windows SDK shape GUI compiled to Wasm inside browser with actual Wine base DLLs. Seven stages per run verify 96000 rendered pixels against desktop Wine 11 geometry: alternate/winding self-intersections, polygon holes, rounded/ellipse boundaries and copied clipping after source deletion. Native SDK/GetPixel assertions and trusted buttons; EXE/ZIP/catalog modes. Broader GUI/DLL compatibility remains incomplete.',
+    oracleReference: oracle.reference,
     runs,
     errors,
   };
   await writeFile(
-    'evidence/gdi-region-browser-results.json',
+    'evidence/gdi-shapes-browser-results.json',
     JSON.stringify(report, null, 2) + '\n',
   );
   console.log(JSON.stringify(report, null, 2));
