@@ -1,0 +1,132 @@
+      - name: Test static hosting without isolation headers
+        run: |
+          node scripts/serve-pages.mjs &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          npm run test:pages
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:packed-sse
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lame
+          npm run test:installer-apis
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:processes
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:process-sync
+          npm run test:api-sets
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:foss-tools
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:7zip-full
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:7zip-gui
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:file-locks
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:delay-imports
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:dll-search
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:native-services
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:sqlite
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lua
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:cpp-runtime
+          npm run test:x87-remainder
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:wine-base-upload
+          npm run test:windows
+          npm run test:tetris
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:minesweeper
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:menus
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:treeview
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lists
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:draglist
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:tabs
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:custom-child
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:host-subclass
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:control-drawing
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owner-buttons
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-clipping
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owner-lists
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owner-combos
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:multi-lists
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:list-keyboard
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:list-pointer
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:combo-pointer
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:monitor-popup
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:monitor-enum
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-screen
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-dib
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-section
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:load-images
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:guest-drive
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:window-query
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:window-defer
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-region
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-shapes
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-pattern
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-frames
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:icon-bitmap
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owned-cursors
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:scroll-controls
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:scroll-state
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:frame-controls
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-brush-rop
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-alpha
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-paths
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-stretch
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-transfer
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-nearest
+          WINEBROWSER_LOAD_IMAGES_EXAMPLE=1 WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:load-images
+          WINEBROWSER_GDI_SECTION_EXAMPLE=1 WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-section
+          WINEBROWSER_GDI_DIB_EXAMPLE=1 WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-dib
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:presentation
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:native-combos
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:legacy-text
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:statusbar
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:resource-bitmaps
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-objects
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:font-dialog
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:find-dialogs
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:file-dialogs
+          npm run fetch:metapad
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:metapad-gui
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:metapad-find
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:metapad-settings
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:metapad-appearance
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:color-dialogs
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:zero-controls
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:accelerator-resources
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:printerless
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:drop-files
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:dialog-fonts
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:property-sheet
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:toolbar
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gui-controls
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:directdraw
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:mmio
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:packed-sse
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lame
+          npm run test:d3d8
+          npm run test:d3d9
+          npm run test:d3d9-shader-cube
+          npm run test:opengl
+          npm run fetch:opengl
+          npm run test:opengl-upstream
+          npm run test:raytraced-shadows
+          npm run test:d3d12
+          npm run test:d3d12-cube
+          npm run test:learning-dx12
+          npm run test:dx12-city
+          npm run test:d3d12-parade
+          npm run test:d3d12-constbuffer
+          npm run test:d3d12-rootcbv
+          npm run test:d3d12-constants
+          npm run test:d3d12-texture
+          npm run test:d3d12-rendertexture
+          npm run test:d3d12-terrain
+          npm run test:d3d12-knot
+          npm run test:d3d10
+          npm run test:vulkan
+          npm run test:vulkan-compute
+          npm run test:skinning
+          npm run test:seh
+          npm run test:d3d12-blend
+          npm run test:exec-memory
+          npm run test:humus-d3d9
+          npm run test:rollercoaster
+          npm run test:instancing
+          npm run test:transparent-shadows
+          npm run test:water
+          npm run test:7zr
+        env:
+          BROWSER_CHANNEL: chromium
+          WINEBROWSER_ALLOW_UNSUPPORTED_RGBA16: '1'

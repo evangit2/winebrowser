@@ -1,0 +1,411 @@
+{
+  "sourceWorkflowCommit": "3fd9eff5a225d03c7907dcfbbb4d60242d5dbd98",
+  "sourceWorkflowSha256": "816a81e9a4f7d28f89848f18f37cadb1c5a23daf4457fb5b098f094c3129102e",
+  "originalInvocations": 124,
+  "distinctInvocations": 122,
+  "removedExactDuplicates": [
+    {
+      "script": "test:packed-sse"
+    },
+    {
+      "script": "test:lame"
+    }
+  ],
+  "groups": {
+    "core": [
+      {
+        "script": "test:pages"
+      },
+      {
+        "script": "test:packed-sse"
+      },
+      {
+        "script": "test:lame"
+      },
+      {
+        "script": "test:installer-apis"
+      },
+      {
+        "script": "test:processes"
+      },
+      {
+        "script": "test:process-sync"
+      },
+      {
+        "script": "test:api-sets"
+      },
+      {
+        "script": "test:foss-tools"
+      },
+      {
+        "script": "test:7zip-full"
+      },
+      {
+        "script": "test:7zip-gui"
+      },
+      {
+        "script": "test:file-locks"
+      },
+      {
+        "script": "test:delay-imports"
+      },
+      {
+        "script": "test:dll-search"
+      },
+      {
+        "script": "test:native-services"
+      },
+      {
+        "script": "test:sqlite"
+      },
+      {
+        "script": "test:lua"
+      },
+      {
+        "script": "test:cpp-runtime"
+      },
+      {
+        "script": "test:x87-remainder"
+      },
+      {
+        "script": "test:wine-base-upload"
+      }
+    ],
+    "controls": [
+      {
+        "script": "test:windows"
+      },
+      {
+        "script": "test:tetris"
+      },
+      {
+        "script": "test:minesweeper"
+      },
+      {
+        "script": "test:menus"
+      },
+      {
+        "script": "test:treeview"
+      },
+      {
+        "script": "test:lists"
+      },
+      {
+        "script": "test:draglist"
+      },
+      {
+        "script": "test:tabs"
+      },
+      {
+        "script": "test:custom-child"
+      },
+      {
+        "script": "test:host-subclass"
+      },
+      {
+        "script": "test:control-drawing"
+      },
+      {
+        "script": "test:owner-buttons"
+      },
+      {
+        "script": "test:gdi-clipping"
+      },
+      {
+        "script": "test:owner-lists"
+      },
+      {
+        "script": "test:owner-combos"
+      },
+      {
+        "script": "test:multi-lists"
+      },
+      {
+        "script": "test:list-keyboard"
+      },
+      {
+        "script": "test:list-pointer"
+      },
+      {
+        "script": "test:combo-pointer"
+      },
+      {
+        "script": "test:monitor-popup"
+      },
+      {
+        "script": "test:monitor-enum"
+      },
+      {
+        "script": "test:gdi-screen"
+      },
+      {
+        "script": "test:gdi-dib"
+      },
+      {
+        "script": "test:gdi-section"
+      },
+      {
+        "script": "test:load-images"
+      },
+      {
+        "script": "test:guest-drive"
+      },
+      {
+        "script": "test:window-query"
+      },
+      {
+        "script": "test:window-defer"
+      }
+    ],
+    "gdi-shapes": [
+      {
+        "script": "test:gdi-region"
+      },
+      {
+        "script": "test:gdi-shapes"
+      },
+      {
+        "script": "test:gdi-pattern"
+      },
+      {
+        "script": "test:gdi-frames"
+      },
+      {
+        "script": "test:icon-bitmap"
+      },
+      {
+        "script": "test:owned-cursors"
+      },
+      {
+        "script": "test:scroll-controls"
+      },
+      {
+        "script": "test:scroll-state"
+      },
+      {
+        "script": "test:frame-controls"
+      }
+    ],
+    "gdi-pixels": [
+      {
+        "script": "test:gdi-brush-rop"
+      },
+      {
+        "script": "test:gdi-alpha"
+      },
+      {
+        "script": "test:gdi-paths"
+      },
+      {
+        "script": "test:gdi-stretch"
+      },
+      {
+        "script": "test:gdi-transfer"
+      },
+      {
+        "script": "test:gdi-nearest"
+      },
+      {
+        "script": "test:load-images",
+        "env": {
+          "WINEBROWSER_LOAD_IMAGES_EXAMPLE": "1"
+        }
+      },
+      {
+        "script": "test:gdi-section",
+        "env": {
+          "WINEBROWSER_GDI_SECTION_EXAMPLE": "1"
+        }
+      },
+      {
+        "script": "test:gdi-dib",
+        "env": {
+          "WINEBROWSER_GDI_DIB_EXAMPLE": "1"
+        }
+      }
+    ],
+    "dialogs": [
+      {
+        "script": "test:presentation"
+      },
+      {
+        "script": "test:native-combos"
+      },
+      {
+        "script": "test:legacy-text"
+      },
+      {
+        "script": "test:statusbar"
+      },
+      {
+        "script": "test:resource-bitmaps"
+      },
+      {
+        "script": "test:gdi-objects"
+      },
+      {
+        "script": "test:font-dialog"
+      },
+      {
+        "script": "test:find-dialogs"
+      },
+      {
+        "script": "test:file-dialogs"
+      },
+      {
+        "script": "fetch:metapad"
+      },
+      {
+        "script": "test:metapad-gui"
+      },
+      {
+        "script": "test:metapad-find"
+      },
+      {
+        "script": "test:metapad-settings"
+      },
+      {
+        "script": "test:metapad-appearance"
+      },
+      {
+        "script": "test:color-dialogs"
+      },
+      {
+        "script": "test:zero-controls"
+      },
+      {
+        "script": "test:accelerator-resources"
+      },
+      {
+        "script": "test:printerless"
+      },
+      {
+        "script": "test:drop-files"
+      },
+      {
+        "script": "test:dialog-fonts"
+      },
+      {
+        "script": "test:property-sheet"
+      },
+      {
+        "script": "test:toolbar"
+      },
+      {
+        "script": "test:gui-controls"
+      }
+    ],
+    "legacy-graphics": [
+      {
+        "script": "test:directdraw"
+      },
+      {
+        "script": "test:mmio"
+      },
+      {
+        "script": "test:d3d8"
+      },
+      {
+        "script": "test:d3d9"
+      },
+      {
+        "script": "test:d3d9-shader-cube"
+      },
+      {
+        "script": "test:opengl"
+      },
+      {
+        "script": "fetch:opengl"
+      },
+      {
+        "script": "test:opengl-upstream"
+      },
+      {
+        "script": "test:raytraced-shadows"
+      },
+      {
+        "script": "test:humus-d3d9"
+      },
+      {
+        "script": "test:rollercoaster"
+      },
+      {
+        "script": "test:instancing"
+      },
+      {
+        "script": "test:transparent-shadows"
+      },
+      {
+        "script": "test:water"
+      },
+      {
+        "command": ["node", "scripts/fetch-targets.mjs", "7zip-7zr-26.03-x86"]
+      },
+      {
+        "script": "test:7zr"
+      }
+    ],
+    "directx12": [
+      {
+        "script": "test:d3d12"
+      },
+      {
+        "script": "test:d3d12-cube"
+      },
+      {
+        "script": "test:learning-dx12"
+      },
+      {
+        "script": "test:dx12-city"
+      },
+      {
+        "script": "test:d3d12-parade"
+      },
+      {
+        "script": "test:d3d12-constbuffer"
+      },
+      {
+        "script": "test:d3d12-rootcbv"
+      },
+      {
+        "script": "test:d3d12-constants"
+      },
+      {
+        "script": "test:d3d12-texture"
+      },
+      {
+        "script": "test:d3d12-rendertexture"
+      },
+      {
+        "script": "test:d3d12-terrain"
+      },
+      {
+        "script": "test:d3d12-knot"
+      },
+      {
+        "script": "test:d3d10"
+      }
+    ],
+    "vulkan": [
+      {
+        "script": "test:vulkan"
+      },
+      {
+        "script": "test:vulkan-compute"
+      },
+      {
+        "script": "test:skinning"
+      },
+      {
+        "script": "test:seh"
+      },
+      {
+        "script": "test:d3d12-blend"
+      },
+      {
+        "script": "test:exec-memory"
+      }
+    ]
+  },
+  "originalStaticBlockSha256": "e3f39d0be59444ec39d61b56ee9b70e2b3aaae3794dbca167b59f199d2abbf61"
+}
