@@ -32,7 +32,7 @@ export class SIMDFloat {
   }
 
   // Inputs and outputs are raw words. No JS floating-point intermediates.
-  execute(operation, double, left, right) {
+  evaluate(operation, double, left, right) {
     const sf = this.getModule();
     if (!sf) throw Error('SSE floating-point module must be initialized before execution');
     if (!this.pointer) {
@@ -94,7 +94,13 @@ export class SIMDFloat {
         }
       }
     }
-    // An unmasked pre-computation exception prevents post-computation flags.
+    return { result, flags };
+  }
+
+  commit(flags) {
+    const masks = (this.mxcsr >>> 7) & 0x3f;
+    // An unmasked pre-computation exception in any lane prevents all
+    // post-computation flags for this instruction. Existing sticky bits remain.
     if (flags & 7 & ~masks) flags &= 7;
     this.mxcsr |= flags;
     const unmasked = flags & ~masks;
@@ -104,6 +110,28 @@ export class SIMDFloat {
         `Unmasked SIMD floating-point exception: ${names.join(', ')}; guest #XM delivery is unsupported`,
       );
     }
+  }
+
+  execute(operation, double, left, right) {
+    const { result, flags } = this.evaluate(operation, double, left, right);
+    this.commit(flags);
     return result;
+  }
+
+  executePacked(operation, double, left, right) {
+    const output = new Uint32Array(4),
+      width = double ? 2 : 1;
+    let flags = 0;
+    for (let lane = 0; lane < 4; lane += width) {
+      const a = (operation === 4 ? right : left).subarray(lane, lane + width);
+      const b = right.subarray(lane, lane + width);
+      const evaluated = this.evaluate(operation, double, a, b);
+      output.set(evaluated.result.subarray(0, width), lane);
+      flags |= evaluated.flags;
+    }
+    // Do not expose any destination lane until every lane's exceptions are
+    // accumulated and checked. This also handles identical source/destination.
+    this.commit(flags);
+    return output;
   }
 }

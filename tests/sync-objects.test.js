@@ -6,6 +6,7 @@ import { Runtime } from '../src/runtime.js';
 import { ntServices } from '../src/wine-nt.js';
 import { SYNC, syncObjects } from '../src/sync-objects.js';
 import { systemFileTime } from '../src/shared-user-data.js';
+import { ProcessSession } from '../src/process-session.js';
 
 const bytes = new Uint8Array(await readFile('public/demos/console/console.exe'));
 function setup(t) {
@@ -49,6 +50,147 @@ function attributes(r, name, flags = 0, root = 0) {
   [24, root, u, flags, 0, 0].forEach((v, i) => r.write32(p + i * 4, v));
   return p;
 }
+
+test('recursive mutex ownership, queries, aliases and release errors agree across Win32 and NT', async (t) => {
+  const { r, nt, api, objects, out } = setup(t);
+  const name = string(r, 'Local\\OwnedLock');
+  const mutex = api('CreateMutexW', 0, 1, name).result;
+  assert.ok(mutex);
+  assert.equal(api('CreateMutexExW', 0, name, 0, SYNC.MUTEX_ALL).result > 0, true);
+  assert.equal(r.lastError, 183);
+  assert.equal(objects.wait([mutex], false, 0n), 0);
+  assert.equal(nt('NtQueryMutant', mutex, 0, out, 8, out + 8), 0);
+  assert.deepEqual([...r.data.slice(out, out + 8)], [255, 255, 255, 255, 1, 0, 0, 0]);
+  assert.equal(r.read32(out + 8), 8);
+  assert.equal(nt('NtQueryMutant', mutex, 1, out, 8, 0), 0);
+  assert.equal(r.read32(out), 1);
+  assert.equal(r.read32(out + 4), r.threads.main.id);
+  const query = api('OpenMutexW', SYNC.QUERY, 0, name).result;
+  assert.ok(query);
+  assert.equal(objects.wait([query], false, 0n), SYNC.ACCESS);
+  const owner = r.threads.current;
+  r.threads.current = { id: 2 };
+  assert.equal(api('ReleaseMutex', mutex).result, 0);
+  assert.equal(r.lastError, 288);
+  assert.equal(objects.wait([mutex], false, 0n), SYNC.TIMEOUT);
+  const pending = objects.wait([mutex], false);
+  r.threads.current = owner;
+  assert.equal(nt('NtReleaseMutant', mutex, out), 0);
+  assert.equal(r.read32(out), 0xffffffff);
+  assert.equal(objects.waiters.size, 1, 'one release retains recursive ownership');
+  assert.equal(nt('NtReleaseMutant', mutex, out), 0);
+  assert.equal(r.read32(out), 0);
+  assert.equal(await pending, 0);
+  assert.equal(nt('NtReleaseMutant', mutex, 0), SYNC.NOT_OWNER, 'parked waiter owns the lock');
+  assert.equal(nt('NtQueryMutant', mutex, 0, out, 4, 0), 0xc0000004);
+  assert.equal(nt('NtReleaseMutant', mutex, 0x4000000), SYNC.FAULT);
+  assert.equal(api('CreateEventW', 0, 0, 0, name).result, 0);
+  assert.equal(r.lastError, 6, 'mutexes and events occupy the same typed namespace');
+  assert.equal(nt('NtCreateMutant', out, SYNC.ALL, 0, 0), SYNC.ACCESS);
+});
+
+test('abandoned mutexes transfer ownership once and wait-all leaves state intact until every object is ready', async (t) => {
+  const { r, objects } = setup(t);
+  const owner = r.threads.current;
+  const mutex = objects.mutex({ initialOwner: true }).handle;
+  const event = objects.event().handle;
+  r.threads.current = { id: 2 };
+  const pending = objects.wait([event, mutex], true);
+  objects.abandon(owner);
+  assert.equal(objects.waiters.size, 1);
+  assert.equal(objects.lookup(mutex, 'sync-mutex').object.abandoned, true);
+  objects.change(event, 'set');
+  assert.equal(await pending, SYNC.ABANDONED);
+  assert.equal(objects.wait([mutex], false, 0n), 0, 'abandonment is consumed exactly once');
+  assert.equal(objects.releaseMutex(mutex).status, 0);
+  assert.equal(objects.releaseMutex(mutex).status, 0);
+  objects.wait([mutex], false, 0n);
+  const second = r.threads.current;
+  r.threads.current = owner;
+  objects.abandon(second);
+  assert.equal(objects.wait([event, mutex], false, 0n), SYNC.ABANDONED + 1);
+  assert.equal(objects.wait([mutex, mutex], true, 0n), SYNC.INVALID);
+});
+
+test('named objects and cross-process wakeups survive parent disposal but are isolated between uploads', async () => {
+  const make = (options) => ({
+    ...options,
+    read32: () => 0,
+    handles: new Map(),
+    threads: { current: {} },
+    performanceClock: { read: () => BigInt(Math.floor(performance.now() * 1e6)) },
+    systemNow: Date.now,
+  });
+  const session = new ProcessSession(new Map(), make);
+  const parent = session.create({ exe: 'parent' }).record.runtime;
+  const child = session.create({ exe: 'child' }, parent).record.runtime;
+  const a = syncObjects(parent),
+    b = syncObjects(child);
+  const name = a.local + '\\FamilyEvent';
+  const event = a.event({ name }).handle;
+  const alias = b.event({ name, open: true }).handle;
+  const pending = b.wait([alias], false);
+  a.change(event, 'set');
+  assert.equal(await pending, 0);
+  const sem = a.semaphore({ name: a.local + '\\Tokens', initial: 0, maximum: 2 }).handle;
+  const other = b.semaphore({ name: a.local + '\\Tokens', open: true }).handle;
+  const token = b.wait([other], false);
+  a.release(sem, 1);
+  assert.equal(await token, 0);
+  const mutex = a.mutex({ name: a.local + '\\Lock', initialOwner: true }).handle;
+  const remote = b.mutex({ name: a.local + '\\Lock', open: true }).handle;
+  const abandoned = b.wait([remote], false);
+  const third = syncObjects(make({}));
+  assert.equal(third.event({ name, open: true }).status, SYNC.NOT_FOUND);
+  a.dispose();
+  assert.equal(await abandoned, SYNC.ABANDONED);
+  assert.equal(a.handles.size, 0);
+  assert.equal(b.names.size, 3, 'child aliases retain the objects after parent exit');
+  assert.equal(b.releaseMutex(remote).status, 0);
+  b.change(alias, 'set');
+  assert.equal(b.wait([alias], false, 0n), 0);
+  b.dispose();
+  assert.equal(session.syncDomain.names.size, 0);
+  assert.equal(session.syncDomain.objects.size, 0);
+  assert.equal(session.syncDomain.members.size, 0);
+  assert.equal(a.lookup(mutex, 'sync-mutex').status, SYNC.HANDLE);
+  third.dispose();
+});
+
+test('stopped waiters cannot claim released mutexes and closed owned mutexes remain alive until abandonment', async (t) => {
+  const { r, objects } = setup(t);
+  const owner = r.threads.current;
+  const name = objects.local + '\\Lifetime';
+  const mutex = objects.mutex({ name, initialOwner: true }).handle;
+  objects.close(mutex);
+  assert.equal(objects.names.size, 1, 'ownership retains the named object');
+  const alias = objects.mutex({ name, open: true }).handle;
+  const blocked = { id: 2 };
+  r.threads.current = blocked;
+  const waiting = objects.wait([alias], false);
+  objects.abandon(blocked);
+  assert.equal(await waiting, SYNC.CANCELLED);
+  objects.abandon(owner);
+  assert.equal(objects.wait([alias], false, 0n), SYNC.ABANDONED);
+  objects.close(alias);
+  objects.abandon(blocked);
+  assert.equal(objects.domain.objects.size, 0);
+  assert.equal(objects.names.size, 0);
+});
+
+test('owned mutexes with closed handles remain within the kernel-object budget', (t) => {
+  const { r, objects } = setup(t);
+  objects.domain.limit = 1;
+  const mutex = objects.mutex({ initialOwner: true }).handle;
+  const object = objects.lookup(mutex, 'sync-mutex').object;
+  objects.close(mutex);
+  assert.equal(objects.event().status, SYNC.MEMORY);
+  const alias = objects.openHandle(object, SYNC.MUTEX_ALL, false).handle;
+  assert.ok(alias, 'opening an existing object does not allocate another object');
+  objects.close(alias);
+  objects.abandon(r.threads.current);
+  assert.ok(objects.event().handle, 'abandonment frees unreferenced object storage');
+});
 
 test('manual reset wakes every current waiter and stays signaled; automatic reset releases only one', async (t) => {
   const { nt, r, create, wait, out, objects } = setup(t);

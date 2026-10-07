@@ -1,4 +1,4 @@
-import { SYNC, syncObjects } from './sync-objects.js';
+import { SYNC, SyncDomain, syncObjects } from './sync-objects.js';
 import { resolveGuestPath } from './guest-paths.js';
 import { PROCESS_LAYOUT } from './process-layout.js';
 
@@ -9,6 +9,7 @@ export class ProcessSession {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
     this.dirty = new Set();
     this.fileState = { virtualDirectories: new Set(), fileTimes: new Map(), fileIds: new Map() };
+    this.syncDomain = new SyncDomain(16 * 4096);
     this.createRuntime = createRuntime;
     this.records = new Map();
     this.nextId = 1;
@@ -127,12 +128,13 @@ export class ProcessSession {
     Object.assign(record, { done: true, code: code >>> 0, result });
     Object.assign(record.thread, { done: true, code: code >>> 0 });
     record.object.signaled = record.thread.object.signaled = true;
-    for (const member of this.records.values()) member.runtime?.syncObjects?.dispatch();
+    this.syncDomain.dispatch();
     record.complete();
   }
   terminate(record, code) {
     if (!record.done) {
       if (!record.started) {
+        record.runtime.syncObjects?.dispose();
         record.runtime.cpu.dispose();
         record.runtime.windows.dispose();
         this.finish(record, code);

@@ -1,6 +1,6 @@
 import { SIMDFloat } from './simd-float.js';
 
-// Selected legacy SSE operations. Packed floating arithmetic and AVX remain unsupported.
+// Selected legacy SSE/SSE2 operations. AVX remains unsupported.
 export const SIMD_OP = Object.freeze({
   MOVD_XMM_GPR: 1,
   MOVD_XMM_MEM: 2,
@@ -46,10 +46,11 @@ export const SIMD_OP = Object.freeze({
   DWORD_ARITH_XMM_XMM: 42,
   DWORD_ARITH_XMM_MEM: 43,
   SHIFT_BYTES_XMM: 44,
+  FLOAT_PACKED: 45,
 });
 
 const floatingCodes = new WeakMap();
-function scalarCodes(C) {
+function floatingInstructionCodes(C) {
   if (!floatingCodes.has(C)) {
     const codes = new Map();
     for (const [format, suffix, width] of [
@@ -58,6 +59,8 @@ function scalarCodes(C) {
     ]) {
       for (const [op, name] of ['Add', 'Sub', 'Mul', 'Div', 'Sqrt'].entries())
         codes.set(C[`${name}${suffix}_xmm_xmmm${width}`], { op, format });
+      for (const [op, name] of ['Add', 'Sub', 'Mul', 'Div', 'Sqrt'].entries())
+        codes.set(C[`${name}${format ? 'pd' : 'ps'}_xmm_xmmm128`], { op, format, packed: true });
       codes.set(C[`Cvtsi2${suffix}_xmm_rm32`], { op: 5, format });
       codes.set(C[`Cvt${suffix}2si_r32_xmmm${width}`], { op: 6, format });
       codes.set(C[`Cvtt${suffix}2si_r32_xmmm${width}`], { op: 7, format });
@@ -123,20 +126,21 @@ export function classifySse(instruction, iced) {
     return { op: opReg, dst: dst.reg, src: src.reg, addressOperand: -1, aligned: true };
   };
 
-  const floating = scalarCodes(C).get(instruction.code);
+  const floating = floatingInstructionCodes(C).get(instruction.code);
   if (floating) {
-    const { op, format } = floating;
+    const { op, format, packed } = floating;
     const dst = op === 6 || op === 7 ? gpr(0) : xmm(0);
     const src = op === 5 ? gpr(1) : xmm(1);
-    const width = op === 5 || (op === 8 ? format : !format) ? mem32 : mem64;
+    const width = packed ? mem128 : op === 5 || (op === 8 ? format : !format) ? mem32 : mem64;
     if (dst === null || (src === null && !width(1))) return null;
     return {
-      op: SIMD_OP.FLOAT_SCALAR,
+      op: packed ? SIMD_OP.FLOAT_PACKED : SIMD_OP.FLOAT_SCALAR,
       dst,
       src: src ?? 0,
       immediate: op | (format << 4) | (src === null ? 32 : 0),
       addressOperand: src === null ? 1 : -1,
       floating: true,
+      aligned: !!packed && src === null,
     };
   }
 
@@ -563,6 +567,11 @@ export class SIMDState {
           d[0] = result[0];
           if (double) d[1] = result[1];
         }
+        return;
+      }
+      case SIMD_OP.FLOAT_PACKED: {
+        const value = immediate & 32 ? load(16) : s;
+        d.set(this.float.executePacked(immediate & 15, !!(immediate & 16), d, value));
         return;
       }
       case SIMD_OP.CVTSI2SD_XMM_GPR:

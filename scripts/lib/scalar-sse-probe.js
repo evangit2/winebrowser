@@ -11,7 +11,7 @@ export async function probeScalarSse(iced, { files }) {
       exitCode: 0,
       instructions: runtime.cpu.instructions,
       scope:
-        'Native PE32 scalar MOVSD/MOVSS, signed conversions, binary32/binary64 arithmetic and square roots, float-width conversion, COMI/UCOMI flags, MXCSR rounding, DAZ and FTZ. Packed floating point, AVX and guest #XM delivery remain unsupported.',
+        'Native PE32 scalar MOVSD/MOVSS, signed conversions, binary32/binary64 arithmetic and square roots, float-width conversion, COMI/UCOMI flags, MXCSR rounding, DAZ and FTZ. Packed arithmetic has a separate native fixture; AVX and guest #XM delivery remain unsupported.',
     };
   } catch (error) {
     return { status: 'failed', failure: error.message };

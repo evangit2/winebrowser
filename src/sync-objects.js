@@ -5,6 +5,9 @@ export const SYNC = {
   SUCCESS: 0,
   EXISTS: 0x40000000,
   TIMEOUT: 0x102,
+  ABANDONED: 0x80,
+  NOT_OWNER: 0xc0000046,
+  MUTANT_LIMIT: 0xc0000191,
   LIMIT: 0xc0000047,
   INVALID: 0xc000000d,
   HANDLE: 0xc0000008,
@@ -20,6 +23,7 @@ export const SYNC = {
   CANCELLED: 0xc0000120,
   FAULT: 0xc0000005,
   ALL: 0x1f0003,
+  MUTEX_ALL: 0x1f0001,
   MODIFY: 2,
   QUERY: 1,
   WAIT: 0x100000,
@@ -30,24 +34,42 @@ const HANDLE_BASE = 0x52000000,
 export function syncObjects(r) {
   return (r.syncObjects ??= new SyncObjects(r));
 }
-export function syncAccess(raw, directory = false) {
-  const all = directory ? 0xf000f : SYNC.ALL;
+export function syncAccess(raw, directory = false, mutex = false) {
+  const all = directory ? 0xf000f : mutex ? SYNC.MUTEX_ALL : SYNC.ALL;
   let access = raw & 0x0fffffff;
   if (raw & 0x10000000 || raw & 0x02000000) access |= all;
   access &= ~0x02000000;
   if (raw & 0x80000000) access |= 0x20000 | (directory ? 3 : 1);
-  if (raw & 0x40000000) access |= 0x20000 | (directory ? 12 : 2);
+  if (raw & 0x40000000) access |= 0x20000 | (directory ? 12 : mutex ? 0 : 2);
   if (raw & 0x20000000) access |= 0x20000 | (directory ? 3 : SYNC.WAIT);
   return access & ~all ? null : access;
 }
 
-// Kernel objects belong to this guest process. Named aliases share an object,
-// while each handle retains its own access mask and inheritance flag.
+// A process family shares a bounded kernel namespace; handles and wait ownership
+// remain private to each Runtime. Independent uploads never share this state.
+export class SyncDomain {
+  constructor(limit = 4096) {
+    this.limit = limit;
+    this.names = new Map();
+    this.objects = new Set();
+    this.members = new Set();
+  }
+  dispatch() {
+    for (const member of this.members) member.dispatchLocal();
+  }
+  collect(object) {
+    if (object.refs || object.owner) return;
+    this.objects.delete(object);
+    if (object.name && this.names.get(object.name) === object) this.names.delete(object.name);
+  }
+}
 export class SyncObjects {
   constructor(runtime) {
     this.runtime = runtime;
     this.nextHandle = HANDLE_BASE;
-    this.names = new Map();
+    this.domain = runtime.processSession?.syncDomain ?? new SyncDomain();
+    this.domain.members.add(this);
+    this.names = this.domain.names;
     this.handles = new Set();
     this.waiters = new Set();
     this.disposed = false;
@@ -94,9 +116,12 @@ export class SyncObjects {
   openHandle(object, access, inherit) {
     if (this.disposed || this.handles.size >= 4096 || this.nextHandle >= HANDLE_END)
       return { status: SYNC.MEMORY };
+    if (!this.domain.objects.has(object) && this.domain.objects.size >= this.domain.limit)
+      return { status: SYNC.MEMORY };
     const handle = this.nextHandle;
     this.nextHandle += 4;
     object.refs++;
+    this.domain.objects.add(object);
     this.handles.add(handle);
     this.runtime.handles.set(handle, { kind: object.kind, object, access, inherit });
     return { status: 0, handle };
@@ -124,6 +149,22 @@ export class SyncObjects {
       return { status: SYNC.INVALID };
     return this.named('sync-semaphore', { count: initial, maximum }, options);
   }
+  owner() {
+    return this.runtime.threads?.current ?? this.runtime;
+  }
+  mutex(options = {}) {
+    const initial = options.initialOwner && !options.open;
+    return this.named(
+      'sync-mutex',
+      {
+        owner: initial ? this.owner() : null,
+        ownerRuntime: initial ? this.runtime : null,
+        depth: initial ? 1 : 0,
+        abandoned: false,
+      },
+      { access: SYNC.MUTEX_ALL, ...options },
+    );
+  }
   named(
     kind,
     state,
@@ -136,7 +177,7 @@ export class SyncObjects {
       insensitive = false,
     } = {},
   ) {
-    access = syncAccess(access);
+    access = syncAccess(access, false, kind === 'sync-mutex');
     if (access === null) return { status: SYNC.ACCESS };
     let object = name ? this.find(name, insensitive) : null;
     const existed = !!object;
@@ -156,7 +197,7 @@ export class SyncObjects {
   }
   directoryEntries(name) {
     if (name === '\\DosDevices') return [{ name: 'C:', type: 'SymbolicLink' }];
-    const types = { 'sync-event': 'Event', 'sync-semaphore': 'Semaphore' };
+    const types = { 'sync-event': 'Event', 'sync-semaphore': 'Semaphore', 'sync-mutex': 'Mutant' };
     const prefix = name + '\\';
     return [...this.names.values()]
       .filter((object) => object.name?.startsWith(prefix) && types[object.kind])
@@ -186,10 +227,36 @@ export class SyncObjects {
     this.dispatch();
     return { status: 0, previous };
   }
+  releaseMutex(handle) {
+    const found = this.lookup(handle, 'sync-mutex');
+    if (found.status) return found;
+    const { object } = found;
+    if (object.owner !== this.owner()) return { status: SYNC.NOT_OWNER };
+    const previous = 1 - object.depth;
+    if (!--object.depth) {
+      object.owner = object.ownerRuntime = null;
+      this.dispatch();
+      this.domain.collect(object);
+    }
+    return { status: 0, previous };
+  }
+  abandon(owner = null) {
+    // A stopped thread cannot acquire an object later through a stale waiter.
+    for (const waiter of this.waiters)
+      if (!owner || waiter.owner === owner) waiter.finish(SYNC.CANCELLED);
+    for (const object of this.domain.objects) {
+      if (object.ownerRuntime !== this.runtime || (owner && object.owner !== owner)) continue;
+      object.owner = object.ownerRuntime = null;
+      object.depth = 0;
+      object.abandoned = true;
+      this.domain.collect(object);
+    }
+    this.dispatch();
+  }
   signal(handle) {
-    return this.runtime.handles.get(handle)?.kind === 'sync-semaphore'
-      ? this.release(handle, 1)
-      : this.change(handle, 'set');
+    const kind = this.runtime.handles.get(handle)?.kind;
+    if (kind === 'sync-mutex') return this.releaseMutex(handle);
+    return kind === 'sync-semaphore' ? this.release(handle, 1) : this.change(handle, 'set');
   }
   validateWait(handles, all) {
     if (!handles.length || handles.length > 64) return { status: SYNC.INVALID };
@@ -199,32 +266,48 @@ export class SyncObjects {
       const kind = this.runtime.handles.get(handle)?.kind;
       const found = this.lookup(
         handle,
-        ['sync-thread', 'sync-process', 'sync-semaphore'].includes(kind) ? kind : 'sync-event',
+        ['sync-thread', 'sync-process', 'sync-semaphore', 'sync-mutex'].includes(kind)
+          ? kind
+          : 'sync-event',
         SYNC.WAIT,
       );
       if (found.status) return found;
-      // Multiple aliases of one semaphore in a wait-all are not supported.
-      // Reject before consuming any count instead of allowing an underflow.
-      if (all && kind === 'sync-semaphore' && objects.includes(found.object))
+      // Reject duplicate consumable objects before changing any state.
+      if (all && ['sync-semaphore', 'sync-mutex'].includes(kind) && objects.includes(found.object))
         return { status: SYNC.INVALID };
       objects.push(found.object);
     }
     return { status: 0, objects };
   }
-  consume(objects, all) {
-    const ready = (o) => (o.kind === 'sync-semaphore' ? o.count > 0 : o.signaled);
+  consume(objects, all, owner = this.owner()) {
+    const ready = (o) =>
+      o.kind === 'sync-mutex'
+        ? !o.owner || o.owner === owner
+        : o.kind === 'sync-semaphore'
+          ? o.count > 0
+          : o.signaled;
     const index = all ? (objects.every(ready) ? 0 : -1) : objects.findIndex(ready);
     if (index < 0) return null;
-    for (const object of all ? objects : [objects[index]])
+    const selected = all ? objects : [objects[index]];
+    if (selected.some((o) => o.kind === 'sync-mutex' && o.depth === 0x7fffffff))
+      return SYNC.MUTANT_LIMIT;
+    const abandoned = selected.findIndex((o) => o.kind === 'sync-mutex' && o.abandoned);
+    for (const object of selected)
       if (object.kind === 'sync-semaphore') object.count--;
-      else if (!object.manual) object.signaled = false;
-    return index;
+      else if (object.kind === 'sync-mutex') {
+        object.owner = owner;
+        object.ownerRuntime = this.runtime;
+        object.depth++;
+        object.abandoned = false;
+      } else if (!object.manual) object.signaled = false;
+    return abandoned < 0 ? index : SYNC.ABANDONED + (all ? 0 : index);
   }
   wait(handles, all, timeout = null) {
     const found = this.validateWait(handles, all);
     if (found.status) return found.status;
     if (this.disposed) return SYNC.CANCELLED;
-    const result = this.consume(found.objects, all);
+    const owner = this.owner();
+    const result = this.consume(found.objects, all, owner);
     if (result !== null) return result;
     // NT negative intervals are relative 100 ns ticks; positive values are
     // absolute FILETIME. Relative waits are unaffected by wall-clock changes.
@@ -247,6 +330,7 @@ export class SyncObjects {
         handles: handles.slice(),
         objects: found.objects,
         all,
+        owner,
         remaining,
         timer: null,
         finish: (status) => {
@@ -266,12 +350,15 @@ export class SyncObjects {
     });
   }
   dispatch() {
+    this.domain.dispatch();
+  }
+  dispatchLocal() {
     for (const waiter of this.waiters) {
       if (waiter.remaining() <= 0) {
         waiter.finish(SYNC.TIMEOUT);
         continue;
       }
-      const result = this.consume(waiter.objects, waiter.all);
+      const result = this.consume(waiter.objects, waiter.all, waiter.owner);
       if (result !== null) waiter.finish(result);
     }
   }
@@ -284,15 +371,14 @@ export class SyncObjects {
     this.runtime.handles.delete(handle);
     this.handles.delete(handle);
     const object = opened.object;
-    if (!--object.refs && object.name && this.names.get(object.name) === object)
-      this.names.delete(object.name);
+    object.refs--;
+    this.domain.collect(object);
     return 0;
   }
   dispose() {
     this.disposed = true;
-    for (const waiter of this.waiters) waiter.finish(SYNC.CANCELLED);
-    for (const handle of this.handles) this.runtime.handles.delete(handle);
-    this.handles.clear();
-    this.names.clear();
+    this.abandon();
+    for (const handle of this.handles) this.close(handle);
+    this.domain.members.delete(this);
   }
 }

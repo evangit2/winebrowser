@@ -1,9 +1,12 @@
-# Scalar SSE execution
+# SSE floating-point execution
 
 The PE32 translator executes legacy ADDSS/SD, SUBSS/SD, MULSS/SD, DIVSS/SD,
 SQRTSS/SD, CVTSI2SS/SD (int32), CVT(T)SS/SD2SI (int32), CVTSS2SD, CVTSD2SS,
 COMISS/SD and UCOMISS/SD. Register and memory forms use the same path, read
 exactly the scalar operand width, and preserve the untouched XMM lanes.
+ADDPS/PD, SUBPS/PD, MULPS/PD, DIVPS/PD and SQRTPS/PD execute all four binary32
+or two binary64 lanes. Packed memory operands read a checked, aligned 16-byte
+range. Packed square root uses only the source vector.
 MOVAPD and MOVUPD copy all 128 bits; memory MOVAPD requires 16-byte alignment.
 
 `src/simd-float.js` calls the pinned generic SoftFloat Wasm module's direct
@@ -21,12 +24,15 @@ flags when underflow is masked. Exact tiny results report underflow when that
 exception is unmasked. Integer conversion does not report denormal-operand
 exceptions. Invalid operands, NaNs and zero-divide take priority over denormal
 operands. Unmasked pre-computation exceptions suppress post-computation flags.
-An unmasked exception preserves the destination and EFLAGS and stops with an
+Packed instructions accumulate exceptions across every lane before committing
+the result. An unmasked pre-computation exception in any lane suppresses new
+post-computation flags for the whole instruction, while existing sticky flags
+remain set. An unmasked exception preserves the destination and EFLAGS and stops with an
 explicit diagnostic; delivering a guest #XM/SEH handler is not implemented.
 
 Guest callbacks snapshot and restore all eight XMM registers and MXCSR, including
-exceptional returns. x87 control/status remains independent. Packed floating
-arithmetic, AVX, MXCSR environment save/restore instructions, x64 integer
+exceptional returns. x87 control/status remains independent. Packed comparisons,
+min/max, conversions, AVX, MXCSR environment save/restore instructions, x64 integer
 conversions, and full CPU/SIMD compatibility remain unfinished.
 
 ## Verification
@@ -40,6 +46,16 @@ conversions, and full CPU/SIMD compatibility remain unfinished.
   through the normal translator in an isolated Chromium worker. Its expected
   encodings are constants and a failure returns the C source line. Evidence is
   `evidence/scalar-sse-browser-results.json`.
+- `npm run test:packed-sse`: native Windows EXE and ZIP uploads execute ten packed
+  opcodes and a four-vertex 3D normalization/transform pipeline through the actual
+  browser application. It also verifies rounding, DAZ/FTZ and mixed-lane flags.
+  Set `WINEBROWSER_TEST_URL` to test a static or deployed site. Evidence is
+  `evidence/packed-sse-browser-results.json`.
+- Linux x86_64 unit tests compile `tests/fixtures/sse/packed-oracle.c` and compare
+  3,600 packed cases against native SSE instructions, including all six unmasked
+  exceptions, lane permutations, NaNs, signed zeros and denormals. On macOS,
+  `WINEBROWSER_SSE_ORACLE=rosetta` checks 1,680 masked cases independently; Rosetta
+  does not deliver unmasked SIMD traps, so Linux hardware CI checks those.
 
 This verifies a defined instruction subset. It does not establish arbitrary
 Windows program compatibility, native speed, or complete DirectX support.
@@ -47,6 +63,6 @@ Windows program compatibility, native speed, or complete DirectX support.
 ## Primary references
 
 - [Intel Software Developer's Manual](https://cdrdv2-public.intel.com/868137/325462-089-sdm-vol-1-2abcd-3abcd-4.pdf),
-  volume 1 sections 4.9.2, 10.2.3 and 11.5; volume 2 scalar SSE instruction entries.
+  volume 1 sections 4.9.2, 10.2.3 and 11.5; volume 2 scalar and packed SSE instruction entries.
 - [Berkeley SoftFloat interface](https://www.jhauser.us/arithmetic/SoftFloat-3/doc/SoftFloat.html),
   direct binary32/binary64 operations and explicit integer-conversion rounding.
