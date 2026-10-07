@@ -15,11 +15,12 @@ wait-any consumes only its selected object. Timeouts, closing a waited handle,
 and runtime disposal use the existing waiter lifecycle. Repeated aliases of a
 single semaphore in one wait-all are explicitly rejected before consumption.
 
-Named semaphores share counts across NT and Win32 callers and same-process
-DuplicateHandle aliases. Handles have independent query/modify/synchronize
+Named semaphores share counts across NT and Win32 callers, same-process
+DuplicateHandle aliases and uploaded processes in one family. Handles have independent query/modify/synchronize
 rights and inheritance flags. The existing local/global guest object namespace
-now checks event/semaphore type collisions. The final handle close removes the
-name. Cross-process sharing and security descriptor evaluation remain open.
+checks event/semaphore/mutex type collisions. The final handle close across the
+family removes the name. Independent uploads remain isolated and security
+descriptor evaluation remains unsupported. See [process synchronization](process-synchronization.md).
 
 The native `tests/fixtures/threads/semaphore.c` fixture runs as both an ordinary
 EXE and nested ZIP in Chromium, and through actual Wine Kernel32/KernelBase/

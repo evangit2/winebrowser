@@ -7,3 +7,5 @@ SOURCE_DATE_EPOCH=0 i686-w64-mingw32-gcc -m32 -msse2 -O1 -ffreestanding -fno-bui
  -Wl,--dynamicbase -Wl,--entry,_start -Wl,--subsystem,console \
  tests/fixtures/packed-sse/client.c -o tests/fixtures/packed-sse/packed-sse.exe -lkernel32
 i686-w64-mingw32-strip --strip-all tests/fixtures/packed-sse/packed-sse.exe
+
+sh scripts/build-packed-sse-geometry-fixture.sh

@@ -1,3 +1,4 @@
+import { renderScrollbar } from './gdi-scrollbars.js';
 import './desktop.css';
 import { paintRect } from './gdi-raster.js';
 import { stripCaptionMnemonics } from './caption-text.js';
@@ -689,6 +690,7 @@ export class VirtualDesktop {
         'listview',
         'combobox',
         'listbox',
+        'scrollbar',
         'custom',
       ].includes(controlType)
     )
@@ -982,9 +984,10 @@ export class VirtualDesktop {
             end: element.selectionEnd,
           });
         });
-    } else if (controlType === 'custom') {
+    } else if (controlType === 'custom' || controlType === 'scrollbar') {
       element = canvas = document.createElement('canvas');
-      element.className = 'virtual-desktop-control virtual-desktop-control-custom';
+      element.className = 'virtual-desktop-control virtual-desktop-control-' + controlType;
+      if (controlType === 'scrollbar') element.setAttribute('role', 'scrollbar');
       element.tabIndex = 0;
       element.addEventListener('contextmenu', (event) => event.preventDefault());
       element.addEventListener('pointerdown', (event) =>
@@ -1056,10 +1059,11 @@ export class VirtualDesktop {
       element.addEventListener(type, (event) => {
         event.stopPropagation();
         if (
-          (['treeview', 'tabcontrol'].includes(controlType) &&
+          (['treeview', 'tabcontrol', 'scrollbar'].includes(controlType) &&
             ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
               event.key,
             )) ||
+          (controlType === 'scrollbar' && ['PageUp', 'PageDown'].includes(event.key)) ||
           ((this.#topLevel(control)?.isDialog || control.controlStyle?.subclassed) &&
             ['Tab', 'Enter', 'Escape'].includes(event.key) &&
             !(event.key === 'Enter' && control.multiline && control.controlStyle?.wantReturn))
@@ -1701,6 +1705,37 @@ export class VirtualDesktop {
       }
     }
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';
+    if (state.scrollbar) {
+      const model = state.scrollbar;
+      control.element.setAttribute(
+        'aria-label',
+        model.vertical ? 'Vertical scrollbar' : 'Horizontal scrollbar',
+      );
+      control.element.setAttribute('aria-orientation', model.vertical ? 'vertical' : 'horizontal');
+      control.element.setAttribute('aria-valuemin', String(model.min));
+      control.element.setAttribute(
+        'aria-valuemax',
+        String(model.max - Math.max(0, model.page - 1)),
+      );
+      control.element.setAttribute(
+        'aria-valuenow',
+        String(model.tracking ? model.track : model.pos),
+      );
+      control.element.width = control.width;
+      control.element.height = control.height;
+      if (control.width && control.height)
+        control.element
+          .getContext('2d')
+          .putImageData(
+            new ImageData(
+              renderScrollbar(control.width, control.height, model),
+              control.width,
+              control.height,
+            ),
+            0,
+            0,
+          );
+    }
     if (state.progress || state.report)
       applyReportControl(control.element, state, (type, data) =>
         this.#emit(control.id, type, data),

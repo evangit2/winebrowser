@@ -80,8 +80,10 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:packed-sse
           npm run test:installer-apis
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:processes
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:process-sync
           npm run test:api-sets
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:foss-tools
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:7zip-full
@@ -129,6 +131,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-frames
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:icon-bitmap
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owned-cursors
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:scroll-controls
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:scroll-state
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:frame-controls
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-brush-rop

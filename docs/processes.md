@@ -22,9 +22,10 @@ processes. Each session is bounded to 16 created process records.
 This is a bounded launcher milestone. Handle inheritance, redirected standard
 handles, tokens, debug ports, parent-process/job attributes, remote memory/context
 operations, and suspending a running child are unsupported. Unsupported creation
-flags or attributes return failure. Named synchronization objects, registry state
-and file-sharing locks remain process-local, so general cross-process IPC and
-concurrent file-lock compatibility are not established. A never-resumed child
+flags or attributes return failure. Named events, semaphores and owned recursive mutexes now share a process-family
+namespace; see [process synchronization](process-synchronization.md). Registry
+state and file-sharing locks remain process-local, so broader IPC and concurrent
+file-lock compatibility are not established. A never-resumed child
 keeps its session active until terminated or Stop is pressed. This does not imply
 universal Windows or DLL compatibility.
 

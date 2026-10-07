@@ -1,0 +1,365 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native pointer notifications; parent does not change position",
+  "cases": [
+    {
+      "style": 0,
+      "gesture": 0,
+      "message": 276,
+      "command": 0,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 0,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 1,
+      "message": 276,
+      "command": 1,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 1,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 2,
+      "message": 276,
+      "command": 2,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 2,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 3,
+      "message": 276,
+      "command": 3,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 3,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 4,
+      "message": 276,
+      "command": 5,
+      "positionWord": 20,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 4,
+      "message": 276,
+      "command": 5,
+      "positionWord": 29,
+      "target": 1,
+      "pos": 20,
+      "track": 29
+    },
+    {
+      "style": 0,
+      "gesture": 4,
+      "message": 276,
+      "command": 4,
+      "positionWord": 29,
+      "target": 1,
+      "pos": 20,
+      "track": 29
+    },
+    {
+      "style": 0,
+      "gesture": 4,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 29
+    },
+    {
+      "style": 0,
+      "gesture": 5,
+      "message": 276,
+      "command": 2,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 5,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "gesture": 6,
+      "message": 276,
+      "command": 5,
+      "positionWord": 15047,
+      "target": 1,
+      "pos": 80000,
+      "track": 80583
+    },
+    {
+      "style": 0,
+      "gesture": 6,
+      "message": 276,
+      "command": 5,
+      "positionWord": 61548,
+      "target": 1,
+      "pos": 80000,
+      "track": 127084
+    },
+    {
+      "style": 0,
+      "gesture": 6,
+      "message": 276,
+      "command": 4,
+      "positionWord": 61548,
+      "target": 1,
+      "pos": 80000,
+      "track": 127084
+    },
+    {
+      "style": 0,
+      "gesture": 6,
+      "message": 276,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 80000,
+      "track": 127084
+    },
+    {
+      "style": 1,
+      "gesture": 0,
+      "message": 277,
+      "command": 0,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 0,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 1,
+      "message": 277,
+      "command": 1,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 1,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 2,
+      "message": 277,
+      "command": 2,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 2,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 3,
+      "message": 277,
+      "command": 3,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 3,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 4,
+      "message": 277,
+      "command": 5,
+      "positionWord": 20,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 4,
+      "message": 277,
+      "command": 5,
+      "positionWord": 29,
+      "target": 1,
+      "pos": 20,
+      "track": 29
+    },
+    {
+      "style": 1,
+      "gesture": 4,
+      "message": 277,
+      "command": 4,
+      "positionWord": 29,
+      "target": 1,
+      "pos": 20,
+      "track": 29
+    },
+    {
+      "style": 1,
+      "gesture": 4,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 29
+    },
+    {
+      "style": 1,
+      "gesture": 5,
+      "message": 277,
+      "command": 2,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 5,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "gesture": 6,
+      "message": 277,
+      "command": 5,
+      "positionWord": 15047,
+      "target": 1,
+      "pos": 80000,
+      "track": 80583
+    },
+    {
+      "style": 1,
+      "gesture": 6,
+      "message": 277,
+      "command": 5,
+      "positionWord": 61548,
+      "target": 1,
+      "pos": 80000,
+      "track": 127084
+    },
+    {
+      "style": 1,
+      "gesture": 6,
+      "message": 277,
+      "command": 4,
+      "positionWord": 61548,
+      "target": 1,
+      "pos": 80000,
+      "track": 127084
+    },
+    {
+      "style": 1,
+      "gesture": 6,
+      "message": 277,
+      "command": 8,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 80000,
+      "track": 127084
+    }
+  ]
+}

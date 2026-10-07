@@ -31,14 +31,7 @@ function square(rect) {
   return [x, top, x + h, bottom];
 }
 
-export function createFrameControlApis({
-  stateFor,
-  getDc,
-  colors,
-  success,
-  failure,
-  strokePolygon,
-}) {
+export function createFrameControlPainter({ colors, strokePolygon }) {
   const bounds = (rect) => nativeBrushBounds(...rect);
   const fill = (dc, rect, color) => paintRect(dc.surface, ...bounds(rect), { color }, 'copy', dc);
   // These controls use all four border sides. Keep the native strip order,
@@ -242,6 +235,29 @@ export function createFrameControlApis({
     poly(dc, points, 0);
     return rect;
   };
+  const paint = (dc, rect, type, flags) => {
+    const subtype = flags & 255;
+    return type === 4
+      ? subtype === 16
+        ? push(dc, rect, flags)
+        : check(dc, rect, subtype, flags)
+      : type === 3
+        ? scroll(dc, rect, subtype, flags)
+        : menu(dc, rect, subtype);
+  };
+  paint.edge = edge;
+  return paint;
+}
+
+export function createFrameControlApis({
+  stateFor,
+  getDc,
+  colors,
+  success,
+  failure,
+  strokePolygon,
+}) {
+  const paint = createFrameControlPainter({ colors, strokePolygon });
   return {
     'user32.dll!DrawFrameControl': (r, a) => {
       const type = a(2) >>> 0,
@@ -275,14 +291,7 @@ export function createFrameControlApis({
       } catch {
         return failure(r, 87, 0, 4);
       }
-      const out =
-        type === 4
-          ? subtype === 16
-            ? push(dc, rect, flags)
-            : check(dc, rect, subtype, flags)
-          : type === 3
-            ? scroll(dc, rect, subtype, flags)
-            : menu(dc, rect, subtype);
+      const out = paint(dc, rect, type, flags);
       if (out !== rect) out.forEach((value, i) => r.write32(pointer + i * 4, value));
       return success(1, 4);
     },

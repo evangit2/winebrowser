@@ -1,0 +1,181 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native scrollbar key notifications",
+  "cases": [
+    {
+      "style": 0,
+      "key": 37,
+      "phase": 0,
+      "message": 276,
+      "command": 0,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 39,
+      "phase": 0,
+      "message": 276,
+      "command": 1,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 38,
+      "phase": 0,
+      "message": 276,
+      "command": 0,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 40,
+      "phase": 0,
+      "message": 276,
+      "command": 1,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 36,
+      "phase": 0,
+      "message": 276,
+      "command": 6,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 35,
+      "phase": 0,
+      "message": 276,
+      "command": 7,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 33,
+      "phase": 0,
+      "message": 276,
+      "command": 2,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 0,
+      "key": 34,
+      "phase": 0,
+      "message": 276,
+      "command": 3,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 37,
+      "phase": 0,
+      "message": 277,
+      "command": 0,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 39,
+      "phase": 0,
+      "message": 277,
+      "command": 1,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 38,
+      "phase": 0,
+      "message": 277,
+      "command": 0,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 40,
+      "phase": 0,
+      "message": 277,
+      "command": 1,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 36,
+      "phase": 0,
+      "message": 277,
+      "command": 6,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 35,
+      "phase": 0,
+      "message": 277,
+      "command": 7,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 33,
+      "phase": 0,
+      "message": 277,
+      "command": 2,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    },
+    {
+      "style": 1,
+      "key": 34,
+      "phase": 0,
+      "message": 277,
+      "command": 3,
+      "positionWord": 0,
+      "target": 1,
+      "pos": 20,
+      "track": 20
+    }
+  ]
+}

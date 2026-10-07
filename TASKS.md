@@ -149,7 +149,12 @@ matrix (`world[15]` one Float32 step below 1) and full projective transforms.
       SoftFloat binary32/binary64, with int32/float-width conversions, COMI/UCOMI,
       MXCSR rounding/status/DAZ/FTZ and callback context preservation. Native
       fixture passes in Node/Chromium. MOVAPD/MOVUPD reuse checked 128-bit moves.
-      Packed float, AVX and guest #XM delivery remain unsupported.
+      AVX and guest #XM delivery remain unsupported.
+- [x] Execute packed SSE/SSE2 ADDPS/PD, SUBPS/PD, MULPS/PD, DIVPS/PD and
+      SQRTPS/PD through direct SoftFloat. Accumulate lane exceptions before
+      committing the destination, preserve sticky flags and preflight 16-byte
+      aligned memory. Native PE32 EXE/ZIP geometry pipeline and independent
+      Linux x86 exception oracle provide regression coverage.
 - [x] Execute 16/32-bit `SHLD`/`SHRD` with register/memory destinations,
       immediate/CL counts, zero-count flags and checked stores. Unit tests use
       an independent bit-string oracle and cover aliases and fault atomicity.
