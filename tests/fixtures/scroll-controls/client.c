@@ -1,0 +1,53 @@
+/* Original WineBrowser contributors, MIT. Native interactive scrollbar GUI. */
+#define UNICODE
+#include <windows.h>
+#define CHECK(x) do{if(!(x))ExitProcess(1000+__LINE__);}while(0)
+void *memset(void *target,int value,size_t count){BYTE *p=target;while(count--)*p++=(BYTE)value;return target;}
+static HWND root,bars[5],labels[3];static unsigned stage;
+static const WCHAR *titles[]={L"Native scrollbars - Normal",L"Native scrollbars - Large page",L"Native scrollbars - Left off",L"Native scrollbars - Right off",L"Native scrollbars - All off",L"Native scrollbars - Limits",L"Native scrollbars - Normal"};
+static WCHAR *copy(WCHAR *out,const WCHAR *in){while(*in)*out++=*in++;return out;}
+static WCHAR *number(WCHAR *out,LONG value){WCHAR digits[10];unsigned count=0;DWORD n=(DWORD)value;if(value<0){*out++=L'-';n=0-n;}do{digits[count++]=(WCHAR)(L'0'+n%10);n/=10;}while(n);while(count)*out++=digits[--count];return out;}
+static void label(HWND window,const WCHAR *prefix,LONG value){WCHAR buf[80],*end=copy(buf,prefix);end=number(end,value);*end=0;CHECK(SetWindowTextW(window,buf));}
+static SCROLLINFO info(HWND window){SCROLLINFO out={28,SIF_ALL,1,2,3,4,5};SetLastError(777);CHECK(GetScrollInfo(window,SB_CTL,&out)&&GetLastError()==777);CHECK(out.cbSize==28&&out.fMask==SIF_ALL);return out;}
+static void update(void){SCROLLINFO h=info(bars[0]),v=info(bars[3]);label(labels[0],L"Horizontal position: ",h.nPos);label(labels[1],L"Vertical position: ",v.nPos);}
+static void reset(unsigned next){stage=next;SCROLLINFO in={28,SIF_ALL,10,40,8,20,0};if(stage==1)in.nPage=100;if(stage==5){in.nMin=-20;in.nMax=200000;in.nPage=64;in.nPos=80000;}
+ for(int i=0;i<5;i++){
+  SetLastError(777);
+  CHECK(EnableScrollBar(bars[i],SB_CTL,0));
+  int expected=stage==1?10:stage==5?80000:20;
+  CHECK(SetScrollInfo(bars[i],SB_CTL,&in,TRUE)==expected);
+  if(stage>=2&&stage<=4)CHECK(EnableScrollBar(bars[i],SB_CTL,stage-1));
+  SCROLLINFO out=info(bars[i]);
+  CHECK(out.nMin==in.nMin);
+  CHECK(out.nMax==in.nMax);
+  CHECK(out.nPos==expected);
+  CHECK(out.nPage==(stage==1?31:in.nPage));
+ }
+
+ update();label(labels[2],L"Last event: ",-1);CHECK(SetWindowTextW(root,titles[stage]));}
+static LRESULT CALLBACK procedure(HWND window,UINT msg,WPARAM wp,LPARAM lp){
+ if(window==root&&msg==WM_COMMAND&&HIWORD(wp)==BN_CLICKED&&LOWORD(wp)>=101&&LOWORD(wp)<=107){reset(LOWORD(wp)-101);return 0;}
+ if(window==root&&(msg==WM_HSCROLL||msg==WM_VSCROLL)){
+  HWND control=(HWND)lp;BOOL found=FALSE;for(int i=0;i<5;i++)if(bars[i]==control)found=TRUE;CHECK(found);
+  SCROLLINFO out=info(control);int command=LOWORD(wp),pos=out.nPos;
+  if(command==SB_LINEUP)pos--;else if(command==SB_LINEDOWN)pos++;else if(command==SB_PAGEUP)pos-=(int)out.nPage;else if(command==SB_PAGEDOWN)pos+=(int)out.nPage;else if(command==SB_TOP)pos=out.nMin;else if(command==SB_BOTTOM)pos=out.nMax;else if(command==SB_THUMBTRACK||command==SB_THUMBPOSITION)pos=out.nTrackPos;else CHECK(command==SB_ENDSCROLL);
+  if(command!=SB_ENDSCROLL){out.fMask=SIF_POS;out.nPos=pos;SetScrollInfo(control,SB_CTL,&out,TRUE);}
+  update();label(labels[2],L"Last event: ",command);return 0;
+ }
+ if(window==root&&msg==WM_PAINT){PAINTSTRUCT ps;HDC dc=BeginPaint(window,&ps);CHECK(dc);RECT rect={0,0,640,370};CHECK(FillRect(dc,&rect,(HBRUSH)GetStockObject(WHITE_BRUSH))&&EndPaint(window,&ps));return 0;}
+ if(window==root&&(msg==WM_CLOSE||(msg==WM_KEYDOWN&&wp==VK_ESCAPE))){PostQuitMessage(0);return 0;}
+ return DefWindowProcW(window,msg,wp,lp);
+}
+void start(void){
+ WNDCLASSW cls={0};cls.lpfnWndProc=procedure;cls.hInstance=GetModuleHandleW(NULL);cls.hCursor=LoadCursorW(NULL,IDC_ARROW);cls.lpszClassName=L"NativeScrollbarControls";CHECK(RegisterClassW(&cls));
+ root=CreateWindowExW(0,cls.lpszClassName,L"Native scrollbars",WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_VISIBLE,40,60,642,400,NULL,NULL,cls.hInstance,NULL);CHECK(root);
+ const WCHAR *buttons[]={L"Normal",L"Large page",L"Left off",L"Right off",L"All off",L"Limits",L"Reset"};
+ for(int i=0;i<7;i++)CHECK(CreateWindowExW(0,L"BUTTON",buttons[i],WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,12+(i%5)*124,8+(i/5)*36,116,28,root,(HMENU)(INT_PTR)(101+i),cls.hInstance,NULL));
+ CHECK(CreateWindowExW(0,L"STATIC",L"Click arrows or track, drag thumbs, or use arrow/page keys.",WS_CHILD|WS_VISIBLE|SS_CENTER,8,76,624,24,root,NULL,cls.hInstance,NULL));
+ const int rects[5][4]={{20,112,180,17},{220,112,180,25},{20,158,8,17},{520,112,17,180},{560,112,25,180}};
+ for(int i=0;i<5;i++){bars[i]=CreateWindowExW(0,L"SCROLLBAR",L"",WS_CHILD|WS_VISIBLE|WS_TABSTOP|(i>=3?SBS_VERT:SBS_HORZ),rects[i][0],rects[i][1],rects[i][2],rects[i][3],root,(HMENU)(INT_PTR)(201+i),cls.hInstance,NULL);CHECK(bars[i]);SCROLLINFO out=info(bars[i]);CHECK(out.nMin==0&&out.nMax==0&&out.nPage==0&&out.nPos==0&&out.nTrackPos==0);}
+ WCHAR className[32];CHECK(GetClassNameW(bars[0],className,32)==9&&!lstrcmpW(className,L"ScrollBar"));
+ for(int i=0;i<3;i++){labels[i]=CreateWindowExW(0,L"STATIC",L"",WS_CHILD|WS_VISIBLE|SS_LEFT,20,216+i*40,470,30,root,(HMENU)(INT_PTR)(301+i),cls.hInstance,NULL);CHECK(labels[i]);}
+ reset(0);ShowWindow(root,SW_SHOW);CHECK(UpdateWindow(root));MSG msg;while(GetMessageW(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}
+ CHECK(DestroyWindow(root));const char output[]="NATIVE SCROLLBAR CONTROLS GUI PASS\n";DWORD wrote=0;CHECK(WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),output,sizeof(output)-1,&wrote,NULL)&&wrote==sizeof(output)-1);ExitProcess(0);
+}

@@ -1,3 +1,4 @@
+import { describeScrollbar } from './win32-scrollbars.js';
 import { scrollStateApis } from './win32-scroll-state.js';
 import { dialogX, dialogY } from './dialog-units.js';
 import { receiveDroppedFiles } from './win32-drop-files.js';
@@ -412,6 +413,7 @@ export class WindowManager {
         tabs: describeTabs(window),
         statusbar: describeStatusbar(window),
         toolbar: describeToolbar(window),
+        scrollbar: describeScrollbar(window),
         progress: describeProgress(window),
         report: describeListview(window),
         list: describeList(window),

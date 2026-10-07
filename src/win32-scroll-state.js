@@ -11,7 +11,7 @@ function stateFor(window, key, create = false) {
     window.scrollInfo = { horizontal: initial(), vertical: initial() };
   return window.scrollInfo?.[key] ?? null;
 }
-function readInfo(r, pointer) {
+export function readScrollInfo(r, pointer) {
   if (!pointer) return null;
   try {
     r.check(pointer, 8);
@@ -31,7 +31,7 @@ function readInfo(r, pointer) {
     return null;
   }
 }
-function change(state, info) {
+export function changeScrollInfo(state, info) {
   if (info.mask & 1) {
     state.min = info.min;
     state.max = info.max;
@@ -61,18 +61,38 @@ async function setControl(r, hwnd, mask, fields, repaint) {
 }
 
 export const scrollStateApis = {
+  'user32.dll!EnableScrollBar': async (r, a) => {
+    const window = r.windows.windows.get(a(0)),
+      bar = a(1) >>> 0,
+      flags = a(2) >>> 0;
+    if (!window) return result(0, 3);
+    if (bar === 2) {
+      if (window.controlType !== 'scrollbar') return result(0, 3);
+      return result(await sendWindowMessage(r, a(0), 0xe4, flags, 0, true), 3);
+    }
+    if (![0, 1, 3].includes(bar)) return result(0, 3);
+    const disabled = flags & 3;
+    let changed = false;
+    for (const key of bar === 3 ? ['horizontal', 'vertical'] : [keyFor(bar)]) {
+      const state = stateFor(window, key, true);
+      if ((state.disabled ?? 0) !== disabled) changed = true;
+      state.disabled = disabled;
+    }
+    if (changed) r.windows.emit(window);
+    return result(changed ? 1 : 0, 3);
+  },
   'user32.dll!SetScrollInfo': async (r, a) => {
     const window = r.windows.windows.get(a(0)),
       bar = a(1) >>> 0,
       pointer = a(2);
     if (bar === 2 && !window) return r.windows.fail(1400, 4);
-    const info = readInfo(r, pointer);
+    const info = readScrollInfo(r, pointer);
     if (!info) return result(ACCESS_VIOLATION, 4);
     if (info.invalid) return result(0, 4);
     if (bar === 2) return result(await sendWindowMessage(r, a(0), 0xe9, a(3), pointer, true), 4);
     const state = stateFor(window, keyFor(bar), true);
     if (!state) return result(0, 4);
-    const pos = change(state, info);
+    const pos = changeScrollInfo(state, info);
     redraw(r, window, a(3));
     return result(pos, 4);
   },
@@ -83,7 +103,7 @@ export const scrollStateApis = {
       await sendWindowMessage(r, a(0), 0xea, 0, pointer, true);
       return result(1, 3);
     }
-    const info = readInfo(r, pointer);
+    const info = readScrollInfo(r, pointer);
     if (!info) return result(ACCESS_VIOLATION, 3);
     if (info.invalid || !(info.mask & 0x17)) return result(0, 3);
     const state = stateFor(r.windows.windows.get(a(0)), keyFor(bar));
@@ -116,12 +136,17 @@ export const scrollStateApis = {
     return result(stateFor(r.windows.windows.get(a(0)), keyFor(a(1) >>> 0))?.pos ?? 0, 2);
   },
   'user32.dll!SetScrollPos': async (r, a) => {
-    if (a(1) >>> 0 === 2) return result(await setControl(r, a(0), 4, [[20, a(2)]], a(3)), 4);
+    if (a(1) >>> 0 === 2) {
+      const window = r.windows.windows.get(a(0));
+      const previous = window?.scrollbar?.pos ?? 0;
+      const value = await setControl(r, a(0), 4, [[20, a(2)]], a(3));
+      return result(window?.controlType === 'scrollbar' ? previous : value, 4);
+    }
     const window = r.windows.windows.get(a(0)),
       state = stateFor(window, keyFor(a(1) >>> 0), true);
     if (!state) return result(0, 4);
     const previous = state.pos;
-    change(state, { mask: 4, pos: a(2) | 0 });
+    changeScrollInfo(state, { mask: 4, pos: a(2) | 0 });
     redraw(r, window, a(3));
     return result(previous, 4);
   },
@@ -159,7 +184,7 @@ export const scrollStateApis = {
     const window = r.windows.windows.get(a(0)),
       state = stateFor(window, keyFor(a(1) >>> 0), true);
     if (state) {
-      change(state, { mask: 1, min: a(2) | 0, max: a(3) | 0 });
+      changeScrollInfo(state, { mask: 1, min: a(2) | 0, max: a(3) | 0 });
       redraw(r, window, a(4));
     }
     return result(1, 5);
