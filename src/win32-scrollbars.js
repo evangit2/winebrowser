@@ -2,7 +2,16 @@
 import { readScrollInfo, changeScrollInfo } from './win32-scroll-state.js';
 import { scrollbarGeometry, nativeMulDiv } from './scrollbar-geometry.js';
 export function controlScrollState(window) {
-  return (window.scrollbar ??= { min: 0, max: 0, page: 0, pos: 0, disabled: 0 });
+  return (window.scrollbar ??= {
+    min: 0,
+    max: 0,
+    page: 0,
+    pos: 0,
+    disabled: window.enabled === false ? 3 : 0,
+  });
+}
+async function setEnabled(r, window, enabled) {
+  await r.apiProvider.get('user32.dll!EnableWindow')(r, (i) => (i ? Number(enabled) : window.id));
 }
 export function describeScrollbar(window) {
   if (window.controlType !== 'scrollbar') return;
@@ -66,6 +75,15 @@ export async function scrollbarMessage(r, window, message, wp, lp) {
     const info = readScrollInfo(r, lp);
     if (!info || info.invalid) return 0;
     const pos = changeScrollInfo(state, info);
+    if (info.mask & 0x17 && info.mask & 0xb) {
+      let disabled = state.disabled;
+      if (state.min >= state.max - Math.max(0, state.page - 1)) {
+        if (info.mask & 8) disabled = 3;
+      } else if (info.mask !== 2) disabled = 0;
+      if (wp && r.windows.isVisible(window.id) && (disabled === 0 || disabled === 3))
+        await setEnabled(r, window, disabled === 0);
+      state.disabled = disabled;
+    }
     r.windows.emit(window);
     return pos;
   }
@@ -101,10 +119,18 @@ export async function scrollbarMessage(r, window, message, wp, lp) {
   }
   if (message === 0xe4) {
     state.disabled = wp & 3;
+    if (state.disabled === 0 || state.disabled === 3)
+      await setEnabled(r, window, state.disabled === 0);
     r.windows.emit(window);
     return 1;
   }
   if (message === 0x87) return 1; // DLGC_WANTARROWS
+  if (message === 0xa) {
+    state.disabled = wp ? 0 : 3;
+    if (!wp) await endTracking(r, window, false);
+    r.windows.emit(window);
+    return 0;
+  }
   if (message === 0x100) {
     const command = new Map([
       [37, 0],
@@ -161,7 +187,7 @@ export async function scrollbarMessage(r, window, message, wp, lp) {
     return 0;
   }
   if (message === 0x215 && lp === window.id) return 0;
-  if (message === 0x1f || message === 0x215 || (message === 0xa && !wp) || message === 0x82) {
+  if (message === 0x1f || message === 0x215 || message === 0x82) {
     await endTracking(r, window, false);
     return null;
   }

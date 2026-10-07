@@ -1915,6 +1915,7 @@ Object.assign(windowApis, {
     if (!window) return r.windows.fail(1400, 2);
     const previous = window.enabled !== false;
     window.enabled = a(1) !== 0;
+    window.style = (window.enabled ? window.style & ~0x08000000 : window.style | 0x08000000) >>> 0;
     r.windows.emit(window);
     if (previous !== window.enabled) await r.windows.send(window.id, 0xa, window.enabled ? 1 : 0);
     if (window.ownerDraw) r.windows.invalidate(window, null, true);

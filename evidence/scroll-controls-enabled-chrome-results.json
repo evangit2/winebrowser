@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-07T15:40:47.553Z",
+  "date": "2026-10-07T15:40:46.922Z",
   "url": "http://127.0.0.1:4389/winebrowser/",
-  "browser": "153.0.8010.12",
+  "browser": "155.0.8059.39",
   "headedBrowser": true,
   "exeSha256": "efcf123ead1368e8fab06422f45e420b8043cbc557ea467279bad6c548b32d21",
   "scope": "Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Nine stages verify five controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, native window enabling, 32-bit thumb tracking and compiled parent callbacks are exercised. Nonclient bars, alignment/size-box styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.",
@@ -1412,10 +1412,10 @@
         "instructions": 193221,
         "compiledBlocks": 2091,
         "totalCompiledBlocks": 2091,
-        "x86TranslationMs": 1556.3699997067451,
+        "x86TranslationMs": 1438.2549984455109,
         "wasmBytes": 1702630,
         "apiCalls": 1203,
-        "elapsedMs": 34737.035000026226,
+        "elapsedMs": 33316.74000000954,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -2770,10 +2770,10 @@
             "instructions": 193221,
             "compiledBlocks": 2091,
             "totalCompiledBlocks": 2091,
-            "x86TranslationMs": 1556.3699997067451,
+            "x86TranslationMs": 1438.2549984455109,
             "wasmBytes": 1702630,
             "apiCalls": 1203,
-            "elapsedMs": 34724.214999973774
+            "elapsedMs": 33313.564999997616
           }
         ]
       },
@@ -4186,10 +4186,10 @@
         "instructions": 193622,
         "compiledBlocks": 2091,
         "totalCompiledBlocks": 2091,
-        "x86TranslationMs": 1994.8550007343292,
+        "x86TranslationMs": 2054.144999563694,
         "wasmBytes": 1702630,
         "apiCalls": 1203,
-        "elapsedMs": 56300.00499999523,
+        "elapsedMs": 49504.205000042915,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -5544,10 +5544,10 @@
             "instructions": 193622,
             "compiledBlocks": 2091,
             "totalCompiledBlocks": 2091,
-            "x86TranslationMs": 1994.8550007343292,
+            "x86TranslationMs": 2054.144999563694,
             "wasmBytes": 1702630,
             "apiCalls": 1203,
-            "elapsedMs": 56297.59999996424
+            "elapsedMs": 49500.0150000453
           }
         ]
       },
@@ -6960,10 +6960,10 @@
         "instructions": 194859,
         "compiledBlocks": 2091,
         "totalCompiledBlocks": 2091,
-        "x86TranslationMs": 1970.5400005578995,
+        "x86TranslationMs": 1978.344999909401,
         "wasmBytes": 1702630,
         "apiCalls": 1203,
-        "elapsedMs": 45197.81999999285,
+        "elapsedMs": 43906.060000002384,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -8318,10 +8318,10 @@
             "instructions": 194859,
             "compiledBlocks": 2091,
             "totalCompiledBlocks": 2091,
-            "x86TranslationMs": 1970.5400005578995,
+            "x86TranslationMs": 1978.344999909401,
             "wasmBytes": 1702630,
             "apiCalls": 1203,
-            "elapsedMs": 45196.24500000477
+            "elapsedMs": 43904.32999998331
           }
         ]
       },

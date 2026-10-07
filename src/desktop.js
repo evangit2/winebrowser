@@ -1712,6 +1712,8 @@ export class VirtualDesktop {
         model.vertical ? 'Vertical scrollbar' : 'Horizontal scrollbar',
       );
       control.element.setAttribute('aria-orientation', model.vertical ? 'vertical' : 'horizontal');
+      control.element.setAttribute('aria-disabled', String(!control.enabled));
+      control.element.tabIndex = control.enabled ? 0 : -1;
       control.element.setAttribute('aria-valuemin', String(model.min));
       control.element.setAttribute(
         'aria-valuemax',
