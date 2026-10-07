@@ -1,0 +1,13 @@
+{
+  "source": "tests/fixtures/packed-sse/client.c",
+  "sourceSha256": "d7f162771f9dc06fd26cbeec75f64a4ca3ff71b92f8915478d0e73bbbe7e3a24",
+  "records": 8400,
+  "recordBytes": 24,
+  "bytes": 201600,
+  "sha256": "2fdcb1a61c61f1b5dc1b23dab529e8f28c34dc7e15f5ce7f4304972310aa9919",
+  "reference": "Native x86 SSE/SSE2 instructions compiled from the same C source with WB_SSE_ORACLE. macOS uses x86_64 Rosetta; CI repeats this on a Linux x86_64 runner.",
+  "floatingPointResultsComputedByJavascript": false,
+  "roundingModes": 4,
+  "dazAndFtz": true,
+  "registerAndMemoryOperands": true
+}

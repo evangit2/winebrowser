@@ -32,7 +32,7 @@ export class SIMDFloat {
   }
 
   // Inputs and outputs are raw words. No JS floating-point intermediates.
-  execute(operation, double, left, right) {
+  evaluate(operation, double, left, right, predicate = 0) {
     const sf = this.getModule();
     if (!sf) throw Error('SSE floating-point module must be initialized before execution');
     if (!this.pointer) {
@@ -69,12 +69,44 @@ export class SIMDFloat {
       view.setUint32(a + lane * 4, av[lane], true);
       view.setUint32(b + lane * 4, bv[lane], true);
     }
-    status = sf._wb_sf_ieee(state, 4, double ? 1 : 0, operation, out, 8, a, 8, b, 8);
+    const ieeeOperation =
+      operation === 13
+        ? [1, 2, 5, 6].includes(predicate & 7)
+          ? 10
+          : 9
+        : operation >= 11
+          ? 10
+          : operation;
+    status = sf._wb_sf_ieee(state, 4, double ? 1 : 0, ieeeOperation, out, 8, a, 8, b, 8);
     if (status) throw Error(`SoftFloat SSE operation error ${status}`);
     const bits = sf.HEAPU8[state + 3];
-    const result = new Uint32Array([view.getUint32(out, true), view.getUint32(out + 4, true)]);
+    let result = new Uint32Array([view.getUint32(out, true), view.getUint32(out + 4, true)]);
+    if (operation === 11 || operation === 12) {
+      // MIN/MAX return the second operand for equal values (including signed
+      // zero) and unordered comparisons. Its NaN payload is not quieted.
+      const comparison = result[0] | 0;
+      result = operation === 11 ? (comparison === -1 ? av : bv) : comparison === 1 ? av : bv;
+    }
+    if (operation === 13) {
+      const comparison = result[0] | 0;
+      const matches = [
+        comparison === 0,
+        comparison === -1,
+        comparison <= 0,
+        comparison === 2,
+        comparison !== 0,
+        comparison !== -1,
+        comparison > 0,
+        comparison !== 2,
+      ];
+      const mask = matches[predicate & 7] ? 0xffffffff : 0;
+      result = new Uint32Array([mask, double ? mask : 0]);
+    }
     // Invalid, NaN and zero-divide responses suppress lower-priority conditions.
-    if (nan || bits & 24) flags = 0;
+    // Ordered/unordered classification predicates still report a denormal
+    // operand alongside a NaN. Relational/equality comparisons suppress it.
+    const classification = operation === 13 && [3, 7].includes(predicate & 7);
+    if (!classification && (nan || bits & 24)) flags = 0;
     flags |=
       ((bits & 16) >>> 4) |
       ((bits & 8) >>> 1) |
@@ -94,7 +126,13 @@ export class SIMDFloat {
         }
       }
     }
-    // An unmasked pre-computation exception prevents post-computation flags.
+    return { result, flags };
+  }
+
+  commit(flags) {
+    const masks = (this.mxcsr >>> 7) & 0x3f;
+    // An unmasked pre-computation exception in any lane prevents all
+    // post-computation flags and the entire destination write.
     if (flags & 7 & ~masks) flags &= 7;
     this.mxcsr |= flags;
     const unmasked = flags & ~masks;
@@ -104,6 +142,34 @@ export class SIMDFloat {
         `Unmasked SIMD floating-point exception: ${names.join(', ')}; guest #XM delivery is unsupported`,
       );
     }
+  }
+
+  execute(operation, double, left, right, predicate = 0) {
+    const { result, flags } = this.evaluate(operation, double, left, right, predicate);
+    this.commit(flags);
+    return result;
+  }
+
+  packed(operation, double, left, right, predicate = 0) {
+    const result = new Uint32Array(4);
+    const count = double || operation === 8 ? 2 : 4;
+    const inputStride = operation === 5 ? 1 : operation === 8 ? (double ? 1 : 2) : double ? 2 : 1;
+    const outputStride = operation === 6 || operation === 7 ? 1 : double ? 2 : 1;
+    const binary = operation <= 3 || operation >= 9;
+    let flags = 0;
+    for (let lane = 0; lane < count; lane++) {
+      const offset = lane * inputStride;
+      const evaluated = this.evaluate(
+        operation,
+        double,
+        (binary ? left : right).subarray(offset, offset + inputStride),
+        right.subarray(offset, offset + inputStride),
+        predicate,
+      );
+      flags |= evaluated.flags;
+      result.set(evaluated.result.subarray(0, outputStride), lane * outputStride);
+    }
+    this.commit(flags);
     return result;
   }
 }
