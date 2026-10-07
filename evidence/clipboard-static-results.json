@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-07T21:46:35.477Z",
+  "date": "2026-10-07T21:50:47.797Z",
   "url": "http://127.0.0.1:4201/winebrowser/",
   "browser": "153.0.8010.12",
   "status": "passed",
@@ -10,8 +10,8 @@
       "exitCode": 0,
       "instructions": 191200,
       "compiledBlocks": 2351,
-      "elapsedMs": 1177.9050000309944,
-      "x86TranslationMs": 371.27499985694885,
+      "elapsedMs": 1676.675000011921,
+      "x86TranslationMs": 592.2700002789497,
       "modules": [
         {
           "name": "clipboard.exe",
@@ -479,8 +479,8 @@
       "exitCode": 0,
       "instructions": 191497,
       "compiledBlocks": 2351,
-      "elapsedMs": 1145.4500000476837,
-      "x86TranslationMs": 405.1750001311302,
+      "elapsedMs": 1687.5,
+      "x86TranslationMs": 630.7000010609627,
       "modules": [
         {
           "name": "renamed.exe",
@@ -948,8 +948,8 @@
       "exitCode": 0,
       "instructions": 192831,
       "compiledBlocks": 2351,
-      "elapsedMs": 1095.239999949932,
-      "x86TranslationMs": 371.53499925136566,
+      "elapsedMs": 1644.7599999904633,
+      "x86TranslationMs": 781.814998447895,
       "modules": [
         {
           "name": "clipboard.exe",
@@ -1417,8 +1417,8 @@
       "exitCode": 0,
       "instructions": 537587,
       "compiledBlocks": 4784,
-      "elapsedMs": 2506.75,
-      "x86TranslationMs": 864.0599988698959,
+      "elapsedMs": 2620.8550000190735,
+      "x86TranslationMs": 1066.2300022244453,
       "modules": [
         {
           "name": "metapad.exe",
@@ -3391,8 +3391,8 @@
       "exitCode": 0,
       "instructions": 563556,
       "compiledBlocks": 4791,
-      "elapsedMs": 2938.464999973774,
-      "x86TranslationMs": 1203.475000321865,
+      "elapsedMs": 3119.824999988079,
+      "x86TranslationMs": 1216.9000002741814,
       "modules": [
         {
           "name": "original.exe",
