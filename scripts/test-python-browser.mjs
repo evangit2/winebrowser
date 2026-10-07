@@ -15,7 +15,7 @@ try {
 } catch (error) {
   if (error.code !== 'ENOENT' || process.env.WINEBROWSER_PYTHON_ZIP) throw error;
   const response = await fetch(upstream);
-  assert.ok(response.ok(), 'official CPython download');
+  assert.ok(response.ok, 'official CPython download');
   zip = Buffer.from(await response.arrayBuffer());
   assert.equal(hash(zip), zipSha256);
   await mkdir('.cache', { recursive: true });
