@@ -426,6 +426,7 @@ export class WindowManager {
     if (this.queue.length >= 4096) throw Error('Window message queue limit exceeded');
     // Preserve input barriers: a move after button-down must never replace a
     // queued hover before button-down. Only adjacent moves can share a slot.
+    const { x, y } = this.pointerPosition();
     const last = this.queue.at(-1);
     const coalesced =
       message === 0x200
@@ -440,6 +441,8 @@ export class WindowManager {
           wParam,
           lParam,
           time: Math.floor(performance.now()) >>> 0,
+          x,
+          y,
           ...extra,
         });
       return true;
@@ -450,8 +453,8 @@ export class WindowManager {
       wParam,
       lParam,
       time: Math.floor(performance.now()) >>> 0,
-      x: 0,
-      y: 0,
+      x,
+      y,
       ...extra,
     });
     this.wake?.();
@@ -964,6 +967,13 @@ export class WindowManager {
       );
     }
   }
+  rememberMessagePosition(message) {
+    // Get/PeekMessage and internal modal loops share the same retrieval path.
+    // The cursor can move after posting, so retain MSG.pt on the consuming thread.
+    const thread = this.runtime.threads.current;
+    if (thread) thread.messagePosition = pair(message.x, message.y);
+    return message;
+  }
   next(hwnd, min, max, remove) {
     const accepts = (m) =>
       m.message === 0x12 ||
@@ -988,7 +998,7 @@ export class WindowManager {
           ])
             this.keyboardState.set(code, message.modifiers[key] ? 0x8000 : 0);
       }
-      return message;
+      return this.rememberMessagePosition(message);
     }
     const paints = [];
     for (const window of this.windows.values()) {
@@ -998,8 +1008,7 @@ export class WindowManager {
         wParam: 0,
         lParam: 0,
         time: Math.floor(performance.now()) >>> 0,
-        x: 0,
-        y: 0,
+        ...this.pointerPosition(),
       };
       if (
         this.isVisible(window.id) &&
@@ -1013,7 +1022,7 @@ export class WindowManager {
       ) {
         if (!paints.length && !(window.parentId && window.exStyle & 0x20)) {
           if (remove) window.internalPaint = false;
-          return message;
+          return this.rememberMessagePosition(message);
         }
         paints.push({ window, message });
       }
@@ -1037,7 +1046,7 @@ export class WindowManager {
     if (paints.length) {
       const selected = selectPaint(paints[0]);
       if (remove) selected.window.internalPaint = false;
-      return selected.message;
+      return this.rememberMessagePosition(selected.message);
     }
     return null;
   }
@@ -1874,6 +1883,7 @@ Object.assign(windowApis, {
     await show(r, (i) => [a(0), 6][i]);
     return result(1, 1);
   },
+  'user32.dll!GetMessagePos': (r) => result(r.threads.current?.messagePosition ?? 0, 0),
   'user32.dll!GetCursorPos': (r, a) => {
     const point = a(0);
     if (!point) return result(0, 1);
