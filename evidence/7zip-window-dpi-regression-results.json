@@ -1,0 +1,1716 @@
+{
+  "date": "2026-10-07T16:25:30.731Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "153.0.8010.12",
+  "scope": "Unchanged 7zG.exe and 7z.dll GUI compression, extraction, passwords, cancellation and report-list errors. File Manager 7zFM.exe and arbitrary Windows GUI/DLL compatibility are outside this acceptance.",
+  "checks": [
+    "Unchanged upstream GUI EXE, codec DLL and packaged inputs match SHA-256 pins; full static and dynamic dependency closure resolves",
+    "Native archive-format and compression-level GUI changes produce a plain ZIP independently decoded with fflate; progress controls are observed",
+    "Native extraction dialog directory input creates exact text/binary outputs",
+    "AES-256 ZIP independently derives keys, authenticates and decrypts both inputs with Node crypto",
+    "Native Cancel produces no output files",
+    "Native multithreaded LZMA2 compression uses real thread/semaphore services; native extraction preserves both input files",
+    "Wrong password and damaged encrypted data show native report-list errors and exit with original error code 2"
+  ],
+  "runs": [
+    {
+      "label": "Hosted original GUI: change format and compression level, then create ZIP",
+      "exitCode": 0,
+      "elapsedMs": 16461.959999978542,
+      "x86TranslationMs": 6022.389998614788,
+      "instructions": 9127995,
+      "compiledBlocks": 13248,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SendMessageW",
+        "user32.dll!CheckDlgButton",
+        "user32.dll!IsDlgButtonChecked",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!ShowWindow",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!IsWindowEnabled",
+        "user32.dll!EnableWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!ScreenToClient",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "user32.dll!SetDlgItemTextA",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!GetParent",
+        "user32.dll!GetWindowTextW",
+        "advapi32.dll!RegCreateKeyExW",
+        "advapi32.dll!RegDeleteValueW",
+        "advapi32.dll!RegSetValueExW",
+        "advapi32.dll!RegCloseKey",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!LoadIconW",
+        "user32.dll!SetTimer",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "ntdll.dll!NtTerminateThread",
+        "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 109,
+        "report": 107,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": [
+        {
+          "path": "out.zip",
+          "bytes": 683,
+          "sha256": "fb2510dc3d657c749e5c13a854abfa15c2c1399ae24a5c55fecf42a8eef9256a"
+        }
+      ]
+    },
+    {
+      "label": "ZIP upload: choose native extraction directory and extract ZIP",
+      "exitCode": 0,
+      "elapsedMs": 10564.070000052452,
+      "x86TranslationMs": 6718.714998185635,
+      "instructions": 3273964,
+      "compiledBlocks": 11681,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!GetWindowTextW",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SendMessageW",
+        "user32.dll!CheckDlgButton",
+        "user32.dll!IsDlgButtonChecked",
+        "user32.dll!LoadIconW",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!GetParent",
+        "user32.dll!GetWindowRect",
+        "user32.dll!ShowWindow",
+        "advapi32.dll!RegCreateKeyExW",
+        "advapi32.dll!RegSetValueExW",
+        "advapi32.dll!RegCloseKey",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!SetTimer",
+        "user32.dll!ScreenToClient",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtQueryAttributesFile",
+        "user32.dll!CharPrevExA",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateThread",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 104,
+        "report": 102,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": [
+        {
+          "path": "gui-extracted/binary.bin",
+          "bytes": 8192,
+          "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+        },
+        {
+          "path": "gui-extracted/message.txt",
+          "bytes": 59,
+          "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+        }
+      ]
+    },
+    {
+      "label": "Loose original EXE/DLL: native password controls create AES-256 ZIP",
+      "exitCode": 0,
+      "elapsedMs": 12704.450000047684,
+      "x86TranslationMs": 4723.64000159502,
+      "instructions": 86056218,
+      "compiledBlocks": 13727,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SendMessageW",
+        "user32.dll!CheckDlgButton",
+        "user32.dll!IsDlgButtonChecked",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!ShowWindow",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!IsWindowEnabled",
+        "user32.dll!EnableWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!ScreenToClient",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "user32.dll!SetDlgItemTextA",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!GetParent",
+        "user32.dll!GetWindowTextW",
+        "advapi32.dll!RegCreateKeyExW",
+        "advapi32.dll!RegDeleteValueW",
+        "advapi32.dll!RegSetValueExW",
+        "advapi32.dll!RegCloseKey",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!LoadIconW",
+        "user32.dll!SetTimer",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
+        "oleaut32.dll!VariantCopy",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtSetInformationFile",
+        "advapi32.dll!SystemFunction036",
+        "ntdll.dll!NtQueryPerformanceCounter",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateThread",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 122,
+        "report": 120,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": [
+        {
+          "path": "encrypted.zip",
+          "bytes": 783,
+          "sha256": "ea21518d319eef2a496529935640b763076c0fca39babf0154486c4362b044f5"
+        }
+      ]
+    },
+    {
+      "label": "Native password extraction dialog decrypts AES ZIP",
+      "exitCode": 0,
+      "elapsedMs": 5009.280000030994,
+      "x86TranslationMs": 2045.504994392395,
+      "instructions": 28516079,
+      "compiledBlocks": 12023,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!GetWindowTextW",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SendMessageW",
+        "user32.dll!CheckDlgButton",
+        "user32.dll!IsDlgButtonChecked",
+        "user32.dll!LoadIconW",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!GetParent",
+        "user32.dll!GetWindowRect",
+        "user32.dll!ShowWindow",
+        "advapi32.dll!RegCreateKeyExW",
+        "advapi32.dll!RegSetValueExW",
+        "advapi32.dll!RegCloseKey",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!SetTimer",
+        "user32.dll!ScreenToClient",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtQueryAttributesFile",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateThread",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 108,
+        "report": 106,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": [
+        {
+          "path": "gui-aes/binary.bin",
+          "bytes": 8192,
+          "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+        },
+        {
+          "path": "gui-aes/message.txt",
+          "bytes": 59,
+          "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+        }
+      ]
+    },
+    {
+      "label": "Native compression dialog Cancel uses C++ catch and exits without an archive",
+      "exitCode": 255,
+      "elapsedMs": 2875.264999985695,
+      "x86TranslationMs": 1585.8750000596046,
+      "instructions": 2972390,
+      "compiledBlocks": 7905,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SendMessageW",
+        "user32.dll!CheckDlgButton",
+        "user32.dll!IsDlgButtonChecked",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!ShowWindow",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!IsWindowEnabled",
+        "user32.dll!EnableWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!ScreenToClient",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "user32.dll!SetDlgItemTextA",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!GetParent",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtRaiseException",
+        "ntdll.dll!NtContinue",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 0,
+        "report": 0,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": []
+    },
+    {
+      "label": "Original GUI compresses with native multithreaded LZMA2",
+      "exitCode": 0,
+      "elapsedMs": 5574.979999959469,
+      "x86TranslationMs": 2967.8000034689903,
+      "instructions": 5434612,
+      "compiledBlocks": 14924,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SendMessageW",
+        "user32.dll!CheckDlgButton",
+        "user32.dll!IsDlgButtonChecked",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!ShowWindow",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!IsWindowEnabled",
+        "user32.dll!EnableWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!ScreenToClient",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "user32.dll!SetDlgItemTextA",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!GetParent",
+        "user32.dll!GetWindowTextW",
+        "advapi32.dll!RegCreateKeyExW",
+        "advapi32.dll!RegDeleteValueW",
+        "advapi32.dll!RegSetValueExW",
+        "advapi32.dll!RegCloseKey",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!LoadIconW",
+        "user32.dll!SetTimer",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "oleaut32.dll!VariantCopy",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtWaitForSingleObject",
+        "ntdll.dll!NtCreateSemaphore",
+        "ntdll.dll!NtResetEvent",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtReleaseSemaphore",
+        "ntdll.dll!NtQueryInformationThread",
+        "ntdll.dll!NtTerminateThread",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "user32.dll!PostMessageW",
+        "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 104,
+        "report": 102,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": [
+        {
+          "path": "native.7z",
+          "bytes": 522,
+          "sha256": "7fd490a22859e0a28ec18ca5baab67793a15e4b7aee45b4ccbaeff84f8c4ebd8"
+        }
+      ]
+    },
+    {
+      "label": "Original GUI extracts native LZMA2 output byte for byte",
+      "exitCode": 0,
+      "elapsedMs": 3298.9099999666214,
+      "x86TranslationMs": 2050.9750006198883,
+      "instructions": 3353773,
+      "compiledBlocks": 12242,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetParent",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SendMessageW",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!GetWindowTextW",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!ShowWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!LoadIconW",
+        "user32.dll!SetTimer",
+        "user32.dll!ScreenToClient",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtQueryAttributesFile",
+        "ntdll.dll!NtWriteFile",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "user32.dll!KillTimer",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtTerminateThread",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 93,
+        "report": 91,
+        "texts": []
+      },
+      "completionMessages": [],
+      "outputs": [
+        {
+          "path": "lzma-out/binary.bin",
+          "bytes": 8192,
+          "sha256": "1f5a16c4456f34c5459e4e66d8650d4dbb6b298810d0c21cef6571db21d69c81"
+        },
+        {
+          "path": "lzma-out/message.txt",
+          "bytes": 59,
+          "sha256": "13229069e785389125ccc113f3ee53b3b913a4844ec20920825dddae7cf458c6"
+        }
+      ]
+    },
+    {
+      "label": "Wrong password displays original native report-list errors and exits 2",
+      "exitCode": 2,
+      "elapsedMs": 5313.069999992847,
+      "x86TranslationMs": 2410.310001909733,
+      "instructions": 28286839,
+      "compiledBlocks": 11120,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetParent",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SendMessageW",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!GetWindowTextW",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!ShowWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!LoadIconW",
+        "user32.dll!SetTimer",
+        "user32.dll!ScreenToClient",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateThread",
+        "user32.dll!GetKeyState",
+        "user32.dll!OpenClipboard",
+        "user32.dll!EmptyClipboard",
+        "user32.dll!SetClipboardData",
+        "user32.dll!CloseClipboard",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 127,
+        "report": 125,
+        "texts": [
+          "1",
+          "encrypted.zip",
+          "2",
+          "Wrong password : binary.bin",
+          "3",
+          "Wrong password : message.txt"
+        ]
+      },
+      "completionMessages": [
+        "1",
+        "encrypted.zip",
+        "2",
+        "Wrong password : binary.bin",
+        "3",
+        "Wrong password : message.txt"
+      ],
+      "outputs": []
+    },
+    {
+      "label": "Modified encrypted data displays native errors and exits 2",
+      "exitCode": 2,
+      "elapsedMs": 5317.389999985695,
+      "x86TranslationMs": 2077.4749987125397,
+      "instructions": 28395893,
+      "compiledBlocks": 11619,
+      "loadedModules": [
+        {
+          "name": "7zg.exe",
+          "path": "7zg.exe",
+          "base": 4194304,
+          "host": false
+        },
+        {
+          "name": "comctl32.dll",
+          "path": "@host/comctl32.dll",
+          "base": 16777216,
+          "host": true
+        },
+        {
+          "name": "comdlg32.dll",
+          "path": "@host/comdlg32.dll",
+          "base": 16842752,
+          "host": true
+        },
+        {
+          "name": "gdi32.dll",
+          "path": "@host/gdi32.dll",
+          "base": 16908288,
+          "host": true
+        },
+        {
+          "name": "oleaut32.dll",
+          "path": "@host/oleaut32.dll",
+          "base": 16973824,
+          "host": true
+        },
+        {
+          "name": "ole32.dll",
+          "path": "@host/ole32.dll",
+          "base": 17039360,
+          "host": true
+        },
+        {
+          "name": "user32.dll",
+          "path": "@host/user32.dll",
+          "base": 17104896,
+          "host": true
+        },
+        {
+          "name": "advapi32.dll",
+          "path": "@host/advapi32.dll",
+          "base": 17170432,
+          "host": true
+        },
+        {
+          "name": "shell32.dll",
+          "path": "@runtime/shell32.dll",
+          "base": 17235968,
+          "host": false
+        },
+        {
+          "name": "msvcrt.dll",
+          "path": "@runtime/msvcrt.dll",
+          "base": 17301504,
+          "host": false
+        },
+        {
+          "name": "kernel32.dll",
+          "path": "@runtime/kernel32.dll",
+          "base": 18022400,
+          "host": false
+        },
+        {
+          "name": "ntdll.dll",
+          "path": "@runtime/ntdll.dll",
+          "base": 18481152,
+          "host": false
+        },
+        {
+          "name": "kernelbase.dll",
+          "path": "@runtime/kernelbase.dll",
+          "base": 19267584,
+          "host": false
+        },
+        {
+          "name": "7z.dll",
+          "path": "7z.dll",
+          "base": 22020096,
+          "host": false
+        }
+      ],
+      "apiNames": [
+        "ntdll.dll!NtAllocateVirtualMemory",
+        "ntdll.dll!NtQuerySystemInformation",
+        "ntdll.dll!NtQueryInformationToken",
+        "ntdll.dll!NtCreateKey",
+        "ntdll.dll!NtOpenKey",
+        "ntdll.dll!NtClose",
+        "ntdll.dll!NtQueryValueKey",
+        "ntdll.dll!NtQueryInformationProcess",
+        "ntdll.dll!NtInitializeNlsFiles",
+        "ntdll.dll!NtGetNlsSectionPtr",
+        "ntdll.dll!NtQueryDefaultLocale",
+        "ntdll.dll!NtOpenKeyEx",
+        "ntdll.dll!NtSetValueKey",
+        "ntdll.dll!NtProtectVirtualMemory",
+        "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+        "ntdll.dll!NtQueryVolumeInformationFile",
+        "WineBrowserLoaderCallback",
+        "ntdll.dll!NtQuerySystemTime",
+        "comctl32.dll!InitCommonControls",
+        "ole32.dll!OleInitialize",
+        "advapi32.dll!RegOpenKeyExW",
+        "ntdll.dll!NtCreateFile",
+        "advapi32.dll!OpenProcessToken",
+        "advapi32.dll!LookupPrivilegeValueW",
+        "ntdll.dll!NtOpenFile",
+        "ntdll.dll!NtQueryDirectoryFile",
+        "oleaut32.dll!VariantClear",
+        "oleaut32.dll!SysAllocStringByteLen",
+        "oleaut32.dll!SysStringByteLen",
+        "oleaut32.dll!SysAllocStringLen",
+        "oleaut32.dll!SysStringLen",
+        "user32.dll!LoadStringW",
+        "ntdll.dll!NtCreateEvent",
+        "ole32.dll!CoCreateInstance",
+        "ntdll.dll!NtCreateThreadEx",
+        "ntdll.dll!NtResumeThread",
+        "user32.dll!DialogBoxParamW",
+        "user32.dll!GetWindowLongW",
+        "user32.dll!SetWindowLongW",
+        "user32.dll!GetParent",
+        "user32.dll!GetDlgItem",
+        "user32.dll!SendMessageW",
+        "ntdll.dll!NtSetEvent",
+        "user32.dll!GetWindowTextLengthW",
+        "user32.dll!GetWindowTextW",
+        "user32.dll!SetWindowTextW",
+        "user32.dll!SetDlgItemTextW",
+        "user32.dll!ShowWindow",
+        "user32.dll!GetWindowRect",
+        "user32.dll!MonitorFromWindow",
+        "user32.dll!GetMonitorInfoA",
+        "user32.dll!LoadIconW",
+        "user32.dll!SetTimer",
+        "user32.dll!ScreenToClient",
+        "user32.dll!InvalidateRect",
+        "user32.dll!MapDialogRect",
+        "user32.dll!MoveWindow",
+        "ntdll.dll!NtSetInformationFile",
+        "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtQueryInformationFile",
+        "ntdll.dll!NtQuerySystemInformationEx",
+        "user32.dll!CharPrevExA",
+        "oleaut32.dll!SysAllocString",
+        "oleaut32.dll!SysFreeString",
+        "ntdll.dll!NtFreeVirtualMemory",
+        "ntdll.dll!NtWaitForSingleObject",
+        "user32.dll!PostMessageW",
+        "ntdll.dll!NtQueryInformationThread",
+        "ntdll.dll!NtTerminateThread",
+        "user32.dll!KillTimer",
+        "user32.dll!GetKeyState",
+        "user32.dll!OpenClipboard",
+        "user32.dll!EmptyClipboard",
+        "user32.dll!SetClipboardData",
+        "user32.dll!CloseClipboard",
+        "user32.dll!EndDialog",
+        "ntdll.dll!NtTerminateProcess"
+      ],
+      "seen": {
+        "progress": 120,
+        "report": 118,
+        "texts": [
+          "1",
+          "damaged.zip",
+          "2",
+          "Data error : Wrong password? : binary.bin"
+        ]
+      },
+      "completionMessages": [
+        "1",
+        "damaged.zip",
+        "2",
+        "Data error : Wrong password? : binary.bin"
+      ],
+      "outputs": []
+    }
+  ],
+  "errors": []
+}

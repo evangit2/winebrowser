@@ -7,6 +7,8 @@ track position from GetScrollInfo. **Limits** uses positions above 65535.
 Try a full-page thumb and independently disabled arrows, then **Reset**.
 Use **Disable** and **Enable** to change the actual window state. The application
 checks IsWindowEnabled and WS_DISABLED; disabled controls reject browser input.
+The DPI label reads GetDpiForWindow in the desktop's 96-DPI coordinate space.
+Native captures also check invalid and destroyed handles and LastError.
 
 The unchanged PE32 EXE translates into Wasm inside the browser with native Wine
 base DLLs. The source archive includes its deterministic MinGW build.

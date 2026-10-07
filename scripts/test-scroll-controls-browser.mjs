@@ -146,6 +146,7 @@ try {
       await expect(root.locator('[data-control-id="302"]')).toHaveText(
         'Vertical position: ' + position,
       );
+      await expect(root.locator('[data-control-id="304"]')).toHaveText('Window DPI: 96');
       observations.push({ stage, label: labels[stage], verifiedPixels: 15256 });
       for (const control of [horizontal, vertical])
         await expect(control).toHaveAttribute('aria-disabled', String(stage === 4 || stage === 7));
@@ -232,7 +233,13 @@ try {
     const run = await page.evaluate(() => window.__lastRun);
     assert.equal(run?.exitCode, 0, await page.locator('#logs').textContent());
     assert.ok(run.compiledBlocks > 0 && run.x86TranslationMs > 0 && run.wasmBytes > 0);
-    for (const name of ['SetScrollInfo', 'GetScrollInfo', 'EnableScrollBar'])
+    for (const name of [
+      'SetScrollInfo',
+      'GetScrollInfo',
+      'EnableScrollBar',
+      'EnableWindow',
+      'GetDpiForWindow',
+    ])
       assert.ok(run.apiNames.includes('user32.dll!' + name), name);
     for (const name of ['kernel32.dll', 'kernelbase.dll', 'ntdll.dll'])
       assert.ok(
