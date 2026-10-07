@@ -1,0 +1,142 @@
+{
+  "date": "2026-10-07T22:14:28.723Z",
+  "status": "passed",
+  "releaseSha": "d9328f7f159e0750ba85029becc50c22aeec598e",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "ciUrl": "https://github.com/evangit2/winebrowser/actions/runs/37692764276",
+  "unit": {
+    "tests": 1343,
+    "pass": 1343,
+    "fail": 0,
+    "skipped": 0
+  },
+  "browserChecks": 125,
+  "groups": [
+    {
+      "group": "core",
+      "browserChecks": 21,
+      "setupCommands": 0,
+      "elapsedMs": 228874.438723
+    },
+    {
+      "group": "controls",
+      "browserChecks": 28,
+      "setupCommands": 0,
+      "elapsedMs": 104927.46753500002
+    },
+    {
+      "group": "gdi-shapes",
+      "browserChecks": 9,
+      "setupCommands": 0,
+      "elapsedMs": 530976.7015180001
+    },
+    {
+      "group": "gdi-pixels",
+      "browserChecks": 9,
+      "setupCommands": 0,
+      "elapsedMs": 406478.749141
+    },
+    {
+      "group": "dialogs",
+      "browserChecks": 24,
+      "setupCommands": 0,
+      "elapsedMs": 114936.09875300001
+    },
+    {
+      "group": "legacy-graphics",
+      "browserChecks": 15,
+      "setupCommands": 1,
+      "elapsedMs": 671642.783434
+    },
+    {
+      "group": "directx12",
+      "browserChecks": 13,
+      "setupCommands": 0,
+      "elapsedMs": 112242.50603200002
+    },
+    {
+      "group": "vulkan",
+      "browserChecks": 6,
+      "setupCommands": 0,
+      "elapsedMs": 104458.450023
+    }
+  ],
+  "publishedAssetChecks": 17,
+  "liveClipboard": [
+    {
+      "profile": "exe-upload",
+      "exeSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
+      "exitCode": 0,
+      "elapsedMs": 1007.660000026226
+    },
+    {
+      "profile": "zip-upload",
+      "exeSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
+      "exitCode": 0,
+      "elapsedMs": 1035.4000000357628
+    },
+    {
+      "profile": "hosted-example",
+      "exeSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
+      "exitCode": 0,
+      "elapsedMs": 959.2099999785423
+    },
+    {
+      "profile": "metapad-exe",
+      "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
+      "exitCode": 0,
+      "elapsedMs": 2921.725000023842
+    },
+    {
+      "profile": "metapad-zip",
+      "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
+      "exitCode": 0,
+      "elapsedMs": 2375.0950000286102
+    }
+  ],
+  "livePython": [
+    {
+      "workloadSha256": "f8f4cca0651593b57f410457f270302334460b4686479f6e2f823ffa6afcc270",
+      "upstreamZipSha256": "760dc79bcb434ee80b1001a30bb6f798287881851bac6d8137867894d40ef1fc",
+      "nativeModules": 14,
+      "exitCode": 0,
+      "elapsedMs": 56088.339999973774,
+      "x86TranslationMs": 12794.080007433891,
+      "outputs": [
+        {
+          "path": "compatibility.db",
+          "bytes": 8192,
+          "sha256": "2c89a399b2ad9d57cc80346e84a54a77f2366088ffaa88498ac45cbef3904dd8"
+        },
+        {
+          "path": "workload-results.json",
+          "bytes": 382,
+          "sha256": "bba71ea3c5d23203eac3dcb70f9a55efd707c8f52b464ed745c4ea07a1b2c1d2"
+        }
+      ]
+    },
+    {
+      "workloadSha256": "2161ee96fb3297be87b727270820dd485440afef3b5effad3473a2916d23919d",
+      "upstreamZipSha256": "760dc79bcb434ee80b1001a30bb6f798287881851bac6d8137867894d40ef1fc",
+      "nativeModules": 10,
+      "exitCode": 0,
+      "elapsedMs": 45018.889999985695,
+      "x86TranslationMs": 10004.955000162125,
+      "outputs": [
+        {
+          "path": "ffi-results.json",
+          "bytes": 181,
+          "sha256": "79ded2a98c67ac1f66754f5b977fd8b349bc55ecf26e4ab5c9693db659377648"
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    "clipboard-pages-assets.json",
+    "clipboard-live-results.json",
+    "python-clipboard-live-results.json",
+    "python-ffi-clipboard-live-results.json",
+    "clipboard-native-validation.json"
+  ],
+  "scope": "Per-session native text/HGLOBAL clipboard, Unicode edit commands, unchanged Metapad Copy/Paste/Cut/Undo/save, and the pinned original Windows CPython native-extension and ctypes workloads. This release does not establish arbitrary Windows EXE or DLL compatibility."
+}

@@ -1,0 +1,237 @@
+{
+  "date": "2026-10-07T22:14:23.440Z",
+  "browser": "153.0.8010.12",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "scope": "Ordinary ZIP upload of unchanged official Windows CPython 3.8.10, _ctypes.pyd and libffi-7.dll. Native C ABI calls into the original SQLite DLL and Wine CRT; dynamically allocated x86 callbacks reenter Python during SQLite row enumeration and qsort. Results match native Wine. No arbitrary Python package, OpenSSL, TLS, socket or universal Windows compatibility claim.",
+  "upstream": "https://www.python.org/ftp/python/3.8.10/python-3.8.10-embed-win32.zip",
+  "zipSha256": "760dc79bcb434ee80b1001a30bb6f798287881851bac6d8137867894d40ef1fc",
+  "workloadSha256": "2161ee96fb3297be87b727270820dd485440afef3b5effad3473a2916d23919d",
+  "oracle": {
+    "callback_cookie": 37,
+    "ffi_int_bytes": 4,
+    "qsort": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "sqlite_callback_rows": [
+      {
+        "label": "one",
+        "n": "1"
+      },
+      {
+        "label": "two",
+        "n": "2"
+      }
+    ],
+    "sqlite_version": "3.35.5"
+  },
+  "modules": [
+    {
+      "name": "python38.dll",
+      "sha256": "a9675a91d767095c9d4a2ae1df6e17bdb59102dbd2b4504c3493b0bcbed5ef55"
+    },
+    {
+      "name": "vcruntime140.dll",
+      "sha256": "9ec4afad505e0a3dad760fa5b59c66606ae54dd043c16914cf56d7006e46d375"
+    },
+    {
+      "name": "ucrtbase.dll"
+    },
+    {
+      "name": "kernel32.dll"
+    },
+    {
+      "name": "kernelbase.dll"
+    },
+    {
+      "name": "ntdll.dll"
+    },
+    {
+      "name": "_ctypes.pyd",
+      "sha256": "3a94a3525b0531524aabc7f8fc9f1253894cd612a9823d9cdd5070ab81b9d329"
+    },
+    {
+      "name": "libffi-7.dll",
+      "sha256": "0c7ec6de19c246a23756b8550e6178ac2394b1093e96d0f43789124149486f57"
+    },
+    {
+      "name": "sqlite3.dll",
+      "sha256": "1090083e89dcef8dcb42b9d7a9fc1928ff7b48b538f3ad44113e7cb5df9f0cc2"
+    },
+    {
+      "name": "msvcrt.dll"
+    }
+  ],
+  "run": {
+    "exitCode": 0,
+    "elapsedMs": 45018.889999985695,
+    "x86TranslationMs": 10004.955000162125,
+    "instructions": 164392328,
+    "compiledBlocks": 55563,
+    "loadedModules": [
+      {
+        "name": "python.exe",
+        "path": "python.exe",
+        "base": 4194304,
+        "host": false
+      },
+      {
+        "name": "python38.dll",
+        "path": "python38.dll",
+        "base": 16777216,
+        "host": false
+      },
+      {
+        "name": "ucrtbase.dll",
+        "path": "@runtime/ucrtbase.dll",
+        "base": 21102592,
+        "host": false
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "@runtime/kernel32.dll",
+        "base": 22020096,
+        "host": false
+      },
+      {
+        "name": "ntdll.dll",
+        "path": "@runtime/ntdll.dll",
+        "base": 22478848,
+        "host": false
+      },
+      {
+        "name": "version.dll",
+        "path": "@runtime/version.dll",
+        "base": 23265280,
+        "host": false
+      },
+      {
+        "name": "shlwapi.dll",
+        "path": "@host/shlwapi.dll",
+        "base": 23330816,
+        "host": true
+      },
+      {
+        "name": "ws2_32.dll",
+        "path": "@host/ws2_32.dll",
+        "base": 23396352,
+        "host": true
+      },
+      {
+        "name": "advapi32.dll",
+        "path": "@host/advapi32.dll",
+        "base": 23461888,
+        "host": true
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "@runtime/kernelbase.dll",
+        "base": 23527424,
+        "host": false
+      },
+      {
+        "name": "vcruntime140.dll",
+        "path": "vcruntime140.dll",
+        "base": 20971520,
+        "host": false
+      },
+      {
+        "name": "python3.dll",
+        "path": "python3.dll",
+        "base": 26279936,
+        "host": false
+      },
+      {
+        "name": "_ctypes.pyd",
+        "path": "_ctypes.pyd",
+        "base": 26345472,
+        "host": false
+      },
+      {
+        "name": "libffi-7.dll",
+        "path": "libffi-7.dll",
+        "base": 26476544,
+        "host": false
+      },
+      {
+        "name": "ole32.dll",
+        "path": "@host/ole32.dll",
+        "base": 26542080,
+        "host": true
+      },
+      {
+        "name": "oleaut32.dll",
+        "path": "@host/oleaut32.dll",
+        "base": 26607616,
+        "host": true
+      },
+      {
+        "name": "sqlite3.dll",
+        "path": "sqlite3.dll",
+        "base": 26673152,
+        "host": false
+      },
+      {
+        "name": "msvcrt.dll",
+        "path": "@runtime/msvcrt.dll",
+        "base": 27918336,
+        "host": false
+      }
+    ],
+    "apiNames": [
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtQueryValueKey",
+      "ntdll.dll!NtQueryInformationProcess",
+      "ntdll.dll!NtInitializeNlsFiles",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtQueryDefaultLocale",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtProtectVirtualMemory",
+      "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+      "ntdll.dll!NtQueryVolumeInformationFile",
+      "ntdll.dll!NtQuerySystemTime",
+      "ntdll.dll!NtQueryPerformanceCounter",
+      "WineBrowserLoaderCallback",
+      "ntdll.dll!NtCreateSemaphore",
+      "ntdll.dll!NtQueryAttributesFile",
+      "ntdll.dll!NtCreateFile",
+      "ntdll.dll!NtQueryObject",
+      "ntdll.dll!NtSetInformationObject",
+      "ntdll.dll!NtReadFile",
+      "advapi32.dll!CryptAcquireContextW",
+      "advapi32.dll!CryptGenRandom",
+      "ntdll.dll!NtFreeVirtualMemory",
+      "ntdll.dll!NtQueryInformationFile",
+      "ntdll.dll!NtSetInformationFile",
+      "shlwapi.dll!PathSkipRootW",
+      "ntdll.dll!NtCreateEvent",
+      "ntdll.dll!NtDuplicateObject",
+      "ntdll.dll!NtDeviceIoControlFile",
+      "ntdll.dll!NtOpenFile",
+      "ntdll.dll!NtQueryDirectoryFile",
+      "ntdll.dll!NtSetInformationProcess",
+      "ntdll.dll!NtWriteFile",
+      "advapi32.dll!CryptReleaseContext",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtTerminateProcess"
+    ]
+  },
+  "stdout": "PYTHON NATIVE FFI WORKLOAD {\"callback_cookie\": 37, \"ffi_int_bytes\": 4, \"qsort\": [1, 2, 3, 4, 5], \"sqlite_callback_rows\": [{\"label\": \"one\", \"n\": \"1\"}, {\"label\": \"two\", \"n\": \"2\"}], \"sqlite_version\": \"3.35.5\"}\r\n",
+  "outputs": [
+    {
+      "path": "ffi-results.json",
+      "bytes": 181,
+      "sha256": "79ded2a98c67ac1f66754f5b977fd8b349bc55ecf26e4ab5c9693db659377648"
+    }
+  ],
+  "errors": []
+}

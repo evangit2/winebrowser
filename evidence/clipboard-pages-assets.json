@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-07T22:11:45.031Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "releaseSha": "d9328f7f159e0750ba85029becc50c22aeec598e",
+  "run": "https://github.com/evangit2/winebrowser/actions/runs/37692764276",
+  "status": "passed",
+  "assets": [
+    {
+      "path": "index.html",
+      "bytes": 8451,
+      "sha256": "efe7377965d2e86f6d62267ef408e54f43f85b964670d21b850c07b07b47e283",
+      "expectedSha256": "efe7377965d2e86f6d62267ef408e54f43f85b964670d21b850c07b07b47e283"
+    },
+    {
+      "path": "assets/index-BmIrbh0W.css",
+      "bytes": 11957,
+      "sha256": "033cd20963663833af3ce43ee000ad37185adb243e38d515f91340d72d33de31",
+      "expectedSha256": "033cd20963663833af3ce43ee000ad37185adb243e38d515f91340d72d33de31"
+    },
+    {
+      "path": "assets/index-dZ1XV7ip.js",
+      "bytes": 87920,
+      "sha256": "2bbe0063369308926f4b2cb97f7f81b647a04aa5751e44f2b12572fbcf884d38",
+      "expectedSha256": "2bbe0063369308926f4b2cb97f7f81b647a04aa5751e44f2b12572fbcf884d38"
+    },
+    {
+      "path": "assets/worker-CVn_S6wi.js",
+      "bytes": 1637503,
+      "sha256": "943c9c76d42e57b020d98babb75a3b19e770383a87163e76c584ee7540b9c2c5",
+      "expectedSha256": "943c9c76d42e57b020d98babb75a3b19e770383a87163e76c584ee7540b9c2c5"
+    },
+    {
+      "path": "runtime/wine-base/manifest.json",
+      "bytes": 5098,
+      "sha256": "22246ebbe36685463116aec7bd0875b39d4d6b7995bdf2ed3099058996f74579",
+      "expectedSha256": "22246ebbe36685463116aec7bd0875b39d4d6b7995bdf2ed3099058996f74579"
+    },
+    {
+      "path": "runtime/wine-base/kernel32.dll",
+      "bytes": 889074,
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f",
+      "expectedSha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f"
+    },
+    {
+      "path": "runtime/wine-base/kernelbase.dll",
+      "bytes": 3314461,
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d",
+      "expectedSha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
+    },
+    {
+      "path": "runtime/wine-base/ntdll.dll",
+      "bytes": 987285,
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd",
+      "expectedSha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd"
+    },
+    {
+      "path": "runtime/wine-base/ucrtbase.dll",
+      "bytes": 1311270,
+      "sha256": "f869a2cdec3acdd2d747dea1324ad354a5d4ac20674d1e5ae1b5ad216ace99e0",
+      "expectedSha256": "f869a2cdec3acdd2d747dea1324ad354a5d4ac20674d1e5ae1b5ad216ace99e0"
+    },
+    {
+      "path": "runtime/wine-base/msvcrt.dll",
+      "bytes": 975547,
+      "sha256": "ae706b617b11cf59d52bd668b1f9ae5c9d6e1b5be2a7cead6bfeb33664b5b1bc",
+      "expectedSha256": "ae706b617b11cf59d52bd668b1f9ae5c9d6e1b5be2a7cead6bfeb33664b5b1bc"
+    },
+    {
+      "path": "runtime/wine-base/version.dll",
+      "bytes": 68886,
+      "sha256": "21fe5336faa47b7b9cb52977b672259c45439455542d8d090ed5555eea3abd7d",
+      "expectedSha256": "21fe5336faa47b7b9cb52977b672259c45439455542d8d090ed5555eea3abd7d"
+    },
+    {
+      "path": "runtime/softfloat/manifest.json",
+      "bytes": 2966,
+      "sha256": "2f057c2def21bf04313bdd6ee61cbd6dbebdd27e93cb27375932c0956fb5488e",
+      "expectedSha256": "2f057c2def21bf04313bdd6ee61cbd6dbebdd27e93cb27375932c0956fb5488e"
+    },
+    {
+      "path": "runtime/softfloat/softfloat.wasm",
+      "bytes": 25421,
+      "sha256": "5c03d2a47851ae8695f309af3f573ec8d1694e2afc6703e191f75112114d73e8",
+      "expectedSha256": "5c03d2a47851ae8695f309af3f573ec8d1694e2afc6703e191f75112114d73e8"
+    },
+    {
+      "path": "examples/clipboard-editor/clipboard.exe",
+      "bytes": 9728,
+      "sha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
+      "expectedSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2"
+    },
+    {
+      "path": "examples/clipboard-editor/clipboard-editor.zip",
+      "bytes": 6123,
+      "sha256": "1f5ce8b119f3f281107871498c73cf15714b94338ed702e5d9f39e4c90266635",
+      "expectedSha256": "1f5ce8b119f3f281107871498c73cf15714b94338ed702e5d9f39e4c90266635"
+    },
+    {
+      "path": "examples/clipboard-editor/source.zip",
+      "bytes": 6582,
+      "sha256": "6f4acdcf9e4169ea4be81fa7c1ba2fbc612fa0171d99e005f0fb5e954fb7d0ef",
+      "expectedSha256": "6f4acdcf9e4169ea4be81fa7c1ba2fbc612fa0171d99e005f0fb5e954fb7d0ef"
+    },
+    {
+      "path": "examples/clipboard-editor/PROVENANCE.json",
+      "bytes": 1827,
+      "sha256": "d3cd11919ab923ed5bf062698313a01f4afecab61cae1e543bcc6c66cc6621ac",
+      "expectedSha256": "d3cd11919ab923ed5bf062698313a01f4afecab61cae1e543bcc6c66cc6621ac"
+    }
+  ]
+}
