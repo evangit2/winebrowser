@@ -109,10 +109,36 @@ try {
   }
   async function finish(label, code = 0) {
     await page.waitForFunction(
-      () => ['EXITED', 'ERROR'].includes(document.querySelector('#state')?.textContent),
+      () =>
+        ['EXITED', 'ERROR'].includes(document.querySelector('#state')?.textContent) ||
+        [...document.querySelectorAll('.virtual-desktop-control[data-control-type="button"]')].some(
+          (e) => e.textContent === 'Close' && e.getClientRects().length && !e.disabled,
+        ),
       null,
       { timeout: 180000 },
     );
+    // The native progress dialog can retain completion messages and wait for
+    // Close. Finish that user action, then retain the original exit-code and
+    // byte-for-byte output assertions so application errors still fail.
+    const completionMessages = [];
+    if ((await page.locator('#state').textContent()) === 'RUNNING') {
+      completionMessages.push(
+        ...(await page.locator('[role="gridcell"]').allTextContents()).filter(Boolean),
+      );
+      console.log('Native completion messages:', label, completionMessages);
+      try {
+        await button('Close').click({ timeout: 2000 });
+      } catch (error) {
+        // Close is also briefly published immediately before automatic exit.
+        // Only tolerate its disappearance when that exit actually happened.
+        if (!['EXITED', 'ERROR'].includes(await page.locator('#state').textContent())) throw error;
+      }
+      await page.waitForFunction(
+        () => ['EXITED', 'ERROR'].includes(document.querySelector('#state')?.textContent),
+        null,
+        { timeout: 180000 },
+      );
+    }
     const result = await page.evaluate(() => ({
       state: document.querySelector('#state').textContent,
       logs: document.querySelector('#logs').textContent,
@@ -153,6 +179,7 @@ try {
       loadedModules: result.run.loadedModules,
       apiNames: result.run.apiNames,
       seen: result.seen,
+      completionMessages,
       outputs: outputs.map((e) => ({ path: e.path, bytes: e.bytes.length, sha256: hash(e.bytes) })),
     });
     console.log(label, code, result.run.instructions);
@@ -297,7 +324,6 @@ try {
       path: process.env.WINEBROWSER_7ZIP_GUI_ERROR_SCREENSHOT || 'evidence/7zip-gui-errors.png',
       fullPage: true,
     });
-    await close.click();
     const result = await finish(label, 2);
     assert.ok(result.seen.report);
     assert.ok(result.run.apiNames.includes('user32.dll!SetClipboardData'));

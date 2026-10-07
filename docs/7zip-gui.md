@@ -25,6 +25,13 @@ files; guest paths never name host directories.
 replacements. It tests hosted selection, ZIP upload and loose EXE/DLL/input
 upload, with real native controls and original process exit codes:
 
+The runner closes native completion reports when the application waits for
+**Close**, and records their messages before checking the actual process exit
+code and every output byte. A progress dialog can also briefly publish **Close**
+before automatic exit; that disappearance is accepted only after the process
+has actually exited. The wrong-password and damaged-data cases exercise retained
+completion reports and still require native error code 2.
+
 | Operation                                               | Independent evidence                                                                    |
 | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Change archive format and compression level; create ZIP | fflate independently decodes both output files byte for byte                            |
