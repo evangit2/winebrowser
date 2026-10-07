@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-07T17:20:19.431Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "browser": "155.0.8059.39",
+  "status": "passed",
+  "exitCode": 0,
+  "records": 8400,
+  "recordBytes": 24,
+  "exeSha256": "3afeaaaa53df7d44611655b0fc324f9b422a6fa61e3d4a412b9f86ad9cbe0edb",
+  "resultSha256": "526f2e0dddba7f4c20e263180d8d56e6901d51a20cd1e109ae394d94a062726d",
+  "compiledBlocks": 260,
+  "x86TranslationMs": 104.94999939203262,
+  "checks": [
+    "Native SSE/SSE2 register and memory forms, arithmetic, square roots, min/max, all comparison predicates and conversions",
+    "Four MXCSR rounding modes, NaNs, signed zero, infinities, denormal inputs and DAZ/FTZ results/flags",
+    "Raw shuffles, unpacks, integer shifts/comparisons/logical operations and saturating packs",
+    "Actual generated binary output matches all 8,400 independently executed native reference records"
+  ],
+  "scope": "Bounded legacy SSE/SSE2 coverage; complete SSE-family CPUID bits, MMX, AVX and guest #XM delivery remain unsupported."
+}
