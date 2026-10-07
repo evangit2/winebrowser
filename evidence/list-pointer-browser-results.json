@@ -1,12 +1,12 @@
 {
-  "date": "2026-10-06T01:22:54.807Z",
-  "url": "https://evangit2.github.io/winebrowser/",
-  "browser": "153.0.8010.12",
+  "date": "2026-10-07T16:04:45.113Z",
+  "url": "http://127.0.0.1:4201/winebrowser/",
+  "browser": "155.0.8059.39",
   "status": "passed",
   "exitCode": 0,
   "exeSha256": "72c7d7129ed066df40f44b5a8b678dab89d134f71fcc27b572252de5d3fd2bd6",
   "compiledBlocks": 231,
-  "x86TranslationMs": 150.09999960660934,
+  "x86TranslationMs": 140.43500006198883,
   "checks": [
     "Unchanged native PE32 receives actual WM_LBUTTONDOWN/MOVE/UP through guest LISTBOX subclasses and callable originals",
     "Single-string drag selection, extended grow/shrink, Control toggles/ranges, Shift anchors and multiple caret-only tracking pass native queries",
