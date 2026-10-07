@@ -1,0 +1,2469 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native GetNearestColor for display, default mono, 555/565, RGB, indexed and mono DIB DCs",
+  "cases": [
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 197121,
+      "result": 197121,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 69379,
+      "result": 69379,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 8355711,
+      "result": 8355711,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 8421504,
+      "result": 8421504,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 8158590,
+      "result": 8158590,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16316922,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 1976500,
+      "result": 1976500,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 16777217,
+      "result": 16777217,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777235,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 33554597,
+      "result": 33554597,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 4289449455,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 285147136,
+      "result": 285147136,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 285147137,
+      "result": 285147137,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 285147138,
+      "result": 285147138,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 285147139,
+      "result": 285147139,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 285147391,
+      "result": 285147391,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 0,
+      "input": 14469140,
+      "result": 14469140,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 197121,
+      "result": 197121,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 69379,
+      "result": 69379,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 8355711,
+      "result": 8355711,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 8421504,
+      "result": 8421504,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 8158590,
+      "result": 8158590,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16316922,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 1976500,
+      "result": 1976500,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 16777217,
+      "result": 16777217,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 16777235,
+      "result": 16777235,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 33554597,
+      "result": 33554597,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 4289449455,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 285147136,
+      "result": 285147136,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 285147137,
+      "result": 285147137,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 285147138,
+      "result": 285147138,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 285147139,
+      "result": 285147139,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 285147391,
+      "result": 285147391,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 0,
+      "palette": 1,
+      "input": 14469140,
+      "result": 14469140,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 69379,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 539672,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 8355711,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 8421504,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 8158590,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 1976500,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 16777217,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 33554597,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 285147137,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 65280,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 0,
+      "input": 14469140,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 69379,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 539672,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 8355711,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 8421504,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 8158590,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 1976500,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 16777217,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 16777235,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 33554597,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 285147137,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 65280,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 1,
+      "palette": 1,
+      "input": 14469140,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 69379,
+      "result": 2048,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 539672,
+      "result": 538904,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 8355711,
+      "result": 8092539,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 8421504,
+      "result": 8684676,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 8158590,
+      "result": 8092539,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 1976500,
+      "result": 1583541,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 16777217,
+      "result": 132,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 0,
+      "input": 14469140,
+      "result": 14601744,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 69379,
+      "result": 2048,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 539672,
+      "result": 538904,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 8355711,
+      "result": 8092539,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 8421504,
+      "result": 8684676,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 8158590,
+      "result": 8092539,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 1976500,
+      "result": 1583541,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 16777217,
+      "result": 2173365,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 16777235,
+      "result": 2693136,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 2693136,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 2,
+      "palette": 1,
+      "input": 14469140,
+      "result": 14601744,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 69379,
+      "result": 3072,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 8355711,
+      "result": 8093051,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 8421504,
+      "result": 8684164,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 8158590,
+      "result": 8093051,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16776191,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 1976500,
+      "result": 1583285,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 16777217,
+      "result": 132,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 0,
+      "input": 14469140,
+      "result": 14600976,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 69379,
+      "result": 3072,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 8355711,
+      "result": 8093051,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 8421504,
+      "result": 8684164,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 8158590,
+      "result": 8093051,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16776191,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 1976500,
+      "result": 1583285,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 16777217,
+      "result": 2174133,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 16777235,
+      "result": 2694160,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 2694160,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 3,
+      "palette": 1,
+      "input": 14469140,
+      "result": 14600976,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 197121,
+      "result": 197121,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 69379,
+      "result": 69379,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 8355711,
+      "result": 8355711,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 8421504,
+      "result": 8421504,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 8158590,
+      "result": 8158590,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16316922,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 1976500,
+      "result": 1976500,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 16777217,
+      "result": 128,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 0,
+      "input": 14469140,
+      "result": 14469140,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 197121,
+      "result": 197121,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 69379,
+      "result": 69379,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 8355711,
+      "result": 8355711,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 8421504,
+      "result": 8421504,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 8158590,
+      "result": 8158590,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16316922,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 1976500,
+      "result": 1976500,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 16777217,
+      "result": 2568117,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 16777235,
+      "result": 2694417,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 2694417,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 4,
+      "palette": 1,
+      "input": 14469140,
+      "result": 14469140,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 197121,
+      "result": 197121,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 69379,
+      "result": 69379,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 8355711,
+      "result": 8355711,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 8421504,
+      "result": 8421504,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 8158590,
+      "result": 8158590,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16316922,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 1976500,
+      "result": 1976500,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 16777217,
+      "result": 128,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 0,
+      "input": 14469140,
+      "result": 14469140,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 197121,
+      "result": 197121,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 69379,
+      "result": 69379,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 539672,
+      "result": 539672,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 8355711,
+      "result": 8355711,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 8421504,
+      "result": 8421504,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 8158590,
+      "result": 8158590,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16316922,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 1976500,
+      "result": 1976500,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 16777217,
+      "result": 2568117,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 16777235,
+      "result": 2694417,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 33554597,
+      "result": 165,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 2694417,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 285147137,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16711935,
+      "error": 777
+    },
+    {
+      "surface": 5,
+      "palette": 1,
+      "input": 14469140,
+      "result": 14469140,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 69379,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 539672,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 8355711,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 8421504,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 8158590,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 1976500,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 16777217,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 33554597,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 285147137,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 285147138,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 285147139,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 16711935,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 0,
+      "input": 14469140,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 69379,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 539672,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 8355711,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 8421504,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 8158590,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 1976500,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 16777217,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 16777235,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 33554597,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 285147137,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 285147138,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 285147139,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 65280,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 16711935,
+      "result": 255,
+      "error": 777
+    },
+    {
+      "surface": 6,
+      "palette": 1,
+      "input": 14469140,
+      "result": 65280,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 69379,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 539672,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 8355711,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 8421504,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 8158590,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 1976500,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 16777217,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 16777235,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 33554597,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 285147137,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 65280,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 16711935,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 0,
+      "input": 14469140,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 0,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 16777215,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 197121,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 69379,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 539672,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 8355711,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 8421504,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 8158590,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 16316922,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 1976500,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 16777217,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 16777235,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 33554597,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 4289449455,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 285147136,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 285147137,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 285147138,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 285147139,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 285147391,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 65280,
+      "result": 0,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 16711935,
+      "result": 16777215,
+      "error": 777
+    },
+    {
+      "surface": 7,
+      "palette": 1,
+      "input": 14469140,
+      "result": 16777215,
+      "error": 777
+    }
+  ]
+}

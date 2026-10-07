@@ -319,6 +319,8 @@
     "package:gdi-stretch": "python3 scripts/package-gdi-stretch.py",
     "build:gdi-transfer": "sh scripts/build-gdi-transfer-fixture.sh",
     "package:gdi-transfer": "python3 scripts/package-gdi-transfer.py",
+    "build:gdi-nearest": "sh scripts/build-gdi-nearest-fixture.sh",
+    "test:gdi-nearest": "node scripts/test-gdi-nearest-browser.mjs",
     "test:gdi-transfer": "node scripts/test-gdi-transfer-browser.mjs",
     "test:gdi-stretch": "node scripts/test-gdi-stretch-browser.mjs",
     "test:gdi-paths": "node scripts/test-gdi-paths-browser.mjs",

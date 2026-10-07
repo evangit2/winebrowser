@@ -747,3 +747,13 @@ client checks return counts and raw alpha, then cleans up its bitmap and DC.
 Browser acceptance compares 125,440 drawing-area pixels in nine stages across
 EXE upload, ZIP upload and the public catalog. This is additional GUI API
 coverage; arbitrary Windows DLL execution remains unfinished.
+
+`GetNearestColor` now resolves selected logical palette colors and direct DIB
+palette indices, finds native nearest indexed colors and truncates/expands
+555/565 channels. Display DC queries preserve their input COLORREF as desktop
+Wine does. The read-only query leaves bitmap pixels and selected objects
+unchanged. 352 independently captured native results cover eight surface types
+and default/custom logical palettes. An unchanged SDK PE32 client repeats the
+checks through actual Wine base DLLs and browser-local x86-to-Wasm execution.
+This closes another native comctl32 import (25 unresolved remain); import
+closure still does not establish native common-controls DLL execution.

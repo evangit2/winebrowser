@@ -434,3 +434,10 @@ excess top-down scanline counts. Four channels compare bottom-up/top-down 32-bit
 DIBs, padded 24-bit RGB and 16-bit 565 bitfields. Units compare 83 native desktop
 Wine RGB/raw-alpha snapshots plus guard-page and aliasing checks. This adds
 bitmap-transfer coverage; universal EXE/DLL execution remains unproven.
+
+Nearest-color support now matches 352 native desktop Wine results across display
+and memory DCs, 555/565/RGB/indexed formats, default/custom logical palettes and
+direct DIB palette indices. An unchanged native SDK PE32 client repeats the
+comparisons and normal cleanup through actual Wine base DLLs and x86-to-Wasm
+execution. This closes GetNearestColor in the comctl32 import graph (25
+unresolved remain); native common-controls execution remains unproven.

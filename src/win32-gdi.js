@@ -14,6 +14,7 @@ import {
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
 import { createPathApis, fillNativePolygons } from './gdi-paths.js';
+import { createNearestColorApis } from './gdi-nearest.js';
 import { createDibTransferApis } from './gdi-transfer.js';
 import { createStretchDibApis } from './gdi-stretch.js';
 import { createAlphaBlendApis } from './gdi-alpha.js';
@@ -2958,6 +2959,7 @@ export const gdiApis = {
     strokePolygon,
     readPoints,
   }),
+  ...createNearestColorApis({ stateFor, getDc, dibPalette, success, failure }),
   ...createDibTransferApis({ stateFor, getDc, dibPalette, success, failure }),
   ...createStretchDibApis({ stateFor, getDc, dibPalette, success, failure }),
   ...createAlphaBlendApis({ stateFor, getDc, readablePixels, success, failure }),
