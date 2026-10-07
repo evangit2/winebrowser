@@ -359,6 +359,17 @@
       "sourceZip": "gdi-stretch/source.zip",
       "sourceZipSha256": "242b23c1fd5b2f33657902bf04f1898a2a2b6843be3e220e3dc541ffbed56987",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-transfer",
+      "description": "Native scanline bitmap transfer GUI: compare partial scanline buffers, scan offsets, source crops, complex clips, excess row counts and four bitmap formats. Close to finish.",
+      "exe": "gdi-transfer/gdi-transfer.exe",
+      "exeSha256": "ed10ff2288da3d6d38c0d97661dd4c28772d5f86e0853d75ce9637f6ee6b407a",
+      "zip": "gdi-transfer/gdi-transfer.zip",
+      "zipSha256": "5dc32360169de3062a32c10c0f9913208b55fe9154c088fb2cf695c608652cf5",
+      "sourceZip": "gdi-transfer/source.zip",
+      "sourceZipSha256": "511696bce14dee1f129871f5e4b25e822b4b1fb4dda9d423b95ce65072023f20",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

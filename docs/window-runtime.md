@@ -722,11 +722,28 @@ Eight raster operations (SRCCOPY, SRCPAINT, SRCAND, SRCINVERT, NOTSRCCOPY, BLACK
 WHITENESS, DSTINVERT) act on raw alpha as well as RGB. Inputs are snapshotted for
 aliasing, guest memory is checked before painting, and loops are bounded by the
 visible destination and the supported 4096x4096 source limit. Compressed DIBs
-and other raster operations remain unsupported. `SetDIBitsToDevice` remains
-unimplemented. Raster capability flags have not been broadened.
+and other raster operations remain unsupported. Raster capability flags have
+not been broadened.
 
 The original MIT **gdi-stretch** SDK GUI compares four drawing channels with
 Zoom/Mirror/Clip/Crop/Ink/Save/Clear/Shrink controls. Browser acceptance checks
 125,440 drawing-area pixels in nine stages for EXE upload, ZIP upload and the
 public catalog, using 505 independent desktop Wine RGB/raw-byte snapshots.
 Authored native demo acceptance does not establish arbitrary DLL execution.
+
+`SetDIBitsToDevice` now implements uncompressed indexed/RGB/bitfield scanline
+transfers with copied input rows, bottom-up/top-down layouts, source crops and
+complex destination clips. It reads the supplied partial buffer rather than
+requiring the entire described bitmap. Native scanline counts, start offsets,
+excess top-down row counts, empty transfers and raw 32-bit alpha bytes are
+covered by 83 independently captured desktop Wine snapshots. Aliased input and
+a one-row buffer next to a guard page are checked. Loops visit the clipped
+destination and validated source rows. Compressed DIBs remain unsupported, and
+raster capability flags have not been broadened.
+
+The original MIT **gdi-transfer** SDK GUI compares four bitmap formats through
+Full/Partial/Start/Crop/Clip/Extra/Clear/Pixel controls. The unchanged native PE
+client checks return counts and raw alpha, then cleans up its bitmap and DC.
+Browser acceptance compares 125,440 drawing-area pixels in nine stages across
+EXE upload, ZIP upload and the public catalog. This is additional GUI API
+coverage; arbitrary Windows DLL execution remains unfinished.

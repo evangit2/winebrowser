@@ -427,3 +427,10 @@ formats, complex clips, eight raster operations, per-DC saved modes, aliased
 source buffers and visible-work limits are checked. This closes StretchDIBits
 in the native comctl32 import graph (26 unresolved remain), but actual native
 common-controls DLL execution and universal Windows compatibility are unproven.
+
+The original MIT **gdi-transfer** Windows SDK GUI exercises SetDIBitsToDevice
+through partial scanline buffers, row offsets, crops, copied region clips and
+excess top-down scanline counts. Four channels compare bottom-up/top-down 32-bit
+DIBs, padded 24-bit RGB and 16-bit 565 bitfields. Units compare 83 native desktop
+Wine RGB/raw-alpha snapshots plus guard-page and aliasing checks. This adds
+bitmap-transfer coverage; universal EXE/DLL execution remains unproven.
