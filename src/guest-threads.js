@@ -1,3 +1,4 @@
+import { releaseThreadErrorInfo } from './win32-error-info.js';
 import { PROCESS_LAYOUT, initializeThreadLayout } from './process-layout.js';
 import { SYNC, syncObjects } from './sync-objects.js';
 
@@ -347,6 +348,7 @@ export class GuestThreads {
         thread.detaching = true;
         try {
           await this.withLoaderLock(async () => {
+            await releaseThreadErrorInfo(r, thread);
             if (r.wineLoader) {
               if (!thread.nativeDetached) await r.callGuest(r.wineLoader.threadDetachAddress);
             } else {

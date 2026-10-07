@@ -143,6 +143,7 @@ export class VirtualMemory {
       const releasedSize = reservation.end - reservation.base;
       this.reservations.delete(base);
       this.syncRegions();
+      this.onChanged?.(base, releasedSize);
       return this.#logged('free', base, releasedSize, 'type=0x8000', ok(base, releasedSize));
     }
 
@@ -168,6 +169,7 @@ export class VirtualMemory {
       });
     for (let page = start; page < end; page += PAGE_SIZE) reservation.pages.set(page, null);
     this.syncRegions();
+    this.onChanged?.(start, end - start);
     return this.#logged('decommit', start, end - start, 'type=0x4000', ok(start, end - start));
   }
 
@@ -225,6 +227,7 @@ export class VirtualMemory {
     }
     this.reservations.set(start, reservation);
     this.syncRegions();
+    this.onChanged?.(start, end - start);
     return ok(start, end - start);
   }
 
@@ -246,6 +249,7 @@ export class VirtualMemory {
       reservation.pages.set(page, protect);
     }
     this.syncRegions();
+    this.onChanged?.(start, end - start);
     return this.#logged('commit', start, end - start, `protect=${protect}`, ok(start, end - start));
   }
 
@@ -265,6 +269,7 @@ export class VirtualMemory {
     const oldProtect = reservation.pages.get(start);
     for (let page = start; page < end; page += PAGE_SIZE) reservation.pages.set(page, protection);
     this.syncRegions();
+    this.onChanged?.(start, end - start);
     return { ...ok(start, end - start), oldProtect };
   }
 

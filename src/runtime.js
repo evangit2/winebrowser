@@ -1,3 +1,4 @@
+import { releaseThreadErrorInfo } from './win32-error-info.js';
 import { GuestHeap } from './heap.js';
 import { currentProcessDirectory } from './process-directory.js';
 import { PROCESS_LAYOUT, initializeProcessLayout } from './process-layout.js';
@@ -148,6 +149,12 @@ export class Runtime {
       performanceCounter: () => this.performanceClock.read(),
     });
     this.refreshCodeRanges();
+    this.virtualMemory.onChanged = (start, size) => {
+      const overlaps = ([lo, hi]) => start < hi && start + size > lo;
+      const wasExecutable = this.cpu.ranges.some(overlaps);
+      this.refreshCodeRanges();
+      if (wasExecutable || this.cpu.ranges.some(overlaps)) this.cpu.invalidateRange(start, size);
+    };
     this.thunks = this.graph.thunks;
     this.heap = new GuestHeap(this.memory, undefined, undefined, (count) => {
       // Keep the fixed low heap ABI, then acquire committed arenas through the
@@ -906,6 +913,7 @@ export class Runtime {
     this.exitCode = null;
     try {
       await this.threads.stopOthers();
+      await releaseThreadErrorInfo(this, thread);
       // One owner for host ExitProcess and the native LdrShutdownProcess bridge.
       // Recursive shutdown from DllMain returns to the current detach pass.
       for (const module of this.graph.initializationOrder().reverse()) {
