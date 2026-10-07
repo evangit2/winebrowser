@@ -310,6 +310,8 @@ clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.e
 
 **Native owned cursor GUI:** choose **Load owned-cursors** to try bitmap-created alpha and monochrome mouse images, copying, scaling, visibility and offset hotspots. **Retire** destroys the selected grown cursor; **Reset** recreates it. Native mask/XOR inversion is drawn in the browser. Its unchanged MIT Windows EXE compiles into Wasm during execution (`npm run test:owned-cursors`), and its complete source build is included.
 
+**Native classic control GUI:** choose **Load frame-controls** to try push buttons, checkboxes, three-state controls, four scroll arrows and menu marks. Switch native states, clip holes, or mark adjusted rectangles. The unchanged MIT Windows SDK EXE compiles into Wasm in the browser (`npm run test:frame-controls`). The separate Wine-derived geometry adapter retains its LGPL source and notices.
+
 **Native bitmap color GUI:** choose **Load gdi-pixel-colors** to compare seven bitmap formats side by side. Try RGB and palette colors, direct bitmap indices, out-of-range indices and clipping. Its unchanged MIT Windows EXE checks 217 captured native results and raw bytes, then compiles into Wasm inside the browser (`npm run test:gdi-pixel-colors`). Its complete reproducible source build is included.
 
 **Native bitmap scaling GUI:** choose **Load gdi-stretch** to compare four scaling modes, mirrored images, source crops, region clips and raster operations. **Shrink** shows AND/OR and nearest/smooth sampling differences. This original MIT Windows EXE compiles inside the browser (`npm run test:gdi-stretch`).

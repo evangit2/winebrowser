@@ -19,6 +19,7 @@ import { createDibTransferApis } from './gdi-transfer.js';
 import { createStretchDibApis } from './gdi-stretch.js';
 import { createAlphaBlendApis } from './gdi-alpha.js';
 import { createBitmapIconApis } from './gdi-icon.js';
+import { createFrameControlApis } from './gdi-frame-controls.js';
 import { createRegionApis } from './gdi-region.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
 import { currentDisplayMode, VIRTUAL_DISPLAY_MODES } from './win32-display.js';
@@ -2994,6 +2995,14 @@ export const gdiApis = {
   ...createDibTransferApis({ stateFor, getDc, dibPalette, success, failure }),
   ...createStretchDibApis({ stateFor, getDc, dibPalette, success, failure }),
   ...createAlphaBlendApis({ stateFor, getDc, readablePixels, success, failure }),
+  ...createFrameControlApis({
+    stateFor,
+    getDc,
+    colors: SYSTEM_COLORS,
+    success,
+    failure,
+    strokePolygon,
+  }),
   ...createBitmapIconApis({
     stateFor,
     snapshotBitmap: snapshotIconBitmap,

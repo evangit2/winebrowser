@@ -8,3 +8,7 @@ public/demos/d3d12-triangle/SHADERS-LICENSE whitespace=-blank-at-eol
 tests/fixtures/shaders/COPYING.LIB whitespace=-blank-at-eol
 public/runtime/softfloat/** whitespace=-blank-at-eol,-blank-at-eof
 tests/fixtures/shaders/legacy/WINE-COPYING.LIB whitespace=-blank-at-eol
+# Keep the complete upstream control reference and license byte-identical.
+third_party/wine/user32-uitools.c whitespace=-blank-at-eol
+public/runtime/frame-controls/wine-uitools.c whitespace=-blank-at-eol
+public/runtime/frame-controls/COPYING.LIB whitespace=-blank-at-eol

@@ -1,5 +1,19 @@
 # Third-party notices
 
+## Classic control geometry
+
+`src/gdi-frame-controls.js` adapts rectangular borders, push/check/three-state
+controls, scroll arrows and menu arrow/check geometry from Wine's
+`dlls/user32/uitools.c` at revision
+`db11d0fe6a169c457e23d007e20404643d067aa8`. Copyright 1997 Dimitrie O. Paun and
+Bertho A. Stultiens; browser raster adaptation copyright 2026 WineBrowser
+contributors. This module is LGPL-2.1-or-later; the repository MIT license does
+not replace its terms. The complete upstream reference is retained at
+`third_party/wine/user32-uitools.c`, and the license at
+`third_party/wine/COPYING.LIB`. Editable adapter source, upstream reference,
+license and modification instructions ship at `public/runtime/frame-controls/`.
+The separate original SDK GUI and native capture probes are MIT.
+
 WineBrowser's original code is MIT licensed; see LICENSE. It is an independent project, not affiliated with WineHQ.
 
 | Component   | Version / source                                                                        | Use                                                                                                                              | License                                                                          |

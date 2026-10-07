@@ -392,6 +392,17 @@
       "sourceZip": "owned-cursors/source.zip",
       "sourceZipSha256": "2f7624c46017ab23d6df63bfb0831bec12c1b2a851d958949cd6801d28445682",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "frame-controls",
+      "description": "Native classic control GUI: push buttons, checkboxes, three-state controls, scroll arrows and menu marks. Try states, clipping and adjusted rectangles; close to finish.",
+      "exe": "frame-controls/frame-controls.exe",
+      "exeSha256": "35862ed2a6e9a8159ae39193d7d8f91b4aae1050e4f31cf0f0eecae61bae9bf1",
+      "zip": "frame-controls/frame-controls.zip",
+      "zipSha256": "1020f6d0df544e63b4c1f1c1b8101d7a02f3d86dd21ed6f8b89743c957a912ba",
+      "sourceZip": "frame-controls/source.zip",
+      "sourceZipSha256": "275ff0a89a13f4900dbea2643a4e943c874e2f3866750b4796c9d048f15c4f73",
+      "provenance": "Original MIT Windows SDK client; complete deterministic source build included. Separate Wine-derived browser geometry adapter retains LGPL source and notices."
     }
   ]
 }

@@ -618,6 +618,23 @@ bounds, double drawing, state independence and brush phases. This resolves two
 native common-control drawing imports; native comctl32 execution and broader
 Windows compatibility still require additional APIs.
 
+`DrawFrameControl` paints classic push buttons, checkboxes, three-state buttons,
+four scroll arrows and menu arrow/check marks into window and memory DCs. The
+Wine-derived geometry adapter retains LGPL source and notices. Native state
+flags, integer border widths, caller-dependent checked dithering, complex
+clips and rectangle adjustment match 311 independent SDK captures (318,464
+pixels). Internal negative extents retain native coverage for tiny controls;
+raster loops remain bounded by the visible surface. Guest DIB memory receives
+the painted colors at the API boundary. Unsupported caption/radio controls,
+menu bullets and size grips fail before drawing.
+
+The original MIT **frame-controls** SDK GUI checks ten stages in EXE, ZIP and
+catalog modes, comparing all 156,160 drawing-area pixels per stage against
+independently captured classic-palette Wine snapshots. **Holes** applies a
+complex clip; **Adjust** marks the returned rectangles in blue. This adds a
+common-control drawing API; actual native comctl32 execution and broader Windows
+compatibility remain unfinished.
+
 Bitmap-backed icons now retain separate native AND-mask and XOR-color planes.
 `CreateIconIndirect` copies monochrome masks and 24/32-bit color bitmaps, or
 both stacked planes of a monochrome icon; the original HBITMAPs can be deleted.

@@ -322,6 +322,8 @@
     "build:gdi-nearest": "sh scripts/build-gdi-nearest-fixture.sh",
     "build:owned-cursors": "sh scripts/build-owned-cursors-fixture.sh && python3 scripts/package-owned-cursors.py",
     "test:owned-cursors": "node scripts/test-owned-cursors-browser.mjs",
+    "build:frame-controls": "sh scripts/build-frame-controls-fixture.sh && python3 scripts/package-frame-controls.py",
+    "test:frame-controls": "node scripts/test-frame-controls-browser.mjs",
     "build:gdi-pixel-colors": "sh scripts/build-gdi-pixel-colors-fixture.sh && python3 scripts/package-gdi-pixel-colors.py",
     "test:gdi-pixel-colors": "node scripts/test-gdi-pixel-colors-browser.mjs",
     "test:gdi-nearest": "node scripts/test-gdi-nearest-browser.mjs",

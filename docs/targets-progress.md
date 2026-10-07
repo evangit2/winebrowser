@@ -482,3 +482,13 @@ are released. Arbitrary color-bit XOR presentation remains unsupported. This
 closes DestroyCursor in the native comctl32 import graph (24 unresolved remain);
 actual native common-controls DLL execution and universal compatibility remain
 unfinished.
+
+Classic DrawFrameControl geometry now paints push/check/three-state controls,
+four scroll arrows and menu arrow/check marks. A Wine-derived LGPL adapter
+retains complete editable source and upstream notices. Independent classic-
+palette SDK captures cover 311 API/DC-state/rectangle cases and 318,464 pixels,
+including tiny negative extents, clipping and caller-dependent checked dithering.
+The original MIT **frame-controls** GUI exercises ten stages in EXE/ZIP/catalog
+modes with native base DLLs and browser-local x86-to-Wasm compilation. Caption
+and radio controls, menu bullets, size grips, native common-controls DLL execution
+and universal Windows/DLL compatibility remain unfinished.
