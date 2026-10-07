@@ -1,4 +1,5 @@
 // Original WineBrowser contributors, MIT. Native standalone scrollbar messages.
+import { writeScrollbarInfo } from './win32-scrollbar-info.js';
 import { readScrollInfo, changeScrollInfo } from './win32-scroll-state.js';
 import { scrollbarGeometry, nativeMulDiv } from './scrollbar-geometry.js';
 export function controlScrollState(window) {
@@ -98,6 +99,7 @@ export async function scrollbarMessage(r, window, message, wp, lp) {
     }
     return 0;
   }
+  if (message === 0xeb) return writeScrollbarInfo(r, window, lp, 2, state);
   if (message === 0xe9) {
     const info = readScrollInfo(r, lp);
     if (!info || info.invalid) return 0;
@@ -173,7 +175,8 @@ export async function scrollbarMessage(r, window, message, wp, lp) {
     return command === undefined ? null : 0;
   }
   if (message === 0x201 || message === 0x203) {
-    if (!r.windows.isEnabled(window.id)) return 0;
+    // Explicit SendMessage still reaches disabled controls; browser input is
+    // filtered by WindowManager.input before dispatch.
     const p = point(window, lp),
       g = geometry(window, state);
     if (!p.inside) return 0;

@@ -1,3 +1,4 @@
+import { scrollbarInfoApis } from './win32-scrollbar-info.js';
 import { describeScrollbar } from './win32-scrollbars.js';
 import { scrollStateApis } from './win32-scroll-state.js';
 import { dialogX, dialogY } from './dialog-units.js';
@@ -2080,6 +2081,7 @@ Object.assign(windowApis, {
   'user32.dll!SetKeyboardState': setKeyboardState,
   'user32.dll!GetKeyboardLayout': getKeyboardLayout,
   ...scrollStateApis,
+  ...scrollbarInfoApis,
   'user32.dll!GetWindowPlacement': getWindowPlacement,
   'user32.dll!SetWindowPlacement': setWindowPlacement,
   'user32.dll!FlashWindow': (r, a) => {

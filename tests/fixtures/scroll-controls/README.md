@@ -9,6 +9,12 @@ Use **Disable** and **Enable** to change the actual window state. The applicatio
 checks IsWindowEnabled and WS_DISABLED; disabled controls reject browser input.
 The DPI label reads GetDpiForWindow in the desktop's 96-DPI coordinate space.
 Native captures also check invalid and destroyed handles and LastError.
+The thumb-size label reads GetScrollBarInfo. The application checks its screen
+rectangle, availability flags, thumb bounds, cbSize, and untouched reserved field.
+Another 720 native query captures cover object IDs, malformed structure sizes,
+visible/hidden controls, and enabled/disabled transitions. An additional 36
+captures query geometry and pressed states during actual pointer callbacks.
+Client queries forward SBM_GETSCROLLBARINFO to the original window procedure.
 
 The unchanged PE32 EXE translates into Wasm inside the browser with native Wine
 base DLLs. The source archive includes its deterministic MinGW build.

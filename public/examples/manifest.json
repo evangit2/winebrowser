@@ -459,11 +459,11 @@
       "name": "scroll-controls",
       "description": "Native interactive scrollbars with top/bottom and left/right alignment: click arrows and track, drag thumbs, use keyboard navigation, and try large ranges or disabled arrows. Close to finish.",
       "exe": "scroll-controls/scroll-controls.exe",
-      "exeSha256": "f763193952cf460234ffea43437e6f35d5409d7476b2c2c6e43c1c024883fa52",
+      "exeSha256": "83db30acb63c3c904b2d51a8c7488ab3805d1342b72755bf70cca6187f896767",
       "zip": "scroll-controls/scroll-controls.zip",
-      "zipSha256": "ea07c8572ce952a4c1e7ad082c56e8034bd771025acc23540c4102b087619b1c",
+      "zipSha256": "0b143be3a297499a57374504be5b5c925094d8d736fcc7ce07087e932a03e15b",
       "sourceZip": "scroll-controls/source.zip",
-      "sourceZipSha256": "9154c886d1173c3c9c5b97f9de0f9455dacc4bb6156685146de130560a093e5d",
+      "sourceZipSha256": "16148f956f733d59e51aba4ed8b9859cd2db87ece5bf5168b58bd7c1abc8dc1f",
       "provenance": "Original MIT Windows SDK client; deterministic source build and native captures included. Shared LGPL frame painter retains editable source and notices."
     },
     {

@@ -151,6 +151,10 @@ try {
         'Vertical position: ' + position,
       );
       await expect(root.locator('[data-control-id="304"]')).toHaveText('Window DPI: 96');
+      await expect(root.locator('[data-control-id="306"]')).toHaveText(
+        'Horizontal thumb pixels: ' +
+          (stage === 1 ? 146 : stage === 4 || stage === 7 ? 0 : stage === 5 ? 17 : 38),
+      );
       observations.push({ stage, label: labels[stage], verifiedPixels: 28216 });
       for (const control of [horizontal, vertical])
         await expect(control).toHaveAttribute('aria-disabled', String(stage === 4 || stage === 7));
@@ -276,6 +280,7 @@ try {
       'EnableScrollBar',
       'EnableWindow',
       'GetDpiForWindow',
+      'GetScrollBarInfo',
       'GetWindowRect',
       'GetClientRect',
       'ScreenToClient',
@@ -307,7 +312,7 @@ try {
     headedBrowser: process.env.HEADED === '1',
     exeSha256: sha256,
     scope:
-      'Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Nine stages verify nine controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, native window enabling, 32-bit thumb tracking and compiled parent callbacks are exercised. Native top/bottom/left/right alignment is exercised. Nonclient bars, size-box/size-grip styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.',
+      'Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Nine stages verify nine controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, native window enabling, 32-bit thumb tracking and compiled parent callbacks are exercised. Native top/bottom/left/right alignment and GetScrollBarInfo geometry/state/reserved-field queries are exercised. Nonclient bars, size-box/size-grip styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.',
     oracleReference: oracle.reference,
     runs,
     errors,

@@ -3,13 +3,18 @@
 #include <windows.h>
 #define CHECK(x) do{if(!(x))ExitProcess(1000+__LINE__);}while(0)
 void *memset(void *target,int value,size_t count){BYTE *p=target;while(count--)*p++=(BYTE)value;return target;}
-static HWND root,bars[9],labels[5];static unsigned stage;
+static HWND root,bars[9],labels[6];static unsigned stage;
 static const WCHAR *titles[]={L"Native scrollbars - Normal",L"Native scrollbars - Large page",L"Native scrollbars - Left off",L"Native scrollbars - Right off",L"Native scrollbars - All off",L"Native scrollbars - Limits",L"Native scrollbars - Normal",L"Native scrollbars - Disabled window",L"Native scrollbars - Enabled window"};
 static WCHAR *copy(WCHAR *out,const WCHAR *in){while(*in)*out++=*in++;return out;}
 static WCHAR *number(WCHAR *out,LONG value){WCHAR digits[10];unsigned count=0;DWORD n=(DWORD)value;if(value<0){*out++=L'-';n=0-n;}do{digits[count++]=(WCHAR)(L'0'+n%10);n/=10;}while(n);while(count)*out++=digits[--count];return out;}
 static void label(HWND window,const WCHAR *prefix,LONG value){WCHAR buf[80],*end=copy(buf,prefix);end=number(end,value);*end=0;CHECK(SetWindowTextW(window,buf));}
-static SCROLLINFO info(HWND window){SCROLLINFO out={28,SIF_ALL,1,2,3,4,5};SetLastError(777);CHECK(GetScrollInfo(window,SB_CTL,&out)&&GetLastError()==777);CHECK(out.cbSize==28&&out.fMask==SIF_ALL);return out;}
-static void update(void){SCROLLINFO h=info(bars[0]),v=info(bars[3]);label(labels[0],L"Horizontal position: ",h.nPos);label(labels[1],L"Vertical position: ",v.nPos);SetLastError(777);UINT dpi=GetDpiForWindow(root);CHECK(dpi==96&&GetLastError()==777);label(labels[3],L"Window DPI: ",dpi);}
+static SCROLLINFO info(HWND window){SCROLLINFO out={28,SIF_ALL,1,2,3,4,5};SetLastError(777);CHECK(GetScrollInfo(window,SB_CTL,&out)&&GetLastError()==777);CHECK(out.cbSize==28&&out.fMask==SIF_ALL);
+ SCROLLBARINFO b={0};b.cbSize=60;b.reserved=12345;SetLastError(777);CHECK(GetScrollBarInfo(window,OBJID_CLIENT,&b)&&GetLastError()==0);
+ CHECK(b.cbSize==60&&b.reserved==12345&&b.dxyLineButton==b.xyThumbBottom-b.xyThumbTop);
+ RECT rect;CHECK(GetWindowRect(window,&rect));CHECK(b.rcScrollBar.left==rect.left&&b.rcScrollBar.top==rect.top&&b.rcScrollBar.right==rect.right&&b.rcScrollBar.bottom==rect.bottom);
+ BOOL unavailable=(LONGLONG)out.nMin>=(LONGLONG)out.nMax-(out.nPage?(LONGLONG)out.nPage-1:0)||!IsWindowEnabled(window);
+ CHECK(((b.rgstate[0]&STATE_SYSTEM_UNAVAILABLE)!=0)==unavailable);return out;}
+static void update(void){SCROLLINFO h=info(bars[0]),v=info(bars[3]);label(labels[0],L"Horizontal position: ",h.nPos);label(labels[1],L"Vertical position: ",v.nPos);SetLastError(777);UINT dpi=GetDpiForWindow(root);CHECK(dpi==96&&GetLastError()==777);label(labels[3],L"Window DPI: ",dpi);SCROLLBARINFO b={0};b.cbSize=60;CHECK(GetScrollBarInfo(bars[0],OBJID_CLIENT,&b));label(labels[5],L"Horizontal thumb pixels: ",b.dxyLineButton);}
 static void reset(unsigned next){stage=next;SCROLLINFO in={28,SIF_ALL,10,40,8,20,0};if(stage==1)in.nPage=100;if(stage==5){in.nMin=-20;in.nMax=200000;in.nPage=64;in.nPos=80000;}
  for(int i=0;i<9;i++){
   SetLastError(777);
@@ -42,13 +47,13 @@ static LRESULT CALLBACK procedure(HWND window,UINT msg,WPARAM wp,LPARAM lp){
   if(command!=SB_ENDSCROLL){out.fMask=SIF_POS;out.nPos=pos;SetScrollInfo(control,SB_CTL,&out,TRUE);}
   update();label(labels[2],L"Last event: ",command);if(control!=bars[0]&&control!=bars[3])label(labels[4],L"Aligned position: ",info(control).nPos);return 0;
  }
- if(window==root&&msg==WM_PAINT){PAINTSTRUCT ps;HDC dc=BeginPaint(window,&ps);CHECK(dc);RECT rect={0,0,640,370};CHECK(FillRect(dc,&rect,(HBRUSH)GetStockObject(WHITE_BRUSH))&&EndPaint(window,&ps));return 0;}
+ if(window==root&&msg==WM_PAINT){PAINTSTRUCT ps;HDC dc=BeginPaint(window,&ps);CHECK(dc);RECT rect={0,0,640,410};CHECK(FillRect(dc,&rect,(HBRUSH)GetStockObject(WHITE_BRUSH))&&EndPaint(window,&ps));return 0;}
  if(window==root&&(msg==WM_CLOSE||(msg==WM_KEYDOWN&&wp==VK_ESCAPE))){PostQuitMessage(0);return 0;}
  return DefWindowProcW(window,msg,wp,lp);
 }
 void start(void){
  WNDCLASSW cls={0};cls.lpfnWndProc=procedure;cls.hInstance=GetModuleHandleW(NULL);cls.hCursor=LoadCursorW(NULL,IDC_ARROW);cls.lpszClassName=L"NativeScrollbarControls";CHECK(RegisterClassW(&cls));
- root=CreateWindowExW(0,cls.lpszClassName,L"Native scrollbars",WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_VISIBLE,40,60,642,400,NULL,NULL,cls.hInstance,NULL);CHECK(root);
+ root=CreateWindowExW(0,cls.lpszClassName,L"Native scrollbars",WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_VISIBLE,40,60,642,440,NULL,NULL,cls.hInstance,NULL);CHECK(root);
  SetLastError(777);CHECK(!GetDpiForWindow(NULL)&&GetLastError()==1400);
  SetLastError(777);CHECK(GetDpiForWindow(GetDesktopWindow())==96&&GetLastError()==777);
  const WCHAR *buttons[]={L"Normal",L"Large page",L"Left off",L"Right off",L"All off",L"Limits",L"Reset",L"Disable",L"Enable"};
@@ -66,6 +71,7 @@ void start(void){
  WCHAR className[32];CHECK(GetClassNameW(bars[0],className,32)==9&&!lstrcmpW(className,L"ScrollBar"));
  for(int i=0;i<4;i++){labels[i]=CreateWindowExW(0,L"STATIC",L"",WS_CHILD|WS_VISIBLE|SS_LEFT,20,216+i*40,470,30,root,(HMENU)(INT_PTR)(301+i),cls.hInstance,NULL);CHECK(labels[i]);}
  labels[4]=CreateWindowExW(0,L"STATIC",L"",WS_CHILD|WS_VISIBLE|SS_LEFT,20,188,470,24,root,(HMENU)305,cls.hInstance,NULL);CHECK(labels[4]);
+ labels[5]=CreateWindowExW(0,L"STATIC",L"",WS_CHILD|WS_VISIBLE|SS_LEFT,20,376,470,24,root,(HMENU)306,cls.hInstance,NULL);CHECK(labels[5]);
  reset(0);ShowWindow(root,SW_SHOW);CHECK(UpdateWindow(root));MSG msg;while(GetMessageW(&msg,NULL,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}
  CHECK(DestroyWindow(root));const char output[]="NATIVE SCROLLBAR CONTROLS GUI PASS\n";DWORD wrote=0;CHECK(WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),output,sizeof(output)-1,&wrote,NULL)&&wrote==sizeof(output)-1);ExitProcess(0);
 }

@@ -1,0 +1,32 @@
+{
+  "scope": "SCROLLBARINFO queries and native scrollbar GUI input compatibility. Arbitrary Windows EXE/DLL support remains unproven.",
+  "nativeAcceptance": "NATIVE SCROLLBAR CONTROLS GUI PASS\nNative SDK client nine stages and four aligned mouse/keyboard controls, exit 0",
+  "exeSha256": "83db30acb63c3c904b2d51a8c7488ab3805d1342b72755bf70cca6187f896767",
+  "independentSourceRebuildByteIdentical": true,
+  "nativeStateCaptures": 720,
+  "nativePointerCallbackCaptures": 36,
+  "unitTests": {
+    "passed": 1326,
+    "skippedOptionalHardwareReference": 1,
+    "failed": 0
+  },
+  "browserReports": [
+    "scrollbar-info-chromium-results.json",
+    "scrollbar-info-chrome-results.json"
+  ],
+  "regressionReport": "7zip-scrollbar-info-regression-results.json",
+  "sourceZipSha256": "16148f956f733d59e51aba4ed8b9859cd2db87ece5bf5168b58bd7c1abc8dc1f",
+  "behavior": [
+    "GetScrollBarInfo forwards OBJID_CLIENT to the real SBM_GETSCROLLBARINFO procedure",
+    "Native structures preserve cbSize and reserved bytes and expose geometry, enabled state and pressed parts",
+    "Queries use committed position while GetScrollInfo separately exposes thumb track position",
+    "Explicit SendMessage reaches disabled scrollbars; browser hardware input is rejected before dispatch"
+  ],
+  "limits": [
+    "Nonclient scrollbar interaction",
+    "Sizebox/sizegrip styles",
+    "Mouse auto-repeat",
+    "Complete native common-control DLL implementation",
+    "Universal Windows application and DLL compatibility"
+  ]
+}
