@@ -669,3 +669,38 @@ of the drawing area against native Wine snapshots. The source archive includes
 the deterministic build and both desktop Wine oracles. This adds another GUI
 library path; universal compatibility and native comctl32 execution remain
 unproven.
+
+### Native polygon and line drawing
+
+`SetPolyFillMode`/`GetPolyFillMode` store the DC's alternate or winding rule,
+including nested SaveDC/RestoreDC snapshots. Polygon fills now use native
+integral-row, ceil(x), half-open directed-edge coverage. `PolyPolygon` combines
+all contour coverage before outlining, so nested and opposite directions
+produce their actual native holes. Polygon counts below two fail without
+changing LastError; two-point outlines retain both endpoints.
+
+`PolyPolyline` draws each independent group without connecting adjacent groups
+or changing the current position. Group validation finishes before painting,
+so an invalid later count cannot leave an earlier group drawn. Empty group
+arrays succeed without painting. Point arrays share a 1,024-point budget.
+
+Thin solid line pixels use native directional tie-breaking and retain the
+original endpoint phase when clipped, with work bounded by the visible major
+axis. A 112-case actual Wine SDK oracle checks both fill rules, randomized
+self-intersections, nested/opposite contours, outlined/degenerate shapes,
+complex clips and forward/reverse lines in all eight directions.
+
+`CreatePenIndirect` copies actual LOGPEN metadata into an owned pen object.
+Solid widths zero/one and negative one normalize as on native Wine; null pens
+normalize to width one/color zero. The unused width-y becomes zero and source
+descriptor mutation cannot change the pen. PALETTEINDEX flags resolve at draw
+time against the current logical palette (including first-entry fallback), while
+GetObject retains the raw color flags. Eighteen native color snapshots compare
+default and selected logical palettes across LineTo, Polygon and PolyPolyline.
+Wider/dashed styles and direct DIBINDEX colors fail explicitly.
+
+The original MIT **gdi-paths** native GUI exercises these APIs in seven stages
+through EXE/ZIP/catalog modes. Its drawing area checks all 86,400 pixels/stage
+against Wine. The complete source archive includes the deterministic native
+build and geometry/metadata oracles. Ellipse/arc geometry, nondefault DC mapping
+and native common-controls execution remain separate compatibility work.

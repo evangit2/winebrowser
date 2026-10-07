@@ -306,6 +306,8 @@ clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.e
 
 **Native shape GUI:** choose **Load gdi-shapes** to switch between alternate/winding polygons, holes, rounded rectangles, ellipses and a copied clip. An unchanged Windows EXE draws via GDI; the browser checks 96,000 pixels per stage against desktop Wine 11 geometry (`npm run test:gdi-shapes`). Its complete MIT source build is included.
 
+**Native polygon and line GUI:** choose **Load gdi-paths** to compare alternate/winding stars, nested contours, independent line groups, complex clipping and saved fill modes. Its original MIT Windows EXE compiles inside the browser and matches actual Wine pixels (`npm run test:gdi-paths`).
+
 **Native alpha GUI:** choose **Load gdi-alpha** to compare constant and per-pixel opacity, low-alpha rounding, complex clipping and zero/full opacity. Both msimg32 and GDI paths draw real pixels matching desktop Wine. The original MIT Windows EXE compiles inside the browser (`npm run test:gdi-alpha`).
 
 **Native bitmap icon GUI:** choose **Load icon-bitmap** to compare color/alpha/monochrome icons, independent copies and bitmap-plane roundtrips. Normal, Mask and Image channels match actual desktop Wine snapshots. The original MIT native EXE compiles inside the browser (`npm run test:icon-bitmap`).

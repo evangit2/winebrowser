@@ -154,84 +154,56 @@ export function paintRect(surface, left, top, right, bottom, brush, operation = 
   return changed;
 }
 
-function clipLine(x0, y0, x1, y1, width, height) {
-  // Keep work bounded even when guests provide extreme signed coordinates.
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  let low = 0,
-    high = 1;
-  for (const [p, q] of [
-    [-dx, x0],
-    [dx, width - 1 - x0],
-    [-dy, y0],
-    [dy, height - 1 - y0],
-  ]) {
-    if (p === 0) {
-      if (q < 0) return null;
-      continue;
-    }
-    const ratio = q / p;
-    if (p < 0) low = Math.max(low, ratio);
-    else high = Math.min(high, ratio);
-    if (low > high) return null;
-  }
-  return [
-    Math.round(x0 + low * dx),
-    Math.round(y0 + low * dy),
-    Math.round(x0 + high * dx),
-    Math.round(y0 + high * dy),
-  ];
-}
-
 /** Draw a one-pixel solid/null pen line and report whether pixels changed. */
 export function drawLine(surface, x0, y0, x1, y1, pen, dc = null) {
   if (pen.style === 5) return false;
-  const clipped = clipLine(x0, y0, x1, y1, surface.width, surface.height);
-  if (!clipped) return false;
-  let [x, y, endX, endY] = clipped;
-  const dx = Math.abs(endX - x),
-    sx = x < endX ? 1 : -1;
-  const dy = -Math.abs(endY - y),
-    sy = y < endY ? 1 : -1;
-  let error = dx + dy;
+  const horizontal = Math.abs(x1 - x0),
+    vertical = Math.abs(y1 - y0),
+    xMajor = horizontal > vertical;
+  const major = xMajor ? horizontal : vertical,
+    minor = xMajor ? vertical : horizontal;
+  if (!major) return false;
+  const sx = x1 >= x0 ? 1 : -1,
+    sy = y1 >= y0 ? 1 : -1;
+  const origin = xMajor ? x0 : y0,
+    direction = xMajor ? sx : sy;
+  const limit = xMajor ? surface.width : surface.height;
+  const first = Math.max(0, direction > 0 ? -origin : origin - limit + 1);
+  const last = Math.min(major, direction > 0 ? limit - origin : origin + 1);
+  // Native tie-breaking is directional. Sampling from the original endpoints
+  // retains that phase when the visible portion starts after offscreen pixels.
+  const bias = xMajor ? +(y1 <= y0) : +(x1 < x0);
   const rgb = surfaceRgb(surface, colorRefRgb(pen.color));
-  let changed = false;
-  const excludeEnd = endX === x1 && endY === y1;
-  for (let steps = 0; steps <= Math.max(surface.width, surface.height); steps++) {
-    if (excludeEnd && x === endX && y === endY) break;
-    if (visiblePixel(surface, dc, x, y)) {
-      const offset = (y * surface.width + x) * 4;
-      if (
-        surface.pixels[offset] !== rgb[0] ||
-        surface.pixels[offset + 1] !== rgb[1] ||
-        surface.pixels[offset + 2] !== rgb[2] ||
-        surface.pixels[offset + 3] !== 255
-      )
-        changed = true;
-      surface.pixels[offset] = rgb[0];
-      surface.pixels[offset + 1] = rgb[1];
-      surface.pixels[offset + 2] = rgb[2];
-      surface.pixels[offset + 3] = 255;
-    }
-    if (x === endX && y === endY) break;
-    const twiceError = 2 * error;
-    if (twiceError >= dy) {
-      error += dy;
-      x += sx;
-    }
-    if (twiceError <= dx) {
-      error += dx;
-      y += sy;
-    }
+  let changed = false,
+    left = surface.width,
+    top = surface.height,
+    right = 0,
+    bottom = 0;
+  for (let step = first; step < last; step++) {
+    const numerator = 2 * minor * step + major - 1 + bias;
+    const offset = Number.isSafeInteger(numerator)
+      ? Math.floor(numerator / (2 * major))
+      : Number(
+          (2n * BigInt(minor) * BigInt(step) + BigInt(major - 1 + bias)) / (2n * BigInt(major)),
+        );
+    const x = x0 + sx * (xMajor ? step : offset),
+      y = y0 + sy * (xMajor ? offset : step);
+    if (!visiblePixel(surface, dc, x, y)) continue;
+    const at = (y * surface.width + x) * 4;
+    if (
+      surface.pixels[at] !== rgb[0] ||
+      surface.pixels[at + 1] !== rgb[1] ||
+      surface.pixels[at + 2] !== rgb[2] ||
+      surface.pixels[at + 3] !== 255
+    )
+      changed = true;
+    surface.pixels.set([...rgb, 255], at);
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x + 1);
+    bottom = Math.max(bottom, y + 1);
   }
-  if (changed)
-    markGdiDirty(
-      surface,
-      Math.min(clipped[0], clipped[2]),
-      Math.min(clipped[1], clipped[3]),
-      Math.max(clipped[0], clipped[2]) + 1,
-      Math.max(clipped[1], clipped[3]) + 1,
-    );
+  if (changed) markGdiDirty(surface, left, top, right, bottom);
   return changed;
 }
 

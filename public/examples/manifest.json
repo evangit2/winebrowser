@@ -337,6 +337,17 @@
       "sourceZip": "gdi-alpha/source.zip",
       "sourceZipSha256": "276623489ead0c5cc6ddd4f7c9995b6ad2f8d99e626db4282528aafde74d37c5",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-paths",
+      "description": "Native polygon and line GUI: color, alpha and mono masks; copies after source deletion, owned bitmap-plane roundtrip, clipping and three native drawing channels. Close to finish.",
+      "exe": "gdi-paths/gdi-paths.exe",
+      "exeSha256": "baedefbe61233b1cf089664caed31f806e232310b18f838fe8e1c8e75295230c",
+      "zip": "gdi-paths/gdi-paths.zip",
+      "zipSha256": "afd46eb51f2e873de74dcef4ccae6da431fbe224ebd392e6de24d115410fc671",
+      "sourceZip": "gdi-paths/source.zip",
+      "sourceZipSha256": "9b9a69d09b298a8776976394a9a25c87b0b298928c4ad7eb6278feb1ceac39b3",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

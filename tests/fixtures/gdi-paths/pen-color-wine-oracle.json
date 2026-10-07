@@ -1,0 +1,131 @@
+{
+  "reference": "Wine11 desktop x86 macOS; owned LOGPEN color flags, truecolor DIB readback with default and selected logical palette",
+  "cases": [
+    {
+      "custom": 0,
+      "color": 3351057,
+      "metadata": 3351057,
+      "pixel": 3351057,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 4281541137,
+      "metadata": 4281541137,
+      "pixel": 0,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 16777216,
+      "metadata": 16777216,
+      "pixel": 0,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 16777217,
+      "metadata": 16777217,
+      "pixel": 128,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 16777218,
+      "metadata": 16777218,
+      "pixel": 32768,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 16842751,
+      "metadata": 16842751,
+      "pixel": 0,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 36905489,
+      "metadata": 36905489,
+      "pixel": 3351057,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 53682705,
+      "metadata": 53682705,
+      "pixel": 0,
+      "error": 777
+    },
+    {
+      "custom": 0,
+      "color": 2150834705,
+      "metadata": 2150834705,
+      "pixel": 3351057,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 3351057,
+      "metadata": 3351057,
+      "pixel": 3351057,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 4281541137,
+      "metadata": 4281541137,
+      "pixel": 1905417,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 16777216,
+      "metadata": 16777216,
+      "pixel": 1905417,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 16777217,
+      "metadata": 16777217,
+      "pixel": 1971210,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 16777218,
+      "metadata": 16777218,
+      "pixel": 7892580,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 16842751,
+      "metadata": 16842751,
+      "pixel": 1905417,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 36905489,
+      "metadata": 36905489,
+      "pixel": 3351057,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 53682705,
+      "metadata": 53682705,
+      "pixel": 1905417,
+      "error": 777
+    },
+    {
+      "custom": 1,
+      "color": 2150834705,
+      "metadata": 2150834705,
+      "pixel": 3351057,
+      "error": 777
+    }
+  ]
+}

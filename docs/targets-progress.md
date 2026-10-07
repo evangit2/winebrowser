@@ -407,3 +407,13 @@ translation. Unit checks compare 17 native Wine snapshots including destination
 alpha bytes, plus a separate native 24-bit source oracle, bottom-up DIBs and
 copied DDB alpha ownership. This does not establish general DLL compatibility
 or unchanged native common-controls execution.
+
+The original MIT **gdi-paths** SDK GUI now compares alternate/winding Polygon,
+nested/opposite PolyPolygon contours, independent PolyPolyline groups, copied
+complex clips, saved DC fill modes and owned CreatePenIndirect metadata. Native
+line tie-breaking and clipped endpoint phase now match actual Wine. Chromium
+checks native EXE/ZIP/catalog loading with seven stages (86,400 pixels/stage),
+and units compare 112 independently captured native RGB snapshots. Empty and
+malformed group counts, current-position preservation and normalized LOGPEN
+ownership are checked. This closes three more comctl32 imports; static linking
+alone does not prove native common-controls or universal DLL execution.

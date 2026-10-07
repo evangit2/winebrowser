@@ -13,6 +13,7 @@ import {
 } from './gdi-dib.js';
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
+import { createPathApis, fillNativePolygons } from './gdi-paths.js';
 import { createAlphaBlendApis } from './gdi-alpha.js';
 import { createBitmapIconApis } from './gdi-icon.js';
 import { createRegionApis } from './gdi-region.js';
@@ -2174,7 +2175,13 @@ function deleteObject(runtime, argument) {
 // the interior and the pen outlines it, exactly as GDI documents.
 function shapePen(runtime, state, dc) {
   const pen = getPen(state, dc.pen);
-  return pen ?? null;
+  if (!pen || !(pen.color & 0x01000000)) return pen ?? null;
+  // LOGPEN retains the caller's color flags; paint resolves PALETTEINDEX against
+  // the DC's current logical palette, falling back to its first native entry.
+  const entries = state.palettes.get(dc.palette ?? STOCK_DEFAULT_PALETTE)?.entries;
+  const entry = entries?.[pen.color & 0xffff] ?? entries?.[0];
+  const color = entry ? entry.red | (entry.green << 8) | (entry.blue << 16) : 0;
+  return { ...pen, color };
 }
 function shapeBrush(runtime, state, dc) {
   const brush = getBrush(state, dc.brush);
@@ -2231,7 +2238,7 @@ function strokePolygon(dc, points, pen, close) {
       drawLine(dc.surface, points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], pen, dc)
     )
       changed = true;
-  if (close && points.length > 2)
+  if (close && points.length >= 2)
     if (
       drawLine(dc.surface, points.at(-1)[0], points.at(-1)[1], points[0][0], points[0][1], pen, dc)
     )
@@ -2544,7 +2551,7 @@ function lineTo(runtime, argument) {
   const y1 = signed(argument(2));
   const { x: originalX, y: originalY } = dc.currentPoint;
   dc.currentPoint = { x: x1, y: y1 };
-  const pen = getPen(state, dc.pen);
+  const pen = shapePen(runtime, state, dc);
   if (!pen) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
   drawLine(dc.surface, originalX, originalY, x1, y1, pen, dc);
   return success(1, 3);
@@ -2895,10 +2902,11 @@ function polygon(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 3);
+  if (argument(2) >>> 0 < 2) return success(0, 3);
   const points = readPoints(runtime, argument(1), argument(2) >>> 0);
   if (!points) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
-  if (points.length >= 3) {
-    fillPolygon(dc, points, shapeBrush(runtime, state, dc));
+  if (points.length >= 2) {
+    fillNativePolygons(dc, [points], shapeBrush(runtime, state, dc));
     strokePolygon(dc, [...points, points[0]], shapePen(runtime, state, dc), false);
   }
   return success(1, 3);
@@ -2935,6 +2943,17 @@ function arc(runtime, argument) {
 }
 
 export const gdiApis = {
+  ...createPathApis({
+    stateFor,
+    getDc,
+    success,
+    failure,
+    allocateHandle,
+    shapePen,
+    shapeBrush,
+    strokePolygon,
+    readPoints,
+  }),
   ...createAlphaBlendApis({ stateFor, getDc, readablePixels, success, failure }),
   ...createBitmapIconApis({
     stateFor,
