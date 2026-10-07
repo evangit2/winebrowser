@@ -12,13 +12,14 @@ browser group to succeed.
 | controls        | 28: GUI controls, pointer capture, menus, lists and windows             |
 | gdi-shapes      | 9: region, shape, bitmap, cursor, scrollbar and frame rendering         |
 | gdi-pixels      | 9: brush, alpha, path, transfer and bitmap examples                     |
-| dialogs         | 23: dialogs, native fonts, Metapad, toolbar and property sheets         |
+| dialogs         | 24: dialogs, native fonts, Metapad, toolbar and property sheets         |
 | legacy-graphics | 15: DirectDraw, D3D8/9, OpenGL, Humus demos and 7-Zip                   |
 | directx12       | 13: DX12 demos, buffers, textures and render targets                    |
 | vulkan          | 6: Vulkan, skinning, exceptions and executable memory                   |
 
-`runtime/test-suites/static-host.json` lists all 122 distinct original
-invocations with their required environment options. The original serialized
+`runtime/test-suites/static-host.json` lists 123 distinct invocations with their
+required environment options: 122 retained checks plus clipboard acceptance.
+The original serialized
 workflow block is retained verbatim with its hash and commit. The runner checks
 that every original test remains present; the two duplicate packed-SSE/LAME
 invocations are each run once. The legacy group also fetches its pinned 7-Zip

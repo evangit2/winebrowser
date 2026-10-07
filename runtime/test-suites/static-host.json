@@ -2,7 +2,7 @@
   "sourceWorkflowCommit": "3fd9eff5a225d03c7907dcfbbb4d60242d5dbd98",
   "sourceWorkflowSha256": "816a81e9a4f7d28f89848f18f37cadb1c5a23daf4457fb5b098f094c3129102e",
   "originalInvocations": 124,
-  "distinctInvocations": 122,
+  "distinctInvocations": 123,
   "removedExactDuplicates": [
     {
       "script": "test:packed-sse"
@@ -293,6 +293,9 @@
       },
       {
         "script": "test:gui-controls"
+      },
+      {
+        "script": "test:clipboard"
       }
     ],
     "legacy-graphics": [

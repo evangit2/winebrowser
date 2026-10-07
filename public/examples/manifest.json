@@ -485,6 +485,19 @@
       "sourceZip": "lame/source.zip",
       "sourceZipSha256": "3b2f0bfbca512749066b2ceb91708580e6ec9b149204038edaf3793dc9a5f507",
       "provenance": "LGPL-2.0-or-later LAME 3.100, built from unchanged hash-pinned upstream source as a Windows i386 SSE2/UCRT encoder. Complete original source, license and rebuild recipe included."
+    },
+    {
+      "name": "clipboard-editor",
+      "description": "Native ANSI and Unicode text editors with Copy, Paste, Cut and Undo. Select text and use the buttons or Ctrl+C / Ctrl+V / Ctrl+X.",
+      "entry": "clipboard.exe",
+      "args": [],
+      "exe": "clipboard-editor/clipboard.exe",
+      "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
+      "zip": "clipboard-editor/clipboard-editor.zip",
+      "zipSha256": "2800ebe8fe335779cc64734f4130bbbcf34c86412d24129fb2e1b954ce9847d7",
+      "sourceZip": "clipboard-editor/source.zip",
+      "sourceZipSha256": "de5bea0d86a5af70b0c7d434cd9069c1e2ef68c557e45b21acc54dfffb5d550b",
+      "provenance": "Original MIT Windows SDK client; complete deterministic source build and independent native clipboard reference included."
     }
   ]
 }
