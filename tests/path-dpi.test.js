@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileSpecEnd, pathApis } from '../src/win32-paths.js';
 import { dpiApis } from '../src/win32-dpi.js';
+import { readFile } from 'node:fs/promises';
+import { DESKTOP_WINDOW } from '../src/win32-gdi.js';
+const dpiCases = JSON.parse(
+  await readFile('tests/fixtures/scroll-controls/dpi-wine-oracle.json'),
+).cases;
 
 test('PathRemoveFileSpec preserves DOS roots and edits only the terminator', () => {
   for (const [path, expected] of [
@@ -61,4 +66,36 @@ test('DPI awareness contexts save and restore independently for each guest threa
   r.threads.current = first;
   assert.equal(get(), 0xfffffffc);
   assert.equal(set(0xffffffff).result, 0xfffffffc);
+});
+test('window DPI and LastError agree with eight native validity captures', () => {
+  const handles = {
+    null: 0,
+    invalid: 0x1234,
+    'all-ones': 0xffffffff,
+    parent: 0x1001,
+    child: 0x1002,
+    desktop: DESKTOP_WINDOW,
+    shell: 0x1003,
+    destroyed: 0x1002,
+  };
+  const r = {
+    windows: {
+      windows: new Map([
+        [handles.parent, {}],
+        [handles.child, {}],
+        [handles.shell, {}],
+      ]),
+    },
+  };
+  r.windows.fail = (error, argc) => {
+    r.lastError = error;
+    return { result: 0, argc };
+  };
+  for (const c of dpiCases) {
+    if (c.kind === 'destroyed') r.windows.windows.delete(handles.child);
+    r.lastError = 777;
+    const result = dpiApis['user32.dll!GetDpiForWindow'](r, () => handles[c.kind]);
+    assert.deepEqual(result, { result: c.result, argc: 1 }, c.kind);
+    assert.equal(r.lastError, c.error, c.kind);
+  }
 });

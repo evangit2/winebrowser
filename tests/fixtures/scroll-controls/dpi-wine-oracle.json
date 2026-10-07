@@ -1,0 +1,45 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native GetDpiForWindow with valid, desktop, null, invalid and destroyed windows; LastError preset777",
+  "cases": [
+    {
+      "kind": "null",
+      "result": 0,
+      "error": 1400
+    },
+    {
+      "kind": "invalid",
+      "result": 0,
+      "error": 1400
+    },
+    {
+      "kind": "all-ones",
+      "result": 0,
+      "error": 1400
+    },
+    {
+      "kind": "parent",
+      "result": 96,
+      "error": 777
+    },
+    {
+      "kind": "child",
+      "result": 96,
+      "error": 777
+    },
+    {
+      "kind": "desktop",
+      "result": 96,
+      "error": 777
+    },
+    {
+      "kind": "shell",
+      "result": 96,
+      "error": 777
+    },
+    {
+      "kind": "destroyed",
+      "result": 0,
+      "error": 1400
+    }
+  ]
+}
