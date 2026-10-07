@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-07T16:03:38.900Z",
+  "environment": "Node v22.23.1 darwin/arm64",
+  "baselineRef": "7521dcc",
+  "samples": 7,
+  "vectorsPerSample": 50000,
+  "scope": "Alternating packed binary32/binary64 add/subtract/multiply/divide/sqrt/min/max/comparison service microbenchmark. Includes raw-word lane preparation and allocations; excludes x86 compilation, browser startup and graphics. Samples alternate order after warming both versions; the same pinned SoftFloat module computes both.",
+  "baselineMedianMs": 238.07729199999994,
+  "optimizedMedianMs": 136.35433399999965,
+  "speedup": 1.7460192501105285,
+  "runs": [
+    {
+      "round": 0,
+      "mode": "baseline",
+      "elapsedMs": 199.933,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 0,
+      "mode": "reused-scratch",
+      "elapsedMs": 145.048,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 1,
+      "mode": "reused-scratch",
+      "elapsedMs": 142.118833,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 1,
+      "mode": "baseline",
+      "elapsedMs": 238.07729199999994,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 2,
+      "mode": "baseline",
+      "elapsedMs": 247.74974999999995,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 2,
+      "mode": "reused-scratch",
+      "elapsedMs": 130.94916599999988,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 3,
+      "mode": "reused-scratch",
+      "elapsedMs": 129.642333,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 3,
+      "mode": "baseline",
+      "elapsedMs": 233.87633299999993,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 4,
+      "mode": "baseline",
+      "elapsedMs": 239.5099590000002,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 4,
+      "mode": "reused-scratch",
+      "elapsedMs": 140.19458399999985,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 5,
+      "mode": "reused-scratch",
+      "elapsedMs": 136.35433399999965,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 5,
+      "mode": "baseline",
+      "elapsedMs": 215.8214170000001,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 6,
+      "mode": "baseline",
+      "elapsedMs": 241.893959,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    },
+    {
+      "round": 6,
+      "mode": "reused-scratch",
+      "elapsedMs": 131.57616700000017,
+      "checksum": 52758407,
+      "mxcsr": 8096
+    }
+  ]
+}

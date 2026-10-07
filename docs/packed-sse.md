@@ -27,3 +27,27 @@ executed x86 instructions. CI also regenerates the reference on native Linux
 x86_64. This expands useful SSE/SSE2 coverage; it does not advertise a complete
 SSE/MMX family through CPUID. AVX, approximate reciprocal instructions, additional
 SIMD instructions and delivery of guest #XM exceptions remain incomplete.
+
+## Scratch allocation cost
+
+The floating-point service reuses its two input word buffers and its memory
+view. Packed lanes pass offsets into the original operands rather than
+allocating temporary array views. Returned values remain independent arrays;
+MIN/MAX must not expose mutable scratch storage. The cached memory view is
+refreshed after actual SoftFloat Wasm memory growth.
+
+The retained [paired benchmark](../evidence/simd-scratch-benchmark.json) compares
+seven alternating samples of 50,000 mixed packed operations against commit
+`7521dcc`, using the same SoftFloat instance. Median service time fell from
+238.1 ms to 136.4 ms (42.7% less time, 1.75× throughput) on Node 22/macOS ARM64.
+This measures arithmetic service and allocation cost; it excludes x86
+compilation, application startup and rendering, and does not establish an
+end-to-end application speedup.
+
+```sh
+npm run benchmark:simd -- --baseline-ref=7521dcc
+```
+
+The separate native matrix still requires exact result and MXCSR bytes.
+Regression tests also require returned values to survive later operations and
+exercise a real Wasm heap growth before the next arithmetic instruction.

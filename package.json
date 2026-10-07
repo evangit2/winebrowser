@@ -360,7 +360,8 @@
     "build:lame": "python3 scripts/build-lame.py",
     "package:lame": "node scripts/package-lame.mjs",
     "test:lame": "node scripts/test-lame-browser.mjs",
-    "test:lame-native": "node scripts/check-lame-native.mjs"
+    "test:lame-native": "node scripts/check-lame-native.mjs",
+    "benchmark:simd": "node scripts/benchmark-simd-float.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
