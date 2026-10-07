@@ -348,6 +348,17 @@
       "sourceZip": "gdi-paths/source.zip",
       "sourceZipSha256": "9b9a69d09b298a8776976394a9a25c87b0b298928c4ad7eb6278feb1ceac39b3",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-stretch",
+      "description": "Native bitmap scaling GUI: compare smooth/nearest sampling, AND/OR shrinking, mirrors, source crops, complex clips, raster operations and saved modes. Close to finish.",
+      "exe": "gdi-stretch/gdi-stretch.exe",
+      "exeSha256": "a7980bae693f3b9183127e13033f729b429a26bc7c6e4e4eb7d3621769d1c1cc",
+      "zip": "gdi-stretch/gdi-stretch.zip",
+      "zipSha256": "a41dc8e6f4318ea24c798cca5c1fd9e2cd55c4592e68a2495eb4c4857d852bfa",
+      "sourceZip": "gdi-stretch/source.zip",
+      "sourceZipSha256": "242b23c1fd5b2f33657902bf04f1898a2a2b6843be3e220e3dc541ffbed56987",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

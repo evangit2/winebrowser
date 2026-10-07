@@ -14,6 +14,7 @@ import {
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
 import { createPathApis, fillNativePolygons } from './gdi-paths.js';
+import { createStretchDibApis } from './gdi-stretch.js';
 import { createAlphaBlendApis } from './gdi-alpha.js';
 import { createBitmapIconApis } from './gdi-icon.js';
 import { createRegionApis } from './gdi-region.js';
@@ -324,6 +325,7 @@ function getDC(runtime, argument, controlColorCallback = false) {
     textColor: 0,
     backgroundColor: 0xffffff,
     bkMode: 2,
+    stretchMode: 1,
     currentPoint: { x: 0, y: 0 },
   });
   return allocated;
@@ -501,6 +503,7 @@ function createCompatibleDC(runtime, argument) {
     textColor: 0,
     backgroundColor: 0xffffff,
     bkMode: 2,
+    stretchMode: 1,
     currentPoint: { x: 0, y: 0 },
     bitmap: bitmapHandle,
     defaultBitmap: bitmapHandle,
@@ -2954,6 +2957,7 @@ export const gdiApis = {
     strokePolygon,
     readPoints,
   }),
+  ...createStretchDibApis({ stateFor, getDc, dibPalette, success, failure }),
   ...createAlphaBlendApis({ stateFor, getDc, readablePixels, success, failure }),
   ...createBitmapIconApis({
     stateFor,

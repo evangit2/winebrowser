@@ -417,3 +417,13 @@ and units compare 112 independently captured native RGB snapshots. Empty and
 malformed group counts, current-position preservation and normalized LOGPEN
 ownership are checked. This closes three more comctl32 imports; static linking
 alone does not prove native common-controls or universal DLL execution.
+
+The original MIT **gdi-stretch** SDK GUI compares four native bitmap scaling
+modes through Zoom/Mirror/Clip/Crop/Ink/Save/Clear/Shrink controls. Unchanged
+EXE/ZIP/catalog execution compiles x86 basic blocks into Wasm inside the browser.
+Units compare 505 independently reproduced desktop Wine RGB/raw-alpha snapshots,
+plus native DC settings and empty-transfer return values. Signed extents, source
+formats, complex clips, eight raster operations, per-DC saved modes, aliased
+source buffers and visible-work limits are checked. This closes StretchDIBits
+in the native comctl32 import graph (26 unresolved remain), but actual native
+common-controls DLL execution and universal Windows compatibility are unproven.

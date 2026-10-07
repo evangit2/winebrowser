@@ -704,3 +704,29 @@ through EXE/ZIP/catalog modes. Its drawing area checks all 86,400 pixels/stage
 against Wine. The complete source archive includes the deterministic native
 build and geometry/metadata oracles. Ellipse/arc geometry, nondefault DC mapping
 and native common-controls execution remain separate compatibility work.
+
+`StretchDIBits` now decodes uncompressed 1/4/8-bit indexed, 16-bit 555/565, padded
+24-bit and 32-bit RGB input and supported RGB bitfields, including swapped masks.
+Native 5/6-bit channel expansion uses bit replication. RGB and selected logical
+palette color tables are supported. Signed source/destination extents, cropped
+and partially off-image source rectangles, copied complex region clips and
+BLACKONWHITE, WHITEONBLACK, COLORONCOLOR and HALFTONE modes have native Wine pixel
+snapshots. Smooth scaling rounds each horizontal interpolation before the
+vertical blend and resizes the visible source to the clipped destination bounds.
+It clears resized alpha; same-size copies preserve alpha.
+
+`SetStretchBltMode` and `GetStretchBltMode` keep per-DC settings included in
+SaveDC/RestoreDC. The new scaling modes currently apply to `StretchDIBits`; the
+older `StretchBlt` path retains its limited nearest sampling implementation.
+Eight raster operations (SRCCOPY, SRCPAINT, SRCAND, SRCINVERT, NOTSRCCOPY, BLACKNESS,
+WHITENESS, DSTINVERT) act on raw alpha as well as RGB. Inputs are snapshotted for
+aliasing, guest memory is checked before painting, and loops are bounded by the
+visible destination and the supported 4096x4096 source limit. Compressed DIBs
+and other raster operations remain unsupported. `SetDIBitsToDevice` remains
+unimplemented. Raster capability flags have not been broadened.
+
+The original MIT **gdi-stretch** SDK GUI compares four drawing channels with
+Zoom/Mirror/Clip/Crop/Ink/Save/Clear/Shrink controls. Browser acceptance checks
+125,440 drawing-area pixels in nine stages for EXE upload, ZIP upload and the
+public catalog, using 505 independent desktop Wine RGB/raw-byte snapshots.
+Authored native demo acceptance does not establish arbitrary DLL execution.

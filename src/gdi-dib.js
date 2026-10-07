@@ -135,7 +135,11 @@ export function readDibPixel(r, layout, row, x) {
   return masks.map((mask) => {
     const low = (mask & -mask) >>> 0,
       maximum = (mask >>> 0) / low;
-    return Math.round(((((value & mask) >>> 0) / low) * 255) / maximum);
+    const channel = ((value & mask) >>> 0) / low;
+    // Native 5/6-bit channels expand by bit replication, not normalized rounding.
+    if (maximum === 31) return (channel << 3) | (channel >> 2);
+    if (maximum === 63) return (channel << 2) | (channel >> 4);
+    return Math.round((channel * 255) / maximum);
   });
 }
 

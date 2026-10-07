@@ -1,0 +1,76 @@
+{
+  "reference": "Wine 11 desktop x86 macOS; native DC stretch settings and empty transfers",
+  "cases": [
+    {
+      "type": "mode",
+      "value": 0,
+      "result": 0,
+      "error": 87,
+      "mode": 1
+    },
+    {
+      "type": "mode",
+      "value": 5,
+      "result": 0,
+      "error": 87,
+      "mode": 1
+    },
+    {
+      "type": "mode",
+      "value": -1,
+      "result": 0,
+      "error": 87,
+      "mode": 1
+    },
+    {
+      "type": "mode",
+      "value": 2,
+      "result": 1,
+      "error": 777,
+      "mode": 2
+    },
+    {
+      "type": "mode",
+      "value": 4,
+      "result": 2,
+      "error": 777,
+      "mode": 4
+    },
+    {
+      "type": "empty",
+      "args": [0, 0, 16, 16, 40, 40, 3, 3],
+      "result": 0,
+      "error": 777
+    },
+    {
+      "type": "empty",
+      "args": [0, 0, 16, 16, -40, -40, 3, 3],
+      "result": 0,
+      "error": 777
+    },
+    {
+      "type": "empty",
+      "args": [0, 0, 0, 16, 0, 0, 3, 3],
+      "result": 3,
+      "error": 777
+    },
+    {
+      "type": "empty",
+      "args": [0, 0, 16, 0, 0, 0, 3, 3],
+      "result": 3,
+      "error": 777
+    },
+    {
+      "type": "empty",
+      "args": [0, 0, 16, 16, 0, 0, 0, 3],
+      "result": 0,
+      "error": 777
+    },
+    {
+      "type": "empty",
+      "args": [0, 0, 16, 16, 0, 0, 3, 0],
+      "result": 0,
+      "error": 777
+    }
+  ]
+}
