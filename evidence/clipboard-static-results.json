@@ -1,17 +1,17 @@
 {
-  "date": "2026-10-07T21:13:18.316Z",
+  "date": "2026-10-07T21:15:02.675Z",
   "url": "http://127.0.0.1:4201/winebrowser/",
   "browser": "153.0.8010.12",
   "status": "passed",
   "runs": [
     {
       "profile": "exe-upload",
-      "exeSha256": "99ef92473fb60a684adb8157e16a02db4403c0275dbea934562998c2f2e53f4c",
+      "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
       "exitCode": 0,
       "instructions": 182986,
       "compiledBlocks": 2338,
-      "elapsedMs": 5818.485000014305,
-      "x86TranslationMs": 604.9899995923042,
+      "elapsedMs": 2435.524999976158,
+      "x86TranslationMs": 817.7450010180473,
       "modules": [
         {
           "name": "clipboard.exe",
@@ -467,12 +467,12 @@
     },
     {
       "profile": "zip-upload",
-      "exeSha256": "99ef92473fb60a684adb8157e16a02db4403c0275dbea934562998c2f2e53f4c",
+      "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
       "exitCode": 0,
       "instructions": 183283,
       "compiledBlocks": 2338,
-      "elapsedMs": 4707.310000002384,
-      "x86TranslationMs": 770.5049992203712,
+      "elapsedMs": 1357.335000038147,
+      "x86TranslationMs": 578.3999981284142,
       "modules": [
         {
           "name": "renamed.exe",
@@ -928,12 +928,12 @@
     },
     {
       "profile": "hosted-example",
-      "exeSha256": "99ef92473fb60a684adb8157e16a02db4403c0275dbea934562998c2f2e53f4c",
+      "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
       "exitCode": 0,
       "instructions": 184617,
       "compiledBlocks": 2338,
-      "elapsedMs": 1552.6650000214577,
-      "x86TranslationMs": 554.2700011134148,
+      "elapsedMs": 1929.0999999642372,
+      "x86TranslationMs": 749.8550000190735,
       "modules": [
         {
           "name": "clipboard.exe",
@@ -1393,8 +1393,8 @@
       "exitCode": 0,
       "instructions": 537587,
       "compiledBlocks": 4784,
-      "elapsedMs": 4166.444999992847,
-      "x86TranslationMs": 1721.2999994754791,
+      "elapsedMs": 3910.110000014305,
+      "x86TranslationMs": 1616.6299998760223,
       "modules": [
         {
           "name": "metapad.exe",
@@ -3367,8 +3367,8 @@
       "exitCode": 0,
       "instructions": 563556,
       "compiledBlocks": 4791,
-      "elapsedMs": 8185.989999949932,
-      "x86TranslationMs": 2216.2650012373924,
+      "elapsedMs": 4022.014999985695,
+      "x86TranslationMs": 1524.9150004386902,
       "modules": [
         {
           "name": "original.exe",
