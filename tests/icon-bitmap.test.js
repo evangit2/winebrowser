@@ -150,7 +150,9 @@ test('bitmap icon failures and copies preserve native input data and independent
   exposed.native.mask.fill(0);
   exposed.pixels.fill(0);
   assert.equal(iconForHandle(r, copy).native.mask[0], 255);
-  assert.equal(call('user32.dll!CopyImage', copy, 1, 4, 4, 0x4), copy);
+  const same = call('user32.dll!CopyImage', copy, 1, 4, 4, 0x4);
+  assert.ok(same && same !== copy, 'native icon RETURNORG still creates an independent handle');
+  assert.equal(call('user32.dll!DestroyIcon', same), 1);
   for (const [name, args, error, argc] of [
     ['user32.dll!CopyIcon', [0xdead], 1402, 1],
     ['user32.dll!GetIconInfo', [copy, 0], 87, 2],

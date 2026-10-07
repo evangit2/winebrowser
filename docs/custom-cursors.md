@@ -8,8 +8,9 @@ The loader validates resource tables, payload lengths, bitmap dimensions and
 hotspots, selects an image for the virtual 32×32 system cursor, and returns a shared
 handle. A/W calls and case-insensitive names reuse that handle within a module;
 a separate DLL has its own cache. Failed loads leave the selected cursor unchanged.
-Handles and decoded images are bounded to 256 per runtime. Owned cursors,
-DestroyCursor, CreateCursor, LoadImage and cursor-file APIs remain separate work.
+Shared resource cursors are bounded to 256 per runtime. Bitmap-created cursors
+share the owned icon registry, with a separate 256-image budget. CreateCursor,
+sized/file cursor LoadImage and cursor-file APIs remain separate work.
 
 Supported bitmap formats are uncompressed BITMAPINFOHEADER DIBs with 1-, 4-, 8-,
 24- or 32-bit pixels. Indexed palettes and DWORD-aligned bottom-up rows are decoded
@@ -22,16 +23,26 @@ that write a monochrome group-depth hint for color images.
 LoadCursor scales images and hotspots to the same 32-pixel dimensions reported by
 GetSystemMetrics(SM_CXCURSOR/SM_CYCURSOR). The current scaler is nearest neighbor;
 exact native downsampling behavior across all bitmap/mask combinations is not
-established. PNG/animated cursors, compressed/bitfield/older DIB headers and
-legacy destination-XOR/inverting pixels still fail explicitly. A fully transparent
+established. Monochrome and binary-channel destination inversion retain their
+native AND/XOR planes. PNG/animated cursors, compressed/bitfield/older DIB headers
+and arbitrary color-bit XOR presentation still fail explicitly. A fully transparent
 monochrome cursor is decoded normally and retains its native handle.
 
 SetCursor, GetCursor, ShowCursor counts, WM_SETCURSOR overrides and window-class
-selection share the existing cursor state. Selection sends bounded RGBA pixels and
-a hotspot to the desktop. The main thread builds and caches PNG-backed CSS cursors;
-these use the browser's cursor rendering, without a JavaScript mouse overlay.
+selection share the existing cursor state. Selection sends copied RGBA and native
+planes with a hotspot to the desktop. The main thread caches PNG-backed CSS cursors
+for ordinary images. Inverting images, images larger than 128 pixels and outside
+hotspots use positioned canvas layers; a difference-blended layer inverts binary
+RGB channels. Positions align to device pixels.
 Window frames keep their drag/resize styles. Hiding a cursor preserves its selected
-handle, and resetting the desktop clears generated cursor images and CSS.
+handle, and resetting the desktop clears generated cursor images and overlays.
+
+CreateIconIndirect with fIcon=FALSE copies its bitmap planes and preserves the
+supplied hotspot. CopyIcon and cursor CopyImage create independent images;
+GetIconInfo returns caller-owned bitmap handles and the actual cursor metadata.
+DestroyCursor and DestroyIcon preserve shared resources. Destroying a selected
+owned cursor retires its public handle while retaining the selected image until
+selection changes. Stock cursor/icon GetIconInfo remains unsupported.
 
 ## Verification
 
@@ -46,9 +57,12 @@ The browser also rejects malformed image messages and clears stale handles on
 reset. [Evidence](../evidence/custom-cursors-browser-results.json).
 
 Unit tests cover resource parsing/selection, masks/alpha, hotspot bounds, downscale
-hotspots, malformed resources, destination-XOR rejection and immutable cached
-pixels. The complete suite passes 525 tests; existing system cursor and desktop
-control browser regressions and the production build pass.
+hotspots, malformed resources, binary-channel inversion, arbitrary color XOR
+rejection and immutable cached pixels/planes. The original MIT **owned-cursors**
+GUI covers ten stages in EXE/ZIP/catalog modes, including copies, resizing,
+visibility, outside hotspots and active destruction. Native ownership, resource
+metadata and drawing captures accompany the client. See
+[owned cursor evidence](../evidence/owned-cursors-browser-results.json).
 
 The resource DLL test exposed a separate PE mapper error. An empty relocation
 table no longer prevents alternate-base mapping when IMAGE_FILE_RELOCS_STRIPPED
@@ -56,7 +70,7 @@ is clear. A stripped image still fails before any target memory is changed, even
 if it contains relocation records. That fix is committed as `3aeb4d3` and follows
 the pinned Wine loader and the [PE specification](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format).
 
-The original Hamsterball diagnostic now passes LoadCursorA and reaches texture
+The earlier Hamsterball diagnostic passed LoadCursorA and reached texture
 startup. The NT file adapter now accepts FILE_RANDOM_ACCESS (options 0x860),
 opens and maps `shadow.png`, then stops at an unsupported `IDirect3DTexture8.GetSurfaceLevel` after 9,420,850 guest
 instructions. No game frame has rendered yet.

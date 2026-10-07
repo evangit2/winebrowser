@@ -169,7 +169,7 @@ try {
     for (const bad of [
       { width: 33 },
       { height: 0 },
-      { hotX: 32 },
+      { hotX: 0x100000000 },
       { hotY: -1 },
       { hotX: 0.5 },
       { pixels: new Uint8Array(4) },
@@ -183,7 +183,7 @@ try {
       if (!failed || container.style.getPropertyValue('--guest-cursor') !== old)
         throw Error('Malformed cursor changed CSS');
     }
-    for (const handle of [0, 0x63000001, 0x63000400]) {
+    for (const handle of [0, 0x63000001, 0x100000000]) {
       let failed = false;
       try {
         desktop.setCursor(image, handle);
@@ -192,8 +192,20 @@ try {
       }
       if (!failed) throw Error('Invalid image handle accepted');
     }
+    // Native owned images may have hotspots outside the bitmap and handles
+    // issued after earlier images were released. They use a positioned overlay.
+    desktop.setCursor({ ...image, hotX: 39, hotY: 47 }, 0x62000400);
+    if (
+      container.style.getPropertyValue('--guest-cursor') !== 'none' ||
+      document.querySelectorAll('[data-native-cursor]').length !== 1
+    )
+      throw Error('Native offset cursor was rejected');
     desktop.reset();
-    if (container.style.getPropertyValue('--guest-cursor') || desktop.cursorImages.size)
+    if (
+      container.style.getPropertyValue('--guest-cursor') ||
+      desktop.cursorImages.size ||
+      document.querySelectorAll('[data-native-cursor]').length
+    )
       throw Error('Cursor cache survived reset');
     for (let i = 0; i < 4096; i += 4) {
       image.pixels[i] = 0;

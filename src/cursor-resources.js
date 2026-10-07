@@ -87,14 +87,19 @@ export function decodeCursorResource(bytes, expected = {}) {
   if (hotX >= image.width || hotY >= image.height) throw Error('Invalid cursor hotspot');
   // LoadCursor uses LR_DEFAULTSIZE. Scale both image and hotspot into the same
   // virtual 32-pixel system metric using bounded nearest-neighbor sampling.
-  const pixels = new Uint8Array(CURSOR_SIZE * CURSOR_SIZE * 4);
+  const pixels = new Uint8Array(CURSOR_SIZE * CURSOR_SIZE * 4),
+    color = new Uint8Array(pixels.length),
+    mask = new Uint8Array(CURSOR_SIZE * CURSOR_SIZE);
   for (let y = 0; y < CURSOR_SIZE; y++)
     for (let x = 0; x < CURSOR_SIZE; x++) {
       const i =
         (Math.floor((y * image.height) / CURSOR_SIZE) * image.width +
           Math.floor((x * image.width) / CURSOR_SIZE)) *
         4;
-      pixels.set(image.pixels.subarray(i, i + 4), (y * CURSOR_SIZE + x) * 4);
+      const out = y * CURSOR_SIZE + x;
+      pixels.set(image.pixels.subarray(i, i + 4), out * 4);
+      color.set(image.native.color.subarray(i, i + 4), out * 4);
+      mask[out] = image.native.mask[i / 4];
     }
   return {
     width: CURSOR_SIZE,
@@ -102,5 +107,6 @@ export function decodeCursorResource(bytes, expected = {}) {
     hotX: Math.floor((hotX * CURSOR_SIZE) / image.width),
     hotY: Math.floor((hotY * CURSOR_SIZE) / image.height),
     pixels,
+    native: { ...image.native, color, mask },
   };
 }

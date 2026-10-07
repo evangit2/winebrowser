@@ -1,6 +1,12 @@
 import { CURSOR_STYLES } from './cursors.js';
 import { readPEResource } from './pe-resources.js';
 import {
+  iconForHandle,
+  registerSharedCursor,
+  rememberCursorSelection,
+  destroyImageHandle,
+} from './win32-icons.js';
+import {
   parseGroupCursor,
   cursorCandidate,
   selectCursor,
@@ -17,8 +23,7 @@ function state(r) {
         handle: 32512,
         count: 0,
         css: 'default',
-        next: 0x63000000,
-        handles: new Map(),
+        image: null,
         cache: new WeakMap(),
       }),
     );
@@ -31,20 +36,45 @@ function publish(r, value) {
     value.css = css;
     if (typeof css === 'string') r.emit({ type: 'cursor', css });
     else {
-      const image = value.handles.get(css);
-      r.emit({ type: 'cursor', image: { ...image, pixels: image.pixels.slice() }, handle: css });
+      const image = value.image;
+      r.emit({
+        type: 'cursor',
+        image: {
+          ...image,
+          pixels: image.pixels.slice(),
+          ...(image.native
+            ? {
+                native: {
+                  ...image.native,
+                  mask: image.native.mask.slice(),
+                  color: image.native.color.slice(),
+                },
+              }
+            : {}),
+        },
+        handle: css,
+      });
     }
   }
 }
 export function setCursor(r, handle) {
   handle >>>= 0;
-  if (handle && !CURSOR_STYLES.has(handle) && !state(r).handles.has(handle)) {
+  const image = handle && !CURSOR_STYLES.has(handle) ? iconForHandle(r, handle) : null;
+  if (handle && !CURSOR_STYLES.has(handle) && !image) {
     r.lastError = 1402;
     return 0;
   }
   const value = state(r),
     previous = value.handle;
   value.handle = handle;
+  value.image = image
+    ? {
+        ...image,
+        hotX: image.hotX ?? Math.floor(image.width / 2),
+        hotY: image.hotY ?? Math.floor(image.height / 2),
+      }
+    : null;
+  rememberCursorSelection(r, handle);
   publish(r, value);
   return previous;
 }
@@ -86,12 +116,9 @@ function loadResource(r, a, wide) {
     );
     const selected = selectCursor(entries),
       image = decodeCursorResource(selected.resource, selected);
-    if (value.handles.size >= 256) throw Error('Cursor handle limit exceeded');
-    const handle = value.next;
-    value.next += 4;
+    const handle = registerSharedCursor(r, image);
     if (!cache) value.cache.set(module, (cache = new Map()));
     cache.set(key, handle);
-    value.handles.set(handle, image);
     return result(handle, 2);
   } catch (error) {
     if (/unsupported|limit exceeded/i.test(error.message)) throw error;
@@ -103,6 +130,7 @@ export const cursorApis = {
   'user32.dll!LoadCursorW': (r, a) => load(r, a, true),
   'user32.dll!SetCursor': (r, a) => result(setCursor(r, a(0)), 1),
   'user32.dll!GetCursor': (r) => result(state(r).handle, 0),
+  'user32.dll!DestroyCursor': (r, a) => result(destroyImageHandle(r, a(0)), 1),
   'user32.dll!ShowCursor': (r, a) => {
     const value = state(r);
     value.count = (value.count + (a(0) ? 1 : -1)) | 0;

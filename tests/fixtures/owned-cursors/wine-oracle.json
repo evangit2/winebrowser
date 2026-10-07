@@ -1,5 +1,5 @@
 {
-  "reference": "Wine 11 desktop x86 macOS; actual bitmap-created cursor/icon ownership, copy, shared handle lifetime and active destruction",
+  "reference": "Wine 11 desktop x86 macOS; native cursor ownership and actual DrawIconEx presentation",
   "cases": [
     {
       "name": "create-0-1-0-0",
@@ -37,6 +37,28 @@
     {
       "name": "create-1-19-31-0",
       "result": 1,
+      "error": 777,
+      "valid": 1,
+      "infoError": 888,
+      "icon": 1,
+      "hotX": 1,
+      "hotY": 1,
+      "color": 1
+    },
+    {
+      "name": "select-icon-as-cursor",
+      "result": 1,
+      "error": 777,
+      "valid": 1,
+      "infoError": 888,
+      "icon": 1,
+      "hotX": 1,
+      "hotY": 1,
+      "color": 1
+    },
+    {
+      "name": "same-icon-copy-return",
+      "result": 0,
       "error": 777,
       "valid": 1,
       "infoError": 888,
@@ -157,6 +179,17 @@
     },
     {
       "name": "destroy-null",
+      "result": 0,
+      "error": 777,
+      "valid": 0,
+      "infoError": 1402,
+      "icon": 0,
+      "hotX": 0,
+      "hotY": 0,
+      "color": 0
+    },
+    {
+      "name": "destroy-icon-null",
       "result": 0,
       "error": 777,
       "valid": 0,

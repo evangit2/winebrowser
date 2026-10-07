@@ -1,0 +1,5 @@
+/* Original WineBrowser contributors, MIT. Native resource cursor metadata. */
+#define UNICODE
+#include <windows.h>
+#include <stdio.h>
+int main(void){HMODULE module=LoadLibraryW(L"tests/fixtures/custom-cursors/cursors.dll");if(!module)return 1;const WCHAR *names[]={MAKEINTRESOURCEW(101),L"FOUR",L"EIGHT",L"TRUECOLOR",L"ALPHA",L"MULTI",L"BLANK",L"SMALL"};puts("[");for(int i=0;i<8;i++){HCURSOR cursor=LoadCursorW(module,names[i]);ICONINFO info={0};SetLastError(777);BOOL valid=GetIconInfo(cursor,&info);DWORD error=GetLastError();BITMAP mask={0},color={0};if(valid){GetObjectW(info.hbmMask,sizeof(mask),&mask);if(info.hbmColor)GetObjectW(info.hbmColor,sizeof(color),&color);}printf("%s{\"type\":%d,\"valid\":%u,\"error\":%lu,\"icon\":%u,\"hotX\":%lu,\"hotY\":%lu,\"maskWidth\":%ld,\"maskHeight\":%ld,\"colorDepth\":%u}",i?",\n":"",i,valid,error,info.fIcon,info.xHotspot,info.yHotspot,mask.bmWidth,mask.bmHeight,color.bmBitsPixel);if(valid){DeleteObject(info.hbmMask);if(info.hbmColor)DeleteObject(info.hbmColor);}}puts("\n]");FreeLibrary(module);return 0;}

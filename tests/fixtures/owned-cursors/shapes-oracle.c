@@ -1,0 +1,4 @@
+/* Original WineBrowser contributors, MIT. Native GUI cursor pixel reference. */
+#include "shapes.h"
+#include <stdio.h>
+int main(void){HDC dc=CreateCompatibleDC(NULL);BITMAPINFO bmi={0};bmi.bmiHeader.biSize=40;bmi.bmiHeader.biWidth=16;bmi.bmiHeader.biHeight=-16;bmi.bmiHeader.biPlanes=1;bmi.bmiHeader.biBitCount=32;DWORD *bits;HBITMAP bitmap=CreateDIBSection(dc,&bmi,0,(void **)&bits,NULL,0);HGDIOBJ old=SelectObject(dc,bitmap);puts("[");for(int mono=0;mono<2;mono++){HCURSOR cursor=make_cursor(mono,2,4);for(int i=0;i<256;i++)bits[i]=0x00406080;BOOL result=DrawIconEx(dc,0,0,cursor,16,16,0,NULL,DI_NORMAL);printf("%s{\"mono\":%d,\"result\":%u,\"pixels\":[",mono?",\n":"",mono,result);for(int y=0;y<16;y++)for(int x=0;x<16;x++)printf("%s%lu",x||y?",":"",GetPixel(dc,x,y));printf("]}");DestroyCursor(cursor);}puts("\n]");SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);return 0;}

@@ -1,4 +1,5 @@
 import { readPEResource } from './pe-resources.js';
+import { CURSOR_STYLES } from './cursors.js';
 
 const RT_ICON = 3;
 const RT_GROUP_ICON = 14;
@@ -12,7 +13,14 @@ const ok = (result = 0, argc = 0) => ({ result: result >>> 0, argc });
 function state(runtime) {
   let value = iconStates.get(runtime);
   if (!value) {
-    value = { next: 0x62000000, cache: new Map(), handles: new Map() };
+    value = {
+      next: 0x62000000,
+      nextCursor: 0x63000000,
+      sharedCursorCount: 0,
+      cursor: 32512,
+      cache: new Map(),
+      handles: new Map(),
+    };
     iconStates.set(runtime, value);
   }
   return value;
@@ -137,8 +145,12 @@ export function decodeIconDib(bytes, expected = {}) {
       // For 32-bit icons with alpha, Windows uses the alpha channel and ignores
       // the legacy monochrome mask. Alpha-less and indexed icons use the mask.
       if (bitCount !== 32 || !hasAlpha) {
-        if (expected.cursor && transparent && (pixels[out] || pixels[out + 1] || pixels[out + 2]))
-          throw Error('XOR cursor destination inversion is unsupported');
+        if (
+          expected.cursor &&
+          transparent &&
+          pixels.subarray(out, out + 3).some((channel) => channel !== 0 && channel !== 255)
+        )
+          throw Error('Arbitrary color XOR cursor presentation is unsupported');
         pixels[out + 3] = transparent ? 0 : 255;
       }
     }
@@ -150,7 +162,7 @@ export function decodeIconDib(bytes, expected = {}) {
       mask: maskPixels,
       color: xorPixels,
       alpha: bitCount === 32 && hasAlpha,
-      monochrome: false,
+      monochrome: bitCount === 1,
     },
   });
 }
@@ -190,11 +202,12 @@ function loadIcon(runtime, argument, wide) {
     if (!dib || (selected.bytes && selected.bytes !== dib.length))
       return fail(runtime, ERROR_RESOURCE_NAME_NOT_FOUND);
     const icon = decodeIconDib(dib, selected);
-    if (icons.handles.size >= MAX_ICONS) throw Error('Icon handle limit exceeded');
+    if (icons.handles.size - icons.sharedCursorCount >= MAX_ICONS)
+      throw Error('Icon handle limit exceeded');
     const handle = icons.next;
     icons.next += 4;
     icons.cache.set(key, handle);
-    icons.handles.set(handle, icon);
+    icons.handles.set(handle, { ...icon, shared: true });
     return ok(handle, 2);
   } catch (error) {
     if (/limit exceeded|unsupported/i.test(error.message)) throw error;
@@ -220,11 +233,12 @@ export function iconHandleForGroup(runtime, module, name) {
   const dib = readPEResource(module.bytes, RT_ICON, selected.id);
   if (!dib || (selected.bytes && selected.bytes !== dib.length)) return null;
   const icon = decodeIconDib(dib, selected);
-  if (icons.handles.size >= MAX_ICONS) throw Error('Icon handle limit exceeded');
+  if (icons.handles.size - icons.sharedCursorCount >= MAX_ICONS)
+    throw Error('Icon handle limit exceeded');
   const handle = icons.next;
   icons.next += 4;
   icons.cache.set(key, handle);
-  icons.handles.set(handle, icon);
+  icons.handles.set(handle, { ...icon, shared: true });
   return handle;
 }
 
@@ -263,11 +277,38 @@ export function createOwnedIcon(runtime, icon) {
   )
     throw Error('Invalid owned icon');
   const icons = state(runtime);
-  if (icons.handles.size >= MAX_ICONS) throw Error('Icon handle limit exceeded');
+  if (icons.handles.size - icons.sharedCursorCount >= MAX_ICONS)
+    throw Error('Icon handle limit exceeded');
   const handle = icons.next;
   icons.next += 4;
-  icons.handles.set(handle, Object.freeze(cloneIcon(icon)));
+  icons.handles.set(handle, Object.freeze({ ...cloneIcon(icon), shared: false }));
   return handle;
+}
+
+export function registerSharedCursor(runtime, image) {
+  const images = state(runtime);
+  if (images.sharedCursorCount >= 256) throw Error('Cursor handle limit exceeded');
+  const handle = images.nextCursor;
+  images.nextCursor += 4;
+  images.sharedCursorCount++;
+  images.handles.set(handle, Object.freeze({ ...cloneIcon(image), cursor: true, shared: true }));
+  return handle;
+}
+
+export function rememberCursorSelection(runtime, handle) {
+  state(runtime).cursor = handle >>> 0;
+}
+
+export function destroyImageHandle(runtime, handle) {
+  handle >>>= 0;
+  const images = state(runtime),
+    image = images.handles.get(handle);
+  if (image?.shared || CURSOR_STYLES.has(handle) || (handle >= 0x7f00 && handle <= 0x7fff))
+    return 1;
+  if (!images.handles.delete(handle)) return 0;
+  runtime.emit?.({ type: 'cursor-release', handle });
+  // The selected cursor keeps its visible image, but its public handle is retired.
+  return images.cursor === handle ? 0 : 1;
 }
 
 export const iconApis = {
@@ -286,17 +327,5 @@ export const iconApis = {
   },
   'user32.dll!LoadIconA': (runtime, argument) => loadIcon(runtime, argument, false),
   'user32.dll!LoadIconW': (runtime, argument) => loadIcon(runtime, argument, true),
-  // DestroyIcon releases a handle LoadIcon created. Shared cursors are not
-  // icons and are refused, exactly as Windows does.
-  'user32.dll!DestroyIcon': (runtime, argument) => {
-    const icons = state(runtime);
-    const handle = argument(0) >>> 0;
-    // A stock icon (IDI_APPLICATION and friends) is process-owned, not a
-    // resource handle, so destroying it is a documented no-op.
-    if (!icons.handles.delete(handle)) {
-      if (handle >= 0x7f00 && handle <= 0x7fff) return ok(1, 1);
-      return fail(runtime, 6, 1);
-    }
-    return ok(1, 1);
-  },
+  'user32.dll!DestroyIcon': (r, a) => ok(destroyImageHandle(r, a(0)), 1),
 };

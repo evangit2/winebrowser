@@ -121,6 +121,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-pattern
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-frames
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:icon-bitmap
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:owned-cursors
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-alpha
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-paths
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:gdi-stretch

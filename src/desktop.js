@@ -1,7 +1,8 @@
 import './desktop.css';
 import { paintRect } from './gdi-raster.js';
 import { stripCaptionMnemonics } from './caption-text.js';
-import { CURSOR_STYLES, CURSOR_SIZE } from './cursors.js';
+import { CURSOR_STYLES } from './cursors.js';
+import { cursorPresentation } from './desktop-cursor.js';
 import { compareWindowOrder, windowFrame } from './window-frame.js';
 import { createReportControl, applyReportControl } from './desktop-report.js';
 
@@ -26,6 +27,16 @@ export class VirtualDesktop {
     this.nextZIndex = 1;
     this.drag = null;
     this.cursorImages = new Map();
+    this.cursorOverlay = null;
+    this.cursorPoint = null;
+    container.ownerDocument.addEventListener('pointermove', (event) => {
+      this.cursorPoint = { x: event.clientX, y: event.clientY, target: event.target };
+      this.#positionCursorOverlay();
+    });
+    container.addEventListener('pointerleave', () => {
+      this.cursorPoint = null;
+      this.#positionCursorOverlay();
+    });
 
     container.ownerDocument.addEventListener('pointerdown', (event) => {
       if (
@@ -74,41 +85,98 @@ export class VirtualDesktop {
     if (typeof css === 'object' && css !== null) {
       const { width, height, hotX, hotY, pixels } = css;
       if (
-        width !== CURSOR_SIZE ||
-        height !== CURSOR_SIZE ||
+        !Number.isInteger(width) ||
+        !Number.isInteger(height) ||
+        width < 1 ||
+        height < 1 ||
+        width > 256 ||
+        height > 256 ||
         !Number.isInteger(hotX) ||
         !Number.isInteger(hotY) ||
         hotX < 0 ||
         hotY < 0 ||
-        hotX >= width ||
-        hotY >= height ||
+        hotX > 0xffffffff ||
+        hotY > 0xffffffff ||
         !(pixels instanceof Uint8Array) ||
         pixels.length !== width * height * 4 ||
         !Number.isInteger(handle) ||
-        handle < 0x63000000 ||
-        handle > 0x630003fc ||
+        handle < 1 ||
+        handle > 0xffffffff ||
         handle % 4
       )
         throw Error('Invalid desktop cursor image');
       if (!this.cursorImages.has(handle)) {
-        const canvas = this.container.ownerDocument.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext('2d'),
-          data = context.createImageData(width, height);
-        data.data.set(pixels);
-        context.putImageData(data, 0, 0);
-        this.cursorImages.set(
-          handle,
-          `url("${canvas.toDataURL('image/png')}") ${hotX} ${hotY}, default`,
-        );
+        const { normal, inverse, inversion } = cursorPresentation(css);
+        const make = (bytes) => {
+          const canvas = this.container.ownerDocument.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext('2d'),
+            data = context.createImageData(width, height);
+          data.data.set(bytes);
+          context.putImageData(data, 0, 0);
+          return canvas;
+        };
+        const canvas = make(normal);
+        if (inversion || width > 128 || height > 128 || hotX >= width || hotY >= height) {
+          const nodes = inversion ? [canvas, make(inverse)] : [canvas];
+          for (const [index, node] of nodes.entries()) {
+            node.dataset.nativeCursor = index ? 'inversion' : 'image';
+            Object.assign(node.style, {
+              position: 'fixed',
+              zIndex: '2147483647',
+              pointerEvents: 'none',
+              display: 'none',
+              ...(index ? { mixBlendMode: 'difference' } : {}),
+            });
+          }
+          this.cursorImages.set(handle, { css: 'none', nodes, hotX: hotX | 0, hotY: hotY | 0 });
+        } else
+          this.cursorImages.set(handle, {
+            css: `url("${canvas.toDataURL('image/png')}") ${hotX} ${hotY}, default`,
+          });
       }
-      this.container.style.setProperty('--guest-cursor', this.cursorImages.get(handle));
+      this.#removeCursorOverlay();
+      const presentation = this.cursorImages.get(handle);
+      this.container.style.setProperty('--guest-cursor', presentation.css);
+      if (presentation.nodes) {
+        this.cursorOverlay = presentation;
+        for (const node of presentation.nodes) this.container.ownerDocument.body.append(node);
+        this.#positionCursorOverlay();
+      }
       return;
     }
     if (css !== 'none' && ![...CURSOR_STYLES.values()].includes(css))
       throw Error('Unsupported desktop cursor');
+    this.#removeCursorOverlay();
     this.container.style.setProperty('--guest-cursor', css);
+  }
+
+  releaseCursor(handle) {
+    this.cursorImages.delete(handle);
+  }
+
+  #removeCursorOverlay() {
+    if (this.cursorOverlay) for (const node of this.cursorOverlay.nodes) node.remove();
+    this.cursorOverlay = null;
+  }
+
+  #positionCursorOverlay() {
+    const overlay = this.cursorOverlay,
+      point = this.cursorPoint;
+    if (!overlay) return;
+    const visible =
+      point &&
+      this.container.contains(point.target) &&
+      this.container.ownerDocument.defaultView.getComputedStyle(point.target).cursor === 'none';
+    for (const node of overlay.nodes) {
+      node.style.display = visible ? 'block' : 'none';
+      if (point) {
+        const scale = this.container.ownerDocument.defaultView.devicePixelRatio || 1;
+        node.style.left = Math.round((point.x - overlay.hotX) * scale) / scale + 'px';
+        node.style.top = Math.round((point.y - overlay.hotY) * scale) / scale + 'px';
+      }
+    }
   }
 
   #sendKey(event, type, windowId = this.activeWindowId, routeGameKeys = true) {
@@ -1924,6 +1992,8 @@ export class VirtualDesktop {
 
   reset() {
     this.#closeMenu(false);
+    this.#removeCursorOverlay();
+    this.cursorPoint = null;
     this.container.style.removeProperty('--guest-cursor');
     this.cursorImages.clear();
     this.windows.clear();

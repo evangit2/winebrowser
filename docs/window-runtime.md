@@ -639,7 +639,10 @@ mask planes, and copied handles cannot mutate the original through callbacks.
 The original MIT **icon-bitmap** GUI checks seven stages in EXE/ZIP/catalog
 modes, all 86,400 drawing-area pixels per stage, against 16 actual Wine SDK
 pixel snapshots. A separate native bitmap oracle verifies color interpolation,
-monochrome scaling and alpha retention. Custom bitmap-created cursors,
+monochrome scaling and alpha retention. Bitmap-created cursors now retain
+ownership, type and hotspots, with independent copies and native destruction
+behavior. The **owned-cursors** GUI checks visibility, outside hotspots and
+destination inversion in the browser. Arbitrary color-bit XOR presentation,
 flicker-brush/animated drawing and additional CopyImage conversion/resource
 flags remain unsupported. Indexed color source constructors and broader native
 common-controls execution remain unfinished.
@@ -776,3 +779,25 @@ The generic bitfield decoder also matches 93 independently reproduced desktop
 Wine pixel writes with 444, 332 and 10-bit channels. Narrow channels append one
 copy of their significant bits; wider channels expose their high eight bits.
 This corrects normalized rounding and overexpansion for unusual bitmap masks.
+
+Bitmap-created cursors now share real image ownership with icons. CreateIconIndirect
+preserves cursor hotspots, GetIconInfo returns independent bitmap planes, and
+CopyIcon/CopyImage retain type and metadata. Same-size icon/cursor RETURNORG
+requests create independent handles, matching native Wine. Shared resource images
+survive destruction; owned handles retire, including the selected cursor whose
+visible image remains until selection changes. DestroyCursor and DestroyIcon
+preserve native destruction results and LastError. Resource monochrome metadata
+uses a double-height mask without a color bitmap.
+
+The original MIT **owned-cursors** SDK GUI exercises creation, copy/scaling,
+visibility, outside hotspots, active destruction and recreation. Native captures
+cover 18 ownership observations, eight resource metadata cases and 768 drawing
+reference pixels. Units compare the covered owned cases and resource metadata;
+stock cursor/icon GetIconInfo queries remain unsupported. Browser acceptance
+compares ten drawing stages and actual pointer images, including a screenshot
+of destination inversion. Overlays support monochrome/channel inversion, large
+cursors and outside hotspots on the device pixel grid; destroyed cursor caches
+are released. Arbitrary color-bit XOR presentation remains unsupported. This
+closes DestroyCursor in the native comctl32 import graph (24 unresolved remain);
+actual native common-controls DLL execution and universal compatibility remain
+unfinished.

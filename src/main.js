@@ -124,6 +124,7 @@ function createWorker() {
     if (message.type === 'window-stack')
       desktop.stack(message.windowId, message.zOrder, message.topmost);
     if (message.type === 'cursor') desktop.setCursor(message.image ?? message.css, message.handle);
+    if (message.type === 'cursor-release') desktop.releaseCursor(message.handle);
     if (message.type === 'window') {
       $('desktop').hidden = false;
       desktop.update(message);

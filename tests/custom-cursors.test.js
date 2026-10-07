@@ -5,6 +5,7 @@ import iced from 'iced-x86';
 import { Runtime } from '../src/runtime.js';
 import { cursorApis } from '../src/win32-cursors.js';
 import { readPEResource } from '../src/pe-resources.js';
+import { cursorPresentation } from '../src/desktop-cursor.js';
 import {
   parseGroupCursor,
   cursorCandidate,
@@ -73,7 +74,7 @@ test('cursor group selection uses actual bitmap depth and scales images and hots
   assert.deepEqual(selectCursor([big]), big);
 });
 
-test('cursor resource validation rejects broken headers, ranges, hotspots and destination XOR', () => {
+test('cursor resource validation rejects broken headers, ranges, hotspots and arbitrary color XOR', () => {
   const e = entries(101)[0],
     b = e.resource.slice();
   assert.throws(() => parseGroupCursor(new Uint8Array(5)), /Invalid/);
@@ -86,10 +87,26 @@ test('cursor resource validation rejects broken headers, ranges, hotspots and de
   b[0] = 32;
   assert.throws(() => decodeCursorResource(b, e), /hotspot/);
   b[0] = 3;
-  // Top-left is transparent. A set XOR bit would invert the backdrop rather
-  // than produce a transparent RGBA pixel, which CSS image cursors cannot do.
+  // Top-left AND+XOR bits invert the backdrop through the desktop overlay.
   b[4 + 40 + 8 + 31 * 4] |= 0x80;
-  assert.throws(() => decodeCursorResource(b, e), /XOR.*unsupported/);
+  const mono = decodeCursorResource(b, e),
+    presentation = cursorPresentation(mono);
+  assert.equal(mono.native.monochrome, true);
+  assert.equal(mono.native.mask[0], 255);
+  assert.deepEqual([...mono.native.color.subarray(0, 3)], [255, 255, 255]);
+  assert.deepEqual([...presentation.normal.subarray(0, 4)], [0, 0, 0, 0]);
+  assert.deepEqual([...presentation.inverse.subarray(0, 4)], [255, 255, 255, 255]);
+  assert.equal(presentation.inversion, true);
+  const colored = entries('TRUECOLOR')[0],
+    c = colored.resource.slice(),
+    topLeft = 4 + 40 + 31 * 96;
+  c.set([0, 255, 0], topLeft);
+  assert.deepEqual(
+    [...cursorPresentation(decodeCursorResource(c, colored)).inverse.subarray(0, 4)],
+    [0, 255, 0, 255],
+  );
+  c[topLeft] = 127;
+  assert.throws(() => decodeCursorResource(c, colored), /XOR.*unsupported/);
   const alpha = entries('ALPHA')[0],
     a = alpha.resource.slice();
   a[a.length - 128] = 0xff; // Alpha-bearing bitmap ignores AND mask.
@@ -113,10 +130,14 @@ test('cursor A/W resource handles are module-local, cached and do not expose mut
     assert.equal(r.lastError, 6);
     call(r, 'SetCursor', [first]);
     const expected = messages.at(-1).image.pixels.slice();
+    const expectedNative = structuredClone(messages.at(-1).image.native);
     messages.at(-1).image.pixels.fill(0);
+    messages.at(-1).image.native.mask.fill(0);
+    messages.at(-1).image.native.color.fill(0);
     call(r, 'ShowCursor', [0]);
     call(r, 'ShowCursor', [1]);
     assert.deepEqual(messages.at(-1).image.pixels, expected);
+    assert.deepEqual(messages.at(-1).image.native, expectedNative);
     const count = messages.length;
     call(r, 'SetCursor', [first]);
     assert.equal(messages.length, count);

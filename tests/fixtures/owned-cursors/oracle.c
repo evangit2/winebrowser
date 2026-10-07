@@ -16,6 +16,8 @@ static HICON make(BOOL icon,DWORD hx,DWORD hy,int mono){
 }
 int main(void){
  puts("[");HICON color=make(FALSE,1,0,0),mono=make(FALSE,0,1,1),outside=make(FALSE,19,31,0),icon=make(TRUE,19,31,0);
+ SetLastError(777);HCURSOR previous=SetCursor(icon);DWORD selectError=GetLastError();emit("select-icon-as-cursor",GetCursor()==icon,selectError,icon);SetCursor(previous);
+ SetLastError(777);HICON iconCopy=CopyImage(icon,IMAGE_ICON,2,2,LR_COPYRETURNORG);DWORD copyError=GetLastError();emit("same-icon-copy-return",iconCopy==icon,copyError,iconCopy);
  SetLastError(777);HICON copy=CopyIcon(color);DWORD error=GetLastError();emit("copy-cursor",copy!=NULL,error,copy);
  SetLastError(777);HICON scaled=CopyImage(color,IMAGE_CURSOR,4,4,0);error=GetLastError();emit("scale-cursor",scaled!=NULL,error,scaled);
  SetLastError(777);HICON shared=CopyImage(color,IMAGE_CURSOR,2,2,LR_COPYRETURNORG);error=GetLastError();emit("same-copy-return",shared==color,error,shared);
@@ -27,5 +29,6 @@ int main(void){
  SetLastError(777);emit("get-destroyed-active",GetCursor()==color,GetLastError(),color);SetCursor(NULL);
  SetLastError(777);ok=DestroyCursor(color);error=GetLastError();emit("destroy-twice",ok,error,color);
  SetLastError(777);ok=DestroyCursor(NULL);error=GetLastError();emit("destroy-null",ok,error,NULL);
- DestroyCursor(copy);DestroyCursor(scaled);DestroyCursor(outside);puts("\n]");return 0;
+ SetLastError(777);ok=DestroyIcon(NULL);error=GetLastError();emit("destroy-icon-null",ok,error,NULL);
+ DestroyIcon(iconCopy);DestroyCursor(copy);DestroyCursor(scaled);DestroyCursor(outside);puts("\n]");return 0;
 }

@@ -381,6 +381,17 @@
       "sourceZip": "gdi-pixel-colors/source.zip",
       "sourceZipSha256": "2f3b6d37479a592daa58569ca0099e810f1c9b7f24c41e5c6a4a6ae76ec4ce03",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "owned-cursors",
+      "description": "Native owned cursor GUI: try alpha and monochrome mouse cursors, copies, scaling, visibility, hotspots and active destruction. Close to finish.",
+      "exe": "owned-cursors/owned-cursors.exe",
+      "exeSha256": "33600638ce546380a895d76f66857d067f8535e0af4a0e77bd633b607e540db9",
+      "zip": "owned-cursors/owned-cursors.zip",
+      "zipSha256": "08c9d0d2060c38711035d7560012a30af90659d501eedbe8051acc2d4026ba3f",
+      "sourceZip": "owned-cursors/source.zip",
+      "sourceZipSha256": "2f7624c46017ab23d6df63bfb0831bec12c1b2a851d958949cd6801d28445682",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

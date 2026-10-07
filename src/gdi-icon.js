@@ -31,7 +31,7 @@ export function createBitmapIconApis({ stateFor, snapshotBitmap, ownBitmap, succ
     } catch {
       return failed(r, 87, 1);
     }
-    if (!r.read32(input)) return failed(r, 120, 1); // Custom cursor ownership is separate.
+    const cursor = !r.read32(input);
     const state = stateFor(r),
       mask = snapshotBitmap(r, state, r.read32(input + 12)),
       colorHandle = r.read32(input + 16),
@@ -64,7 +64,15 @@ export function createBitmapIconApis({ stateFor, snapshotBitmap, ownBitmap, succ
     for (let i = 0; i < and.length; i++) if (!alpha) pixels[i * 4 + 3] = and[i] ? 0 : 255;
     return make(
       r,
-      { width, height, pixels, native: { mask: and, color: xor, alpha, monochrome: !color } },
+      {
+        width,
+        height,
+        pixels,
+        cursor,
+        hotX: cursor ? r.read32(input + 4) : Math.floor(width / 2),
+        hotY: cursor ? r.read32(input + 8) : Math.floor(height / 2),
+        native: { mask: and, color: xor, alpha, monochrome: !color },
+      },
       1,
     );
   };
@@ -93,9 +101,13 @@ export function createBitmapIconApis({ stateFor, snapshotBitmap, ownBitmap, succ
       state.bitmaps.delete(mask);
       return failed(r, 8, 2);
     }
-    [1, Math.floor(width / 2), Math.floor(height / 2), mask, color].forEach((v, i) =>
-      r.write32(out + i * 4, v),
-    );
+    [
+      icon.cursor ? 0 : 1,
+      icon.hotX ?? Math.floor(width / 2),
+      icon.hotY ?? Math.floor(height / 2),
+      mask,
+      color,
+    ].forEach((v, i) => r.write32(out + i * 4, v));
     return success(1, 2);
   };
   const copyImage = (r, a) => {
@@ -148,14 +160,13 @@ export function createBitmapIconApis({ stateFor, snapshotBitmap, ownBitmap, succ
       if (flags & 8) r.apiProvider.get('gdi32.dll!DeleteObject')(r, () => handle);
       return success(made, 5);
     }
-    if (type !== 1) return failed(r, 120, 5);
+    if (type !== 1 && type !== 2) return failed(r, 120, 5);
     const source = iconForHandle(r, handle);
     if (!source) return failed(r, 1402, 5);
     const icon = normalize(source),
       w = width || (flags & 0x40 ? 32 : icon.width),
       h = height || (flags & 0x40 ? 32 : icon.height);
     if (w > 256 || h > 256) return failed(r, 87, 5);
-    if (flags & 0x4 && w === icon.width && h === icon.height) return success(handle, 5);
     const pixels = new Uint8Array(w * h * 4),
       color = new Uint8Array(w * h * 4),
       mask = new Uint8Array(w * h);
@@ -170,7 +181,15 @@ export function createBitmapIconApis({ stateFor, snapshotBitmap, ownBitmap, succ
       }
     const made = make(
       r,
-      { width: w, height: h, pixels, native: { ...icon.native, color, mask } },
+      {
+        width: w,
+        height: h,
+        pixels,
+        cursor: !!icon.cursor,
+        hotX: icon.cursor ? icon.hotX : Math.floor(w / 2),
+        hotY: icon.cursor ? icon.hotY : Math.floor(h / 2),
+        native: { ...icon.native, color, mask },
+      },
       5,
     );
     if (made.result && flags & 8) r.apiProvider.get('user32.dll!DestroyIcon')(r, () => handle);
