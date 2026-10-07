@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-07T11:03:07.387Z",
+  "date": "2026-10-07T15:08:39.013Z",
   "url": "http://127.0.0.1:4389/winebrowser/",
   "browser": "153.0.8010.12",
   "scope": "Unchanged 7zG.exe and 7z.dll GUI compression, extraction, passwords, cancellation and report-list errors. File Manager 7zFM.exe and arbitrary Windows GUI/DLL compatibility are outside this acceptance.",
@@ -16,10 +16,10 @@
     {
       "label": "Hosted original GUI: change format and compression level, then create ZIP",
       "exitCode": 0,
-      "elapsedMs": 5677.75,
-      "x86TranslationMs": 2307.884999871254,
-      "instructions": 9119661,
-      "compiledBlocks": 13245,
+      "elapsedMs": 12329.949999988079,
+      "x86TranslationMs": 5654.440002202988,
+      "instructions": 9147017,
+      "compiledBlocks": 13425,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -176,6 +176,8 @@
         "user32.dll!InvalidateRect",
         "user32.dll!MapDialogRect",
         "user32.dll!MoveWindow",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
         "oleaut32.dll!SysAllocString",
         "oleaut32.dll!SysFreeString",
         "ntdll.dll!NtQueryInformationFile",
@@ -191,8 +193,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 100,
-        "report": 98,
+        "progress": 117,
+        "report": 115,
         "texts": []
       },
       "completionMessages": [],
@@ -200,17 +202,17 @@
         {
           "path": "out.zip",
           "bytes": 683,
-          "sha256": "e93c6cc3d42aac395c6f408b8194d287042f7aa6326b0e6c0fe0a06ec7cc6240"
+          "sha256": "8b3b02d84ebd75fdfc9f70e81d74dbf490a0790326cb3bd9f6b5d0e66101c829"
         }
       ]
     },
     {
       "label": "ZIP upload: choose native extraction directory and extract ZIP",
       "exitCode": 0,
-      "elapsedMs": 3499.689999997616,
-      "x86TranslationMs": 1974.7850008010864,
-      "instructions": 3260311,
-      "compiledBlocks": 11659,
+      "elapsedMs": 11680.400000035763,
+      "x86TranslationMs": 7055.424998760223,
+      "instructions": 3269043,
+      "compiledBlocks": 11661,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -361,6 +363,8 @@
         "user32.dll!InvalidateRect",
         "user32.dll!MapDialogRect",
         "user32.dll!MoveWindow",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
         "ntdll.dll!NtSetInformationFile",
         "ntdll.dll!NtReadFile",
         "ntdll.dll!NtQueryInformationFile",
@@ -368,8 +372,6 @@
         "ntdll.dll!NtQueryAttributesFile",
         "user32.dll!CharPrevExA",
         "ntdll.dll!NtWriteFile",
-        "ntdll.dll!NtWaitForAlertByThreadId",
-        "ntdll.dll!NtAlertThreadByThreadId",
         "ntdll.dll!NtFreeVirtualMemory",
         "ntdll.dll!NtWaitForSingleObject",
         "user32.dll!PostMessageW",
@@ -379,8 +381,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 94,
-        "report": 92,
+        "progress": 98,
+        "report": 96,
         "texts": []
       },
       "completionMessages": [],
@@ -400,9 +402,9 @@
     {
       "label": "Loose original EXE/DLL: native password controls create AES-256 ZIP",
       "exitCode": 0,
-      "elapsedMs": 10288.504999995232,
-      "x86TranslationMs": 3092.390001952648,
-      "instructions": 86053070,
+      "elapsedMs": 23649.185000002384,
+      "x86TranslationMs": 7659.9499960541725,
+      "instructions": 86092551,
       "compiledBlocks": 13574,
       "loadedModules": [
         {
@@ -578,8 +580,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 128,
-        "report": 126,
+        "progress": 148,
+        "report": 146,
         "texts": []
       },
       "completionMessages": [],
@@ -587,17 +589,17 @@
         {
           "path": "encrypted.zip",
           "bytes": 783,
-          "sha256": "deea4f3d1a72e92c8c0065b9ba63daa5330a69df0073f1f8f3feeec23b08f732"
+          "sha256": "208d8c7fc646ed133c603307f196b2eaad131cb3bf8fe3e2e83be170f80c43f9"
         }
       ]
     },
     {
       "label": "Native password extraction dialog decrypts AES ZIP",
       "exitCode": 0,
-      "elapsedMs": 5030.789999961853,
-      "x86TranslationMs": 2105.684994637966,
-      "instructions": 28516097,
-      "compiledBlocks": 12023,
+      "elapsedMs": 12296.680000007153,
+      "x86TranslationMs": 5854.0949974656105,
+      "instructions": 28534170,
+      "compiledBlocks": 12178,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -754,6 +756,8 @@
         "ntdll.dll!NtQuerySystemInformationEx",
         "ntdll.dll!NtQueryAttributesFile",
         "user32.dll!CharPrevExA",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
         "oleaut32.dll!SysAllocString",
         "oleaut32.dll!SysFreeString",
         "ntdll.dll!NtWriteFile",
@@ -766,8 +770,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 107,
-        "report": 105,
+        "progress": 118,
+        "report": 116,
         "texts": []
       },
       "completionMessages": [],
@@ -787,8 +791,8 @@
     {
       "label": "Native compression dialog Cancel uses C++ catch and exits without an archive",
       "exitCode": 255,
-      "elapsedMs": 3642.764999985695,
-      "x86TranslationMs": 1846.7549991607666,
+      "elapsedMs": 5183.254999995232,
+      "x86TranslationMs": 2895.4900007247925,
       "instructions": 2972390,
       "compiledBlocks": 7905,
       "loadedModules": [
@@ -946,10 +950,10 @@
     {
       "label": "Original GUI compresses with native multithreaded LZMA2",
       "exitCode": 0,
-      "elapsedMs": 4762.449999988079,
-      "x86TranslationMs": 2506.600000202656,
-      "instructions": 5430254,
-      "compiledBlocks": 14922,
+      "elapsedMs": 11751.745000004768,
+      "x86TranslationMs": 6476.440001010895,
+      "instructions": 5447318,
+      "compiledBlocks": 14926,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -1125,8 +1129,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 99,
-        "report": 97,
+        "progress": 113,
+        "report": 111,
         "texts": []
       },
       "completionMessages": [],
@@ -1134,17 +1138,17 @@
         {
           "path": "native.7z",
           "bytes": 522,
-          "sha256": "63dd287be2f35fb79ccd8822a20831830c7c5d2f67f1af1da1a2658175c6731c"
+          "sha256": "4526181fa028c7359610b6919b6f9672f0bcd059152ec31ec58e2d2679909def"
         }
       ]
     },
     {
       "label": "Original GUI extracts native LZMA2 output byte for byte",
       "exitCode": 0,
-      "elapsedMs": 3721.4599999785423,
-      "x86TranslationMs": 2351.544999063015,
-      "instructions": 3351551,
-      "compiledBlocks": 12089,
+      "elapsedMs": 4790.585000038147,
+      "x86TranslationMs": 2986.7799996733665,
+      "instructions": 3354873,
+      "compiledBlocks": 12246,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -1291,6 +1295,8 @@
         "user32.dll!MoveWindow",
         "ntdll.dll!NtSetInformationFile",
         "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
         "ntdll.dll!NtQueryInformationFile",
         "ntdll.dll!NtQuerySystemInformationEx",
         "ntdll.dll!NtFreeVirtualMemory",
@@ -1299,14 +1305,14 @@
         "ntdll.dll!NtWaitForSingleObject",
         "user32.dll!PostMessageW",
         "ntdll.dll!NtQueryInformationThread",
-        "ntdll.dll!NtTerminateThread",
         "user32.dll!KillTimer",
         "user32.dll!EndDialog",
+        "ntdll.dll!NtTerminateThread",
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 93,
-        "report": 91,
+        "progress": 92,
+        "report": 90,
         "texts": []
       },
       "completionMessages": [],
@@ -1326,10 +1332,10 @@
     {
       "label": "Wrong password displays original native report-list errors and exits 2",
       "exitCode": 2,
-      "elapsedMs": 5729.735000014305,
-      "x86TranslationMs": 2168.5750017166138,
-      "instructions": 28286474,
-      "compiledBlocks": 11120,
+      "elapsedMs": 7896.370000004768,
+      "x86TranslationMs": 3295.1599994301796,
+      "instructions": 28292523,
+      "compiledBlocks": 11274,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -1476,6 +1482,8 @@
         "user32.dll!MoveWindow",
         "ntdll.dll!NtSetInformationFile",
         "ntdll.dll!NtReadFile",
+        "ntdll.dll!NtWaitForAlertByThreadId",
+        "ntdll.dll!NtAlertThreadByThreadId",
         "ntdll.dll!NtQueryInformationFile",
         "ntdll.dll!NtQuerySystemInformationEx",
         "user32.dll!CharPrevExA",
@@ -1485,8 +1493,8 @@
         "ntdll.dll!NtWaitForSingleObject",
         "user32.dll!PostMessageW",
         "ntdll.dll!NtQueryInformationThread",
-        "user32.dll!KillTimer",
         "ntdll.dll!NtTerminateThread",
+        "user32.dll!KillTimer",
         "user32.dll!GetKeyState",
         "user32.dll!OpenClipboard",
         "user32.dll!EmptyClipboard",
@@ -1496,8 +1504,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 127,
-        "report": 125,
+        "progress": 130,
+        "report": 128,
         "texts": [
           "1",
           "encrypted.zip",
@@ -1520,10 +1528,10 @@
     {
       "label": "Modified encrypted data displays native errors and exits 2",
       "exitCode": 2,
-      "elapsedMs": 5269.805000007153,
-      "x86TranslationMs": 2010.0050024986267,
-      "instructions": 28396626,
-      "compiledBlocks": 11619,
+      "elapsedMs": 6424.035000026226,
+      "x86TranslationMs": 2965.380002260208,
+      "instructions": 28395166,
+      "compiledBlocks": 11604,
       "loadedModules": [
         {
           "name": "7zg.exe",
@@ -1679,8 +1687,8 @@
         "ntdll.dll!NtWaitForSingleObject",
         "user32.dll!PostMessageW",
         "ntdll.dll!NtQueryInformationThread",
-        "ntdll.dll!NtTerminateThread",
         "user32.dll!KillTimer",
+        "ntdll.dll!NtTerminateThread",
         "user32.dll!GetKeyState",
         "user32.dll!OpenClipboard",
         "user32.dll!EmptyClipboard",
@@ -1690,8 +1698,8 @@
         "ntdll.dll!NtTerminateProcess"
       ],
       "seen": {
-        "progress": 121,
-        "report": 119,
+        "progress": 117,
+        "report": 115,
         "texts": [
           "1",
           "damaged.zip",

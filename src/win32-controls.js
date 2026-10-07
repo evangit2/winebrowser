@@ -1,3 +1,4 @@
+import { scrollbarMessage } from './win32-scrollbars.js';
 import { comboMessage } from './win32-combos.js';
 import { describeGdiFont, measureGdiFont } from './win32-gdi.js';
 import { updateList } from './win32-owner-lists.js';
@@ -11,6 +12,7 @@ import { listviewMessage, listviewInput } from './win32-listview.js';
 export const EDIT_INPUT = 0x7fc0;
 
 const kinds = new Map([
+  ['scrollbar', 'scrollbar'],
   ['static', 'static'],
   ['button', 'button'],
   ['edit', 'edit'],
@@ -34,6 +36,7 @@ export function builtinControlClass(name, wide) {
           name.toLowerCase() === 'combolbox'
             ? 'ComboLBox'
             : ({
+                scrollbar: 'ScrollBar',
                 treeview: 'SysTreeView32',
                 tabcontrol: 'SysTabControl32',
                 statusbar: 'msctls_statusbar32',
@@ -123,6 +126,8 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
   if (kind === 'toolbar' && local & 0x80) throw Error('Unsupported vertical toolbar style');
+  if (kind === 'scrollbar' && local & ~1)
+    throw Error('Unsupported Scrollbar alignment or size-box style');
   if (kind === 'progress' && local & ~0x19) throw Error('Unsupported progress style');
   if (kind === 'listview' && ((local & 3) !== 1 || local & ~0xc00d))
     throw Error('Only text report ListView styles are supported');
@@ -318,6 +323,10 @@ async function ownerButtonMessage(r, window, message, wp, lp) {
 }
 
 export async function controlMessage(r, window, message, wp, lp, fallback, wide) {
+  if (window.controlType === 'scrollbar') {
+    const handled = await scrollbarMessage(r, window, message, wp, lp);
+    if (handled !== null) return handled;
+  }
   if (window.controlType === 'combobox' && message !== 0x30)
     return listMessage(r, window, message, wp, lp, fallback, wide);
   if (window.comboEditHostId) {
