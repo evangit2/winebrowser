@@ -136,8 +136,10 @@ metadata so that users can rebuild or modify the encoder. The original LAME
 copyright notices remain in that source. WineBrowser's MIT license does not
 replace LAME's terms.
 
-The EXE statically links MinGW GCC 16.1.0 support under GPLv3 with the GCC
-Runtime Library Exception 3.1; both texts accompany the binary and source.
+The EXE statically links GCC 16.1.0 support under GPLv3 with the GCC
+Runtime Library Exception 3.1 and MinGW-w64 14.0.0 startup/support code. GCC
+license/exception texts and the original MinGW-w64 ZPL-2.1 notice from the
+build toolchain accompany the binary and source.
 Its Windows UCRT and system DLL dependencies use the separately distributed
 Wine source-built runtime described above. The authored integer-wave WAVs and
 native-reference MP3 outputs are WineBrowser test data. See

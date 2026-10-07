@@ -28,7 +28,8 @@ waves so that their exact input bytes are independent of host math libraries.
 LAME is LGPL-2.0-or-later. `public/examples/lame/COPYING` retains its original
 license. The harness's **source** download contains the entire pinned upstream
 source archive, the build recipe, configuration and compiler metadata. GCC
-runtime license and exception texts are included in both archives.
+runtime license and exception texts, plus the MinGW-w64 license, are included
+in both archives.
 
 The source is LAME 3.100 from SourceForge, SHA-256
 `ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e`.

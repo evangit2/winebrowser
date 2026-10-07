@@ -68,6 +68,11 @@
       "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
     },
     {
+      "path": "MINGW-COPYING",
+      "bytes": 2326,
+      "sha256": "99a69660981156c21336fdb5661f89341b013c94e4bf9e1c7467b4745718397f"
+    },
+    {
       "path": "README.txt",
       "bytes": 309,
       "sha256": "2ac8b27f3d6c55f12ddeb89808517a0af724c6c85a4131c0a4bafdb339a6d095"

@@ -44,6 +44,7 @@ const files = {
   COPYING: await readFile('.cache/lame/source/lame-3.100/COPYING'),
   'GCC-COPYING3': await readFile('third_party/gcc/COPYING3'),
   'GCC-COPYING.RUNTIME': await readFile('third_party/gcc/COPYING.RUNTIME'),
+  'MINGW-COPYING': await readFile('third_party/mingw-w64/COPYING'),
   'README.txt': Buffer.from(
     'LAME 3.100: original LGPL-2.0-or-later Windows i386 WAV/PCM encoder.\nRun lame.exe --silent --noreplaygain -b 128 stereo.wav output.mp3\nFull unmodified upstream source, license, build recipe and configuration are in source.zip.\nOptional MP3 decoder and libsndfile are not built. No game binaries are included.\n',
   ),
@@ -94,6 +95,7 @@ const source = zip({
   COPYING: files.COPYING,
   'GCC-COPYING3': files['GCC-COPYING3'],
   'GCC-COPYING.RUNTIME': files['GCC-COPYING.RUNTIME'],
+  'MINGW-COPYING': files['MINGW-COPYING'],
   'README.txt': Buffer.from(
     'Install i686 MinGW GCC, make and Python 3. Rebuild: python3 scripts/build-lame.py --source-archive lame-3.100.tar.gz\nThe source is unchanged. See BUILD.json for the pinned source, compiler and exact encoder options.\n',
   ),

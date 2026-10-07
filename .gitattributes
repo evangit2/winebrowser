@@ -16,3 +16,5 @@ public/runtime/frame-controls/COPYING.LIB whitespace=-blank-at-eol
 # Preserve the exact upstream LAME/GCC license bytes.
 public/examples/lame/COPYING whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
 public/examples/lame/GCC-* whitespace=-blank-at-eol,-blank-at-eof
+public/examples/lame/MINGW-COPYING whitespace=-blank-at-eol,-blank-at-eof
+third_party/mingw-w64/COPYING whitespace=-blank-at-eol,-blank-at-eof
