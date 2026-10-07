@@ -101,9 +101,11 @@ try {
         'All off',
         'Limits',
         'Normal',
+        'Disabled window',
+        'Enabled window',
       ];
       await expect(title).toHaveText('Native scrollbars - ' + labels[stage]);
-      const mapping = [1, 5, 8, 9, 10, 11, 1];
+      const mapping = [1, 5, 8, 9, 10, 11, 1, 10, 1];
       for (const [id, v, l, t] of [
         [201, 0, 180, 17],
         [202, 0, 180, 25],
@@ -145,6 +147,8 @@ try {
         'Vertical position: ' + position,
       );
       observations.push({ stage, label: labels[stage], verifiedPixels: 15256 });
+      for (const control of [horizontal, vertical])
+        await expect(control).toHaveAttribute('aria-disabled', String(stage === 4 || stage === 7));
       if ([2, 4, 5].includes(stage))
         await root.screenshot({
           path: 'evidence/scroll-controls-stage-' + stage + '-' + runs.length + '.png',
@@ -158,12 +162,20 @@ try {
       [4, 'All off'],
       [5, 'Limits'],
       [6, 'Reset'],
+      [7, 'Disable'],
+      [8, 'Enable'],
     ]) {
       await root.getByRole('button', { name: button, exact: true }).click();
       await verify(stage);
     }
     const hLabel = root.locator('[data-control-id="301"]'),
       vLabel = root.locator('[data-control-id="302"]');
+    await root.getByRole('button', { name: 'Disable', exact: true }).click();
+    const disabledRect = await horizontal.boundingBox();
+    await page.mouse.click(disabledRect.x + 171, disabledRect.y + 8);
+    await expect(hLabel).toHaveText('Horizontal position: 20');
+    await expect(root.locator('[data-control-id="303"]')).toHaveText('Last event: -1');
+    await root.getByRole('button', { name: 'Enable', exact: true }).click();
     await horizontal.click({ position: { x: 171, y: 8 } });
     await expect(hLabel).toHaveText('Horizontal position: 21');
     await expect(root.locator('[data-control-id="303"]')).toHaveText('Last event: 8');
@@ -208,6 +220,7 @@ try {
       'Disabled left arrow suppresses mouse notification',
       'Horizontal and vertical thumb dragging calls the compiled parent procedure',
       'Track positions above 65535 use full GetScrollInfo data',
+      'EnableWindow updates WS_DISABLED, native arrow flags, and actual browser interaction',
     ];
     await page.screenshot({ path: `evidence/scroll-controls-${mode}.png`, fullPage: true });
     await root.locator('.virtual-desktop-close').click();
@@ -247,7 +260,7 @@ try {
     headedBrowser: process.env.HEADED === '1',
     exeSha256: sha256,
     scope:
-      'Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Seven stages verify five controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, 32-bit thumb tracking and compiled parent callbacks are exercised. Nonclient bars, alignment/size-box styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.',
+      'Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Nine stages verify five controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, native window enabling, 32-bit thumb tracking and compiled parent callbacks are exercised. Nonclient bars, alignment/size-box styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.',
     oracleReference: oracle.reference,
     runs,
     errors,

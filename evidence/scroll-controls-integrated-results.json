@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-07T15:40:47.553Z",
+  "date": "2026-10-07T15:48:40.469Z",
   "url": "http://127.0.0.1:4389/winebrowser/",
   "browser": "153.0.8010.12",
   "headedBrowser": true,
@@ -1412,10 +1412,10 @@
         "instructions": 193221,
         "compiledBlocks": 2091,
         "totalCompiledBlocks": 2091,
-        "x86TranslationMs": 1556.3699997067451,
+        "x86TranslationMs": 1165.8650019168854,
         "wasmBytes": 1702630,
         "apiCalls": 1203,
-        "elapsedMs": 34737.035000026226,
+        "elapsedMs": 63176.21000003815,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -2770,10 +2770,10 @@
             "instructions": 193221,
             "compiledBlocks": 2091,
             "totalCompiledBlocks": 2091,
-            "x86TranslationMs": 1556.3699997067451,
+            "x86TranslationMs": 1165.8650019168854,
             "wasmBytes": 1702630,
             "apiCalls": 1203,
-            "elapsedMs": 34724.214999973774
+            "elapsedMs": 63169.535000026226
           }
         ]
       },
@@ -4186,10 +4186,10 @@
         "instructions": 193622,
         "compiledBlocks": 2091,
         "totalCompiledBlocks": 2091,
-        "x86TranslationMs": 1994.8550007343292,
+        "x86TranslationMs": 1599.6249982714653,
         "wasmBytes": 1702630,
         "apiCalls": 1203,
-        "elapsedMs": 56300.00499999523,
+        "elapsedMs": 69653.1399999857,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -5544,10 +5544,10 @@
             "instructions": 193622,
             "compiledBlocks": 2091,
             "totalCompiledBlocks": 2091,
-            "x86TranslationMs": 1994.8550007343292,
+            "x86TranslationMs": 1599.6249982714653,
             "wasmBytes": 1702630,
             "apiCalls": 1203,
-            "elapsedMs": 56297.59999996424
+            "elapsedMs": 69650.75499999523
           }
         ]
       },
@@ -6960,10 +6960,10 @@
         "instructions": 194859,
         "compiledBlocks": 2091,
         "totalCompiledBlocks": 2091,
-        "x86TranslationMs": 1970.5400005578995,
+        "x86TranslationMs": 1044.0399983525276,
         "wasmBytes": 1702630,
         "apiCalls": 1203,
-        "elapsedMs": 45197.81999999285,
+        "elapsedMs": 43529.90000003576,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -8318,10 +8318,10 @@
             "instructions": 194859,
             "compiledBlocks": 2091,
             "totalCompiledBlocks": 2091,
-            "x86TranslationMs": 1970.5400005578995,
+            "x86TranslationMs": 1044.0399983525276,
             "wasmBytes": 1702630,
             "apiCalls": 1203,
-            "elapsedMs": 45196.24500000477
+            "elapsedMs": 43527.39499998093
           }
         ]
       },

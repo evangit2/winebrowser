@@ -12,6 +12,7 @@ const messages = await capture('messages'),
   keys = await capture('keys'),
   pointers = await capture('pointer'),
   enabled = await capture('enable');
+const transitions = await capture('enabled');
 function setup(t) {
   const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
   t.after(() => {
@@ -175,5 +176,40 @@ test('EnableScrollBar validation and standard state returns match 50 native capt
       JSON.stringify(c),
     );
     assert.equal(r.lastError, c.error);
+  }
+});
+test('scrollbar window and arrow enabling match 120 independent native transitions', async (t) => {
+  const { r, window, info, write, call } = setup(t);
+  for (const c of transitions) {
+    window.style =
+      (0x40000000 | (c.visible ? 0x10000000 : 0) | (c.initialDisabled ? 0x8000000 : 0)) >>> 0;
+    window.enabled = !c.initialDisabled;
+    delete window.scrollbar;
+    r.windows.isVisible = () => !!c.visible;
+    r.lastError = 777;
+    let value;
+    if (c.action < 5) value = await call('EnableScrollBar', 100, 2, c.action);
+    else if (c.action < 7) value = await call('EnableWindow', 100, c.action - 5);
+    else if (c.action < 9) value = await scrollbarMessage(r, window, 0xa, c.action - 7, 0);
+    else {
+      write([
+        28,
+        c.action === 12 ? 4 : c.action === 13 ? 8 : c.action === 14 ? 2 : c.action === 10 ? 31 : 23,
+        10,
+        40,
+        c.action >= 10 ? 100 : 8,
+        20,
+        0,
+      ]);
+      value = await call('SetScrollInfo', 100, 2, info, c.redraw);
+    }
+    const label = JSON.stringify(c);
+    assert.equal(value, c.result, label);
+    assert.equal(r.lastError, c.error, label);
+    assert.equal(window.enabled ? 1 : 0, c.enabled, label);
+    assert.equal(window.style, c.style, label);
+    const s = controlScrollState(window);
+    assert.deepEqual([s.min, s.max, s.page, s.pos], c.state, label);
+    assert.deepEqual([s.disabled & 1 ? 1 : 0, s.disabled & 2 ? 1 : 0], c.arrows, label);
   }
 });

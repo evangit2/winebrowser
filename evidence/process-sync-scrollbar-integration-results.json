@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-07T15:32:59.118Z",
-  "url": "http://127.0.0.1:4198/winebrowser/",
-  "browser": "155.0.8059.39",
+  "date": "2026-10-07T15:46:18.931Z",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "browser": "153.0.8010.12",
   "exeSha256": "8742eda447c06023dd0fc097439805e482b13e60840812cd2532d24b957c8e6e",
   "runs": [
     {
@@ -286,10 +286,10 @@
         "instructions": 445128,
         "compiledBlocks": 6644,
         "totalCompiledBlocks": 6644,
-        "x86TranslationMs": 1635.1600011587143,
+        "x86TranslationMs": 2628.090000331402,
         "wasmBytes": 5391999,
         "apiCalls": 388,
-        "elapsedMs": 2418.929999947548,
+        "elapsedMs": 4015.5900000333786,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -575,10 +575,10 @@
             "instructions": 199669,
             "compiledBlocks": 2727,
             "totalCompiledBlocks": 2727,
-            "x86TranslationMs": 879.920000731945,
+            "x86TranslationMs": 975.5450016856194,
             "wasmBytes": 2209581,
             "apiCalls": 168,
-            "elapsedMs": 2418.199999988079
+            "elapsedMs": 4014.189999997616
           },
           {
             "id": 2,
@@ -807,10 +807,10 @@
             "instructions": 123826,
             "compiledBlocks": 2062,
             "totalCompiledBlocks": 2062,
-            "x86TranslationMs": 360.3750014305115,
+            "x86TranslationMs": 1208.2349994778633,
             "wasmBytes": 1674663,
             "apiCalls": 122,
-            "elapsedMs": 466.80000001192093
+            "elapsedMs": 1682.5400000214577
           },
           {
             "id": 3,
@@ -1010,10 +1010,10 @@
             "instructions": 121633,
             "compiledBlocks": 1855,
             "totalCompiledBlocks": 1855,
-            "x86TranslationMs": 394.8649989962578,
+            "x86TranslationMs": 444.30999916791916,
             "wasmBytes": 1507755,
             "apiCalls": 98,
-            "elapsedMs": 591.0499999523163
+            "elapsedMs": 640
           }
         ]
       },
@@ -1304,10 +1304,10 @@
         "instructions": 470058,
         "compiledBlocks": 6643,
         "totalCompiledBlocks": 6643,
-        "x86TranslationMs": 3505.8799981474876,
+        "x86TranslationMs": 1783.9750006198883,
         "wasmBytes": 5391152,
         "apiCalls": 388,
-        "elapsedMs": 5402.825000047684,
+        "elapsedMs": 2678.8799999952316,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -1593,10 +1593,10 @@
             "instructions": 219677,
             "compiledBlocks": 2726,
             "totalCompiledBlocks": 2726,
-            "x86TranslationMs": 1881.3549956083298,
+            "x86TranslationMs": 871.4249996542931,
             "wasmBytes": 2208734,
             "apiCalls": 168,
-            "elapsedMs": 5401.84500002861
+            "elapsedMs": 2669.7199999690056
           },
           {
             "id": 2,
@@ -1825,10 +1825,10 @@
             "instructions": 126074,
             "compiledBlocks": 2062,
             "totalCompiledBlocks": 2062,
-            "x86TranslationMs": 858.1449996829033,
+            "x86TranslationMs": 344.11500173807144,
             "wasmBytes": 1674663,
             "apiCalls": 122,
-            "elapsedMs": 1235.6850000023842
+            "elapsedMs": 449.04499995708466
           },
           {
             "id": 3,
@@ -2028,10 +2028,10 @@
             "instructions": 124307,
             "compiledBlocks": 1855,
             "totalCompiledBlocks": 1855,
-            "x86TranslationMs": 766.3800028562546,
+            "x86TranslationMs": 568.4349992275238,
             "wasmBytes": 1507755,
             "apiCalls": 98,
-            "elapsedMs": 1017.25
+            "elapsedMs": 801.125
           }
         ]
       },
@@ -2250,10 +2250,10 @@
         "instructions": 280885,
         "compiledBlocks": 4290,
         "totalCompiledBlocks": 4290,
-        "x86TranslationMs": 1162.4199991226196,
+        "x86TranslationMs": 1301.4999991059303,
         "wasmBytes": 3483670,
         "apiCalls": 208,
-        "elapsedMs": 1657.75,
+        "elapsedMs": 1948.0300000309944,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -2467,10 +2467,10 @@
             "instructions": 158594,
             "compiledBlocks": 2411,
             "totalCompiledBlocks": 2411,
-            "x86TranslationMs": 775.1549996733665,
+            "x86TranslationMs": 629.5499987006187,
             "wasmBytes": 1957324,
             "apiCalls": 106,
-            "elapsedMs": 1632.074999988079
+            "elapsedMs": 1871.3149999976158
           },
           {
             "id": 2,
@@ -2675,10 +2675,10 @@
             "instructions": 122291,
             "compiledBlocks": 1879,
             "totalCompiledBlocks": 1879,
-            "x86TranslationMs": 387.2649994492531,
+            "x86TranslationMs": 671.9500004053116,
             "wasmBytes": 1526346,
             "apiCalls": 102,
-            "elapsedMs": 519.7299999594688
+            "elapsedMs": 994.3449999690056
           }
         ]
       },
@@ -2891,10 +2891,10 @@
         "instructions": 122995,
         "compiledBlocks": 1952,
         "totalCompiledBlocks": 1952,
-        "x86TranslationMs": 1223.574999988079,
+        "x86TranslationMs": 502.4249995946884,
         "wasmBytes": 1584848,
         "apiCalls": 102,
-        "elapsedMs": 1655.2800000309944,
+        "elapsedMs": 670.214999973774,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -3102,10 +3102,10 @@
             "instructions": 122995,
             "compiledBlocks": 1952,
             "totalCompiledBlocks": 1952,
-            "x86TranslationMs": 1223.574999988079,
+            "x86TranslationMs": 502.4249995946884,
             "wasmBytes": 1584848,
             "apiCalls": 102,
-            "elapsedMs": 1653.7549999952316
+            "elapsedMs": 669.7599999904633
           }
         ]
       },
@@ -3400,10 +3400,10 @@
         "instructions": 445128,
         "compiledBlocks": 6644,
         "totalCompiledBlocks": 6644,
-        "x86TranslationMs": 1660.3349990844727,
+        "x86TranslationMs": 1749.849999010563,
         "wasmBytes": 5391999,
         "apiCalls": 388,
-        "elapsedMs": 2435.6050000190735,
+        "elapsedMs": 2579.3050000071526,
         "outputs": [],
         "deletedFiles": [],
         "processes": [
@@ -3689,10 +3689,10 @@
             "instructions": 199669,
             "compiledBlocks": 2727,
             "totalCompiledBlocks": 2727,
-            "x86TranslationMs": 925.6899998188019,
+            "x86TranslationMs": 963.1349985599518,
             "wasmBytes": 2209581,
             "apiCalls": 168,
-            "elapsedMs": 2434.9950000047684
+            "elapsedMs": 2578.8550000190735
           },
           {
             "id": 2,
@@ -3921,10 +3921,10 @@
             "instructions": 123826,
             "compiledBlocks": 2062,
             "totalCompiledBlocks": 2062,
-            "x86TranslationMs": 416.4199981689453,
+            "x86TranslationMs": 412.64500004053116,
             "wasmBytes": 1674663,
             "apiCalls": 122,
-            "elapsedMs": 537.9749999642372
+            "elapsedMs": 535.7599999904633
           },
           {
             "id": 3,
@@ -4124,10 +4124,10 @@
             "instructions": 121633,
             "compiledBlocks": 1855,
             "totalCompiledBlocks": 1855,
-            "x86TranslationMs": 318.22500109672546,
+            "x86TranslationMs": 374.07000041007996,
             "wasmBytes": 1507755,
             "apiCalls": 98,
-            "elapsedMs": 431.1899999976158
+            "elapsedMs": 522.5199999809265
           }
         ]
       },
