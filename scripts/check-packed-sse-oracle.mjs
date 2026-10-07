@@ -9,6 +9,14 @@ const root = fileURLToPath(new URL('../', import.meta.url)),
 await mkdir(dir, { recursive: true });
 const source = 'tests/fixtures/packed-sse/client.c',
   binary = path.join(dir, 'oracle');
+const rosettaDiagnostic =
+  process.platform === 'darwin' && process.argv.includes('--diagnose-rosetta');
+if (process.platform === 'darwin' && !rosettaDiagnostic)
+  throw Error(
+    'Native x86 Linux is required for the hardware oracle. Rosetta changes NaN classification flags; use --diagnose-rosetta only to inspect those differences.',
+  );
+if (rosettaDiagnostic && process.argv.includes('--update'))
+  throw Error('Rosetta output cannot replace the native x86 hardware reference');
 const flags = process.platform === 'darwin' ? ['-arch', 'x86_64'] : [];
 execFileSync(process.env.CC || 'cc', [
   ...flags,
@@ -37,7 +45,7 @@ if (process.argv.includes('--update')) {
         bytes: actual.length,
         sha256: sha(actual),
         reference:
-          'Native x86 SSE/SSE2 instructions compiled from the same C source with WB_SSE_ORACLE. macOS uses x86_64 Rosetta; CI repeats this on a Linux x86_64 runner.',
+          'Native Linux x86_64 SSE/SSE2 instructions compiled from the same C source with WB_SSE_ORACLE. CI repeats this on hardware; Rosetta is not the normative oracle.',
         floatingPointResultsComputedByJavascript: false,
         roundingModes: 4,
         dazAndFtz: true,
@@ -62,6 +70,16 @@ if (process.argv.includes('--update')) {
     });
   }
   if (differences.length) console.error(JSON.stringify({ differences }, null, 2));
+  if (rosettaDiagnostic) {
+    console.log(
+      JSON.stringify({
+        status: 'diagnostic-only',
+        nativeHardware: false,
+        differences: differences.length,
+      }),
+    );
+    process.exit(0);
+  }
   assert.ok(
     actual.equals(expected),
     'Native SSE oracle differs from retained answers: ' + sha(actual),

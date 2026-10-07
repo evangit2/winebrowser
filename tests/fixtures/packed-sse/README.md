@@ -9,9 +9,11 @@ zeros, denormals, NaNs, infinities and conversion/overflow boundaries.
 
 `native-oracle.bin` is independent native output. The same C source builds a
 native x86_64 reference with `WB_SSE_ORACLE`; CI executes it on Linux x86_64 and
-requires byte identity with the retained answers. The Windows i386 version
-also matches under Wine 11 on macOS/Rosetta. The source/data hashes and
-reference provenance are in `native-oracle.json`.
+requires byte identity with the retained answers. The source/data hashes and
+reference provenance are in `native-oracle.json`. Rosetta differs in 50 MXCSR
+records for NaN ordered/unordered classification: it sets a denormal flag that
+native hardware suppresses. Its numerical results agree, but it cannot replace
+the hardware oracle. `--diagnose-rosetta` reports those differences on macOS.
 
 ```sh
 npm run build:packed-sse

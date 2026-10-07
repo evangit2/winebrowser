@@ -103,10 +103,10 @@ export class SIMDFloat {
       result = new Uint32Array([mask, double ? mask : 0]);
     }
     // Invalid, NaN and zero-divide responses suppress lower-priority conditions.
-    // Ordered/unordered classification predicates still report a denormal
-    // operand alongside a NaN. Relational/equality comparisons suppress it.
-    const classification = operation === 13 && [3, 7].includes(predicate & 7);
-    if (!classification && (nan || bits & 24)) flags = 0;
+    // Native x86 suppresses denormal-operand flags when a lane contains NaN,
+    // including quiet ordered/unordered classification predicates. Rosetta
+    // sets an extra denormal flag here; native hardware is the reference.
+    if (nan || bits & 24) flags = 0;
     flags |=
       ((bits & 16) >>> 4) |
       ((bits & 8) >>> 1) |
