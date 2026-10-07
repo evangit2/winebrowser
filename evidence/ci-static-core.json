@@ -1,0 +1,141 @@
+{
+  "date": "2026-10-07T17:04:55.547Z",
+  "group": "core",
+  "status": "passed",
+  "sourceWorkflowCommit": "3fd9eff5a225d03c7907dcfbbb4d60242d5dbd98",
+  "runs": [
+    {
+      "script": "test:pages",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 8603.233666,
+      "logPath": ".scratch/ci-logs/core/00.log"
+    },
+    {
+      "script": "test:packed-sse",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 6153.596165999999,
+      "logPath": ".scratch/ci-logs/core/01.log"
+    },
+    {
+      "script": "test:lame",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 22638.77425,
+      "logPath": ".scratch/ci-logs/core/02.log"
+    },
+    {
+      "script": "test:installer-apis",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 4332.639750000002,
+      "logPath": ".scratch/ci-logs/core/03.log"
+    },
+    {
+      "script": "test:processes",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 13441.342333,
+      "logPath": ".scratch/ci-logs/core/04.log"
+    },
+    {
+      "script": "test:process-sync",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 12723.885375000005,
+      "logPath": ".scratch/ci-logs/core/05.log"
+    },
+    {
+      "script": "test:api-sets",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 5347.671166,
+      "logPath": ".scratch/ci-logs/core/06.log"
+    },
+    {
+      "script": "test:foss-tools",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 25735.42525,
+      "logPath": ".scratch/ci-logs/core/07.log"
+    },
+    {
+      "script": "test:7zip-full",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 56396.779540999996,
+      "logPath": ".scratch/ci-logs/core/08.log"
+    },
+    {
+      "script": "test:7zip-gui",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 70924.61133300001,
+      "logPath": ".scratch/ci-logs/core/09.log"
+    },
+    {
+      "script": "test:file-locks",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 5543.898416000011,
+      "logPath": ".scratch/ci-logs/core/10.log"
+    },
+    {
+      "script": "test:delay-imports",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 7943.249207999994,
+      "logPath": ".scratch/ci-logs/core/11.log"
+    },
+    {
+      "script": "test:dll-search",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 4553.998333000025,
+      "logPath": ".scratch/ci-logs/core/12.log"
+    },
+    {
+      "script": "test:native-services",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 5046.987499999988,
+      "logPath": ".scratch/ci-logs/core/13.log"
+    },
+    {
+      "script": "test:sqlite",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 36411.83479200001,
+      "logPath": ".scratch/ci-logs/core/14.log"
+    },
+    {
+      "script": "test:lua",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 12457.223750000005,
+      "logPath": ".scratch/ci-logs/core/15.log"
+    },
+    {
+      "script": "test:cpp-runtime",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 5635.695542000001,
+      "logPath": ".scratch/ci-logs/core/16.log"
+    },
+    {
+      "script": "test:x87-remainder",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 3646.0459169999813,
+      "logPath": ".scratch/ci-logs/core/17.log"
+    },
+    {
+      "script": "test:wine-base-upload",
+      "exitCode": 0,
+      "signal": null,
+      "elapsedMs": 9856.276167000004,
+      "logPath": ".scratch/ci-logs/core/18.log"
+    }
+  ]
+}
