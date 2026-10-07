@@ -24,6 +24,9 @@ export class SIMDFloat {
     this.getModule = getModule;
     this.mxcsr = 0x1f80;
     this.pointer = 0;
+    this.inputA = new Uint32Array(2);
+    this.inputB = new Uint32Array(2);
+    this.view = null;
   }
 
   dispose() {
@@ -32,7 +35,7 @@ export class SIMDFloat {
   }
 
   // Inputs and outputs are raw words. No JS floating-point intermediates.
-  evaluate(operation, double, left, right) {
+  evaluate(operation, double, left, right, predicate = 0, leftOffset = 0, rightOffset = 0) {
     const sf = this.getModule();
     if (!sf) throw Error('SSE floating-point module must be initialized before execution');
     if (!this.pointer) {
@@ -46,8 +49,9 @@ export class SIMDFloat {
     const inputDouble = operation === 8 ? !double : double;
     let flags = 0,
       nan = false;
-    const input = (value) => {
-      const words = new Uint32Array([value[0], value[1] ?? 0]);
+    const input = (value, offset, words) => {
+      words[0] = value[offset];
+      words[1] = inputDouble && operation !== 5 ? (value[offset + 1] ?? 0) : 0;
       if (operation === 5) return words;
       const kind = classify(words, inputDouble);
       nan ||= kind.nan;
@@ -60,20 +64,56 @@ export class SIMDFloat {
       }
       return words;
     };
-    const av = input(left);
-    const bv = operation <= 3 || operation >= 9 ? input(right) : new Uint32Array(2);
+    const av = input(left, leftOffset, this.inputA);
+    const bv = this.inputB;
+    if (operation <= 3 || operation >= 9) input(right, rightOffset, bv);
+    else bv.fill(0);
     let status = sf._wb_sf_init(state, 4, ROUNDING[(this.mxcsr >>> 13) & 3], 64, 1);
     if (status) throw Error(`SoftFloat SSE state error ${status}`);
-    const view = new DataView(sf.HEAPU8.buffer);
+    if (this.view?.buffer !== sf.HEAPU8.buffer) this.view = new DataView(sf.HEAPU8.buffer);
+    const view = this.view;
     for (let lane = 0; lane < 2; lane++) {
       view.setUint32(a + lane * 4, av[lane], true);
       view.setUint32(b + lane * 4, bv[lane], true);
     }
-    status = sf._wb_sf_ieee(state, 4, double ? 1 : 0, operation, out, 8, a, 8, b, 8);
+    const ieeeOperation =
+      operation === 13
+        ? [1, 2, 5, 6].includes(predicate & 7)
+          ? 10
+          : 9
+        : operation >= 11
+          ? 10
+          : operation;
+    status = sf._wb_sf_ieee(state, 4, double ? 1 : 0, ieeeOperation, out, 8, a, 8, b, 8);
     if (status) throw Error(`SoftFloat SSE operation error ${status}`);
     const bits = sf.HEAPU8[state + 3];
     const result = new Uint32Array([view.getUint32(out, true), view.getUint32(out + 4, true)]);
+    if (operation === 11 || operation === 12) {
+      // MIN/MAX return the second operand for equal values (including signed
+      // zero) and unordered comparisons. Its NaN payload is not quieted.
+      const comparison = result[0] | 0;
+      result.set(operation === 11 ? (comparison === -1 ? av : bv) : comparison === 1 ? av : bv);
+    }
+    if (operation === 13) {
+      const comparison = result[0] | 0;
+      const matches = [
+        comparison === 0,
+        comparison === -1,
+        comparison <= 0,
+        comparison === 2,
+        comparison !== 0,
+        comparison !== -1,
+        comparison > 0,
+        comparison !== 2,
+      ];
+      const mask = matches[predicate & 7] ? 0xffffffff : 0;
+      result[0] = mask;
+      result[1] = double ? mask : 0;
+    }
     // Invalid, NaN and zero-divide responses suppress lower-priority conditions.
+    // Native x86 suppresses denormal-operand flags when a lane contains NaN,
+    // including quiet ordered/unordered classification predicates. Rosetta
+    // sets an extra denormal flag here; native hardware is the reference.
     if (nan || bits & 24) flags = 0;
     flags |=
       ((bits & 16) >>> 4) |
@@ -100,7 +140,7 @@ export class SIMDFloat {
   commit(flags) {
     const masks = (this.mxcsr >>> 7) & 0x3f;
     // An unmasked pre-computation exception in any lane prevents all
-    // post-computation flags for this instruction. Existing sticky bits remain.
+    // post-computation flags and the entire destination write.
     if (flags & 7 & ~masks) flags &= 7;
     this.mxcsr |= flags;
     const unmasked = flags & ~masks;
@@ -112,26 +152,34 @@ export class SIMDFloat {
     }
   }
 
-  execute(operation, double, left, right) {
-    const { result, flags } = this.evaluate(operation, double, left, right);
+  execute(operation, double, left, right, predicate = 0) {
+    const { result, flags } = this.evaluate(operation, double, left, right, predicate);
     this.commit(flags);
     return result;
   }
 
-  executePacked(operation, double, left, right) {
-    const output = new Uint32Array(4),
-      width = double ? 2 : 1;
+  packed(operation, double, left, right, predicate = 0) {
+    const result = new Uint32Array(4);
+    const count = double || operation === 8 ? 2 : 4;
+    const inputStride = operation === 5 ? 1 : operation === 8 ? (double ? 1 : 2) : double ? 2 : 1;
+    const outputStride = operation === 6 || operation === 7 ? 1 : double ? 2 : 1;
+    const binary = operation <= 3 || operation >= 9;
     let flags = 0;
-    for (let lane = 0; lane < 4; lane += width) {
-      const a = (operation === 4 ? right : left).subarray(lane, lane + width);
-      const b = right.subarray(lane, lane + width);
-      const evaluated = this.evaluate(operation, double, a, b);
-      output.set(evaluated.result.subarray(0, width), lane);
+    for (let lane = 0; lane < count; lane++) {
+      const offset = lane * inputStride;
+      const evaluated = this.evaluate(
+        operation,
+        double,
+        binary ? left : right,
+        right,
+        predicate,
+        offset,
+        offset,
+      );
       flags |= evaluated.flags;
+      result.set(evaluated.result.subarray(0, outputStride), lane * outputStride);
     }
-    // Do not expose any destination lane until every lane's exceptions are
-    // accumulated and checked. This also handles identical source/destination.
     this.commit(flags);
-    return output;
+    return result;
   }
 }

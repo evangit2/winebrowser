@@ -123,7 +123,11 @@
       "name": "gnu-diff",
       "description": "Unchanged GNU diffutils 2.8.7 Windows release with native libintl and libiconv DLLs. Shows a unified patch; exit 1 means files differ. Select cmp.exe to compare bytes.",
       "entry": "diff.exe",
-      "args": ["-u", "before.txt", "after.txt"],
+      "args": [
+        "-u",
+        "before.txt",
+        "after.txt"
+      ],
       "exe": "gnu-diff/diff.exe",
       "exeSha256": "f449ce40db50dd35c45c3dfa54bc79b6a3a4d9dc5ab0ff4d0fe91a4c9fefa310",
       "zip": "gnu-diff/gnu-diff.zip",
@@ -136,7 +140,12 @@
       "name": "optipng",
       "description": "Unchanged OptiPNG 0.7.8 Windows release: losslessly optimizes a four-colour PNG with its real libpng and zlib code. Download optimized.png after exit.",
       "entry": "optipng.exe",
-      "args": ["-o1", "-out", "optimized.png", "input.png"],
+      "args": [
+        "-o1",
+        "-out",
+        "optimized.png",
+        "input.png"
+      ],
       "exe": "optipng/optipng.exe",
       "exeSha256": "3464cd6c7fc9cb893f368111eb19b634b2acf14dcc94958d0758251071cfcbd9",
       "zip": "optipng/optipng.zip",
@@ -149,7 +158,12 @@
       "name": "7zip",
       "description": "Unchanged 7-Zip 26.03 standalone Windows archiver: compresses text and binary inputs to out.7z. Download the archive, or use t/x to test and extract an uploaded .7z.",
       "entry": "7zr.exe",
-      "args": ["a", "out.7z", "message.txt", "binary.bin"],
+      "args": [
+        "a",
+        "out.7z",
+        "message.txt",
+        "binary.bin"
+      ],
       "exe": "7zip/7zr.exe",
       "exeSha256": "ad4c82fadcbdf93c03b4fc440f300509c7d60c5c2f4d183e35d9d70d6957037d",
       "zip": "7zip/7zip.zip",
@@ -195,7 +209,14 @@
       "name": "7zip-full",
       "description": "Full unchanged 7-Zip EXE and native codec DLL: creates a ZIP of text and binary inputs. ZIP/7z extraction, CRC and AES-256 ZIP encryption are browser-tested. Use -pPASSWORD -mem=AES256 for encrypted ZIP.",
       "entry": "7z.exe",
-      "args": ["a", "out.zip", "message.txt", "binary.bin", "-tzip", "-mmt=1"],
+      "args": [
+        "a",
+        "out.zip",
+        "message.txt",
+        "binary.bin",
+        "-tzip",
+        "-mmt=1"
+      ],
       "exe": "7zip-full/7z.exe",
       "exeSha256": "cd74719140d12a6c837a6f78257df326f79b1a6ffcd632e9a2048e278899b733",
       "zip": "7zip-full/7zip-full.zip",
@@ -208,7 +229,15 @@
       "name": "7zip-gui",
       "description": "Original 7-Zip 26.03 Windows GUI and codec DLL. Opens Add to archive with editable compression settings; native compression, extraction and error dialogs are browser-tested.",
       "entry": "7zG.exe",
-      "args": ["a", "-ad", "out.zip", "message.txt", "binary.bin", "-tzip", "-mmt=2"],
+      "args": [
+        "a",
+        "-ad",
+        "out.zip",
+        "message.txt",
+        "binary.bin",
+        "-tzip",
+        "-mmt=2"
+      ],
       "exe": "7zip-gui/7zG.exe",
       "exeSha256": "4e6d8e866a10746a44602ec2e31057d8a552efc837b726033d72fd7739546e22",
       "zip": "7zip-gui/7zip-gui.zip",
@@ -436,6 +465,26 @@
       "sourceZip": "scroll-controls/source.zip",
       "sourceZipSha256": "7d242967e047c89c3a595346efc199e0271f7930d09c4ca70c0f7147209bd8b8",
       "provenance": "Original MIT Windows SDK client; deterministic source build and native captures included. Shared LGPL frame painter retains editable source and notices."
+    },
+    {
+      "name": "lame",
+      "description": "LAME 3.100 MP3 encoder: converts the included stereo WAV to a 128 kbit/s MP3. Download output.mp3 when it finishes. Supply your own WAV alongside the EXE to encode it.",
+      "entry": "lame.exe",
+      "args": [
+        "--silent",
+        "--noreplaygain",
+        "-b",
+        "128",
+        "stereo.wav",
+        "output.mp3"
+      ],
+      "exe": "lame/lame.exe",
+      "exeSha256": "d7a1f691b147a445e73217449be560e45e1b7cef7e440308f57252a8c305d8de",
+      "zip": "lame/lame.zip",
+      "zipSha256": "1aecac802d4da3c3a2d5bb532f936b52c239475b5f97e70d046fec07b527fa29",
+      "sourceZip": "lame/source.zip",
+      "sourceZipSha256": "3b2f0bfbca512749066b2ceb91708580e6ec9b149204038edaf3793dc9a5f507",
+      "provenance": "LGPL-2.0-or-later LAME 3.100, built from unchanged hash-pinned upstream source as a Windows i386 SSE2/UCRT encoder. Complete original source, license and rebuild recipe included."
     }
   ]
 }

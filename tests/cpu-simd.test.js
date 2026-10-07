@@ -514,7 +514,7 @@ test('XMM snapshots are deep copies and restore all vector state', () => {
 });
 
 test('unsupported floating-point/SSE and MMX instructions still fail explicitly', () => {
-  const float = machine([0x0f, 0xc2, 0xc1, 0x00]); // cmpeqps xmm0, xmm1
+  const float = machine([0xf2, 0x0f, 0xd0, 0xc1]); // SSE3 addsubps xmm0, xmm1
   assert.throws(() => float.cpu.step(CODE), /Unsupported instruction/);
   const mmx = machine([0x0f, 0x6f, 0xc1]); // movq mm0, mm1
   assert.throws(() => mmx.cpu.step(CODE), /Unsupported instruction/);

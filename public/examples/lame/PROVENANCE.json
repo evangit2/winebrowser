@@ -1,0 +1,119 @@
+{
+  "format": 1,
+  "project": "LAME",
+  "version": "3.100",
+  "sourceUrl": "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz",
+  "sourceArchiveSha256": "ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e",
+  "sourcePatches": [],
+  "target": "Windows i386",
+  "compiler": "i686-w64-mingw32-gcc (GCC) 16.1.0",
+  "flags": "-O2 -msse2 -mfpmath=sse -fno-ident",
+  "configure": [
+    "./configure",
+    "--host=i686-w64-mingw32",
+    "--disable-shared",
+    "--enable-static",
+    "--disable-decoder",
+    "--disable-nasm",
+    "CC=i686-w64-mingw32-gcc",
+    "CFLAGS=-O2 -msse2 -mfpmath=sse -fno-ident",
+    "LDFLAGS=-static-libgcc -Wl,--no-insert-timestamp"
+  ],
+  "sourceDateEpoch": 0,
+  "exeSha256": "d7a1f691b147a445e73217449be560e45e1b7cef7e440308f57252a8c305d8de",
+  "libraries": "Original libmp3lame and GCC support statically linked; Windows UCRT and Kernel32 loaded through the normal WineBrowser module provider.",
+  "scope": "Original command-line WAV/raw PCM encoder. Optional MP3 decoder and external libsndfile are not built; no executable bytes are patched.",
+  "args": [
+    "--silent",
+    "--noreplaygain",
+    "-b",
+    "128",
+    "stereo.wav",
+    "output.mp3"
+  ],
+  "files": [
+    {
+      "path": "lame.exe",
+      "bytes": 344064,
+      "sha256": "d7a1f691b147a445e73217449be560e45e1b7cef7e440308f57252a8c305d8de"
+    },
+    {
+      "path": "stereo.wav",
+      "bytes": 17684,
+      "sha256": "aeb4eaf6522ab5d58e50b5375d0521dd31fce3ec2a2e352066a262975fbfc16e"
+    },
+    {
+      "path": "mono.wav",
+      "bytes": 8864,
+      "sha256": "346a2c142b834ac94255c054d03f7048594fdf57a8335e626117034dc729bec2"
+    },
+    {
+      "path": "resample.wav",
+      "bytes": 19244,
+      "sha256": "0af28b006c3417138236a0e3657ff0fc7c7666d1aec501a6535f235c8adfc76e"
+    },
+    {
+      "path": "COPYING",
+      "bytes": 25284,
+      "sha256": "bfe4a52dc4645385f356a8e83cc54216a293e3b6f1cb4f79f5fc0277abf937fd"
+    },
+    {
+      "path": "GCC-COPYING3",
+      "bytes": 35147,
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "path": "GCC-COPYING.RUNTIME",
+      "bytes": 3324,
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
+    },
+    {
+      "path": "MINGW-COPYING",
+      "bytes": 2326,
+      "sha256": "99a69660981156c21336fdb5661f89341b013c94e4bf9e1c7467b4745718397f"
+    },
+    {
+      "path": "README.txt",
+      "bytes": 309,
+      "sha256": "2ac8b27f3d6c55f12ddeb89808517a0af724c6c85a4131c0a4bafdb339a6d095"
+    }
+  ],
+  "dependencyClosure": [
+    {
+      "name": "lame.exe",
+      "path": "lame.exe",
+      "host": false,
+      "imports": 108,
+      "sha256": "d7a1f691b147a445e73217449be560e45e1b7cef7e440308f57252a8c305d8de"
+    },
+    {
+      "name": "kernel32.dll",
+      "path": "@runtime/kernel32.dll",
+      "host": false,
+      "imports": 925,
+      "sha256": "79857a9e9731f4887af9e99d2eca2a8586e5a603281c82d4fecdc8abbde1e01f"
+    },
+    {
+      "name": "ntdll.dll",
+      "path": "@runtime/ntdll.dll",
+      "host": false,
+      "imports": 0,
+      "sha256": "4531a704974a73defaaf72c61629ab575a342f4ff6be43ce7742f734c7c938bd"
+    },
+    {
+      "name": "ucrtbase.dll",
+      "path": "@runtime/ucrtbase.dll",
+      "host": false,
+      "imports": 150,
+      "sha256": "f869a2cdec3acdd2d747dea1324ad354a5d4ac20674d1e5ae1b5ad216ace99e0"
+    },
+    {
+      "name": "kernelbase.dll",
+      "path": "@runtime/kernelbase.dll",
+      "host": false,
+      "imports": 428,
+      "sha256": "c304d8590f45c8dd74936730db92c2a6bea8e17e9aaf329c037eb4d52acfdb7d"
+    }
+  ],
+  "unresolvedImports": []
+}

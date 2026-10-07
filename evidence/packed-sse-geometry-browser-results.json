@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-07T16:04:43.825Z",
+  "status": "passed",
+  "url": "http://127.0.0.1:4201/winebrowser/",
+  "browser": "153.0.8010.12",
+  "exeSha256": "4f232e5ebb7282c1e5d667a8f72dee3fc5aded17a1e5e420ea687ee495b63e48",
+  "scope": "Native PE32 EXE/ZIP uploads: ADDPS/PD, SUBPS/PD, MULPS/PD, DIVPS/PD, SQRTPS/PD, four-vertex 3D normalization and transforms, all MXCSR rounding modes, DAZ/FTZ and mixed-lane sticky exceptions.",
+  "results": [
+    {
+      "name": "packed.exe",
+      "exitCode": 0,
+      "output": "packed-sse-ok: ten packed opcodes; four-vertex 3D normalization and transforms; MXCSR\n",
+      "instructions": 587,
+      "compiledBlocks": 103,
+      "errors": []
+    },
+    {
+      "name": "packed.zip",
+      "exitCode": 0,
+      "output": "packed-sse-ok: ten packed opcodes; four-vertex 3D normalization and transforms; MXCSR\n",
+      "instructions": 587,
+      "compiledBlocks": 103,
+      "errors": []
+    }
+  ]
+}

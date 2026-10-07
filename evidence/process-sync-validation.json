@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-07T15:41:26.398Z",
+  "sourceRevision": "bfbb04d59b53fbbcad05db3fe8eeb18c9f764973",
+  "unitTests": {
+    "passed": 1312,
+    "skipped": 1,
+    "failed": 0,
+    "total": 1313,
+    "skipReason": "The independent x86 packed SSE oracle requires an x86 host; this local run uses Apple Silicon."
+  },
+  "focusedObjectBudgetTests": {
+    "passed": 22,
+    "failed": 0
+  },
+  "staticUploadProfiles": [
+    {
+      "profile": "native-family-ipc",
+      "state": "EXITED",
+      "exitCodes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "profile": "renamed-nested",
+      "state": "EXITED",
+      "exitCodes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "profile": "parent-exit",
+      "state": "EXITED",
+      "exitCodes": [
+        0,
+        0
+      ]
+    },
+    {
+      "profile": "main-thread-exit",
+      "state": "EXITED",
+      "exitCodes": [
+        0
+      ]
+    },
+    {
+      "profile": "stop-pending-waits",
+      "state": "STOPPED"
+    },
+    {
+      "profile": "fresh-upload-after-stop",
+      "state": "EXITED",
+      "exitCodes": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "checks": [
+    "Final static upload acceptance follows the two implementation commits and integration of concurrent scrollbar and packed SSE improvements.",
+    "Unchanged full 7-Zip EXE and codec DLL pass ten compression, extraction, AES-256, wrong-password and corruption cases.",
+    "Native C++ DLLs pass exception, mutex and plugin reload acceptance.",
+    "Unchanged Metapad settings, actual editor indentation, native save and portable configuration reload pass.",
+    "Formatting, public-asset integrity and the Pages production build pass."
+  ],
+  "reports": [
+    "evidence/process-sync-static-browser-results.json",
+    "evidence/7zip-full-browser-results.json",
+    "evidence/cpp-runtime-browser-results.json",
+    "evidence/metapad-settings-browser-results.json"
+  ],
+  "scope": "Shared process-family synchronization and recursive/abandoned mutexes; broader Windows and DLL compatibility remains incomplete.",
+  "applicationReportsFromEarlierIncrement": true
+}

@@ -53,16 +53,18 @@ try {
         ),
       )
       .toEqual(expected);
-  const point = async (i, index) => {
+  const rowPoint = async (row) => {
+    await expect(row).toBeVisible();
     let bounds;
     await expect
       .poll(async () => {
-        bounds = await rows[i].nth(index).boundingBox();
+        bounds = await row.boundingBox();
         return bounds;
       })
       .not.toBeNull();
     return { x: Math.round(bounds.x + 12), y: Math.round(bounds.y + bounds.height / 2) };
   };
+  const point = (i, index) => rowPoint(rows[i].nth(index));
   const move = async (i, index) => {
     const p = await point(i, index);
     await page.mouse.move(p.x, p.y);
@@ -147,11 +149,11 @@ try {
   await expect(combo).toHaveAttribute('aria-expanded', 'true');
   const popup = await nativeComboList(combo),
     popupRows = popup.getByRole('option');
-  let box = await popupRows.nth(0).boundingBox();
-  await page.mouse.move(box.x + 12, box.y + box.height / 2);
+  const firstPoint = await rowPoint(popupRows.nth(0));
+  await page.mouse.move(firstPoint.x, firstPoint.y);
   await page.mouse.down();
-  box = await popupRows.nth(2).boundingBox();
-  await page.mouse.move(box.x + 12, box.y + box.height / 2);
+  const nextPoint = await rowPoint(popupRows.nth(2));
+  await page.mouse.move(nextPoint.x, nextPoint.y);
   await expect(popupRows.nth(2)).toHaveAttribute('aria-selected', 'true');
   await page.mouse.up();
   await expect(combo).toHaveAttribute('aria-expanded', 'false');

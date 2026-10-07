@@ -1,6 +1,6 @@
 import { SIMDFloat } from './simd-float.js';
 
-// Selected legacy SSE/SSE2 operations. AVX remains unsupported.
+// Bounded legacy SSE/SSE2 operations. MMX, AVX and guest #XM delivery remain unsupported.
 export const SIMD_OP = Object.freeze({
   MOVD_XMM_GPR: 1,
   MOVD_XMM_MEM: 2,
@@ -46,11 +46,18 @@ export const SIMD_OP = Object.freeze({
   DWORD_ARITH_XMM_XMM: 42,
   DWORD_ARITH_XMM_MEM: 43,
   SHIFT_BYTES_XMM: 44,
-  FLOAT_PACKED: 45,
+  SHIFT_DWORDS: 45,
+  FLOAT_PACKED: 46,
+  SHUFFLE_FLOAT: 47,
+  UNPACK_FLOAT: 48,
+  MOVMASK_FLOAT: 49,
+  COMPARE_INTEGER: 50,
+  PACK_INTEGER: 51,
+  UNPACK_INTEGER: 52,
 });
 
 const floatingCodes = new WeakMap();
-function floatingInstructionCodes(C) {
+function scalarCodes(C) {
   if (!floatingCodes.has(C)) {
     const codes = new Map();
     for (const [format, suffix, width] of [
@@ -59,8 +66,6 @@ function floatingInstructionCodes(C) {
     ]) {
       for (const [op, name] of ['Add', 'Sub', 'Mul', 'Div', 'Sqrt'].entries())
         codes.set(C[`${name}${suffix}_xmm_xmmm${width}`], { op, format });
-      for (const [op, name] of ['Add', 'Sub', 'Mul', 'Div', 'Sqrt'].entries())
-        codes.set(C[`${name}${format ? 'pd' : 'ps'}_xmm_xmmm128`], { op, format, packed: true });
       codes.set(C[`Cvtsi2${suffix}_xmm_rm32`], { op: 5, format });
       codes.set(C[`Cvt${suffix}2si_r32_xmmm${width}`], { op: 6, format });
       codes.set(C[`Cvtt${suffix}2si_r32_xmmm${width}`], { op: 7, format });
@@ -70,12 +75,49 @@ function floatingInstructionCodes(C) {
       });
       codes.set(C[`Ucomi${suffix}_xmm_xmmm${width}`], { op: 9, format });
       codes.set(C[`Comi${suffix}_xmm_xmmm${width}`], { op: 10, format });
+      codes.set(C[`Min${suffix}_xmm_xmmm${width}`], { op: 11, format });
+      codes.set(C[`Max${suffix}_xmm_xmmm${width}`], { op: 12, format });
+      codes.set(C[`Cmp${suffix}_xmm_xmmm${width}_imm8`], { op: 13, format });
     }
     // This exact conversion already has a cheap integer-to-binary64 path.
     codes.delete(C.Cvtsi2sd_xmm_rm32);
     floatingCodes.set(C, codes);
   }
   return floatingCodes.get(C);
+}
+
+const packedCodes = new WeakMap();
+function packedFloatCodes(C) {
+  if (!packedCodes.has(C)) {
+    const codes = new Map();
+    for (const [format, suffix] of [
+      [0, 'ps'],
+      [1, 'pd'],
+    ]) {
+      for (const [op, name] of ['Add', 'Sub', 'Mul', 'Div', 'Sqrt'].entries())
+        codes.set(C[`${name}${suffix}_xmm_xmmm128`], { op, format, size: 16 });
+      codes.set(C[`Min${suffix}_xmm_xmmm128`], { op: 11, format, size: 16 });
+      codes.set(C[`Max${suffix}_xmm_xmmm128`], { op: 12, format, size: 16 });
+      codes.set(C[`Cmp${suffix}_xmm_xmmm128_imm8`], { op: 13, format, size: 16 });
+      codes.set(C[`Cvtdq2${suffix}_xmm_xmmm${format ? 64 : 128}`], {
+        op: 5,
+        format,
+        size: format ? 8 : 16,
+      });
+      for (const [op, name] of [
+        [6, 'Cvt'],
+        [7, 'Cvtt'],
+      ])
+        codes.set(C[`${name}${suffix}2dq_xmm_xmmm128`], { op, format, size: 16 });
+      codes.set(C[`Cvt${format ? 'ps2pd' : 'pd2ps'}_xmm_xmmm${format ? 64 : 128}`], {
+        op: 8,
+        format,
+        size: format ? 8 : 16,
+      });
+    }
+    packedCodes.set(C, codes);
+  }
+  return packedCodes.get(C);
 }
 
 const ALIGNED_MOVES = new Set(['Movdqa', 'Movaps', 'Movapd']);
@@ -126,25 +168,219 @@ export function classifySse(instruction, iced) {
     return { op: opReg, dst: dst.reg, src: src.reg, addressOperand: -1, aligned: true };
   };
 
-  const floating = floatingInstructionCodes(C).get(instruction.code);
-  if (floating) {
-    const { op, format, packed } = floating;
-    const dst = op === 6 || op === 7 ? gpr(0) : xmm(0);
-    const src = op === 5 ? gpr(1) : xmm(1);
-    const width = packed ? mem128 : op === 5 || (op === 8 ? format : !format) ? mem32 : mem64;
-    if (dst === null || (src === null && !width(1))) return null;
+  const packed = packedFloatCodes(C).get(instruction.code);
+  if (packed) {
+    const dst = xmm(0),
+      src = xmm(1);
+    if (
+      dst === null ||
+      (src === null && memoryBits(instruction, 1, K, MemorySizeExt) !== packed.size * 8)
+    )
+      return null;
     return {
-      op: packed ? SIMD_OP.FLOAT_PACKED : SIMD_OP.FLOAT_SCALAR,
+      op: SIMD_OP.FLOAT_PACKED,
       dst,
       src: src ?? 0,
-      immediate: op | (format << 4) | (src === null ? 32 : 0),
+      immediate:
+        packed.op |
+        (packed.format << 4) |
+        (src === null ? 32 : 0) |
+        (packed.size === 8 ? 64 : 0) |
+        (packed.op === 13 ? (instruction.immediate8 & 7) << 8 : 0),
+      addressOperand: src === null ? 1 : -1,
+      aligned: src === null && packed.size === 16,
+      floating: true,
+    };
+  }
+  const floating = scalarCodes(C).get(instruction.code);
+  if (floating) {
+    const { op, format } = floating;
+    const dst = op === 6 || op === 7 ? gpr(0) : xmm(0);
+    const src = op === 5 ? gpr(1) : xmm(1);
+    const width = op === 5 || (op === 8 ? format : !format) ? mem32 : mem64;
+    if (dst === null || (src === null && !width(1))) return null;
+    return {
+      op: SIMD_OP.FLOAT_SCALAR,
+      dst,
+      src: src ?? 0,
+      immediate:
+        op |
+        (format << 4) |
+        (src === null ? 32 : 0) |
+        (op === 13 ? (instruction.immediate8 & 7) << 8 : 0),
       addressOperand: src === null ? 1 : -1,
       floating: true,
-      aligned: !!packed && src === null,
     };
   }
 
   switch (instruction.code) {
+    case C.Punpcklbw_xmm_xmmm128:
+    case C.Punpckhbw_xmm_xmmm128:
+    case C.Punpcklwd_xmm_xmmm128:
+    case C.Punpckhwd_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = source(1, mem128);
+      if (dst === null || !src) return null;
+      return {
+        op: SIMD_OP.UNPACK_INTEGER,
+        dst,
+        src: src.reg,
+        addressOperand: src.memory ? 1 : -1,
+        aligned: src.memory,
+        immediate:
+          ([C.Punpcklwd_xmm_xmmm128, C.Punpckhwd_xmm_xmmm128].includes(instruction.code) ? 1 : 0) |
+          ([C.Punpckhbw_xmm_xmmm128, C.Punpckhwd_xmm_xmmm128].includes(instruction.code) ? 4 : 0) |
+          (src.memory ? 8 : 0),
+      };
+    }
+    case C.Pcmpgtb_xmm_xmmm128:
+    case C.Pcmpgtw_xmm_xmmm128:
+    case C.Pcmpgtd_xmm_xmmm128:
+    case C.Pcmpeqb_xmm_xmmm128:
+    case C.Pcmpeqw_xmm_xmmm128:
+    case C.Packssdw_xmm_xmmm128:
+    case C.Packsswb_xmm_xmmm128:
+    case C.Packuswb_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = source(1, mem128);
+      if (dst === null || !src) return null;
+      const pack = [
+        C.Packssdw_xmm_xmmm128,
+        C.Packsswb_xmm_xmmm128,
+        C.Packuswb_xmm_xmmm128,
+      ].includes(instruction.code);
+      const mode = pack
+        ? instruction.code === C.Packssdw_xmm_xmmm128
+          ? 0
+          : instruction.code === C.Packsswb_xmm_xmmm128
+            ? 1
+            : 2
+        : [C.Pcmpgtb_xmm_xmmm128, C.Pcmpeqb_xmm_xmmm128].includes(instruction.code)
+          ? 0
+          : instruction.code === C.Pcmpgtd_xmm_xmmm128
+            ? 2
+            : 1;
+      return {
+        op: pack ? SIMD_OP.PACK_INTEGER : SIMD_OP.COMPARE_INTEGER,
+        dst,
+        src: src.reg,
+        addressOperand: src.memory ? 1 : -1,
+        aligned: src.memory,
+        immediate:
+          mode |
+          ([C.Pcmpeqb_xmm_xmmm128, C.Pcmpeqw_xmm_xmmm128].includes(instruction.code) ? 4 : 0) |
+          (src.memory ? 8 : 0),
+      };
+    }
+    case C.Pslld_xmm_imm8:
+    case C.Psrld_xmm_imm8:
+    case C.Psrad_xmm_imm8:
+    case C.Psllw_xmm_imm8:
+    case C.Psrlw_xmm_imm8:
+    case C.Psraw_xmm_imm8:
+    case C.Pslld_xmm_xmmm128:
+    case C.Psrld_xmm_xmmm128:
+    case C.Psrad_xmm_xmmm128:
+    case C.Psllw_xmm_xmmm128:
+    case C.Psrlw_xmm_xmmm128:
+    case C.Psraw_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = xmm(1);
+      const word = [
+        C.Psllw_xmm_imm8,
+        C.Psrlw_xmm_imm8,
+        C.Psraw_xmm_imm8,
+        C.Psllw_xmm_xmmm128,
+        C.Psrlw_xmm_xmmm128,
+        C.Psraw_xmm_xmmm128,
+      ].includes(instruction.code);
+      const immediate = [
+        C.Pslld_xmm_imm8,
+        C.Psrld_xmm_imm8,
+        C.Psrad_xmm_imm8,
+        C.Psllw_xmm_imm8,
+        C.Psrlw_xmm_imm8,
+        C.Psraw_xmm_imm8,
+      ].includes(instruction.code);
+      if (dst === null || (!immediate && src === null && !mem128(1))) return null;
+      const kind = [
+        C.Psrld_xmm_imm8,
+        C.Psrld_xmm_xmmm128,
+        C.Psrlw_xmm_imm8,
+        C.Psrlw_xmm_xmmm128,
+      ].includes(instruction.code)
+        ? 1
+        : [C.Psrad_xmm_imm8, C.Psrad_xmm_xmmm128, C.Psraw_xmm_imm8, C.Psraw_xmm_xmmm128].includes(
+              instruction.code,
+            )
+          ? 2
+          : 0;
+      return {
+        op: SIMD_OP.SHIFT_DWORDS,
+        dst,
+        src: src ?? 0,
+        immediate:
+          kind |
+          (word ? 16 : 0) |
+          (immediate ? 4 | (instruction.immediate8 << 8) : src === null ? 8 : 0),
+        addressOperand: !immediate && src === null ? 1 : -1,
+        aligned: !immediate && src === null,
+      };
+    }
+    case C.Shufps_xmm_xmmm128_imm8:
+    case C.Shufpd_xmm_xmmm128_imm8:
+    case C.Unpcklps_xmm_xmmm128:
+    case C.Unpckhps_xmm_xmmm128:
+    case C.Unpcklpd_xmm_xmmm128:
+    case C.Unpckhpd_xmm_xmmm128:
+    case C.Punpckhdq_xmm_xmmm128:
+    case C.Punpckhqdq_xmm_xmmm128: {
+      const dst = xmm(0),
+        src = xmm(1);
+      if (dst === null || (src === null && !mem128(1))) return null;
+      const shuffle = [C.Shufps_xmm_xmmm128_imm8, C.Shufpd_xmm_xmmm128_imm8].includes(
+        instruction.code,
+      );
+      const double = [
+        C.Shufpd_xmm_xmmm128_imm8,
+        C.Unpcklpd_xmm_xmmm128,
+        C.Unpckhpd_xmm_xmmm128,
+        C.Punpckhqdq_xmm_xmmm128,
+      ].includes(instruction.code);
+      return {
+        op: shuffle ? SIMD_OP.SHUFFLE_FLOAT : SIMD_OP.UNPACK_FLOAT,
+        dst,
+        src: src ?? 0,
+        immediate:
+          (shuffle
+            ? instruction.immediate8
+            : [
+                  C.Unpckhps_xmm_xmmm128,
+                  C.Unpckhpd_xmm_xmmm128,
+                  C.Punpckhdq_xmm_xmmm128,
+                  C.Punpckhqdq_xmm_xmmm128,
+                ].includes(instruction.code)
+              ? 1
+              : 0) |
+          (double ? 256 : 0) |
+          (src === null ? 512 : 0),
+        addressOperand: src === null ? 1 : -1,
+        aligned: src === null,
+      };
+    }
+    case C.Movmskps_r32_xmm:
+    case C.Movmskpd_r32_xmm: {
+      const dst = gpr(0),
+        src = xmm(1);
+      if (dst === null || src === null) return null;
+      return {
+        op: SIMD_OP.MOVMASK_FLOAT,
+        dst,
+        src,
+        addressOperand: -1,
+        immediate: instruction.code === C.Movmskpd_r32_xmm ? 1 : 0,
+      };
+    }
     case C.Ldmxcsr_m32:
     case C.Stmxcsr_m32:
       if (!mem32(0)) return null;
@@ -551,9 +787,15 @@ export class SIMDState {
               ? [this.generalRegisters[src].value, 0]
               : s;
         const binary = operation <= 3 || operation >= 9;
-        const result = this.float.execute(operation, double, binary ? d : value, value);
+        const result = this.float.execute(
+          operation,
+          double,
+          binary ? d : value,
+          value,
+          immediate >>> 8,
+        );
         if (operation === 6 || operation === 7) this.generalRegisters[dst].value = result[0] | 0;
-        else if (operation >= 9) {
+        else if (operation === 9 || operation === 10) {
           const comparison = result[0] | 0;
           Object.assign(this.flags.f, {
             cf: comparison === -1 || comparison === 2 ? 1 : 0,
@@ -570,8 +812,132 @@ export class SIMDState {
         return;
       }
       case SIMD_OP.FLOAT_PACKED: {
-        const value = immediate & 32 ? load(16) : s;
-        d.set(this.float.executePacked(immediate & 15, !!(immediate & 16), d, value));
+        const value = immediate & 32 ? load(immediate & 64 ? 8 : 16) : s;
+        d.set(this.float.packed(immediate & 15, !!(immediate & 16), d, value, immediate >>> 8));
+        return;
+      }
+      case SIMD_OP.SHIFT_DWORDS: {
+        const countWords = immediate & 4 ? null : immediate & 8 ? load(16) : s;
+        const count = countWords
+          ? countWords[1]
+            ? 32
+            : Math.min(32, countWords[0])
+          : immediate >>> 8;
+        const kind = immediate & 3;
+        if (immediate & 16) {
+          for (let i = 0; i < 4; i++) {
+            let out = 0;
+            for (let half = 0; half < 2; half++) {
+              const value = (d[i] >>> (half * 16)) & 0xffff;
+              const shifted =
+                kind === 2
+                  ? ((value << 16) >> 16) >> Math.min(count, 15)
+                  : count >= 16
+                    ? 0
+                    : kind === 1
+                      ? value >>> count
+                      : value << count;
+              out |= (shifted & 0xffff) << (half * 16);
+            }
+            d[i] = out;
+          }
+          return;
+        }
+        for (let i = 0; i < 4; i++)
+          d[i] =
+            kind === 2
+              ? (d[i] | 0) >> Math.min(count, 31)
+              : count >= 32
+                ? 0
+                : kind === 1
+                  ? d[i] >>> count
+                  : d[i] << count;
+        return;
+      }
+      case SIMD_OP.SHUFFLE_FLOAT:
+      case SIMD_OP.UNPACK_FLOAT: {
+        const value = immediate & 512 ? load(16) : s;
+        const result = new Uint32Array(4),
+          double = !!(immediate & 256);
+        if (op === SIMD_OP.SHUFFLE_FLOAT) {
+          if (double)
+            result.set([
+              d[(immediate & 1) * 2],
+              d[(immediate & 1) * 2 + 1],
+              value[((immediate >>> 1) & 1) * 2],
+              value[((immediate >>> 1) & 1) * 2 + 1],
+            ]);
+          else
+            result.set([
+              d[immediate & 3],
+              d[(immediate >>> 2) & 3],
+              value[(immediate >>> 4) & 3],
+              value[(immediate >>> 6) & 3],
+            ]);
+        } else {
+          const at = immediate & 1 ? 2 : 0;
+          result.set(
+            double
+              ? [d[at], d[at + 1], value[at], value[at + 1]]
+              : [d[at], value[at], d[at + 1], value[at + 1]],
+          );
+        }
+        d.set(result);
+        return;
+      }
+      case SIMD_OP.MOVMASK_FLOAT: {
+        let mask = 0;
+        for (let i = 0; i < (immediate ? 2 : 4); i++)
+          mask |= (s[immediate ? i * 2 + 1 : i] >>> 31) << i;
+        this.generalRegisters[dst].value = mask;
+        return;
+      }
+      case SIMD_OP.COMPARE_INTEGER:
+      case SIMD_OP.PACK_INTEGER: {
+        const value = immediate & 8 ? load(16) : s,
+          result = new Uint32Array(4),
+          mode = immediate & 3;
+        const width = op === SIMD_OP.PACK_INTEGER ? (mode ? 16 : 32) : 8 << mode;
+        const mask = 2 ** width - 1,
+          lanes = 128 / width;
+        const signed = (words, lane) =>
+          (((words[Math.floor((lane * width) / 32)] >>> ((lane * width) & 31)) & mask) <<
+            (32 - width)) >>
+          (32 - width);
+        if (op === SIMD_OP.COMPARE_INTEGER) {
+          for (let lane = 0; lane < lanes; lane++) {
+            const a = signed(d, lane),
+              b = signed(value, lane);
+            if (immediate & 4 ? a === b : a > b)
+              result[Math.floor((lane * width) / 32)] |= mask << ((lane * width) & 31);
+          }
+        } else {
+          const outWidth = width / 2,
+            outMask = 2 ** outWidth - 1;
+          const low = mode === 2 ? 0 : -(2 ** (outWidth - 1)),
+            high = mode === 2 ? 255 : 2 ** (outWidth - 1) - 1;
+          for (let lane = 0; lane < lanes * 2; lane++) {
+            const input = signed(lane < lanes ? d : value, lane % lanes);
+            result[Math.floor((lane * outWidth) / 32)] |=
+              (Math.max(low, Math.min(high, input)) & outMask) << ((lane * outWidth) & 31);
+          }
+        }
+        d.set(result);
+        return;
+      }
+      case SIMD_OP.UNPACK_INTEGER: {
+        const value = immediate & 8 ? load(16) : s,
+          result = new Uint32Array(4);
+        const width = immediate & 1 ? 16 : 8,
+          lanes = 128 / width,
+          mask = 2 ** width - 1;
+        for (let lane = 0; lane < lanes; lane++) {
+          const from = (lane >>> 1) + (immediate & 4 ? lanes / 2 : 0),
+            words = lane & 1 ? value : d;
+          const bits = (words[Math.floor((from * width) / 32)] >>> ((from * width) & 31)) & mask;
+          result[Math.floor((lane * width) / 32)] |= bits << ((lane * width) & 31);
+        }
+        d.set(result);
         return;
       }
       case SIMD_OP.CVTSI2SD_XMM_GPR:
