@@ -6,19 +6,19 @@ hosting. Eight independent jobs download that exact build and run the remaining
 Pages-style browser checks. Deployment requires the verification job and every
 browser group to succeed.
 
-| Group           | Checks                                                                  |
-| --------------- | ----------------------------------------------------------------------- |
-| core            | 19: native packed SSE, LAME, FOSS tools, DLL loading, processes and CRT |
-| controls        | 28: GUI controls, pointer capture, menus, lists and windows             |
-| gdi-shapes      | 9: region, shape, bitmap, cursor, scrollbar and frame rendering         |
-| gdi-pixels      | 9: brush, alpha, path, transfer and bitmap examples                     |
-| dialogs         | 24: dialogs, native fonts, Metapad, toolbar and property sheets         |
-| legacy-graphics | 15: DirectDraw, D3D8/9, OpenGL, Humus demos and 7-Zip                   |
-| directx12       | 13: DX12 demos, buffers, textures and render targets                    |
-| vulkan          | 6: Vulkan, skinning, exceptions and executable memory                   |
+| Group           | Checks                                                                   |
+| --------------- | ------------------------------------------------------------------------ |
+| core            | 21: native SSE, LAME, Python/ctypes, FOSS tools, DLLs, processes and CRT |
+| controls        | 28: GUI controls, pointer capture, menus, lists and windows              |
+| gdi-shapes      | 9: region, shape, bitmap, cursor, scrollbar and frame rendering          |
+| gdi-pixels      | 9: brush, alpha, path, transfer and bitmap examples                      |
+| dialogs         | 24: dialogs, native fonts, Metapad, toolbar and property sheets          |
+| legacy-graphics | 15: DirectDraw, D3D8/9, OpenGL, Humus demos and 7-Zip                    |
+| directx12       | 13: DX12 demos, buffers, textures and render targets                     |
+| vulkan          | 6: Vulkan, skinning, exceptions and executable memory                    |
 
-`runtime/test-suites/static-host.json` lists 123 distinct invocations with their
-required environment options: 122 retained checks plus clipboard acceptance.
+`runtime/test-suites/static-host.json` lists 125 distinct invocations with their
+required environment options: 122 retained checks plus clipboard and both original Python acceptances.
 The original serialized
 workflow block is retained verbatim with its hash and commit. The runner checks
 that every original test remains present; the two duplicate packed-SSE/LAME
