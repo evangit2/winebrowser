@@ -326,6 +326,17 @@
       "sourceZip": "icon-bitmap/source.zip",
       "sourceZipSha256": "62f52c2a409f850995a537787f787a4c964373d429825deeb86e005df40bf231",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-alpha",
+      "description": "Native alpha blending GUI: color, alpha and mono masks; copies after source deletion, owned bitmap-plane roundtrip, clipping and three native drawing channels. Close to finish.",
+      "exe": "gdi-alpha/gdi-alpha.exe",
+      "exeSha256": "7bfbc6f72bf558974a07f2abb5ccb332f3bd1ab1af59a0e3b586ba0722135a57",
+      "zip": "gdi-alpha/gdi-alpha.zip",
+      "zipSha256": "88ebc998167e9d4be629bf4307283e87ece1e188437b2259763166d22c324067",
+      "sourceZip": "gdi-alpha/source.zip",
+      "sourceZipSha256": "276623489ead0c5cc6ddd4f7c9995b6ad2f8d99e626db4282528aafde74d37c5",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

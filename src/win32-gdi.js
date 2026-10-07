@@ -13,6 +13,7 @@ import {
 } from './gdi-dib.js';
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
+import { createAlphaBlendApis } from './gdi-alpha.js';
 import { createBitmapIconApis } from './gdi-icon.js';
 import { createRegionApis } from './gdi-region.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
@@ -2934,6 +2935,7 @@ function arc(runtime, argument) {
 }
 
 export const gdiApis = {
+  ...createAlphaBlendApis({ stateFor, getDc, readablePixels, success, failure }),
   ...createBitmapIconApis({
     stateFor,
     snapshotBitmap: snapshotIconBitmap,

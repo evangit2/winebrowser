@@ -643,3 +643,29 @@ monochrome scaling and alpha retention. Custom bitmap-created cursors,
 flicker-brush/animated drawing and additional CopyImage conversion/resource
 flags remain unsupported. Indexed color source constructors and broader native
 common-controls execution remain unfinished.
+
+### Native alpha blending
+
+`msimg32.dll!AlphaBlend` and `gdi32.dll!GdiAlphaBlend` draw bounded source-over
+pixels into window, memory and readable control DCs. Constant alpha uses one
+rounded weighted sum; premultiplied pixel alpha uses separate rounded source
+and destination products. Both match actual desktop Wine RGB and raw 32-bit
+DIB destination alpha at opacity 0, 1, 2, 64, 127, 128, 254 and 255. The raw
+alpha channel remains distinct from the opaque display shadow and survives
+same-size bitmap copies and later pixel-alpha blending.
+
+Source scaling uses nearest sampling. Source clips are ignored; copied complex
+destination regions apply. Overlap on the same surface, negative extents and
+source bounds fail before drawing. Zero extents succeed without painting.
+24-bit sources use opaque alpha for global blending and reject AC_SRC_ALPHA.
+Bottom-up DIB orientation and retained 32-bit DDB alpha have explicit checks.
+Nonstandard 32-bit masks, per-pixel display sources and unreadable control
+backgrounds fail explicitly instead of painting invented pixels.
+
+The original MIT **gdi-alpha** SDK GUI compares both DLL entry points across
+seven interactive stages. Its unchanged native EXE is compiled into Wasm
+inside the browser in EXE/ZIP/catalog modes; each stage checks all 86,400 pixels
+of the drawing area against native Wine snapshots. The source archive includes
+the deterministic build and both desktop Wine oracles. This adds another GUI
+library path; universal compatibility and native comctl32 execution remain
+unproven.

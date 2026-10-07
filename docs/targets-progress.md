@@ -398,3 +398,12 @@ actual desktop Wine pixel snapshots, including destination inversion, source
 deletion, resizing, alpha roundtrips and clipping. Native comctl32 auditing
 now reports 31 unresolved dependencies, down from 36. This does not prove
 execution of native comctl32, 7-Zip File Manager or universal DLL support.
+
+The original MIT **gdi-alpha** Windows SDK GUI now exercises msimg32 AlphaBlend
+and gdi32 GdiAlphaBlend through constant/per-pixel opacity, low-opacity rounding,
+complex clipping and zero/full opacity. Chromium checks seven stages in native
+EXE, ZIP and catalog modes (86,400 pixels/stage), with browser-local x86-to-Wasm
+translation. Unit checks compare 17 native Wine snapshots including destination
+alpha bytes, plus a separate native 24-bit source oracle, bottom-up DIBs and
+copied DDB alpha ownership. This does not establish general DLL compatibility
+or unchanged native common-controls execution.
