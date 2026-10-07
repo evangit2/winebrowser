@@ -337,3 +337,5 @@ clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.e
 **Shared GUI bitmaps:** CreateDIBSection gives native EXEs, DLLs and GDI coherent packed/BGR pixel memory, with color tables, descriptors and bitmap format inheritance. The public **Load gdi-section** GUI cycles DLL writes, GDI paint and CRT clearing (`npm run test:gdi-section`). File-mapping-backed DIB sections remain unfinished.
 
 **GUI bitmap transfers:** [GetDIBits/SetDIBits](docs/gdi-display.md) support uncompressed RGB, palettes, bitfields and partial scanline updates. The authored native GUI fixture checks six pixel depths and independently verified keyboard-driven bitmap repaints in Chromium (`npm run test:gdi-dib`). Compressed DIBs and full GDI conformance remain unfinished.
+
+Named events, semaphores and owned recursive mutexes support uploaded parent/child processes in a shared, per-run namespace. Recursive acquisition, thread/process abandonment, child handle lifetime and Stop/reupload are verified through native Wine calls. See [process synchronization](docs/process-synchronization.md) for acceptance and remaining IPC limits.

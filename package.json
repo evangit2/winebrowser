@@ -353,7 +353,9 @@
     "build:scroll-state": "sh scripts/build-scroll-state-fixture.sh && python3 scripts/package-scroll-state.py",
     "test:scroll-state": "node scripts/test-scroll-state-browser.mjs",
     "build:scroll-controls": "sh scripts/build-scroll-controls-fixture.sh && python3 scripts/package-scroll-controls.py",
-    "test:scroll-controls": "node scripts/test-scroll-controls-browser.mjs"
+    "test:scroll-controls": "node scripts/test-scroll-controls-browser.mjs",
+    "build:process-sync": "sh scripts/build-process-sync-fixture.sh",
+    "test:process-sync": "node scripts/test-process-sync-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

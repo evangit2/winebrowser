@@ -38,10 +38,11 @@ function attributes(r, p, open = false) {
 }
 function create(r, a, open = false, kind = 'event') {
   const directory = kind === 'directory',
+    mutex = kind === 'mutex',
     semaphore = kind === 'semaphore';
   if (!syncChecked(r, a(0), 4, true)) return SYNC.FAULT;
   r.write32(a(0), 0);
-  if (!open && (semaphore ? (a(3) | 0) < 0 || (a(4) | 0) <= 0 || a(3) > a(4) : a(3) > 1))
+  if (!open && (semaphore ? (a(3) | 0) < 0 || (a(4) | 0) <= 0 || a(3) > a(4) : !mutex && a(3) > 1))
     return SYNC.INVALID;
   const attr = attributes(r, a(2), open);
   if (attr.status) return attr.status;
@@ -55,7 +56,9 @@ function create(r, a, open = false, kind = 'event') {
       ? objects.directory(attr.name, a(1), attr.inherit)
       : semaphore
         ? objects.semaphore({ ...attr, access: a(1), open, initial: a(3) | 0, maximum: a(4) | 0 })
-        : objects.event({ ...attr, access: a(1), open, manual: !a(3), signaled: !!a(4) });
+        : mutex
+          ? objects.mutex({ ...attr, access: a(1), open, initialOwner: !!a(3) })
+          : objects.event({ ...attr, access: a(1), open, manual: !a(3), signaled: !!a(4) });
   if (result.handle) r.write32(a(0), result.handle);
   return result.status;
 }
@@ -135,6 +138,41 @@ function queryDirectory(r, a) {
   return !a(3) && start + selected.length < entries.length ? 0x105 : 0;
 }
 export const syncNtServices = {
+  NtCreateMutant: { argc: 4, call: (r, a) => create(r, a, false, 'mutex') },
+  NtOpenMutant: { argc: 3, call: (r, a) => create(r, a, true, 'mutex') },
+  NtReleaseMutant: {
+    argc: 2,
+    call(r, a) {
+      if (a(1) && !syncChecked(r, a(1), 4, true)) return SYNC.FAULT;
+      const result = syncObjects(r).releaseMutex(a(0));
+      if (!result.status && a(1)) r.write32(a(1), result.previous);
+      return result.status;
+    },
+  },
+  NtQueryMutant: {
+    argc: 5,
+    call(r, a) {
+      if (a(1) > 1) return 0xc0000003;
+      if (a(3) !== 8) return 0xc0000004;
+      if (!syncChecked(r, a(2), 8, true) || (a(4) && !syncChecked(r, a(4), 4, true)))
+        return SYNC.FAULT;
+      const objects = syncObjects(r),
+        found = objects.lookup(a(0), 'sync-mutex', SYNC.QUERY);
+      if (found.status) return found.status;
+      const object = found.object;
+      r.data.fill(0, a(2), a(2) + 8);
+      if (a(1) === 0) {
+        r.write32(a(2), 1 - object.depth);
+        r.data[a(2) + 4] = Number(object.owner === objects.owner());
+        r.data[a(2) + 5] = Number(object.abandoned);
+      } else if (object.owner) {
+        r.write32(a(2), object.ownerRuntime.processId);
+        r.write32(a(2) + 4, object.owner.id);
+      }
+      if (a(4)) r.write32(a(4), 8);
+      return 0;
+    },
+  },
   NtCreateSemaphore: { argc: 5, call: (r, a) => create(r, a, false, 'semaphore') },
   NtOpenSemaphore: { argc: 3, call: (r, a) => create(r, a, true, 'semaphore') },
   NtReleaseSemaphore: {

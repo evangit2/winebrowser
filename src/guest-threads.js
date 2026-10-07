@@ -367,6 +367,7 @@ export class GuestThreads {
       if (thread.alertHandle) syncObjects(r).close(thread.alertHandle);
       thread.code ??= 0;
       thread.done = true;
+      this.r.syncObjects?.abandon(thread);
       thread.object.signaled = true;
       syncObjects(r).dispatch();
       this.records.delete(thread.id);
@@ -463,6 +464,7 @@ export class GuestThreads {
   }
   async waitForChildren() {
     this.main.done = true;
+    this.r.syncObjects?.abandon(this.main);
     if (this.main.object) {
       this.main.object.signaled = true;
       syncObjects(this.r).dispatch();
