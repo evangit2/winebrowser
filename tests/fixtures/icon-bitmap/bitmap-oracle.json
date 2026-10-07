@@ -1,0 +1,47 @@
+{
+  "reference": "Wine11 desktop x86 macOS; actual native CreateBitmap/CopyImage/GetDIBits, with WORD-aligned monochrome rows, color resampling and alpha preservation",
+  "sameSizeReturnOrg": false,
+  "cases": [
+    {
+      "width": 2,
+      "height": 2,
+      "depth": 32,
+      "lines": 2,
+      "pixels": [2148540464, 2151698528, 2154856592, 4288721088]
+    },
+    {
+      "width": 2,
+      "height": 2,
+      "depth": 32,
+      "lines": 2,
+      "pixels": [2148540464, 2151698528, 2154856592, 4288721088]
+    },
+    {
+      "width": 3,
+      "height": 3,
+      "depth": 32,
+      "lines": 3,
+      "pixels": [1056816, 3162192, 4214880, 5267568, 7372944, 8425632, 7372944, 9478320, 10531008]
+    },
+    {
+      "width": 4,
+      "height": 4,
+      "depth": 32,
+      "lines": 4,
+      "pixels": [
+        1056816, 2635848, 4214880, 4214880, 4214880, 5793912, 7372944, 7372944, 7372944, 8951976,
+        10531008, 10531008, 7372944, 8951976, 10531008, 10531008
+      ]
+    },
+    {
+      "width": 4,
+      "height": 4,
+      "depth": 1,
+      "lines": 4,
+      "pixels": [
+        16777215, 16777215, 0, 0, 16777215, 16777215, 0, 0, 0, 0, 16777215, 16777215, 0, 0,
+        16777215, 16777215
+      ]
+    }
+  ]
+}

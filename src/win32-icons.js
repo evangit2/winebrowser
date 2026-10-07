@@ -18,9 +18,9 @@ function state(runtime) {
   return value;
 }
 
-function fail(runtime, error) {
+function fail(runtime, error, argc = 2) {
   runtime.lastError = error;
-  return ok(0, 2);
+  return ok(0, argc);
 }
 
 export function parseGroupIcon(bytes) {
@@ -123,6 +123,8 @@ export function decodeIconDib(bytes, expected = {}) {
       }
     }
   }
+  const xorPixels = pixels.slice(),
+    maskPixels = new Uint8Array(width * height);
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) {
       const out = (y * width + x) * 4;
@@ -131,6 +133,7 @@ export function decodeIconDib(bytes, expected = {}) {
         bytes[maskOffset + sourceY * maskStride + (x >> 3)] &
         (0x80 >> (x & 7))
       );
+      maskPixels[y * width + x] = transparent ? 255 : 0;
       // For 32-bit icons with alpha, Windows uses the alpha channel and ignores
       // the legacy monochrome mask. Alpha-less and indexed icons use the mask.
       if (bitCount !== 32 || !hasAlpha) {
@@ -139,7 +142,17 @@ export function decodeIconDib(bytes, expected = {}) {
         pixels[out + 3] = transparent ? 0 : 255;
       }
     }
-  return Object.freeze({ width, height, pixels });
+  return Object.freeze({
+    width,
+    height,
+    pixels,
+    native: {
+      mask: maskPixels,
+      color: xorPixels,
+      alpha: bitCount === 32 && hasAlpha,
+      monochrome: false,
+    },
+  });
 }
 
 function moduleAt(runtime, base) {
@@ -215,9 +228,24 @@ export function iconHandleForGroup(runtime, module, name) {
   return handle;
 }
 
+function cloneIcon(icon) {
+  return {
+    ...icon,
+    pixels: icon.pixels.slice(),
+    ...(icon.native
+      ? {
+          native: {
+            ...icon.native,
+            mask: icon.native.mask.slice(),
+            color: icon.native.color.slice(),
+          },
+        }
+      : {}),
+  };
+}
 export function iconForHandle(runtime, handle) {
   const icon = state(runtime).handles.get(handle);
-  return icon ? { width: icon.width, height: icon.height, pixels: icon.pixels.slice() } : null;
+  return icon ? cloneIcon(icon) : null;
 }
 
 // Shell namespace icons are owned by their caller, unlike cached LoadIcon
@@ -238,14 +266,24 @@ export function createOwnedIcon(runtime, icon) {
   if (icons.handles.size >= MAX_ICONS) throw Error('Icon handle limit exceeded');
   const handle = icons.next;
   icons.next += 4;
-  icons.handles.set(
-    handle,
-    Object.freeze({ width: icon.width, height: icon.height, pixels: icon.pixels.slice() }),
-  );
+  icons.handles.set(handle, Object.freeze(cloneIcon(icon)));
   return handle;
 }
 
 export const iconApis = {
+  'user32.dll!CopyIcon': (r, a) => {
+    const icon = iconForHandle(r, a(0) >>> 0);
+    if (!icon) {
+      r.lastError = 1402;
+      return ok(0, 1);
+    }
+    try {
+      return ok(createOwnedIcon(r, icon), 1);
+    } catch {
+      r.lastError = 8;
+      return ok(0, 1);
+    }
+  },
   'user32.dll!LoadIconA': (runtime, argument) => loadIcon(runtime, argument, false),
   'user32.dll!LoadIconW': (runtime, argument) => loadIcon(runtime, argument, true),
   // DestroyIcon releases a handle LoadIcon created. Shared cursors are not

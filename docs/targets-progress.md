@@ -390,3 +390,11 @@ ZIP and catalog modes, with 86,400 surface pixels checked per stage against
 native Wine snapshots. Its published source independently rebuilds the exact
 EXE. Native comctl32 auditing now finds 36 unresolved dependencies; resolving
 imports alone does not prove native common-controls execution.
+
+Bitmap icon construction, copied icon/bitmap ownership, native GetIconInfo
+planes and masked/alpha drawing now support the original MIT **icon-bitmap**
+Windows SDK GUI. It verifies seven stages in all three loading modes against
+actual desktop Wine pixel snapshots, including destination inversion, source
+deletion, resizing, alpha roundtrips and clipping. Native comctl32 auditing
+now reports 31 unresolved dependencies, down from 36. This does not prove
+execution of native comctl32, 7-Zip File Manager or universal DLL support.

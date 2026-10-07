@@ -617,3 +617,29 @@ snapshots. An independent 26-case Wine pixel oracle covers clipping, degenerate
 bounds, double drawing, state independence and brush phases. This resolves two
 native common-control drawing imports; native comctl32 execution and broader
 Windows compatibility still require additional APIs.
+
+Bitmap-backed icons now retain separate native AND-mask and XOR-color planes.
+`CreateIconIndirect` copies monochrome masks and 24/32-bit color bitmaps, or
+both stacked planes of a monochrome icon; the original HBITMAPs can be deleted.
+`CopyIcon` and icon `CopyImage` independently own their pixels and mask planes.
+`GetIconInfo` returns newly allocated, caller-owned mask/color DDB handles,
+normalized icon hotspots and a guarded PE32 ICONINFO. Color planes retain
+native alpha through GetDIBits and reconstruction. Bitmap `CopyImage` uses
+native color interpolation when resizing, retains monochrome mask bits, keeps
+same-size alpha, clears resized-color alpha and ignores bitmap COPYRETURNORG.
+
+`DrawIconEx` now distinguishes no image channel, mask-only, image-only and
+normal drawing. Legacy normal icons apply native AND/XOR destination operations;
+32-bit alpha takes precedence over the legacy mask. Rendering uses the DC's
+copied clips and bounded visible loops, including extreme coordinates. Pixels
+requiring an unreadable control background fail explicitly. `DrawIcon` uses
+the native default icon dimensions. Shared resource decoding retains native
+mask planes, and copied handles cannot mutate the original through callbacks.
+
+The original MIT **icon-bitmap** GUI checks seven stages in EXE/ZIP/catalog
+modes, all 86,400 drawing-area pixels per stage, against 16 actual Wine SDK
+pixel snapshots. A separate native bitmap oracle verifies color interpolation,
+monochrome scaling and alpha retention. Custom bitmap-created cursors,
+flicker-brush/animated drawing and additional CopyImage conversion/resource
+flags remain unsupported. Indexed color source constructors and broader native
+common-controls execution remain unfinished.

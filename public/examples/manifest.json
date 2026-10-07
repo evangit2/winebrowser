@@ -315,6 +315,17 @@
       "sourceZip": "gdi-frames/source.zip",
       "sourceZipSha256": "e28e50e6bbf0a09690857968e2dcf2a539e50982ac49b68652aeb309835ba0f7",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "icon-bitmap",
+      "description": "Native bitmap icon GUI: color, alpha and mono masks; copies after source deletion, owned bitmap-plane roundtrip, clipping and three native drawing channels. Close to finish.",
+      "exe": "icon-bitmap/icon-bitmap.exe",
+      "exeSha256": "8b8cdfc11e8f80afd422fb64a03ffbd832471146acca9b6d3c77798ee1c34f83",
+      "zip": "icon-bitmap/icon-bitmap.zip",
+      "zipSha256": "f71e9a2df529890746e060fdf49335b184696f581e5321064e15ed75109f1f92",
+      "sourceZip": "icon-bitmap/source.zip",
+      "sourceZipSha256": "62f52c2a409f850995a537787f787a4c964373d429825deeb86e005df40bf231",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

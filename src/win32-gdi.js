@@ -13,6 +13,7 @@ import {
 } from './gdi-dib.js';
 import { iconForHandle } from './win32-icons.js';
 import { clipPieces, setClipPieces, subtractClip, intersectClip } from './gdi-clip.js';
+import { createBitmapIconApis } from './gdi-icon.js';
 import { createRegionApis } from './gdi-region.js';
 import { MAX_WINDOW_WIDTH, MAX_WINDOW_HEIGHT } from './window-frame.js';
 import { currentDisplayMode, VIRTUAL_DISPLAY_MODES } from './win32-display.js';
@@ -1344,6 +1345,9 @@ function createBitmap(runtime, argument) {
       return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
     }
   }
+  const iconAlpha = bitCount === 32 ? new Uint8Array(width * height) : null;
+  if (iconAlpha && bits)
+    for (let i = 0; i < iconAlpha.length; i++) iconAlpha[i] = runtime.data[bits + i * 4 + 3];
   const allocated = allocateHandle(runtime, state, 5);
   if (!allocated.result) return allocated;
   state.bitmaps.set(allocated.result, {
@@ -1353,6 +1357,7 @@ function createBitmap(runtime, argument) {
     height,
     monochrome: bitCount === 1,
     depth: bitCount,
+    iconAlpha,
     pixels,
     dirty: false,
   });
@@ -1618,6 +1623,8 @@ function getDIBits(r, a) {
     for (let x = 0; x < Math.min(layout.width, bitmap.width); x++) {
       const at = (y * bitmap.width + x) * 4;
       writeDibPixel(r, layout, bits + row * layout.stride, x, bitmap.pixels.subarray(at, at + 3));
+      if (bitmap.iconAlpha && layout.depth === 32 && layout.compression === 0)
+        r.data[bits + row * layout.stride + x * 4 + 3] = bitmap.iconAlpha[at / 4];
     }
   }
   writeDibColorTable(r, layout, usage);
@@ -1820,60 +1827,135 @@ function getCharacterPlacement(runtime, argument) {
   void flags;
 }
 
-// DrawIconEx(HDC, X, Y, HICON, Cx, Cy, Istep, HbrFlickerFree, DiFlags) paints a
-// decoded icon at the requested size. The runtime's icon objects carry RGBA
-// pixels, so this is a straightforward scaled blit; the flicker brush and the
-// animation step only matter for an animated cursor, which the desktop draws
-// itself.
+function snapshotIconBitmap(r, state, handle) {
+  const bitmap = state.bitmaps.get(handle);
+  if (!bitmap) return null;
+  refreshDibPixels(r, bitmap);
+  const depth = bitmap.dib?.layout.depth ?? bitmap.depth ?? (bitmap.monochrome ? 1 : 32);
+  const pixels = new Uint8Array(bitmap.pixels);
+  if (depth === 32) {
+    const dib = bitmap.dib;
+    for (let y = 0; y < bitmap.height; y++)
+      for (let x = 0; x < bitmap.width; x++) {
+        const i = (y * bitmap.width + x) * 4;
+        pixels[i + 3] = dib
+          ? r.data[
+              dib.bits +
+                (dib.layout.signedHeight < 0 ? y : bitmap.height - 1 - y) * dib.layout.stride +
+                x * 4 +
+                3
+            ]
+          : (bitmap.iconAlpha?.[i / 4] ?? 0);
+      }
+  }
+  if (depth === 1 && bitmap.dib) {
+    const { layout, bits } = bitmap.dib;
+    for (let y = 0; y < bitmap.height; y++)
+      for (let x = 0; x < bitmap.width; x++) {
+        const row = layout.signedHeight < 0 ? y : bitmap.height - 1 - y;
+        const value = r.data[bits + row * layout.stride + (x >> 3)] & (0x80 >> (x & 7)) ? 255 : 0;
+        pixels.set([value, value, value, 255], (y * bitmap.width + x) * 4);
+      }
+  }
+  return { width: bitmap.width, height: bitmap.height, depth, pixels };
+}
+function ownIconBitmap(r, state, width, height, depth, source) {
+  if (width * height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS) return 0;
+  const allocated = allocateHandle(r, state, 0);
+  if (!allocated.result) return 0;
+  const pixels = new Uint8ClampedArray(source),
+    iconAlpha = depth === 32 ? new Uint8Array(width * height) : null;
+  for (let i = 0; i < width * height; i++) {
+    if (iconAlpha) iconAlpha[i] = pixels[i * 4 + 3];
+    pixels[i * 4 + 3] = 255;
+  }
+  state.bitmaps.set(allocated.result, {
+    kind: 'bitmap',
+    stock: false,
+    width,
+    height,
+    depth,
+    monochrome: depth === 1,
+    pixels,
+    iconAlpha,
+    dirty: false,
+    selectedBy: null,
+  });
+  return allocated.result;
+}
+
+// Native image/mask channels, alpha and destination XOR are distinct operations.
 function drawIconEx(runtime, argument) {
-  const state = stateFor(runtime);
-  const dc = getDc(runtime, state, argument(0));
+  const state = stateFor(runtime),
+    dc = getDc(runtime, state, argument(0));
   if (!dc) return badDc(runtime, 9);
-  const x = signed(argument(1));
-  const y = signed(argument(2));
-  const icon = iconForHandle(runtime, argument(3) >>> 0);
+  const x = signed(argument(1)),
+    y = signed(argument(2)),
+    icon = iconForHandle(runtime, argument(3) >>> 0);
   if (!icon) return failure(runtime, ERROR_INVALID_HANDLE, 0, 9);
   const flags = argument(8) >>> 0;
-  if (flags & ~0xf) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
-  // DI_NORMAL (0x3) draws the image; DI_MASK/DI_IMAGE select one channel.
-  const drawMaskOnly = flags & 0x1 && !(flags & 0x2);
-  const width = Math.max(1, argument(4) ? Math.abs(signed(argument(4))) : icon.width);
-  const height = Math.max(1, argument(5) ? Math.abs(signed(argument(5))) : icon.height);
-  const surface = dc.surface;
-  for (let py = 0; py < height; py++) {
-    const sy = Math.min(icon.height - 1, Math.floor((py * icon.height) / height));
-    for (let px = 0; px < width; px++) {
-      const sx = Math.min(icon.width - 1, Math.floor((px * icon.width) / width));
-      const source = (sy * icon.width + sx) * 4;
-      const alpha = icon.pixels[source + 3];
-      const targetX = x + px,
-        targetY = y + py;
-      if (!visiblePixel(surface, dc, targetX, targetY)) continue;
-      const offset = (targetY * surface.width + targetX) * 4;
-      if (drawMaskOnly) {
-        surface.pixels[offset] = 0;
-        surface.pixels[offset + 1] = 0;
-        surface.pixels[offset + 2] = 0;
-        surface.pixels[offset + 3] = 255;
-        continue;
+  if (flags & ~0x1f) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
+  if (argument(6) || argument(7)) return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 9);
+  const width = argument(4) ? signed(argument(4)) : flags & 8 ? 32 : icon.width,
+    height = argument(5) ? signed(argument(5)) : flags & 8 ? 32 : icon.height;
+  if (width < 1 || height < 1) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 9);
+  if (!(flags & 3)) return success(1, 9);
+  const surface = dc.surface,
+    bounds = clippedBounds(surface, x, y, x + width, y + height, dc),
+    native = icon.native,
+    maskOnly = (flags & 3) === 1,
+    imageOnly = (flags & 3) === 2;
+  const visit = (callback) => {
+    for (let ty = bounds[1]; ty < bounds[3]; ty++)
+      for (let tx = bounds[0]; tx < bounds[2]; tx++) {
+        if (!visiblePixel(surface, dc, tx, ty)) continue;
+        const sx = Math.floor(((tx - x) * icon.width) / width),
+          sy = Math.floor(((ty - y) * icon.height) / height),
+          i = sy * icon.width + sx,
+          at = (ty * surface.width + tx) * 4;
+        if (!callback(i, at)) return false;
       }
-      // An icon pixel is composited over whatever the surface already holds,
-      // which is what makes a transparent icon background work.
-      const a = alpha / 255;
-      surface.pixels[offset] = Math.round(
-        icon.pixels[source] * a + surface.pixels[offset] * (1 - a),
+    return true;
+  };
+  if (
+    surface.controlOverlay &&
+    !maskOnly &&
+    !visit((i, at) => {
+      const alpha = native?.alpha ? icon.pixels[i * 4 + 3] : native ? 255 : icon.pixels[i * 4 + 3];
+      const reads =
+        native && !native.alpha ? !imageOnly && native.mask[i] !== 0 : alpha > 0 && alpha < 255;
+      return !reads || surface.pixels[at + 3] === 255;
+    })
+  )
+    return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 9);
+  let changed = false;
+  visit((i, at) => {
+    let rgb;
+    if (maskOnly) {
+      const mask = native ? native.mask[i] : icon.pixels[i * 4 + 3] === 0 ? 255 : 0;
+      rgb = [mask, mask, mask];
+    } else if (native && !native.alpha) {
+      const mask = imageOnly ? 0 : native.mask[i];
+      rgb = [0, 1, 2].map((c) => (surface.pixels[at + c] & mask) ^ native.color[i * 4 + c]);
+    } else {
+      const alpha = icon.pixels[i * 4 + 3] / 255;
+      if (!alpha) return true;
+      rgb = [0, 1, 2].map((c) =>
+        Math.round(icon.pixels[i * 4 + c] * alpha + surface.pixels[at + c] * (1 - alpha)),
       );
-      surface.pixels[offset + 1] = Math.round(
-        icon.pixels[source + 1] * a + surface.pixels[offset + 1] * (1 - a),
-      );
-      surface.pixels[offset + 2] = Math.round(
-        icon.pixels[source + 2] * a + surface.pixels[offset + 2] * (1 - a),
-      );
-      surface.pixels[offset + 3] = 255;
     }
-  }
-  markGdiDirty(surface, x, y, x + width, y + height);
+    rgb = surfaceRgb(surface, rgb);
+    for (let c = 0; c < 3; c++) surface.pixels[at + c] = rgb[c];
+    surface.pixels[at + 3] = 255;
+    changed = true;
+    return true;
+  });
+  if (changed) markGdiDirty(surface, ...bounds);
   return success(1, 9);
+}
+function drawIcon(runtime, argument) {
+  const response = drawIconEx(runtime, (i) => (i < 4 ? argument(i) : i === 8 ? 11 : 0));
+  return { ...response, argc: 4 };
 }
 
 function createFont(runtime, argument, wide) {
@@ -2852,6 +2934,13 @@ function arc(runtime, argument) {
 }
 
 export const gdiApis = {
+  ...createBitmapIconApis({
+    stateFor,
+    snapshotBitmap: snapshotIconBitmap,
+    ownBitmap: ownIconBitmap,
+    success,
+    failure,
+  }),
   'gdi32.dll!CreateBrushIndirect': createBrushIndirect,
   'gdi32.dll!CreatePatternBrush': createPatternBrush,
   'gdi32.dll!SetBrushOrgEx': (r, a) => brushOrigin(r, a, true),
@@ -2874,6 +2963,7 @@ export const gdiApis = {
     return failure(r, ERROR_INVALID_HANDLE, 0, 1);
   },
   'user32.dll!DrawIconEx': drawIconEx,
+  'user32.dll!DrawIcon': drawIcon,
   'user32.dll!GetDesktopWindow': getDesktopWindow,
   'user32.dll!GetDC': getDC,
   'user32.dll!ReleaseDC': releaseDC,
