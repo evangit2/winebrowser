@@ -1,0 +1,135 @@
+{
+  "reference": "Wine 11 native x86 GetMessagePos, window/thread queues, PeekMessage/GetMessage, synthetic paint and thread-local state; host cursor restored on exit",
+  "cases": [
+    {
+      "step": "peek",
+      "method": 0,
+      "remove": 0,
+      "found": 1,
+      "message": 32775,
+      "point": [80, 110],
+      "position": 7209040,
+      "error": 777
+    },
+    {
+      "step": "remove",
+      "method": 0,
+      "remove": 1,
+      "found": 1,
+      "message": 32775,
+      "point": [80, 110],
+      "position": 7209040,
+      "error": 777
+    },
+    {
+      "step": "empty",
+      "method": 0,
+      "remove": 1,
+      "found": 0,
+      "message": 32775,
+      "point": [80, 110],
+      "position": 7209040,
+      "error": 777
+    },
+    {
+      "step": "get",
+      "method": 0,
+      "remove": 1,
+      "found": 1,
+      "message": 32775,
+      "point": [100, 130],
+      "position": 8519780,
+      "error": 777
+    },
+    {
+      "step": "peek",
+      "method": 1,
+      "remove": 0,
+      "found": 1,
+      "message": 32775,
+      "point": [90, 120],
+      "position": 7864410,
+      "error": 777
+    },
+    {
+      "step": "remove",
+      "method": 1,
+      "remove": 1,
+      "found": 1,
+      "message": 32775,
+      "point": [90, 120],
+      "position": 7864410,
+      "error": 777
+    },
+    {
+      "step": "empty",
+      "method": 1,
+      "remove": 1,
+      "found": 0,
+      "message": 32775,
+      "point": [90, 120],
+      "position": 7864410,
+      "error": 777
+    },
+    {
+      "step": "get",
+      "method": 1,
+      "remove": 1,
+      "found": 1,
+      "message": 32775,
+      "point": [100, 130],
+      "position": 8519780,
+      "error": 777
+    },
+    {
+      "step": "paint-peek",
+      "method": 2,
+      "remove": 0,
+      "found": 1,
+      "message": 15,
+      "point": [300, 330],
+      "position": 21627180,
+      "error": 777
+    },
+    {
+      "step": "paint-remove",
+      "method": 2,
+      "remove": 1,
+      "found": 1,
+      "message": 15,
+      "point": [340, 370],
+      "position": 24248660,
+      "error": 777
+    },
+    {
+      "step": "thread-initial",
+      "method": 3,
+      "remove": 0,
+      "found": 0,
+      "message": 0,
+      "point": [0, 0],
+      "position": 0,
+      "error": 777
+    },
+    {
+      "step": "thread-get",
+      "method": 3,
+      "remove": 1,
+      "found": 1,
+      "message": 32775,
+      "point": [410, 440],
+      "position": 28836250,
+      "error": 777
+    },
+    {
+      "step": "main-after-thread",
+      "method": 4,
+      "remove": 1,
+      "found": 1,
+      "message": 15,
+      "point": [340, 370],
+      "position": 24248660,
+      "error": 777
+    }
+  ]
+}
