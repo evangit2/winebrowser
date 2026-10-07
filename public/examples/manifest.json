@@ -457,13 +457,13 @@
     },
     {
       "name": "scroll-controls",
-      "description": "Native interactive scrollbars: click arrows and track, drag thumbs, use keyboard navigation, and try large ranges or disabled arrows. Close to finish.",
+      "description": "Native interactive scrollbars with top/bottom and left/right alignment: click arrows and track, drag thumbs, use keyboard navigation, and try large ranges or disabled arrows. Close to finish.",
       "exe": "scroll-controls/scroll-controls.exe",
-      "exeSha256": "0553ecbbe8353c99a52737d9dfd1c4340772eeec173e1e120c6f92f461f609ac",
+      "exeSha256": "f763193952cf460234ffea43437e6f35d5409d7476b2c2c6e43c1c024883fa52",
       "zip": "scroll-controls/scroll-controls.zip",
-      "zipSha256": "16711a0d2a86c3115cff3939ce1bc98fab9dfc1aa041bd297d93d120a7d65c2a",
+      "zipSha256": "ea07c8572ce952a4c1e7ad082c56e8034bd771025acc23540c4102b087619b1c",
       "sourceZip": "scroll-controls/source.zip",
-      "sourceZipSha256": "7d242967e047c89c3a595346efc199e0271f7930d09c4ca70c0f7147209bd8b8",
+      "sourceZipSha256": "9154c886d1173c3c9c5b97f9de0f9455dacc4bb6156685146de130560a093e5d",
       "provenance": "Original MIT Windows SDK client; deterministic source build and native captures included. Shared LGPL frame painter retains editable source and notices."
     },
     {

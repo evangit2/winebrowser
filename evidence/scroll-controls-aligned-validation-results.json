@@ -1,0 +1,18 @@
+{
+  "scope": "Standalone scrollbar alignment GUI increment; arbitrary Windows EXE/DLL compatibility remains unproven.",
+  "nativeAcceptance": "NATIVE SCROLLBAR CONTROLS GUI PASS\nNative SDK client nine stages and four aligned mouse/keyboard controls, exit 0",
+  "independentSourceRebuildSha256": "f763193952cf460234ffea43437e6f35d5409d7476b2c2c6e43c1c024883fa52",
+  "creationOracleCases": 48,
+  "classicPixelOracleCases": 360,
+  "unitTests": {
+    "passed": 1323,
+    "skippedOptionalHardwareReference": 1,
+    "failed": 0
+  },
+  "browserReports": [
+    "scroll-controls-aligned-chromium-results.json",
+    "scroll-controls-aligned-chrome-results.json"
+  ],
+  "regressionReport": "7zip-scrollbar-alignment-regression-results.json",
+  "sourceZipSha256": "9154c886d1173c3c9c5b97f9de0f9455dacc4bb6156685146de130560a093e5d"
+}

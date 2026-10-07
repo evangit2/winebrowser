@@ -71,6 +71,33 @@ async function endTracking(r, window, notifyEnd) {
 }
 export async function scrollbarMessage(r, window, message, wp, lp) {
   const state = controlScrollState(window);
+  if (message === 1) {
+    // WM_CREATE carries the original outer rectangle in CREATESTRUCT32.
+    // Native top/left alignment wins when both alignment bits are present.
+    const style = r.read32(lp + 32);
+    if (style & 6) {
+      const vertical = !!(style & 1);
+      const metric = await r.apiProvider.get('user32.dll!GetSystemMetrics')(r, () =>
+        vertical ? 2 : 3,
+      );
+      const cross = metric.result + 1;
+      let x = r.read32(lp + 28) | 0,
+        y = r.read32(lp + 24) | 0;
+      let width = r.read32(lp + 20) | 0,
+        height = r.read32(lp + 16) | 0;
+      if (!(style & 2)) {
+        if (vertical) x += width - cross;
+        else y += height - cross;
+      }
+      if (vertical) width = cross;
+      else height = cross;
+      await r.apiProvider.get('user32.dll!MoveWindow')(
+        r,
+        (i) => [window.id, x, y, width, height, 0][i] >>> 0,
+      );
+    }
+    return 0;
+  }
   if (message === 0xe9) {
     const info = readScrollInfo(r, lp);
     if (!info || info.invalid) return 0;

@@ -13,13 +13,16 @@ Native captures also check invalid and destroyed handles and LastError.
 The unchanged PE32 EXE translates into Wasm inside the browser with native Wine
 base DLLs. The source archive includes its deterministic MinGW build.
 The native SDK captures cover API state, direct messages, legacy structures,
-keyboard and pointer callbacks, and 240 classic pixel cases. The pixel probe
+keyboard and pointer callbacks, 48 creation rectangles and 360 classic pixel cases. The pixel probe
 runs with uxtheme disabled and a normalized palette restored on exit.
 Another 120 native captures verify arrow flags, EnableWindow, WM_ENABLE and
 redraw-dependent SetScrollInfo transitions for visible and hidden controls.
 
-Ordinary standalone horizontal/vertical SCROLLBAR controls are covered.
-Nonclient window scrollbars, alignment/size-box styles, mouse auto-repeat,
+Nine standalone horizontal/vertical SCROLLBAR controls include top/bottom and
+left/right alignment. The executable checks native window/client rectangles
+and style bits. Aligned controls resize to the native 18-pixel cross thickness
+while preserving the requested edge, and retain mouse and keyboard input.
+Nonclient window scrollbars, size-box/size-grip styles, mouse auto-repeat,
 complete subclass behavior and universal Windows/DLL compatibility are unfinished.
 The original sample includes no third-party game assets or app Wasm.
 The shared Wine frame painter retains LGPL-2.1-or-later sources and notices.

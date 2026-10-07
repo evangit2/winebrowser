@@ -213,3 +213,69 @@ test('scrollbar window and arrow enabling match 120 independent native transitio
     assert.deepEqual([s.disabled & 1 ? 1 : 0, s.disabled & 2 ? 1 : 0], c.arrows, label);
   }
 });
+
+test('actual aligned control creation matches 48 native window and client rectangles', async (t) => {
+  const rows = await capture('alignment');
+  const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
+  t.after(() => {
+    r.windows.dispose();
+    r.cpu.dispose();
+  });
+  const call = async (name, ...args) =>
+    (await r.apiProvider.get('user32.dll!' + name)(r, (i) => args[i] >>> 0)).result;
+  const parent = 990;
+  r.windows.windows.set(parent, {
+    id: parent,
+    parentId: 0,
+    x: 10,
+    y: 20,
+    width: 400,
+    height: 400,
+    style: 0x90000000,
+    exStyle: 0,
+    visible: true,
+    enabled: true,
+    cls: { wide: true, proc: 0 },
+    controlBorder: 0,
+    invalid: null,
+  });
+  const name = r.allocString('SCROLLBAR', true),
+    rect = r.allocate(16);
+  for (const row of rows) {
+    const hwnd = await call(
+      'CreateWindowExW',
+      0,
+      name,
+      0,
+      row.style,
+      ...row.input,
+      parent,
+      0,
+      0,
+      0,
+    );
+    assert.ok(hwnd, JSON.stringify(row));
+    assert.equal(await call('GetWindowRect', hwnd, rect), 1);
+    const right = r.read32(rect + 8) | 0,
+      bottom = r.read32(rect + 12) | 0;
+    const left = r.read32(rect) | 0,
+      top = r.read32(rect + 4) | 0;
+    assert.equal(await call('ScreenToClient', parent, rect), 1);
+    assert.deepEqual(
+      [r.read32(rect) | 0, r.read32(rect + 4) | 0, right - left, bottom - top],
+      row.rect,
+    );
+    assert.equal(await call('GetClientRect', hwnd, rect), 1);
+    assert.deepEqual(
+      [r.read32(rect), r.read32(rect + 4), r.read32(rect + 8), r.read32(rect + 12)],
+      [0, 0, ...row.client],
+    );
+    assert.equal(await call('GetWindowLongW', hwnd, -16), row.style);
+    assert.equal(await call('DestroyWindow', hwnd), 1);
+  }
+  for (const style of [8, 16])
+    await assert.rejects(
+      call('CreateWindowExW', 0, name, 0, 0x50000000 | style, 0, 0, 20, 20, parent, 0, 0, 0),
+      /size-box/,
+    );
+});

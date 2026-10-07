@@ -126,8 +126,7 @@ export function controlStyle(kind, style, extended) {
   if (kind === 'tabcontrol' && local & ~0x2c00) throw Error('Unsupported Tab control style');
   if (kind === 'statusbar' && local & ~0x94f) throw Error('Unsupported status bar style');
   if (kind === 'toolbar' && local & 0x80) throw Error('Unsupported vertical toolbar style');
-  if (kind === 'scrollbar' && local & ~1)
-    throw Error('Unsupported Scrollbar alignment or size-box style');
+  if (kind === 'scrollbar' && local & ~7) throw Error('Unsupported Scrollbar size-box style');
   if (kind === 'progress' && local & ~0x19) throw Error('Unsupported progress style');
   if (kind === 'listview' && ((local & 3) !== 1 || local & ~0xc00d))
     throw Error('Only text report ListView styles are supported');

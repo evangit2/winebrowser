@@ -1,0 +1,389 @@
+{
+  "reference": "Wine 11 x86 native SCROLLBAR creation, parent-normalized window/client rectangles",
+  "cases": [
+    {
+      "vertical": 0,
+      "align": 0,
+      "input": [30, 40, 33, 8],
+      "rect": [30, 40, 33, 8],
+      "client": [33, 8],
+      "style": 1342177280
+    },
+    {
+      "vertical": 0,
+      "align": 0,
+      "input": [30, 40, 33, 25],
+      "rect": [30, 40, 33, 25],
+      "client": [33, 25],
+      "style": 1342177280
+    },
+    {
+      "vertical": 0,
+      "align": 0,
+      "input": [30, 40, 33, 40],
+      "rect": [30, 40, 33, 40],
+      "client": [33, 40],
+      "style": 1342177280
+    },
+    {
+      "vertical": 0,
+      "align": 0,
+      "input": [30, 40, 180, 8],
+      "rect": [30, 40, 180, 8],
+      "client": [180, 8],
+      "style": 1342177280
+    },
+    {
+      "vertical": 0,
+      "align": 0,
+      "input": [30, 40, 180, 25],
+      "rect": [30, 40, 180, 25],
+      "client": [180, 25],
+      "style": 1342177280
+    },
+    {
+      "vertical": 0,
+      "align": 0,
+      "input": [30, 40, 180, 40],
+      "rect": [30, 40, 180, 40],
+      "client": [180, 40],
+      "style": 1342177280
+    },
+    {
+      "vertical": 0,
+      "align": 1,
+      "input": [30, 40, 33, 8],
+      "rect": [30, 40, 33, 18],
+      "client": [33, 18],
+      "style": 1342177282
+    },
+    {
+      "vertical": 0,
+      "align": 1,
+      "input": [30, 40, 33, 25],
+      "rect": [30, 40, 33, 18],
+      "client": [33, 18],
+      "style": 1342177282
+    },
+    {
+      "vertical": 0,
+      "align": 1,
+      "input": [30, 40, 33, 40],
+      "rect": [30, 40, 33, 18],
+      "client": [33, 18],
+      "style": 1342177282
+    },
+    {
+      "vertical": 0,
+      "align": 1,
+      "input": [30, 40, 180, 8],
+      "rect": [30, 40, 180, 18],
+      "client": [180, 18],
+      "style": 1342177282
+    },
+    {
+      "vertical": 0,
+      "align": 1,
+      "input": [30, 40, 180, 25],
+      "rect": [30, 40, 180, 18],
+      "client": [180, 18],
+      "style": 1342177282
+    },
+    {
+      "vertical": 0,
+      "align": 1,
+      "input": [30, 40, 180, 40],
+      "rect": [30, 40, 180, 18],
+      "client": [180, 18],
+      "style": 1342177282
+    },
+    {
+      "vertical": 0,
+      "align": 2,
+      "input": [30, 40, 33, 8],
+      "rect": [30, 30, 33, 18],
+      "client": [33, 18],
+      "style": 1342177284
+    },
+    {
+      "vertical": 0,
+      "align": 2,
+      "input": [30, 40, 33, 25],
+      "rect": [30, 47, 33, 18],
+      "client": [33, 18],
+      "style": 1342177284
+    },
+    {
+      "vertical": 0,
+      "align": 2,
+      "input": [30, 40, 33, 40],
+      "rect": [30, 62, 33, 18],
+      "client": [33, 18],
+      "style": 1342177284
+    },
+    {
+      "vertical": 0,
+      "align": 2,
+      "input": [30, 40, 180, 8],
+      "rect": [30, 30, 180, 18],
+      "client": [180, 18],
+      "style": 1342177284
+    },
+    {
+      "vertical": 0,
+      "align": 2,
+      "input": [30, 40, 180, 25],
+      "rect": [30, 47, 180, 18],
+      "client": [180, 18],
+      "style": 1342177284
+    },
+    {
+      "vertical": 0,
+      "align": 2,
+      "input": [30, 40, 180, 40],
+      "rect": [30, 62, 180, 18],
+      "client": [180, 18],
+      "style": 1342177284
+    },
+    {
+      "vertical": 0,
+      "align": 3,
+      "input": [30, 40, 33, 8],
+      "rect": [30, 40, 33, 18],
+      "client": [33, 18],
+      "style": 1342177286
+    },
+    {
+      "vertical": 0,
+      "align": 3,
+      "input": [30, 40, 33, 25],
+      "rect": [30, 40, 33, 18],
+      "client": [33, 18],
+      "style": 1342177286
+    },
+    {
+      "vertical": 0,
+      "align": 3,
+      "input": [30, 40, 33, 40],
+      "rect": [30, 40, 33, 18],
+      "client": [33, 18],
+      "style": 1342177286
+    },
+    {
+      "vertical": 0,
+      "align": 3,
+      "input": [30, 40, 180, 8],
+      "rect": [30, 40, 180, 18],
+      "client": [180, 18],
+      "style": 1342177286
+    },
+    {
+      "vertical": 0,
+      "align": 3,
+      "input": [30, 40, 180, 25],
+      "rect": [30, 40, 180, 18],
+      "client": [180, 18],
+      "style": 1342177286
+    },
+    {
+      "vertical": 0,
+      "align": 3,
+      "input": [30, 40, 180, 40],
+      "rect": [30, 40, 180, 18],
+      "client": [180, 18],
+      "style": 1342177286
+    },
+    {
+      "vertical": 1,
+      "align": 0,
+      "input": [30, 40, 8, 33],
+      "rect": [30, 40, 8, 33],
+      "client": [8, 33],
+      "style": 1342177281
+    },
+    {
+      "vertical": 1,
+      "align": 0,
+      "input": [30, 40, 25, 33],
+      "rect": [30, 40, 25, 33],
+      "client": [25, 33],
+      "style": 1342177281
+    },
+    {
+      "vertical": 1,
+      "align": 0,
+      "input": [30, 40, 40, 33],
+      "rect": [30, 40, 40, 33],
+      "client": [40, 33],
+      "style": 1342177281
+    },
+    {
+      "vertical": 1,
+      "align": 0,
+      "input": [30, 40, 8, 180],
+      "rect": [30, 40, 8, 180],
+      "client": [8, 180],
+      "style": 1342177281
+    },
+    {
+      "vertical": 1,
+      "align": 0,
+      "input": [30, 40, 25, 180],
+      "rect": [30, 40, 25, 180],
+      "client": [25, 180],
+      "style": 1342177281
+    },
+    {
+      "vertical": 1,
+      "align": 0,
+      "input": [30, 40, 40, 180],
+      "rect": [30, 40, 40, 180],
+      "client": [40, 180],
+      "style": 1342177281
+    },
+    {
+      "vertical": 1,
+      "align": 1,
+      "input": [30, 40, 8, 33],
+      "rect": [30, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177283
+    },
+    {
+      "vertical": 1,
+      "align": 1,
+      "input": [30, 40, 25, 33],
+      "rect": [30, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177283
+    },
+    {
+      "vertical": 1,
+      "align": 1,
+      "input": [30, 40, 40, 33],
+      "rect": [30, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177283
+    },
+    {
+      "vertical": 1,
+      "align": 1,
+      "input": [30, 40, 8, 180],
+      "rect": [30, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177283
+    },
+    {
+      "vertical": 1,
+      "align": 1,
+      "input": [30, 40, 25, 180],
+      "rect": [30, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177283
+    },
+    {
+      "vertical": 1,
+      "align": 1,
+      "input": [30, 40, 40, 180],
+      "rect": [30, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177283
+    },
+    {
+      "vertical": 1,
+      "align": 2,
+      "input": [30, 40, 8, 33],
+      "rect": [20, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177285
+    },
+    {
+      "vertical": 1,
+      "align": 2,
+      "input": [30, 40, 25, 33],
+      "rect": [37, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177285
+    },
+    {
+      "vertical": 1,
+      "align": 2,
+      "input": [30, 40, 40, 33],
+      "rect": [52, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177285
+    },
+    {
+      "vertical": 1,
+      "align": 2,
+      "input": [30, 40, 8, 180],
+      "rect": [20, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177285
+    },
+    {
+      "vertical": 1,
+      "align": 2,
+      "input": [30, 40, 25, 180],
+      "rect": [37, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177285
+    },
+    {
+      "vertical": 1,
+      "align": 2,
+      "input": [30, 40, 40, 180],
+      "rect": [52, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177285
+    },
+    {
+      "vertical": 1,
+      "align": 3,
+      "input": [30, 40, 8, 33],
+      "rect": [30, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177287
+    },
+    {
+      "vertical": 1,
+      "align": 3,
+      "input": [30, 40, 25, 33],
+      "rect": [30, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177287
+    },
+    {
+      "vertical": 1,
+      "align": 3,
+      "input": [30, 40, 40, 33],
+      "rect": [30, 40, 18, 33],
+      "client": [18, 33],
+      "style": 1342177287
+    },
+    {
+      "vertical": 1,
+      "align": 3,
+      "input": [30, 40, 8, 180],
+      "rect": [30, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177287
+    },
+    {
+      "vertical": 1,
+      "align": 3,
+      "input": [30, 40, 25, 180],
+      "rect": [30, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177287
+    },
+    {
+      "vertical": 1,
+      "align": 3,
+      "input": [30, 40, 40, 180],
+      "rect": [30, 40, 18, 180],
+      "client": [18, 180],
+      "style": 1342177287
+    }
+  ]
+}

@@ -112,6 +112,10 @@ try {
         [203, 0, 8, 17],
         [204, 1, 180, 17],
         [205, 1, 180, 25],
+        [206, 0, 180, 18],
+        [207, 0, 180, 18],
+        [208, 1, 180, 18],
+        [209, 1, 180, 18],
       ]) {
         const ref = oracle.cases.find(
           (c) =>
@@ -147,7 +151,7 @@ try {
         'Vertical position: ' + position,
       );
       await expect(root.locator('[data-control-id="304"]')).toHaveText('Window DPI: 96');
-      observations.push({ stage, label: labels[stage], verifiedPixels: 15256 });
+      observations.push({ stage, label: labels[stage], verifiedPixels: 28216 });
       for (const control of [horizontal, vertical])
         await expect(control).toHaveAttribute('aria-disabled', String(stage === 4 || stage === 7));
       if ([2, 4, 5].includes(stage))
@@ -155,6 +159,24 @@ try {
           path: 'evidence/scroll-controls-stage-' + stage + '-' + runs.length + '.png',
         });
     };
+    // Check actual displayed coordinates against the independently captured
+    // native creation geometry, including bottom/right origin adjustment.
+    for (const [id, x, y, width, height] of [
+      [206, 60, 158, 180, 18],
+      [207, 260, 165, 180, 18],
+      [208, 600, 112, 18, 180],
+      [209, 622, 112, 18, 180],
+    ]) {
+      const actual = await root
+        .locator('[data-control-id="' + id + '"]')
+        .evaluate((el) => [
+          parseFloat(el.parentElement.style.left),
+          parseFloat(el.parentElement.style.top),
+          el.width,
+          el.height,
+        ]);
+      assert.deepEqual(actual, [x, y, width, height]);
+    }
     await verify(0);
     for (const [stage, button] of [
       [1, 'Large page'],
@@ -169,6 +191,20 @@ try {
       await root.getByRole('button', { name: button, exact: true }).click();
       await verify(stage);
     }
+    for (const [id, vertical] of [
+      [206, false],
+      [207, false],
+      [208, true],
+      [209, true],
+    ]) {
+      await root.getByRole('button', { name: 'Reset', exact: true }).click();
+      const control = root.locator('[data-control-id="' + id + '"]');
+      await control.click({ position: vertical ? { x: 9, y: 171 } : { x: 171, y: 9 } });
+      await expect(root.locator('[data-control-id="305"]')).toHaveText('Aligned position: 21');
+      await control.press(vertical ? 'ArrowDown' : 'ArrowRight');
+      await expect(root.locator('[data-control-id="305"]')).toHaveText('Aligned position: 22');
+    }
+    await root.getByRole('button', { name: 'Reset', exact: true }).click();
     const hLabel = root.locator('[data-control-id="301"]'),
       vLabel = root.locator('[data-control-id="302"]');
     await root.getByRole('button', { name: 'Disable', exact: true }).click();
@@ -222,6 +258,7 @@ try {
       'Horizontal and vertical thumb dragging calls the compiled parent procedure',
       'Track positions above 65535 use full GetScrollInfo data',
       'EnableWindow updates WS_DISABLED, native arrow flags, and actual browser interaction',
+      'All four aligned controls retain native edge positioning and mouse/keyboard callbacks',
     ];
     await page.screenshot({ path: `evidence/scroll-controls-${mode}.png`, fullPage: true });
     await root.locator('.virtual-desktop-close').click();
@@ -239,6 +276,9 @@ try {
       'EnableScrollBar',
       'EnableWindow',
       'GetDpiForWindow',
+      'GetWindowRect',
+      'GetClientRect',
+      'ScreenToClient',
     ])
       assert.ok(run.apiNames.includes('user32.dll!' + name), name);
     for (const name of ['kernel32.dll', 'kernelbase.dll', 'ntdll.dll'])
@@ -267,7 +307,7 @@ try {
     headedBrowser: process.env.HEADED === '1',
     exeSha256: sha256,
     scope:
-      'Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Nine stages verify five controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, native window enabling, 32-bit thumb tracking and compiled parent callbacks are exercised. Nonclient bars, alignment/size-box styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.',
+      'Unchanged MIT Windows SDK GUI with standalone native SCROLLBAR controls translated into Wasm inside the browser with Wine base DLLs. Nine stages verify nine controls against classic native pixel captures in EXE/ZIP/catalog modes. Actual mouse, keyboard, native window enabling, 32-bit thumb tracking and compiled parent callbacks are exercised. Native top/bottom/left/right alignment is exercised. Nonclient bars, size-box/size-grip styles, mouse auto-repeat, complete subclass behavior and universal Windows/DLL support remain unfinished.',
     oracleReference: oracle.reference,
     runs,
     errors,

@@ -30,7 +30,7 @@ int main(void){
  COLORREF colors[]={0xc0c0c0,0xffffff,0,0,0xc0c0c0,0x808080,0,0xffffff,0x404040,0xe3e3e3},saved[10];for(int i=0;i<10;i++)saved[i]=GetSysColor(indices[i]);if(!SetSysColors(10,indices,colors))return 2;
  WNDCLASSW cls={0};cls.lpfnWndProc=DefWindowProcW;cls.hInstance=GetModuleHandleW(NULL);cls.lpszClassName=L"ScrollGeometryParent";if(!RegisterClassW(&cls))return 1;
  HWND parent=CreateWindowExW(0,cls.lpszClassName,L"geometry",WS_POPUP|WS_VISIBLE,10,20,400,400,NULL,NULL,cls.hInstance,NULL);
- int lengths[]={180,40,33,17,8},thicknesses[]={17,25};puts("[");
- for(int v=0;v<2;v++)for(unsigned l=0;l<5;l++)for(unsigned t=0;t<2;t++)for(int stage=0;stage<12;stage++)capture(parent,v,lengths[l],thicknesses[t],stage);
+ int lengths[]={180,40,33,17,8},thicknesses[]={17,18,25};puts("[");
+ for(int v=0;v<2;v++)for(unsigned l=0;l<5;l++)for(unsigned t=0;t<3;t++)for(int stage=0;stage<12;stage++)capture(parent,v,lengths[l],thicknesses[t],stage);
  puts("]");DestroyWindow(parent);SetSysColors(10,indices,saved);return 0;
 }
