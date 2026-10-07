@@ -49,6 +49,19 @@ if (process.argv.includes('--update')) {
   );
 } else {
   const expected = await readFile(target);
+  const differences = [];
+  for (let i = 0; i < actual.length; i += 24) {
+    if (actual.subarray(i, i + 24).equals(expected.subarray(i, i + 24))) continue;
+    differences.push({
+      record: i / 24,
+      control: Math.floor(i / 24 / 1200),
+      op: actual.readUInt32LE(i) & 127,
+      memory: !!(actual.readUInt32LE(i) & 128),
+      actual: Array.from({ length: 6 }, (_, j) => actual.readUInt32LE(i + j * 4).toString(16)),
+      expected: Array.from({ length: 6 }, (_, j) => expected.readUInt32LE(i + j * 4).toString(16)),
+    });
+  }
+  if (differences.length) console.error(JSON.stringify({ differences }, null, 2));
   assert.ok(
     actual.equals(expected),
     'Native SSE oracle differs from retained answers: ' + sha(actual),
