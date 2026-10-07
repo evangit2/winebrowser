@@ -306,6 +306,8 @@ clean exit checked. Upload the complete game ZIP and select `airxonix/airxonix.e
 
 **Native shape GUI:** choose **Load gdi-shapes** to switch between alternate/winding polygons, holes, rounded rectangles, ellipses and a copied clip. An unchanged Windows EXE draws via GDI; the browser checks 96,000 pixels per stage against desktop Wine 11 geometry (`npm run test:gdi-shapes`). Its complete MIT source build is included.
 
+**Native frame GUI:** choose **Load gdi-frames** to draw brush frames and XOR focus outlines, erase an outline by drawing it twice, and try hatch/pattern frames and clipping. The original MIT Windows EXE compiles inside the browser; its pixels are checked against desktop Wine (`npm run test:gdi-frames`).
+
 **Native tile GUI:** choose **Load gdi-pattern** to compare color and monochrome tiles, shifted brush origins, native hatches and patterned ellipse clipping. A standard label also receives the copied native brush. Pixels match desktop Wine 11 output; the original MIT Windows EXE and complete source build are included (`npm run test:gdi-pattern`).
 
 **GUI image loading:** LoadImage A/W load bitmap resources and BMP files, requested sizes, theme palette changes and native writable DIB sections. The public **Load load-images** GUI edits a file-loaded bitmap through its native pointer (`npm run test:load-images`). HALFTONE filtering, compressed images and sized/file icons/cursors remain unfinished.

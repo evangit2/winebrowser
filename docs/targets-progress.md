@@ -381,3 +381,12 @@ compares 86,400 surface pixels and 256 label-tile pixels against native Wine.
 The source ZIP independently rebuilds the exact EXE and the pixel oracle is
 reproducible. Native comctl32 auditing now reports 38 unresolved dependencies;
 actual comctl32 and 7-Zip File Manager execution remain unfinished.
+
+`FrameRect` and `DrawFocusRect` now render actual supplied-brush borders and
+alternating XOR focus outlines. Double drawing restores the original colors;
+clipping retains dash phase, and empty/narrow/reversed rectangles match actual
+desktop Wine. The original MIT **gdi-frames** GUI checks seven stages in EXE,
+ZIP and catalog modes, with 86,400 surface pixels checked per stage against
+native Wine snapshots. Its published source independently rebuilds the exact
+EXE. Native comctl32 auditing now finds 36 unresolved dependencies; resolving
+imports alone does not prove native common-controls execution.

@@ -599,3 +599,21 @@ modes. The original oracle source and captured tiles live in
 `tests/fixtures/gdi-pattern/`; the public source ZIP independently rebuilds the
 exact native EXE. DIB-pattern construction, generalized coordinate mapping,
 indexed DDB color mapping and arbitrary raster operations remain unfinished.
+
+`FrameRect` now paints a one-pixel border using the supplied solid/null/hatch/
+pattern brush, copied DC clips and brush origin, without changing selections.
+Empty and reversed frame bounds return zero. `DrawFocusRect` draws an alternating
+XOR outline and preserves selections, colors, background mode and origins.
+Drawing it twice restores RGB pixels. Dash phase follows the entire perimeter
+through clipping, and narrow or reversed rectangles match actual desktop Wine.
+Raster work is bounded by visible surface dimensions even for extreme signed
+coordinates. Unreadable browser-painted control pixels return unsupported
+instead of fabricating a native background for the XOR operation.
+
+The original MIT **gdi-frames** Windows SDK GUI offers Frame/Focus/Erase/Hatch/
+Pattern/Clip buttons. Browser acceptance checks all 86,400 drawing-area pixels
+in seven stages for EXE, ZIP and catalog loading against six actual native Wine
+snapshots. An independent 26-case Wine pixel oracle covers clipping, degenerate
+bounds, double drawing, state independence and brush phases. This resolves two
+native common-control drawing imports; native comctl32 execution and broader
+Windows compatibility still require additional APIs.

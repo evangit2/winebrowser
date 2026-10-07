@@ -234,3 +234,56 @@ export function drawLine(surface, x0, y0, x1, y1, pen, dc = null) {
     );
   return changed;
 }
+
+/** XOR an alternating one-pixel rectangular focus outline. Dash phase follows
+ * the complete perimeter from the top-right corner, including clipped steps.
+ * Iterate only the visible portions so extreme guest bounds remain bounded.
+ * Return null when a browser-painted control has no readable native pixels. */
+export function paintFocusRect(surface, left, top, right, bottom, dc = null) {
+  const l = Math.min(left, right),
+    t = Math.min(top, bottom),
+    r = Math.max(left, right) - 1,
+    b = Math.max(top, bottom) - 1;
+  if (r < l || b < t) return false;
+  const width = r - l,
+    height = b - t;
+  const edges = [
+    [r, t, 0, 1, height, 0],
+    [r, b, -1, 0, width, height],
+    [l, b, 0, -1, height, height + width],
+    [l, t, 1, 0, width, height * 2 + width],
+  ];
+  const visit = (callback) => {
+    for (const [x0, y0, dx, dy, length, phase] of edges) {
+      const start = Math.max(
+        0,
+        dx < 0 ? x0 - surface.width + 1 : dy < 0 ? y0 - surface.height + 1 : dx ? -x0 : -y0,
+      );
+      const end = Math.min(
+        length,
+        dx < 0 ? x0 + 1 : dy < 0 ? y0 + 1 : dx ? surface.width - x0 : surface.height - y0,
+      );
+      for (let step = start + ((start + phase) % 2); step < end; step += 2) {
+        const x = x0 + dx * step,
+          y = y0 + dy * step;
+        if (visiblePixel(surface, dc, x, y) && !callback((y * surface.width + x) * 4)) return false;
+      }
+    }
+    return true;
+  };
+  if (surface.controlOverlay && !visit((offset) => surface.pixels[offset + 3] === 255)) return null;
+  let changed = false;
+  visit((offset) => {
+    surface.pixels[offset] ^= 255;
+    surface.pixels[offset + 1] ^= 255;
+    surface.pixels[offset + 2] ^= 255;
+    surface.pixels[offset + 3] = 255;
+    changed = true;
+    return true;
+  });
+  if (changed) {
+    const bounds = clippedBounds(surface, l, t, r + 1, b + 1, dc);
+    markGdiDirty(surface, ...bounds);
+  }
+  return changed;
+}

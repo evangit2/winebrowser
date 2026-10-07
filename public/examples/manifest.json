@@ -304,6 +304,17 @@
       "sourceZip": "gdi-pattern/source.zip",
       "sourceZipSha256": "35f95801fec89d0206f09d9e5532e43b23f34d2888ec1e4f1a1a98847d3f6602",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-frames",
+      "description": "Native frame GUI: solid, XOR focus, double-drawn erase, hatch and copied pattern frames, plus a clip with a hole. Close to finish.",
+      "exe": "gdi-frames/gdi-frames.exe",
+      "exeSha256": "089341098399715b2aca9b7267c8fe0f2ea937f2530104f12037e5b7502ba81d",
+      "zip": "gdi-frames/gdi-frames.zip",
+      "zipSha256": "c696a11d54eecc37178e03bc60229b805bbba87594223dc42cb8a424fae02647",
+      "sourceZip": "gdi-frames/source.zip",
+      "sourceZipSha256": "e28e50e6bbf0a09690857968e2dcf2a539e50982ac49b68652aeb309835ba0f7",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

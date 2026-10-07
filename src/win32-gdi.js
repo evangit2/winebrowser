@@ -22,6 +22,7 @@ import {
   surfaceRgb,
   rgbColorRef,
   paintRect,
+  paintFocusRect,
   drawLine,
   clippedBounds,
   visiblePixel,
@@ -2179,6 +2180,35 @@ function fillRect(runtime, argument) {
   return success(1, 3);
 }
 
+// Brush frames preserve selections and use the DC's copied clips/origins.
+function frameRect(runtime, argument) {
+  const state = stateFor(runtime),
+    dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 3);
+  const rect = argument(1) && readRect(runtime, argument(1));
+  if (!rect) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
+  const [left, top, right, bottom] = rect;
+  if (right <= left || bottom <= top) return success(0, 3);
+  const brush = getBrush(state, argument(2));
+  if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
+  paintRect(dc.surface, left, top, left + 1, bottom, brush, 'copy', dc);
+  paintRect(dc.surface, right - 1, top, right, bottom, brush, 'copy', dc);
+  paintRect(dc.surface, left, top, right, top + 1, brush, 'copy', dc);
+  paintRect(dc.surface, left, bottom - 1, right, bottom, brush, 'copy', dc);
+  return success(1, 3);
+}
+
+function drawFocusRect(runtime, argument) {
+  const state = stateFor(runtime),
+    dc = getDc(runtime, state, argument(0));
+  if (!dc) return badDc(runtime, 2);
+  const rect = argument(1) && readRect(runtime, argument(1));
+  if (!rect) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 2);
+  if (paintFocusRect(dc.surface, ...rect, dc) === null)
+    return failure(runtime, ERROR_CALL_NOT_IMPLEMENTED, 0, 2);
+  return success(1, 2);
+}
+
 function patBlt(runtime, argument) {
   const state = stateFor(runtime);
   const dc = getDc(runtime, state, argument(0));
@@ -2848,6 +2878,8 @@ export const gdiApis = {
   'user32.dll!GetDC': getDC,
   'user32.dll!ReleaseDC': releaseDC,
   'user32.dll!FillRect': fillRect,
+  'user32.dll!FrameRect': frameRect,
+  'user32.dll!DrawFocusRect': drawFocusRect,
   'user32.dll!GetSysColor': getSysColor,
   'user32.dll!GetSysColorBrush': getSysColorBrush,
   'gdi32.dll!CreateSolidBrush': createSolidBrush,
