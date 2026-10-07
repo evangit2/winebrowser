@@ -1,0 +1,114 @@
+[
+  {
+    "step": "empty",
+    "hr": 1,
+    "value": 0,
+    "refs": [1, 1],
+    "error": 777
+  },
+  {
+    "step": "set-first",
+    "hr": 0,
+    "value": 0,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "get-reserved",
+    "hr": 2147942487,
+    "value": 9,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "set-reserved",
+    "hr": 2147942487,
+    "value": 0,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "get-null",
+    "hr": 2147942487,
+    "value": 0,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "take",
+    "hr": 0,
+    "value": 1,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "caller-release",
+    "hr": 0,
+    "value": 0,
+    "refs": [1, 1],
+    "error": 777
+  },
+  {
+    "step": "set-again",
+    "hr": 0,
+    "value": 0,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "replace",
+    "hr": 0,
+    "value": 0,
+    "refs": [1, 2],
+    "error": 777
+  },
+  {
+    "step": "thread-empty",
+    "hr": 1,
+    "value": 0,
+    "refs": [1, 2],
+    "error": 777
+  },
+  {
+    "step": "thread-set",
+    "hr": 0,
+    "value": 0,
+    "refs": [2, 2],
+    "error": 777
+  },
+  {
+    "step": "after-thread",
+    "hr": 0,
+    "value": 0,
+    "refs": [1, 2],
+    "error": 777
+  },
+  {
+    "step": "main-take",
+    "hr": 0,
+    "value": 2,
+    "refs": [1, 2],
+    "error": 777
+  },
+  {
+    "step": "set-before-clear",
+    "hr": 0,
+    "value": 0,
+    "refs": [2, 1],
+    "error": 777
+  },
+  {
+    "step": "clear",
+    "hr": 0,
+    "value": 0,
+    "refs": [1, 1],
+    "error": 777
+  },
+  {
+    "step": "empty-after-clear",
+    "hr": 1,
+    "value": 0,
+    "refs": [1, 1],
+    "error": 777
+  }
+]

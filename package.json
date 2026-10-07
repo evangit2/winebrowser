@@ -365,7 +365,8 @@
     "test:static-group": "node scripts/run-static-suite.mjs",
     "build:clipboard": "sh scripts/build-clipboard-fixture.sh && python3 scripts/package-clipboard.py",
     "test:clipboard": "node scripts/test-clipboard-browser.mjs",
-    "test:python": "node scripts/test-python-browser.mjs"
+    "test:python": "node scripts/test-python-browser.mjs",
+    "test:python-ffi": "node scripts/test-python-browser.mjs --ffi"
   },
   "dependencies": {
     "fflate": "0.8.3",

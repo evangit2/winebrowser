@@ -23,8 +23,17 @@ try {
 }
 assert.equal(hash(zip), zipSha256, 'unchanged official Win32 embeddable distribution');
 const packaged = unzipSync(zip);
-const workload = await readFile('tests/fixtures/python/workload.py', 'utf8');
-const oracle = JSON.parse(await readFile('tests/fixtures/python/wine-oracle.json', 'utf8'));
+const ffi = process.argv.includes('--ffi');
+const workload = await readFile(
+  'tests/fixtures/python/' + (ffi ? 'ffi-workload.py' : 'workload.py'),
+  'utf8',
+);
+const oracle = JSON.parse(
+  await readFile(
+    'tests/fixtures/python/' + (ffi ? 'wine-ffi-oracle.json' : 'wine-oracle.json'),
+    'utf8',
+  ),
+);
 const databaseSha256 = (
   await readFile('tests/fixtures/python/wine-database-sha256.txt', 'utf8')
 ).trim();
@@ -86,7 +95,9 @@ try {
   assert.equal(observed.state, 'EXITED', JSON.stringify(observed));
   assert.equal(observed.run.exitCode, 0, observed.stdout);
   const outputs = observed.run.outputs.map((e) => ({ ...e, bytes: Buffer.from(e.bytes) }));
-  const resultFile = outputs.find((e) => e.path === 'workload-results.json');
+  const resultFile = outputs.find(
+    (e) => e.path === (ffi ? 'ffi-results.json' : 'workload-results.json'),
+  );
   assert.ok(resultFile, 'guest persisted the completed workload');
   assert.deepEqual(
     JSON.parse(resultFile.bytes.toString('utf8')),
@@ -95,40 +106,57 @@ try {
   );
   assert.equal(
     observed.stdout,
-    'PYTHON NATIVE EXTENSION WORKLOAD ' + resultFile.bytes.toString('utf8'),
+    (ffi ? 'PYTHON NATIVE FFI WORKLOAD ' : 'PYTHON NATIVE EXTENSION WORKLOAD ') +
+      resultFile.bytes.toString('utf8'),
     'console and file results agree byte for byte',
   );
-  const names = [
-    'python38.dll',
-    'vcruntime140.dll',
-    'ucrtbase.dll',
-    'kernel32.dll',
-    'kernelbase.dll',
-    'ntdll.dll',
-    '_decimal.pyd',
-    '_sqlite3.pyd',
-    'sqlite3.dll',
-    '_bz2.pyd',
-    '_lzma.pyd',
-    'unicodedata.pyd',
-    '_elementtree.pyd',
-    'pyexpat.pyd',
-  ];
+  const names = ffi
+    ? [
+        'python38.dll',
+        'vcruntime140.dll',
+        'ucrtbase.dll',
+        'kernel32.dll',
+        'kernelbase.dll',
+        'ntdll.dll',
+        '_ctypes.pyd',
+        'libffi-7.dll',
+        'sqlite3.dll',
+        'msvcrt.dll',
+      ]
+    : [
+        'python38.dll',
+        'vcruntime140.dll',
+        'ucrtbase.dll',
+        'kernel32.dll',
+        'kernelbase.dll',
+        'ntdll.dll',
+        '_decimal.pyd',
+        '_sqlite3.pyd',
+        'sqlite3.dll',
+        '_bz2.pyd',
+        '_lzma.pyd',
+        'unicodedata.pyd',
+        '_elementtree.pyd',
+        'pyexpat.pyd',
+      ];
   for (const name of names)
     assert.ok(
       observed.run.loadedModules.some((m) => m.name === name && !m.host),
       'native x86 module executed: ' + name,
     );
-  const database = outputs.find((e) => e.path === 'compatibility.db');
-  assert.ok(database, 'on-disk SQLite database');
-  assert.equal(hash(database.bytes), databaseSha256, 'database bytes match native Wine');
+  if (!ffi) {
+    const database = outputs.find((e) => e.path === 'compatibility.db');
+    assert.ok(database, 'on-disk SQLite database');
+    assert.equal(hash(database.bytes), databaseSha256, 'database bytes match native Wine');
+  }
   assert.deepEqual(errors, []);
   const report = {
     date: new Date().toISOString(),
     browser: browser.version(),
     url,
-    scope:
-      'Ordinary ZIP upload of unchanged official Windows CPython 3.8.10 and its native extension DLLs; x86-to-Wasm translation in the browser. Console output, seven native extension modules, compression round trips, decimal arithmetic, Unicode normalization, XML callbacks and on-disk SQLite transactions/rollback/reopen/integrity_check match native Wine. No ctypes, OpenSSL, TLS, sockets, arbitrary Python packages or universal Windows compatibility claim.',
+    scope: ffi
+      ? 'Ordinary ZIP upload of unchanged official Windows CPython 3.8.10, _ctypes.pyd and libffi-7.dll. Native C ABI calls into the original SQLite DLL and Wine CRT; dynamically allocated x86 callbacks reenter Python during SQLite row enumeration and qsort. Results match native Wine. No arbitrary Python package, OpenSSL, TLS, socket or universal Windows compatibility claim.'
+      : 'Ordinary ZIP upload of unchanged official Windows CPython 3.8.10 and its native extension DLLs; x86-to-Wasm translation in the browser. Console output, seven native extension modules, compression round trips, decimal arithmetic, Unicode normalization, XML callbacks and on-disk SQLite transactions/rollback/reopen/integrity_check match native Wine. No ctypes, OpenSSL, TLS, sockets, arbitrary Python packages or universal Windows compatibility claim.',
     upstream,
     zipSha256,
     workloadSha256: hash(workload),
@@ -152,7 +180,8 @@ try {
   };
   await mkdir('evidence', { recursive: true });
   await writeFile(
-    process.env.WINEBROWSER_PYTHON_REPORT || 'evidence/python-browser-results.json',
+    process.env.WINEBROWSER_PYTHON_REPORT ||
+      (ffi ? 'evidence/python-ffi-browser-results.json' : 'evidence/python-browser-results.json'),
     JSON.stringify(report, null, 2) + '\n',
   );
   console.log(

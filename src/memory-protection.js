@@ -33,7 +33,8 @@ export function protectMemory(runtime, base, size, newProtect) {
     // writable executable page) changes what the decoder may execute and what
     // translated blocks are still valid, so the code ranges and cache must
     // follow the protection change.
-    if (!result.status) runtime.onMemoryProtectionChanged?.(start, end - start, access);
+    if (!result.status && !runtime.virtualMemory.onChanged)
+      runtime.onMemoryProtectionChanged?.(start, end - start, access);
     return result;
   }
   const reservation = runtime.regions.find(

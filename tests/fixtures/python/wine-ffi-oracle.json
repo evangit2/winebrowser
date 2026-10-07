@@ -1,0 +1,10 @@
+{
+  "callback_cookie": 37,
+  "ffi_int_bytes": 4,
+  "qsort": [1, 2, 3, 4, 5],
+  "sqlite_callback_rows": [
+    { "label": "one", "n": "1" },
+    { "label": "two", "n": "2" }
+  ],
+  "sqlite_version": "3.35.5"
+}

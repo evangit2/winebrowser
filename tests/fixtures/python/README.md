@@ -10,7 +10,11 @@ and Expat modules, with compression round trips, callbacks and persisted data.
 `WINEBROWSER_TEST_URL` for a production or Pages deployment, and optionally pass
 `--chrome` for normal Chrome. No Python distribution binaries are published.
 
-FFI (`ctypes`), OpenSSL, SSL and socket modules remain blocked by missing
-imports. This workload does not establish support for arbitrary Python packages,
+`npm run test:python-ffi` also loads the original `_ctypes.pyd` and
+`libffi-7.dll`, calls SQLite through the native C ABI, and runs generated x86
+callbacks during SQLite row enumeration and Wine CRT `qsort`. These results
+match `wine-ffi-oracle.json` captured on native Wine.
+
+OpenSSL, SSL and socket modules remain blocked by missing imports. This workload does not establish support for arbitrary Python packages,
 network services, or all Windows applications. Cold startup and translation
 still take substantially longer than a few seconds.

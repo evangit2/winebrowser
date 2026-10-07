@@ -1,3 +1,4 @@
+import { errorInfoApis } from './win32-error-info.js';
 // One guest-thread COM apartment, with real native in-process class factories.
 // Cross-apartment proxies, activation manifests and out-of-process servers are
 // separate services; never substitute a host object for an unknown CLSID.
@@ -370,6 +371,24 @@ export const comApis = {
   ...taskMemoryApis,
   ...guidApis,
   ...oleautApis,
+  ...errorInfoApis,
+  'ole32.dll!ProgIDFromCLSID': (r, a) => {
+    if (!a(1)) return response(E_INVALIDARG, 2);
+    r.check(a(1), 4, true);
+    r.write32(a(1), 0);
+    const clsid = readGuid(r, a(0));
+    const value = registryString(classRegistryKey(r, ['CLSID', `{${clsid}}`, 'ProgID']));
+    if (value === null) return response(REGDB_E_CLASSNOTREG, 2);
+    const { result: pointer } = taskMemoryApis['ole32.dll!CoTaskMemAlloc'](
+      r,
+      () => (value.length + 1) * 2,
+    );
+    if (!pointer) return response(0x8007000e, 2);
+    for (let i = 0; i <= value.length; i++)
+      r.guestMemory.write(pointer + i * 2, i === value.length ? 0 : value.charCodeAt(i), 2);
+    r.write32(a(1), pointer);
+    return response(0, 2);
+  },
   'ole32.dll!CoInitialize': (r, a) => initialize(r, a(0), 2, 1),
   // Console programs linked with GnuWin32's shortcut helper initialize an STA
   // before attempting shell-link activation. Share COM's apartment ownership
