@@ -124,3 +124,21 @@ modify this ESM module and relink the browser application using `npm ci` and
 `npm run build` (Pages: `WINEBROWSER_BASE_PATH=/winebrowser/ npm run build`).
 No opaque generated runtime is required. Polygon scan conversion in
 `src/gdi-polygon-region.js` is independently implemented, MIT licensed.
+
+## LAME MP3 encoder
+
+`public/examples/lame/lame.exe` builds the unchanged LAME 3.100 command-line
+encoder and libmp3lame from the full source archive pinned in
+`PROVENANCE.json`, under LGPL-2.0-or-later. Its original `COPYING` ships beside
+the EXE and in both downloadable archives. `source.zip` includes the complete
+original source archive, exact build recipe, configuration and compiler
+metadata so that users can rebuild or modify the encoder. The original LAME
+copyright notices remain in that source. WineBrowser's MIT license does not
+replace LAME's terms.
+
+The EXE statically links MinGW GCC 16.1.0 support under GPLv3 with the GCC
+Runtime Library Exception 3.1; both texts accompany the binary and source.
+Its Windows UCRT and system DLL dependencies use the separately distributed
+Wine source-built runtime described above. The authored integer-wave WAVs and
+native-reference MP3 outputs are WineBrowser test data. See
+[build and verification instructions](docs/lame.md).

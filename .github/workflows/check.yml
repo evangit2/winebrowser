@@ -81,6 +81,7 @@ jobs:
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:packed-sse
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lame
           npm run test:installer-apis
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:processes
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:process-sync
@@ -169,6 +170,7 @@ jobs:
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:directdraw
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:mmio
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:packed-sse
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:lame
           npm run test:d3d8
           npm run test:d3d9
           npm run test:d3d9-shader-cube

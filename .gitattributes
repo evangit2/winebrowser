@@ -12,3 +12,7 @@ tests/fixtures/shaders/legacy/WINE-COPYING.LIB whitespace=-blank-at-eol
 third_party/wine/user32-uitools.c whitespace=-blank-at-eol
 public/runtime/frame-controls/wine-uitools.c whitespace=-blank-at-eol
 public/runtime/frame-controls/COPYING.LIB whitespace=-blank-at-eol
+
+# Preserve the exact upstream LAME/GCC license bytes.
+public/examples/lame/COPYING whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+public/examples/lame/GCC-* whitespace=-blank-at-eol,-blank-at-eof

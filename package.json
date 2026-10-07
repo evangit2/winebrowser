@@ -130,7 +130,7 @@
     "test:pages": "node scripts/test-pages.mjs",
     "test:popup": "node scripts/test-popup-browser.mjs",
     "test:presentation": "node scripts/test-presentation-browser.mjs",
-    "test:packed-sse": "node scripts/test-packed-sse-browser.mjs",
+    "test:packed-sse": "node scripts/test-packed-sse-geometry-browser.mjs && node scripts/test-packed-sse-browser.mjs",
     "test:scalar-sse": "node scripts/test-scalar-sse-browser.mjs",
     "test:sections": "node scripts/test-sections-browser.mjs",
     "test:sections-native": "node scripts/test-sections-native.mjs",
@@ -352,13 +352,15 @@
     "test:load-images": "node scripts/test-load-images-browser.mjs",
     "build:scroll-state": "sh scripts/build-scroll-state-fixture.sh && python3 scripts/package-scroll-state.py",
     "test:scroll-state": "node scripts/test-scroll-state-browser.mjs",
-    "build:packed-sse": "sh scripts/build-packed-sse-fixture.sh",
-    "test:packed-sse": "node scripts/test-packed-sse-geometry-browser.mjs && node scripts/test-packed-sse-browser.mjs",
     "test:packed-sse-oracle": "node scripts/check-packed-sse-oracle.mjs",
     "build:scroll-controls": "sh scripts/build-scroll-controls-fixture.sh && python3 scripts/package-scroll-controls.py",
     "test:scroll-controls": "node scripts/test-scroll-controls-browser.mjs",
     "build:process-sync": "sh scripts/build-process-sync-fixture.sh",
-    "test:process-sync": "node scripts/test-process-sync-browser.mjs"
+    "test:process-sync": "node scripts/test-process-sync-browser.mjs",
+    "build:lame": "python3 scripts/build-lame.py",
+    "package:lame": "node scripts/package-lame.mjs",
+    "test:lame": "node scripts/test-lame-browser.mjs",
+    "test:lame-native": "node scripts/check-lame-native.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",
