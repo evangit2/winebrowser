@@ -66,11 +66,11 @@ test('hatch brushes use the six tiled patterns and DC background mode/colors', (
   runtime.view.setInt32(0x100, 0, true);
   runtime.view.setInt32(0x104, 0, true);
   runtime.view.setInt32(0x108, 8, true);
-  runtime.view.setInt32(0x10c, 2, true);
+  runtime.view.setInt32(0x10c, 4, true);
   assert.equal(call(runtime, 'user32.dll!FillRect', hdc, 0x100, hatch).result, 1);
   const frame = flushGdi(runtime);
-  assert.deepEqual(framePixel(frame, 0, 0), [255, 0, 0, 255], 'horizontal hatch ink');
-  assert.deepEqual(framePixel(frame, 1, 0), [255, 0, 0, 255]);
+  assert.deepEqual(framePixel(frame, 0, 3), [255, 0, 0, 255], 'native horizontal hatch ink');
+  assert.deepEqual(framePixel(frame, 1, 3), [255, 0, 0, 255]);
   assert.deepEqual(framePixel(frame, 0, 1), [0, 255, 0, 255], 'opaque hatch background');
   assert.equal(call(runtime, 'gdi32.dll!SetBkMode', hdc, 1).result, 2);
   assert.equal(call(runtime, 'gdi32.dll!CreateHatchBrush', 6, 0).result, 0);

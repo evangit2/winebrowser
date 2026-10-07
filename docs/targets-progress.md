@@ -368,3 +368,16 @@ compiled 2110 blocks in roughly 320–730 ms in those runs. The public source ZI
 independently rebuilds the exact EXE. Native comctl32 import auditing now finds
 39 unresolved dependencies; actual native common-controls execution, 7-Zip
 File Manager and universal DLL support remain unfinished.
+
+Owned color/monochrome pattern brushes and indirect solid/null/hatch/pattern
+construction now render through actual GDI fills, copied region clips and
+standard control color callbacks. Brush origins survive SaveDC/RestoreDC;
+LOGBRUSH keeps native source-handle provenance after deleting the source.
+CreateBitmap DDB row orientation/alignment was corrected, and all six hatch
+phases were verified against actual desktop Wine SDK pixel tiles. Native
+**gdi-pattern** GUI acceptance checks six stages in EXE/ZIP/catalog modes in
+Chrome 155 and Chromium 153, including visible static hosting. Each stage
+compares 86,400 surface pixels and 256 label-tile pixels against native Wine.
+The source ZIP independently rebuilds the exact EXE and the pixel oracle is
+reproducible. Native comctl32 auditing now reports 38 unresolved dependencies;
+actual comctl32 and 7-Zip File Manager execution remain unfinished.

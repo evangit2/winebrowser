@@ -314,6 +314,8 @@
     "test:window-query": "node scripts/test-window-query-browser.mjs",
     "build:window-defer": "sh scripts/build-window-defer-fixture.sh && python3 scripts/package-window-defer.py",
     "test:window-defer": "node scripts/test-window-defer-browser.mjs",
+    "build:gdi-pattern": "sh scripts/build-gdi-pattern-fixture.sh && python3 scripts/package-gdi-pattern.py",
+    "test:gdi-pattern": "node scripts/test-gdi-pattern-browser.mjs",
     "build:gdi-shapes": "sh scripts/build-gdi-shapes-fixture.sh && python3 scripts/package-gdi-shapes.py",
     "test:gdi-shapes": "node scripts/test-gdi-shapes-browser.mjs",
     "build:gdi-region": "sh scripts/build-gdi-region-fixture.sh && python3 scripts/package-gdi-region.py",

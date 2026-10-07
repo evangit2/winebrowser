@@ -571,3 +571,31 @@ can cover the full signed coordinate domain. Excess complexity returns an
 allocation error without consuming a region handle. Temporary FrameRgn raster
 geometry permits up to 4096 bands, independently of the owned-region budget. General window regions,
 nonidentity XFORMs and full GDI mapping remain unfinished.
+
+Pattern brushes now retain independent color or monochrome bitmap pixels,
+including source DIB writes made before brush construction. Deleting or changing
+the original bitmap cannot change the brush. `CreateBrushIndirect` supports
+solid, null, hatch and bitmap-pattern LOGBRUSH styles; DIB-pattern styles remain
+unsupported. GetObject exposes native BS_PATTERN metadata and its original
+source HBITMAP value. Pattern storage counts against the shared 16-million-pixel
+GDI surface budget and is released with the brush.
+
+Get/SetBrushOrgEx use signed device origins and participate in SaveDC/RestoreDC.
+The shared rasterizer tiles both color and monochrome sources with copied clip
+geometry. Monochrome patterns draw the DC text/background colors even in
+TRANSPARENT mode; one-bit DIB patterns preserve their actual color table.
+Six native hatch phases now match desktop Wine SDK GetPixel outputs, with brush
+origins applying consistently to hatch and bitmap patterns. Standard native
+control color callbacks copy the pattern and origin into the browser's control
+background before the borrowed HDC and brush are released.
+
+CreateBitmap now reads top-down WORD-aligned DDB rows and reports their input
+depth; DIB APIs retain their distinct DWORD-aligned rows and signed height.
+The **gdi-pattern** MIT native GUI verifies copied source ownership, indirect
+brushes, saved origins, native hatch phases, copied ellipse clips and a
+patterned standard label. Six stages per run check 86,400 surface pixels and
+256 label-tile pixels against actual desktop Wine 11 output in EXE/ZIP/catalog
+modes. The original oracle source and captured tiles live in
+`tests/fixtures/gdi-pattern/`; the public source ZIP independently rebuilds the
+exact native EXE. DIB-pattern construction, generalized coordinate mapping,
+indexed DDB color mapping and arbitrary raster operations remain unfinished.

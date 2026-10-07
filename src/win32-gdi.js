@@ -262,7 +262,11 @@ function totalSurfacePixels(state) {
       (sum, surface) => sum + surface.width * surface.height,
       0,
     ) +
-    [...state.bitmaps.values()].reduce((sum, bitmap) => sum + bitmap.width * bitmap.height, 0)
+    [...state.bitmaps.values()].reduce((sum, bitmap) => sum + bitmap.width * bitmap.height, 0) +
+    [...state.brushes.values()].reduce(
+      (sum, brush) => sum + (brush.pattern ? brush.pattern.width * brush.pattern.height : 0),
+      0,
+    )
   );
 }
 
@@ -588,6 +592,74 @@ function createHatchBrush(runtime, argument) {
   return allocated;
 }
 
+function createPatternBrush(r, a) {
+  const state = stateFor(r),
+    source = a(0) >>> 0,
+    bitmap = state.bitmaps.get(source);
+  if (!bitmap) return failure(r, ERROR_INVALID_HANDLE, 0, 1);
+  if (bitmap.width * bitmap.height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
+    return failure(r, ERROR_NOT_ENOUGH_MEMORY, 0, 1);
+  refreshDibPixels(r, bitmap);
+  const allocated = allocateHandle(r, state, 1);
+  if (!allocated.result) return allocated;
+  state.brushes.set(allocated.result, {
+    kind: 'brush',
+    stock: false,
+    color: 0,
+    pattern: {
+      width: bitmap.width,
+      height: bitmap.height,
+      monochrome: !!bitmap.monochrome,
+      pixels: new Uint8ClampedArray(bitmap.pixels),
+    },
+    sourceBitmap: source,
+  });
+  return allocated;
+}
+
+function createBrushIndirect(r, a) {
+  const p = a(0);
+  if (!p) return failure(r, ERROR_INVALID_PARAMETER, 0, 1);
+  r.check(p, 12);
+  const style = r.read32(p),
+    color = r.read32(p + 4),
+    hatch = r.read32(p + 8);
+  if (style === 0) return createSolidBrush(r, () => color);
+  if (style === 2) return { ...createHatchBrush(r, (i) => [hatch, color][i]), argc: 1 };
+  if (style === 3) return createPatternBrush(r, () => hatch);
+  if (style === 1) {
+    const state = stateFor(r),
+      allocated = allocateHandle(r, state, 1);
+    if (allocated.result)
+      state.brushes.set(allocated.result, { kind: 'brush', stock: false, null: true });
+    return allocated;
+  }
+  return failure(
+    r,
+    [5, 6].includes(style) ? ERROR_CALL_NOT_IMPLEMENTED : ERROR_INVALID_PARAMETER,
+    0,
+    1,
+  );
+}
+
+function brushOrigin(r, a, set) {
+  const argc = set ? 4 : 2,
+    dc = getDc(r, stateFor(r), a(0));
+  if (!dc) return badDc(r, argc);
+  const out = a(set ? 3 : 1);
+  if (!set && !out) return failure(r, ERROR_INVALID_PARAMETER, 0, argc);
+  if (out) {
+    r.check(out, 8, true);
+    r.write32(out, dc.brushOriginX ?? 0);
+    r.write32(out + 4, dc.brushOriginY ?? 0);
+  }
+  if (set) {
+    dc.brushOriginX = a(1) | 0;
+    dc.brushOriginY = a(2) | 0;
+  }
+  return success(1, argc);
+}
+
 function createPen(runtime, argument) {
   const state = stateFor(runtime);
   const style = argument(0) >>> 0;
@@ -751,7 +823,7 @@ function getObject(runtime, argument, wide) {
     runtime.data.fill(0, out, out + count);
     runtime.write32(out + 4, bitmap.width);
     runtime.write32(out + 8, bitmap.height);
-    const depth = bitmap.dib?.layout.depth ?? (bitmap.monochrome ? 1 : 32);
+    const depth = bitmap.dib?.layout.depth ?? bitmap.depth ?? (bitmap.monochrome ? 1 : 32);
     runtime.write32(
       out + 12,
       bitmap.dib?.layout.stride ?? Math.ceil((bitmap.width * depth) / 16) * 2,
@@ -812,9 +884,9 @@ function getObject(runtime, argument, wide) {
     view.setInt32(4, pen.width, true);
     view.setUint32(12, pen.color, true);
   } else {
-    view.setUint32(0, brush.null ? 1 : brush.hatch !== undefined ? 2 : 0, true);
+    view.setUint32(0, brush.null ? 1 : brush.pattern ? 3 : brush.hatch !== undefined ? 2 : 0, true);
     view.setUint32(4, brush.color ?? 0, true);
-    view.setUint32(8, brush.hatch ?? 0, true);
+    view.setUint32(8, brush.sourceBitmap ?? brush.hatch ?? 0, true);
   }
   runtime.data.set(bytes.subarray(0, count), out);
   return success(count, 3);
@@ -1262,33 +1334,36 @@ function createBitmap(runtime, argument) {
   if (![1, 4, 8, 24, 32].includes(bitCount)) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
   if (width * height + totalSurfacePixels(state) > MAX_TOTAL_SURFACE_PIXELS)
     return failure(runtime, ERROR_NOT_ENOUGH_MEMORY, 0, 5);
-  const allocated = allocateHandle(runtime, state, 5);
-  if (!allocated.result) return allocated;
   const pixels = opaquePixels(width, height);
   if (bits) {
-    // A caller-supplied DIB bit block is copied through the documented
-    // bottom-up, DWORD-aligned row order for the modelled depths.
+    // Caller-supplied DDB bits use top-down, WORD-aligned rows.
     try {
-      copyDibRows(runtime, bits, width, height, bitCount, pixels);
+      copyBitmapRows(runtime, bits, width, height, bitCount, pixels);
     } catch {
       return failure(runtime, ERROR_INVALID_PARAMETER, 0, 5);
     }
   }
+  const allocated = allocateHandle(runtime, state, 5);
+  if (!allocated.result) return allocated;
   state.bitmaps.set(allocated.result, {
     kind: 'bitmap',
     stock: false,
     width,
     height,
     monochrome: bitCount === 1,
+    depth: bitCount,
     pixels,
     dirty: false,
   });
   return allocated;
 }
-function copyDibRows(runtime, source, width, height, bitCount, pixels) {
-  const stride = Math.ceil((width * bitCount) / 32) * 4;
+function copyBitmapRows(runtime, source, width, height, bitCount, pixels) {
+  // CreateBitmap receives device-dependent bitmap bits: top-down scanlines
+  // aligned to WORDs. DIB APIs separately retain their DWORD-aligned layout.
+  const stride = Math.ceil((width * bitCount) / 16) * 2;
+  runtime.check(source, stride * height);
   for (let y = 0; y < height; y++) {
-    const row = source + (height - 1 - y) * stride;
+    const row = source + y * stride;
     for (let x = 0; x < width; x++) {
       let rgb = [0, 0, 0];
       if (bitCount === 32) {
@@ -2637,7 +2712,14 @@ export function describeGdiBitmap(runtime, handle) {
 /** Clone a control's background brush without taking native ownership. */
 export function describeGdiBrush(runtime, handle) {
   const brush = states.get(runtime)?.brushes.get(handle >>> 0);
-  return brush ? { ...brush } : null;
+  return brush
+    ? {
+        ...brush,
+        ...(brush.pattern
+          ? { pattern: { ...brush.pattern, pixels: new Uint8ClampedArray(brush.pattern.pixels) } }
+          : {}),
+      }
+    : null;
 }
 /** A read-only, cloned descriptor for DOM control font propagation. */
 export function describeGdiFont(runtime, handle) {
@@ -2740,6 +2822,10 @@ function arc(runtime, argument) {
 }
 
 export const gdiApis = {
+  'gdi32.dll!CreateBrushIndirect': createBrushIndirect,
+  'gdi32.dll!CreatePatternBrush': createPatternBrush,
+  'gdi32.dll!SetBrushOrgEx': (r, a) => brushOrigin(r, a, true),
+  'gdi32.dll!GetBrushOrgEx': (r, a) => brushOrigin(r, a, false),
   ...createRegionApis({ stateFor, getDc, getBrush, readRect, allocateHandle, success, failure }),
   'gdi32.dll!GetObjectType': (r, a) => {
     const state = stateFor(r),

@@ -1601,24 +1601,35 @@ export class VirtualDesktop {
         ? 'transparent'
         : color(colors.background);
       control.element.style.backgroundImage = '';
-      if (colors.hatch !== undefined) {
+      if (colors.pattern || colors.hatch !== undefined) {
         const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 8;
-        const pixels = new Uint8ClampedArray(8 * 8 * 4);
+        const width = colors.pattern?.width ?? 8,
+          height = colors.pattern?.height ?? 8;
+        canvas.width = width;
+        canvas.height = height;
+        const pixels = new Uint8ClampedArray(width * height * 4);
         paintRect(
-          { width: 8, height: 8, pixels },
+          { width, height, pixels },
           0,
           0,
-          8,
-          8,
-          { color: colors.background, hatch: colors.hatch },
+          width,
+          height,
+          { color: colors.background, hatch: colors.hatch, pattern: colors.pattern },
           'copy',
-          { backgroundColor: colors.hatchBackground, bkMode: colors.backgroundMode },
+          {
+            textColor: colors.text,
+            backgroundColor: colors.hatchBackground,
+            bkMode: colors.backgroundMode,
+            brushOriginX: colors.brushOriginX,
+            brushOriginY: colors.brushOriginY,
+          },
         );
-        canvas.getContext('2d').putImageData(new ImageData(pixels, 8, 8), 0, 0);
+        canvas.getContext('2d').putImageData(new ImageData(pixels, width, height), 0, 0);
         control.element.style.backgroundImage = `url(${canvas.toDataURL()})`;
         control.element.style.backgroundColor =
-          colors.backgroundMode === 1 ? 'transparent' : color(colors.hatchBackground);
+          !colors.pattern && colors.backgroundMode === 1
+            ? 'transparent'
+            : color(colors.hatchBackground);
       }
     }
     if (state.font !== undefined) control.element.style.font = state.font?.css ?? '';

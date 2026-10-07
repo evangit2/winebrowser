@@ -293,6 +293,17 @@
       "sourceZip": "gdi-shapes/source.zip",
       "sourceZipSha256": "5f55dab684d7fd4666de926f49ae5079454e1dbe8aa156ee67a13bef254d2876",
       "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
+    },
+    {
+      "name": "gdi-pattern",
+      "description": "Native tile GUI: choose color/mono patterns, shifted brush origins, native hatches or ellipse clipping. The standard label receives a real patterned control brush. Close to finish.",
+      "exe": "gdi-pattern/gdi-pattern.exe",
+      "exeSha256": "f20b4724798465747883b1809325163df63e13d04bc09d5fc729f253cd134af4",
+      "zip": "gdi-pattern/gdi-pattern.zip",
+      "zipSha256": "8e565398dc0bd9ca2719c6e9929d09c5a4721dcd0af8847da530887c270646d3",
+      "sourceZip": "gdi-pattern/source.zip",
+      "sourceZipSha256": "35f95801fec89d0206f09d9e5532e43b23f34d2888ec1e4f1a1a98847d3f6602",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

@@ -1602,6 +1602,9 @@ async function paintControlColors(r, window) {
         hatch: brush?.hatch,
         hatchBackground: state.backgroundColor,
         backgroundMode: state.bkMode,
+        pattern: brush?.pattern,
+        brushOriginX: state.brushOriginX ?? 0,
+        brushOriginY: state.brushOriginY ?? 0,
       };
       r.windows.emit(window);
     }

@@ -37,17 +37,17 @@ function hatchPixel(hatch, x, y) {
   const iy = ((y % 8) + 8) % 8;
   switch (hatch) {
     case 0:
-      return iy === 0; // HS_HORIZONTAL
+      return iy === 3; // HS_HORIZONTAL
     case 1:
-      return ix === 0; // HS_VERTICAL
+      return ix === 4; // HS_VERTICAL
     case 2:
-      return (ix + iy) % 8 === 0; // HS_FDIAGONAL
+      return ix === iy; // HS_FDIAGONAL
     case 3:
-      return (((ix - iy) % 8) + 8) % 8 === 0; // HS_BDIAGONAL
+      return ix + iy === 7; // HS_BDIAGONAL
     case 4:
-      return ix === 0 || iy === 0; // HS_CROSS
+      return ix === 4 || iy === 3; // HS_CROSS
     case 5:
-      return (ix + iy) % 8 === 0 || (((ix - iy) % 8) + 8) % 8 === 0;
+      return ix === iy || ix + iy === 7;
     default:
       return false;
   }
@@ -74,30 +74,64 @@ export function visiblePixel(surface, dc, x, y) {
   );
 }
 
-/** Fill clipped half-open bounds with a solid/hatch brush or invert ROP. */
+/** Fill clipped half-open bounds with a solid/hatch/pattern brush or invert ROP. */
 export function paintRect(surface, left, top, right, bottom, brush, operation = 'copy', dc = null) {
   if (brush?.null && operation === 'copy') return false;
   const [x1, y1, x2, y2] = clippedBounds(surface, left, top, right, bottom, dc);
   if (x1 >= x2 || y1 >= y2) return false;
   const rgb = surfaceRgb(surface, brush ? colorRefRgb(brush.color ?? 0) : [0, 0, 0]);
   const pixels = surface.pixels;
+  const pattern = brush?.pattern,
+    originX = dc?.brushOriginX ?? 0,
+    originY = dc?.brushOriginY ?? 0;
+  const monoForeground =
+      pattern?.monochrome && surfaceRgb(surface, colorRefRgb(dc?.textColor ?? 0)),
+    monoBackground =
+      pattern?.monochrome && surfaceRgb(surface, colorRefRgb(dc?.backgroundColor ?? 0xffffff));
+  const startX = pattern && (((x1 - originX) % pattern.width) + pattern.width) % pattern.width;
   let changed = false;
   for (let y = y1; y < y2; y++) {
     let offset = (y * surface.width + x1) * 4;
+    const tileStart =
+        pattern &&
+        ((((y - originY) % pattern.height) + pattern.height) % pattern.height) * pattern.width * 4,
+      tileEnd = pattern && tileStart + pattern.width * 4;
+    let tileOffset = pattern && tileStart + startX * 4;
     for (let x = x1; x < x2; x++, offset += 4) {
+      const at = tileOffset;
+      if (pattern) {
+        tileOffset += 4;
+        if (tileOffset === tileEnd) tileOffset = tileStart;
+      }
       if (!visiblePixel(surface, dc, x, y)) continue;
-      let pixelRgb = rgb;
-      if (brush?.hatch !== undefined) {
-        const ink = hatchPixel(brush.hatch, x, y);
+      let r = rgb[0],
+        g = rgb[1],
+        b = rgb[2];
+      if (pattern) {
+        // Monochrome pattern brushes always draw both foreground/background,
+        // even when the DC's hatch/text background mode is TRANSPARENT.
+        if (pattern.monochrome) {
+          const color = pattern.pixels[at] ? monoBackground : monoForeground;
+          r = color[0];
+          g = color[1];
+          b = color[2];
+        } else {
+          r = pattern.pixels[at];
+          g = pattern.pixels[at + 1];
+          b = pattern.pixels[at + 2];
+          if (surface.monochrome) r = g = b = r * 299 + g * 587 + b * 114 >= 128000 ? 255 : 0;
+        }
+      } else if (brush?.hatch !== undefined) {
+        const ink = hatchPixel(brush.hatch, x - originX, y - originY);
         if (!ink && dc?.bkMode === 1) continue;
-        pixelRgb = surfaceRgb(
+        const color = surfaceRgb(
           surface,
           colorRefRgb(ink ? brush.color : (dc?.backgroundColor ?? 0xffffff)),
         );
+        r = color[0];
+        g = color[1];
+        b = color[2];
       }
-      let r = pixelRgb[0],
-        g = pixelRgb[1],
-        b = pixelRgb[2];
       if (operation === 'invert') {
         r = 255 - pixels[offset];
         g = 255 - pixels[offset + 1];

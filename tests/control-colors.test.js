@@ -33,12 +33,20 @@ async function setup(t) {
       assert.ok(activeGdiDC(r, dc));
       await call('gdi32.dll!SetTextColor', dc, 0xa05014);
       await call('gdi32.dll!SetBkColor', dc, 0x554433);
-      brush =
-        brushKind === 'hatch'
-          ? (await call('gdi32.dll!CreateHatchBrush', 4, 0xfff0e8)).result
-          : brushKind === 'null'
-            ? (await call('gdi32.dll!GetStockObject', 5)).result
-            : (await call('gdi32.dll!CreateSolidBrush', 0xfff0e8)).result;
+      if (brushKind === 'pattern') {
+        const bits = r.allocate(16);
+        [0xff0000, 0xff00, 0xff, 0xffff00].forEach((value, i) => r.write32(bits + i * 4, value));
+        const bitmap = (await call('gdi32.dll!CreateBitmap', 2, 2, 1, 32, bits)).result;
+        brush = (await call('gdi32.dll!CreatePatternBrush', bitmap)).result;
+        assert.equal((await call('gdi32.dll!DeleteObject', bitmap)).result, 1);
+        await call('gdi32.dll!SetBrushOrgEx', dc, 3, -5, 0);
+      } else
+        brush =
+          brushKind === 'hatch'
+            ? (await call('gdi32.dll!CreateHatchBrush', 4, 0xfff0e8)).result
+            : brushKind === 'null'
+              ? (await call('gdi32.dll!GetStockObject', 5)).result
+              : (await call('gdi32.dll!CreateSolidBrush', 0xfff0e8)).result;
       if (destroyOnColor) await r.windows.destroy(args[3]);
       return brush;
     }
@@ -120,6 +128,9 @@ test('native control color callbacks use live HDCs and copy borrowed brush/text 
       hatch: undefined,
       hatchBackground: 0x554433,
       backgroundMode: 2,
+      pattern: undefined,
+      brushOriginX: 0,
+      brushOriginY: 0,
     });
     assert.equal(activeGdiDC(r, getDc()), null);
     assert.equal((await call('gdi32.dll!DeleteObject', getBrush())).result, 1);
@@ -135,6 +146,23 @@ test('native control color callbacks use live HDCs and copy borrowed brush/text 
     }
     await r.windows.destroy(hwnd);
   }
+});
+test('standard controls copy patterned brush pixels and origins before native source/brush/DC release', async (t) => {
+  const { r, call, make, setBrush, getBrush } = await setup(t);
+  setBrush('pattern');
+  const hwnd = await make('STATIC', 10);
+  await r.windows.send(hwnd, 0xf);
+  const colors = r.windows.windows.get(hwnd).controlColors;
+  assert.deepEqual(
+    [colors.pattern.width, colors.pattern.height, colors.brushOriginX, colors.brushOriginY],
+    [2, 2, 3, -5],
+  );
+  assert.deepEqual(
+    [...colors.pattern.pixels],
+    [255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255],
+  );
+  assert.equal((await call('gdi32.dll!DeleteObject', getBrush())).result, 1);
+  assert.equal(colors.pattern.pixels[0], 255);
 });
 test('parent may destroy a control during its color callback without a stale browser update', async (t) => {
   const { r, make, setDestroy, events } = await setup(t);
