@@ -1,10 +1,16 @@
+import { standardOutputId } from './standard-handles.js';
 import { registryStore } from './win32-registry.js';
 
 export function guestHandleRecord(runtime, handle) {
   handle >>>= 0;
-  if ([1, 2].includes(handle) && !runtime.closedStandardOutputs?.has(handle)) {
+  if ((handle === 1 || handle === 2) && standardOutputId(runtime, handle)) {
     runtime.standardHandleRecords ??= new Map();
-    if (!runtime.standardHandleRecords.has(handle)) runtime.standardHandleRecords.set(handle, {});
+    if (!runtime.standardHandleRecords.has(handle))
+      runtime.standardHandleRecords.set(handle, {
+        kind: 'standard-output',
+        stream: handle,
+        access: 0x40000000,
+      });
     return runtime.standardHandleRecords.get(handle);
   }
   return runtime.handles.get(handle) ?? registryStore.stateFor(runtime).handles.get(handle);

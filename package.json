@@ -364,7 +364,8 @@
     "benchmark:simd": "node scripts/benchmark-simd-float.mjs",
     "test:static-group": "node scripts/run-static-suite.mjs",
     "build:clipboard": "sh scripts/build-clipboard-fixture.sh && python3 scripts/package-clipboard.py",
-    "test:clipboard": "node scripts/test-clipboard-browser.mjs"
+    "test:clipboard": "node scripts/test-clipboard-browser.mjs",
+    "test:python": "node scripts/test-python-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

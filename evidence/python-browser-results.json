@@ -1,0 +1,294 @@
+{
+  "date": "2026-10-07T21:14:33.188Z",
+  "browser": "153.0.8010.12",
+  "url": "http://127.0.0.1:4389/winebrowser/",
+  "scope": "Ordinary ZIP upload of unchanged official Windows CPython 3.8.10 and its native extension DLLs; x86-to-Wasm translation in the browser. Console output, seven native extension modules, compression round trips, decimal arithmetic, Unicode normalization, XML callbacks and on-disk SQLite transactions/rollback/reopen/integrity_check match native Wine. No ctypes, OpenSSL, TLS, sockets, arbitrary Python packages or universal Windows compatibility claim.",
+  "upstream": "https://www.python.org/ftp/python/3.8.10/python-3.8.10-embed-win32.zip",
+  "zipSha256": "760dc79bcb434ee80b1001a30bb6f798287881851bac6d8137867894d40ef1fc",
+  "workloadSha256": "f8f4cca0651593b57f410457f270302334460b4686479f6e2f823ffa6afcc270",
+  "oracle": {
+    "compression_bytes": {
+      "bz2": 128,
+      "lzma": 120,
+      "zlib": 62
+    },
+    "crc32": 1894049746,
+    "decimal_sqrt": "1.414213562373095048801688724209698078570",
+    "payload_bytes": 1280,
+    "sqlite_rows": [
+      [
+        1,
+        "café",
+        2
+      ],
+      [
+        2,
+        "日本語",
+        1280
+      ]
+    ],
+    "sum_squares": 328350,
+    "unicode_normalized": "café",
+    "version": [
+      3,
+      8,
+      10
+    ],
+    "xml_events": [
+      [
+        "root",
+        {}
+      ],
+      [
+        "item",
+        {
+          "name": "café"
+        }
+      ]
+    ]
+  },
+  "modules": [
+    {
+      "name": "python38.dll",
+      "sha256": "a9675a91d767095c9d4a2ae1df6e17bdb59102dbd2b4504c3493b0bcbed5ef55"
+    },
+    {
+      "name": "vcruntime140.dll",
+      "sha256": "9ec4afad505e0a3dad760fa5b59c66606ae54dd043c16914cf56d7006e46d375"
+    },
+    {
+      "name": "ucrtbase.dll"
+    },
+    {
+      "name": "kernel32.dll"
+    },
+    {
+      "name": "kernelbase.dll"
+    },
+    {
+      "name": "ntdll.dll"
+    },
+    {
+      "name": "_decimal.pyd",
+      "sha256": "44107df49d7dbea4e5d1c7f8a24b2d30c7f4d1623f599c4ea9f5f36c05fe0ee6"
+    },
+    {
+      "name": "_sqlite3.pyd",
+      "sha256": "dda21a626a57cf6794140e5f7af749baf1ae686a58336a85b20c61b617a99a80"
+    },
+    {
+      "name": "sqlite3.dll",
+      "sha256": "1090083e89dcef8dcb42b9d7a9fc1928ff7b48b538f3ad44113e7cb5df9f0cc2"
+    },
+    {
+      "name": "_bz2.pyd",
+      "sha256": "82a85187faf8786216c82ac1c4ccf32c8839048e242025ed4e7a1e3ab870255f"
+    },
+    {
+      "name": "_lzma.pyd",
+      "sha256": "d3350ad957d6c37b2c75f56a5a149f0eeb58295227f78c15048669a2e816ae3a"
+    },
+    {
+      "name": "unicodedata.pyd",
+      "sha256": "af602c6033875478b8cec6270c4b0fa618290b97c7e139d71dbb58b83a08781a"
+    },
+    {
+      "name": "_elementtree.pyd",
+      "sha256": "acbd9ec39ced8b521dd637209f88c366c455a18c884d8f02bbeddcf50dc7af6b"
+    },
+    {
+      "name": "pyexpat.pyd",
+      "sha256": "c8ef88232e6d66dca7f1d7a60a5b0580067a1c9b4a9d21c9f836af4869dcd27c"
+    }
+  ],
+  "run": {
+    "exitCode": 0,
+    "elapsedMs": 124178.56000000238,
+    "x86TranslationMs": 33711.5299962163,
+    "instructions": 222044552,
+    "compiledBlocks": 64432,
+    "loadedModules": [
+      {
+        "name": "python.exe",
+        "path": "python.exe",
+        "base": 4194304,
+        "host": false
+      },
+      {
+        "name": "python38.dll",
+        "path": "python38.dll",
+        "base": 16777216,
+        "host": false
+      },
+      {
+        "name": "ucrtbase.dll",
+        "path": "@runtime/ucrtbase.dll",
+        "base": 21102592,
+        "host": false
+      },
+      {
+        "name": "kernel32.dll",
+        "path": "@runtime/kernel32.dll",
+        "base": 22020096,
+        "host": false
+      },
+      {
+        "name": "ntdll.dll",
+        "path": "@runtime/ntdll.dll",
+        "base": 22478848,
+        "host": false
+      },
+      {
+        "name": "version.dll",
+        "path": "@runtime/version.dll",
+        "base": 23265280,
+        "host": false
+      },
+      {
+        "name": "shlwapi.dll",
+        "path": "@host/shlwapi.dll",
+        "base": 23330816,
+        "host": true
+      },
+      {
+        "name": "ws2_32.dll",
+        "path": "@host/ws2_32.dll",
+        "base": 23396352,
+        "host": true
+      },
+      {
+        "name": "advapi32.dll",
+        "path": "@host/advapi32.dll",
+        "base": 23461888,
+        "host": true
+      },
+      {
+        "name": "kernelbase.dll",
+        "path": "@runtime/kernelbase.dll",
+        "base": 23527424,
+        "host": false
+      },
+      {
+        "name": "vcruntime140.dll",
+        "path": "vcruntime140.dll",
+        "base": 20971520,
+        "host": false
+      },
+      {
+        "name": "python3.dll",
+        "path": "python3.dll",
+        "base": 26279936,
+        "host": false
+      },
+      {
+        "name": "_bz2.pyd",
+        "path": "_bz2.pyd",
+        "base": 26345472,
+        "host": false
+      },
+      {
+        "name": "_lzma.pyd",
+        "path": "_lzma.pyd",
+        "base": 26476544,
+        "host": false
+      },
+      {
+        "name": "_decimal.pyd",
+        "path": "_decimal.pyd",
+        "base": 26673152,
+        "host": false
+      },
+      {
+        "name": "_sqlite3.pyd",
+        "path": "_sqlite3.pyd",
+        "base": 26935296,
+        "host": false
+      },
+      {
+        "name": "sqlite3.dll",
+        "path": "sqlite3.dll",
+        "base": 27066368,
+        "host": false
+      },
+      {
+        "name": "unicodedata.pyd",
+        "path": "unicodedata.pyd",
+        "base": 28311552,
+        "host": false
+      },
+      {
+        "name": "_elementtree.pyd",
+        "path": "_elementtree.pyd",
+        "base": 29425664,
+        "host": false
+      },
+      {
+        "name": "pyexpat.pyd",
+        "path": "pyexpat.pyd",
+        "base": 29622272,
+        "host": false
+      }
+    ],
+    "apiNames": [
+      "ntdll.dll!NtAllocateVirtualMemory",
+      "ntdll.dll!NtQuerySystemInformation",
+      "ntdll.dll!NtQueryInformationToken",
+      "ntdll.dll!NtCreateKey",
+      "ntdll.dll!NtOpenKey",
+      "ntdll.dll!NtClose",
+      "ntdll.dll!NtQueryValueKey",
+      "ntdll.dll!NtQueryInformationProcess",
+      "ntdll.dll!NtInitializeNlsFiles",
+      "ntdll.dll!NtGetNlsSectionPtr",
+      "ntdll.dll!NtQueryDefaultLocale",
+      "ntdll.dll!NtOpenKeyEx",
+      "ntdll.dll!NtSetValueKey",
+      "ntdll.dll!NtProtectVirtualMemory",
+      "ntdll.dll!NtWow64IsProcessorFeaturePresent",
+      "ntdll.dll!NtQueryVolumeInformationFile",
+      "ntdll.dll!NtQuerySystemTime",
+      "ntdll.dll!NtQueryPerformanceCounter",
+      "WineBrowserLoaderCallback",
+      "ntdll.dll!NtCreateSemaphore",
+      "ntdll.dll!NtQueryAttributesFile",
+      "ntdll.dll!NtCreateFile",
+      "ntdll.dll!NtQueryObject",
+      "ntdll.dll!NtSetInformationObject",
+      "ntdll.dll!NtReadFile",
+      "advapi32.dll!CryptAcquireContextW",
+      "advapi32.dll!CryptGenRandom",
+      "ntdll.dll!NtFreeVirtualMemory",
+      "ntdll.dll!NtQueryInformationFile",
+      "ntdll.dll!NtSetInformationFile",
+      "shlwapi.dll!PathSkipRootW",
+      "ntdll.dll!NtCreateEvent",
+      "ntdll.dll!NtDuplicateObject",
+      "ntdll.dll!NtDeviceIoControlFile",
+      "ntdll.dll!NtOpenFile",
+      "ntdll.dll!NtQueryDirectoryFile",
+      "ntdll.dll!NtSetInformationProcess",
+      "ntdll.dll!NtQueryFullAttributesFile",
+      "ntdll.dll!NtLockFile",
+      "ntdll.dll!NtUnlockFile",
+      "ntdll.dll!NtWriteFile",
+      "ntdll.dll!NtFlushBuffersFile",
+      "advapi32.dll!CryptReleaseContext",
+      "ntdll.dll!NtSetInformationThread",
+      "ntdll.dll!NtTerminateProcess"
+    ]
+  },
+  "stdout": "PYTHON NATIVE EXTENSION WORKLOAD {\"compression_bytes\": {\"bz2\": 128, \"lzma\": 120, \"zlib\": 62}, \"crc32\": 1894049746, \"decimal_sqrt\": \"1.414213562373095048801688724209698078570\", \"payload_bytes\": 1280, \"sqlite_rows\": [[1, \"caf\\u00e9\", 2], [2, \"\\u65e5\\u672c\\u8a9e\", 1280]], \"sum_squares\": 328350, \"unicode_normalized\": \"caf\\u00e9\", \"version\": [3, 8, 10], \"xml_events\": [[\"root\", {}], [\"item\", {\"name\": \"caf\\u00e9\"}]]}\r\n",
+  "outputs": [
+    {
+      "path": "compatibility.db",
+      "bytes": 8192,
+      "sha256": "2c89a399b2ad9d57cc80346e84a54a77f2366088ffaa88498ac45cbef3904dd8"
+    },
+    {
+      "path": "workload-results.json",
+      "bytes": 382,
+      "sha256": "bba71ea3c5d23203eac3dcb70f9a55efd707c8f52b464ed745c4ea07a1b2c1d2"
+    }
+  ],
+  "errors": []
+}

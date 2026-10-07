@@ -1,0 +1,18 @@
+{
+  "duplicateStatus": 0,
+  "inherit": 1,
+  "info": 1,
+  "writeFirst": 1,
+  "countFirst": 1,
+  "cascadeStatus": 0,
+  "cascadeFlags": 1,
+  "limitedStatus": 0,
+  "limitedWrite": 0,
+  "limitedError": 5,
+  "limitedCount": 0,
+  "writeAfterOriginalClose": 1,
+  "countAfterOriginalClose": 1,
+  "closedWrite": 0,
+  "closedError": 6,
+  "closedCount": 0
+}
