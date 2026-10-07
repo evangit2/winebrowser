@@ -1,3 +1,4 @@
+import { standardOutputId } from './standard-handles.js';
 // Synchronous PE32 NT file services backed by Runtime's bounded virtual files.
 import {
   acquireFileLock,
@@ -533,8 +534,9 @@ function write(runtime, argument) {
   if (!checked(runtime, argument(5), count)) return complete(ACCESS_VIOLATION);
   const handleValue = argument(0) >>> 0;
   const bytes = runtime.data.slice(argument(5) >>> 0, (argument(5) >>> 0) + count);
-  if (handleValue === 1 || handleValue === 2) {
-    if (runtime.closedStandardOutputs?.has(handleValue)) return complete(INVALID_HANDLE);
+  if (standardOutputId(runtime, handleValue)) {
+    const access = runtime.handles.get(handleValue)?.access ?? 0x40000000;
+    if (!(access & 0x40000000)) return complete(ACCESS_DENIED);
     if (argument(7)) return complete(INVALID_PARAMETER);
     runtime.stdoutBytes = (runtime.stdoutBytes || 0) + count;
     if (runtime.stdoutBytes > MAX_OUTPUT) throw Error('Console output limit exceeded');
@@ -569,8 +571,7 @@ function queryVolume(runtime, argument) {
   const complete = iosb(runtime, argument(1));
   if (!complete) return ACCESS_VIOLATION;
   const handle = argument(0) >>> 0;
-  const isPipe = handle === 1 || handle === 2;
-  if (isPipe && runtime.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
+  const isPipe = !!standardOutputId(runtime, handle);
   if (
     !isPipe &&
     !regular(runtime, handle) &&
@@ -622,6 +623,10 @@ function queryVolume(runtime, argument) {
 export function closeFileHandle(runtime, handle) {
   const value = handle >>> 0;
   if (runtime.handles.get(value)?.kind === 'volume-metadata') {
+    runtime.handles.delete(value);
+    return SUCCESS;
+  }
+  if (runtime.handles.get(value)?.kind === 'standard-output') {
     runtime.handles.delete(value);
     return SUCCESS;
   }
@@ -693,6 +698,21 @@ function byteRangeLock(r, a, unlock) {
 
 export const fileNtServices = {
   NtQueryDirectoryFile: { argc: 11, call: queryDirectory },
+  NtDeviceIoControlFile: {
+    argc: 10,
+    call: (r, a) => {
+      const handle = a(0) >>> 0;
+      if (!standardOutputId(r, handle)) {
+        if (!r.handles.has(handle)) return INVALID_HANDLE;
+        throw Error('Unsupported device control for a non-output handle');
+      }
+      // Wine's console-mode probe requests FILE_READ_DATA. Redirected stdout
+      // and stderr are write-only pipes, so the NT access check rejects it
+      // before touching IO_STATUS_BLOCK or the output buffer.
+      if (a(5) !== 0x00504000) throw Error('Unsupported output-pipe device control');
+      return ACCESS_DENIED;
+    },
+  },
   // stdout/stderr are write-only byte pipes. CRT isatty/pipe probes must see
   // a normal NT failure for a read control request, rather than a host trap.
   NtFsControlFile: {
@@ -702,8 +722,7 @@ export const fileNtServices = {
       if (!complete) return ACCESS_VIOLATION;
       if (a(1) || a(2)) return complete(NOT_SUPPORTED);
       const handle = a(0) >>> 0;
-      if (handle === 1 || handle === 2) {
-        if (r.closedStandardOutputs?.has(handle)) return complete(INVALID_HANDLE);
+      if (standardOutputId(r, handle)) {
         return complete(a(5) === 0x11400c ? ACCESS_DENIED : 0xc0000010);
       }
       return complete(regular(r, handle) ? 0xc0000010 : INVALID_HANDLE);

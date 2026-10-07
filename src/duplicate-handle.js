@@ -1,3 +1,5 @@
+import { guestHandleRecord } from './wine-object.js';
+import { closeFileHandle } from './wine-file.js';
 import { SYNC, syncAccess, syncObjects } from './sync-objects.js';
 
 function processAccess(raw) {
@@ -23,8 +25,8 @@ function threadAccess(raw) {
   return access & ~0x1fffff ? null : access;
 }
 
-// Same-process events, semaphores, object directories and thread handles. Other families
-// need their own shared object/position ownership before they can be duplicated.
+// Same-process synchronization objects and standard output pipes. File handles
+// need shared position and lock ownership before they can be duplicated.
 export function duplicateHandle(r, a) {
   if (a(0) !== 0xffffffff) return SYNC.HANDLE;
   const source = a(1),
@@ -32,15 +34,21 @@ export function duplicateHandle(r, a) {
     pseudo = source === 0xfffffffe;
   const opened = pseudo
     ? { kind: 'sync-thread', access: 0x1fffff, inherit: false }
-    : r.handles.get(source);
+    : guestHandleRecord(r, source);
   if (!opened) return SYNC.HANDLE;
   if (
-    !['sync-process', 'sync-thread', 'sync-event', 'sync-semaphore', 'sync-directory'].includes(
-      opened.kind,
-    )
+    ![
+      'sync-process',
+      'sync-thread',
+      'sync-event',
+      'sync-semaphore',
+      'sync-directory',
+      'standard-output',
+    ].includes(opened.kind)
   )
     return SYNC.UNSUPPORTED;
   const objects = syncObjects(r);
+  const output = opened.kind === 'standard-output';
   try {
     if (options & ~7) return SYNC.INVALID;
     // A null target closes only; output/access/attributes are ignored.
@@ -54,6 +62,22 @@ export function duplicateHandle(r, a) {
     }
     r.write32(a(3), 0);
     if (!(options & 4) && a(5) & ~2) return SYNC.UNSUPPORTED;
+    if (output) {
+      const access = options & 2 ? opened.access : a(4) >>> 0;
+      // Preserve the byte-output right; duplication may also create an
+      // alias without write access. Other rights need separate pipe services.
+      if ((access & opened.access) !== access) return SYNC.ACCESS;
+      if (r.handles.size >= 4096) return SYNC.MEMORY;
+      const handle = r.nextHandle++;
+      r.handles.set(handle, {
+        kind: 'standard-output',
+        stream: opened.stream,
+        access,
+        inherit: options & 4 ? !!opened.inherit : !!(a(5) & 2),
+      });
+      r.write32(a(3), handle);
+      return 0;
+    }
     const accessFor = opened.kind === 'sync-process' ? processAccess : threadAccess;
     const available = ['sync-process', 'sync-thread'].includes(opened.kind)
       ? accessFor(opened.access)
@@ -72,7 +96,10 @@ export function duplicateHandle(r, a) {
     if (!result.status) r.write32(a(3), result.handle);
     return result.status;
   } finally {
-    if (options & 1 && !pseudo) objects.close(source);
+    if (options & 1 && !pseudo) {
+      if (output) closeFileHandle(r, source);
+      else objects.close(source);
+    }
   }
 }
 

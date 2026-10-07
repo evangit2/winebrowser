@@ -1,0 +1,271 @@
+{
+  "upstream": "https://www.python.org/ftp/python/3.8.10/python-3.8.10-embed-win32.zip",
+  "zipSha256": "760dc79bcb434ee80b1001a30bb6f798287881851bac6d8137867894d40ef1fc",
+  "scope": "Static native extension dependency audit with current Wine base DLLs and host APIs. Empty unresolved lists establish linking only; browser workload evidence separately establishes execution.",
+  "modules": [
+    {
+      "name": "_ctypes.pyd",
+      "unresolved": [
+        {
+          "module": "_ctypes.pyd",
+          "entry": {
+            "dll": "ole32.dll",
+            "name": "ProgIDFromCLSID",
+            "iatRva": 78064
+          },
+          "error": "Unsupported import ole32.dll!ProgIDFromCLSID"
+        },
+        {
+          "module": "_ctypes.pyd",
+          "entry": {
+            "dll": "OLEAUT32.dll",
+            "ordinal": 200,
+            "iatRva": 77928
+          },
+          "error": "Unsupported import oleaut32.dll!200"
+        }
+      ]
+    },
+    {
+      "name": "_hashlib.pyd",
+      "unresolved": [
+        {
+          "module": "libcrypto-1_1.dll",
+          "entry": {
+            "dll": "ADVAPI32.dll",
+            "name": "RegisterEventSourceW",
+            "iatRva": 2183168
+          },
+          "error": "Unsupported import advapi32.dll!RegisterEventSourceW"
+        },
+        {
+          "module": "libcrypto-1_1.dll",
+          "entry": {
+            "dll": "ADVAPI32.dll",
+            "name": "DeregisterEventSource",
+            "iatRva": 2183172
+          },
+          "error": "Unsupported import advapi32.dll!DeregisterEventSource"
+        },
+        {
+          "module": "libcrypto-1_1.dll",
+          "entry": {
+            "dll": "ADVAPI32.dll",
+            "name": "ReportEventW",
+            "iatRva": 2183176
+          },
+          "error": "Unsupported import advapi32.dll!ReportEventW"
+        }
+      ]
+    },
+    {
+      "name": "_ssl.pyd",
+      "unresolved": [
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertFreeCRLContext",
+            "iatRva": 57344
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertOpenStore",
+            "iatRva": 57348
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertCloseStore",
+            "iatRva": 57352
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertAddStoreToCollection",
+            "iatRva": 57356
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertEnumCRLsInStore",
+            "iatRva": 57360
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertGetEnhancedKeyUsage",
+            "iatRva": 57364
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertFreeCertificateContext",
+            "iatRva": 57368
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "_ssl.pyd",
+          "entry": {
+            "dll": "CRYPT32.dll",
+            "name": "CertEnumCertificatesInStore",
+            "iatRva": 57372
+          },
+          "error": "Missing DLL CRYPT32.dll"
+        },
+        {
+          "module": "libcrypto-1_1.dll",
+          "entry": {
+            "dll": "ADVAPI32.dll",
+            "name": "RegisterEventSourceW",
+            "iatRva": 2183168
+          },
+          "error": "Unsupported import advapi32.dll!RegisterEventSourceW"
+        },
+        {
+          "module": "libcrypto-1_1.dll",
+          "entry": {
+            "dll": "ADVAPI32.dll",
+            "name": "DeregisterEventSource",
+            "iatRva": 2183172
+          },
+          "error": "Unsupported import advapi32.dll!DeregisterEventSource"
+        },
+        {
+          "module": "libcrypto-1_1.dll",
+          "entry": {
+            "dll": "ADVAPI32.dll",
+            "name": "ReportEventW",
+            "iatRva": 2183176
+          },
+          "error": "Unsupported import advapi32.dll!ReportEventW"
+        }
+      ]
+    },
+    {
+      "name": "_socket.pyd",
+      "unresolved": [
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "WS2_32.dll",
+            "name": "WSADuplicateSocketW",
+            "iatRva": 37028
+          },
+          "error": "Unsupported import ws2_32.dll!WSADuplicateSocketW"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "WS2_32.dll",
+            "ordinal": 51,
+            "iatRva": 37072
+          },
+          "error": "Unsupported import ws2_32.dll!51"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "WS2_32.dll",
+            "ordinal": 56,
+            "iatRva": 37080
+          },
+          "error": "Unsupported import ws2_32.dll!56"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "IPHLPAPI.DLL",
+            "name": "FreeMibTable",
+            "iatRva": 36864
+          },
+          "error": "Missing DLL IPHLPAPI.DLL"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "IPHLPAPI.DLL",
+            "name": "ConvertInterfaceLuidToNameW",
+            "iatRva": 36868
+          },
+          "error": "Missing DLL IPHLPAPI.DLL"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "IPHLPAPI.DLL",
+            "name": "GetIfTable2Ex",
+            "iatRva": 36872
+          },
+          "error": "Missing DLL IPHLPAPI.DLL"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "IPHLPAPI.DLL",
+            "name": "if_nametoindex",
+            "iatRva": 36876
+          },
+          "error": "Missing DLL IPHLPAPI.DLL"
+        },
+        {
+          "module": "_socket.pyd",
+          "entry": {
+            "dll": "IPHLPAPI.DLL",
+            "name": "if_indextoname",
+            "iatRva": 36880
+          },
+          "error": "Missing DLL IPHLPAPI.DLL"
+        }
+      ]
+    },
+    {
+      "name": "_decimal.pyd",
+      "unresolved": []
+    },
+    {
+      "name": "_sqlite3.pyd",
+      "unresolved": []
+    },
+    {
+      "name": "_bz2.pyd",
+      "unresolved": []
+    },
+    {
+      "name": "_lzma.pyd",
+      "unresolved": []
+    },
+    {
+      "name": "pyexpat.pyd",
+      "unresolved": []
+    },
+    {
+      "name": "_elementtree.pyd",
+      "unresolved": []
+    },
+    {
+      "name": "_queue.pyd",
+      "unresolved": []
+    }
+  ]
+}

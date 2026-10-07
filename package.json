@@ -362,7 +362,8 @@
     "test:lame": "node scripts/test-lame-browser.mjs",
     "test:lame-native": "node scripts/check-lame-native.mjs",
     "benchmark:simd": "node scripts/benchmark-simd-float.mjs",
-    "test:static-group": "node scripts/run-static-suite.mjs"
+    "test:static-group": "node scripts/run-static-suite.mjs",
+    "test:python": "node scripts/test-python-browser.mjs"
   },
   "dependencies": {
     "fflate": "0.8.3",

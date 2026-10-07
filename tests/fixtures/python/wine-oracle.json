@@ -1,0 +1,17 @@
+{
+  "compression_bytes": { "bz2": 128, "lzma": 120, "zlib": 62 },
+  "crc32": 1894049746,
+  "decimal_sqrt": "1.414213562373095048801688724209698078570",
+  "payload_bytes": 1280,
+  "sqlite_rows": [
+    [1, "caf\u00e9", 2],
+    [2, "\u65e5\u672c\u8a9e", 1280]
+  ],
+  "sum_squares": 328350,
+  "unicode_normalized": "caf\u00e9",
+  "version": [3, 8, 10],
+  "xml_events": [
+    ["root", {}],
+    ["item", { "name": "caf\u00e9" }]
+  ]
+}

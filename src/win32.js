@@ -1,3 +1,4 @@
+import { standardOutputId } from './standard-handles.js';
 import { canResizeGuestFile } from './guest-volume.js';
 import { textUnicodeApis } from './win32-text-unicode.js';
 import { dropFileApis } from './win32-drop-files.js';
@@ -457,7 +458,10 @@ function readFile(runtime, argument) {
 
 function writeFile(runtime, argument) {
   if (argument(4)) throw Error('Overlapped I/O unsupported');
-  if (argument(3)) runtime.check(argument(3), 4, true);
+  if (argument(3)) {
+    runtime.check(argument(3), 4, true);
+    runtime.write32(argument(3), 0);
+  }
   const count = argument(2);
   if (count > 4 * 1024 * 1024) throw Error('WriteFile exceeds per-call limit');
   const address = argument(1);
@@ -465,8 +469,9 @@ function writeFile(runtime, argument) {
   const bytes = runtime.data.slice(address, address + count);
   const handleValue = argument(0);
 
-  if (handleValue === 1 || handleValue === 2) {
-    if (runtime.closedStandardOutputs?.has(handleValue)) return failure(runtime, 6, 5);
+  if (standardOutputId(runtime, handleValue)) {
+    const access = runtime.handles.get(handleValue)?.access ?? 0x40000000;
+    if (!(access & 0x40000000)) return failure(runtime, 5, 5);
     runtime.stdoutBytes = (runtime.stdoutBytes || 0) + count;
     if (runtime.stdoutBytes > 1024 * 1024) throw Error('Console output limit exceeded');
     runtime.emit({ type: 'stdout', text: new TextDecoder('windows-1252').decode(bytes) });

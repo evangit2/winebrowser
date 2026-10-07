@@ -1,3 +1,4 @@
+import { standardOutputId } from './standard-handles.js';
 import { canResizeGuestFile } from './guest-volume.js';
 import { touchFile } from './file-metadata.js';
 // Common kernel32 APIs that CRT startup and ordinary Win32 programs import
@@ -398,12 +399,11 @@ function getFileSize(r, a) {
 }
 function getFileType(r, a) {
   const handle = a(0);
-  if (handle === 0 || handle === 1 || handle === 2 || r.stdHandles?.has(handle | 0))
-    return ok(2, 1); // FILE_TYPE_CHAR
+  if (handle === 0 || standardOutputId(r, handle) || r.stdHandles?.has(handle | 0)) return ok(2, 1); // FILE_TYPE_CHAR
   return r.handles.has(handle) ? ok(1, 1) : fail(r, 6, 1); // FILE_TYPE_DISK
 }
 function flushFileBuffers(r, a) {
-  return r.handles.has(a(0)) || (a(0) >= 0 && a(0) <= 2) ? ok(1, 1) : fail(r, 6, 1);
+  return r.handles.has(a(0)) || standardOutputId(r, a(0)) ? ok(1, 1) : fail(r, 6, 1);
 }
 function setEndOfFile(r, a) {
   const handle = r.handles.get(a(0));
