@@ -69,3 +69,22 @@ Contracts were checked against Microsoft's
 [WaitForMultipleObjects](https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects),
 and Wine's `server/mutex.c`, `server/thread.c` and `dlls/ntdll/unix/sync.c` at
 `db11d0fe6a169c457e23d007e20404643d067aa8`.
+
+## Live deployment
+
+The integrated revision `3fd9eff5a225d03c7907dcfbbb4d60242d5dbd98` passed all
+1,322 unit tests without skips and the full browser/static-hosting acceptance
+in [run 37650747649](https://github.com/evangit2/winebrowser/actions/runs/37650747649).
+The deployment job succeeded after a publishing-only retry; completed acceptance
+was retained. Live HTML, main/worker JavaScript and CSS match the verified build.
+All six synchronization upload profiles pass on Pages, including every child exit
+code, thread/process abandonment, renamed paths and Stop/reupload. The live OpenGL
+EXE/ZIP regression also passes browser shader compilation, animation, pause/camera
+controls, native shutdown and Stop/reupload.
+
+See `evidence/process-sync-live-deployment.json`,
+`evidence/process-sync-live-browser-results.json`,
+`evidence/process-sync-integrated-static-results.json` and
+`evidence/opengl-browser-results.json`. The earlier milestone's validation and
+artifact-upload steps also passed; that run was cancelled before publishing and
+is not reported as a successful deployment.

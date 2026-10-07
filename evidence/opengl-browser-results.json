@@ -7,47 +7,47 @@
   "runs": [
     {
       "mode": "exe-upload",
-      "firstFramesMs": 1070,
+      "firstFramesMs": 3534,
       "first": {
         "width": 800,
         "height": 600,
-        "frames": 8,
-        "draws": 8,
-        "colors": 3186,
+        "frames": 43,
+        "draws": 43,
+        "colors": 3023,
         "bright": 469096,
-        "hash": "0a8df95a58aabefebd965830919aea7835d2a9c15781228105445c3cd0f3dc5b"
+        "hash": "b408a7a196c2e5e36ae955e95f341bc3ca5939de81c254c4614ffe933dc54af4"
       },
       "animated": {
         "width": 800,
         "height": 600,
-        "frames": 16,
-        "draws": 16,
-        "colors": 3168,
+        "frames": 53,
+        "draws": 53,
+        "colors": 3019,
         "bright": 469096,
-        "hash": "8376ec1d529405d1b4f39609bd192b3fa83a4dc1deb18028093674bba7725a56"
+        "hash": "325d7949c3c84efcc1d88f7856b088051f27f916ff4d8bb28714261cb56381da"
       },
       "paused": {
         "width": 800,
         "height": 600,
-        "frames": 24,
-        "draws": 24,
-        "colors": 3224,
+        "frames": 68,
+        "draws": 68,
+        "colors": 3094,
         "bright": 469096,
-        "hash": "a25752c0cd54b989548412c6aa4e0364da71e569d9436c68bcbfbf585eb7ed9d"
+        "hash": "091d0755ffeeb2c2212fabf8e6fa171a3568ef788f29ea2b76556901d487db7b"
       },
       "camera": {
         "width": 800,
         "height": 600,
-        "frames": 40,
-        "draws": 40,
-        "colors": 3638,
+        "frames": 102,
+        "draws": 102,
+        "colors": 3542,
         "bright": 469096,
-        "hash": "b0f28428cb1dd98c817a85910257b8949c20dc0eefaa973d24fbdc50e711b7fa"
+        "hash": "c5e76e00c817b9fac3580e59cb78d9eac55aa5fefe0bdd58d5e36f514a0cda93"
       },
       "exitCode": 0,
       "compiledBlocks": 165,
       "wasmBytes": 130477,
-      "instructions": 4449,
+      "instructions": 8575,
       "apiNames": [
         "kernel32.dll!GetModuleHandleA",
         "user32.dll!RegisterClassA",
@@ -100,47 +100,47 @@
     },
     {
       "mode": "hosted-zip",
-      "firstFramesMs": 448,
+      "firstFramesMs": 696,
       "first": {
         "width": 800,
         "height": 600,
         "frames": 8,
         "draws": 8,
-        "colors": 3161,
+        "colors": 3211,
         "bright": 469096,
-        "hash": "56f62320daa396f8b3a6c3f2996677d227fac5b0fa5de4754cfc418f4011c6b6"
+        "hash": "6ba9eb02e989576d4be23c1d00260e0c43d33a7ab65667f188f8bb03cc48f93d"
       },
       "animated": {
         "width": 800,
         "height": 600,
         "frames": 16,
         "draws": 16,
-        "colors": 3194,
+        "colors": 3182,
         "bright": 469096,
-        "hash": "b811afe6116bd037c443d4c7dd2932d3856ab4b55934929338dc6c2adea5c2cc"
+        "hash": "361d8b98ac28a6172afd4a340dc239ad7f008549f4969fd5f1708a04ddf74c7f"
       },
       "paused": {
         "width": 800,
         "height": 600,
         "frames": 24,
         "draws": 24,
-        "colors": 3215,
+        "colors": 3201,
         "bright": 469096,
-        "hash": "3be14f6e8ff8967eae1a21bd178133879360f115dd2c7ee8f2dbb96b3539e1a5"
+        "hash": "b34418c82317f71ae0b547804ee93bce5268db9df8c4abe1d847d4136183a453"
       },
       "camera": {
         "width": 800,
         "height": 600,
-        "frames": 40,
-        "draws": 40,
-        "colors": 3632,
+        "frames": 41,
+        "draws": 41,
+        "colors": 3591,
         "bright": 469096,
-        "hash": "8f9a40600524f13e8724cef25c383a60c1efacca7596fabf64a665972b3b6fed"
+        "hash": "5b8af2cad098fd54bcc4d61a9d3e18e847a60c918a8085ecc83ce3bb27232c3e"
       },
       "exitCode": 0,
       "compiledBlocks": 165,
       "wasmBytes": 130477,
-      "instructions": 4395,
+      "instructions": 4952,
       "apiNames": [
         "kernel32.dll!GetModuleHandleA",
         "user32.dll!RegisterClassA",

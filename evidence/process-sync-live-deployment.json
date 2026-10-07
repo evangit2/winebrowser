@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-07T17:04:16.056Z",
+  "url": "https://evangit2.github.io/winebrowser/",
+  "deployedRevision": "3fd9eff5a225d03c7907dcfbbb4d60242d5dbd98",
+  "workflow": "https://github.com/evangit2/winebrowser/actions/runs/37650747649",
+  "workflowConclusion": "success",
+  "assets": [
+    {
+      "path": "index.html",
+      "bytes": 8451,
+      "sha256": "317efe71e34e9f9862d869654854324dcba33ca3f0cc3d9966cf813c755c7b61"
+    },
+    {
+      "path": "assets/index-BivjUFNJ.js",
+      "bytes": 87266,
+      "sha256": "7fc5e300872cea0f10f589fa263cfcb9e742b11a354b7ba45b5238a33121f65f"
+    },
+    {
+      "path": "assets/index-BmIrbh0W.css",
+      "bytes": 11957,
+      "sha256": "033cd20963663833af3ce43ee000ad37185adb243e38d515f91340d72d33de31"
+    },
+    {
+      "path": "assets/worker-jWrG4r3D.js",
+      "bytes": 1628067,
+      "sha256": "6f29cfef4848c9beb752018c751ee2ffd25ae08a20d4d8d20217fac57aeb44e9"
+    }
+  ],
+  "scope": "The full integrated GitHub gate passed. Live HTML, main/worker JavaScript and CSS match the verified static build. All six native process synchronization upload cases and the OpenGL shader/animation/input/cleanup regression passed on live Pages.",
+  "reports": [
+    "evidence/process-sync-live-browser-results.json",
+    "evidence/process-sync-integrated-static-results.json",
+    "evidence/opengl-browser-results.json"
+  ],
+  "unitTests": {
+    "passed": 1322,
+    "failed": 0,
+    "skipped": 0
+  },
+  "liveAcceptanceProfiles": 6,
+  "liveAcceptancePassed": true,
+  "verificationJobId": 112893116023,
+  "deploymentJobId": 112910576159,
+  "deploymentRetried": true
+}
