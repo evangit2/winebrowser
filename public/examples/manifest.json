@@ -492,11 +492,11 @@
       "entry": "clipboard.exe",
       "args": [],
       "exe": "clipboard-editor/clipboard.exe",
-      "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
+      "exeSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
       "zip": "clipboard-editor/clipboard-editor.zip",
-      "zipSha256": "2800ebe8fe335779cc64734f4130bbbcf34c86412d24129fb2e1b954ce9847d7",
+      "zipSha256": "1f5ce8b119f3f281107871498c73cf15714b94338ed702e5d9f39e4c90266635",
       "sourceZip": "clipboard-editor/source.zip",
-      "sourceZipSha256": "de5bea0d86a5af70b0c7d434cd9069c1e2ef68c557e45b21acc54dfffb5d550b",
+      "sourceZipSha256": "6f4acdcf9e4169ea4be81fa7c1ba2fbc612fa0171d99e005f0fb5e954fb7d0ef",
       "provenance": "Original MIT Windows SDK client; complete deterministic source build and independent native clipboard reference included."
     }
   ]

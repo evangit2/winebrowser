@@ -2,8 +2,8 @@
   "name": "clipboard-editor",
   "license": "MIT",
   "source": "Original Windows SDK client",
-  "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
-  "sourceSha256": "77d6db496f373087841e3f70471c007c8e42bb9071e513e605fd2658007f2825",
+  "exeSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
+  "sourceSha256": "338339d36cf9048eafce244076909a52de5c8dd962fcd236378ec64a2b855cd2",
   "reference": {
     "format": 1,
     "reference": "Unmodified clipboard APIs in native desktop Wine 11 on macOS; independent of WineBrowser",

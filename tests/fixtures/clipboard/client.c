@@ -3,7 +3,18 @@
 #include <windows.h>
 static HWND owner,ansi,unicode,activeEdit;
 static unsigned checks,rendered,destroyed;
-#define CHECK(x) do{checks++;if(!(x)){ExitProcess(100+checks);}}while(0)
+static WCHAR diagnosticText[128];
+static void failure(unsigned line) {
+  const char prefix[]="clipboard check failed at line ";char message[64],digits[16];unsigned pos=0,n=0;
+  for(unsigned i=0;i<sizeof(prefix)-1;i++)message[pos++]=prefix[i];
+  do{digits[n++]=(char)('0'+line%10);line/=10;}while(line);
+  while(n){message[pos++]=digits[--n];}
+  message[pos++]='\r';message[pos++]='\n';DWORD written;
+  WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),message,pos,&written,NULL);
+  const char hex[]="0123456789abcdef";pos=0;for(unsigned i=0;i<12;i++){unsigned v=diagnosticText[i];for(int shift=12;shift>=0;shift-=4)message[pos++]=hex[(v>>shift)&15];message[pos++]=' ';}
+  message[pos++]='\r';message[pos++]='\n';WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),message,pos,&written,NULL);ExitProcess(100+checks);
+}
+#define CHECK(x) do{checks++;if(!(x))failure(__LINE__);}while(0)
 static HGLOBAL block(const void *bytes,SIZE_T size) {
   HGLOBAL h=GlobalAlloc(GMEM_MOVEABLE|GMEM_ZEROINIT,size);CHECK(h!=NULL);
   BYTE *p=GlobalLock(h);CHECK(p!=NULL);for(SIZE_T i=0;i<size;i++)p[i]=((const BYTE*)bytes)[i];GlobalUnlock(h);return h;
@@ -46,12 +57,15 @@ void _start(void) {
   ansi=CreateWindowExA(WS_EX_CLIENTEDGE,"EDIT","",WS_CHILD|WS_VISIBLE|ES_MULTILINE|ES_AUTOVSCROLL|WS_TABSTOP,16,30,600,100,owner,(HMENU)1,c.hInstance,NULL);CHECK(ansi);
   unicode=CreateWindowExW(WS_EX_CLIENTEDGE,L"EDIT",L"",WS_CHILD|WS_VISIBLE|ES_MULTILINE|ES_AUTOVSCROLL|WS_TABSTOP,16,160,600,100,owner,(HMENU)2,c.hInstance,NULL);CHECK(unicode);
   SetWindowTextA(ansi,narrow);SendMessageA(ansi,EM_SETSEL,0,4);SendMessageA(ansi,WM_COPY,0,0);SendMessageW(unicode,WM_PASTE,0,0);
-  WCHAR read[128];GetWindowTextW(unicode,read,128);CHECK(lstrcmpW(read,L"caf\x00e9")==0);
+  WCHAR *read=diagnosticText;GetWindowTextW(unicode,read,128);CHECK(lstrcmpW(read,L"caf\x00e9")==0);
   SendMessageW(unicode,EM_SETSEL,0,4);SendMessageW(unicode,WM_CUT,0,0);GetWindowTextW(unicode,read,128);CHECK(!read[0]);
   SendMessageW(unicode,WM_UNDO,0,0);GetWindowTextW(unicode,read,128);CHECK(lstrcmpW(read,L"caf\x00e9")==0);
   SetWindowTextW(unicode,L"\x03a9 \xd83d\xde00");SendMessageW(unicode,EM_SETSEL,0,4);SendMessageW(unicode,WM_COPY,0,0);
   SetWindowTextA(ansi,"");SendMessageA(ansi,WM_PASTE,0,0);GetWindowTextW(ansi,read,128);CHECK(lstrcmpW(read,L"\x03a9 \xd83d\xde00")==0);
   SendMessageW(ansi,EM_SETSEL,0,-1);SendMessageW(ansi,EM_REPLACESEL,TRUE,(LPARAM)L"\x03b2\x20ac tail");GetWindowTextW(ansi,read,128);CHECK(lstrcmpW(read,L"\x03b2\x20ac tail")==0);
+  SetDlgItemTextW(owner,1,L"\x03a9\x20ac");GetDlgItemTextW(owner,1,read,128);CHECK(lstrcmpW(read,L"\x03a9\x20ac")==0);
+  HWND combo=CreateWindowExA(0,"COMBOBOX","",WS_CHILD|CBS_DROPDOWN,0,0,100,100,owner,(HMENU)8,c.hInstance,NULL);CHECK(combo);
+  SendMessageW(combo,WM_SETTEXT,0,(LPARAM)L"\x03a9 \x20ac text");GetWindowTextW(combo,read,128);CHECK(lstrcmpW(read,L"\x03a9 \x20ac text")==0);DestroyWindow(combo);
   SetWindowTextA(ansi,"select text, then use Copy / Paste or Ctrl+C / Ctrl+V");SetWindowTextW(unicode,L"Unicode editor: caf\x00e9 \x03a9 \xd83d\xde00");
   for(int i=0;i<5;i++){static const WCHAR *names[]={L"Copy",L"Paste",L"Cut",L"Undo",L"Paste below"};CreateWindowW(L"BUTTON",names[i],WS_CHILD|WS_VISIBLE|WS_TABSTOP,16+i*120,280,112,26,owner,(HMENU)(INT_PTR)(10+i),c.hInstance,NULL);}
   static const char output[]="clipboard native startup checks passed\r\n";DWORD written;WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),output,sizeof(output)-1,&written,NULL);

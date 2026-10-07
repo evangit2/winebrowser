@@ -207,7 +207,7 @@ test('allocated HGLOBAL templates support A/W Find without taking caller ownersh
     await call('user32.dll!SetDlgItemTextW', id, 1152, r.allocString('Ω€', true));
     const output = r.allocate(16);
     assert.equal((await call('user32.dll!GetDlgItemTextW', id, 1152, output, 8)).result, 2);
-    assert.equal(r.wideString(output), wide ? 'Ω€' : '?€');
+    assert.equal(r.wideString(output), 'Ω€');
     await r.windows.destroy(id);
     assert.equal((await call('kernel32.dll!GlobalSize', memory)).result >= template.length, true);
     assert.equal(r.windows.isEnabled(owner), true);

@@ -250,8 +250,8 @@ test('editable combo limits user text without clipping WM_SETTEXT and carries na
   assert.equal(await send(0xc, 0, r.allocString('Ω € text', true), true), 1);
   assert.equal(
     w.title,
-    '? € text',
-    'Unicode WM_SETTEXT converts at the ANSI EDIT procedure boundary',
+    'Ω € text',
+    'ANSI-created combo retains Unicode through Unicode text APIs, matching native Wine',
   );
   listInput(r, w, { type: 'list-text', text: 'typed long', start: 10, end: 10 });
   const event = w.list.nextEvent - 1;

@@ -1,11 +1,11 @@
 {
   "date": "2026-10-07",
   "reference": "Native desktop Wine 11",
-  "clientSha256": "77d6db496f373087841e3f70471c007c8e42bb9071e513e605fd2658007f2825",
-  "exeSha256": "d81c695321adb6907ddecb77ebe2a67bdd0832b33ca9d1ea47bc072d04000ad9",
+  "clientSha256": "338339d36cf9048eafce244076909a52de5c8dd962fcd236378ec64a2b855cd2",
+  "exeSha256": "06f352e91e66c00526895a9955912728822afa62def6050c8db0e585640c23a2",
   "exitCode": 0,
   "nativeOutput": "clipboard native startup checks passed",
-  "nativeStartupChecks": "HGLOBAL, delayed render and ANSI-created Unicode EDIT clipboard/EM_REPLACESEL expectations",
+  "nativeStartupChecks": "HGLOBAL, delayed render, Unicode edit clipboard/EM_REPLACESEL, ANSI-created dialog item and combo Unicode text expectations",
   "repeatedBuildsIdentical": true,
   "buildCommand": "sh scripts/build-clipboard-fixture.sh",
   "toolchain": "i686-w64-mingw32-gcc (GCC) 16.1.0"

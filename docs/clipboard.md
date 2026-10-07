@@ -48,4 +48,5 @@ prior invocations. The clipboard is isolated to one runtime session. OLE data
 objects, clipboard viewers/listeners, shared clipboard between runtime processes,
 GDI clipboard object formats and general Windows application compatibility
 remain open. Text conversion currently follows the runtime's US locale/code
-pages; custom LCID-driven clipboard conversion remains open.
+pages; custom LCID-driven clipboard conversion and ANSI best-fit substitutions
+for unrepresentable characters remain open.
