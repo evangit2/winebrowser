@@ -73,6 +73,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           npm run test:pages
+          WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:packed-sse
           npm run test:installer-apis
           WINEBROWSER_TEST_URL=http://127.0.0.1:4193/winebrowser/ npm run test:processes
           npm run test:api-sets

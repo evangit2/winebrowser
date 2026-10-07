@@ -50,7 +50,7 @@ export const SIMD_OP = Object.freeze({
 });
 
 const floatingCodes = new WeakMap();
-function scalarCodes(C) {
+function floatingInstructionCodes(C) {
   if (!floatingCodes.has(C)) {
     const codes = new Map();
     for (const [format, suffix, width] of [
@@ -126,7 +126,7 @@ export function classifySse(instruction, iced) {
     return { op: opReg, dst: dst.reg, src: src.reg, addressOperand: -1, aligned: true };
   };
 
-  const floating = scalarCodes(C).get(instruction.code);
+  const floating = floatingInstructionCodes(C).get(instruction.code);
   if (floating) {
     const { op, format, packed } = floating;
     const dst = op === 6 || op === 7 ? gpr(0) : xmm(0);

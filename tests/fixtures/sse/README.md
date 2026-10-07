@@ -1,4 +1,4 @@
-# Native scalar SSE fixture
+# Native SSE fixtures
 
 This repository-owned PE32 program uses explicit native `MOVSD`, `MOVSS` and
 signed-int32 `CVTSI2SD` instructions. It checks register upper-lane preservation,
@@ -19,6 +19,27 @@ scalar SSE `MOVSD` and `REP MOVSD` string copying.
 
 CPU tests additionally verify unmasked exceptions preserve destinations and
 EFLAGS, reserved MXCSR bits fail, checked memory access precedes state changes,
-and callbacks restore MXCSR on return or failure. Packed floating-point
-instructions, AVX, x64 integer conversions and guest #XM delivery remain
+and callbacks restore MXCSR on return or failure. AVX, x64 integer conversions and guest #XM delivery remain
 unsupported. See [numerical scope](../../../docs/simd-floating-point.md).
+
+## Packed arithmetic
+
+`packed.c` / `packed.exe` use explicit ADDPS/PD, SUBPS/PD, MULPS/PD, DIVPS/PD
+and SQRTPS/PD in register and aligned memory forms. A four-vertex 3D pipeline
+calculates lengths, normalizes coordinates, scales them and applies translation.
+Expected lane encodings are constants. The fixture also checks all four rounding
+modes, DAZ, signed FTZ outputs, NaNs and mixed-lane exception flags.
+
+Build with `npm run build:packed-sse`; the deterministic MinGW script needs only
+Kernel32 imports. `npm test` runs the PE32 binary through the normal runtime.
+`npm run test:packed-sse` tests actual EXE and ZIP uploads in Chromium, including
+static/deployed hosting via `WINEBROWSER_TEST_URL`.
+
+`packed-oracle.c` is an independent x86 native reference compiled by the Linux
+x86_64 unit tests. Its SIGFPE handler reads MXCSR and the unchanged destination
+from the kernel's saved CPU context. Tests compare 3,600 instruction/control/
+operand combinations, including unmasked exceptions across different lanes.
+The runtime currently stops with a diagnostic on unmasked exceptions; it does
+not deliver guest #XM handlers. macOS can compare the 1,680 masked cases under
+Rosetta with `WINEBROWSER_SSE_ORACLE=rosetta node --test tests/cpu-packed-sse.test.js`;
+unmasked trap verification requires Linux x86 hardware.
