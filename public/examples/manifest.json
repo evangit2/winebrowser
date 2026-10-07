@@ -403,6 +403,17 @@
       "sourceZip": "frame-controls/source.zip",
       "sourceZipSha256": "275ff0a89a13f4900dbea2643a4e943c874e2f3866750b4796c9d048f15c4f73",
       "provenance": "Original MIT Windows SDK client; complete deterministic source build included. Separate Wine-derived browser geometry adapter retains LGPL source and notices."
+    },
+    {
+      "name": "gdi-brush-rop",
+      "description": "Native brush GUI: try sixteen paint rules with color/mono patterns, transparent hatches, holes and reversed coordinates. Close to finish.",
+      "exe": "gdi-brush-rop/gdi-brush-rop.exe",
+      "exeSha256": "a852cc07fb7798d8edd87d51fd178090b53237573cf17afa2bb31a2e2cc20c7d",
+      "zip": "gdi-brush-rop/gdi-brush-rop.zip",
+      "zipSha256": "e18391502cce4156313940d4963a195433b13bfceabe775ffe07a432b55c1abe",
+      "sourceZip": "gdi-brush-rop/source.zip",
+      "sourceZipSha256": "cdbf50cfabf40d290b331ec611f6c4a3ae70f9573651e747b9e56d4a00456d77",
+      "provenance": "Original WineBrowser contributors MIT Windows SDK client; complete deterministic source build included."
     }
   ]
 }

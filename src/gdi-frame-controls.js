@@ -7,7 +7,7 @@
  * License: third_party/wine/COPYING.LIB. Complete editable source is retained
  * here; native SDK pixel captures independently verify the adaptation.
  */
-import { paintRect } from './gdi-raster.js';
+import { nativeBrushBounds, paintRect } from './gdi-raster.js';
 import { fillNativePolygons } from './gdi-paths.js';
 
 const INACTIVE = 0x100,
@@ -39,12 +39,7 @@ export function createFrameControlApis({
   failure,
   strokePolygon,
 }) {
-  const bounds = ([l, t, r, b]) => [
-    r < l ? r + 1 : l,
-    b < t ? b + 1 : t,
-    r < l ? l + 1 : r,
-    b < t ? t + 1 : b,
-  ];
+  const bounds = (rect) => nativeBrushBounds(...rect);
   const fill = (dc, rect, color) => paintRect(dc.surface, ...bounds(rect), { color }, 'copy', dc);
   // These controls use all four border sides. Keep the native strip order,
   // corner overlaps and integer widths, including degenerate input rectangles.

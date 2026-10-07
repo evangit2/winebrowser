@@ -28,6 +28,7 @@ import {
   colorRefRgb as colorRgb,
   surfaceRgb,
   rgbColorRef,
+  nativeBrushBounds,
   paintRect,
   paintFocusRect,
   drawLine,
@@ -61,10 +62,6 @@ const STOCK_DEFAULT_PALETTE = 0x10008;
 const MAX_WINDOW_SURFACES = 8;
 const MAX_CONTROL_SURFACES = 256;
 const MAX_TOTAL_SURFACE_PIXELS = 16 * 1024 * 1024;
-const PATCOPY = 0x00f00021;
-const BLACKNESS = 0x00000042;
-const WHITENESS = 0x00ff0062;
-const DSTINVERT = 0x00550009;
 const SRCCOPY = 0x00cc0020;
 const ERROR_INVALID_HANDLE = 6;
 const ERROR_INVALID_PARAMETER = 87;
@@ -2269,10 +2266,7 @@ function fillRect(runtime, argument) {
   if (!rect) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
   const brush = getBrush(state, argument(2));
   if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 3);
-  const [left, top, right, bottom] = rect;
-  if (right < left || bottom < top) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 3);
-  paintRect(dc.surface, left, top, right, bottom, brush, 'copy', dc);
-  // FillRect includes left/top and excludes right/bottom edges.
+  paintRect(dc.surface, ...nativeBrushBounds(...rect), brush, 'copy', dc);
   return success(1, 3);
 }
 
@@ -2313,18 +2307,16 @@ function patBlt(runtime, argument) {
   const y = signed(argument(2));
   const width = signed(argument(3));
   const height = signed(argument(4));
-  const rop = argument(5) >>> 0;
-  if (width < 0 || height < 0) return failure(runtime, ERROR_INVALID_PARAMETER, 0, 6);
-  let brush = null,
-    operation = 'copy';
-  if (rop === PATCOPY) {
-    brush = getBrush(state, dc.brush);
-    if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 6);
-  } else if (rop === BLACKNESS) brush = { color: 0 };
-  else if (rop === WHITENESS) brush = { color: 0xffffff };
-  else if (rop === DSTINVERT) operation = 'invert';
-  else throw Error(`Unsupported PatBlt raster operation 0x${rop.toString(16)}`);
-  paintRect(dc.surface, x, y, x + width, y + height, brush, operation, dc);
+  const rop = (argument(5) >>> 16) & 255;
+  // PatBlt has no source DC. Wine rejects source-dependent truth tables
+  // without changing LastError, even when the requested area is empty.
+  if ((rop ^ (rop >>> 2)) & 0x33) return success(0, 6);
+  const truth = (rop & 3) | ((rop >>> 2) & 12),
+    independent = truth === 0 || truth === 5 || truth === 10 || truth === 15;
+  const brush = independent ? { color: 0 } : getBrush(state, dc.brush);
+  if (!brush) return failure(runtime, ERROR_INVALID_HANDLE, 0, 6);
+  const operation = truth === 12 ? 'copy' : truth === 5 ? 'invert' : truth;
+  paintRect(dc.surface, ...nativeBrushBounds(x, y, x + width, y + height), brush, operation, dc);
   return success(1, 6);
 }
 

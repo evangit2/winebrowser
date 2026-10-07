@@ -128,7 +128,15 @@ happens not to exercise a TLS callback is not evidence the loader supports TLS.
 
 ## Graphics and audio services
 
-The current GDI host provider exposes a 640×480 virtual desktop with DC/brush handles, clipped solid fills, selected brushes, four PatBlt raster operations and pixel reads/writes. A checked RGBA frame crosses the worker boundary at dispatcher yields, before blocking host requests and at exit; the test bench presents it on Canvas2D. This is a narrow raster backend, not general User32/GDI: windows, fonts, regions, DIBs and message pumps remain absent. Its handle and surface boundary should be reused by a Wine user driver as that integration advances.
+The GDI host provider exposes a virtual desktop with window and memory DCs,
+brushes, fonts, regions, shared DIB storage and clipped raster drawing. PatBlt
+supports all sixteen brush/destination truth tables; source-dependent operations
+fail with native error retention. Negative FillRect and PatBlt extents include
+the native starting pixel. A checked RGBA frame crosses the worker boundary at
+dispatcher yields, before blocking host requests and at exit, then presents on
+Canvas2D. Windows and message dispatch use the host User32 provider; full native
+Wine User32/GDI and common-controls DLL execution remain incomplete. See
+[window and drawing behavior](window-runtime.md) for verified APIs and limits.
 
 Keep presentation separate from guest CPU state. A future graphics stack can translate guest D3D
 calls into a versioned command protocol and send bounded batches to a dedicated worker that owns

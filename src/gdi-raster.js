@@ -74,9 +74,31 @@ export function visiblePixel(surface, dc, x, y) {
   );
 }
 
-/** Fill clipped half-open bounds with a solid/hatch/pattern brush or invert ROP. */
+/** Native brush blits include the starting pixel when an extent is negative. */
+export function nativeBrushBounds(left, top, right, bottom) {
+  return [
+    right < left ? right + 1 : left,
+    bottom < top ? bottom + 1 : top,
+    right < left ? left + 1 : right,
+    bottom < top ? top + 1 : bottom,
+  ];
+}
+
+// Four bits encode the (pattern,destination) truth table. Source-dependent
+// ternary operations must be rejected by the API before reaching this painter.
+function brushRop(pattern, destination, truth) {
+  return (
+    ((truth & 1 ? ~pattern & ~destination : 0) |
+      (truth & 2 ? ~pattern & destination : 0) |
+      (truth & 4 ? pattern & ~destination : 0) |
+      (truth & 8 ? pattern & destination : 0)) &
+    255
+  );
+}
+
+/** Fill clipped half-open bounds with a brush, invert, or binary brush ROP. */
 export function paintRect(surface, left, top, right, bottom, brush, operation = 'copy', dc = null) {
-  if (brush?.null && operation === 'copy') return false;
+  if (brush?.null || operation === 10) return false;
   const [x1, y1, x2, y2] = clippedBounds(surface, left, top, right, bottom, dc);
   if (x1 >= x2 || y1 >= y2) return false;
   const rgb = surfaceRgb(surface, brush ? colorRefRgb(brush.color ?? 0) : [0, 0, 0]);
@@ -136,6 +158,10 @@ export function paintRect(surface, left, top, right, bottom, brush, operation = 
         r = 255 - pixels[offset];
         g = 255 - pixels[offset + 1];
         b = 255 - pixels[offset + 2];
+      } else if (typeof operation === 'number') {
+        r = brushRop(r, pixels[offset], operation);
+        g = brushRop(g, pixels[offset + 1], operation);
+        b = brushRop(b, pixels[offset + 2], operation);
       }
       if (
         pixels[offset] !== r ||

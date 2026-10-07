@@ -492,3 +492,13 @@ The original MIT **frame-controls** GUI exercises ten stages in EXE/ZIP/catalog
 modes with native base DLLs and browser-local x86-to-Wasm compilation. Caption
 and radio controls, menu bullets, size grips, native common-controls DLL execution
 and universal Windows/DLL compatibility remain unfinished.
+
+Brush raster drawing now supports all sixteen source-independent PatBlt truth
+tables, including pattern XOR, masking and PATPAINT. FillRect and PatBlt retain
+native negative-extent coverage. Source-dependent operations return failure
+without changing LastError or pixels. Independent Wine captures verify 1,327
+cases and 339,712 pixels, including all 256 truth tables, seven brush states,
+clipping and reversed/empty/offscreen bounds. The original MIT **gdi-brush-rop**
+Windows SDK GUI checks eight stages and 156,160 pixels per stage in EXE, ZIP
+and catalog modes with browser-local compilation. This expands host GDI
+compatibility; complete native Windows library execution remains unfinished.

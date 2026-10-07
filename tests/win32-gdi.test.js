@@ -269,7 +269,7 @@ test('validates desktop handles, released DCs, stock objects, and brush lifetime
   assert.equal(runtime.lastError, 87);
 });
 
-test('rejects invalid rectangle pointers, inverted bounds, negative PatBlt extents, and unknown ROPs', () => {
+test('rejects invalid rectangle pointers and source-dependent PatBlt operations without painting', () => {
   const runtime = makeRuntime();
   const hwnd = call(runtime, 'user32.dll!GetDesktopWindow').result;
   const hdc = call(runtime, 'user32.dll!GetDC', hwnd).result;
@@ -277,15 +277,11 @@ test('rejects invalid rectangle pointers, inverted bounds, negative PatBlt exten
   assert.equal(call(runtime, 'user32.dll!FillRect', hdc, 0xff1, brush).result, 0);
   assert.equal(runtime.lastError, 87);
 
-  rect(runtime, 0x100, 2, 0, 1, 1);
-  assert.equal(call(runtime, 'user32.dll!FillRect', hdc, 0x100, brush).result, 0);
-  assert.equal(runtime.lastError, 87);
-  assert.equal(call(runtime, 'gdi32.dll!PatBlt', hdc, 0, 0, -1, 1, 0x00f00021).result, 0);
-  assert.equal(runtime.lastError, 87);
-  assert.throws(
-    () => call(runtime, 'gdi32.dll!PatBlt', hdc, 0, 0, 1, 1, 0x12345678),
-    /Unsupported PatBlt raster operation/,
-  );
+  runtime.lastError = 777;
+  assert.equal(call(runtime, 'gdi32.dll!PatBlt', hdc, 0, 0, 1, 1, 0x12345678).result, 0);
+  assert.equal(runtime.lastError, 777);
+  assert.equal(call(runtime, 'gdi32.dll!PatBlt', hdc, 0, 0, -1, 1, 0x00cc0020).result, 0);
+  assert.equal(runtime.lastError, 777);
   assert.equal(flushGdi(runtime), null, 'invalid operations do not dirty the framebuffer');
 });
 

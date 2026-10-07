@@ -635,6 +635,19 @@ complex clip; **Adjust** marks the returned rectangles in blue. This adds a
 common-control drawing API; actual native comctl32 execution and broader Windows
 compatibility remain unfinished.
 
+`PatBlt` evaluates all sixteen raster truth tables that combine a selected brush
+and destination pixels. Pattern XOR, mask operations, inversion and PATPAINT
+retain brush origins, copied color/monochrome patterns, hatch transparency and
+complex clipping. Operations that require a source image fail before painting
+and leave LastError unchanged. Null brushes suppress brush-dependent drawing;
+black/white/invert/no-op rules remain independent of the selected brush.
+`FillRect` and `PatBlt` accept negative extents with native starting-pixel
+coverage, including empty and clipped rectangles. Shared DIB writes complete at
+the API boundary. Independent desktop Wine captures cover 1,327 cases and
+339,712 pixels; the **gdi-brush-rop** SDK GUI checks eight stages against native
+snapshots in EXE, ZIP and catalog modes. Source-dependent blits and other GDI
+APIs still have separate implementation limits.
+
 Bitmap-backed icons now retain separate native AND-mask and XOR-color planes.
 `CreateIconIndirect` copies monochrome masks and 24/32-bit color bitmaps, or
 both stacked planes of a monochrome icon; the original HBITMAPs can be deleted.
