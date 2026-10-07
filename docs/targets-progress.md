@@ -490,8 +490,14 @@ palette SDK captures cover 311 API/DC-state/rectangle cases and 318,464 pixels,
 including tiny negative extents, clipping and caller-dependent checked dithering.
 The original MIT **frame-controls** GUI exercises ten stages in EXE/ZIP/catalog
 modes with native base DLLs and browser-local x86-to-Wasm compilation. Caption
-and radio controls, menu bullets, size grips, native common-controls DLL execution
+and radio controls, menu bullets, native common-controls DLL execution
 and universal Windows/DLL compatibility remain unfinished.
+
+Additional native scroll captures now verify combo arrows, size grips and
+Wine's minimum tiny-arrow geometry. Size grips preserve their input rectangle
+with ADJUSTRECT, and flat/mono stripes, clipping and negative bounds match
+native painting. The control oracles now cover 935 cases and 957,440 pixels.
+The SDK GUI adds combo/grip columns and a **Tiny** stage for eleven stages.
 
 Brush raster drawing now supports all sixteen source-independent PatBlt truth
 tables, including pattern XOR, masking and PATPAINT. FillRect and PatBlt retain

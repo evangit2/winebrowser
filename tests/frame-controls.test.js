@@ -7,6 +7,9 @@ const exe = new Uint8Array(await readFile('public/demos/console/console.exe'));
 const capture = JSON.parse(
   await readFile('tests/fixtures/frame-controls/wine-oracle.json', 'utf8'),
 );
+const scrollCapture = JSON.parse(
+  await readFile('tests/fixtures/frame-controls/scroll-wine-oracle.json', 'utf8'),
+);
 function setup(t) {
   const r = new Runtime(iced, { files: new Map([['console.exe', exe]]), exe: 'console.exe' });
   t.after(() => {
@@ -26,7 +29,7 @@ function setup(t) {
   const back = call('CreateSolidBrush', capture.background);
   return { r, api, call, dc, rect, point, setRect, back };
 }
-test('classic frame controls match 311 native SDK results, adjusted rectangles and 318464 drawing pixels', (t) => {
+test('classic frame and scroll controls match 935 native SDK results, adjusted rectangles and 957440 drawing pixels', (t) => {
   const { r, api, call, dc, rect, point, setRect, back } = setup(t);
   call('SetTextColor', dc, 0x123456);
   call('SetBkColor', dc, 0x654321);
@@ -34,7 +37,7 @@ test('classic frame controls match 311 native SDK results, adjusted rectangles a
   call('SetPolyFillMode', dc, 2);
   call('SetBrushOrgEx', dc, 3, -5, 0);
   call('MoveToEx', dc, 29, 30, 0);
-  for (const [i, c] of capture.cases.entries()) {
+  for (const [i, c] of [...capture.cases, ...scrollCapture.cases].entries()) {
     const label = `${i}/${c.type}/${c.flags}/${c.rect}`;
     call('SelectClipRgn', dc, 0);
     setRect([0, 0, 32, 32]);
@@ -93,18 +96,30 @@ test('frame controls commit native reference colors directly to guest DIB memory
     bits = r.read32(out);
   call('SelectObject', dc, bitmap);
   const raw = (color) => ((color & 255) << 16) | (color & 0xff00) | (color >>> 16);
-  const c = capture.cases.find((c) => c.type === 4 && c.flags === 1040 && !c.clip);
-  assert.ok(c);
-  for (let i = 0; i < 1024; i++) r.write32(bits + i * 4, raw(capture.background) | 0x5a000000);
   call('SetTextColor', dc, 0x123456);
   call('SetBkColor', dc, 0x654321);
   call('SetBrushOrgEx', dc, 3, -5, 0);
-  setRect(c.rect);
-  assert.equal(call('user32.dll!DrawFrameControl', dc, rect, c.type, c.flags), 1);
-  const expected = new Uint32Array(1024).fill(capture.background);
-  for (const [x, y, w, color] of c.runs) expected.fill(color, y * 32 + x, y * 32 + x + w);
-  for (let i = 0; i < 1024; i++)
-    assert.equal(r.read32(bits + i * 4) & 0xffffff, raw(expected[i]), 'DIB pixel ' + i);
+  const cases = [
+    capture.cases.find((c) => c.type === 4 && c.flags === 1040 && !c.clip),
+    ...scrollCapture.cases.filter(
+      (c) => [5, 8].includes(c.flags & 255) && c.rect.join() === '3,4,27,28',
+    ),
+    scrollCapture.cases.find((c) => c.flags === 0 && c.rect.join() === '5,6,6,7'),
+  ];
+  for (const c of cases) {
+    assert.ok(c);
+    for (let i = 0; i < 1024; i++) r.write32(bits + i * 4, raw(capture.background) | 0x5a000000);
+    setRect(c.rect);
+    assert.equal(call('user32.dll!DrawFrameControl', dc, rect, c.type, c.flags), 1);
+    const expected = new Uint32Array(1024).fill(capture.background);
+    for (const [x, y, w, color] of c.runs) expected.fill(color, y * 32 + x, y * 32 + x + w);
+    for (let i = 0; i < 1024; i++)
+      assert.equal(
+        r.read32(bits + i * 4) & 0xffffff,
+        raw(expected[i]),
+        `${c.flags}/DIB pixel ${i}`,
+      );
+  }
 });
 
 test('unfinished frame control types and malformed inputs fail before changing pixels or DC state', (t) => {
@@ -116,7 +131,7 @@ test('unfinished frame control types and malformed inputs fail before changing p
   for (const [type, subtype] of [
     [1, 0],
     [2, 2],
-    [3, 8],
+    [3, 16],
     [4, 1],
     [4, 2],
     [4, 4],

@@ -32,7 +32,7 @@ shutil.copyfile(ROOT / 'LICENSE', DEST / 'LICENSE')
     'upstream reference are published at ../../runtime/frame-controls/.\n'
 )
 archive(DEST / 'frame-controls.zip', [('frame-controls/' + name, (DEST / name).read_bytes()) for name in ['frame-controls.exe', 'README.md', 'LICENSE', 'PROVENANCE.md']])
-source_files = ['LICENSE', 'scripts/build-frame-controls-fixture.sh', 'tests/fixtures/frame-controls/client.c', 'tests/fixtures/frame-controls/layout.h', 'tests/fixtures/frame-controls/README.md', 'tests/fixtures/frame-controls/oracle.c', 'tests/fixtures/frame-controls/wine-oracle.json', 'tests/fixtures/frame-controls/gui-oracle.c', 'tests/fixtures/frame-controls/gui-wine-oracle.json']
+source_files = ['LICENSE', 'scripts/build-frame-controls-fixture.sh', 'tests/fixtures/frame-controls/client.c', 'tests/fixtures/frame-controls/layout.h', 'tests/fixtures/frame-controls/README.md', 'tests/fixtures/frame-controls/oracle.c', 'tests/fixtures/frame-controls/wine-oracle.json', 'tests/fixtures/frame-controls/scroll-oracle.c', 'tests/fixtures/frame-controls/scroll-wine-oracle.json', 'tests/fixtures/frame-controls/gui-oracle.c', 'tests/fixtures/frame-controls/gui-wine-oracle.json']
 archive(DEST / 'source.zip', [(name, (ROOT / name).read_bytes()) for name in source_files])
 runtime = ROOT / 'public/runtime/frame-controls'
 runtime.mkdir(parents=True, exist_ok=True)
@@ -41,7 +41,7 @@ for name, path in [('gdi-frame-controls.js', 'src/gdi-frame-controls.js'), ('win
 path = PUBLIC / 'manifest.json'
 entry = {
     'name': 'frame-controls',
-    'description': 'Native classic control GUI: push buttons, checkboxes, three-state controls, scroll arrows and menu marks. Try states, clipping and adjusted rectangles; close to finish.',
+    'description': 'Native classic control GUI: buttons, checks, scroll/combo arrows, size grips and menu marks. Try states, tiny controls, clipping and adjusted rectangles; close to finish.',
     'exe': 'frame-controls/frame-controls.exe', 'exeSha256': digest(DEST / 'frame-controls.exe'),
     'zip': 'frame-controls/frame-controls.zip', 'zipSha256': digest(DEST / 'frame-controls.zip'),
     'sourceZip': 'frame-controls/source.zip', 'sourceZipSha256': digest(DEST / 'source.zip'),

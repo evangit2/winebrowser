@@ -138,7 +138,46 @@ export function createFrameControlApis({
   const scroll = (dc, rect, subtype, flags) => {
     const [l, t, r, b] = square(rect),
       diam = Math.min(r - l, b - t) - 2;
-    const tri = integer((290 * diam) / 1000) - 1;
+    if (subtype === 8) {
+      // A size grip fills the complete rectangle; it does not draw borders or
+      // adjust the caller's RECT. MONO and FLAT both use black grip stripes.
+      const mono = !!(flags & (MONO | FLAT)),
+        [left, top, right, bottom] = rect,
+        light = colors[mono ? 6 : 20],
+        shadow = colors[mono ? 6 : 16],
+        d46 = integer((46 * diam) / 750),
+        d93 = integer((93 * diam) / 750);
+      fill(dc, [left, top, right, bottom], colors[mono ? 5 : 15]);
+      for (const scale of [586, 398, 210]) {
+        const inset = integer((scale * diam) / 750),
+          y = bottom - inset - 1,
+          x = right - inset - 1;
+        poly(
+          dc,
+          [
+            [right - 1, y],
+            [right - 1, y + d46],
+            [x + d46, bottom - 1],
+            [x, bottom - 1],
+          ],
+          light,
+        );
+        poly(
+          dc,
+          [
+            [right - 1, y + d46 + 1 + d93],
+            [right - 1, y + d46 + 1],
+            [x + d46 + 1, bottom - 1],
+            [x + d46 + 1 + d93, bottom - 1],
+          ],
+          shadow,
+        );
+      }
+      return rect;
+    }
+    if (subtype === 5) subtype = 1;
+    // Tiny scroll controls retain Wine's minimum arrow size.
+    const tri = Math.max(2, integer((290 * diam) / 1000) - 1);
     let tip, points;
     if (subtype === 0 || subtype === 1) {
       tip = [
@@ -213,7 +252,7 @@ export function createFrameControlApis({
         type === 4
           ? [0, 8, 16].includes(subtype)
           : type === 3
-            ? subtype < 4
+            ? subtype < 4 || subtype === 5 || subtype === 8
             : type === 2
               ? subtype < 2
               : false;
@@ -227,7 +266,11 @@ export function createFrameControlApis({
       if (!pointer) return failure(r, 87, 0, 4);
       let rect;
       try {
-        r.check(pointer, 16, !!(flags & ADJUST) && (type === 3 || (type === 4 && subtype === 16)));
+        r.check(
+          pointer,
+          16,
+          !!(flags & ADJUST) && ((type === 3 && subtype !== 8) || (type === 4 && subtype === 16)),
+        );
         rect = [0, 4, 8, 12].map((offset) => r.read32(pointer + offset) | 0);
       } catch {
         return failure(r, 87, 0, 4);

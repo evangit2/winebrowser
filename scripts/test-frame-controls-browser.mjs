@@ -111,7 +111,7 @@ try {
         }
       observations.push({ label, stage, verifiedPixels: 156160 });
       console.error('Verified', label, '156160 pixels');
-      if (['Checked', 'Holes', 'Adjust'].includes(label))
+      if (['Checked', 'Holes', 'Adjust', 'Tiny'].includes(label))
         await root.screenshot({ path: `evidence/frame-controls-${label}-${runs.length}.png` });
     };
     await verify(0, 'Normal');
@@ -125,6 +125,7 @@ try {
       [7, 'Holes', 'Holes'],
       [8, 'Adjust', 'Adjust'],
       [9, 'Reset', 'Normal'],
+      [10, 'Tiny', 'Tiny'],
     ]) {
       await root.getByRole('button', { name: button, exact: true }).click();
       await verify(stage, label);
@@ -165,7 +166,7 @@ try {
     headedBrowser: process.env.HEADED === '1',
     exeSha256: sha256,
     scope:
-      'Unchanged Windows SDK classic control GUI translated into Wasm inside the browser with native Wine base DLLs. Ten stages in EXE/ZIP/catalog modes compare 156160 drawing-area pixels per stage against actual desktop Wine with the virtual classic palette. Includes push/check/three-state controls, four scroll arrows, menu arrow/check, native states, complex clips and adjusted rectangles. Caption/radio controls, menu bullets, size grips and universal Windows/DLL compatibility remain incomplete.',
+      'Unchanged Windows SDK classic control GUI translated into Wasm inside the browser with native Wine base DLLs. Eleven stages in EXE/ZIP/catalog modes compare 156160 drawing-area pixels per stage against actual desktop Wine with the virtual classic palette. Includes push/check/three-state controls, four scroll arrows, combo arrows, size grips, tiny controls, menu arrow/check, native states, complex clips and adjusted rectangles. Caption/radio controls, menu bullets and universal Windows/DLL compatibility remain incomplete.',
     oracleReference: oracle.reference,
     runs,
     errors,

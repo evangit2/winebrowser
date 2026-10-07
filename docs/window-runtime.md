@@ -619,19 +619,21 @@ native common-control drawing imports; native comctl32 execution and broader
 Windows compatibility still require additional APIs.
 
 `DrawFrameControl` paints classic push buttons, checkboxes, three-state buttons,
-four scroll arrows and menu arrow/check marks into window and memory DCs. The
+four scroll arrows, combo arrows, size grips and menu arrow/check marks into window and memory DCs. The
 Wine-derived geometry adapter retains LGPL source and notices. Native state
 flags, integer border widths, caller-dependent checked dithering, complex
-clips and rectangle adjustment match 311 independent SDK captures (318,464
+clips and rectangle adjustment match 935 independent SDK captures (957,440
 pixels). Internal negative extents retain native coverage for tiny controls;
 raster loops remain bounded by the visible surface. Guest DIB memory receives
-the painted colors at the API boundary. Unsupported caption/radio controls,
-menu bullets and size grips fail before drawing.
+the painted colors at the API boundary. Tiny scroll arrows keep Wine's minimum
+size; size grips preserve the caller's RECT even with ADJUSTRECT. Unsupported
+caption/radio controls and menu bullets fail before drawing.
 
-The original MIT **frame-controls** SDK GUI checks ten stages in EXE, ZIP and
+The original MIT **frame-controls** SDK GUI checks eleven stages in EXE, ZIP and
 catalog modes, comparing all 156,160 drawing-area pixels per stage against
 independently captured classic-palette Wine snapshots. **Holes** applies a
-complex clip; **Adjust** marks the returned rectangles in blue. This adds a
+complex clip; **Adjust** marks the returned rectangles in blue; **Tiny** draws
+one-, five- and eight-pixel controls. This adds a
 common-control drawing API; actual native comctl32 execution and broader Windows
 compatibility remain unfinished.
 

@@ -395,13 +395,13 @@
     },
     {
       "name": "frame-controls",
-      "description": "Native classic control GUI: push buttons, checkboxes, three-state controls, scroll arrows and menu marks. Try states, clipping and adjusted rectangles; close to finish.",
+      "description": "Native classic control GUI: buttons, checks, scroll/combo arrows, size grips and menu marks. Try states, tiny controls, clipping and adjusted rectangles; close to finish.",
       "exe": "frame-controls/frame-controls.exe",
-      "exeSha256": "35862ed2a6e9a8159ae39193d7d8f91b4aae1050e4f31cf0f0eecae61bae9bf1",
+      "exeSha256": "235f0715e2f483bf4edc1071d2cea6313f3c06e4ffc21d573ef10a559da2539a",
       "zip": "frame-controls/frame-controls.zip",
-      "zipSha256": "1020f6d0df544e63b4c1f1c1b8101d7a02f3d86dd21ed6f8b89743c957a912ba",
+      "zipSha256": "2447dd00edbc87aa4851122e372173b75654923dc4ab7a2b15f836cf46335b8f",
       "sourceZip": "frame-controls/source.zip",
-      "sourceZipSha256": "275ff0a89a13f4900dbea2643a4e943c874e2f3866750b4796c9d048f15c4f73",
+      "sourceZipSha256": "d5850363ae5cf9405d2a173499d0aaf67f2b4558961f939ead6449a0b6c40f09",
       "provenance": "Original MIT Windows SDK client; complete deterministic source build included. Separate Wine-derived browser geometry adapter retains LGPL source and notices."
     },
     {
