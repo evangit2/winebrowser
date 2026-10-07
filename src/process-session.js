@@ -9,7 +9,7 @@ export class ProcessSession {
     this.files = new Map([...files].map(([path, bytes]) => [path, bytes.slice()]));
     this.dirty = new Set();
     this.fileState = { virtualDirectories: new Set(), fileTimes: new Map(), fileIds: new Map() };
-    this.syncDomain = new SyncDomain();
+    this.syncDomain = new SyncDomain(16 * 4096);
     this.createRuntime = createRuntime;
     this.records = new Map();
     this.nextId = 1;

@@ -1,8 +1,8 @@
 {
-  "date": "2026-10-02T23:45:36.168Z",
-  "url": "https://evangit2.github.io/winebrowser/",
-  "normalChromium": true,
-  "browser": "153.0.8010.12",
+  "date": "2026-10-07T15:21:56.139Z",
+  "url": "http://127.0.0.1:4198/winebrowser/",
+  "normalChromium": false,
+  "browser": "155.0.8059.39",
   "scope": "Ordinary authored native PE32 upload automatically fetches source-built Wine Visual C++ DLLs: native mutex ownership/try-lock behavior, independently owned exception-message copies, real thiscall aligned allocation/deallocation, mangled Concurrency::Alloc/Free exports, library reference balancing and clean exit; a nested uploaded plugin then runs the checks twice across plugin and MSVCP140_1 unload/reload cycles, preserving Wine-owned references to MSVCP140/ConCRT. No Microsoft redistributable binaries or success stubs are supplied.",
   "runs": [
     {
@@ -10,10 +10,10 @@
       "exeSha256": "dae8a1a3704b12463c39db730a6d46afd2570bca6a4e4d60da66a7cc7033a904",
       "pluginSha256": null,
       "exitCode": 0,
-      "x86TranslationMs": 998.010000154376,
-      "elapsedMs": 1326.2750000059605,
-      "totalCompiledBlocks": 3606,
-      "instructions": 329577,
+      "x86TranslationMs": 2122.635003566742,
+      "elapsedMs": 3392.3349999785423,
+      "totalCompiledBlocks": 3654,
+      "instructions": 338067,
       "modules": [
         {
           "name": "cpp-runtime.exe",
@@ -104,10 +104,10 @@
       "exeSha256": "46c7f78bb30bf2a7d5c2a5b62ba57d1bafc2f93de4481970a7ff46a0ac0cb6a9",
       "pluginSha256": "99056ebe1a0bb95e38aed2c78ab6250ca5efb3aacbb2bae984715cce8dc2dcf1",
       "exitCode": 0,
-      "x86TranslationMs": 991.51500017941,
-      "elapsedMs": 1291.3300000056624,
-      "totalCompiledBlocks": 3775,
-      "instructions": 374749,
+      "x86TranslationMs": 1279.0949997901917,
+      "elapsedMs": 1802.0450000166893,
+      "totalCompiledBlocks": 3818,
+      "instructions": 385999,
       "modules": [
         {
           "name": "plugin-host.exe",

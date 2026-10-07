@@ -178,6 +178,20 @@ test('stopped waiters cannot claim released mutexes and closed owned mutexes rem
   assert.equal(objects.names.size, 0);
 });
 
+test('owned mutexes with closed handles remain within the kernel-object budget', (t) => {
+  const { r, objects } = setup(t);
+  objects.domain.limit = 1;
+  const mutex = objects.mutex({ initialOwner: true }).handle;
+  const object = objects.lookup(mutex, 'sync-mutex').object;
+  objects.close(mutex);
+  assert.equal(objects.event().status, SYNC.MEMORY);
+  const alias = objects.openHandle(object, SYNC.MUTEX_ALL, false).handle;
+  assert.ok(alias, 'opening an existing object does not allocate another object');
+  objects.close(alias);
+  objects.abandon(r.threads.current);
+  assert.ok(objects.event().handle, 'abandonment frees unreferenced object storage');
+});
+
 test('manual reset wakes every current waiter and stays signaled; automatic reset releases only one', async (t) => {
   const { nt, r, create, wait, out, objects } = setup(t);
   const manual = create(true),

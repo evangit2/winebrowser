@@ -32,7 +32,8 @@ ReleaseMutex and SignalObjectAndWait share the same state. Query reports count,
 caller ownership and abandonment using PE32 layouts. Mutation validates output
 pointers first. Handle rights and generic access mapping follow the native
 contracts. The object namespace remains bounded by the existing 4,096 handles
-per process and 16 process records per session; recursive acquisition is bounded
+per process, 65,536 kernel objects per family (including owned locks with closed
+handles), and 16 process records per session; recursive acquisition is bounded
 to a signed 32-bit count. Duplicate semaphore/mutex aliases in wait-all are
 explicitly rejected.
 

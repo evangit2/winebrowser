@@ -1,15 +1,15 @@
 {
-  "date": "2026-10-04T23:45:57.057Z",
-  "url": "http://127.0.0.1:4214/winebrowser/",
-  "browser": "154.0.8037.97",
+  "date": "2026-10-07T15:18:54.367Z",
+  "url": "http://127.0.0.1:53277/",
+  "browser": "155.0.8059.39",
   "exeSha256": "dafe4bab2ece746564c3e3210c820f32b1adfcb26edae256e20d27613c6cef6b",
   "status": "passed-settings-and-portable-persistence",
   "exitCodes": [
     0,
     0
   ],
-  "compiledBlocks": 5935,
-  "x86TranslationMs": 1344.5650006234646,
+  "compiledBlocks": 5949,
+  "x86TranslationMs": 2304.0299978256226,
   "checks": [
     "Unchanged native Metapad opens all four property pages; General validation rejects tab size zero through native PSN_KILLACTIVE and preserves the active tab",
     "Cancel discards changed tab size, spaces checkbox and file-format ComboBox; reopening reads the original settings",

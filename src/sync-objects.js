@@ -48,7 +48,8 @@ export function syncAccess(raw, directory = false, mutex = false) {
 // A process family shares a bounded kernel namespace; handles and wait ownership
 // remain private to each Runtime. Independent uploads never share this state.
 export class SyncDomain {
-  constructor() {
+  constructor(limit = 4096) {
+    this.limit = limit;
     this.names = new Map();
     this.objects = new Set();
     this.members = new Set();
@@ -114,6 +115,8 @@ export class SyncObjects {
   }
   openHandle(object, access, inherit) {
     if (this.disposed || this.handles.size >= 4096 || this.nextHandle >= HANDLE_END)
+      return { status: SYNC.MEMORY };
+    if (!this.domain.objects.has(object) && this.domain.objects.size >= this.domain.limit)
       return { status: SYNC.MEMORY };
     const handle = this.nextHandle;
     this.nextHandle += 4;
