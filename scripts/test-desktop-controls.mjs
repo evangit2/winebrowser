@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createServer } from 'vite';
+
+const nativeCross = JSON.parse(
+  await readFile('tests/fixtures/gdi-pattern/wine-oracle.json', 'utf8'),
+).tiles.find((tile) => tile.name === 'hatch-4').pixels;
 
 const server = await createServer({
   configFile: 'vite.config.js',
@@ -397,7 +402,7 @@ try {
     for (let x = 0; x < 8; x++)
       assert.deepEqual(
         brushPixels.pixels.slice((y * 8 + x) * 4, (y * 8 + x) * 4 + 4),
-        x === 0 || y === 0 ? [232, 240, 255, 255] : [51, 68, 85, 255],
+        nativeCross[y * 8 + x] === 0x784628 ? [232, 240, 255, 255] : [51, 68, 85, 255],
       );
   await page.evaluate(() =>
     window.virtualDesktop.update({
